@@ -1,0 +1,409 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  AGRICULTOR
+  DIRECTIVA
+  ADMINISTRADOR
+}
+
+enum StockMovementType {
+  ENTRADA
+  SALIDA
+  AJUSTE
+}
+
+enum PurchaseStatus {
+  BORRADOR
+  CONFIRMADA
+  RECIBIDA
+  CANCELADA
+}
+
+enum PurchaseType {
+  INDIVIDUAL
+  CONJUNTA
+}
+
+enum PurchasePaymentMode {
+  CONTADO
+  CREDITO
+}
+
+enum PurchaseParticipantStatus {
+  PENDIENTE
+  CONFIRMADO
+  ENTREGADO
+  CANCELADO
+}
+
+enum PayableStatus {
+  PENDIENTE
+  PARCIAL
+  PAGADA
+  VENCIDA
+}
+
+enum SyncOperationStatus {
+  PENDIENTE
+  APLICADA
+  CONFLICTO
+  RECHAZADA
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                   User[]
+  products                Product[]
+  suppliers               Supplier[]
+  warehouses              Warehouse[]
+  inventoryLots           InventoryLot[]
+  stockMovements          StockMovement[]
+  purchases               Purchase[]
+  purchaseItems           PurchaseItem[]
+  purchaseItemAllocations PurchaseItemAllocation[]
+  purchaseParticipants    PurchaseParticipant[]
+  payableAccounts         PayableAccount[]
+  payments                Payment[]
+  syncOperations          SyncOperation[]
+  demandForecasts         DemandForecast[]
+}
+
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(AGRICULTOR)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
+  refreshTokens           RefreshToken[]
+  warehouses              Warehouse[]
+  inventoryLots           InventoryLot[]
+  stockMovements          StockMovement[]          @relation("StockMovementActor")
+  ownedStockMovements     StockMovement[]          @relation("StockMovementOwner")
+  purchases               Purchase[]
+  purchaseItemAllocations PurchaseItemAllocation[]
+  purchaseParticipants    PurchaseParticipant[]
+  payableAccounts         PayableAccount[]
+  payments                Payment[]                @relation("PaymentRegistrar")
+  syncOperations          SyncOperation[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  tenantId  String
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Product {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  name                  String
+  commercialName        String?
+  activeIngredient      String?
+  category              String?
+  unit                  String
+  minimumStock          Decimal  @default(0)
+  currentStock          Decimal  @default(0)
+  expirationWarningDays Int      @default(90)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  inventoryLots   InventoryLot[]
+  movements       StockMovement[]
+  purchaseItems   PurchaseItem[]
+  demandForecasts DemandForecast[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  phone     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  purchases Purchase[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Warehouse {
+  id          String   @id @default(uuid())
+  tenantId    String
+  ownerUserId String?
+  name        String
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  owner     User?           @relation(fields: [ownerUserId], references: [id])
+  lots      InventoryLot[]
+  movements StockMovement[]
+
+  @@index([tenantId])
+  @@index([ownerUserId])
+}
+
+model InventoryLot {
+  id              String    @id @default(uuid())
+  tenantId        String
+  ownerUserId     String
+  productId       String
+  warehouseId     String?
+  purchaseItemId  String?
+  lotNumber       String?
+  expirationDate  DateTime?
+  initialQuantity Decimal
+  currentQuantity Decimal
+  unitCost        Decimal?
+  receivedAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  owner        User            @relation(fields: [ownerUserId], references: [id])
+  product      Product         @relation(fields: [productId], references: [id])
+  warehouse    Warehouse?      @relation(fields: [warehouseId], references: [id])
+  purchaseItem PurchaseItem?   @relation(fields: [purchaseItemId], references: [id])
+  movements    StockMovement[]
+
+  @@index([tenantId, ownerUserId])
+  @@index([productId])
+  @@index([expirationDate])
+}
+
+model StockMovement {
+  id             String            @id @default(uuid())
+  tenantId       String
+  ownerUserId    String
+  productId      String
+  inventoryLotId String?
+  warehouseId    String?
+  userId         String?
+  type           StockMovementType
+  quantity       Decimal
+  reason         String?
+  occurredAt     DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  owner        User          @relation("StockMovementOwner", fields: [ownerUserId], references: [id])
+  product      Product       @relation(fields: [productId], references: [id])
+  inventoryLot InventoryLot? @relation(fields: [inventoryLotId], references: [id])
+  warehouse    Warehouse?    @relation(fields: [warehouseId], references: [id])
+  user         User?         @relation("StockMovementActor", fields: [userId], references: [id])
+
+  @@index([tenantId, ownerUserId, occurredAt])
+  @@index([productId])
+  @@index([inventoryLotId])
+}
+
+model Purchase {
+  id             String              @id @default(uuid())
+  tenantId       String
+  supplierId     String
+  createdById    String?
+  type           PurchaseType        @default(INDIVIDUAL)
+  paymentMode    PurchasePaymentMode @default(CONTADO)
+  status         PurchaseStatus      @default(BORRADOR)
+  purchasedAt    DateTime            @default(now())
+  expectedAt     DateTime?
+  receivedAt     DateTime?
+  totalAmount    Decimal             @default(0)
+  discountAmount Decimal             @default(0)
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  tenant       Tenant                @relation(fields: [tenantId], references: [id])
+  supplier     Supplier              @relation(fields: [supplierId], references: [id])
+  createdBy    User?                 @relation(fields: [createdById], references: [id])
+  items        PurchaseItem[]
+  participants PurchaseParticipant[]
+  payables     PayableAccount[]
+
+  @@index([tenantId, type, status])
+  @@index([supplierId])
+}
+
+model PurchaseItem {
+  id             String  @id @default(uuid())
+  tenantId       String
+  purchaseId     String
+  productId      String
+  quantity       Decimal
+  unitCost       Decimal
+  discountAmount Decimal @default(0)
+  subtotal       Decimal
+
+  tenant        Tenant                   @relation(fields: [tenantId], references: [id])
+  purchase      Purchase                 @relation(fields: [purchaseId], references: [id])
+  product       Product                  @relation(fields: [productId], references: [id])
+  inventoryLots InventoryLot[]
+  allocations   PurchaseItemAllocation[]
+
+  @@index([tenantId, purchaseId])
+  @@index([productId])
+}
+
+model PurchaseItemAllocation {
+  id             String   @id @default(uuid())
+  tenantId       String
+  purchaseItemId String
+  userId         String
+  quantity       Decimal
+  subtotal       Decimal
+  createdAt      DateTime @default(now())
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  purchaseItem PurchaseItem @relation(fields: [purchaseItemId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([purchaseItemId, userId])
+  @@index([tenantId, userId])
+}
+
+model PurchaseParticipant {
+  id              String                    @id @default(uuid())
+  tenantId        String
+  purchaseId      String
+  userId          String
+  status          PurchaseParticipantStatus @default(PENDIENTE)
+  requestedAmount Decimal                   @default(0)
+  allocatedAmount Decimal                   @default(0)
+  notes           String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  purchase Purchase @relation(fields: [purchaseId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([purchaseId, userId])
+  @@index([tenantId, userId])
+}
+
+model PayableAccount {
+  id                String        @id @default(uuid())
+  tenantId          String
+  purchaseId        String
+  responsibleUserId String?
+  dueDate           DateTime
+  totalAmount       Decimal
+  paidAmount        Decimal       @default(0)
+  status            PayableStatus @default(PENDIENTE)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  purchase        Purchase  @relation(fields: [purchaseId], references: [id])
+  responsibleUser User?     @relation(fields: [responsibleUserId], references: [id])
+  payments        Payment[]
+
+  @@index([tenantId, status, dueDate])
+  @@index([purchaseId])
+  @@index([responsibleUserId])
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  tenantId         String
+  payableAccountId String
+  registeredById   String?
+  amount           Decimal
+  paidAt           DateTime @default(now())
+  notes            String?
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  payableAccount PayableAccount @relation(fields: [payableAccountId], references: [id])
+  registeredBy   User?          @relation("PaymentRegistrar", fields: [registeredById], references: [id])
+
+  @@index([tenantId, paidAt])
+  @@index([payableAccountId])
+}
+
+model SyncOperation {
+  id           String              @id @default(uuid())
+  tenantId     String
+  userId       String?
+  clientId     String
+  entityName   String
+  entityId     String?
+  operation    String
+  payload      Json
+  status       SyncOperationStatus @default(PENDIENTE)
+  errorMessage String?
+  createdAt    DateTime            @default(now())
+  appliedAt    DateTime?
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  user      User?          @relation(fields: [userId], references: [id])
+  conflicts SyncConflict[]
+
+  @@index([tenantId, clientId, status])
+  @@index([entityName, entityId])
+}
+
+model SyncConflict {
+  id              String    @id @default(uuid())
+  syncOperationId String
+  serverSnapshot  Json
+  clientSnapshot  Json
+  resolvedPayload Json?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  syncOperation SyncOperation @relation(fields: [syncOperationId], references: [id])
+}
+
+model DemandForecast {
+  id              String   @id @default(uuid())
+  tenantId        String
+  productId       String
+  campaignName    String
+  predictedDemand Decimal
+  confidence      Decimal?
+  generatedAt     DateTime @default(now())
+  metadata        Json?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, productId, generatedAt])
+}
