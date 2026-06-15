@@ -2,7 +2,7 @@
   "name": "agrochemical-inventory-api",
   "version": "0.1.0",
   "private": true,
-  "description": "Backend NestJS para inventario, compras, cuentas por pagar, sincronizacion offline y prediccion de demanda.",
+  "description": "Backend NestJS para inventario, compras, cuentas por pagar y sincronizacion offline.",
   "scripts": {
     "build": "nest build",
     "build:seed": "tsc --project tsconfig.seed.json",

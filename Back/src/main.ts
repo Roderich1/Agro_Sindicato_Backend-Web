@@ -29,7 +29,7 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Agrochemical Inventory API')
-    .setDescription('API para inventario agroquimico, compras, pagos, sincronizacion offline y prediccion de demanda.')
+    .setDescription('API para inventario agroquimico, compras, pagos y sincronizacion offline.')
     .setVersion('0.1.0')
     .addBearerAuth()
     .build();

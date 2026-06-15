@@ -3,13 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AccountsPayableModule } from './modules/accounts-payable/accounts-payable.module';
-import { DemandForecastingModule } from './modules/demand-forecasting/demand-forecasting.module';
 import { IamModule } from './modules/iam/iam.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { UsersModule } from './modules/users/users.module';
-import { VoiceEntryModule } from './modules/voice-entry/voice-entry.module';
 import { PrismaModule } from './shared/infrastructure/persistence/prisma/prisma.module';
 import { envSchema } from './config/env.schema';
 import { HealthController } from './bootstrap/health.controller';
@@ -27,8 +25,6 @@ import { HealthController } from './bootstrap/health.controller';
     ProcurementModule,
     AccountsPayableModule,
     SyncModule,
-    DemandForecastingModule,
-    VoiceEntryModule,
     UsersModule
   ],
   controllers: [HealthController],

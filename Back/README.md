@@ -1,6 +1,6 @@
 # Agrochemical Inventory API
 
-Backend preparado para iniciar el proyecto con NestJS, Prisma, PostgreSQL y JWT, siguiendo una arquitectura modular por dominio.
+Backend NestJS para el MVP web de gestion de agroquimicos, con Prisma, PostgreSQL y JWT, siguiendo una arquitectura modular por dominio.
 
 ## Comandos iniciales
 
@@ -45,9 +45,7 @@ Back
 |   |   |-- inventory
 |   |   |-- procurement
 |   |   |-- accounts-payable
-|   |   |-- sync
-|   |   |-- demand-forecasting
-|   |   `-- voice-entry
+|   |   `-- sync
 |   `-- bootstrap
 `-- test
 ```
@@ -73,6 +71,9 @@ module
 - `inventory`: productos agroquimicos, almacenes y movimientos de stock.
 - `procurement`: proveedores, compras e items de compra.
 - `accounts-payable`: cuentas por pagar y pagos a proveedores.
-- `sync`: operaciones offline enviadas desde Dexie y resolucion de conflictos.
-- `demand-forecasting`: prediccion basica de demanda por producto y campana agricola.
+- `sync`: operaciones offline enviadas desde la PWA y seguimiento de conflictos.
+
+Fuera del alcance funcional actual del MVP salvo pedido explicito:
+
+- `demand-forecasting`: prediccion de demanda.
 - `voice-entry`: entrada por voz y normalizacion de texto para formularios.
