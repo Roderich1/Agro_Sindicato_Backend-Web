@@ -148,7 +148,7 @@ export class SyncOperationsUseCase {
 
   private applyOperation(tenantId: string, userId: string, operation: OfflineOperationDto) {
     switch (operation.operation) {
-      case OfflineOperationType.INITIAL_STOCK:
+      case OfflineOperationType.INITIAL_STOCK: {
         const initialStockPayload = this.validatePayload(
           operation.payload,
           RegisterInitialStockDto,
@@ -158,7 +158,8 @@ export class SyncOperationsUseCase {
           userId,
           initialStockPayload,
         );
-      case OfflineOperationType.STOCK_ENTRY:
+      }
+      case OfflineOperationType.STOCK_ENTRY: {
         const stockEntryPayload = this.validatePayload(
           operation.payload,
           RegisterStockEntryDto,
@@ -168,7 +169,8 @@ export class SyncOperationsUseCase {
           userId,
           stockEntryPayload,
         );
-      case OfflineOperationType.STOCK_EXIT:
+      }
+      case OfflineOperationType.STOCK_EXIT: {
         const stockExitPayload = this.validatePayload(
           operation.payload,
           RegisterStockExitDto,
@@ -178,6 +180,7 @@ export class SyncOperationsUseCase {
           userId,
           stockExitPayload,
         );
+      }
     }
   }
 
