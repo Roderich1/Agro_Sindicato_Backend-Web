@@ -29,7 +29,7 @@ export class CreateJointPurchaseUseCase {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      this.validateAllocations(dto.items);
+      this.validateItems(dto.items);
 
       const participantIds = this.uniqueParticipantIds(dto);
       const participants = await tx.user.findMany({
@@ -87,7 +87,7 @@ export class CreateJointPurchaseUseCase {
         const quantity = this.toDecimal(item.quantity);
         const unitCost = this.toDecimal(item.unitCost);
         const itemDiscount = this.toDecimal(item.discountAmount ?? 0);
-        const subtotal = quantity.mul(unitCost).minus(itemDiscount);
+        const subtotal = this.calculateSubtotal(quantity, unitCost, itemDiscount);
 
         const purchaseItem = await tx.purchaseItem.create({
           data: {
@@ -283,9 +283,20 @@ export class CreateJointPurchaseUseCase {
     });
   }
 
-  private validateAllocations(items: CreateJointPurchaseItemDto[]) {
+  private validateItems(items: CreateJointPurchaseItemDto[]) {
     for (const item of items) {
       const quantity = this.toDecimal(item.quantity);
+      const unitCost = this.toDecimal(item.unitCost);
+      const discount = this.toDecimal(item.discountAmount ?? 0);
+      this.calculateSubtotal(quantity, unitCost, discount);
+
+      const participantIds = item.allocations.map((allocation) => allocation.userId);
+      if (new Set(participantIds).size !== participantIds.length) {
+        throw new BadRequestException(
+          'Un agricultor no puede tener mas de una asignacion para el mismo producto.',
+        );
+      }
+
       const allocated = item.allocations.reduce(
         (total, allocation) => total.plus(this.toDecimal(allocation.quantity)),
         new Prisma.Decimal(0),
@@ -310,8 +321,23 @@ export class CreateJointPurchaseUseCase {
       const quantity = this.toDecimal(item.quantity);
       const unitCost = this.toDecimal(item.unitCost);
       const discount = this.toDecimal(item.discountAmount ?? 0);
-      return total.plus(quantity.mul(unitCost).minus(discount));
+      return total.plus(this.calculateSubtotal(quantity, unitCost, discount));
     }, new Prisma.Decimal(0));
+  }
+
+  private calculateSubtotal(
+    quantity: Prisma.Decimal,
+    unitCost: Prisma.Decimal,
+    discount: Prisma.Decimal,
+  ) {
+    const gross = quantity.mul(unitCost);
+    if (discount.greaterThan(gross)) {
+      throw new BadRequestException(
+        `El descuento (${discount.toString()}) no puede ser mayor al subtotal bruto (${gross.toString()}).`,
+      );
+    }
+
+    return gross.minus(discount);
   }
 
   private async resolveSupplier(tx: TxClient, tenantId: string, dto: SupplierReferenceDto) {

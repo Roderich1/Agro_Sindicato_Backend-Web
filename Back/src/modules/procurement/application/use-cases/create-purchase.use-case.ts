@@ -25,6 +25,7 @@ export class CreatePurchaseUseCase {
     if (dto.paymentMode === PurchasePaymentMode.CREDITO && !dto.dueDate) {
       throw new BadRequestException('La fecha de vencimiento es obligatoria para compras a credito.');
     }
+    this.validateItems(dto.items);
 
     return this.prisma.$transaction(async (tx) => {
       const supplier = await this.resolveSupplier(tx, tenantId, dto.supplier);
@@ -65,7 +66,7 @@ export class CreatePurchaseUseCase {
         const quantity = this.toDecimal(item.quantity);
         const unitCost = this.toDecimal(item.unitCost);
         const itemDiscount = this.toDecimal(item.discountAmount ?? 0);
-        const subtotal = quantity.mul(unitCost).minus(itemDiscount);
+        const subtotal = this.calculateSubtotal(quantity, unitCost, itemDiscount);
 
         const purchaseItem = await tx.purchaseItem.create({
           data: {
@@ -251,8 +252,32 @@ export class CreatePurchaseUseCase {
       const quantity = this.toDecimal(item.quantity);
       const unitCost = this.toDecimal(item.unitCost);
       const discount = this.toDecimal(item.discountAmount ?? 0);
-      return total.plus(quantity.mul(unitCost).minus(discount));
+      return total.plus(this.calculateSubtotal(quantity, unitCost, discount));
     }, new Prisma.Decimal(0));
+  }
+
+  private validateItems(items: CreatePurchaseItemDto[]) {
+    for (const item of items) {
+      const quantity = this.toDecimal(item.quantity);
+      const unitCost = this.toDecimal(item.unitCost);
+      const discount = this.toDecimal(item.discountAmount ?? 0);
+      this.calculateSubtotal(quantity, unitCost, discount);
+    }
+  }
+
+  private calculateSubtotal(
+    quantity: Prisma.Decimal,
+    unitCost: Prisma.Decimal,
+    discount: Prisma.Decimal,
+  ) {
+    const gross = quantity.mul(unitCost);
+    if (discount.greaterThan(gross)) {
+      throw new BadRequestException(
+        `El descuento (${discount.toString()}) no puede ser mayor al subtotal bruto (${gross.toString()}).`,
+      );
+    }
+
+    return gross.minus(discount);
   }
 
   private toDecimal(value: number) {
