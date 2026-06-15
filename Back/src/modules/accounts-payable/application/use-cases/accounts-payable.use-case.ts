@@ -57,6 +57,36 @@ export class AccountsPayableUseCase {
         throw new BadRequestException(`El abono excede el saldo pendiente: ${balance.toString()}.`);
       }
 
+      const maxPaidAmountBeforePayment = payable.totalAmount.minus(amount);
+      const reserved = await tx.payableAccount.updateMany({
+        where: {
+          id: payable.id,
+          tenantId,
+          responsibleUserId: userId,
+          status: { not: PayableStatus.PAGADA },
+          paidAmount: { lte: maxPaidAmountBeforePayment },
+        },
+        data: {
+          paidAmount: { increment: amount },
+        },
+      });
+
+      if (reserved.count !== 1) {
+        throw new BadRequestException(
+          'El abono excede el saldo pendiente. La cuenta fue actualizada por otra operacion, vuelve a intentarlo.',
+        );
+      }
+
+      const payableAfterPayment = await tx.payableAccount.findUniqueOrThrow({
+        where: { id: payable.id },
+        select: { totalAmount: true, paidAmount: true, dueDate: true },
+      });
+      const status = this.resolveStatus(
+        payableAfterPayment.totalAmount,
+        payableAfterPayment.paidAmount,
+        payableAfterPayment.dueDate,
+      );
+
       const payment = await tx.payment.create({
         data: {
           tenantId,
@@ -68,12 +98,9 @@ export class AccountsPayableUseCase {
         },
       });
 
-      const newPaidAmount = payable.paidAmount.plus(amount);
-      const status = this.resolveStatus(payable.totalAmount, newPaidAmount, payable.dueDate);
       const updated = await tx.payableAccount.update({
         where: { id: payable.id },
         data: {
-          paidAmount: newPaidAmount,
           status,
         },
         include: {
