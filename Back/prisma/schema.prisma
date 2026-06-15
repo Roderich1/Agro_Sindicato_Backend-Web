@@ -376,6 +376,7 @@ model SyncOperation {
   user      User?          @relation(fields: [userId], references: [id])
   conflicts SyncConflict[]
 
+  @@unique([tenantId, userId, clientId, entityId])
   @@index([tenantId, clientId, status])
   @@index([entityName, entityId])
 }

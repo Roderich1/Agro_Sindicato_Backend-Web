@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validateSync, ValidationError } from 'class-validator';
 import { Prisma, SyncOperationStatus } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { RegisterInitialStockDto } from '../../../inventory/application/dto/register-initial-stock.dto';
@@ -29,33 +31,25 @@ export class SyncOperationsUseCase {
           userId,
           clientId: dto.clientId,
           entityId: operation.clientOperationId,
-          status: SyncOperationStatus.APLICADA,
         },
       });
 
       if (previous) {
-        results.push({
-          clientOperationId: operation.clientOperationId,
-          operation: operation.operation,
-          status: SyncOperationStatus.APLICADA,
-          duplicate: true,
-          syncOperationId: previous.id,
-        });
+        results.push(this.mapDuplicateResult(operation, previous));
         continue;
       }
 
-      const syncOperation = await this.prisma.syncOperation.create({
-        data: {
-          tenantId,
-          userId,
-          clientId: dto.clientId,
-          entityName: operation.operation,
-          entityId: operation.clientOperationId,
-          operation: operation.operation,
-          payload: operation.payload as Prisma.InputJsonValue,
-          status: SyncOperationStatus.PENDIENTE,
-        },
-      });
+      const syncOperation = await this.createPendingOperation(
+        tenantId,
+        userId,
+        dto.clientId,
+        operation,
+      );
+
+      if (syncOperation.duplicate) {
+        results.push(this.mapDuplicateResult(operation, syncOperation.operation));
+        continue;
+      }
 
       try {
         const appliedResult = await this.applyOperation(tenantId, userId, operation);
@@ -155,24 +149,134 @@ export class SyncOperationsUseCase {
   private applyOperation(tenantId: string, userId: string, operation: OfflineOperationDto) {
     switch (operation.operation) {
       case OfflineOperationType.INITIAL_STOCK:
+        const initialStockPayload = this.validatePayload(
+          operation.payload,
+          RegisterInitialStockDto,
+        );
         return this.inventoryStockUseCase.registerInitialStock(
           tenantId,
           userId,
-          operation.payload as unknown as RegisterInitialStockDto,
+          initialStockPayload,
         );
       case OfflineOperationType.STOCK_ENTRY:
+        const stockEntryPayload = this.validatePayload(
+          operation.payload,
+          RegisterStockEntryDto,
+        );
         return this.inventoryStockUseCase.registerEntry(
           tenantId,
           userId,
-          operation.payload as unknown as RegisterStockEntryDto,
+          stockEntryPayload,
         );
       case OfflineOperationType.STOCK_EXIT:
+        const stockExitPayload = this.validatePayload(
+          operation.payload,
+          RegisterStockExitDto,
+        );
         return this.inventoryStockUseCase.registerExit(
           tenantId,
           userId,
-          operation.payload as unknown as RegisterStockExitDto,
+          stockExitPayload,
         );
     }
+  }
+
+  private async createPendingOperation(
+    tenantId: string,
+    userId: string,
+    clientId: string,
+    operation: OfflineOperationDto,
+  ): Promise<
+    | { duplicate: false; id: string }
+    | {
+        duplicate: true;
+        operation: {
+          id: string;
+          status: SyncOperationStatus;
+          errorMessage: string | null;
+        };
+      }
+  > {
+    try {
+      const created = await this.prisma.syncOperation.create({
+        data: {
+          tenantId,
+          userId,
+          clientId,
+          entityName: operation.operation,
+          entityId: operation.clientOperationId,
+          operation: operation.operation,
+          payload: operation.payload as Prisma.InputJsonValue,
+          status: SyncOperationStatus.PENDIENTE,
+        },
+        select: { id: true },
+      });
+
+      return { duplicate: false, id: created.id };
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) throw error;
+
+      const existing = await this.prisma.syncOperation.findFirst({
+        where: {
+          tenantId,
+          userId,
+          clientId,
+          entityId: operation.clientOperationId,
+        },
+        select: { id: true, status: true, errorMessage: true },
+      });
+
+      if (!existing) throw error;
+      return { duplicate: true, operation: existing };
+    }
+  }
+
+  private mapDuplicateResult(
+    operation: OfflineOperationDto,
+    previous: { id: string; status: SyncOperationStatus; errorMessage: string | null },
+  ) {
+    return {
+      clientOperationId: operation.clientOperationId,
+      operation: operation.operation,
+      status: previous.status,
+      duplicate: true,
+      syncOperationId: previous.id,
+      errorMessage: previous.errorMessage ?? undefined,
+    };
+  }
+
+  private validatePayload<T extends object>(
+    payload: Record<string, unknown>,
+    dto: new () => T,
+  ): T {
+    const instance = plainToInstance(dto, payload);
+    const errors = validateSync(instance, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
+
+    if (errors.length > 0) {
+      throw new BadRequestException(
+        `Payload invalido para sincronizacion: ${this.formatValidationErrors(errors).join('; ')}`,
+      );
+    }
+
+    return instance;
+  }
+
+  private formatValidationErrors(errors: ValidationError[], parent = ''): string[] {
+    return errors.flatMap((error) => {
+      const property = parent ? `${parent}.${error.property}` : error.property;
+      const messages = error.constraints ? Object.values(error.constraints).map((message) => `${property}: ${message}`) : [];
+      return [
+        ...messages,
+        ...this.formatValidationErrors(error.children ?? [], property),
+      ];
+    });
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return Boolean(error && typeof error === 'object' && (error as { code?: string }).code === 'P2002');
   }
 
   private isBusinessConflict(error: unknown) {
