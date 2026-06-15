@@ -168,11 +168,13 @@ export class InventoryStockUseCase {
           ? lot.currentQuantity
           : remaining;
 
-        const updatedLot = await tx.inventoryLot.update({
-          where: { id: lot.id },
-          data: { currentQuantity: { decrement: deducted } },
-          include: { product: true, warehouse: true },
-        });
+        const updatedLot = await this.decrementLotQuantity(
+          tx,
+          tenantId,
+          userId,
+          lot.id,
+          deducted,
+        );
 
         const movement = await tx.stockMovement.create({
           data: {
@@ -196,7 +198,7 @@ export class InventoryStockUseCase {
         remaining = remaining.minus(deducted);
       }
 
-      await this.decrementProductStock(tx, dto.productId, quantity);
+      await this.decrementProductStock(tx, tenantId, dto.productId, quantity);
 
       return {
         message: 'Salida de agroquimico registrada correctamente.',
@@ -503,11 +505,55 @@ export class InventoryStockUseCase {
     });
   }
 
-  private async decrementProductStock(tx: TxClient, productId: string, quantity: Prisma.Decimal) {
-    await tx.product.update({
-      where: { id: productId },
+  private async decrementLotQuantity(
+    tx: TxClient,
+    tenantId: string,
+    userId: string,
+    lotId: string,
+    quantity: Prisma.Decimal,
+  ) {
+    const updated = await tx.inventoryLot.updateMany({
+      where: {
+        id: lotId,
+        tenantId,
+        ownerUserId: userId,
+        currentQuantity: { gte: quantity },
+      },
+      data: { currentQuantity: { decrement: quantity } },
+    });
+
+    if (updated.count !== 1) {
+      throw new BadRequestException(
+        'Stock insuficiente. El inventario fue actualizado por otra operacion, vuelve a intentarlo.',
+      );
+    }
+
+    return tx.inventoryLot.findUniqueOrThrow({
+      where: { id: lotId },
+      include: { product: true, warehouse: true },
+    });
+  }
+
+  private async decrementProductStock(
+    tx: TxClient,
+    tenantId: string,
+    productId: string,
+    quantity: Prisma.Decimal,
+  ) {
+    const updated = await tx.product.updateMany({
+      where: {
+        id: productId,
+        tenantId,
+        currentStock: { gte: quantity },
+      },
       data: { currentStock: { decrement: quantity } },
     });
+
+    if (updated.count !== 1) {
+      throw new BadRequestException(
+        'Stock global insuficiente. El inventario fue actualizado por otra operacion, vuelve a intentarlo.',
+      );
+    }
   }
 
   private toDecimal(value: number) {
