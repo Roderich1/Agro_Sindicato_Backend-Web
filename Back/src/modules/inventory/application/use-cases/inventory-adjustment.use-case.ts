@@ -34,11 +34,7 @@ export class InventoryAdjustmentUseCase {
     quantity: Prisma.Decimal,
   ) {
     const lot = dto.inventoryLotId
-      ? await tx.inventoryLot.update({
-          where: { id: dto.inventoryLotId },
-          data: { currentQuantity: { increment: quantity } },
-          include: { product: true, warehouse: true },
-        })
+      ? await this.incrementExistingLot(tx, tenantId, userId, dto.productId, dto.inventoryLotId, quantity)
       : await tx.inventoryLot.create({
           data: {
             tenantId,
@@ -56,10 +52,6 @@ export class InventoryAdjustmentUseCase {
           },
           include: { product: true, warehouse: true },
         });
-
-    if (lot.tenantId !== tenantId || lot.ownerUserId !== userId) {
-      throw new NotFoundException('El lote no existe para este agricultor.');
-    }
 
     await tx.product.update({
       where: { id: dto.productId },
@@ -86,6 +78,34 @@ export class InventoryAdjustmentUseCase {
       lot: this.mapLot(lot),
       movement: this.mapMovement(movement),
     };
+  }
+
+  private async incrementExistingLot(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    userId: string,
+    productId: string,
+    lotId: string,
+    quantity: Prisma.Decimal,
+  ) {
+    const existingLot = await tx.inventoryLot.findFirst({
+      where: {
+        id: lotId,
+        tenantId,
+        ownerUserId: userId,
+        productId,
+      },
+    });
+
+    if (!existingLot) {
+      throw new NotFoundException('El lote no existe para este agricultor y producto.');
+    }
+
+    return tx.inventoryLot.update({
+      where: { id: lotId },
+      data: { currentQuantity: { increment: quantity } },
+      include: { product: true, warehouse: true },
+    });
   }
 
   private async decrement(
