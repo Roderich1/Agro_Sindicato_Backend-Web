@@ -77,7 +77,9 @@ function Drawer({ isOpen, onClose, title, children }: DrawerProps) {
   return (
     <>
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="Cerrar panel"
         className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm transition-opacity animate-fade-in"
         onClick={onClose}
       />
