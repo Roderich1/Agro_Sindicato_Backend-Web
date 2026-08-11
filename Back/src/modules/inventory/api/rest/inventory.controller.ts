@@ -71,6 +71,17 @@ export class InventoryController {
     return this.productCatalogUseCase.update(user.tenantId, id, dto);
   }
 
+  @Post('products/:id/deactivate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Inactivar un producto agroquimico sin borrar su historial' })
+  async deactivateProduct(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    this.logger.log(`[INVENTORY PRODUCT_DEACTIVATE] userId=${user.sub} tenantId=${user.tenantId} productId=${id}`);
+    return this.productCatalogUseCase.deactivate(user.tenantId, id);
+  }
+
   @Post('initial-stock')
   @ApiOperation({ summary: 'Registrar inventario inicial del agricultor autenticado' })
   async registerInitialStock(

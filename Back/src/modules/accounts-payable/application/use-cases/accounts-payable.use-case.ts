@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PayableStatus, Prisma } from '@prisma/client';
+import { CalendarEventStatus, PayableStatus, Prisma, PurchaseType, UserRole } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { ListPayablesQueryDto } from '../dto/list-payables-query.dto';
 import { RegisterPaymentDto } from '../dto/register-payment.dto';
@@ -8,21 +8,16 @@ import { RegisterPaymentDto } from '../dto/register-payment.dto';
 export class AccountsPayableUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(tenantId: string, userId: string, query: ListPayablesQueryDto) {
-    await this.markOverdue(tenantId, userId);
+  async list(tenantId: string, userId: string, role: string, query: ListPayablesQueryDto) {
+    const where = this.buildWhere(tenantId, userId, role, query);
+    await this.markOverdue(where);
 
     const payables = await this.prisma.payableAccount.findMany({
-      where: {
-        tenantId,
-        responsibleUserId: userId,
-        ...(query.status ? { status: query.status } : {}),
-        ...(query.supplierId
-          ? { purchase: { supplierId: query.supplierId } }
-          : {}),
-      },
+      where,
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
       include: {
         purchase: { include: { supplier: true, items: { include: { product: true } } } },
+        responsibleUser: { select: { id: true, name: true, email: true } },
         payments: { orderBy: { paidAt: 'desc' } },
       },
     });
@@ -33,12 +28,13 @@ export class AccountsPayableUseCase {
   async registerPayment(
     tenantId: string,
     userId: string,
+    role: string,
     payableId: string,
     dto: RegisterPaymentDto,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const payable = await tx.payableAccount.findFirst({
-        where: { id: payableId, tenantId, responsibleUserId: userId },
+        where: this.buildPaymentWhere(tenantId, userId, role, payableId),
         include: { purchase: { include: { supplier: true } } },
       });
 
@@ -62,7 +58,7 @@ export class AccountsPayableUseCase {
         where: {
           id: payable.id,
           tenantId,
-          responsibleUserId: userId,
+          ...(role === UserRole.AGRICULTOR ? { responsibleUserId: userId } : {}),
           status: { not: PayableStatus.PAGADA },
           paidAmount: { lte: maxPaidAmountBeforePayment },
         },
@@ -90,6 +86,7 @@ export class AccountsPayableUseCase {
       const payment = await tx.payment.create({
         data: {
           tenantId,
+          campaignId: payable.campaignId,
           payableAccountId: payable.id,
           registeredById: userId,
           amount,
@@ -105,14 +102,28 @@ export class AccountsPayableUseCase {
         },
         include: {
           purchase: { include: { supplier: true, items: { include: { product: true } } } },
+          responsibleUser: { select: { id: true, name: true, email: true } },
           payments: { orderBy: { paidAt: 'desc' } },
         },
       });
+
+      if (status === PayableStatus.PAGADA) {
+        await tx.calendarEvent.updateMany({
+          where: {
+            tenantId,
+            sourceEntity: 'PayableAccount',
+            sourceEntityId: payable.id,
+            status: CalendarEventStatus.PENDIENTE,
+          },
+          data: { status: CalendarEventStatus.COMPLETADO },
+        });
+      }
 
       return {
         message: status === PayableStatus.PAGADA ? 'Cuenta pagada completamente.' : 'Abono registrado correctamente.',
         payment: {
           id: payment.id,
+          campaignId: payment.campaignId,
           amount: payment.amount.toString(),
           paidAt: payment.paidAt.toISOString(),
           notes: payment.notes,
@@ -123,8 +134,12 @@ export class AccountsPayableUseCase {
   }
 
   async payTotal(tenantId: string, userId: string, payableId: string, notes?: string) {
+    return this.payTotalForRole(tenantId, userId, UserRole.AGRICULTOR, payableId, notes);
+  }
+
+  async payTotalForRole(tenantId: string, userId: string, role: string, payableId: string, notes?: string) {
     const payable = await this.prisma.payableAccount.findFirst({
-      where: { id: payableId, tenantId, responsibleUserId: userId },
+      where: this.buildPaymentWhere(tenantId, userId, role, payableId),
     });
 
     if (!payable) {
@@ -136,17 +151,16 @@ export class AccountsPayableUseCase {
       throw new BadRequestException('La cuenta ya se encuentra pagada.');
     }
 
-    return this.registerPayment(tenantId, userId, payableId, {
+    return this.registerPayment(tenantId, userId, role, payableId, {
       amount: Number(balance.toString()),
       notes,
     });
   }
 
-  private async markOverdue(tenantId: string, userId: string) {
+  private async markOverdue(where: Prisma.PayableAccountWhereInput) {
     await this.prisma.payableAccount.updateMany({
       where: {
-        tenantId,
-        responsibleUserId: userId,
+        ...where,
         status: { in: [PayableStatus.PENDIENTE, PayableStatus.PARCIAL] },
         dueDate: { lt: new Date() },
       },
@@ -161,8 +175,46 @@ export class AccountsPayableUseCase {
     return PayableStatus.PENDIENTE;
   }
 
+  private buildWhere(
+    tenantId: string,
+    userId: string,
+    role: string,
+    query: ListPayablesQueryDto,
+  ): Prisma.PayableAccountWhereInput {
+    return {
+      tenantId,
+      ...(role === UserRole.AGRICULTOR
+        ? { responsibleUserId: userId }
+        : query.ownerUserId
+          ? { responsibleUserId: query.ownerUserId }
+          : {}),
+      ...(query.campaignId ? { campaignId: query.campaignId } : {}),
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.supplierId ? { purchase: { supplierId: query.supplierId } } : {}),
+    };
+  }
+
+  private buildPaymentWhere(
+    tenantId: string,
+    userId: string,
+    role: string,
+    payableId: string,
+  ): Prisma.PayableAccountWhereInput {
+    if (role === UserRole.DIRECTIVA || role === UserRole.ADMINISTRADOR) {
+      return {
+        id: payableId,
+        tenantId,
+        purchase: { type: PurchaseType.CONJUNTA },
+      };
+    }
+
+    return { id: payableId, tenantId, responsibleUserId: userId };
+  }
+
   private mapPayable(payable: {
     id: string;
+    campaignId: string | null;
+    responsibleUserId: string | null;
     dueDate: Date;
     totalAmount: Prisma.Decimal;
     paidAmount: Prisma.Decimal;
@@ -180,8 +232,10 @@ export class AccountsPayableUseCase {
         product: { id: string; name: string; unit: string };
       }[];
     };
+    responsibleUser?: { id: string; name: string; email: string } | null;
     payments?: {
       id: string;
+      campaignId?: string | null;
       amount: Prisma.Decimal;
       paidAt: Date;
       notes: string | null;
@@ -190,7 +244,10 @@ export class AccountsPayableUseCase {
     const balance = payable.totalAmount.minus(payable.paidAmount);
     return {
       id: payable.id,
+      campaignId: payable.campaignId,
       purchaseId: payable.purchase.id,
+      responsibleUserId: payable.responsibleUserId,
+      responsibleUser: payable.responsibleUser ?? null,
       supplier: payable.purchase.supplier,
       dueDate: payable.dueDate.toISOString(),
       totalAmount: payable.totalAmount.toString(),
@@ -210,6 +267,7 @@ export class AccountsPayableUseCase {
       payments:
         payable.payments?.map((payment) => ({
           id: payment.id,
+          campaignId: payment.campaignId ?? null,
           amount: payment.amount.toString(),
           paidAt: payment.paidAt.toISOString(),
           notes: payment.notes,

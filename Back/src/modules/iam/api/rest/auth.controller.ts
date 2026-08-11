@@ -34,9 +34,12 @@ function requestSource(req: Request): string {
 }
 
 function cookieOptions(maxAgeMs: number) {
+  const secureCookie = process.env['COOKIE_SECURE'] === 'true'
+    || (process.env['COOKIE_SECURE'] !== 'false' && process.env['NODE_ENV'] === 'production');
+
   return {
     httpOnly: true,
-    secure: process.env['NODE_ENV'] === 'production',
+    secure: secureCookie,
     sameSite: 'strict' as const,
     maxAge: maxAgeMs,
     path: '/api/v1/auth',

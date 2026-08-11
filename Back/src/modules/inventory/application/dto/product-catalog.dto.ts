@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsBoolean, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 export class ListProductsQueryDto {
   @ApiPropertyOptional({ example: 'glifosato' })
@@ -13,6 +14,16 @@ export class ListProductsQueryDto {
   @IsString()
   @MaxLength(80)
   category?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  isActive?: boolean;
 }
 
 export class CreateProductDto {
@@ -39,6 +50,36 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(80)
   category?: string;
+
+  @ApiPropertyOptional({ example: 'II - Moderadamente peligroso', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  toxicologicalCategory?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://example.com/fds/glifosato.pdf', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  safetyDataSheetUrl?: string | null;
+
+  @ApiPropertyOptional({ example: 'FDS Glifosato 48%', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  safetyDataSheetName?: string | null;
+
+  @ApiPropertyOptional({ example: 'Usar guantes, mascara y evitar deriva.', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  safetyInstructions?: string | null;
+
+  @ApiPropertyOptional({ example: 'AGRO-PRODUCT-GLIFOSATO-48', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  qrCodeValue?: string | null;
 
   @ApiProperty({ example: 'L' })
   @IsString()
@@ -85,6 +126,36 @@ export class UpdateProductDto {
   @IsString()
   @MaxLength(80)
   category?: string;
+
+  @ApiPropertyOptional({ example: 'II - Moderadamente peligroso', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  toxicologicalCategory?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://example.com/fds/glifosato.pdf', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  safetyDataSheetUrl?: string | null;
+
+  @ApiPropertyOptional({ example: 'FDS Glifosato 48%', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  safetyDataSheetName?: string | null;
+
+  @ApiPropertyOptional({ example: 'Usar guantes, mascara y evitar deriva.', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  safetyInstructions?: string | null;
+
+  @ApiPropertyOptional({ example: 'AGRO-PRODUCT-GLIFOSATO-48', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  qrCodeValue?: string | null;
 
   @ApiPropertyOptional({ example: 'L' })
   @IsOptional()

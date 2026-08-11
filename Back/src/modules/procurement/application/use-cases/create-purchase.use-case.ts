@@ -1,12 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  CalendarEventStatus,
+  CalendarEventType,
   PayableStatus,
   Prisma,
   PurchasePaymentMode,
   PurchaseStatus,
   PurchaseType,
+  StockMovementReasonType,
   StockMovementType,
 } from '@prisma/client';
+import { CampaignContextService } from '@/modules/campaigns/application/services/campaign-context.service';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import {
   CreatePurchaseDto,
@@ -19,7 +23,10 @@ type TxClient = Prisma.TransactionClient;
 
 @Injectable()
 export class CreatePurchaseUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly campaignContext: CampaignContextService,
+  ) {}
 
   async execute(tenantId: string, userId: string, dto: CreatePurchaseDto) {
     if (dto.paymentMode === PurchasePaymentMode.CREDITO && !dto.dueDate) {
@@ -28,6 +35,11 @@ export class CreatePurchaseUseCase {
     this.validateItems(dto.items);
 
     return this.prisma.$transaction(async (tx) => {
+      const campaign = await this.campaignContext.resolveCampaignForOperation(
+        tenantId,
+        dto.campaignId,
+        tx,
+      );
       const supplier = await this.resolveSupplier(tx, tenantId, dto.supplier);
       const warehouse = await this.resolveWarehouse(tx, tenantId, userId, {
         warehouseId: dto.warehouseId,
@@ -39,17 +51,23 @@ export class CreatePurchaseUseCase {
         (total, item) => total.plus(this.toDecimal(item.discountAmount ?? 0)),
         new Prisma.Decimal(0),
       );
+      const status = dto.status ?? PurchaseStatus.RECIBIDA;
+      const receivesStock = status === PurchaseStatus.RECIBIDA || status === PurchaseStatus.RECIBIDA_PARCIAL;
+      const purchasedAt = dto.purchasedAt ? new Date(dto.purchasedAt) : new Date();
+      const expectedAt = dto.expectedAt ? new Date(dto.expectedAt) : null;
 
       const purchase = await tx.purchase.create({
         data: {
           tenantId,
+          campaignId: campaign.id,
           supplierId: supplier.id,
           createdById: userId,
           type: PurchaseType.INDIVIDUAL,
           paymentMode: dto.paymentMode,
-          status: PurchaseStatus.RECIBIDA,
-          purchasedAt: dto.purchasedAt ? new Date(dto.purchasedAt) : new Date(),
-          receivedAt: new Date(),
+          status,
+          purchasedAt,
+          expectedAt,
+          receivedAt: receivesStock ? new Date() : null,
           totalAmount,
           discountAmount,
           notes: dto.notes,
@@ -64,6 +82,7 @@ export class CreatePurchaseUseCase {
       for (const item of dto.items) {
         const product = await this.resolveProduct(tx, tenantId, item.product);
         const quantity = this.toDecimal(item.quantity);
+        const receivedQuantity = this.toDecimal(item.receivedQuantity ?? item.quantity);
         const unitCost = this.toDecimal(item.unitCost);
         const itemDiscount = this.toDecimal(item.discountAmount ?? 0);
         const subtotal = this.calculateSubtotal(quantity, unitCost, itemDiscount);
@@ -81,45 +100,55 @@ export class CreatePurchaseUseCase {
           include: { product: true },
         });
 
-        const lot = await tx.inventoryLot.create({
-          data: {
-            tenantId,
-            ownerUserId: userId,
-            productId: product.id,
-            warehouseId: warehouse?.id,
-            purchaseItemId: purchaseItem.id,
-            lotNumber: item.lotNumber,
-            expirationDate: item.expirationDate ? new Date(item.expirationDate) : null,
-            initialQuantity: quantity,
-            currentQuantity: quantity,
-            unitCost,
-          },
-          include: { product: true, warehouse: true },
-        });
+        if (receivesStock && receivedQuantity.greaterThan(0)) {
+          if (receivedQuantity.greaterThan(quantity)) {
+            throw new BadRequestException('La cantidad recibida no puede superar la cantidad comprada.');
+          }
 
-        const movement = await tx.stockMovement.create({
-          data: {
-            tenantId,
-            ownerUserId: userId,
-            productId: product.id,
-            inventoryLotId: lot.id,
-            warehouseId: warehouse?.id,
-            userId,
-            type: StockMovementType.ENTRADA,
-            quantity,
-            reason: `COMPRA_${dto.paymentMode}`,
-          },
-          include: { product: true, inventoryLot: true, warehouse: true },
-        });
+          const lot = await tx.inventoryLot.create({
+            data: {
+              tenantId,
+              ownerUserId: userId,
+              campaignId: campaign.id,
+              productId: product.id,
+              warehouseId: warehouse?.id,
+              purchaseItemId: purchaseItem.id,
+              lotNumber: item.lotNumber,
+              expirationDate: item.expirationDate ? new Date(item.expirationDate) : null,
+              initialQuantity: receivedQuantity,
+              currentQuantity: receivedQuantity,
+              unitCost,
+            },
+            include: { product: true, warehouse: true },
+          });
 
-        await tx.product.update({
-          where: { id: product.id },
-          data: { currentStock: { increment: quantity } },
-        });
+          const movement = await tx.stockMovement.create({
+            data: {
+              tenantId,
+              ownerUserId: userId,
+              campaignId: campaign.id,
+              productId: product.id,
+              inventoryLotId: lot.id,
+              warehouseId: warehouse?.id,
+              userId,
+              type: StockMovementType.ENTRADA,
+              reasonType: StockMovementReasonType.COMPRA,
+              quantity: receivedQuantity,
+              reason: `COMPRA_${dto.paymentMode}`,
+            },
+            include: { product: true, inventoryLot: true, warehouse: true },
+          });
+
+          await tx.product.update({
+            where: { id: product.id },
+            data: { currentStock: { increment: receivedQuantity } },
+          });
+
+          createdLots.push(this.mapLot(lot));
+          createdMovements.push(this.mapMovement(movement));
+        }
 
         createdItems.push(this.mapPurchaseItem(purchaseItem));
-        createdLots.push(this.mapLot(lot));
-        createdMovements.push(this.mapMovement(movement));
       }
 
       const payable =
@@ -127,6 +156,7 @@ export class CreatePurchaseUseCase {
           ? await tx.payableAccount.create({
               data: {
                 tenantId,
+                campaignId: campaign.id,
                 purchaseId: purchase.id,
                 responsibleUserId: userId,
                 dueDate: new Date(dto.dueDate as string),
@@ -138,16 +168,54 @@ export class CreatePurchaseUseCase {
             })
           : null;
 
+      if (payable) {
+        await tx.calendarEvent.create({
+          data: {
+            tenantId,
+            campaignId: campaign.id,
+            ownerUserId: userId,
+            type: CalendarEventType.PAGO_PROXIMO,
+            status: CalendarEventStatus.PENDIENTE,
+            title: `Pago pendiente a ${supplier.name}`,
+            description: `Cuenta por pagar de compra ${purchase.id}.`,
+            eventDate: payable.dueDate,
+            sourceEntity: 'PayableAccount',
+            sourceEntityId: payable.id,
+            metadata: { purchaseId: purchase.id, totalAmount: payable.totalAmount.toString() },
+          },
+        });
+      }
+
+      if (status === PurchaseStatus.PROGRAMADA) {
+        await tx.calendarEvent.create({
+          data: {
+            tenantId,
+            campaignId: campaign.id,
+            ownerUserId: userId,
+            type: CalendarEventType.COMPRA_PROGRAMADA,
+            status: CalendarEventStatus.PENDIENTE,
+            title: `Compra programada con ${supplier.name}`,
+            description: dto.notes ?? null,
+            eventDate: expectedAt ?? purchasedAt,
+            sourceEntity: 'Purchase',
+            sourceEntityId: purchase.id,
+            metadata: { paymentMode: dto.paymentMode, totalAmount: totalAmount.toString() },
+          },
+        });
+      }
+
       return {
         message: 'Compra registrada correctamente.',
         purchase: {
           id: purchase.id,
+          campaignId: purchase.campaignId,
           supplier: { id: supplier.id, name: supplier.name },
           paymentMode: purchase.paymentMode,
           status: purchase.status,
           totalAmount: purchase.totalAmount.toString(),
           discountAmount: purchase.discountAmount.toString(),
           purchasedAt: purchase.purchasedAt.toISOString(),
+          expectedAt: purchase.expectedAt?.toISOString() ?? null,
           receivedAt: purchase.receivedAt?.toISOString() ?? null,
         },
         items: createdItems,
@@ -156,6 +224,7 @@ export class CreatePurchaseUseCase {
         payable: payable
           ? {
               id: payable.id,
+              campaignId: payable.campaignId,
               dueDate: payable.dueDate.toISOString(),
               totalAmount: payable.totalAmount.toString(),
               paidAmount: payable.paidAmount.toString(),
@@ -259,8 +328,12 @@ export class CreatePurchaseUseCase {
   private validateItems(items: CreatePurchaseItemDto[]) {
     for (const item of items) {
       const quantity = this.toDecimal(item.quantity);
+      const receivedQuantity = this.toDecimal(item.receivedQuantity ?? item.quantity);
       const unitCost = this.toDecimal(item.unitCost);
       const discount = this.toDecimal(item.discountAmount ?? 0);
+      if (receivedQuantity.greaterThan(quantity)) {
+        throw new BadRequestException('La cantidad recibida no puede superar la cantidad comprada.');
+      }
       this.calculateSubtotal(quantity, unitCost, discount);
     }
   }
@@ -304,6 +377,7 @@ export class CreatePurchaseUseCase {
 
   private mapLot(lot: {
     id: string;
+    campaignId?: string | null;
     lotNumber: string | null;
     expirationDate: Date | null;
     currentQuantity: Prisma.Decimal;
@@ -312,6 +386,7 @@ export class CreatePurchaseUseCase {
   }) {
     return {
       id: lot.id,
+      campaignId: lot.campaignId ?? null,
       product: lot.product,
       warehouse: lot.warehouse,
       lotNumber: lot.lotNumber,
@@ -322,7 +397,9 @@ export class CreatePurchaseUseCase {
 
   private mapMovement(movement: {
     id: string;
+    campaignId?: string | null;
     type: StockMovementType;
+    reasonType?: StockMovementReasonType | null;
     quantity: Prisma.Decimal;
     reason: string | null;
     occurredAt: Date;
@@ -332,7 +409,9 @@ export class CreatePurchaseUseCase {
   }) {
     return {
       id: movement.id,
+      campaignId: movement.campaignId ?? null,
       type: movement.type,
+      reasonType: movement.reasonType ?? null,
       quantity: movement.quantity.toString(),
       reason: movement.reason,
       occurredAt: movement.occurredAt.toISOString(),

@@ -18,9 +18,9 @@ export class AccountsPayableController {
   constructor(private readonly accountsPayableUseCase: AccountsPayableUseCase) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar cuentas por pagar del agricultor autenticado' })
+  @ApiOperation({ summary: 'Listar cuentas por pagar visibles para el usuario autenticado' })
   async list(@CurrentUser() user: JwtPayload, @Query() query: ListPayablesQueryDto) {
-    return this.accountsPayableUseCase.list(user.tenantId, user.sub, query);
+    return this.accountsPayableUseCase.list(user.tenantId, user.sub, user.role, query);
   }
 
   @Post(':id/payments')
@@ -31,7 +31,7 @@ export class AccountsPayableController {
     @Body() dto: RegisterPaymentDto,
   ) {
     this.logger.log(`[PAYABLE PAYMENT] userId=${user.sub} tenantId=${user.tenantId} payableId=${id}`);
-    return this.accountsPayableUseCase.registerPayment(user.tenantId, user.sub, id, dto);
+    return this.accountsPayableUseCase.registerPayment(user.tenantId, user.sub, user.role, id, dto);
   }
 
   @Post(':id/pay-total')
@@ -42,6 +42,6 @@ export class AccountsPayableController {
     @Body() body: { notes?: string },
   ) {
     this.logger.log(`[PAYABLE PAY_TOTAL] userId=${user.sub} tenantId=${user.tenantId} payableId=${id}`);
-    return this.accountsPayableUseCase.payTotal(user.tenantId, user.sub, id, body.notes);
+    return this.accountsPayableUseCase.payTotalForRole(user.tenantId, user.sub, user.role, id, body.notes);
   }
 }

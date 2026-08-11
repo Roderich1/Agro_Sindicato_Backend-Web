@@ -1,25 +1,31 @@
 import { NotFoundException } from '@nestjs/common';
-import { Prisma, StockMovementType } from '@prisma/client';
+import { CampaignStatus, Prisma, StockMovementReasonType, StockMovementType } from '@prisma/client';
 import { InventoryAdjustmentUseCase } from './inventory-adjustment.use-case';
-import {
-  StockAdjustmentDirection,
-  StockAdjustmentReason,
-} from '../dto/register-stock-adjustment.dto';
+import { StockAdjustmentDirection } from '../dto/register-stock-adjustment.dto';
 
 describe('InventoryAdjustmentUseCase', () => {
   const tenantId = 'tenant-1';
   const userId = 'user-1';
   const productId = 'product-1';
   const lotId = 'lot-1';
+  const campaignId = 'campaign-1';
 
   function createUseCase(tx: Record<string, unknown>) {
     const prisma = {
       $transaction: jest.fn((callback: (client: unknown) => unknown) => callback(tx)),
     };
+    const campaignContext = {
+      resolveCampaignForOperation: jest.fn().mockResolvedValue({
+        id: campaignId,
+        status: CampaignStatus.ABIERTA,
+        isActive: true,
+      }),
+    };
 
     return {
       prisma,
-      useCase: new InventoryAdjustmentUseCase(prisma as never),
+      campaignContext,
+      useCase: new InventoryAdjustmentUseCase(prisma as never, campaignContext as never),
     };
   }
 
@@ -44,7 +50,7 @@ describe('InventoryAdjustmentUseCase', () => {
         productId,
         inventoryLotId: lotId,
         direction: StockAdjustmentDirection.INCREMENTO,
-        reasonType: StockAdjustmentReason.CORRECCION,
+        reasonType: StockMovementReasonType.AJUSTE,
         quantity: 2,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -75,9 +81,11 @@ describe('InventoryAdjustmentUseCase', () => {
     };
     const movement = {
       id: 'movement-1',
+      campaignId,
       type: StockMovementType.AJUSTE,
+      reasonType: StockMovementReasonType.AJUSTE,
       quantity,
-      reason: 'CORRECCION: INCREMENTO: Conteo fisico',
+      reason: 'AJUSTE: INCREMENTO: Conteo fisico',
       occurredAt: new Date('2026-01-01T00:00:00.000Z'),
       product: lot.product,
       inventoryLot: { id: lotId, lotNumber: 'LOTE-1' },
@@ -95,18 +103,22 @@ describe('InventoryAdjustmentUseCase', () => {
       stockMovement: {
         create: jest.fn().mockResolvedValue(movement),
       },
+      auditLog: {
+        create: jest.fn(),
+      },
     };
-    const { useCase } = createUseCase(tx);
+    const { campaignContext, useCase } = createUseCase(tx);
 
     const result = await useCase.execute(tenantId, userId, {
       productId,
       inventoryLotId: lotId,
       direction: StockAdjustmentDirection.INCREMENTO,
-      reasonType: StockAdjustmentReason.CORRECCION,
+      reasonType: StockMovementReasonType.AJUSTE,
       quantity: 2,
       reason: 'Conteo fisico',
     });
 
+    expect(campaignContext.resolveCampaignForOperation).toHaveBeenCalledWith(tenantId, undefined, tx);
     expect(tx.inventoryLot.findFirst).toHaveBeenCalledWith({
       where: {
         id: lotId,
@@ -119,6 +131,19 @@ describe('InventoryAdjustmentUseCase', () => {
       where: { id: lotId },
       data: { currentQuantity: { increment: quantity } },
       include: { product: true, warehouse: true },
+    });
+    expect(tx.stockMovement.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        campaignId,
+        reasonType: StockMovementReasonType.AJUSTE,
+      }),
+      include: { product: true, inventoryLot: true, warehouse: true, user: true },
+    });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        campaignId,
+        action: 'AJUSTAR_STOCK',
+      }),
     });
     expect(result.message).toBe('Ajuste de incremento registrado correctamente.');
     expect('lot' in result).toBe(true);

@@ -70,6 +70,9 @@ export class ListPurchasesUseCase {
   private includeSummary() {
     return {
       supplier: true,
+      campaign: {
+        select: { id: true, name: true, status: true, isActive: true },
+      },
       createdBy: {
         select: { id: true, name: true, email: true, role: true },
       },
@@ -95,6 +98,8 @@ export class ListPurchasesUseCase {
   private map(purchase: Prisma.PurchaseGetPayload<{ include: ReturnType<ListPurchasesUseCase['includeSummary']> }>) {
     return {
       id: purchase.id,
+      campaignId: purchase.campaignId,
+      campaign: purchase.campaign,
       type: purchase.type,
       paymentMode: purchase.paymentMode,
       status: purchase.status,
@@ -131,6 +136,7 @@ export class ListPurchasesUseCase {
       })),
       payables: purchase.payables.map((payable) => ({
         id: payable.id,
+        campaignId: payable.campaignId,
         responsibleUser: payable.responsibleUser,
         dueDate: payable.dueDate.toISOString(),
         totalAmount: payable.totalAmount.toString(),

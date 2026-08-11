@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, StockMovementType } from '@prisma/client';
+import { Prisma, StockMovementReasonType, StockMovementType } from '@prisma/client';
+import { CampaignContextService } from '@/modules/campaigns/application/services/campaign-context.service';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { ListStockMovementsQueryDto } from '../dto/list-stock-movements-query.dto';
 import { ListGlobalStockQueryDto } from '../dto/list-global-stock-query.dto';
@@ -20,10 +21,14 @@ type TxClient = Prisma.TransactionClient;
 
 @Injectable()
 export class InventoryStockUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly campaignContext: CampaignContextService,
+  ) {}
 
   async registerInitialStock(tenantId: string, userId: string, dto: RegisterInitialStockDto) {
     return this.prisma.$transaction(async (tx) => {
+      const campaign = await this.campaignContext.requireActiveCampaign(tenantId, tx);
       const product = await this.resolveProduct(tx, tenantId, dto.product);
       const warehouse = await this.resolveWarehouse(tx, tenantId, userId, {
         warehouseId: dto.warehouseId,
@@ -36,6 +41,7 @@ export class InventoryStockUseCase {
         data: {
           tenantId,
           ownerUserId: userId,
+          campaignId: campaign.id,
           productId: product.id,
           warehouseId: warehouse?.id,
           lotNumber: dto.lotNumber,
@@ -52,11 +58,13 @@ export class InventoryStockUseCase {
         data: {
           tenantId,
           ownerUserId: userId,
+          campaignId: campaign.id,
           productId: product.id,
           inventoryLotId: lot.id,
           warehouseId: warehouse?.id,
           userId,
           type: StockMovementType.ENTRADA,
+          reasonType: StockMovementReasonType.ENTRADA_SIMPLE,
           quantity,
           reason: this.withPrefix('INVENTARIO_INICIAL', dto.notes),
         },
@@ -73,6 +81,15 @@ export class InventoryStockUseCase {
 
   async registerEntry(tenantId: string, userId: string, dto: RegisterStockEntryDto) {
     return this.prisma.$transaction(async (tx) => {
+      if (dto.entryReason === StockEntryReason.ENTRADA_SIMPLE && !dto.notes?.trim()) {
+        throw new BadRequestException('La entrada simple debe incluir un motivo.');
+      }
+
+      const campaign = await this.campaignContext.resolveCampaignForOperation(
+        tenantId,
+        dto.campaignId,
+        tx,
+      );
       const product = await this.resolveProduct(tx, tenantId, dto.product);
       const warehouse = await this.resolveWarehouse(tx, tenantId, userId, {
         warehouseId: dto.warehouseId,
@@ -89,6 +106,7 @@ export class InventoryStockUseCase {
         data: {
           tenantId,
           ownerUserId: userId,
+          campaignId: campaign.id,
           productId: product.id,
           warehouseId: warehouse?.id,
           lotNumber: dto.lotNumber,
@@ -105,11 +123,13 @@ export class InventoryStockUseCase {
         data: {
           tenantId,
           ownerUserId: userId,
+          campaignId: campaign.id,
           productId: product.id,
           inventoryLotId: lot.id,
           warehouseId: warehouse?.id,
           userId,
           type: movementType,
+          reasonType: this.entryReasonType(dto.entryReason),
           quantity,
           reason: this.withPrefix(dto.entryReason, dto.notes),
         },
@@ -126,6 +146,11 @@ export class InventoryStockUseCase {
 
   async registerExit(tenantId: string, userId: string, dto: RegisterStockExitDto) {
     return this.prisma.$transaction(async (tx) => {
+      const campaign = await this.campaignContext.resolveCampaignForOperation(
+        tenantId,
+        dto.campaignId,
+        tx,
+      );
       const quantity = this.toDecimal(dto.quantity);
       const product = await tx.product.findFirst({
         where: { id: dto.productId, tenantId },
@@ -180,11 +205,13 @@ export class InventoryStockUseCase {
           data: {
             tenantId,
             ownerUserId: userId,
+            campaignId: campaign.id,
             productId: dto.productId,
             inventoryLotId: lot.id,
             warehouseId: lot.warehouseId,
             userId,
             type: StockMovementType.SALIDA,
+            reasonType: dto.reasonType,
             quantity: deducted,
             reason: dto.reason,
           },
@@ -407,6 +434,8 @@ export class InventoryStockUseCase {
         tenantId,
         ownerUserId: userId,
         ...(query.type ? { type: query.type } : {}),
+        ...(query.reasonType ? { reasonType: query.reasonType } : {}),
+        ...(query.campaignId ? { campaignId: query.campaignId } : {}),
         ...(query.productId ? { productId: query.productId } : {}),
         ...(query.from || query.to
           ? {
@@ -564,6 +593,17 @@ export class InventoryStockUseCase {
     return notes?.trim() ? `${prefix}: ${notes.trim()}` : prefix;
   }
 
+  private entryReasonType(reason: StockEntryReason) {
+    const map: Record<StockEntryReason, StockMovementReasonType> = {
+      [StockEntryReason.COMPRA]: StockMovementReasonType.COMPRA,
+      [StockEntryReason.ENTRADA_SIMPLE]: StockMovementReasonType.ENTRADA_SIMPLE,
+      [StockEntryReason.DEVOLUCION]: StockMovementReasonType.DEVOLUCION,
+      [StockEntryReason.AJUSTE]: StockMovementReasonType.AJUSTE,
+    };
+
+    return map[reason];
+  }
+
   private totalsByProduct(lots: { productId: string; currentQuantity: Prisma.Decimal }[]) {
     const totals = new Map<string, Prisma.Decimal>();
     for (const lot of lots) {
@@ -621,6 +661,7 @@ export class InventoryStockUseCase {
   private mapLot(lot: {
     id: string;
     productId: string;
+    campaignId?: string | null;
     ownerUserId: string;
     lotNumber: string | null;
     expirationDate: Date | null;
@@ -653,6 +694,7 @@ export class InventoryStockUseCase {
 
     return {
       id: lot.id,
+      campaignId: lot.campaignId ?? null,
       ownerUserId: lot.ownerUserId,
       product: {
         id: lot.product.id,
@@ -684,6 +726,7 @@ export class InventoryStockUseCase {
   private mapGlobalLot(lot: {
     id: string;
     productId: string;
+    campaignId?: string | null;
     ownerUserId: string;
     lotNumber: string | null;
     expirationDate: Date | null;
@@ -719,7 +762,9 @@ export class InventoryStockUseCase {
   private mapMovement(movement: {
     id: string;
     ownerUserId: string;
+    campaignId?: string | null;
     type: StockMovementType;
+    reasonType?: StockMovementReasonType | null;
     quantity: Prisma.Decimal;
     reason: string | null;
     occurredAt: Date;
@@ -732,7 +777,9 @@ export class InventoryStockUseCase {
     return {
       id: movement.id,
       ownerUserId: movement.ownerUserId,
+      campaignId: movement.campaignId ?? null,
       type: movement.type,
+      reasonType: movement.reasonType ?? null,
       quantity: movement.quantity.toString(),
       reason: movement.reason,
       occurredAt: movement.occurredAt.toISOString(),

@@ -1,16 +1,36 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { AdminRoute } from './components/admin-route';
 import { PrivateRoute } from './components/private-route';
 import { AuthProvider } from './contexts/auth.context';
+import { CampaignProvider } from './contexts/campaign.context';
 import { useAuth } from './hooks/use-auth';
+import { CampaignsPage } from './pages/campaigns.page';
 import { DashboardPage } from './pages/dashboard.page';
-import { DirectivaPage } from './pages/directiva.page';
 import { InventoryPage } from './pages/inventory.page';
 import { LoginPage } from './pages/login.page';
-import { PurchasesPage } from './pages/purchases.page';
+import { PlotsPage } from './pages/plots.page';
 import { SyncPage } from './pages/sync.page';
 import { UsersPage } from './pages/users.page';
-import type { ReactNode } from 'react';
+
+const ApplicationsPage = lazy(() =>
+  import('./pages/applications.page').then((module) => ({ default: module.ApplicationsPage })),
+);
+const PurchasesPage = lazy(() =>
+  import('./pages/purchases.page').then((module) => ({ default: module.PurchasesPage })),
+);
+const DirectivaPage = lazy(() =>
+  import('./pages/directiva.page').then((module) => ({ default: module.DirectivaPage })),
+);
+const CalendarPage = lazy(() =>
+  import('./pages/calendar.page').then((module) => ({ default: module.CalendarPage })),
+);
+const ReportsPage = lazy(() =>
+  import('./pages/reports.page').then((module) => ({ default: module.ReportsPage })),
+);
+const AuditLogsPage = lazy(() =>
+  import('./pages/audit-logs.page').then((module) => ({ default: module.AuditLogsPage })),
+);
 
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -55,6 +75,54 @@ function AppRoutes() {
           <PrivateRoute>
             <DashboardPage />
           </PrivateRoute>
+        }
+      />
+      <Route
+        path="/campaigns"
+        element={
+          <PrivateRoute>
+            <CampaignsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/plots"
+        element={
+          <PrivateRoute>
+            <PlotsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/applications"
+        element={
+          <PrivateRoute>
+            <ApplicationsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <PrivateRoute>
+            <CalendarPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <PrivateRoute>
+            <ReportsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/audit-logs"
+        element={
+          <RoleRoute roles={['DIRECTIVA', 'ADMINISTRADOR']}>
+            <AuditLogsPage />
+          </RoleRoute>
         }
       />
       <Route
@@ -107,7 +175,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <CampaignProvider>
+          <Suspense fallback={null}>
+            <AppRoutes />
+          </Suspense>
+        </CampaignProvider>
       </AuthProvider>
     </BrowserRouter>
   );

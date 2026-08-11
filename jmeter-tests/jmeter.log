@@ -1,0 +1,221 @@
+2026-06-18 20:12:01,355 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2026-06-18 20:12:01,367 INFO o.a.j.JMeter: Loading user properties from: C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\user.properties
+2026-06-18 20:12:01,367 INFO o.a.j.JMeter: Loading system properties from: C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\system.properties
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: Copyright (c) 1998-2024 The Apache Software Foundation
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: Version 5.6.3
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: java.version=21.0.10
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: java.vm.name=Java HotSpot(TM) 64-Bit Server VM
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: os.name=Windows 11
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: os.arch=amd64
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: os.version=10.0
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: file.encoding=UTF-8
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: java.awt.headless=true
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: Max memory     =1073741824
+2026-06-18 20:12:01,372 INFO o.a.j.JMeter: Available Processors =24
+2026-06-18 20:12:01,378 INFO o.a.j.JMeter: Default Locale=English (EN)
+2026-06-18 20:12:01,378 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2026-06-18 20:12:01,378 INFO o.a.j.JMeter: JMeterHome=C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3
+2026-06-18 20:12:01,378 INFO o.a.j.JMeter: user.dir  =C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests
+2026-06-18 20:12:01,379 INFO o.a.j.JMeter: PWD       =C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests
+2026-06-18 20:12:01,380 INFO o.a.j.JMeter: IP: 10.26.10.152 Name: Roderich FullName: Roderich
+2026-06-18 20:12:01,393 INFO o.a.j.JMeter: Setting property 'jmeter.reportgenerator.outputdir' to:'C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests\reporte'
+2026-06-18 20:12:01,395 INFO o.a.j.s.FileServer: Default base='C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests'
+2026-06-18 20:12:01,396 INFO o.a.j.s.FileServer: Set new base='C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests'
+2026-06-18 20:12:01,509 INFO o.a.j.s.SaveService: Testplan (JMX) version: 2.2. Testlog (JTL) version: 2.2
+2026-06-18 20:12:01,531 INFO o.a.j.s.SaveService: Using SaveService properties version 5.0
+2026-06-18 20:12:01,533 INFO o.a.j.s.SaveService: Using SaveService properties file encoding UTF-8
+2026-06-18 20:12:01,535 INFO o.a.j.s.SaveService: Loading file: 02_Suite_Completa.jmx
+2026-06-18 20:12:01,558 INFO o.a.j.p.h.c.CookieManager: Settings: Delete null: true Check: true Allow variable: true Save: false Prefix: COOKIE_
+2026-06-18 20:12:01,578 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/html is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-06-18 20:12:01,578 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xhtml+xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-06-18 20:12:01,578 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-06-18 20:12:01,578 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-06-18 20:12:01,578 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/vnd.wap.wml is org.apache.jmeter.protocol.http.parser.RegexpHTMLParser
+2026-06-18 20:12:01,578 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/css is org.apache.jmeter.protocol.http.parser.CssParser
+2026-06-18 20:12:01,641 INFO o.a.j.JMeter: Creating summariser <summary>
+2026-06-18 20:12:01,644 INFO o.a.j.r.d.ReportGenerator: ReportGenerator will use for Parsing the separator: ','
+2026-06-18 20:12:01,644 INFO o.a.j.r.d.ReportGenerator: Will generate report at end of test from  results file: resultado.jtl
+2026-06-18 20:12:01,644 INFO o.a.j.r.d.ReportGenerator: Reading report generator properties from: C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\reportgenerator.properties
+2026-06-18 20:12:01,645 INFO o.a.j.r.d.ReportGenerator: Merging with JMeter properties
+2026-06-18 20:12:01,648 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.temp_dir' not found, using default value 'temp' instead.
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.apdex_per_transaction' not found, using default value 'null' instead.
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: apdex_per_transaction is empty, not APDEX per transaction customization
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.sample_filter' not found, using default value 'null' instead.
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.report_title' not found, using default value 'null' instead.
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.start_date' not found, using default value 'null' instead.
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.end_date' not found, using default value 'null' instead.
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.date_format' not found, using default value 'null' instead.
+2026-06-18 20:12:01,650 INFO o.a.j.r.c.ReportGeneratorConfiguration: Will use date range start date: null, end date: null
+2026-06-18 20:12:01,653 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.totalTPS.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,653 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.activeThreadsOverTime.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,653 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.timeVsThreads.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,653 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimeDistribution.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,653 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.transactionsPerSecond.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,653 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimePercentiles.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,654 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimePercentilesOverTime.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,654 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimesOverTime.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,654 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.connectTimeOverTime.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,654 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.latenciesOverTime.exclude_controllers' not found, using default value 'false' instead.
+2026-06-18 20:12:01,655 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.json.filters_only_sample_series' not found, using default value 'true' instead.
+2026-06-18 20:12:01,655 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.json.series_filter' not found, using default value '' instead.
+2026-06-18 20:12:01,655 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.json.show_controllers_only' not found, using default value 'false' instead.
+2026-06-18 20:12:01,655 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.html.filters_only_sample_series' not found, using default value 'true' instead.
+2026-06-18 20:12:01,655 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.html.series_filter' not found, using default value '' instead.
+2026-06-18 20:12:01,655 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.html.show_controllers_only' not found, using default value 'false' instead.
+2026-06-18 20:12:01,666 INFO o.a.j.e.StandardJMeterEngine: Running the test!
+2026-06-18 20:12:01,666 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-06-18 20:12:01,666 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-06-18 20:12:01,670 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must contain the string: '.functions.'
+2026-06-18 20:12:01,670 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must not contain the string: '.gui.'
+2026-06-18 20:12:01,757 INFO o.a.j.JMeter: Running test (1781827921757)
+2026-06-18 20:12:01,769 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 1 : TG-01 | Auth
+2026-06-18 20:12:01,769 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-01 | Auth.
+2026-06-18 20:12:01,769 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:01,769 INFO o.a.j.t.ThreadGroup: Starting thread group... number=1 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:01,772 INFO o.a.j.t.ThreadGroup: Started thread group number 1
+2026-06-18 20:12:01,772 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-01 | Auth to finish before starting next group
+2026-06-18 20:12:01,773 INFO o.a.j.t.JMeterThread: Thread started: TG-01 | Auth 1-1
+2026-06-18 20:12:01,785 INFO o.a.j.p.h.s.HTTPHCAbstractImpl: Local host = Roderich
+2026-06-18 20:12:01,789 INFO o.a.j.p.h.s.HTTPHC4Impl: HTTP request retry count = 0
+2026-06-18 20:12:01,789 INFO o.a.j.s.SampleResult: Note: Sample TimeStamps are START times
+2026-06-18 20:12:01,789 INFO o.a.j.s.SampleResult: sampleresult.default.encoding is set to UTF-8
+2026-06-18 20:12:01,789 INFO o.a.j.s.SampleResult: sampleresult.useNanoTime=true
+2026-06-18 20:12:01,789 INFO o.a.j.s.SampleResult: sampleresult.nanoThreadSleep=5000
+2026-06-18 20:12:02,047 INFO o.a.j.r.Summariser: summary +      1 in 00:00:00 =    3.5/s Avg:   205 Min:   205 Max:   205 Err:     0 (0.00%) Active: 1 Started: 1 Finished: 0
+2026-06-18 20:12:02,079 INFO o.a.j.t.JMeterThread: Thread is done: TG-01 | Auth 1-1
+2026-06-18 20:12:02,079 INFO o.a.j.t.JMeterThread: Thread finished: TG-01 | Auth 1-1
+2026-06-18 20:12:02,080 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 2 : TG-02 | Usuarios
+2026-06-18 20:12:02,080 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-02 | Usuarios.
+2026-06-18 20:12:02,080 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:02,080 INFO o.a.j.t.ThreadGroup: Starting thread group... number=2 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:02,080 INFO o.a.j.t.ThreadGroup: Started thread group number 2
+2026-06-18 20:12:02,080 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-02 | Usuarios to finish before starting next group
+2026-06-18 20:12:02,081 INFO o.a.j.t.JMeterThread: Thread started: TG-02 | Usuarios 2-1
+2026-06-18 20:12:02,442 INFO o.a.j.t.JMeterThread: Thread is done: TG-02 | Usuarios 2-1
+2026-06-18 20:12:02,442 INFO o.a.j.t.JMeterThread: Thread finished: TG-02 | Usuarios 2-1
+2026-06-18 20:12:02,443 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 3 : TG-03 | Campanas Agricolas
+2026-06-18 20:12:02,443 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-03 | Campanas Agricolas.
+2026-06-18 20:12:02,443 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:02,443 INFO o.a.j.t.ThreadGroup: Starting thread group... number=3 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:02,443 INFO o.a.j.t.ThreadGroup: Started thread group number 3
+2026-06-18 20:12:02,443 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-03 | Campanas Agricolas to finish before starting next group
+2026-06-18 20:12:02,444 INFO o.a.j.t.JMeterThread: Thread started: TG-03 | Campanas Agricolas 3-1
+2026-06-18 20:12:02,665 INFO o.a.j.t.JMeterThread: Thread is done: TG-03 | Campanas Agricolas 3-1
+2026-06-18 20:12:02,666 INFO o.a.j.t.JMeterThread: Thread finished: TG-03 | Campanas Agricolas 3-1
+2026-06-18 20:12:02,666 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 4 : TG-04 | Cultivos y Parcelas
+2026-06-18 20:12:02,666 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-04 | Cultivos y Parcelas.
+2026-06-18 20:12:02,666 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:02,666 INFO o.a.j.t.ThreadGroup: Starting thread group... number=4 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:02,667 INFO o.a.j.t.ThreadGroup: Started thread group number 4
+2026-06-18 20:12:02,667 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-04 | Cultivos y Parcelas to finish before starting next group
+2026-06-18 20:12:02,667 INFO o.a.j.t.JMeterThread: Thread started: TG-04 | Cultivos y Parcelas 4-1
+2026-06-18 20:12:02,883 INFO o.a.j.t.JMeterThread: Thread is done: TG-04 | Cultivos y Parcelas 4-1
+2026-06-18 20:12:02,883 INFO o.a.j.t.JMeterThread: Thread finished: TG-04 | Cultivos y Parcelas 4-1
+2026-06-18 20:12:02,883 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 5 : TG-05 | Inventario
+2026-06-18 20:12:02,884 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-05 | Inventario.
+2026-06-18 20:12:02,884 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:02,884 INFO o.a.j.t.ThreadGroup: Starting thread group... number=5 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:02,884 INFO o.a.j.t.ThreadGroup: Started thread group number 5
+2026-06-18 20:12:02,884 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-05 | Inventario to finish before starting next group
+2026-06-18 20:12:02,884 INFO o.a.j.t.JMeterThread: Thread started: TG-05 | Inventario 5-1
+2026-06-18 20:12:03,086 INFO o.a.j.t.JMeterThread: Thread is done: TG-05 | Inventario 5-1
+2026-06-18 20:12:03,086 INFO o.a.j.t.JMeterThread: Thread finished: TG-05 | Inventario 5-1
+2026-06-18 20:12:03,086 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 6 : TG-06 | Aplicaciones de Agroquimicos
+2026-06-18 20:12:03,086 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-06 | Aplicaciones de Agroquimicos.
+2026-06-18 20:12:03,086 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:03,087 INFO o.a.j.t.ThreadGroup: Starting thread group... number=6 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:03,088 INFO o.a.j.t.ThreadGroup: Started thread group number 6
+2026-06-18 20:12:03,088 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-06 | Aplicaciones de Agroquimicos to finish before starting next group
+2026-06-18 20:12:03,088 INFO o.a.j.t.JMeterThread: Thread started: TG-06 | Aplicaciones de Agroquimicos 6-1
+2026-06-18 20:12:03,099 INFO o.a.j.t.JMeterThread: Thread is done: TG-06 | Aplicaciones de Agroquimicos 6-1
+2026-06-18 20:12:03,099 INFO o.a.j.t.JMeterThread: Thread finished: TG-06 | Aplicaciones de Agroquimicos 6-1
+2026-06-18 20:12:03,099 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 7 : TG-07 | Proveedores y Compras
+2026-06-18 20:12:03,099 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-07 | Proveedores y Compras.
+2026-06-18 20:12:03,099 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:03,099 INFO o.a.j.t.ThreadGroup: Starting thread group... number=7 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:03,100 INFO o.a.j.t.ThreadGroup: Started thread group number 7
+2026-06-18 20:12:03,100 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-07 | Proveedores y Compras to finish before starting next group
+2026-06-18 20:12:03,100 INFO o.a.j.t.JMeterThread: Thread started: TG-07 | Proveedores y Compras 7-1
+2026-06-18 20:12:03,122 INFO o.a.j.t.JMeterThread: Thread is done: TG-07 | Proveedores y Compras 7-1
+2026-06-18 20:12:03,122 INFO o.a.j.t.JMeterThread: Thread finished: TG-07 | Proveedores y Compras 7-1
+2026-06-18 20:12:03,123 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 8 : TG-08 | Cuentas por Pagar
+2026-06-18 20:12:03,123 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-08 | Cuentas por Pagar.
+2026-06-18 20:12:03,123 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:03,123 INFO o.a.j.t.ThreadGroup: Starting thread group... number=8 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:03,123 INFO o.a.j.t.ThreadGroup: Started thread group number 8
+2026-06-18 20:12:03,123 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-08 | Cuentas por Pagar to finish before starting next group
+2026-06-18 20:12:03,123 INFO o.a.j.t.JMeterThread: Thread started: TG-08 | Cuentas por Pagar 8-1
+2026-06-18 20:12:03,135 INFO o.a.j.t.JMeterThread: Thread is done: TG-08 | Cuentas por Pagar 8-1
+2026-06-18 20:12:03,135 INFO o.a.j.t.JMeterThread: Thread finished: TG-08 | Cuentas por Pagar 8-1
+2026-06-18 20:12:03,136 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 9 : TG-09 | Directiva - Global y Compra Conjunta
+2026-06-18 20:12:03,136 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-09 | Directiva - Global y Compra Conjunta.
+2026-06-18 20:12:03,136 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:03,136 INFO o.a.j.t.ThreadGroup: Starting thread group... number=9 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:03,136 INFO o.a.j.t.ThreadGroup: Started thread group number 9
+2026-06-18 20:12:03,136 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-09 | Directiva - Global y Compra Conjunta to finish before starting next group
+2026-06-18 20:12:03,136 INFO o.a.j.t.JMeterThread: Thread started: TG-09 | Directiva - Global y Compra Conjunta 9-1
+2026-06-18 20:12:03,147 INFO o.a.j.t.JMeterThread: Thread is done: TG-09 | Directiva - Global y Compra Conjunta 9-1
+2026-06-18 20:12:03,147 INFO o.a.j.t.JMeterThread: Thread finished: TG-09 | Directiva - Global y Compra Conjunta 9-1
+2026-06-18 20:12:03,147 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 10 : TG-10 | Calendario, Bitacora y Reportes
+2026-06-18 20:12:03,147 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-10 | Calendario, Bitacora y Reportes.
+2026-06-18 20:12:03,147 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:03,147 INFO o.a.j.t.ThreadGroup: Starting thread group... number=10 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:03,148 INFO o.a.j.t.ThreadGroup: Started thread group number 10
+2026-06-18 20:12:03,148 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: TG-10 | Calendario, Bitacora y Reportes to finish before starting next group
+2026-06-18 20:12:03,148 INFO o.a.j.t.JMeterThread: Thread started: TG-10 | Calendario, Bitacora y Reportes 10-1
+2026-06-18 20:12:03,171 INFO o.a.j.t.JMeterThread: Thread is done: TG-10 | Calendario, Bitacora y Reportes 10-1
+2026-06-18 20:12:03,171 INFO o.a.j.t.JMeterThread: Thread finished: TG-10 | Calendario, Bitacora y Reportes 10-1
+2026-06-18 20:12:03,172 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 11 : TG-11 | Sincronizacion Offline
+2026-06-18 20:12:03,172 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group TG-11 | Sincronizacion Offline.
+2026-06-18 20:12:03,172 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-06-18 20:12:03,172 INFO o.a.j.t.ThreadGroup: Starting thread group... number=11 threads=1 ramp-up=1 delayedStart=false
+2026-06-18 20:12:03,172 INFO o.a.j.t.ThreadGroup: Started thread group number 11
+2026-06-18 20:12:03,172 INFO o.a.j.e.StandardJMeterEngine: All thread groups have been started
+2026-06-18 20:12:03,172 INFO o.a.j.t.JMeterThread: Thread started: TG-11 | Sincronizacion Offline 11-1
+2026-06-18 20:12:03,186 INFO o.a.j.t.JMeterThread: Thread is done: TG-11 | Sincronizacion Offline 11-1
+2026-06-18 20:12:03,186 INFO o.a.j.t.JMeterThread: Thread finished: TG-11 | Sincronizacion Offline 11-1
+2026-06-18 20:12:03,186 INFO o.a.j.e.StandardJMeterEngine: Notifying test listeners of end of test
+2026-06-18 20:12:03,187 INFO o.a.j.r.Summariser: summary +     50 in 00:00:01 =   43.8/s Avg:    21 Min:     2 Max:   170 Err:    28 (56.00%) Active: 0 Started: 11 Finished: 11
+2026-06-18 20:12:03,187 INFO o.a.j.r.Summariser: summary =     51 in 00:00:01 =   35.7/s Avg:    25 Min:     2 Max:   205 Err:    28 (54.90%)
+2026-06-18 20:12:03,188 INFO o.a.j.JMeter: Generating Dashboard
+2026-06-18 20:12:03,188 INFO o.a.j.r.d.ReportGenerator: Flushing result collector before report Generation
+2026-06-18 20:12:03,195 INFO o.a.j.r.p.NormalizerSampleConsumer: Using format, 'ms', to parse timeStamp field
+2026-06-18 20:12:03,260 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.AggregateConsumer#stopProducing(): beginDate produced 0 samples
+2026-06-18 20:12:03,260 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.AggregateConsumer#stopProducing(): endDate produced 0 samples
+2026-06-18 20:12:03,261 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.ApdexSummaryConsumer#stopProducing(): apdexSummary produced 0 samples
+2026-06-18 20:12:03,262 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.RequestsSummaryConsumer#stopProducing(): requestsSummary produced 0 samples
+2026-06-18 20:12:03,264 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.StatisticsSummaryConsumer#stopProducing(): statisticsSummary produced 0 samples
+2026-06-18 20:12:03,266 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.Top5ErrorsBySamplerConsumer#stopProducing(): top5ErrorsBySampler produced 0 samples
+2026-06-18 20:12:03,266 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.ErrorsSummaryConsumer#stopProducing(): errorsSummary produced 0 samples
+2026-06-18 20:12:03,267 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.HitsPerSecondGraphConsumer#stopProducing(): hitsPerSecond produced 0 samples
+2026-06-18 20:12:03,279 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.LatencyVSRequestGraphConsumer#stopProducing(): latencyVsRequest produced 0 samples
+2026-06-18 20:12:03,279 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.SyntheticResponseTimeDistributionGraphConsumer#stopProducing(): syntheticResponseTimeDistribution produced 0 samples
+2026-06-18 20:12:03,280 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.BytesThroughputGraphConsumer#stopProducing(): bytesThroughputOverTime produced 0 samples
+2026-06-18 20:12:03,280 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.CodesPerSecondGraphConsumer#stopProducing(): codesPerSecond produced 0 samples
+2026-06-18 20:12:03,283 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimeVSRequestGraphConsumer#stopProducing(): responseTimeVsRequest produced 0 samples
+2026-06-18 20:12:03,283 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.FilterConsumer#stopProducing(): startIntervalControlerFilter produced 357 samples
+2026-06-18 20:12:03,283 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.TotalTPSGraphConsumer#stopProducing(): totalTPS produced 0 samples
+2026-06-18 20:12:03,283 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ActiveThreadsGraphConsumer#stopProducing(): activeThreadsOverTime produced 0 samples
+2026-06-18 20:12:03,284 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.TimeVSThreadGraphConsumer#stopProducing(): timeVsThreads produced 0 samples
+2026-06-18 20:12:03,284 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimeDistributionGraphConsumer#stopProducing(): responseTimeDistribution produced 0 samples
+2026-06-18 20:12:03,285 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.TransactionsPerSecondGraphConsumer#stopProducing(): transactionsPerSecond produced 0 samples
+2026-06-18 20:12:03,285 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimePercentilesGraphConsumer#stopProducing(): responseTimePercentiles produced 0 samples
+2026-06-18 20:12:03,288 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimePercentilesOverTimeGraphConsumer#stopProducing(): responseTimePercentilesOverTime produced 0 samples
+2026-06-18 20:12:03,288 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimeOverTimeGraphConsumer#stopProducing(): responseTimesOverTime produced 0 samples
+2026-06-18 20:12:03,289 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ConnectTimeOverTimeGraphConsumer#stopProducing(): connectTimeOverTime produced 0 samples
+2026-06-18 20:12:03,289 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.LatencyOverTimeGraphConsumer#stopProducing(): latenciesOverTime produced 0 samples
+2026-06-18 20:12:03,289 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.FilterConsumer#stopProducing(): nameFilter produced 765 samples
+2026-06-18 20:12:03,289 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.FilterConsumer#stopProducing(): dateRangeFilter produced 153 samples
+2026-06-18 20:12:03,289 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.NormalizerSampleConsumer#stopProducing(): normalizer produced 51 samples
+2026-06-18 20:12:03,289 INFO o.a.j.r.p.CsvFileSampleSource: produce(): 51 samples produced in 81ms on channel 0
+2026-06-18 20:12:03,289 INFO o.a.j.r.d.ReportGenerator: Exporting data using exporter:'json' of className:'org.apache.jmeter.report.dashboard.JsonExporter'
+2026-06-18 20:12:03,351 INFO o.a.j.r.d.JsonExporter: Found data for consumer statisticsSummary in context
+2026-06-18 20:12:03,351 INFO o.a.j.r.d.JsonExporter: Creating statistics for overall
+2026-06-18 20:12:03,351 INFO o.a.j.r.d.JsonExporter: Creating statistics for other transactions
+2026-06-18 20:12:03,351 INFO o.a.j.r.d.JsonExporter: Checking output folder
+2026-06-18 20:12:03,352 INFO o.a.j.r.d.JsonExporter: Writing statistics JSON to C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests\reporte\statistics.json
+2026-06-18 20:12:03,381 INFO o.a.j.r.d.ReportGenerator: Exporting data using exporter:'html' of className:'org.apache.jmeter.report.dashboard.HtmlTemplateExporter'
+2026-06-18 20:12:03,384 INFO o.a.j.r.d.HtmlTemplateExporter: Will generate dashboard in folder: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests\reporte
+2026-06-18 20:12:03,535 INFO o.a.j.r.d.HtmlTemplateExporter: Report will be generated in: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests\reporte, creating folder structure
+2026-06-18 20:12:03,538 INFO o.a.j.r.d.TemplateVisitor: Copying folder from 'C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\report-template' to 'C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests\reporte', got message: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests\reporte, found non empty folder with following content [C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA\jmeter-tests\reporte\statistics.json], will be ignored
+2026-06-18 20:12:03,908 INFO o.a.j.JMeter: Dashboard generated

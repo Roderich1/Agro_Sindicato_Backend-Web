@@ -13,6 +13,20 @@ Modulos activos del MVP:
 - `accounts-payable`: cuentas por pagar y pagos.
 - `sync`: recepcion y seguimiento de operaciones offline.
 
+Flujo ampliado decidido:
+
+- Campanas agricolas creadas por `DIRECTIVA` o `ADMINISTRADOR`.
+- Parcelas creadas por agricultores y cultivos asignados por campana.
+- Aplicaciones de agroquimicos a parcelas con salida automatica de inventario.
+- FDS, categoria toxicologica y QR por producto/lote; no incluir SENASAG.
+- Calendario operativo, reportes por campana y bitacora.
+
+Antes de implementar este flujo, leer:
+
+- `Back/docs/Flujo.md`
+- `Back/docs/modelo-datos-flujo.md`
+- `Back/docs/codex-backend-implementation.md`
+
 Modulos fuera de alcance funcional actual:
 
 - `voice-entry`: no implementar flujo de voz salvo pedido explicito.
@@ -43,6 +57,10 @@ Modulos fuera de alcance funcional actual:
 - Una salida de stock no puede dejar cantidad negativa.
 - Si una salida no especifica lote, usar primero el lote con vencimiento mas cercano.
 - Los ajustes deben crear movimiento tipo `AJUSTE`.
+- Las aplicaciones deben crear movimiento tipo `SALIDA` relacionado.
+- Una campana cerrada no debe aceptar operaciones normales.
+- Solo debe existir una campana activa por tenant, validado en use case.
+- Las parcelas con historial deben inactivarse, no eliminarse.
 - Compras a credito deben generar cuenta por pagar.
 - Pagos parciales no pueden superar saldo.
 - Pago total debe dejar cuenta en `PAGADA`.

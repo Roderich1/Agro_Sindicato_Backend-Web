@@ -1,0 +1,108 @@
+2026-05-14 17:01:53,745 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2026-05-14 17:01:53,759 INFO o.a.j.JMeter: Loading user properties from: C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\user.properties
+2026-05-14 17:01:53,760 INFO o.a.j.JMeter: Loading system properties from: C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\system.properties
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: Copyright (c) 1998-2024 The Apache Software Foundation
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: Version 5.6.3
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: java.version=21.0.10
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: java.vm.name=Java HotSpot(TM) 64-Bit Server VM
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: os.name=Windows 11
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: os.arch=amd64
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: os.version=10.0
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: file.encoding=UTF-8
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: java.awt.headless=true
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: Max memory     =1073741824
+2026-05-14 17:01:53,764 INFO o.a.j.JMeter: Available Processors =24
+2026-05-14 17:01:53,770 INFO o.a.j.JMeter: Default Locale=English (EN)
+2026-05-14 17:01:53,770 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2026-05-14 17:01:53,770 INFO o.a.j.JMeter: JMeterHome=C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3
+2026-05-14 17:01:53,770 INFO o.a.j.JMeter: user.dir  =C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA
+2026-05-14 17:01:53,771 INFO o.a.j.JMeter: PWD       =C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA
+2026-05-14 17:01:53,772 INFO o.a.j.JMeter: IP: 10.26.7.99 Name: Roderich FullName: Roderich
+2026-05-14 17:01:53,785 INFO o.a.j.s.FileServer: Default base='C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoPWA'
+2026-05-14 17:01:53,786 INFO o.a.j.s.FileServer: Set new base='C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin'
+2026-05-14 17:01:53,888 INFO o.a.j.s.SaveService: Testplan (JMX) version: 2.2. Testlog (JTL) version: 2.2
+2026-05-14 17:01:53,910 INFO o.a.j.s.SaveService: Using SaveService properties version 5.0
+2026-05-14 17:01:53,913 INFO o.a.j.s.SaveService: Using SaveService properties file encoding UTF-8
+2026-05-14 17:01:53,915 INFO o.a.j.s.SaveService: Loading file: C:\Users\MSI\Downloads\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\01 - Login.jmx
+2026-05-14 17:01:53,932 INFO o.a.j.p.h.c.CookieManager: Settings: Delete null: true Check: true Allow variable: true Save: false Prefix: COOKIE_
+2026-05-14 17:01:53,949 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/html is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-05-14 17:01:53,949 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xhtml+xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-05-14 17:01:53,949 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-05-14 17:01:53,950 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2026-05-14 17:01:53,950 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/vnd.wap.wml is org.apache.jmeter.protocol.http.parser.RegexpHTMLParser
+2026-05-14 17:01:53,950 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/css is org.apache.jmeter.protocol.http.parser.CssParser
+2026-05-14 17:01:53,973 INFO o.a.j.JMeter: Creating summariser <summary>
+2026-05-14 17:01:53,980 INFO o.a.j.e.StandardJMeterEngine: Running the test!
+2026-05-14 17:01:53,980 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-05-14 17:01:53,980 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2026-05-14 17:01:53,983 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must contain the string: '.functions.'
+2026-05-14 17:01:53,983 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must not contain the string: '.gui.'
+2026-05-14 17:01:54,056 INFO o.a.j.JMeter: Running test (1778792514055)
+2026-05-14 17:01:54,066 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 1 : Flujo Auth Completo
+2026-05-14 17:01:54,066 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group Flujo Auth Completo.
+2026-05-14 17:01:54,066 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-05-14 17:01:54,066 INFO o.a.j.t.ThreadGroup: Starting thread group... number=1 threads=1 ramp-up=1 delayedStart=false
+2026-05-14 17:01:54,069 INFO o.a.j.t.ThreadGroup: Started thread group number 1
+2026-05-14 17:01:54,069 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: Flujo Auth Completo to finish before starting next group
+2026-05-14 17:01:54,070 INFO o.a.j.t.JMeterThread: Thread started: Flujo Auth Completo 1-1
+2026-05-14 17:01:54,079 INFO o.a.j.p.h.s.HTTPHCAbstractImpl: Local host = Roderich
+2026-05-14 17:01:54,081 INFO o.a.j.p.h.s.HTTPHC4Impl: HTTP request retry count = 0
+2026-05-14 17:01:54,083 INFO o.a.j.s.SampleResult: Note: Sample TimeStamps are START times
+2026-05-14 17:01:54,083 INFO o.a.j.s.SampleResult: sampleresult.default.encoding is set to UTF-8
+2026-05-14 17:01:54,083 INFO o.a.j.s.SampleResult: sampleresult.useNanoTime=true
+2026-05-14 17:01:54,083 INFO o.a.j.s.SampleResult: sampleresult.nanoThreadSleep=5000
+2026-05-14 17:01:54,352 WARN o.a.j.p.h.s.HTTPSamplerBase: Existing CookieManager HTTP Cookie Manager superseded by HTTP Cookie Manager
+2026-05-14 17:01:54,548 WARN o.a.j.p.h.s.HTTPSamplerBase: Existing CookieManager HTTP Cookie Manager superseded by HTTP Cookie Manager
+2026-05-14 17:01:54,554 WARN o.a.j.p.h.s.HTTPSamplerBase: Existing CookieManager HTTP Cookie Manager superseded by HTTP Cookie Manager
+2026-05-14 17:01:54,559 WARN o.a.j.p.h.s.HTTPSamplerBase: Existing CookieManager HTTP Cookie Manager superseded by HTTP Cookie Manager
+2026-05-14 17:01:54,746 WARN o.a.j.p.h.s.HTTPSamplerBase: Existing CookieManager HTTP Cookie Manager superseded by HTTP Cookie Manager
+2026-05-14 17:01:54,753 WARN o.a.j.p.h.s.HTTPSamplerBase: Existing CookieManager HTTP Cookie Manager superseded by HTTP Cookie Manager
+2026-05-14 17:01:54,758 INFO o.a.j.t.JMeterThread: Thread is done: Flujo Auth Completo 1-1
+2026-05-14 17:01:54,758 INFO o.a.j.t.JMeterThread: Thread finished: Flujo Auth Completo 1-1
+2026-05-14 17:01:54,759 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 2 : Rate Limit - Login
+2026-05-14 17:01:54,759 INFO o.a.j.e.StandardJMeterEngine: Starting 1 threads for group Rate Limit - Login.
+2026-05-14 17:01:54,759 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-05-14 17:01:54,759 INFO o.a.j.t.ThreadGroup: Starting thread group... number=2 threads=1 ramp-up=1 delayedStart=false
+2026-05-14 17:01:54,759 INFO o.a.j.t.ThreadGroup: Started thread group number 2
+2026-05-14 17:01:54,759 INFO o.a.j.e.StandardJMeterEngine: Waiting for thread group: Rate Limit - Login to finish before starting next group
+2026-05-14 17:01:54,759 INFO o.a.j.t.JMeterThread: Thread started: Rate Limit - Login 2-1
+2026-05-14 17:01:55,140 INFO o.a.j.t.JMeterThread: Thread is done: Rate Limit - Login 2-1
+2026-05-14 17:01:55,140 INFO o.a.j.t.JMeterThread: Thread finished: Rate Limit - Login 2-1
+2026-05-14 17:01:55,141 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 3 : Carga Concurrente
+2026-05-14 17:01:55,141 INFO o.a.j.e.StandardJMeterEngine: Starting 10 threads for group Carga Concurrente.
+2026-05-14 17:01:55,141 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2026-05-14 17:01:55,141 INFO o.a.j.t.ThreadGroup: Starting thread group... number=3 threads=10 ramp-up=5 delayedStart=false
+2026-05-14 17:01:55,141 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-1
+2026-05-14 17:01:55,142 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-1
+2026-05-14 17:01:55,142 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-1
+2026-05-14 17:01:55,143 INFO o.a.j.t.ThreadGroup: Started thread group number 3
+2026-05-14 17:01:55,143 INFO o.a.j.e.StandardJMeterEngine: All thread groups have been started
+2026-05-14 17:01:55,645 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-2
+2026-05-14 17:01:55,646 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-2
+2026-05-14 17:01:55,647 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-2
+2026-05-14 17:01:56,145 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-3
+2026-05-14 17:01:56,146 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-3
+2026-05-14 17:01:56,146 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-3
+2026-05-14 17:01:56,643 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-4
+2026-05-14 17:01:56,646 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-4
+2026-05-14 17:01:56,646 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-4
+2026-05-14 17:01:57,141 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-5
+2026-05-14 17:01:57,144 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-5
+2026-05-14 17:01:57,144 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-5
+2026-05-14 17:01:57,641 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-6
+2026-05-14 17:01:57,642 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-6
+2026-05-14 17:01:57,642 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-6
+2026-05-14 17:01:58,144 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-7
+2026-05-14 17:01:58,145 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-7
+2026-05-14 17:01:58,146 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-7
+2026-05-14 17:01:58,643 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-8
+2026-05-14 17:01:58,644 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-8
+2026-05-14 17:01:58,645 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-8
+2026-05-14 17:01:59,142 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-9
+2026-05-14 17:01:59,143 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-9
+2026-05-14 17:01:59,144 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-9
+2026-05-14 17:01:59,642 INFO o.a.j.t.JMeterThread: Thread started: Carga Concurrente 3-10
+2026-05-14 17:01:59,642 INFO o.a.j.t.JMeterThread: Thread is done: Carga Concurrente 3-10
+2026-05-14 17:01:59,642 INFO o.a.j.t.JMeterThread: Thread finished: Carga Concurrente 3-10
+2026-05-14 17:01:59,642 INFO o.a.j.e.StandardJMeterEngine: Notifying test listeners of end of test
+2026-05-14 17:01:59,644 INFO o.a.j.r.Summariser: summary =     20 in 00:00:06 =    3.6/s Avg:    50 Min:     1 Max:   216 Err:     8 (40.00%)

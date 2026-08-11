@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, StockMovementType } from '@prisma/client';
+import { AuditAction, Prisma, StockMovementType } from '@prisma/client';
+import { CampaignContextService } from '@/modules/campaigns/application/services/campaign-context.service';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import {
   RegisterStockAdjustmentDto,
@@ -8,10 +9,18 @@ import {
 
 @Injectable()
 export class InventoryAdjustmentUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly campaignContext: CampaignContextService,
+  ) {}
 
   async execute(tenantId: string, userId: string, dto: RegisterStockAdjustmentDto) {
     return this.prisma.$transaction(async (tx) => {
+      const campaign = await this.campaignContext.resolveCampaignForOperation(
+        tenantId,
+        dto.campaignId,
+        tx,
+      );
       const product = await tx.product.findFirst({
         where: { id: dto.productId, tenantId },
       });
@@ -19,10 +28,10 @@ export class InventoryAdjustmentUseCase {
 
       const quantity = new Prisma.Decimal(dto.quantity.toString());
       if (dto.direction === StockAdjustmentDirection.INCREMENTO) {
-        return this.increment(tx, tenantId, userId, dto, quantity);
+        return this.increment(tx, tenantId, userId, campaign.id, dto, quantity);
       }
 
-      return this.decrement(tx, tenantId, userId, dto, quantity, product.unit);
+      return this.decrement(tx, tenantId, userId, campaign.id, dto, quantity, product.unit);
     });
   }
 
@@ -30,6 +39,7 @@ export class InventoryAdjustmentUseCase {
     tx: Prisma.TransactionClient,
     tenantId: string,
     userId: string,
+    campaignId: string,
     dto: RegisterStockAdjustmentDto,
     quantity: Prisma.Decimal,
   ) {
@@ -39,6 +49,7 @@ export class InventoryAdjustmentUseCase {
           data: {
             tenantId,
             ownerUserId: userId,
+            campaignId,
             productId: dto.productId,
             lotNumber: dto.lotNumber,
             expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : null,
@@ -62,15 +73,26 @@ export class InventoryAdjustmentUseCase {
       data: {
         tenantId,
         ownerUserId: userId,
+        campaignId,
         productId: dto.productId,
         inventoryLotId: lot.id,
         warehouseId: lot.warehouseId,
         userId,
         type: StockMovementType.AJUSTE,
+        reasonType: dto.reasonType,
         quantity,
         reason: this.reason(dto),
       },
       include: { product: true, inventoryLot: true, warehouse: true, user: true },
+    });
+
+    await this.recordAudit(tx, {
+      tenantId,
+      campaignId,
+      actorUserId: userId,
+      ownerUserId: userId,
+      summary: `Ajuste de incremento: ${quantity.toString()} ${movement.product.unit}`,
+      after: { movementId: movement.id, lotId: lot.id, reasonType: dto.reasonType },
     });
 
     return {
@@ -112,6 +134,7 @@ export class InventoryAdjustmentUseCase {
     tx: Prisma.TransactionClient,
     tenantId: string,
     userId: string,
+    campaignId: string,
     dto: RegisterStockAdjustmentDto,
     quantity: Prisma.Decimal,
     unit: string,
@@ -149,11 +172,13 @@ export class InventoryAdjustmentUseCase {
         data: {
           tenantId,
           ownerUserId: userId,
+          campaignId,
           productId: dto.productId,
           inventoryLotId: lot.id,
           warehouseId: lot.warehouseId,
           userId,
           type: StockMovementType.AJUSTE,
+          reasonType: dto.reasonType,
           quantity: deducted,
           reason: this.reason(dto),
         },
@@ -164,6 +189,15 @@ export class InventoryAdjustmentUseCase {
     }
 
     await this.decrementProductStock(tx, tenantId, dto.productId, quantity);
+
+    await this.recordAudit(tx, {
+      tenantId,
+      campaignId,
+      actorUserId: userId,
+      ownerUserId: userId,
+      summary: `Ajuste de decremento: ${quantity.toString()} ${unit}`,
+      after: { movements: movements.map((item) => item.movement.id), reasonType: dto.reasonType },
+    });
 
     return {
       message: 'Ajuste de decremento registrado correctamente.',
@@ -226,6 +260,31 @@ export class InventoryAdjustmentUseCase {
     return [dto.reasonType, dto.direction, dto.reason].filter(Boolean).join(': ');
   }
 
+  private async recordAudit(
+    tx: Prisma.TransactionClient,
+    data: {
+      tenantId: string;
+      campaignId: string;
+      actorUserId: string;
+      ownerUserId: string;
+      summary: string;
+      after: unknown;
+    },
+  ) {
+    await tx.auditLog.create({
+      data: {
+        tenantId: data.tenantId,
+        campaignId: data.campaignId,
+        actorUserId: data.actorUserId,
+        ownerUserId: data.ownerUserId,
+        action: AuditAction.AJUSTAR_STOCK,
+        entityName: 'StockMovement',
+        summary: data.summary,
+        after: JSON.parse(JSON.stringify(data.after)) as Prisma.InputJsonValue,
+      },
+    });
+  }
+
   private mapLot(lot: {
     id: string;
     lotNumber: string | null;
@@ -246,7 +305,9 @@ export class InventoryAdjustmentUseCase {
 
   private mapMovement(movement: {
     id: string;
+    campaignId?: string | null;
     type: StockMovementType;
+    reasonType?: string | null;
     quantity: Prisma.Decimal;
     reason: string | null;
     occurredAt: Date;
@@ -256,7 +317,9 @@ export class InventoryAdjustmentUseCase {
   }) {
     return {
       id: movement.id,
+      campaignId: movement.campaignId ?? null,
       type: movement.type,
+      reasonType: movement.reasonType ?? null,
       quantity: movement.quantity.toString(),
       reason: movement.reason,
       occurredAt: movement.occurredAt.toISOString(),

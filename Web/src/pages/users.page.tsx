@@ -83,7 +83,7 @@ export function UsersPage() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    void Promise.resolve().then(refresh);
   }, [refresh]);
 
   const closeDialog = () => setDialog({ kind: 'none' });

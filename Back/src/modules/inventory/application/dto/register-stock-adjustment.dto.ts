@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { StockMovementReasonType } from '@prisma/client';
 import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export enum StockAdjustmentDirection {
@@ -6,16 +7,15 @@ export enum StockAdjustmentDirection {
   DECREMENTO = 'DECREMENTO',
 }
 
-export enum StockAdjustmentReason {
-  PERDIDA = 'PERDIDA',
-  DANO = 'DANO',
-  CORRECCION = 'CORRECCION',
-}
-
 export class RegisterStockAdjustmentDto {
   @ApiProperty()
   @IsUUID()
   productId: string;
+
+  @ApiPropertyOptional({ description: 'Si se omite, se usa la campana activa.' })
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -26,9 +26,9 @@ export class RegisterStockAdjustmentDto {
   @IsEnum(StockAdjustmentDirection)
   direction: StockAdjustmentDirection;
 
-  @ApiProperty({ enum: StockAdjustmentReason })
-  @IsEnum(StockAdjustmentReason)
-  reasonType: StockAdjustmentReason;
+  @ApiProperty({ enum: StockMovementReasonType, example: StockMovementReasonType.AJUSTE })
+  @IsEnum(StockMovementReasonType)
+  reasonType: StockMovementReasonType;
 
   @ApiProperty({ example: 2 })
   @IsNumber({ maxDecimalPlaces: 4 })

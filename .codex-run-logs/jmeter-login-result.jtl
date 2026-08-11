@@ -1,0 +1,18 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1778792421050,239,Login - Rate Limit Test,401,Unauthorized,Rate Limit - Login 2-1,text,false,,1087,236,1,2,http://localhost:3000/api/v1/auth/login,237,0,13
+1778792421310,1,02 - Me,401,Unauthorized,Flujo Auth Completo 1-1,text,false,,1055,262,1,2,http://localhost:3000/api/v1/auth/me,1,0,0
+1778792421311,10,03 - Refresh,200,OK,Flujo Auth Completo 1-1,text,true,,1884,248,1,2,http://localhost:3000/api/v1/auth/refresh,10,0,0
+1778792421338,5,04 - Logout,204,No Content,Flujo Auth Completo 1-1,,true,,1014,592,1,2,http://localhost:3000/api/v1/auth/logout,0,0,0
+1778792421292,191,Login - Rate Limit Test,401,Unauthorized,Rate Limit - Login 2-1,text,false,,1087,236,1,2,http://localhost:3000/api/v1/auth/login,191,0,0
+1778792421535,3,02 - Me,200,OK,Flujo Auth Completo 1-1,text,true,,1372,568,1,2,http://localhost:3000/api/v1/auth/me,3,0,0
+1778792421539,6,03 - Refresh,200,OK,Flujo Auth Completo 1-1,text,true,,1884,248,1,2,http://localhost:3000/api/v1/auth/refresh,6,0,0
+1778792421546,4,04 - Logout,204,No Content,Flujo Auth Completo 1-1,,true,,1014,592,1,2,http://localhost:3000/api/v1/auth/logout,0,0,0
+1778792421552,2,02 - Me,200,OK,Flujo Auth Completo 1-1,text,true,,1372,508,1,2,http://localhost:3000/api/v1/auth/me,2,0,0
+1778792421554,1,03 - Refresh,401,Unauthorized,Flujo Auth Completo 1-1,text,false,,1084,188,1,2,http://localhost:3000/api/v1/auth/refresh,1,0,0
+1778792421556,0,04 - Logout,401,Unauthorized,Flujo Auth Completo 1-1,text,false,,1055,211,1,2,http://localhost:3000/api/v1/auth/logout,0,0,0
+1778792421483,186,Login - Rate Limit Test,401,Unauthorized,Rate Limit - Login 2-1,text,false,,1087,236,1,1,http://localhost:3000/api/v1/auth/login,186,0,0
+1778792421669,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0
+1778792421671,0,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,0,0,0
+1778792421672,0,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,0,0,0
+1778792421673,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,0,0,0
+1778792421674,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0

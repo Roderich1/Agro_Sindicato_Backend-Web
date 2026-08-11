@@ -1,12 +1,22 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync, ValidationError } from 'class-validator';
-import { Prisma, SyncOperationStatus } from '@prisma/client';
+import { Prisma, SyncOperationStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { RegisterInitialStockDto } from '../../../inventory/application/dto/register-initial-stock.dto';
 import { RegisterStockEntryDto } from '../../../inventory/application/dto/register-stock-entry.dto';
 import { RegisterStockExitDto } from '../../../inventory/application/dto/register-stock-exit.dto';
 import { InventoryStockUseCase } from '../../../inventory/application/use-cases/inventory-stock.use-case';
+import { AccountsPayableUseCase } from '../../../accounts-payable/application/use-cases/accounts-payable.use-case';
+import { CreateApplicationDto } from '../../../applications/application/dto/application.dto';
+import { ApplicationsUseCase } from '../../../applications/application/use-cases/applications.use-case';
+import {
+  CreatePlotCropAssignmentDto,
+  CreatePlotDto,
+  UpdatePlotDto,
+} from '../../../plots/application/dto/plot-flow.dto';
+import { PlotFlowUseCase } from '../../../plots/application/use-cases/plot-flow.use-case';
+import { RegisterPaymentDto } from '../../../accounts-payable/application/dto/register-payment.dto';
 import {
   ListSyncOperationsQueryDto,
   OfflineOperationDto,
@@ -19,6 +29,9 @@ export class SyncOperationsUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryStockUseCase: InventoryStockUseCase,
+    private readonly plotFlowUseCase: PlotFlowUseCase,
+    private readonly applicationsUseCase: ApplicationsUseCase,
+    private readonly accountsPayableUseCase: AccountsPayableUseCase,
   ) {}
 
   async sync(tenantId: string, userId: string, dto: SyncOperationsDto) {
@@ -55,11 +68,12 @@ export class SyncOperationsUseCase {
         const appliedResult = await this.applyOperation(tenantId, userId, operation);
         await this.prisma.syncOperation.update({
           where: { id: syncOperation.id },
-          data: {
-            status: SyncOperationStatus.APLICADA,
-            appliedAt: new Date(),
-          },
-        });
+        data: {
+          status: SyncOperationStatus.APLICADA,
+          appliedAt: new Date(),
+          campaignId: this.extractCampaignId(operation.payload),
+        },
+      });
 
         results.push({
           clientOperationId: operation.clientOperationId,
@@ -69,7 +83,7 @@ export class SyncOperationsUseCase {
           result: appliedResult,
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Error desconocido';
+        const message = this.errorMessage(error);
         const status = this.isBusinessConflict(error)
           ? SyncOperationStatus.CONFLICTO
           : SyncOperationStatus.RECHAZADA;
@@ -90,6 +104,8 @@ export class SyncOperationsUseCase {
               serverSnapshot: {
                 message,
                 operation: operation.operation,
+                campaignId: this.extractCampaignId(operation.payload),
+                clientOperationId: operation.clientOperationId,
               },
             },
           });
@@ -148,6 +164,38 @@ export class SyncOperationsUseCase {
 
   private applyOperation(tenantId: string, userId: string, operation: OfflineOperationDto) {
     switch (operation.operation) {
+      case OfflineOperationType.PLOT_CREATE: {
+        const payload = this.validatePayload(operation.payload, CreatePlotDto);
+        return this.plotFlowUseCase.createPlot(
+          tenantId,
+          { userId, role: UserRole.AGRICULTOR },
+          payload,
+        );
+      }
+      case OfflineOperationType.PLOT_UPDATE: {
+        const payload = this.validatePayload(this.payloadWithoutTargets(operation.payload), UpdatePlotDto);
+        return this.plotFlowUseCase.updatePlot(
+          tenantId,
+          { userId, role: UserRole.AGRICULTOR },
+          this.requireEntityTarget(operation.payload),
+          payload,
+        );
+      }
+      case OfflineOperationType.PLOT_DEACTIVATE: {
+        return this.plotFlowUseCase.deactivatePlot(
+          tenantId,
+          { userId, role: UserRole.AGRICULTOR },
+          this.requireEntityTarget(operation.payload),
+        );
+      }
+      case OfflineOperationType.PLOT_CROP_ASSIGN: {
+        const payload = this.validatePayload(operation.payload, CreatePlotCropAssignmentDto);
+        return this.plotFlowUseCase.createAssignment(
+          tenantId,
+          { userId, role: UserRole.AGRICULTOR },
+          payload,
+        );
+      }
       case OfflineOperationType.INITIAL_STOCK: {
         const initialStockPayload = this.validatePayload(
           operation.payload,
@@ -181,6 +229,27 @@ export class SyncOperationsUseCase {
           stockExitPayload,
         );
       }
+      case OfflineOperationType.AGROCHEMICAL_APPLICATION: {
+        const payload = this.validatePayload(operation.payload, CreateApplicationDto);
+        return this.applicationsUseCase.create(
+          tenantId,
+          { userId, role: UserRole.AGRICULTOR },
+          payload,
+        );
+      }
+      case OfflineOperationType.PAYMENT_CREATE: {
+        const payload = this.validatePayload(
+          this.payloadWithoutTargets(operation.payload, ['id', 'entityId', 'payableId']),
+          RegisterPaymentDto,
+        );
+        return this.accountsPayableUseCase.registerPayment(
+          tenantId,
+          userId,
+          UserRole.AGRICULTOR,
+          this.requireEntityTarget(operation.payload, 'payableId'),
+          payload,
+        );
+      }
     }
   }
 
@@ -204,6 +273,7 @@ export class SyncOperationsUseCase {
       const created = await this.prisma.syncOperation.create({
         data: {
           tenantId,
+          campaignId: this.extractCampaignId(operation.payload),
           userId,
           clientId,
           entityName: operation.operation,
@@ -267,6 +337,27 @@ export class SyncOperationsUseCase {
     return instance;
   }
 
+  private extractCampaignId(payload: Record<string, unknown>) {
+    return typeof payload.campaignId === 'string' ? payload.campaignId : null;
+  }
+
+  private requireEntityTarget(payload: Record<string, unknown>, preferredKey = 'id') {
+    const value = payload[preferredKey] ?? payload.entityId;
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new BadRequestException(`Debe enviar ${preferredKey} o entityId para esta operacion offline.`);
+    }
+
+    return value;
+  }
+
+  private payloadWithoutTargets(payload: Record<string, unknown>, keys = ['id', 'entityId']) {
+    const cleaned = { ...payload };
+    for (const key of keys) {
+      delete cleaned[key];
+    }
+    return cleaned;
+  }
+
   private formatValidationErrors(errors: ValidationError[], parent = ''): string[] {
     return errors.flatMap((error) => {
       const property = parent ? `${parent}.${error.property}` : error.property;
@@ -286,5 +377,13 @@ export class SyncOperationsUseCase {
     if (!error || typeof error !== 'object') return false;
     const status = (error as { status?: number }).status;
     return status === 400 || status === 404 || status === 409;
+  }
+
+  private errorMessage(error: unknown) {
+    if (error instanceof Error) return error.message;
+    if (error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string') {
+      return (error as { message: string }).message;
+    }
+    return 'Error desconocido';
   }
 }

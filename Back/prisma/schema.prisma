@@ -19,10 +19,84 @@ enum StockMovementType {
   AJUSTE
 }
 
+enum StockMovementReasonType {
+  COMPRA
+  ENTRADA_SIMPLE
+  APLICACION
+  PERDIDA_DERRAME
+  VENCIMIENTO
+  PRESTAMO_ENTREGA
+  DEVOLUCION
+  AJUSTE
+  OTRO
+}
+
+enum CampaignStatus {
+  PLANIFICADA
+  ABIERTA
+  CERRADA
+  CANCELADA
+}
+
+enum PlotStatus {
+  ACTIVA
+  INACTIVA
+}
+
+enum CropAssignmentStatus {
+  PLANIFICADO
+  ACTIVO
+  CAMBIADO
+  CERRADO
+}
+
+enum InventoryLotStatus {
+  DISPONIBLE
+  AGOTADO
+  VENCIDO
+  BLOQUEADO
+}
+
+enum AgrochemicalApplicationStatus {
+  REGISTRADA
+  ANULADA
+}
+
+enum CalendarEventType {
+  VENCIMIENTO_LOTE
+  PAGO_PROXIMO
+  APLICACION
+  COMPRA_PROGRAMADA
+  STOCK_BAJO
+  CIERRE_CAMPANA
+}
+
+enum CalendarEventStatus {
+  PENDIENTE
+  COMPLETADO
+  CANCELADO
+}
+
+enum AuditAction {
+  CREAR
+  ACTUALIZAR
+  INACTIVAR
+  ELIMINAR
+  ABRIR_CAMPANA
+  CERRAR_CAMPANA
+  AJUSTAR_STOCK
+  REGISTRAR_PAGO
+  SINCRONIZAR
+  OTRO
+}
+
 enum PurchaseStatus {
   BORRADOR
+  PROGRAMADA
   CONFIRMADA
+  RECIBIDA_PARCIAL
   RECIBIDA
+  CERRADA
   CANCELADA
 }
 
@@ -65,20 +139,27 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users                   User[]
-  products                Product[]
-  suppliers               Supplier[]
-  warehouses              Warehouse[]
-  inventoryLots           InventoryLot[]
-  stockMovements          StockMovement[]
-  purchases               Purchase[]
-  purchaseItems           PurchaseItem[]
-  purchaseItemAllocations PurchaseItemAllocation[]
-  purchaseParticipants    PurchaseParticipant[]
-  payableAccounts         PayableAccount[]
-  payments                Payment[]
-  syncOperations          SyncOperation[]
-  demandForecasts         DemandForecast[]
+  users                    User[]
+  products                 Product[]
+  suppliers                Supplier[]
+  warehouses               Warehouse[]
+  inventoryLots            InventoryLot[]
+  stockMovements           StockMovement[]
+  purchases                Purchase[]
+  purchaseItems            PurchaseItem[]
+  purchaseItemAllocations  PurchaseItemAllocation[]
+  purchaseParticipants     PurchaseParticipant[]
+  payableAccounts          PayableAccount[]
+  payments                 Payment[]
+  syncOperations           SyncOperation[]
+  demandForecasts          DemandForecast[]
+  campaigns                AgriculturalCampaign[]
+  plots                    Plot[]
+  crops                    Crop[]
+  plotCropAssignments      PlotCropAssignment[]
+  agrochemicalApplications AgrochemicalApplication[]
+  calendarEvents           CalendarEvent[]
+  auditLogs                AuditLog[]
 }
 
 model User {
@@ -93,18 +174,27 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
+  tenant                  Tenant                    @relation(fields: [tenantId], references: [id])
   refreshTokens           RefreshToken[]
   warehouses              Warehouse[]
   inventoryLots           InventoryLot[]
-  stockMovements          StockMovement[]          @relation("StockMovementActor")
-  ownedStockMovements     StockMovement[]          @relation("StockMovementOwner")
+  stockMovements          StockMovement[]           @relation("StockMovementActor")
+  ownedStockMovements     StockMovement[]           @relation("StockMovementOwner")
   purchases               Purchase[]
   purchaseItemAllocations PurchaseItemAllocation[]
   purchaseParticipants    PurchaseParticipant[]
   payableAccounts         PayableAccount[]
-  payments                Payment[]                @relation("PaymentRegistrar")
+  payments                Payment[]                 @relation("PaymentRegistrar")
   syncOperations          SyncOperation[]
+  createdCampaigns        AgriculturalCampaign[]    @relation("CampaignCreator")
+  closedCampaigns         AgriculturalCampaign[]    @relation("CampaignCloser")
+  plots                   Plot[]
+  plotCropAssignments     PlotCropAssignment[]
+  ownedApplications       AgrochemicalApplication[] @relation("AgrochemicalApplicationOwner")
+  appliedApplications     AgrochemicalApplication[] @relation("AgrochemicalApplicationAppliedBy")
+  calendarEvents          CalendarEvent[]
+  auditLogsAsActor        AuditLog[]                @relation("AuditActor")
+  auditLogsAsOwner        AuditLog[]                @relation("AuditOwner")
 }
 
 model RefreshToken {
@@ -128,21 +218,30 @@ model Product {
   commercialName        String?
   activeIngredient      String?
   category              String?
+  toxicologicalCategory String?
+  safetyDataSheetUrl    String?
+  safetyDataSheetName   String?
+  safetyInstructions    String?
+  qrCodeValue           String?
   unit                  String
   minimumStock          Decimal  @default(0)
   currentStock          Decimal  @default(0)
   expirationWarningDays Int      @default(90)
+  isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  tenant          Tenant           @relation(fields: [tenantId], references: [id])
-  inventoryLots   InventoryLot[]
-  movements       StockMovement[]
-  purchaseItems   PurchaseItem[]
-  demandForecasts DemandForecast[]
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
+  inventoryLots            InventoryLot[]
+  movements                StockMovement[]
+  purchaseItems            PurchaseItem[]
+  demandForecasts          DemandForecast[]
+  agrochemicalApplications AgrochemicalApplication[]
 
   @@unique([tenantId, name])
+  @@unique([tenantId, qrCodeValue])
   @@index([tenantId])
+  @@index([tenantId, isActive])
 }
 
 model Supplier {
@@ -152,6 +251,7 @@ model Supplier {
   phone     String?
   address   String?
   notes     String?
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -160,6 +260,111 @@ model Supplier {
 
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([tenantId, isActive])
+}
+
+model AgriculturalCampaign {
+  id               String         @id @default(uuid())
+  tenantId         String
+  name             String
+  status           CampaignStatus @default(PLANIFICADA)
+  isActive         Boolean        @default(false)
+  startDate        DateTime
+  estimatedEndDate DateTime?
+  closedAt         DateTime?
+  createdById      String?
+  closedById       String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
+  createdBy                User?                     @relation("CampaignCreator", fields: [createdById], references: [id])
+  closedBy                 User?                     @relation("CampaignCloser", fields: [closedById], references: [id])
+  plotCropAssignments      PlotCropAssignment[]
+  inventoryLots            InventoryLot[]
+  stockMovements           StockMovement[]
+  purchases                Purchase[]
+  payableAccounts          PayableAccount[]
+  payments                 Payment[]
+  syncOperations           SyncOperation[]
+  agrochemicalApplications AgrochemicalApplication[]
+  calendarEvents           CalendarEvent[]
+  auditLogs                AuditLog[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, status])
+  @@index([tenantId, isActive])
+}
+
+model Plot {
+  id          String     @id @default(uuid())
+  tenantId    String
+  ownerUserId String
+  name        String
+  location    String?
+  area        Decimal?
+  areaUnit    String     @default("ha")
+  status      PlotStatus @default(ACTIVA)
+  notes       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
+  owner                    User                      @relation(fields: [ownerUserId], references: [id])
+  cropAssignments          PlotCropAssignment[]
+  stockMovements           StockMovement[]
+  agrochemicalApplications AgrochemicalApplication[]
+
+  @@unique([tenantId, ownerUserId, name])
+  @@index([tenantId, ownerUserId, status])
+}
+
+model Crop {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  variety   String?
+  isActive  Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
+  cropAssignments          PlotCropAssignment[]
+  stockMovements           StockMovement[]
+  agrochemicalApplications AgrochemicalApplication[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+}
+
+model PlotCropAssignment {
+  id          String               @id @default(uuid())
+  tenantId    String
+  campaignId  String
+  plotId      String
+  cropId      String
+  ownerUserId String
+  status      CropAssignmentStatus @default(ACTIVO)
+  plantedArea Decimal?
+  plantedAt   DateTime?
+  changedAt   DateTime?
+  notes       String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
+  campaign                 AgriculturalCampaign      @relation(fields: [campaignId], references: [id])
+  plot                     Plot                      @relation(fields: [plotId], references: [id])
+  crop                     Crop                      @relation(fields: [cropId], references: [id])
+  owner                    User                      @relation(fields: [ownerUserId], references: [id])
+  agrochemicalApplications AgrochemicalApplication[]
+
+  @@unique([campaignId, plotId])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, campaignId])
+  @@index([plotId, cropId])
 }
 
 model Warehouse {
@@ -181,9 +386,10 @@ model Warehouse {
 }
 
 model InventoryLot {
-  id              String    @id @default(uuid())
+  id              String             @id @default(uuid())
   tenantId        String
   ownerUserId     String
+  campaignId      String?
   productId       String
   warehouseId     String?
   purchaseItemId  String?
@@ -192,44 +398,102 @@ model InventoryLot {
   initialQuantity Decimal
   currentQuantity Decimal
   unitCost        Decimal?
-  receivedAt      DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  status          InventoryLotStatus @default(DISPONIBLE)
+  qrCodeValue     String?
+  receivedAt      DateTime           @default(now())
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  tenant       Tenant          @relation(fields: [tenantId], references: [id])
-  owner        User            @relation(fields: [ownerUserId], references: [id])
-  product      Product         @relation(fields: [productId], references: [id])
-  warehouse    Warehouse?      @relation(fields: [warehouseId], references: [id])
-  purchaseItem PurchaseItem?   @relation(fields: [purchaseItemId], references: [id])
-  movements    StockMovement[]
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
+  owner                    User                      @relation(fields: [ownerUserId], references: [id])
+  campaign                 AgriculturalCampaign?     @relation(fields: [campaignId], references: [id])
+  product                  Product                   @relation(fields: [productId], references: [id])
+  warehouse                Warehouse?                @relation(fields: [warehouseId], references: [id])
+  purchaseItem             PurchaseItem?             @relation(fields: [purchaseItemId], references: [id])
+  movements                StockMovement[]
+  agrochemicalApplications AgrochemicalApplication[]
 
+  @@unique([tenantId, qrCodeValue])
   @@index([tenantId, ownerUserId])
+  @@index([tenantId, campaignId])
   @@index([productId])
   @@index([expirationDate])
 }
 
 model StockMovement {
-  id             String            @id @default(uuid())
+  id             String                   @id @default(uuid())
   tenantId       String
   ownerUserId    String
+  campaignId     String?
   productId      String
   inventoryLotId String?
   warehouseId    String?
+  plotId         String?
+  cropId         String?
+  applicationId  String?
   userId         String?
   type           StockMovementType
+  reasonType     StockMovementReasonType?
   quantity       Decimal
   reason         String?
-  occurredAt     DateTime          @default(now())
-  createdAt      DateTime          @default(now())
+  occurredAt     DateTime                 @default(now())
+  createdAt      DateTime                 @default(now())
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  owner        User          @relation("StockMovementOwner", fields: [ownerUserId], references: [id])
-  product      Product       @relation(fields: [productId], references: [id])
-  inventoryLot InventoryLot? @relation(fields: [inventoryLotId], references: [id])
-  warehouse    Warehouse?    @relation(fields: [warehouseId], references: [id])
-  user         User?         @relation("StockMovementActor", fields: [userId], references: [id])
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
+  owner        User                     @relation("StockMovementOwner", fields: [ownerUserId], references: [id])
+  campaign     AgriculturalCampaign?    @relation(fields: [campaignId], references: [id])
+  product      Product                  @relation(fields: [productId], references: [id])
+  inventoryLot InventoryLot?            @relation(fields: [inventoryLotId], references: [id])
+  warehouse    Warehouse?               @relation(fields: [warehouseId], references: [id])
+  plot         Plot?                    @relation(fields: [plotId], references: [id])
+  crop         Crop?                    @relation(fields: [cropId], references: [id])
+  application  AgrochemicalApplication? @relation(fields: [applicationId], references: [id])
+  user         User?                    @relation("StockMovementActor", fields: [userId], references: [id])
 
   @@index([tenantId, ownerUserId, occurredAt])
+  @@index([tenantId, campaignId])
+  @@index([productId])
+  @@index([inventoryLotId])
+  @@index([plotId])
+  @@index([applicationId])
+}
+
+model AgrochemicalApplication {
+  id                   String                        @id @default(uuid())
+  tenantId             String
+  campaignId           String
+  ownerUserId          String
+  appliedById          String?
+  plotId               String
+  cropId               String
+  plotCropAssignmentId String?
+  productId            String
+  inventoryLotId       String?
+  quantity             Decimal
+  dose                 String?
+  targetPest           String?
+  weatherConditions    String?
+  responsibleName      String?
+  notes                String?
+  status               AgrochemicalApplicationStatus @default(REGISTRADA)
+  appliedAt            DateTime                      @default(now())
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  tenant             Tenant               @relation(fields: [tenantId], references: [id])
+  campaign           AgriculturalCampaign @relation(fields: [campaignId], references: [id])
+  owner              User                 @relation("AgrochemicalApplicationOwner", fields: [ownerUserId], references: [id])
+  appliedBy          User?                @relation("AgrochemicalApplicationAppliedBy", fields: [appliedById], references: [id])
+  plot               Plot                 @relation(fields: [plotId], references: [id])
+  crop               Crop                 @relation(fields: [cropId], references: [id])
+  plotCropAssignment PlotCropAssignment?  @relation(fields: [plotCropAssignmentId], references: [id])
+  product            Product              @relation(fields: [productId], references: [id])
+  inventoryLot       InventoryLot?        @relation(fields: [inventoryLotId], references: [id])
+  movements          StockMovement[]
+
+  @@index([tenantId, ownerUserId, appliedAt])
+  @@index([tenantId, campaignId])
+  @@index([plotId, cropId])
   @@index([productId])
   @@index([inventoryLotId])
 }
@@ -237,6 +501,7 @@ model StockMovement {
 model Purchase {
   id             String              @id @default(uuid())
   tenantId       String
+  campaignId     String?
   supplierId     String
   createdById    String?
   type           PurchaseType        @default(INDIVIDUAL)
@@ -252,6 +517,7 @@ model Purchase {
   updatedAt      DateTime            @updatedAt
 
   tenant       Tenant                @relation(fields: [tenantId], references: [id])
+  campaign     AgriculturalCampaign? @relation(fields: [campaignId], references: [id])
   supplier     Supplier              @relation(fields: [supplierId], references: [id])
   createdBy    User?                 @relation(fields: [createdById], references: [id])
   items        PurchaseItem[]
@@ -259,6 +525,7 @@ model Purchase {
   payables     PayableAccount[]
 
   @@index([tenantId, type, status])
+  @@index([tenantId, campaignId])
   @@index([supplierId])
 }
 
@@ -322,6 +589,7 @@ model PurchaseParticipant {
 model PayableAccount {
   id                String        @id @default(uuid())
   tenantId          String
+  campaignId        String?
   purchaseId        String
   responsibleUserId String?
   dueDate           DateTime
@@ -331,12 +599,14 @@ model PayableAccount {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
-  purchase        Purchase  @relation(fields: [purchaseId], references: [id])
-  responsibleUser User?     @relation(fields: [responsibleUserId], references: [id])
+  tenant          Tenant                @relation(fields: [tenantId], references: [id])
+  campaign        AgriculturalCampaign? @relation(fields: [campaignId], references: [id])
+  purchase        Purchase              @relation(fields: [purchaseId], references: [id])
+  responsibleUser User?                 @relation(fields: [responsibleUserId], references: [id])
   payments        Payment[]
 
   @@index([tenantId, status, dueDate])
+  @@index([tenantId, campaignId])
   @@index([purchaseId])
   @@index([responsibleUserId])
 }
@@ -344,23 +614,27 @@ model PayableAccount {
 model Payment {
   id               String   @id @default(uuid())
   tenantId         String
+  campaignId       String?
   payableAccountId String
   registeredById   String?
   amount           Decimal
   paidAt           DateTime @default(now())
   notes            String?
 
-  tenant         Tenant         @relation(fields: [tenantId], references: [id])
-  payableAccount PayableAccount @relation(fields: [payableAccountId], references: [id])
-  registeredBy   User?          @relation("PaymentRegistrar", fields: [registeredById], references: [id])
+  tenant         Tenant                @relation(fields: [tenantId], references: [id])
+  campaign       AgriculturalCampaign? @relation(fields: [campaignId], references: [id])
+  payableAccount PayableAccount        @relation(fields: [payableAccountId], references: [id])
+  registeredBy   User?                 @relation("PaymentRegistrar", fields: [registeredById], references: [id])
 
   @@index([tenantId, paidAt])
+  @@index([tenantId, campaignId])
   @@index([payableAccountId])
 }
 
 model SyncOperation {
   id           String              @id @default(uuid())
   tenantId     String
+  campaignId   String?
   userId       String?
   clientId     String
   entityName   String
@@ -372,12 +646,70 @@ model SyncOperation {
   createdAt    DateTime            @default(now())
   appliedAt    DateTime?
 
-  tenant    Tenant         @relation(fields: [tenantId], references: [id])
-  user      User?          @relation(fields: [userId], references: [id])
+  tenant    Tenant                @relation(fields: [tenantId], references: [id])
+  campaign  AgriculturalCampaign? @relation(fields: [campaignId], references: [id])
+  user      User?                 @relation(fields: [userId], references: [id])
   conflicts SyncConflict[]
 
   @@unique([tenantId, userId, clientId, entityId])
   @@index([tenantId, clientId, status])
+  @@index([tenantId, campaignId])
+  @@index([entityName, entityId])
+}
+
+model CalendarEvent {
+  id              String              @id @default(uuid())
+  tenantId        String
+  campaignId      String?
+  ownerUserId     String?
+  type            CalendarEventType
+  status          CalendarEventStatus @default(PENDIENTE)
+  title           String
+  description     String?
+  eventDate       DateTime
+  sourceEntity    String?
+  sourceEntityId  String?
+  isAutoGenerated Boolean             @default(true)
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id])
+  campaign AgriculturalCampaign? @relation(fields: [campaignId], references: [id])
+  owner    User?                 @relation(fields: [ownerUserId], references: [id])
+
+  @@index([tenantId, eventDate])
+  @@index([tenantId, ownerUserId, eventDate])
+  @@index([tenantId, campaignId, type])
+  @@index([sourceEntity, sourceEntityId])
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  tenantId    String
+  campaignId  String?
+  actorUserId String?
+  ownerUserId String?
+  action      AuditAction
+  entityName  String
+  entityId    String?
+  summary     String?
+  before      Json?
+  after       Json?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id])
+  campaign AgriculturalCampaign? @relation(fields: [campaignId], references: [id])
+  actor    User?                 @relation("AuditActor", fields: [actorUserId], references: [id])
+  owner    User?                 @relation("AuditOwner", fields: [ownerUserId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, campaignId])
+  @@index([tenantId, actorUserId])
+  @@index([tenantId, ownerUserId])
   @@index([entityName, entityId])
 }
 

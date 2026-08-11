@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agro_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agrochemical_inventory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d agrochemical_inventory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./Back
+      dockerfile: Dockerfile
+    container_name: agro_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/agrochemical_inventory?schema=public
+      JWT_SECRET: change-me-with-a-secure-secret-min-12-chars
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_SECRET: change-me-with-a-very-long-refresh-secret-min-32-chars
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:8080,http://localhost:5173
+      COOKIE_SECURE: "false"
+    ports:
+      - "3000:3000"
+    command: sh -c "npx prisma migrate deploy || npx prisma db push --skip-generate && node dist/prisma/seed.js && node dist/main.js"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ./Web
+      dockerfile: Dockerfile
+    container_name: agro_web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:
