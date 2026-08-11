@@ -1,66 +1,162 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   AppShell,
+  EmptyState,
   Notice,
+  SkeletonRow,
   StatCard,
+  StatusBadge,
   buttonClass,
   cardClass,
+  dangerButtonClass,
   inputClass,
   labelClass,
   secondaryButtonClass,
 } from '../components/app-shell';
-import { extractError, fmtDate } from '../lib/format';
-import { inventoryService, syncService } from '../services/inventory.service';
-import type { OfflineOperation, OfflineOperationType, StockLot } from '../types/inventory';
+import { useCampaign } from '../hooks/use-campaign';
+import { extractError, fmtDate, fmtMoney, fmtNumber } from '../lib/format';
+import {
+  applySyncResults,
+  getOfflineClientId,
+  plainOfflineOperation,
+  readOfflineQueue,
+  writeOfflineQueue,
+  type QueuedOfflineOperation,
+} from '../lib/offline-queue';
+import { payablesService } from '../services/accounts-payable.service';
+import { inventoryService } from '../services/inventory.service';
+import { cropsService, plotCropAssignmentsService, plotsService } from '../services/plots.service';
+import { syncService } from '../services/sync.service';
+import type { PayableAccount } from '../types/accounts-payable';
+import type { StockEntryReason, StockLot, StockMovementReasonType } from '../types/inventory';
+import type { Crop, Plot, PlotCropAssignment } from '../types/plots';
+import type { OfflineOperation, OfflineOperationType, SyncedOperation } from '../types/sync';
 
-const QUEUE_KEY = 'agro_offline_queue_v1';
-const CLIENT_ID_KEY = 'agro_client_id_v1';
-
-function getClientId() {
-  const existing = localStorage.getItem(CLIENT_ID_KEY);
-  if (existing) return existing;
-  const created = `web-${crypto.randomUUID()}`;
-  localStorage.setItem(CLIENT_ID_KEY, created);
-  return created;
-}
-
-function readQueue(): OfflineOperation[] {
-  try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]') as OfflineOperation[];
-  } catch {
-    return [];
-  }
-}
-
-function writeQueue(queue: OfflineOperation[]) {
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
-}
-
-const OPERATION_LABELS: Record<string, { label: string; color: string; icon: string }> = {
-  INITIAL_STOCK: { label: 'Inventario inicial', color: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20', icon: '📦' },
-  STOCK_ENTRY: { label: 'Entrada', color: 'bg-sky-500/10 text-sky-700 ring-sky-500/20', icon: '📥' },
-  STOCK_EXIT: { label: 'Salida', color: 'bg-amber-500/10 text-amber-700 ring-amber-500/20', icon: '📤' },
+type SyncFormState = {
+  productId: string;
+  productName: string;
+  unit: string;
+  quantity: string;
+  lotNumber: string;
+  expirationDate: string;
+  warehouseName: string;
+  entryReason: StockEntryReason;
+  reasonType: StockMovementReasonType;
+  reason: string;
+  plotId: string;
+  plotName: string;
+  location: string;
+  area: string;
+  areaUnit: string;
+  cropId: string;
+  plantedArea: string;
+  plantedAt: string;
+  inventoryLotId: string;
+  dose: string;
+  targetPest: string;
+  appliedAt: string;
+  payableId: string;
+  paidAt: string;
+  notes: string;
 };
 
+const initialForm: SyncFormState = {
+  productId: '',
+  productName: '',
+  unit: 'L',
+  quantity: '',
+  lotNumber: '',
+  expirationDate: '',
+  warehouseName: 'Galpon principal',
+  entryReason: 'COMPRA',
+  reasonType: 'OTRO',
+  reason: '',
+  plotId: '',
+  plotName: '',
+  location: '',
+  area: '',
+  areaUnit: 'ha',
+  cropId: '',
+  plantedArea: '',
+  plantedAt: '',
+  inventoryLotId: '',
+  dose: '',
+  targetPest: '',
+  appliedAt: '',
+  payableId: '',
+  paidAt: '',
+  notes: '',
+};
+
+const OPERATION_LABELS: Record<OfflineOperationType, string> = {
+  INITIAL_STOCK: 'Inventario inicial',
+  PLOT_CREATE: 'Crear parcela',
+  PLOT_UPDATE: 'Actualizar parcela',
+  PLOT_DEACTIVATE: 'Inactivar parcela',
+  PLOT_CROP_ASSIGN: 'Asignar cultivo',
+  STOCK_ENTRY: 'Entrada de stock',
+  STOCK_EXIT: 'Salida de stock',
+  AGROCHEMICAL_APPLICATION: 'Aplicacion',
+  PAYMENT_CREATE: 'Pago',
+};
+
+const OPERATIONS: OfflineOperationType[] = [
+  'PLOT_CREATE',
+  'PLOT_UPDATE',
+  'PLOT_DEACTIVATE',
+  'PLOT_CROP_ASSIGN',
+  'INITIAL_STOCK',
+  'STOCK_ENTRY',
+  'STOCK_EXIT',
+  'AGROCHEMICAL_APPLICATION',
+  'PAYMENT_CREATE',
+];
+
+const CAMPAIGN_DEPENDENT = new Set<OfflineOperationType>([
+  'PLOT_CROP_ASSIGN',
+  'STOCK_ENTRY',
+  'STOCK_EXIT',
+  'AGROCHEMICAL_APPLICATION',
+]);
+
+const REASON_OPTIONS: Array<{ value: StockMovementReasonType; label: string }> = [
+  { value: 'OTRO', label: 'Salida simple' },
+  { value: 'APLICACION', label: 'Aplicacion' },
+  { value: 'DEVOLUCION', label: 'Devolucion' },
+  { value: 'PERDIDA_DERRAME', label: 'Perdida o derrame' },
+  { value: 'VENCIMIENTO', label: 'Vencimiento' },
+  { value: 'PRESTAMO_ENTREGA', label: 'Prestamo o entrega' },
+];
+
+function toNumber(value: string) {
+  return Number(value || 0);
+}
+
+function optionalNumber(value: string) {
+  return value ? Number(value) : undefined;
+}
+
+function optionalText(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function SyncPage() {
-  const [clientId] = useState(getClientId);
-  const [queue, setQueue] = useState<OfflineOperation[]>(readQueue);
+  const { activeCampaign, hasActiveCampaign } = useCampaign();
+  const [clientId] = useState(getOfflineClientId);
+  const [queue, setQueue] = useState<QueuedOfflineOperation[]>(readOfflineQueue);
+  const [serverOperations, setServerOperations] = useState<SyncedOperation[]>([]);
   const [stock, setStock] = useState<StockLot[]>([]);
-  const [operation, setOperation] = useState<OfflineOperationType>('INITIAL_STOCK');
-  const [form, setForm] = useState({
-    productName: '',
-    productId: '',
-    unit: 'L',
-    quantity: '',
-    lotNumber: '',
-    expirationDate: '',
-    warehouseName: 'Galpon principal',
-    entryReason: 'COMPRA',
-    reason: '',
-  });
+  const [plots, setPlots] = useState<Plot[]>([]);
+  const [crops, setCrops] = useState<Crop[]>([]);
+  const [assignments, setAssignments] = useState<PlotCropAssignment[]>([]);
+  const [payables, setPayables] = useState<PayableAccount[]>([]);
+  const [operation, setOperation] = useState<OfflineOperationType>('PLOT_CREATE');
+  const [form, setForm] = useState<SyncFormState>(initialForm);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -75,12 +171,37 @@ export function SyncPage() {
   }, []);
 
   useEffect(() => {
-    void inventoryService.stock().then(setStock).catch(() => undefined);
-  }, []);
+    writeOfflineQueue(queue);
+  }, [queue]);
+
+  const loadData = async () => {
+    setLoadingData(true);
+    try {
+      const [stockData, plotData, cropData, assignmentData, payableData, syncedData] = await Promise.all([
+        inventoryService.stock(),
+        plotsService.list(),
+        cropsService.list({ isActive: true }),
+        plotCropAssignmentsService.list(activeCampaign?.id ? { campaignId: activeCampaign.id } : undefined),
+        payablesService.list({ status: 'PENDIENTE' }),
+        syncService.listOperations({ clientId }),
+      ]);
+      setStock(stockData);
+      setPlots(plotData);
+      setCrops(cropData);
+      setAssignments(assignmentData);
+      setPayables(payableData);
+      setServerOperations(syncedData);
+    } catch (err) {
+      setError(extractError(err, 'No fue posible cargar datos para sincronizacion.'));
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   useEffect(() => {
-    writeQueue(queue);
-  }, [queue]);
+    void Promise.resolve().then(loadData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCampaign?.id, clientId]);
 
   const products = useMemo(() => {
     const map = new Map<string, StockLot['product']>();
@@ -88,50 +209,151 @@ export function SyncPage() {
     return Array.from(map.values());
   }, [stock]);
 
-  const addToQueue = (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const base = {
-      quantity: Number(form.quantity),
-      lotNumber: form.lotNumber || undefined,
+  const lotsForProduct = stock.filter((lot) => lot.product.id === form.productId);
+  const canQueueOperation = !CAMPAIGN_DEPENDENT.has(operation) || hasActiveCampaign;
+  const conflictItems = queue.filter((item) => item.lastStatus === 'CONFLICTO' || item.lastStatus === 'RECHAZADA');
+
+  const set = (field: keyof SyncFormState, value: string) =>
+    setForm((current) => ({ ...current, [field]: value }));
+
+  const makeOperation = (): OfflineOperation => {
+    const campaignId = activeCampaign?.id;
+    const baseStock = {
+      quantity: toNumber(form.quantity),
+      lotNumber: optionalText(form.lotNumber),
       expirationDate: form.expirationDate || undefined,
-      warehouseName: form.warehouseName || undefined,
+      warehouseName: optionalText(form.warehouseName),
+      notes: optionalText(form.notes),
     };
-    let payload: Record<string, unknown>;
 
-    if (operation === 'STOCK_EXIT') {
-      payload = {
-        productId: form.productId,
-        quantity: Number(form.quantity),
-        reason: form.reason,
-      };
-    } else if (operation === 'STOCK_ENTRY') {
-      payload = {
-        ...base,
-        entryReason: form.entryReason,
-        product: form.productId
-          ? { productId: form.productId }
-          : { productName: form.productName, unit: form.unit },
-      };
-    } else {
-      payload = {
-        ...base,
-        product: form.productId
-          ? { productId: form.productId }
-          : { productName: form.productName, unit: form.unit },
-      };
+    switch (operation) {
+      case 'PLOT_CREATE':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation,
+          payload: {
+            name: form.plotName,
+            location: optionalText(form.location) ?? null,
+            area: optionalNumber(form.area) ?? null,
+            areaUnit: form.areaUnit || 'ha',
+            notes: optionalText(form.notes) ?? null,
+          },
+        };
+      case 'PLOT_UPDATE':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation: 'PLOT_UPDATE',
+          payload: {
+            id: form.plotId,
+            name: optionalText(form.plotName),
+            location: optionalText(form.location) ?? null,
+            area: form.area ? Number(form.area) : undefined,
+            areaUnit: form.areaUnit || undefined,
+            notes: optionalText(form.notes) ?? null,
+          },
+        };
+      case 'PLOT_DEACTIVATE':
+        return { clientOperationId: crypto.randomUUID(), operation: 'PLOT_DEACTIVATE', payload: { id: form.plotId } };
+      case 'PLOT_CROP_ASSIGN':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation,
+          payload: {
+            campaignId,
+            plotId: form.plotId,
+            cropId: form.cropId,
+            plantedArea: optionalNumber(form.plantedArea) ?? null,
+            plantedAt: form.plantedAt || null,
+            notes: optionalText(form.notes) ?? null,
+          },
+        };
+      case 'INITIAL_STOCK':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation,
+          payload: {
+            ...baseStock,
+            product: form.productId
+              ? { productId: form.productId }
+              : { productName: form.productName, unit: form.unit },
+          },
+        };
+      case 'STOCK_ENTRY':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation,
+          payload: {
+            ...baseStock,
+            campaignId,
+            entryReason: form.entryReason,
+            product: form.productId
+              ? { productId: form.productId }
+              : { productName: form.productName, unit: form.unit },
+          },
+        };
+      case 'STOCK_EXIT':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation,
+          payload: {
+            campaignId,
+            productId: form.productId,
+            inventoryLotId: form.inventoryLotId || undefined,
+            quantity: toNumber(form.quantity),
+            reasonType: form.reasonType,
+            reason: form.reason,
+          },
+        };
+      case 'AGROCHEMICAL_APPLICATION':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation,
+          payload: {
+            campaignId,
+            plotId: form.plotId,
+            productId: form.productId,
+            inventoryLotId: form.inventoryLotId || undefined,
+            quantity: toNumber(form.quantity),
+            dose: optionalText(form.dose) ?? null,
+            targetPest: optionalText(form.targetPest) ?? null,
+            appliedAt: form.appliedAt || undefined,
+            notes: optionalText(form.notes) ?? null,
+          },
+        };
+      case 'PAYMENT_CREATE':
+        return {
+          clientOperationId: crypto.randomUUID(),
+          operation,
+          payload: {
+            payableId: form.payableId,
+            amount: toNumber(form.quantity),
+            paidAt: form.paidAt || undefined,
+            notes: optionalText(form.notes),
+          },
+        };
     }
+  };
 
-    setQueue((prev) => [
-      ...prev,
-      {
-        clientOperationId: crypto.randomUUID(),
-        operation,
-        payload,
-      },
-    ]);
-    setForm((prev) => ({ ...prev, quantity: '', lotNumber: '', reason: '' }));
-    setMessage('Operación guardada en cola offline.');
+  const addToQueue = (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setMessage(null);
+    if (!canQueueOperation) {
+      setError('Esta operacion necesita una campana activa antes de guardarse en cola.');
+      return;
+    }
+    const nextOperation = makeOperation();
+    setQueue((current) => [...current, { ...nextOperation, queuedAt: new Date().toISOString() }]);
+    setForm((current) => ({
+      ...current,
+      quantity: '',
+      lotNumber: '',
+      reason: '',
+      notes: '',
+      dose: '',
+      targetPest: '',
+    }));
+    setMessage('Operacion guardada en cola offline.');
   };
 
   const sync = async () => {
@@ -140,14 +362,15 @@ export function SyncPage() {
     setError(null);
     setMessage(null);
     try {
-      const { data } = await syncService.syncOperations({ clientId, operations: queue });
-      const appliedIds = new Set(
-        (data.results as Array<{ clientOperationId: string; status: string }>)
-          .filter((result) => result.status === 'APLICADA')
-          .map((result) => result.clientOperationId),
-      );
-      setQueue((prev) => prev.filter((item) => !appliedIds.has(item.clientOperationId)));
-      setMessage(`Sincronización procesada: ${data.applied} aplicadas, ${data.conflicts} conflictos, ${data.rejected} rechazadas.`);
+      const data = await syncService.syncOperations({
+        clientId,
+        operations: queue.map(plainOfflineOperation),
+      });
+      const nextQueue = applySyncResults(queue, data.results);
+      setQueue(nextQueue);
+      const syncedData = await syncService.listOperations({ clientId });
+      setServerOperations(syncedData);
+      setMessage(`Sincronizacion procesada: ${data.applied} aplicadas, ${data.conflicts} conflictos, ${data.rejected} rechazadas.`);
     } catch (err) {
       setError(extractError(err, 'No fue posible sincronizar.'));
     } finally {
@@ -155,215 +378,293 @@ export function SyncPage() {
     }
   };
 
+  const discard = (clientOperationId: string) => {
+    setQueue((current) => current.filter((item) => item.clientOperationId !== clientOperationId));
+  };
+
+  const retryAsNew = (item: QueuedOfflineOperation) => {
+    setQueue((current) => [
+      ...current.filter((candidate) => candidate.clientOperationId !== item.clientOperationId),
+      {
+        ...plainOfflineOperation(item),
+        clientOperationId: crypto.randomUUID(),
+        queuedAt: new Date().toISOString(),
+      } as QueuedOfflineOperation,
+    ]);
+    setMessage('Operacion preparada para reintento con un nuevo identificador.');
+  };
+
   return (
-    <AppShell title="Sincronización offline" section="Trabajo sin conexión">
-      {/* Connection status + KPI */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-3 animate-fade-in">
-        {/* Connection status card */}
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${isOnline ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'} text-white shadow-sm`}>
-              {isOnline ? (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.858 15.355-5.858 21.213 0" />
-                </svg>
-              ) : (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728M3 3l18 18" />
-                </svg>
-              )}
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Conexión</p>
-              <p className={`text-lg font-bold ${isOnline ? 'text-emerald-700' : 'text-slate-600'}`}>
-                {isOnline ? 'En línea' : 'Sin conexión'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <StatCard
-          label="Operaciones en cola"
-          value={queue.length}
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
-          color={queue.length > 0 ? 'amber' : 'slate'}
-        />
-
-        <StatCard
-          label="Productos en stock"
-          value={products.length}
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" /></svg>}
-          color="emerald"
-        />
+    <AppShell title="Sincronizacion offline" section="Trabajo sin conexion">
+      <div className="mb-6 grid gap-4 sm:grid-cols-4">
+        <StatCard label="Estado" value={isOnline ? 'Online' : 'Offline'} color={isOnline ? 'emerald' : 'slate'} />
+        <StatCard label="Pendientes" value={queue.length} color={queue.length ? 'amber' : 'slate'} />
+        <StatCard label="Conflictos locales" value={conflictItems.length} color={conflictItems.length ? 'red' : 'slate'} />
+        <StatCard label="Historial servidor" value={serverOperations.length} color="sky" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        {/* Add to queue form */}
-        <form onSubmit={addToQueue} className={`space-y-4 ${cardClass} animate-slide-in-left`}>
-          <h2 className="font-bold text-slate-900">Agregar operación a cola local</h2>
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <form onSubmit={addToQueue} className={`${cardClass} h-fit space-y-4`}>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Agregar operacion local</h2>
+            <p className="text-sm text-slate-500">Se guarda en este navegador y se envia al backend al sincronizar.</p>
+          </div>
+
+          {!canQueueOperation && (
+            <Notice kind="warn">Esta operacion necesita campana activa. Puedes cambiar de operacion o abrir una campana.</Notice>
+          )}
 
           <div>
-            <label htmlFor="sync-op-type" className={labelClass}>Tipo de operación</label>
-            <select id="sync-op-type" className={inputClass} value={operation} onChange={(e) => setOperation(e.target.value as OfflineOperationType)}>
-              <option value="INITIAL_STOCK">Inventario inicial</option>
-              <option value="STOCK_ENTRY">Entrada</option>
-              <option value="STOCK_EXIT">Salida</option>
+            <label htmlFor="sync-op-type" className={labelClass}>Tipo de operacion</label>
+            <select id="sync-op-type" className={inputClass} value={operation} onChange={(event) => setOperation(event.target.value as OfflineOperationType)}>
+              {OPERATIONS.map((item) => <option key={item} value={item}>{OPERATION_LABELS[item]}</option>)}
             </select>
           </div>
 
-          {operation === 'STOCK_EXIT' ? (
-            <div>
-              <label htmlFor="exit-product-sync" className={labelClass}>Producto *</label>
-              <select id="exit-product-sync" required className={inputClass} value={form.productId} onChange={(e) => setForm({ ...form, productId: e.target.value })}>
-                <option value="">Seleccionar producto</option>
-                {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-              </select>
-            </div>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <label htmlFor="sync-product-sel" className={labelClass}>Producto existente</label>
-                <select id="sync-product-sel" className={inputClass} value={form.productId} onChange={(e) => setForm({ ...form, productId: e.target.value })}>
-                  <option value="">Producto nuevo</option>
-                  {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                </select>
-              </div>
-              {!form.productId && (
-                <div>
-                  <label htmlFor="sync-product-name" className={labelClass}>Nombre nuevo *</label>
-                  <input id="sync-product-name" required className={inputClass} placeholder="Nombre producto" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} autoComplete="off" />
-                </div>
-              )}
-            </div>
-          )}
+          {renderOperationFields({
+            operation,
+            form,
+            set,
+            products,
+            lotsForProduct,
+            plots,
+            crops,
+            assignments,
+            payables,
+          })}
 
-          {operation === 'STOCK_ENTRY' && (
-            <div>
-              <label htmlFor="sync-entry-reason" className={labelClass}>Motivo de entrada</label>
-              <select id="sync-entry-reason" className={inputClass} value={form.entryReason} onChange={(e) => setForm({ ...form, entryReason: e.target.value })}>
-                <option value="COMPRA">Compra</option>
-                <option value="DEVOLUCION">Devolución</option>
-                <option value="AJUSTE">Ajuste</option>
-              </select>
-            </div>
-          )}
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <label htmlFor="sync-qty" className={labelClass}>Cantidad *</label>
-              <input id="sync-qty" required className={inputClass} type="number" min="0.0001" step="0.0001" placeholder="Cantidad" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
-            </div>
-            {operation !== 'STOCK_EXIT' && (
-              <>
-                <div>
-                  <label htmlFor="sync-unit" className={labelClass}>Unidad</label>
-                  <input id="sync-unit" className={inputClass} placeholder="L" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} autoComplete="off" />
-                </div>
-                <div>
-                  <label htmlFor="sync-lot" className={labelClass}>Lote</label>
-                  <input id="sync-lot" className={inputClass} placeholder="LOTE-01" value={form.lotNumber} onChange={(e) => setForm({ ...form, lotNumber: e.target.value })} autoComplete="off" />
-                </div>
-                <div>
-                  <label htmlFor="sync-exp" className={labelClass}>Vencimiento</label>
-                  <input id="sync-exp" className={inputClass} type="date" value={form.expirationDate} onChange={(e) => setForm({ ...form, expirationDate: e.target.value })} />
-                </div>
-              </>
-            )}
-          </div>
-
-          {operation === 'STOCK_EXIT' && (
-            <div>
-              <label htmlFor="sync-reason" className={labelClass}>Motivo *</label>
-              <textarea id="sync-reason" required className={inputClass} placeholder="Motivo de la salida…" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
-            </div>
-          )}
-
-          <button className={buttonClass}>
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            Guardar en cola
-          </button>
-        </form>
-
-        {/* Queue + sync panel */}
-        <div className="space-y-4">
           {message && <Notice kind="ok">{message}</Notice>}
           {error && <Notice kind="error">{error}</Notice>}
 
-          <div className={`${cardClass}`}>
+          <button className={buttonClass} disabled={!canQueueOperation}>Guardar en cola</button>
+        </form>
+
+        <div className="space-y-4">
+          <div className={cardClass}>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-bold text-slate-900">Cola offline</h2>
-                <p className="text-xs text-slate-400 tabular-nums mt-0.5">Dispositivo: {clientId.slice(0, 20)}…</p>
+                <p className="mt-0.5 text-xs text-slate-400 tabular-nums">Dispositivo: {clientId.slice(0, 28)}</p>
               </div>
-              <div className="flex gap-2">
-                <button className={secondaryButtonClass} onClick={() => setQueue([])}>
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  Vaciar
-                </button>
-                <button
-                  disabled={syncing || queue.length === 0}
-                  className={buttonClass}
-                  onClick={() => void sync()}
-                >
-                  {syncing ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                      </svg>
-                      Sincronizando…
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                      Sincronizar
-                    </span>
-                  )}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={secondaryButtonClass} onClick={() => void loadData()}>Actualizar datos</button>
+                <button type="button" className={dangerButtonClass} disabled={queue.length === 0} onClick={() => setQueue([])}>Vaciar cola</button>
+                <button type="button" disabled={syncing || queue.length === 0} className={buttonClass} onClick={() => void sync()}>
+                  {syncing ? 'Sincronizando...' : 'Sincronizar'}
                 </button>
               </div>
             </div>
 
             {queue.length === 0 ? (
-              <div className="py-10 text-center">
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100/80 text-slate-300">
-                  <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-slate-500">No hay operaciones pendientes</p>
-                <p className="text-xs text-slate-400 mt-1">Las operaciones que agregues aparecerán aquí.</p>
-              </div>
+              <EmptyState title="No hay operaciones pendientes" description="Las operaciones offline apareceran aqui." />
             ) : (
-              <ul className="space-y-2">
-                {queue.map((item, idx) => {
-                  const opInfo = OPERATION_LABELS[item.operation] ?? { label: item.operation, color: 'bg-slate-100 text-slate-600', icon: '📝' };
-                  return (
-                    <li key={item.clientOperationId} className="rounded-xl border border-slate-200/80 bg-white/60 p-3.5 transition-all duration-200 hover:shadow-sm animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-lg">{opInfo.icon}</span>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${opInfo.color}`}>
-                            {opInfo.label}
-                          </span>
+              <ul className="space-y-3">
+                {queue.map((item) => (
+                  <li key={item.clientOperationId} className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-slate-800">{OPERATION_LABELS[item.operation]}</span>
+                          {item.lastStatus && <StatusBadge status={item.lastStatus} />}
                         </div>
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-mono text-slate-500">
-                          {item.clientOperationId.slice(0, 8)}
-                        </span>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Creada {fmtDate(item.queuedAt)} · {item.clientOperationId.slice(0, 8)}
+                        </p>
+                        {item.errorMessage && <p className="mt-2 text-sm text-red-700">{item.errorMessage}</p>}
                       </div>
-                      <pre className="mt-2.5 max-h-24 overflow-auto rounded-lg bg-slate-50/80 p-2.5 text-xs text-slate-600 font-mono leading-relaxed border border-slate-100">
-                        {JSON.stringify(item.payload, null, 2)}
-                      </pre>
-                    </li>
-                  );
-                })}
+                      <div className="flex gap-2">
+                        {(item.lastStatus === 'CONFLICTO' || item.lastStatus === 'RECHAZADA') && (
+                          <button type="button" className={secondaryButtonClass} onClick={() => retryAsNew(item)}>Reintentar como nueva</button>
+                        )}
+                        <button type="button" className={dangerButtonClass} onClick={() => discard(item.clientOperationId)}>Descartar</button>
+                      </div>
+                    </div>
+                    <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                      {JSON.stringify(item.payload, null, 2)}
+                    </pre>
+                  </li>
+                ))}
               </ul>
             )}
           </div>
 
-          <Notice kind="info">Las operaciones aplicadas se eliminan de la cola. Los conflictos quedan para revisarlos y corregirlos.</Notice>
-          <p className="text-xs text-slate-400 tabular-nums">Última revisión visual: {fmtDate(new Date().toISOString())}</p>
+          <div className={cardClass}>
+            <h2 className="mb-4 font-bold text-slate-900">Conflictos e historial reciente</h2>
+            {loadingData ? (
+              <table className="w-full"><tbody>{Array.from({ length: 4 }).map((_, index) => <SkeletonRow key={index} cols={4} />)}</tbody></table>
+            ) : serverOperations.length === 0 ? (
+              <EmptyState title="Sin historial de sincronizacion" />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Fecha</th>
+                      <th className="px-4 py-3">Operacion</th>
+                      <th className="px-4 py-3">Estado</th>
+                      <th className="px-4 py-3">Mensaje</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {serverOperations.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-3 text-slate-600">{fmtDate(item.createdAt)}</td>
+                        <td className="px-4 py-3 text-slate-700">{OPERATION_LABELS[item.operation] ?? item.operation}</td>
+                        <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
+                        <td className="px-4 py-3 text-slate-600">{item.errorMessage ?? '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <Notice kind="info">
+            Las operaciones se sincronizan en orden. Las aplicadas salen de la cola; los conflictos quedan visibles para revisar, reintentar como nueva o descartar.
+          </Notice>
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function renderOperationFields({
+  operation,
+  form,
+  set,
+  products,
+  lotsForProduct,
+  plots,
+  crops,
+  assignments,
+  payables,
+}: {
+  operation: OfflineOperationType;
+  form: SyncFormState;
+  set: (field: keyof SyncFormState, value: string) => void;
+  products: StockLot['product'][];
+  lotsForProduct: StockLot[];
+  plots: Plot[];
+  crops: Crop[];
+  assignments: PlotCropAssignment[];
+  payables: PayableAccount[];
+}) {
+  if (operation === 'PLOT_CREATE' || operation === 'PLOT_UPDATE') {
+    return (
+      <>
+        {operation === 'PLOT_UPDATE' && <PlotSelect plots={plots} value={form.plotId} onChange={(value) => set('plotId', value)} />}
+        <div><label htmlFor="sync-plot-name" className={labelClass}>Nombre de parcela *</label><input id="sync-plot-name" required className={inputClass} value={form.plotName} onChange={(event) => set('plotName', event.target.value)} /></div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><label htmlFor="sync-location" className={labelClass}>Ubicacion</label><input id="sync-location" className={inputClass} value={form.location} onChange={(event) => set('location', event.target.value)} /></div>
+          <div><label htmlFor="sync-area" className={labelClass}>Superficie</label><input id="sync-area" className={inputClass} type="number" min="0" step="0.0001" value={form.area} onChange={(event) => set('area', event.target.value)} /></div>
+        </div>
+        <div><label htmlFor="sync-notes" className={labelClass}>Notas</label><textarea id="sync-notes" className={inputClass} rows={2} value={form.notes} onChange={(event) => set('notes', event.target.value)} /></div>
+      </>
+    );
+  }
+
+  if (operation === 'PLOT_DEACTIVATE') {
+    return <PlotSelect plots={plots} value={form.plotId} onChange={(value) => set('plotId', value)} />;
+  }
+
+  if (operation === 'PLOT_CROP_ASSIGN') {
+    return (
+      <>
+        <PlotSelect plots={plots} value={form.plotId} onChange={(value) => set('plotId', value)} />
+        <div><label htmlFor="sync-crop" className={labelClass}>Cultivo *</label><select id="sync-crop" required className={inputClass} value={form.cropId} onChange={(event) => set('cropId', event.target.value)}><option value="">Seleccionar cultivo</option>{crops.map((crop) => <option key={crop.id} value={crop.id}>{crop.name}</option>)}</select></div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><label htmlFor="sync-planted-area" className={labelClass}>Area sembrada</label><input id="sync-planted-area" className={inputClass} type="number" min="0" step="0.0001" value={form.plantedArea} onChange={(event) => set('plantedArea', event.target.value)} /></div>
+          <div><label htmlFor="sync-planted-at" className={labelClass}>Fecha siembra</label><input id="sync-planted-at" className={inputClass} type="date" value={form.plantedAt} onChange={(event) => set('plantedAt', event.target.value)} /></div>
+        </div>
+      </>
+    );
+  }
+
+  if (operation === 'PAYMENT_CREATE') {
+    return (
+      <>
+        <div><label htmlFor="sync-payable" className={labelClass}>Cuenta por pagar *</label><select id="sync-payable" required className={inputClass} value={form.payableId} onChange={(event) => set('payableId', event.target.value)}><option value="">Seleccionar cuenta</option>{payables.map((payable) => <option key={payable.id} value={payable.id}>{payable.supplier.name} · saldo {fmtMoney(payable.balance)}</option>)}</select></div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><label htmlFor="sync-payment-amount" className={labelClass}>Monto *</label><input id="sync-payment-amount" required className={inputClass} type="number" min="0.0001" step="0.0001" value={form.quantity} onChange={(event) => set('quantity', event.target.value)} /></div>
+          <div><label htmlFor="sync-paid-at" className={labelClass}>Fecha pago</label><input id="sync-paid-at" className={inputClass} type="date" value={form.paidAt} onChange={(event) => set('paidAt', event.target.value)} /></div>
+        </div>
+        <div><label htmlFor="sync-payment-notes" className={labelClass}>Notas</label><textarea id="sync-payment-notes" className={inputClass} rows={2} value={form.notes} onChange={(event) => set('notes', event.target.value)} /></div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {(operation === 'STOCK_EXIT' || operation === 'AGROCHEMICAL_APPLICATION') ? (
+        <ProductSelect products={products} value={form.productId} onChange={(value) => { set('productId', value); set('inventoryLotId', ''); }} required />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ProductSelect products={products} value={form.productId} onChange={(value) => set('productId', value)} />
+          {!form.productId && <div><label htmlFor="sync-product-name" className={labelClass}>Producto nuevo *</label><input id="sync-product-name" required className={inputClass} value={form.productName} onChange={(event) => set('productName', event.target.value)} /></div>}
+        </div>
+      )}
+
+      {operation === 'AGROCHEMICAL_APPLICATION' && (
+        <>
+          <PlotSelect plots={plots} value={form.plotId} onChange={(value) => set('plotId', value)} />
+          {assignments.length > 0 && <p className="text-xs text-slate-500">Asignaciones activas en campana: {assignments.length}</p>}
+        </>
+      )}
+
+      {(operation === 'STOCK_EXIT' || operation === 'AGROCHEMICAL_APPLICATION') && lotsForProduct.length > 0 && (
+        <div><label htmlFor="sync-lot-select" className={labelClass}>Lote</label><select id="sync-lot-select" className={inputClass} value={form.inventoryLotId} onChange={(event) => set('inventoryLotId', event.target.value)}><option value="">Usar vencimiento mas cercano</option>{lotsForProduct.map((lot) => <option key={lot.id} value={lot.id}>{lot.lotNumber ?? 'Sin lote'} · {fmtNumber(lot.currentQuantity)}</option>)}</select></div>
+      )}
+
+      {operation === 'STOCK_ENTRY' && (
+        <div><label htmlFor="sync-entry-reason" className={labelClass}>Motivo entrada</label><select id="sync-entry-reason" className={inputClass} value={form.entryReason} onChange={(event) => set('entryReason', event.target.value as StockEntryReason)}><option value="COMPRA">Compra</option><option value="ENTRADA_SIMPLE">Entrada simple</option><option value="DEVOLUCION">Devolucion</option><option value="AJUSTE">Ajuste</option></select></div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div><label htmlFor="sync-qty" className={labelClass}>Cantidad *</label><input id="sync-qty" required className={inputClass} type="number" min="0.0001" step="0.0001" value={form.quantity} onChange={(event) => set('quantity', event.target.value)} /></div>
+        {(operation === 'INITIAL_STOCK' || operation === 'STOCK_ENTRY') && !form.productId && <div><label htmlFor="sync-unit" className={labelClass}>Unidad</label><input id="sync-unit" className={inputClass} value={form.unit} onChange={(event) => set('unit', event.target.value)} /></div>}
+        {(operation === 'INITIAL_STOCK' || operation === 'STOCK_ENTRY') && <div><label htmlFor="sync-lot" className={labelClass}>Lote</label><input id="sync-lot" className={inputClass} value={form.lotNumber} onChange={(event) => set('lotNumber', event.target.value)} /></div>}
+        {(operation === 'INITIAL_STOCK' || operation === 'STOCK_ENTRY') && <div><label htmlFor="sync-exp" className={labelClass}>Vencimiento</label><input id="sync-exp" className={inputClass} type="date" value={form.expirationDate} onChange={(event) => set('expirationDate', event.target.value)} /></div>}
+      </div>
+
+      {operation === 'STOCK_EXIT' && (
+        <>
+          <div><label htmlFor="sync-reason-type" className={labelClass}>Motivo</label><select id="sync-reason-type" className={inputClass} value={form.reasonType} onChange={(event) => set('reasonType', event.target.value as StockMovementReasonType)}>{REASON_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+          <div><label htmlFor="sync-reason" className={labelClass}>Detalle *</label><textarea id="sync-reason" required className={inputClass} rows={2} value={form.reason} onChange={(event) => set('reason', event.target.value)} /></div>
+        </>
+      )}
+
+      {operation === 'AGROCHEMICAL_APPLICATION' && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><label htmlFor="sync-dose" className={labelClass}>Dosis</label><input id="sync-dose" className={inputClass} value={form.dose} onChange={(event) => set('dose', event.target.value)} /></div>
+          <div><label htmlFor="sync-applied-at" className={labelClass}>Fecha aplicacion</label><input id="sync-applied-at" className={inputClass} type="date" value={form.appliedAt} onChange={(event) => set('appliedAt', event.target.value)} /></div>
+          <div className="sm:col-span-2"><label htmlFor="sync-pest" className={labelClass}>Plaga u objetivo</label><input id="sync-pest" className={inputClass} value={form.targetPest} onChange={(event) => set('targetPest', event.target.value)} /></div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ProductSelect({ products, value, onChange, required = false }: { products: StockLot['product'][]; value: string; onChange: (value: string) => void; required?: boolean }) {
+  return (
+    <div>
+      <label htmlFor="sync-product" className={labelClass}>Producto{required ? ' *' : ''}</label>
+      <select id="sync-product" required={required} className={inputClass} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">{required ? 'Seleccionar producto' : 'Producto nuevo'}</option>
+        {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function PlotSelect({ plots, value, onChange }: { plots: Plot[]; value: string; onChange: (value: string) => void }) {
+  return (
+    <div>
+      <label htmlFor="sync-plot" className={labelClass}>Parcela *</label>
+      <select id="sync-plot" required className={inputClass} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">Seleccionar parcela</option>
+        {plots.map((plot) => <option key={plot.id} value={plot.id}>{plot.name}</option>)}
+      </select>
+    </div>
   );
 }

@@ -23,3 +23,23 @@ export function fmtNumber(value: string | number | null | undefined): string {
   const n = Number(value ?? 0);
   return Number.isFinite(n) ? n.toLocaleString('es-BO', { maximumFractionDigits: 2 }) : '0';
 }
+
+export function toNumber(value: string | number | null | undefined): number {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function fmtQuantity(value: string | number | null | undefined, unit?: string | null): string {
+  const formatted = fmtNumber(value);
+  return unit ? `${formatted} ${unit}` : formatted;
+}
+
+export function fmtMoney(value: string | number | null | undefined): string {
+  const n = toNumber(value);
+  return n.toLocaleString('es-BO', {
+    style: 'currency',
+    currency: 'BOB',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}

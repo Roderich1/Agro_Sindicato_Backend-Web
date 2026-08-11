@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PurchasePaymentMode } from '@prisma/client';
+import { PurchasePaymentMode, PurchaseStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -63,6 +63,12 @@ export class CreatePurchaseItemDto {
   @Min(0)
   discountAmount?: number;
 
+  @ApiPropertyOptional({ example: 10, description: 'Cantidad recibida cuando la compra es parcial.' })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  receivedQuantity?: number;
+
   @ApiPropertyOptional({ example: 'LOTE-COMPRA-01' })
   @IsOptional()
   @IsString()
@@ -81,9 +87,19 @@ export class CreatePurchaseDto {
   @Type(() => SupplierReferenceDto)
   supplier: SupplierReferenceDto;
 
+  @ApiPropertyOptional({ description: 'Si se omite, se usa la campana activa.' })
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
+
   @ApiProperty({ enum: PurchasePaymentMode, example: PurchasePaymentMode.CREDITO })
   @IsEnum(PurchasePaymentMode)
   paymentMode: PurchasePaymentMode;
+
+  @ApiPropertyOptional({ enum: PurchaseStatus, example: PurchaseStatus.RECIBIDA })
+  @IsOptional()
+  @IsEnum(PurchaseStatus)
+  status?: PurchaseStatus;
 
   @ApiProperty({ type: [CreatePurchaseItemDto] })
   @IsArray()
@@ -96,6 +112,11 @@ export class CreatePurchaseDto {
   @IsOptional()
   @IsDateString()
   purchasedAt?: string;
+
+  @ApiPropertyOptional({ example: '2026-06-05', description: 'Fecha esperada para compra programada.' })
+  @IsOptional()
+  @IsDateString()
+  expectedAt?: string;
 
   @ApiPropertyOptional({ example: '2026-06-28', description: 'Obligatorio cuando paymentMode=CREDITO.' })
   @IsOptional()

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { StockMovementType } from '@prisma/client';
+import { StockMovementReasonType, StockMovementType } from '@prisma/client';
 import { IsDateString, IsEnum, IsOptional, IsUUID } from 'class-validator';
 
 export class ListStockMovementsQueryDto {
@@ -12,6 +12,16 @@ export class ListStockMovementsQueryDto {
   @IsOptional()
   @IsUUID()
   productId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
+
+  @ApiPropertyOptional({ enum: StockMovementReasonType })
+  @IsOptional()
+  @IsEnum(StockMovementReasonType)
+  reasonType?: StockMovementReasonType;
 
   @ApiPropertyOptional({ example: '2026-01-01' })
   @IsOptional()

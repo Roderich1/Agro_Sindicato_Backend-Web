@@ -13,25 +13,22 @@ import {
   secondaryButtonClass,
 } from '../components/app-shell';
 import { extractError, fmtDate, fmtNumber } from '../lib/format';
-import {
-  payablesService,
-  purchasesService,
-  suppliersService,
-} from '../services/inventory.service';
-import type {
-  PayableAccount,
-  PayableStatus,
-  PurchasePaymentMode,
-  Supplier,
-} from '../types/inventory';
+import { payablesService } from '../services/accounts-payable.service';
+import { purchasesService, suppliersService } from '../services/procurement.service';
+import { useCampaign } from '../hooks/use-campaign';
+import type { PayableAccount, PayableStatus } from '../types/accounts-payable';
+import type { Purchase, PurchasePaymentMode, PurchaseStatus, Supplier } from '../types/procurement';
 
-type Tab = 'compra' | 'proveedores' | 'cuentas';
+type Tab = 'compra' | 'historial' | 'proveedores' | 'cuentas';
 
 export function PurchasesPage() {
+  const { hasActiveCampaign } = useCampaign();
   const [activeTab, setActiveTab] = useState<Tab>('compra');
   const [payables, setPayables] = useState<PayableAccount[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
+  const [purchaseStatus, setPurchaseStatus] = useState<PurchaseStatus | ''>('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingPayables, setIsLoadingPayables] = useState(true);
@@ -41,7 +38,7 @@ export function PurchasesPage() {
     setIsLoadingPayables(true);
     setError(null);
     try {
-      setPayables(await payablesService.list({ status: statusFilter || undefined }));
+      setPayables(await payablesService.list({ status: (statusFilter || undefined) as PayableStatus | undefined }));
     } catch (err) {
       setError(extractError(err, 'No fue posible cargar cuentas por pagar.'));
     } finally {
@@ -60,19 +57,33 @@ export function PurchasesPage() {
     }
   }, []);
 
+  const refreshPurchases = useCallback(async () => {
+    try {
+      setPurchases(await purchasesService.list({
+        type: 'INDIVIDUAL',
+        status: purchaseStatus || undefined,
+      }));
+    } catch (err) {
+      setError(extractError(err, 'No fue posible cargar el historial de compras.'));
+    }
+  }, [purchaseStatus]);
+
   useEffect(() => {
-    void refreshPayables();
-    void refreshSuppliers();
-  }, [refreshPayables, refreshSuppliers]);
+    void Promise.resolve().then(async () => {
+      await Promise.all([refreshPayables(), refreshSuppliers(), refreshPurchases()]);
+    });
+  }, [refreshPayables, refreshPurchases, refreshSuppliers]);
 
   const done = async (text: string) => {
     setMessage(text);
     await refreshPayables();
     await refreshSuppliers();
+    await refreshPurchases();
   };
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'compra', label: 'Nueva compra' },
+    { key: 'historial', label: 'Historial' },
     { key: 'proveedores', label: 'Proveedores' },
     { key: 'cuentas', label: 'Cuentas por pagar' },
   ];
@@ -107,6 +118,11 @@ export function PurchasesPage() {
 
       {message && <div className="mb-4"><Notice kind="ok">{message}</Notice></div>}
       {error && <div className="mb-4"><Notice kind="error">{error}</Notice></div>}
+      {!hasActiveCampaign && (
+        <div className="mb-4">
+          <Notice kind="warn">No hay campana activa. Puedes consultar proveedores y cuentas, pero no registrar compras nuevas.</Notice>
+        </div>
+      )}
 
       {/* Alerts */}
       {(overdueCount > 0 || pendingCount > 0) && (
@@ -117,13 +133,13 @@ export function PurchasesPage() {
       )}
 
       {/* Tabs */}
-      <div className="mb-5 flex gap-1 rounded-2xl bg-white/60 p-1 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm w-fit">
+      <div className="mb-5 flex w-full gap-1 overflow-x-auto rounded-2xl bg-white/60 p-1 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm sm:w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
             aria-pressed={activeTab === t.key}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500 ${
               activeTab === t.key
                 ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-800'
@@ -136,7 +152,15 @@ export function PurchasesPage() {
         ))}
       </div>
 
-      {activeTab === 'compra' && <div className="max-w-2xl"><PurchaseForm suppliers={suppliers} onDone={done} /></div>}
+      {activeTab === 'compra' && <div className="max-w-2xl"><PurchaseForm suppliers={suppliers} canOperate={hasActiveCampaign} onDone={done} /></div>}
+      {activeTab === 'historial' && (
+        <PurchasesHistory
+          purchases={purchases}
+          status={purchaseStatus}
+          onStatus={setPurchaseStatus}
+          onRefresh={refreshPurchases}
+        />
+      )}
       {activeTab === 'proveedores' && <SuppliersTab suppliers={suppliers} isLoading={isLoadingSuppliers} onDone={done} onRefresh={refreshSuppliers} />}
       {activeTab === 'cuentas' && <PayablesTab payables={payables} isLoading={isLoadingPayables} statusFilter={statusFilter} onStatusChange={setStatusFilter} onRefresh={refreshPayables} onDone={done} />}
     </AppShell>
@@ -144,12 +168,21 @@ export function PurchasesPage() {
 }
 
 /* ── Purchase Form ── */
-function PurchaseForm({ suppliers, onDone }: { suppliers: Supplier[]; onDone: (msg: string) => Promise<void> }) {
+function PurchaseForm({
+  suppliers,
+  canOperate,
+  onDone,
+}: {
+  suppliers: Supplier[];
+  canOperate: boolean;
+  onDone: (msg: string) => Promise<void>;
+}) {
   const [form, setForm] = useState({
     supplierMode: 'existing' as 'existing' | 'new', supplierId: '', supplierName: '', phone: '',
-    paymentMode: 'CONTADO' as PurchasePaymentMode, dueDate: '', purchasedAt: '', warehouseName: 'Galpon principal',
+    paymentMode: 'CONTADO' as PurchasePaymentMode, status: 'RECIBIDA' as PurchaseStatus,
+    dueDate: '', purchasedAt: '', expectedAt: '', warehouseName: 'Galpon principal',
     productName: '', category: '', unit: 'L', quantity: '', unitCost: '', discountAmount: '',
-    lotNumber: '', expirationDate: '', notes: '',
+    receivedQuantity: '', lotNumber: '', expirationDate: '', notes: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,23 +190,48 @@ function PurchaseForm({ suppliers, onDone }: { suppliers: Supplier[]; onDone: (m
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (form.status === 'PROGRAMADA' && !form.expectedAt) {
+      setError('La fecha esperada es obligatoria para una compra programada.');
+      return;
+    }
+    if (
+      form.status === 'RECIBIDA_PARCIAL'
+      && (!(Number(form.receivedQuantity) > 0) || Number(form.receivedQuantity) >= Number(form.quantity))
+    ) {
+      setError('La cantidad recibida debe ser mayor a cero y menor a la cantidad comprada.');
+      return;
+    }
+    if (Number(form.discountAmount || 0) > Number(form.quantity) * Number(form.unitCost)) {
+      setError('El descuento no puede superar el subtotal del producto.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       const supplier = form.supplierMode === 'existing' && form.supplierId
         ? { supplierId: form.supplierId } : { supplierName: form.supplierName, phone: form.phone || undefined };
       await purchasesService.create({
-        supplier, paymentMode: form.paymentMode, dueDate: form.paymentMode === 'CREDITO' ? form.dueDate : undefined,
-        purchasedAt: form.purchasedAt || undefined, warehouseName: form.warehouseName || undefined, notes: form.notes || undefined,
+        supplier, paymentMode: form.paymentMode, status: form.status,
+        dueDate: form.paymentMode === 'CREDITO' ? form.dueDate : undefined,
+        purchasedAt: form.purchasedAt || undefined,
+        expectedAt: form.status === 'PROGRAMADA' ? form.expectedAt : undefined,
+        warehouseName: form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL' ? (form.warehouseName || undefined) : undefined,
+        notes: form.notes || undefined,
         items: [{
           product: { productName: form.productName, category: form.category || undefined, unit: form.unit },
           quantity: Number(form.quantity), unitCost: Number(form.unitCost),
           discountAmount: form.discountAmount ? Number(form.discountAmount) : undefined,
-          lotNumber: form.lotNumber || undefined, expirationDate: form.expirationDate || undefined,
+          receivedQuantity: form.status === 'RECIBIDA_PARCIAL'
+            ? Number(form.receivedQuantity)
+            : form.status === 'RECIBIDA'
+              ? Number(form.quantity)
+              : 0,
+          lotNumber: form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL' ? (form.lotNumber || undefined) : undefined,
+          expirationDate: form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL' ? (form.expirationDate || undefined) : undefined,
         }],
       });
       await onDone('Compra registrada correctamente.');
-      setForm((prev) => ({ ...prev, quantity: '', unitCost: '', discountAmount: '', lotNumber: '', notes: '' }));
+      setForm((prev) => ({ ...prev, quantity: '', receivedQuantity: '', unitCost: '', discountAmount: '', lotNumber: '', notes: '' }));
     } catch (err) {
       setError(extractError(err, 'No fue posible registrar la compra.'));
     } finally {
@@ -184,6 +242,7 @@ function PurchaseForm({ suppliers, onDone }: { suppliers: Supplier[]; onDone: (m
   return (
     <form onSubmit={submit} className={`space-y-5 ${cardClass} animate-fade-in`}>
       <h2 className="font-bold text-slate-900 text-base">Registrar compra</h2>
+      {!canOperate && <Notice kind="warn">Directiva debe abrir una campana antes de registrar compras.</Notice>}
 
       {/* Supplier */}
       <fieldset className="rounded-xl border border-slate-200/80 p-4 space-y-3">
@@ -198,8 +257,8 @@ function PurchaseForm({ suppliers, onDone }: { suppliers: Supplier[]; onDone: (m
         </div>
         {form.supplierMode === 'existing' ? (
           <div><label htmlFor="sup-select" className={labelClass}>Seleccionar proveedor</label>
-            <select id="sup-select" className={inputClass} value={form.supplierId} onChange={(e) => set('supplierId', e.target.value)}>
-              <option value="">Sin proveedor</option>
+            <select id="sup-select" required className={inputClass} value={form.supplierId} onChange={(e) => set('supplierId', e.target.value)}>
+              <option value="">Seleccionar proveedor</option>
               {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}{s.phone ? ` · ${s.phone}` : ''}</option>)}
             </select>
           </div>
@@ -216,9 +275,11 @@ function PurchaseForm({ suppliers, onDone }: { suppliers: Supplier[]; onDone: (m
         <legend className="px-2 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Condiciones de pago</legend>
         <div className="grid gap-3 md:grid-cols-2">
           <div><label htmlFor="payment-mode" className={labelClass}>Modalidad *</label><select id="payment-mode" className={inputClass} value={form.paymentMode} onChange={(e) => set('paymentMode', e.target.value as PurchasePaymentMode)}><option value="CONTADO">Contado</option><option value="CREDITO">Crédito</option></select></div>
+          <div><label htmlFor="purchase-status" className={labelClass}>Estado operativo *</label><select id="purchase-status" className={inputClass} value={form.status} onChange={(e) => set('status', e.target.value as PurchaseStatus)}><option value="RECIBIDA">Recibida completa</option><option value="RECIBIDA_PARCIAL">Recepción parcial</option><option value="PROGRAMADA">Programada</option><option value="CONFIRMADA">Confirmada, sin recibir</option></select></div>
           <div><label htmlFor="purchased-at" className={labelClass}>Fecha de compra</label><input id="purchased-at" className={inputClass} type="date" value={form.purchasedAt} onChange={(e) => set('purchasedAt', e.target.value)} /></div>
           {form.paymentMode === 'CREDITO' && <div><label htmlFor="due-date" className={labelClass}>Fecha de vencimiento *</label><input id="due-date" required className={inputClass} type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} /></div>}
-          <div><label htmlFor="wh-name" className={labelClass}>Almacén</label><input id="wh-name" className={inputClass} value={form.warehouseName} onChange={(e) => set('warehouseName', e.target.value)} autoComplete="off" /></div>
+          {form.status === 'PROGRAMADA' && <div><label htmlFor="expected-at" className={labelClass}>Fecha esperada *</label><input id="expected-at" required className={inputClass} type="date" value={form.expectedAt} onChange={(e) => set('expectedAt', e.target.value)} /></div>}
+          {(form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL') && <div><label htmlFor="wh-name" className={labelClass}>Almacén</label><input id="wh-name" className={inputClass} value={form.warehouseName} onChange={(e) => set('warehouseName', e.target.value)} autoComplete="off" /></div>}
         </div>
       </fieldset>
 
@@ -230,21 +291,101 @@ function PurchaseForm({ suppliers, onDone }: { suppliers: Supplier[]; onDone: (m
           <div><label htmlFor="prod-cat" className={labelClass}>Categoría</label><input id="prod-cat" className={inputClass} placeholder="Herbicida" value={form.category} onChange={(e) => set('category', e.target.value)} autoComplete="off" /></div>
           <div><label htmlFor="prod-unit" className={labelClass}>Unidad *</label><input id="prod-unit" required className={inputClass} placeholder="L" value={form.unit} onChange={(e) => set('unit', e.target.value)} autoComplete="off" /></div>
           <div><label htmlFor="prod-qty" className={labelClass}>Cantidad *</label><input id="prod-qty" required className={inputClass} type="number" min="0.0001" step="0.0001" placeholder="0.00" value={form.quantity} onChange={(e) => set('quantity', e.target.value)} /></div>
+          {form.status === 'RECIBIDA_PARCIAL' && <div><label htmlFor="prod-received" className={labelClass}>Cantidad recibida *</label><input id="prod-received" required className={inputClass} type="number" min="0.0001" max={form.quantity || undefined} step="0.0001" value={form.receivedQuantity} onChange={(e) => set('receivedQuantity', e.target.value)} /></div>}
           <div><label htmlFor="prod-cost" className={labelClass}>Costo unitario (Bs) *</label><input id="prod-cost" required className={inputClass} type="number" min="0" step="0.0001" placeholder="0.00" value={form.unitCost} onChange={(e) => set('unitCost', e.target.value)} /></div>
           <div><label htmlFor="prod-disc" className={labelClass}>Descuento (Bs)</label><input id="prod-disc" className={inputClass} type="number" min="0" step="0.0001" placeholder="0.00" value={form.discountAmount} onChange={(e) => set('discountAmount', e.target.value)} /></div>
-          <div><label htmlFor="prod-lot" className={labelClass}>Número de lote</label><input id="prod-lot" className={inputClass} placeholder="LOTE-2026-01" value={form.lotNumber} onChange={(e) => set('lotNumber', e.target.value)} autoComplete="off" /></div>
-          <div><label htmlFor="prod-exp" className={labelClass}>Fecha de vencimiento</label><input id="prod-exp" className={inputClass} type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} /></div>
+          {(form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL') && <div><label htmlFor="prod-lot" className={labelClass}>Número de lote</label><input id="prod-lot" className={inputClass} placeholder="LOTE-2026-01" value={form.lotNumber} onChange={(e) => set('lotNumber', e.target.value)} autoComplete="off" /></div>}
+          {(form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL') && <div><label htmlFor="prod-exp" className={labelClass}>Fecha de vencimiento</label><input id="prod-exp" className={inputClass} type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} /></div>}
         </div>
       </fieldset>
 
       <div><label htmlFor="purchase-notes" className={labelClass}>Notas</label><textarea id="purchase-notes" className={inputClass} rows={2} placeholder="Observaciones…" value={form.notes} onChange={(e) => set('notes', e.target.value)} /></div>
       {error && <Notice kind="error">{error}</Notice>}
-      <button disabled={saving} className={buttonClass}>{saving ? 'Guardando…' : 'Registrar compra'}</button>
+      <button disabled={saving || !canOperate} className={buttonClass}>{saving ? 'Guardando…' : 'Registrar compra'}</button>
     </form>
   );
 }
 
 /* ── Suppliers Tab ── */
+function PurchasesHistory({
+  purchases,
+  status,
+  onStatus,
+  onRefresh,
+}: {
+  purchases: Purchase[];
+  status: PurchaseStatus | '';
+  onStatus: (value: PurchaseStatus | '') => void;
+  onRefresh: () => Promise<void>;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className={cardClass}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="w-full max-w-xs">
+            <label htmlFor="purchase-history-status" className={labelClass}>Estado</label>
+            <select id="purchase-history-status" className={inputClass} value={status} onChange={(event) => onStatus(event.target.value as PurchaseStatus | '')}>
+              <option value="">Todos</option>
+              <option value="PROGRAMADA">Programada</option>
+              <option value="CONFIRMADA">Confirmada</option>
+              <option value="RECIBIDA_PARCIAL">Recepción parcial</option>
+              <option value="RECIBIDA">Recibida</option>
+              <option value="CERRADA">Cerrada</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+          </div>
+          <button type="button" className={secondaryButtonClass} onClick={() => void onRefresh()}>Actualizar</button>
+        </div>
+      </div>
+      {purchases.length === 0 ? (
+        <div className={cardClass}><EmptyState title="Sin compras" description="No hay compras que coincidan con el filtro." /></div>
+      ) : (
+        <div className="space-y-3">
+          {purchases.map((purchase) => (
+            <article key={purchase.id} className={`${cardClass} p-5`}>
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-bold text-slate-900">{purchase.supplier.name}</h2>
+                    <StatusBadge status={purchase.status} />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">{purchase.campaign?.name ?? 'Sin campaña'} · {fmtDate(purchase.purchasedAt)}</p>
+                </div>
+                <div className="sm:text-right">
+                  <p className="text-xs uppercase text-slate-400">{purchase.paymentMode === 'CREDITO' ? 'Crédito' : 'Contado'}</p>
+                  <p className="text-lg font-bold tabular-nums text-slate-900">Bs {fmtNumber(purchase.totalAmount)}</p>
+                </div>
+              </div>
+              <div className="mt-4 overflow-x-auto border-t border-slate-100 pt-3">
+                <table className="w-full min-w-[520px] text-left text-sm">
+                  <thead className="text-xs uppercase text-slate-400">
+                    <tr><th className="py-2">Producto</th><th className="py-2">Cantidad</th><th className="py-2">Costo</th><th className="py-2 text-right">Subtotal</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {purchase.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="py-2 font-semibold text-slate-700">{item.product.name}</td>
+                        <td className="py-2">{fmtNumber(item.quantity)} {item.product.unit}</td>
+                        <td className="py-2">Bs {fmtNumber(item.unitCost)}</td>
+                        <td className="py-2 text-right font-semibold">Bs {fmtNumber(item.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
+                {purchase.expectedAt && <span>Esperada: {fmtDate(purchase.expectedAt)}</span>}
+                {purchase.receivedAt && <span>Recibida: {fmtDate(purchase.receivedAt)}</span>}
+                {purchase.payables.length > 0 && <span>Cuenta por pagar vinculada</span>}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SuppliersTab({ suppliers, isLoading, onDone, onRefresh }: { suppliers: Supplier[]; isLoading: boolean; onDone: (msg: string) => Promise<void>; onRefresh: () => Promise<void> }) {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);

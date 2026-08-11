@@ -12,4 +12,14 @@ export class ListPayablesQueryDto {
   @IsOptional()
   @IsUUID()
   supplierId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
+
+  @ApiPropertyOptional({ description: 'Filtro para directiva o administrador' })
+  @IsOptional()
+  @IsUUID()
+  ownerUserId?: string;
 }

@@ -1,10 +1,20 @@
+import type { ApiDateString, DecimalString, UserSummary } from './common';
+
 export type StockMovementType = 'ENTRADA' | 'SALIDA' | 'AJUSTE';
 export type InventoryCriticality = 'BAJO_MINIMO' | 'VENCIDO' | 'POR_VENCER' | 'OK';
-export type PurchasePaymentMode = 'CONTADO' | 'CREDITO';
-export type PayableStatus = 'PENDIENTE' | 'PARCIAL' | 'PAGADA' | 'VENCIDA';
-export type OfflineOperationType = 'INITIAL_STOCK' | 'STOCK_ENTRY' | 'STOCK_EXIT';
 export type AdjustmentDirection = 'INCREMENTO' | 'DECREMENTO';
-export type AdjustmentReasonType = 'PERDIDA' | 'DANO' | 'CORRECCION';
+export type StockEntryReason = 'COMPRA' | 'ENTRADA_SIMPLE' | 'DEVOLUCION' | 'AJUSTE';
+export type StockMovementReasonType =
+  | 'COMPRA'
+  | 'ENTRADA_SIMPLE'
+  | 'APLICACION'
+  | 'PERDIDA_DERRAME'
+  | 'VENCIMIENTO'
+  | 'PRESTAMO_ENTREGA'
+  | 'DEVOLUCION'
+  | 'AJUSTE'
+  | 'OTRO';
+export type AdjustmentReasonType = 'PERDIDA_DERRAME' | 'VENCIMIENTO' | 'AJUSTE' | 'OTRO';
 
 export interface ProductRefPayload {
   productId?: string;
@@ -16,16 +26,25 @@ export interface ProductRefPayload {
   expirationWarningDays?: number;
 }
 
-// HU-16: Producto agroquímico
 export interface Product {
   id: string;
+  tenantId: string;
   name: string;
   commercialName: string | null;
   activeIngredient: string | null;
   category: string | null;
+  toxicologicalCategory: string | null;
+  safetyDataSheetUrl: string | null;
+  safetyDataSheetName: string | null;
+  safetyInstructions: string | null;
+  qrCodeValue: string | null;
   unit: string;
-  minimumStock: number;
+  minimumStock: DecimalString;
+  currentStock: DecimalString;
   expirationWarningDays: number;
+  isActive: boolean;
+  createdAt: ApiDateString;
+  updatedAt: ApiDateString;
 }
 
 export interface CreateProductPayload {
@@ -33,41 +52,76 @@ export interface CreateProductPayload {
   commercialName?: string;
   activeIngredient?: string;
   category?: string;
+  toxicologicalCategory?: string | null;
+  safetyDataSheetUrl?: string | null;
+  safetyDataSheetName?: string | null;
+  safetyInstructions?: string | null;
+  qrCodeValue?: string | null;
   unit: string;
-  minimumStock: number;
+  minimumStock?: number;
   expirationWarningDays?: number;
 }
 
 export interface UpdateProductPayload {
+  name?: string;
   commercialName?: string;
   activeIngredient?: string;
   category?: string;
+  toxicologicalCategory?: string | null;
+  safetyDataSheetUrl?: string | null;
+  safetyDataSheetName?: string | null;
+  safetyInstructions?: string | null;
+  qrCodeValue?: string | null;
   unit?: string;
   minimumStock?: number;
   expirationWarningDays?: number;
 }
 
-// HU-17: Lote
 export interface InventoryLot {
   id: string;
   productId: string;
   product: { id: string; name: string; unit: string; category: string | null };
   lotNumber: string | null;
-  expirationDate: string | null;
+  expirationDate: ApiDateString | null;
   warehouseName: string | null;
-  currentQuantity: string;
+  currentQuantity: DecimalString;
   criticality: InventoryCriticality;
 }
 
 export interface UpdateLotPayload {
   lotNumber?: string;
   expirationDate?: string;
+  warehouseId?: string;
   warehouseName?: string;
 }
 
-// HU-18: Ajuste de inventario
+export interface RegisterInitialStockPayload {
+  product: ProductRefPayload;
+  quantity: number;
+  lotNumber?: string;
+  expirationDate?: string;
+  warehouseId?: string;
+  warehouseName?: string;
+  notes?: string;
+}
+
+export interface RegisterStockEntryPayload extends RegisterInitialStockPayload {
+  campaignId?: string;
+  entryReason: StockEntryReason;
+}
+
+export interface RegisterStockExitPayload {
+  productId: string;
+  campaignId?: string;
+  inventoryLotId?: string;
+  quantity: number;
+  reasonType: StockMovementReasonType;
+  reason: string;
+}
+
 export interface CreateAdjustmentPayload {
   productId: string;
+  campaignId?: string;
   inventoryLotId?: string;
   direction: AdjustmentDirection;
   reasonType: AdjustmentReasonType;
@@ -78,115 +132,125 @@ export interface CreateAdjustmentPayload {
   warehouseName?: string;
 }
 
-// HU-19: Proveedor
-export interface Supplier {
-  id: string;
-  name: string;
-  phone: string | null;
-  address: string | null;
-  notes: string | null;
-}
-
-export interface CreateSupplierPayload {
-  name: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-}
-
-export interface UpdateSupplierPayload {
-  name?: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-}
-
-// Stock
 export interface StockLot {
   id: string;
   ownerUserId: string;
-  owner?: { id: string; name: string; email: string; role: string };
+  owner?: UserSummary;
   product: {
     id: string;
     name: string;
     activeIngredient: string | null;
     category: string | null;
     unit: string;
-    minimumStock: string;
+    minimumStock: DecimalString;
     expirationWarningDays: number;
   };
   supplier: { id: string; name: string } | null;
   warehouse: { id: string; name: string; location: string | null } | null;
   lotNumber: string | null;
-  expirationDate: string | null;
-  initialQuantity: string;
-  currentQuantity: string;
-  productTotalStock: string;
+  expirationDate: ApiDateString | null;
+  initialQuantity: DecimalString;
+  currentQuantity: DecimalString;
+  productTotalStock: DecimalString;
   criticality: InventoryCriticality;
   alerts: InventoryCriticality[];
-  receivedAt: string;
+  receivedAt: ApiDateString;
 }
 
 export interface InventoryAlertResponse {
   stockMinimum: Array<{
     type: 'BAJO_MINIMO';
-    product: { id: string; name: string; unit: string; minimumStock: string; currentStock: string };
+    product: {
+      id: string;
+      name: string;
+      unit: string;
+      minimumStock: DecimalString;
+      currentStock: DecimalString;
+    };
     message: string;
   }>;
   expiration: Array<{
     type: 'VENCIDO' | 'POR_VENCER';
     product: { id: string; name: string; unit: string };
-    lot: { id: string; lotNumber: string | null; expirationDate: string | null; currentQuantity: string };
+    lot: {
+      id: string;
+      lotNumber: string | null;
+      expirationDate: ApiDateString | null;
+      currentQuantity: DecimalString;
+    };
     message: string;
   }>;
   total: number;
 }
 
-export interface CreatePurchasePayload {
-  supplier: { supplierId?: string; supplierName?: string; phone?: string; address?: string };
-  paymentMode: PurchasePaymentMode;
-  dueDate?: string;
-  purchasedAt?: string;
-  warehouseName?: string;
-  notes?: string;
-  items: Array<{
-    product: ProductRefPayload;
-    quantity: number;
-    unitCost: number;
-    discountAmount?: number;
-    lotNumber?: string;
-    expirationDate?: string;
-  }>;
+export interface ListProductsQuery {
+  search?: string;
+  category?: string;
+  isActive?: boolean;
 }
 
-// HU-20: Cuenta por pagar
-export interface PayableAccount {
+export interface ListLotsQuery {
+  productId?: string;
+}
+
+export interface ListStockQuery {
+  search?: string;
+  productId?: string;
+  category?: string;
+  criticality?: InventoryCriticality;
+  orderBy?: 'name' | 'stock' | 'expiration';
+  orderDirection?: 'asc' | 'desc';
+}
+
+export interface ListGlobalStockQuery extends ListStockQuery {
+  ownerUserId?: string;
+}
+
+export interface ListStockMovementsQuery {
+  type?: StockMovementType;
+  productId?: string;
+  campaignId?: string;
+  reasonType?: StockMovementReasonType;
+  from?: string;
+  to?: string;
+}
+
+export interface StockMovement {
   id: string;
-  purchaseId: string;
-  supplier: { id: string; name: string; phone: string | null };
-  dueDate: string;
-  totalAmount: string;
-  paidAmount: string;
-  balance: string;
-  status: PayableStatus;
-  items: Array<{
-    id: string;
-    product: { id: string; name: string; unit: string };
-    quantity: string;
-    unitCost: string;
-    subtotal: string;
-  }>;
-  payments: Array<{ id: string; amount: string; paidAt: string; notes: string | null }>;
+  campaignId: string | null;
+  ownerUserId: string;
+  type: StockMovementType;
+  reasonType: StockMovementReasonType | null;
+  reason: string | null;
+  quantity: DecimalString;
+  product: { id: string; name: string; unit: string };
+  lot: { id: string; lotNumber: string | null; expirationDate: ApiDateString | null } | null;
+  warehouse: { id: string; name: string } | null;
+  registeredBy: { id: string; name: string; email: string } | null;
+  occurredAt: ApiDateString;
+  createdAt: ApiDateString;
 }
 
-export interface JointPurchasePayload extends CreatePurchasePayload {
-  items: Array<CreatePurchasePayload['items'][number] & {
-    allocations: Array<{ userId: string; quantity: number }>;
-  }>;
+export interface StockOperationResult {
+  lot?: StockLot | InventoryLot;
+  movement?: StockMovement;
+  movements?: Array<{ lot: StockLot | InventoryLot; movement: StockMovement }>;
+  message?: string;
 }
 
-export interface OfflineOperation {
-  clientOperationId: string;
-  operation: OfflineOperationType;
-  payload: Record<string, unknown>;
+export interface UpdateProductSettingsPayload {
+  category?: string;
+  minimumStock?: number;
+  expirationWarningDays?: number;
 }
+
+export type { PayableAccount, PayableStatus } from './accounts-payable';
+export type {
+  CreatePurchasePayload,
+  CreateSupplierPayload,
+  JointPurchasePayload,
+  PurchasePaymentMode,
+  Supplier,
+  UpdateSupplierPayload,
+} from './procurement';
+export type { OfflineOperation, OfflineOperationType } from './sync';

@@ -5,5 +5,6 @@ import { AccountsPayableUseCase } from './application/use-cases/accounts-payable
 @Module({
   controllers: [AccountsPayableController],
   providers: [AccountsPayableUseCase],
+  exports: [AccountsPayableUseCase],
 })
 export class AccountsPayableModule {}

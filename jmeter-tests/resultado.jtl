@@ -1,0 +1,52 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1781827921816,205,Login Admin,200,OK,TG-01 | Auth 1-1,text,true,,1852,233,1,1,http://localhost:3000/api/v1/auth/login,202,0,15
+1781827922049,7,Me,200,OK,TG-01 | Auth 1-1,text,true,,1342,563,1,1,http://localhost:3000/api/v1/auth/me,7,0,0
+1781827922057,11,Refresh Token,200,OK,TG-01 | Auth 1-1,text,true,,1854,243,1,1,http://localhost:3000/api/v1/auth/refresh,11,0,1
+1781827922069,10,Logout,204,No Content,TG-01 | Auth 1-1,,true,,986,587,1,1,http://localhost:3000/api/v1/auth/logout,0,0,0
+1781827922082,168,Login Admin,200,OK,TG-02 | Usuarios 2-1,text,true,,1852,233,1,1,http://localhost:3000/api/v1/auth/login,168,0,1
+1781827922251,6,Listar Usuarios,200,OK,TG-02 | Usuarios 2-1,text,true,,5922,501,1,1,http://localhost:3000/api/v1/users,6,0,1
+1781827922257,168,Crear Usuario Agricultor,201,Created,TG-02 | Usuarios 2-1,text,true,,1271,629,1,1,http://localhost:3000/api/v1/users,168,0,1
+1781827922426,9,Editar Usuario,200,OK,TG-02 | Usuarios 2-1,text,true,,1274,596,1,1,http://localhost:3000/api/v1/users/130625d3-9a4b-492a-bd52-2e2ea361b7b5,8,0,1
+1781827922435,7,Desactivar Usuario,200,OK,TG-02 | Usuarios 2-1,text,true,,1275,570,1,1,http://localhost:3000/api/v1/users/130625d3-9a4b-492a-bd52-2e2ea361b7b5/deactivate,7,0,1
+1781827922445,170,Login Directiva,200,OK,TG-03 | Campanas Agricolas 3-1,text,true,,1856,237,1,1,http://localhost:3000/api/v1/auth/login,170,0,0
+1781827922616,12,Listar Campanas,200,OK,TG-03 | Campanas Agricolas 3-1,text,true,,2869,505,1,1,http://localhost:3000/api/v1/campaigns,12,0,1
+1781827922629,7,Campana Activa,200,OK,TG-03 | Campanas Agricolas 3-1,text,true,,1449,512,1,1,http://localhost:3000/api/v1/campaigns/active,7,0,1
+1781827922638,15,Crear Campana,201,Created,TG-03 | Campanas Agricolas 3-1,text,true,,1405,613,1,1,http://localhost:3000/api/v1/campaigns,14,0,0
+1781827922653,12,Editar Campana,200,OK,TG-03 | Campanas Agricolas 3-1,text,true,,1416,594,1,1,http://localhost:3000/api/v1/campaigns/b2a11aad-1092-4c3a-b801-edf560e1d0a8,12,0,1
+1781827922668,167,Login Agricultor,200,OK,TG-04 | Cultivos y Parcelas 4-1,text,true,,1854,238,1,1,http://localhost:3000/api/v1/auth/login,167,0,1
+1781827922836,6,Listar Cultivos,200,OK,TG-04 | Cultivos y Parcelas 4-1,text,true,,2934,504,1,1,http://localhost:3000/api/v1/crops,5,0,0
+1781827922843,7,Listar Parcelas,200,OK,TG-04 | Cultivos y Parcelas 4-1,text,true,,2449,504,1,1,http://localhost:3000/api/v1/plots,7,0,0
+1781827922851,13,Crear Parcela,201,Created,TG-04 | Cultivos y Parcelas 4-1,text,true,,1432,603,1,1,http://localhost:3000/api/v1/plots,13,0,0
+1781827922865,18,Asignar Cultivo a Parcela,201,Created,TG-04 | Cultivos y Parcelas 4-1,text,true,,1858,683,1,1,http://localhost:3000/api/v1/plot-crop-assignments,18,0,0
+1781827922885,168,Login Admin,200,OK,TG-05 | Inventario 5-1,text,true,,1852,233,1,1,http://localhost:3000/api/v1/auth/login,168,0,1
+1781827923054,8,Listar Productos,200,OK,TG-05 | Inventario 5-1,text,true,,11417,514,1,1,http://localhost:3000/api/v1/inventory/products,8,0,1
+1781827923063,7,Consultar Stock,200,OK,TG-05 | Inventario 5-1,text,true,,974,511,1,1,http://localhost:3000/api/v1/inventory/stock,6,0,1
+1781827923070,5,Entrada de Stock,400,Bad Request,TG-05 | Inventario 5-1,text,false,,1070,758,1,1,http://localhost:3000/api/v1/inventory/entries,5,0,1
+1781827923077,3,Ajuste de Inventario,400,Bad Request,TG-05 | Inventario 5-1,text,false,,1195,677,1,1,http://localhost:3000/api/v1/inventory/adjustments,3,0,0
+1781827923081,5,Alertas de Stock,200,OK,TG-05 | Inventario 5-1,text,true,,1019,512,1,1,http://localhost:3000/api/v1/inventory/alerts,5,0,0
+1781827923089,3,Login Agricultor,429,Too Many Requests,TG-06 | Aplicaciones de Agroquimicos 6-1,text,false,,1001,238,1,1,http://localhost:3000/api/v1/auth/login,3,0,1
+1781827923093,2,Listar Aplicaciones,401,Unauthorized,TG-06 | Aplicaciones de Agroquimicos 6-1,text,false,,1027,187,1,1,http://localhost:3000/api/v1/applications,2,0,0
+1781827923096,3,Registrar Aplicacion,401,Unauthorized,TG-06 | Aplicaciones de Agroquimicos 6-1,text,false,,1027,370,1,1,http://localhost:3000/api/v1/applications,3,0,1
+1781827923101,4,Login Admin,429,Too Many Requests,TG-07 | Proveedores y Compras 7-1,text,false,,1001,233,1,1,http://localhost:3000/api/v1/auth/login,4,0,1
+1781827923106,2,Listar Proveedores,401,Unauthorized,TG-07 | Proveedores y Compras 7-1,text,false,,1027,184,1,1,http://localhost:3000/api/v1/suppliers,2,0,0
+1781827923108,3,Crear Proveedor,401,Unauthorized,TG-07 | Proveedores y Compras 7-1,text,false,,1027,293,1,1,http://localhost:3000/api/v1/suppliers,3,0,1
+1781827923112,3,Compra al Contado,401,Unauthorized,TG-07 | Proveedores y Compras 7-1,text,false,,1027,472,1,1,http://localhost:3000/api/v1/purchases,3,0,1
+1781827923116,3,Compra a Credito,401,Unauthorized,TG-07 | Proveedores y Compras 7-1,text,false,,1027,498,1,1,http://localhost:3000/api/v1/purchases,3,0,0
+1781827923119,3,Listar Compras,401,Unauthorized,TG-07 | Proveedores y Compras 7-1,text,false,,1027,184,1,1,http://localhost:3000/api/v1/purchases,3,0,1
+1781827923125,3,Login Admin,429,Too Many Requests,TG-08 | Cuentas por Pagar 8-1,text,false,,1001,233,1,1,http://localhost:3000/api/v1/auth/login,3,0,0
+1781827923128,3,Listar Cuentas Pendientes,401,Unauthorized,TG-08 | Cuentas por Pagar 8-1,text,false,,1027,208,1,1,http://localhost:3000/api/v1/accounts-payable?status=PENDIENTE,3,0,1
+1781827923132,3,Registrar Abono Parcial,404,Not Found,TG-08 | Cuentas por Pagar 8-1,text,false,,1004,283,1,1,http://localhost:3000/api/v1/accounts-payable//payments,3,0,0
+1781827923137,3,Login Directiva,429,Too Many Requests,TG-09 | Directiva - Global y Compra Conjunta 9-1,text,false,,1001,237,1,1,http://localhost:3000/api/v1/auth/login,3,0,1
+1781827923141,3,Inventario Global,401,Unauthorized,TG-09 | Directiva - Global y Compra Conjunta 9-1,text,false,,1027,197,1,1,http://localhost:3000/api/v1/inventory/global-stock,2,0,0
+1781827923144,3,Compra Conjunta,401,Unauthorized,TG-09 | Directiva - Global y Compra Conjunta 9-1,text,false,,1027,536,1,1,http://localhost:3000/api/v1/purchases/joint,3,0,1
+1781827923149,3,Login Admin,429,Too Many Requests,"TG-10 | Calendario, Bitacora y Reportes 10-1",text,false,,1001,233,1,1,http://localhost:3000/api/v1/auth/login,3,0,1
+1781827923153,2,Listar Eventos Calendario,401,Unauthorized,"TG-10 | Calendario, Bitacora y Reportes 10-1",text,false,,1027,190,1,1,http://localhost:3000/api/v1/calendar/events,2,0,0
+1781827923156,3,Bitacora,401,Unauthorized,"TG-10 | Calendario, Bitacora y Reportes 10-1",text,false,,1027,185,1,1,http://localhost:3000/api/v1/audit-logs,2,0,0
+1781827923159,3,Reporte Inventario Actual,401,Unauthorized,"TG-10 | Calendario, Bitacora y Reportes 10-1",text,false,,1027,200,1,1,http://localhost:3000/api/v1/reports/inventory/current,3,0,1
+1781827923163,2,Reporte Aplicaciones por Parcela,401,Unauthorized,"TG-10 | Calendario, Bitacora y Reportes 10-1",text,false,,1027,208,1,1,http://localhost:3000/api/v1/reports/applications/by-plot-crop,2,0,0
+1781827923165,3,Reporte Productos Vencidos,401,Unauthorized,"TG-10 | Calendario, Bitacora y Reportes 10-1",text,false,,1027,199,1,1,http://localhost:3000/api/v1/reports/products/expired,3,0,1
+1781827923168,3,Reporte Cuentas por Pagar,401,Unauthorized,"TG-10 | Calendario, Bitacora y Reportes 10-1",text,false,,1027,191,1,1,http://localhost:3000/api/v1/reports/payables,3,0,1
+1781827923173,3,Login Agricultor,429,Too Many Requests,TG-11 | Sincronizacion Offline 11-1,text,false,,1001,238,1,1,http://localhost:3000/api/v1/auth/login,3,0,1
+1781827923176,3,Listar Operaciones Sync,401,Unauthorized,TG-11 | Sincronizacion Offline 11-1,text,false,,1027,190,1,1,http://localhost:3000/api/v1/sync/operations,3,0,1
+1781827923180,3,Sincronizar Operaciones,401,Unauthorized,TG-11 | Sincronizacion Offline 11-1,text,false,,1027,537,1,1,http://localhost:3000/api/v1/sync/operations,3,0,0
+1781827923183,3,Estado Sincronizacion,404,Not Found,TG-11 | Sincronizacion Offline 11-1,text,false,,989,186,1,1,http://localhost:3000/api/v1/sync/status,3,0,1

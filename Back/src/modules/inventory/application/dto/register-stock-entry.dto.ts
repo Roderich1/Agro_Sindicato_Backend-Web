@@ -15,6 +15,7 @@ import { ProductReferenceDto } from './product-reference.dto';
 
 export enum StockEntryReason {
   COMPRA = 'COMPRA',
+  ENTRADA_SIMPLE = 'ENTRADA_SIMPLE',
   DEVOLUCION = 'DEVOLUCION',
   AJUSTE = 'AJUSTE',
 }
@@ -25,7 +26,12 @@ export class RegisterStockEntryDto {
   @Type(() => ProductReferenceDto)
   product: ProductReferenceDto;
 
-  @ApiProperty({ enum: StockEntryReason, example: StockEntryReason.COMPRA })
+  @ApiPropertyOptional({ description: 'Si se omite, se usa la campana activa.' })
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
+
+  @ApiProperty({ enum: StockEntryReason, example: StockEntryReason.ENTRADA_SIMPLE })
   @IsEnum(StockEntryReason)
   entryReason: StockEntryReason;
 

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CampaignsModule } from '../campaigns/campaigns.module';
 import { PurchasesController } from './api/rest/purchases.controller';
 import { SuppliersController } from './api/rest/suppliers.controller';
 import { CreateJointPurchaseUseCase } from './application/use-cases/create-joint-purchase.use-case';
@@ -7,6 +8,7 @@ import { ListPurchasesUseCase } from './application/use-cases/list-purchases.use
 import { SuppliersUseCase } from './application/use-cases/suppliers.use-case';
 
 @Module({
+  imports: [CampaignsModule],
   controllers: [PurchasesController, SuppliersController],
   providers: [
     CreatePurchaseUseCase,

@@ -1,14 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  CalendarEventStatus,
+  CalendarEventType,
   PayableStatus,
   Prisma,
   PurchaseParticipantStatus,
   PurchasePaymentMode,
   PurchaseStatus,
   PurchaseType,
+  StockMovementReasonType,
   StockMovementType,
   UserRole,
 } from '@prisma/client';
+import { CampaignContextService } from '@/modules/campaigns/application/services/campaign-context.service';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { ProductReferenceDto } from '../../../inventory/application/dto/product-reference.dto';
 import { SupplierReferenceDto } from '../dto/create-purchase.dto';
@@ -21,7 +25,10 @@ type TxClient = Prisma.TransactionClient;
 
 @Injectable()
 export class CreateJointPurchaseUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly campaignContext: CampaignContextService,
+  ) {}
 
   async execute(tenantId: string, createdById: string, dto: CreateJointPurchaseDto) {
     if (dto.paymentMode === PurchasePaymentMode.CREDITO && !dto.dueDate) {
@@ -30,6 +37,11 @@ export class CreateJointPurchaseUseCase {
 
     return this.prisma.$transaction(async (tx) => {
       this.validateItems(dto.items);
+      const campaign = await this.campaignContext.resolveCampaignForOperation(
+        tenantId,
+        dto.campaignId,
+        tx,
+      );
 
       const participantIds = this.uniqueParticipantIds(dto);
       const participants = await tx.user.findMany({
@@ -51,17 +63,23 @@ export class CreateJointPurchaseUseCase {
         (total, item) => total.plus(this.toDecimal(item.discountAmount ?? 0)),
         new Prisma.Decimal(0),
       );
+      const status = dto.status ?? PurchaseStatus.RECIBIDA;
+      const receivesStock = status === PurchaseStatus.RECIBIDA || status === PurchaseStatus.RECIBIDA_PARCIAL;
+      const purchasedAt = dto.purchasedAt ? new Date(dto.purchasedAt) : new Date();
+      const expectedAt = dto.expectedAt ? new Date(dto.expectedAt) : null;
 
       const purchase = await tx.purchase.create({
         data: {
           tenantId,
+          campaignId: campaign.id,
           supplierId: supplier.id,
           createdById,
           type: PurchaseType.CONJUNTA,
           paymentMode: dto.paymentMode,
-          status: PurchaseStatus.RECIBIDA,
-          purchasedAt: dto.purchasedAt ? new Date(dto.purchasedAt) : new Date(),
-          receivedAt: new Date(),
+          status,
+          purchasedAt,
+          expectedAt,
+          receivedAt: receivesStock ? new Date() : null,
           totalAmount,
           discountAmount,
           notes: dto.notes,
@@ -85,6 +103,7 @@ export class CreateJointPurchaseUseCase {
       for (const item of dto.items) {
         const product = await this.resolveProduct(tx, tenantId, item.product);
         const quantity = this.toDecimal(item.quantity);
+        const receivedQuantity = this.toDecimal(item.receivedQuantity ?? item.quantity);
         const unitCost = this.toDecimal(item.unitCost);
         const itemDiscount = this.toDecimal(item.discountAmount ?? 0);
         const subtotal = this.calculateSubtotal(quantity, unitCost, itemDiscount);
@@ -114,6 +133,9 @@ export class CreateJointPurchaseUseCase {
         for (const allocation of item.allocations) {
           const farmerQuantity = this.toDecimal(allocation.quantity);
           const farmerSubtotal = subtotal.mul(farmerQuantity).div(quantity);
+          const farmerReceivedQuantity = quantity.equals(0)
+            ? new Prisma.Decimal(0)
+            : receivedQuantity.mul(farmerQuantity).div(quantity);
           const warehouse = await this.resolveWarehouse(tx, tenantId, allocation.userId, {
             warehouseId: dto.warehouseId,
             warehouseName: dto.warehouseName,
@@ -130,41 +152,66 @@ export class CreateJointPurchaseUseCase {
             include: { user: true },
           });
 
-          const lot = await tx.inventoryLot.create({
-            data: {
-              tenantId,
-              ownerUserId: allocation.userId,
-              productId: product.id,
-              warehouseId: warehouse?.id,
-              purchaseItemId: purchaseItem.id,
-              lotNumber: item.lotNumber,
-              expirationDate: item.expirationDate ? new Date(item.expirationDate) : null,
-              initialQuantity: farmerQuantity,
-              currentQuantity: farmerQuantity,
-              unitCost,
-            },
-            include: { product: true, warehouse: true, owner: true },
-          });
+          if (receivesStock && farmerReceivedQuantity.greaterThan(0)) {
+            const lot = await tx.inventoryLot.create({
+              data: {
+                tenantId,
+                ownerUserId: allocation.userId,
+                campaignId: campaign.id,
+                productId: product.id,
+                warehouseId: warehouse?.id,
+                purchaseItemId: purchaseItem.id,
+                lotNumber: item.lotNumber,
+                expirationDate: item.expirationDate ? new Date(item.expirationDate) : null,
+                initialQuantity: farmerReceivedQuantity,
+                currentQuantity: farmerReceivedQuantity,
+                unitCost,
+              },
+              include: { product: true, warehouse: true, owner: true },
+            });
 
-          const movement = await tx.stockMovement.create({
-            data: {
-              tenantId,
-              ownerUserId: allocation.userId,
-              productId: product.id,
-              inventoryLotId: lot.id,
-              warehouseId: warehouse?.id,
-              userId: createdById,
-              type: StockMovementType.ENTRADA,
-              quantity: farmerQuantity,
-              reason: 'COMPRA_CONJUNTA',
-            },
-            include: { product: true, inventoryLot: true, warehouse: true, owner: true },
-          });
+            const movement = await tx.stockMovement.create({
+              data: {
+                tenantId,
+                ownerUserId: allocation.userId,
+                campaignId: campaign.id,
+                productId: product.id,
+                inventoryLotId: lot.id,
+                warehouseId: warehouse?.id,
+                userId: createdById,
+                type: StockMovementType.ENTRADA,
+                reasonType: StockMovementReasonType.COMPRA,
+                quantity: farmerReceivedQuantity,
+                reason: 'COMPRA_CONJUNTA',
+              },
+              include: { product: true, inventoryLot: true, warehouse: true, owner: true },
+            });
 
-          await tx.product.update({
-            where: { id: product.id },
-            data: { currentStock: { increment: farmerQuantity } },
-          });
+            await tx.product.update({
+              where: { id: product.id },
+              data: { currentStock: { increment: farmerReceivedQuantity } },
+            });
+
+            lots.push({
+              id: lot.id,
+              campaignId: lot.campaignId,
+              owner: { id: lot.owner.id, name: lot.owner.name },
+              product: lot.product,
+              warehouse: lot.warehouse,
+              lotNumber: lot.lotNumber,
+              expirationDate: lot.expirationDate?.toISOString() ?? null,
+              currentQuantity: lot.currentQuantity.toString(),
+            });
+            movements.push({
+              id: movement.id,
+              campaignId: movement.campaignId,
+              owner: { id: movement.owner.id, name: movement.owner.name },
+              product: movement.product,
+              quantity: movement.quantity.toString(),
+              reasonType: movement.reasonType,
+              reason: movement.reason,
+            });
+          }
 
           const totals = participantTotals.get(allocation.userId);
           if (totals) {
@@ -185,22 +232,6 @@ export class CreateJointPurchaseUseCase {
             product: { id: product.id, name: product.name, unit: product.unit },
             quantity: farmerQuantity.toString(),
             subtotal: farmerSubtotal.toString(),
-          });
-          lots.push({
-            id: lot.id,
-            owner: { id: lot.owner.id, name: lot.owner.name },
-            product: lot.product,
-            warehouse: lot.warehouse,
-            lotNumber: lot.lotNumber,
-            expirationDate: lot.expirationDate?.toISOString() ?? null,
-            currentQuantity: lot.currentQuantity.toString(),
-          });
-          movements.push({
-            id: movement.id,
-            owner: { id: movement.owner.id, name: movement.owner.name },
-            product: movement.product,
-            quantity: movement.quantity.toString(),
-            reason: movement.reason,
           });
         }
       }
@@ -233,6 +264,7 @@ export class CreateJointPurchaseUseCase {
           const payable = await tx.payableAccount.create({
             data: {
               tenantId,
+              campaignId: campaign.id,
               purchaseId: purchase.id,
               responsibleUserId: userId,
               dueDate: new Date(dto.dueDate as string),
@@ -245,6 +277,7 @@ export class CreateJointPurchaseUseCase {
 
           payables.push({
             id: payable.id,
+            campaignId: payable.campaignId,
             responsibleUser: payable.responsibleUser
               ? {
                   id: payable.responsibleUser.id,
@@ -257,13 +290,47 @@ export class CreateJointPurchaseUseCase {
             paidAmount: payable.paidAmount.toString(),
             status: payable.status,
           });
+
+          await tx.calendarEvent.create({
+            data: {
+              tenantId,
+              campaignId: campaign.id,
+              ownerUserId: userId,
+              type: CalendarEventType.PAGO_PROXIMO,
+              status: CalendarEventStatus.PENDIENTE,
+              title: `Pago pendiente a ${supplier.name}`,
+              description: `Cuenta por pagar de compra conjunta ${purchase.id}.`,
+              eventDate: payable.dueDate,
+              sourceEntity: 'PayableAccount',
+              sourceEntityId: payable.id,
+              metadata: { purchaseId: purchase.id, totalAmount: payable.totalAmount.toString() },
+            },
+          });
         }
+      }
+
+      if (status === PurchaseStatus.PROGRAMADA) {
+        await tx.calendarEvent.create({
+          data: {
+            tenantId,
+            campaignId: campaign.id,
+            type: CalendarEventType.COMPRA_PROGRAMADA,
+            status: CalendarEventStatus.PENDIENTE,
+            title: `Compra conjunta programada con ${supplier.name}`,
+            description: dto.notes ?? null,
+            eventDate: expectedAt ?? purchasedAt,
+            sourceEntity: 'Purchase',
+            sourceEntityId: purchase.id,
+            metadata: { paymentMode: dto.paymentMode, totalAmount: totalAmount.toString() },
+          },
+        });
       }
 
       return {
         message: 'Compra conjunta registrada y distribuida correctamente.',
         purchase: {
           id: purchase.id,
+          campaignId: purchase.campaignId,
           supplier: { id: supplier.id, name: supplier.name },
           type: purchase.type,
           paymentMode: purchase.paymentMode,
@@ -271,6 +338,7 @@ export class CreateJointPurchaseUseCase {
           totalAmount: purchase.totalAmount.toString(),
           discountAmount: purchase.discountAmount.toString(),
           purchasedAt: purchase.purchasedAt.toISOString(),
+          expectedAt: purchase.expectedAt?.toISOString() ?? null,
           receivedAt: purchase.receivedAt?.toISOString() ?? null,
         },
         participants: createdParticipants,
@@ -286,8 +354,12 @@ export class CreateJointPurchaseUseCase {
   private validateItems(items: CreateJointPurchaseItemDto[]) {
     for (const item of items) {
       const quantity = this.toDecimal(item.quantity);
+      const receivedQuantity = this.toDecimal(item.receivedQuantity ?? item.quantity);
       const unitCost = this.toDecimal(item.unitCost);
       const discount = this.toDecimal(item.discountAmount ?? 0);
+      if (receivedQuantity.greaterThan(quantity)) {
+        throw new BadRequestException('La cantidad recibida no puede superar la cantidad comprada.');
+      }
       this.calculateSubtotal(quantity, unitCost, discount);
 
       const participantIds = item.allocations.map((allocation) => allocation.userId);

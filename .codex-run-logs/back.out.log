@@ -1,0 +1,169 @@
+
+> agrochemical-inventory-api@0.1.0 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m4:38:54 p. m.[0m] Starting compilation in watch mode...
+
+[[90m4:38:56 p. m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +11ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInventoryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProcurementModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAccountsPayableModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSyncModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDemandForecastingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoiceEntryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIamModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/v1/health}:[39m[38;5;3m +23ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/refresh, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 12324  - [39m14/05/2026, 4:38:56 p. m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +13ms[39m
+[2J[3J[H[[90m5:05:59 p. m.[0m] File change detected. Starting incremental compilation...
+
+[[90m5:05:59 p. m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +13ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInventoryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProcurementModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAccountsPayableModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSyncModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDemandForecastingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoiceEntryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIamModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/v1/health}:[39m[38;5;3m +25ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/refresh, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 19636  - [39m14/05/2026, 5:06:00 p. m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +13ms[39m
+[2J[3J[H[[90m5:06:09 p. m.[0m] File change detected. Starting incremental compilation...
+
+[[90m5:06:09 p. m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +11ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInventoryModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProcurementModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAccountsPayableModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSyncModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDemandForecastingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoiceEntryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIamModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/v1/health}:[39m[38;5;3m +23ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/refresh, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13968  - [39m14/05/2026, 5:06:10 p. m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +13ms[39m
+[2J[3J[H[[90m5:06:13 p. m.[0m] File change detected. Starting incremental compilation...
+
+[[90m5:06:13 p. m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +11ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInventoryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProcurementModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAccountsPayableModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSyncModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDemandForecastingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoiceEntryModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIamModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/v1/health}:[39m[38;5;3m +22ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/refresh, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:14 p. m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +13ms[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:31 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN TRY] email=admin@agro.local ip=::1 ua="Mozilla/5.0 (Windows NT; Windows NT 10.0; es-BO) WindowsPowerShell/5.1.26100.8457"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:31 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN OK] userId=7191b3d9-7206-482e-9cf0-7f85b63932bc email=admin@agro.local role=ADMINISTRADOR tenantId=2631a133-6b89-46c4-9dfb-d278c72333f0 ip=::1 ua="Mozilla/5.0 (Windows NT; Windows NT 10.0; es-BO) WindowsPowerShell/5.1.26100.8457"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:06:31 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN TRY] email=admin@agro.local ip=::1 ua="Mozilla/5.0 (Windows NT; Windows NT 10.0; es-BO) WindowsPowerShell/5.1.26100.8457"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:06:31 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH LOGIN FAIL] email=admin@agro.local ip=::1 ua="Mozilla/5.0 (Windows NT; Windows NT 10.0; es-BO) WindowsPowerShell/5.1.26100.8457" reason="Credenciales inválidas"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:06:31 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/login ip=::1 message="Credenciales inválidas"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:15 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN TRY] email=admin@agro.local ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN OK] userId=7191b3d9-7206-482e-9cf0-7f85b63932bc email=admin@agro.local role=ADMINISTRADOR tenantId=2631a133-6b89-46c4-9dfb-d278c72333f0 ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH REFRESH OK] userId=7191b3d9-7206-482e-9cf0-7f85b63932bc email=admin@agro.local ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGOUT] hasCookie=true ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN TRY] email=admin@agro.local ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN OK] userId=7191b3d9-7206-482e-9cf0-7f85b63932bc email=admin@agro.local role=ADMINISTRADOR tenantId=2631a133-6b89-46c4-9dfb-d278c72333f0 ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH REFRESH OK] userId=7191b3d9-7206-482e-9cf0-7f85b63932bc email=admin@agro.local ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGOUT] hasCookie=true ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN TRY] email=admin@agro.local ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN OK] userId=7191b3d9-7206-482e-9cf0-7f85b63932bc email=admin@agro.local role=ADMINISTRADOR tenantId=2631a133-6b89-46c4-9dfb-d278c72333f0 ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH REFRESH OK] userId=7191b3d9-7206-482e-9cf0-7f85b63932bc email=admin@agro.local ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGOUT] hasCookie=true ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN TRY] email=hacker@test.com ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH LOGIN FAIL] email=hacker@test.com ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)" reason="Credenciales inválidas"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="Credenciales inválidas"[39m
+[32m[Nest] 16844  - [39m14/05/2026, 5:08:16 p. m. [32m    LOG[39m [38;5;3m[AuthController] [39m[32m[AUTH LOGIN TRY] email=hacker@test.com ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH LOGIN FAIL] email=hacker@test.com ip=::ffff:127.0.0.1 ua="Apache-HttpClient/4.5.14 (Java/21.0.10)" reason="Credenciales inválidas"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="Credenciales inválidas"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 429] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="ThrottlerException: Too Many Requests"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 429] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="ThrottlerException: Too Many Requests"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 429] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="ThrottlerException: Too Many Requests"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 429] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="ThrottlerException: Too Many Requests"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 429] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="ThrottlerException: Too Many Requests"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:08:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 429] POST /api/v1/auth/login ip=::ffff:127.0.0.1 message="ThrottlerException: Too Many Requests"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:10:12 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.120.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:10:12 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:10:12 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.120.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:10:12 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:17 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.120.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:17 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:17 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:17 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:17 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.120.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:33:18 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:55:20 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:55:20 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:55:20 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 5:55:20 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 6:03:15 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 6:03:15 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 6:03:15 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 6:03:15 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 7:09:26 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 7:09:26 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 7:09:26 p. m. [33m   WARN[39m [38;5;3m[AuthController] [39m[33m[AUTH REFRESH FAIL] hasCookie=false ip=::1 ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" reason="Sesión no válida"[39m
+[33m[Nest] 16844  - [39m14/05/2026, 7:09:26 p. m. [33m   WARN[39m [38;5;3m[HttpExceptionLoggingFilter] [39m[33m[HTTP 401] POST /api/v1/auth/refresh ip=::1 message="Sesión no válida"[39m

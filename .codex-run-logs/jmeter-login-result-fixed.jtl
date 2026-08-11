@@ -1,0 +1,21 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1778792514104,216,01 - Login,200,OK,Flujo Auth Completo 1-1,text,true,,1882,238,1,1,http://localhost:3000/api/v1/auth/login,213,0,13
+1778792514337,4,02 - Me,200,OK,Flujo Auth Completo 1-1,text,true,,1372,568,1,1,http://localhost:3000/api/v1/auth/me,4,0,0
+1778792514341,7,03 - Refresh,200,OK,Flujo Auth Completo 1-1,text,true,,1884,248,1,1,http://localhost:3000/api/v1/auth/refresh,7,0,0
+1778792514349,4,04 - Logout,204,No Content,Flujo Auth Completo 1-1,,true,,1014,592,1,1,http://localhost:3000/api/v1/auth/logout,0,0,0
+1778792514354,190,01 - Login,200,OK,Flujo Auth Completo 1-1,text,true,,1882,238,1,1,http://localhost:3000/api/v1/auth/login,190,0,0
+1778792514545,2,02 - Me,200,OK,Flujo Auth Completo 1-1,text,true,,1372,568,1,1,http://localhost:3000/api/v1/auth/me,2,0,0
+1778792514548,6,03 - Refresh,200,OK,Flujo Auth Completo 1-1,text,true,,1884,248,1,1,http://localhost:3000/api/v1/auth/refresh,6,0,0
+1778792514555,3,04 - Logout,204,No Content,Flujo Auth Completo 1-1,,true,,1014,592,1,1,http://localhost:3000/api/v1/auth/logout,0,0,0
+1778792514559,183,01 - Login,200,OK,Flujo Auth Completo 1-1,text,true,,1882,238,1,1,http://localhost:3000/api/v1/auth/login,183,0,0
+1778792514743,3,02 - Me,200,OK,Flujo Auth Completo 1-1,text,true,,1372,568,1,1,http://localhost:3000/api/v1/auth/me,3,0,0
+1778792514747,6,03 - Refresh,200,OK,Flujo Auth Completo 1-1,text,true,,1884,248,1,1,http://localhost:3000/api/v1/auth/refresh,6,0,0
+1778792514754,3,04 - Logout,204,No Content,Flujo Auth Completo 1-1,,true,,1014,592,1,1,http://localhost:3000/api/v1/auth/logout,0,0,0
+1778792514761,186,Login - Rate Limit Test,401,Unauthorized,Rate Limit - Login 2-1,text,false,,1087,236,1,1,http://localhost:3000/api/v1/auth/login,186,0,0
+1778792514948,186,Login - Rate Limit Test,401,Unauthorized,Rate Limit - Login 2-1,text,false,,1087,236,1,1,http://localhost:3000/api/v1/auth/login,186,0,0
+1778792515135,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0
+1778792515136,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0
+1778792515137,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0
+1778792515138,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0
+1778792515139,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0
+1778792515140,1,Login - Rate Limit Test,429,Too Many Requests,Rate Limit - Login 2-1,text,false,,1029,236,1,1,http://localhost:3000/api/v1/auth/login,1,0,0

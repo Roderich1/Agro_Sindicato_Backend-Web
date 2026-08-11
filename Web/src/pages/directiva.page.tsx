@@ -6,6 +6,7 @@ import {
   Notice,
   SkeletonRow,
   StatCard,
+  StatusBadge,
   UserAvatar,
   buttonClass,
   cardClass,
@@ -15,9 +16,14 @@ import {
   ROLE_COLORS,
 } from '../components/app-shell';
 import { extractError, fmtDate, fmtNumber } from '../lib/format';
-import { inventoryService, purchasesService } from '../services/inventory.service';
+import { payablesService } from '../services/accounts-payable.service';
+import { inventoryService } from '../services/inventory.service';
+import { purchasesService } from '../services/procurement.service';
 import { listUsers } from '../services/users.service';
-import type { InventoryCriticality, PurchasePaymentMode, StockLot } from '../types/inventory';
+import { useCampaign } from '../hooks/use-campaign';
+import type { PayableAccount } from '../types/accounts-payable';
+import type { InventoryCriticality, StockLot } from '../types/inventory';
+import type { Purchase, PurchasePaymentMode, PurchaseStatus } from '../types/procurement';
 import type { AdminUser } from '../types/users';
 
 interface AllocationRow {
@@ -25,15 +31,18 @@ interface AllocationRow {
   quantity: string;
 }
 
-type Tab = 'global' | 'compra';
+type Tab = 'global' | 'compra' | 'historial' | 'cuentas';
 
 const CATEGORY_OPTIONS = ['Herbicida', 'Fungicida', 'Insecticida', 'Fertilizante', 'Otro'];
 const UNIT_OPTIONS = ['L', 'kg', 'g', 'ml', 'unidad'];
 
 export function DirectivaPage() {
+  const { hasActiveCampaign } = useCampaign();
   const [activeTab, setActiveTab] = useState<Tab>('global');
   const [farmers, setFarmers] = useState<AdminUser[]>([]);
   const [stock, setStock] = useState<StockLot[]>([]);
+  const [jointPurchases, setJointPurchases] = useState<Purchase[]>([]);
+  const [jointPayables, setJointPayables] = useState<PayableAccount[]>([]);
   const [ownerUserId, setOwnerUserId] = useState('');
   const [search, setSearch] = useState('');
   const [criticality, setCriticality] = useState('');
@@ -45,7 +54,7 @@ export function DirectivaPage() {
     setLoading(true);
     setError(null);
     try {
-      const [usersData, globalStock] = await Promise.all([
+      const [usersData, globalStock, purchasesData, payablesData] = await Promise.all([
         listUsers(),
         inventoryService.globalStock({
           ownerUserId: ownerUserId || undefined,
@@ -53,9 +62,14 @@ export function DirectivaPage() {
           criticality: (criticality || undefined) as InventoryCriticality | undefined,
           orderBy: 'expiration',
         }),
+        purchasesService.list({ type: 'CONJUNTA' }),
+        payablesService.list(),
       ]);
       setFarmers(usersData.filter((user) => user.role === 'AGRICULTOR' && user.isActive));
       setStock(globalStock);
+      setJointPurchases(purchasesData);
+      const jointIds = new Set(purchasesData.map((purchase) => purchase.id));
+      setJointPayables(payablesData.filter((payable) => jointIds.has(payable.purchaseId)));
     } catch (err) {
       setError(extractError(err, 'No fue posible cargar datos de directiva.'));
     } finally {
@@ -64,7 +78,7 @@ export function DirectivaPage() {
   }, [criticality, ownerUserId, search]);
 
   useEffect(() => {
-    void refresh();
+    void Promise.resolve().then(refresh);
   }, [refresh]);
 
   // Metrics
@@ -86,12 +100,19 @@ export function DirectivaPage() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'global', label: 'Inventario global' },
     { key: 'compra', label: 'Compra conjunta' },
+    { key: 'historial', label: 'Compras conjuntas' },
+    { key: 'cuentas', label: 'Cuentas conjuntas' },
   ];
 
   return (
     <AppShell title="Panel Directiva" section="Vista global del sindicato">
       {message && <div className="mb-4"><Notice kind="ok">{message}</Notice></div>}
       {error && <div className="mb-4"><Notice kind="error">{error}</Notice></div>}
+      {!hasActiveCampaign && (
+        <div className="mb-4">
+          <Notice kind="warn">No hay campana activa. Puedes consultar el inventario global, pero no registrar compras conjuntas.</Notice>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="mb-6 grid gap-4 sm:grid-cols-3 animate-fade-in">
@@ -116,13 +137,13 @@ export function DirectivaPage() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-5 flex gap-1 rounded-2xl bg-white/60 p-1 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm w-fit">
+      <div className="mb-5 flex w-full gap-1 overflow-x-auto rounded-2xl bg-white/60 p-1 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm sm:w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
             aria-pressed={activeTab === t.key}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500 ${
               activeTab === t.key
                 ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-800'
@@ -280,9 +301,11 @@ export function DirectivaPage() {
       {/* ── TAB: Compra conjunta ── */}
       {activeTab === 'compra' && (
         <div className="max-w-2xl">
-          <JointPurchaseForm farmers={farmers} onDone={done} />
+          <JointPurchaseForm farmers={farmers} canOperate={hasActiveCampaign} onDone={done} />
         </div>
       )}
+      {activeTab === 'historial' && <JointPurchasesView purchases={jointPurchases} />}
+      {activeTab === 'cuentas' && <JointPayablesView payables={jointPayables} onDone={done} />}
     </AppShell>
   );
 }
@@ -290,15 +313,133 @@ export function DirectivaPage() {
 /* ─────────────────────────────────────────
    Joint Purchase Form
 ───────────────────────────────────────── */
-function JointPurchaseForm({ farmers, onDone }: { farmers: AdminUser[]; onDone: (message: string) => Promise<void> }) {
+type JointPurchasesViewProps = Readonly<{
+  purchases: Purchase[];
+}>;
+
+function JointPurchasesView({ purchases }: JointPurchasesViewProps) {
+  if (purchases.length === 0) {
+    return <div className={cardClass}><EmptyState title="Sin compras conjuntas" description="Las compras registradas por directiva aparecerán aquí." /></div>;
+  }
+  return (
+    <div className="space-y-3">
+      {purchases.map((purchase) => (
+        <article key={purchase.id} className={`${cardClass} p-5`}>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-bold text-slate-900">{purchase.supplier.name}</h2>
+                <StatusBadge status={purchase.status} />
+              </div>
+              <p className="mt-1 text-sm text-slate-500">{purchase.campaign?.name} · {fmtDate(purchase.purchasedAt)}</p>
+            </div>
+            <div className="sm:text-right">
+              <p className="text-lg font-bold tabular-nums">Bs {fmtNumber(purchase.totalAmount)}</p>
+              <p className="text-xs text-slate-500">{purchase.participants.length} agricultor(es)</p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2">
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase text-slate-400">Productos</p>
+              {purchase.items.map((item) => <p key={item.id} className="text-sm text-slate-700">{item.product.name}: {fmtNumber(item.quantity)} {item.product.unit}</p>)}
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase text-slate-400">Distribución financiera</p>
+              {purchase.participants.map((participant) => <p key={participant.id} className="flex justify-between gap-3 text-sm"><span>{participant.user.name}</span><strong>Bs {fmtNumber(participant.allocatedAmount)}</strong></p>)}
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+            {purchase.expectedAt && <span>Esperada: {fmtDate(purchase.expectedAt)}</span>}
+            {purchase.receivedAt && <span>Recibida: {fmtDate(purchase.receivedAt)}</span>}
+            {purchase.payables.length > 0 && <span>{purchase.payables.length} cuenta(s) por pagar</span>}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function JointPayablesView({ payables, onDone }: { payables: PayableAccount[]; onDone: (message: string) => Promise<void> }) {
+  if (payables.length === 0) {
+    return <div className={cardClass}><EmptyState title="Sin cuentas conjuntas" description="Las compras conjuntas a crédito crearán cuentas por agricultor." /></div>;
+  }
+  return <div className="space-y-3">{payables.map((payable) => <JointPayableCard key={payable.id} payable={payable} onDone={onDone} />)}</div>;
+}
+
+function JointPayableCard({ payable, onDone }: { payable: PayableAccount; onDone: (message: string) => Promise<void> }) {
+  const [amount, setAmount] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const balance = Number(payable.balance);
+
+  const pay = async (total: boolean) => {
+    const numericAmount = Number(amount);
+    if (!total && (!(numericAmount > 0) || numericAmount > balance)) {
+      setError(`El monto debe estar entre Bs 0,01 y Bs ${fmtNumber(balance)}.`);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const result = total
+        ? await payablesService.payTotal(payable.id, { notes: notes || 'Pago total administrado por directiva' })
+        : await payablesService.registerPayment(payable.id, { amount: numericAmount, notes: notes || undefined });
+      setAmount('');
+      setNotes('');
+      await onDone(result.message);
+    } catch (err) {
+      setError(extractError(err, 'No fue posible registrar el pago.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <article className={`${cardClass} p-5`}>
+      <div className="flex flex-col justify-between gap-3 sm:flex-row">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-bold text-slate-900">{payable.responsibleUser?.name ?? 'Agricultor'}</h2>
+            <StatusBadge status={payable.status} />
+          </div>
+          <p className="text-sm text-slate-500">{payable.supplier.name} · vence {fmtDate(payable.dueDate)}</p>
+        </div>
+        <div className="sm:text-right"><p className="text-xs uppercase text-slate-400">Saldo</p><p className="text-lg font-bold tabular-nums">Bs {fmtNumber(payable.balance)}</p></div>
+      </div>
+      {payable.status !== 'PAGADA' && (
+        <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 md:grid-cols-[160px_1fr_auto_auto] md:items-end">
+          <div><label htmlFor={`joint-pay-${payable.id}`} className={labelClass}>Abono (Bs)</label><input id={`joint-pay-${payable.id}`} className={inputClass} type="number" min="0.01" max={balance} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></div>
+          <div><label htmlFor={`joint-note-${payable.id}`} className={labelClass}>Notas</label><input id={`joint-note-${payable.id}`} className={inputClass} value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
+          <button type="button" className={secondaryButtonClass} disabled={saving} onClick={() => void pay(false)}>Registrar abono</button>
+          <button type="button" className={buttonClass} disabled={saving} onClick={() => void pay(true)}>Pagar total</button>
+        </div>
+      )}
+      {error && <div className="mt-3"><Notice kind="error">{error}</Notice></div>}
+    </article>
+  );
+}
+
+function JointPurchaseForm({
+  farmers,
+  canOperate,
+  onDone,
+}: {
+  farmers: AdminUser[];
+  canOperate: boolean;
+  onDone: (message: string) => Promise<void>;
+}) {
   const [form, setForm] = useState({
     supplierName: '',
     paymentMode: 'CREDITO' as PurchasePaymentMode,
+    status: 'RECIBIDA' as PurchaseStatus,
     dueDate: '',
+    expectedAt: '',
     productName: '',
     category: '',
     unit: 'L',
     quantity: '',
+    receivedQuantity: '',
     unitCost: '',
     discountAmount: '',
     lotNumber: '',
@@ -325,14 +466,34 @@ function JointPurchaseForm({ farmers, onDone }: { farmers: AdminUser[]; onDone: 
       setError('La cantidad distribuida debe sumar exactamente la cantidad total comprada.');
       return;
     }
+    const selectedFarmers = allocations.filter((row) => row.userId).map((row) => row.userId);
+    if (new Set(selectedFarmers).size !== selectedFarmers.length) {
+      setError('Cada agricultor debe aparecer una sola vez en la distribución.');
+      return;
+    }
+    if (form.status === 'PROGRAMADA' && !form.expectedAt) {
+      setError('La fecha esperada es obligatoria para una compra programada.');
+      return;
+    }
+    if (
+      form.status === 'RECIBIDA_PARCIAL'
+      && (!(Number(form.receivedQuantity) > 0) || Number(form.receivedQuantity) >= quantity)
+    ) {
+      setError('La cantidad recibida debe ser mayor a cero y menor a la cantidad total.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       await purchasesService.createJoint({
         supplier: { supplierName: form.supplierName },
         paymentMode: form.paymentMode,
+        status: form.status,
         dueDate: form.paymentMode === 'CREDITO' ? form.dueDate : undefined,
-        warehouseName: form.warehouseName || undefined,
+        expectedAt: form.status === 'PROGRAMADA' ? form.expectedAt : undefined,
+        warehouseName: form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL'
+          ? (form.warehouseName || undefined)
+          : undefined,
         notes: form.notes || undefined,
         items: [
           {
@@ -342,6 +503,11 @@ function JointPurchaseForm({ farmers, onDone }: { farmers: AdminUser[]; onDone: 
               unit: form.unit,
             },
             quantity,
+            receivedQuantity: form.status === 'RECIBIDA_PARCIAL'
+              ? Number(form.receivedQuantity)
+              : form.status === 'RECIBIDA'
+                ? quantity
+                : 0,
             unitCost: Number(form.unitCost),
             discountAmount: form.discountAmount ? Number(form.discountAmount) : undefined,
             lotNumber: form.lotNumber || undefined,
@@ -367,6 +533,7 @@ function JointPurchaseForm({ farmers, onDone }: { farmers: AdminUser[]; onDone: 
   return (
     <form onSubmit={submit} className={`space-y-5 ${cardClass} animate-fade-in`}>
       <h2 className="font-bold text-slate-900 text-base">Compra conjunta del sindicato</h2>
+      {!canOperate && <Notice kind="warn">Abre una campana antes de registrar compras conjuntas.</Notice>}
 
       {/* Supplier & Payment */}
       <fieldset className="rounded-xl border border-slate-200/80 p-4">
@@ -383,16 +550,31 @@ function JointPurchaseForm({ farmers, onDone }: { farmers: AdminUser[]; onDone: 
               <option value="CONTADO">Contado</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="jc-status" className={labelClass}>Estado operativo *</label>
+            <select id="jc-status" className={inputClass} value={form.status} onChange={(e) => set('status', e.target.value as PurchaseStatus)}>
+              <option value="RECIBIDA">Recibida completa</option>
+              <option value="RECIBIDA_PARCIAL">Recepción parcial</option>
+              <option value="PROGRAMADA">Programada</option>
+              <option value="CONFIRMADA">Confirmada, sin recibir</option>
+            </select>
+          </div>
           {form.paymentMode === 'CREDITO' && (
             <div>
               <label htmlFor="jc-due" className={labelClass}>Fecha vencimiento *</label>
               <input id="jc-due" required className={inputClass} type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
             </div>
           )}
-          <div>
+          {form.status === 'PROGRAMADA' && (
+            <div>
+              <label htmlFor="jc-expected" className={labelClass}>Fecha esperada *</label>
+              <input id="jc-expected" required className={inputClass} type="date" value={form.expectedAt} onChange={(e) => set('expectedAt', e.target.value)} />
+            </div>
+          )}
+          {(form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL') && <div>
             <label htmlFor="jc-wh" className={labelClass}>Almacén</label>
             <input id="jc-wh" className={inputClass} value={form.warehouseName} onChange={(e) => set('warehouseName', e.target.value)} autoComplete="off" />
-          </div>
+          </div>}
         </div>
       </fieldset>
 
@@ -404,10 +586,11 @@ function JointPurchaseForm({ farmers, onDone }: { farmers: AdminUser[]; onDone: 
           <div><label htmlFor="jc-pcat" className={labelClass}>Categoría</label><select id="jc-pcat" className={inputClass} value={form.category} onChange={(e) => set('category', e.target.value)}><option value="">Sin categoría</option>{CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
           <div><label htmlFor="jc-unit" className={labelClass}>Unidad *</label><select id="jc-unit" className={inputClass} value={form.unit} onChange={(e) => set('unit', e.target.value)}>{UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}</select></div>
           <div><label htmlFor="jc-qty" className={labelClass}>Cantidad total *</label><input id="jc-qty" required className={inputClass} type="number" min="0.0001" step="0.0001" placeholder="0.00" value={form.quantity} onChange={(e) => set('quantity', e.target.value)} /></div>
+          {form.status === 'RECIBIDA_PARCIAL' && <div><label htmlFor="jc-received" className={labelClass}>Cantidad recibida *</label><input id="jc-received" required className={inputClass} type="number" min="0.0001" max={form.quantity || undefined} step="0.0001" value={form.receivedQuantity} onChange={(e) => set('receivedQuantity', e.target.value)} /></div>}
           <div><label htmlFor="jc-cost" className={labelClass}>Costo unitario (Bs) *</label><input id="jc-cost" required className={inputClass} type="number" min="0" step="0.0001" placeholder="0.00" value={form.unitCost} onChange={(e) => set('unitCost', e.target.value)} /></div>
           <div><label htmlFor="jc-disc" className={labelClass}>Descuento (Bs)</label><input id="jc-disc" className={inputClass} type="number" min="0" step="0.0001" placeholder="0.00" value={form.discountAmount} onChange={(e) => set('discountAmount', e.target.value)} /></div>
-          <div><label htmlFor="jc-lot" className={labelClass}>Número de lote</label><input id="jc-lot" className={inputClass} placeholder="LOTE-2026-01" value={form.lotNumber} onChange={(e) => set('lotNumber', e.target.value)} autoComplete="off" /></div>
-          <div><label htmlFor="jc-exp" className={labelClass}>Fecha de vencimiento</label><input id="jc-exp" className={inputClass} type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} /></div>
+          {(form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL') && <div><label htmlFor="jc-lot" className={labelClass}>Número de lote</label><input id="jc-lot" className={inputClass} placeholder="LOTE-2026-01" value={form.lotNumber} onChange={(e) => set('lotNumber', e.target.value)} autoComplete="off" /></div>}
+          {(form.status === 'RECIBIDA' || form.status === 'RECIBIDA_PARCIAL') && <div><label htmlFor="jc-exp" className={labelClass}>Fecha de vencimiento</label><input id="jc-exp" className={inputClass} type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} /></div>}
         </div>
       </fieldset>
 
@@ -477,7 +660,7 @@ function JointPurchaseForm({ farmers, onDone }: { farmers: AdminUser[]; onDone: 
       </div>
 
       {error && <Notice kind="error">{error}</Notice>}
-      <button disabled={saving || !balanced} className={buttonClass}>
+      <button disabled={saving || !balanced || !canOperate} className={buttonClass}>
         {saving ? 'Creando compra conjunta…' : 'Crear compra conjunta'}
       </button>
     </form>
