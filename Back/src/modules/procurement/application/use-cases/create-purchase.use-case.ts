@@ -75,134 +75,48 @@ export class CreatePurchaseUseCase {
         include: { supplier: true },
       });
 
-      const createdItems = [];
-      const createdLots = [];
-      const createdMovements = [];
+      const { createdItems, createdLots, createdMovements } = await this.createItemsAndStock(tx, {
+        tenantId,
+        userId,
+        campaignId: campaign.id,
+        purchaseId: purchase.id,
+        warehouseId: warehouse?.id,
+        paymentMode: dto.paymentMode,
+        receivesStock,
+        items: dto.items,
+      });
 
-      for (const item of dto.items) {
-        const product = await this.resolveProduct(tx, tenantId, item.product);
-        const quantity = this.toDecimal(item.quantity);
-        const receivedQuantity = this.toDecimal(item.receivedQuantity ?? item.quantity);
-        const unitCost = this.toDecimal(item.unitCost);
-        const itemDiscount = this.toDecimal(item.discountAmount ?? 0);
-        const subtotal = this.calculateSubtotal(quantity, unitCost, itemDiscount);
+      const payable = await this.createPayableAccount(tx, {
+        tenantId,
+        campaignId: campaign.id,
+        userId,
+        purchaseId: purchase.id,
+        paymentMode: dto.paymentMode,
+        dueDate: dto.dueDate,
+        totalAmount,
+      });
 
-        const purchaseItem = await tx.purchaseItem.create({
-          data: {
-            tenantId,
-            purchaseId: purchase.id,
-            productId: product.id,
-            quantity,
-            unitCost,
-            discountAmount: itemDiscount,
-            subtotal,
-          },
-          include: { product: true },
-        });
+      await this.createPayableCalendarEvent(tx, {
+        tenantId,
+        campaignId: campaign.id,
+        userId,
+        purchaseId: purchase.id,
+        supplierName: supplier.name,
+        payable,
+      });
 
-        if (receivesStock && receivedQuantity.greaterThan(0)) {
-          if (receivedQuantity.greaterThan(quantity)) {
-            throw new BadRequestException('La cantidad recibida no puede superar la cantidad comprada.');
-          }
-
-          const lot = await tx.inventoryLot.create({
-            data: {
-              tenantId,
-              ownerUserId: userId,
-              campaignId: campaign.id,
-              productId: product.id,
-              warehouseId: warehouse?.id,
-              purchaseItemId: purchaseItem.id,
-              lotNumber: item.lotNumber,
-              expirationDate: item.expirationDate ? new Date(item.expirationDate) : null,
-              initialQuantity: receivedQuantity,
-              currentQuantity: receivedQuantity,
-              unitCost,
-            },
-            include: { product: true, warehouse: true },
-          });
-
-          const movement = await tx.stockMovement.create({
-            data: {
-              tenantId,
-              ownerUserId: userId,
-              campaignId: campaign.id,
-              productId: product.id,
-              inventoryLotId: lot.id,
-              warehouseId: warehouse?.id,
-              userId,
-              type: StockMovementType.ENTRADA,
-              reasonType: StockMovementReasonType.COMPRA,
-              quantity: receivedQuantity,
-              reason: `COMPRA_${dto.paymentMode}`,
-            },
-            include: { product: true, inventoryLot: true, warehouse: true },
-          });
-
-          await tx.product.update({
-            where: { id: product.id },
-            data: { currentStock: { increment: receivedQuantity } },
-          });
-
-          createdLots.push(this.mapLot(lot));
-          createdMovements.push(this.mapMovement(movement));
-        }
-
-        createdItems.push(this.mapPurchaseItem(purchaseItem));
-      }
-
-      const payable =
-        dto.paymentMode === PurchasePaymentMode.CREDITO
-          ? await tx.payableAccount.create({
-              data: {
-                tenantId,
-                campaignId: campaign.id,
-                purchaseId: purchase.id,
-                responsibleUserId: userId,
-                dueDate: new Date(dto.dueDate as string),
-                totalAmount,
-                paidAmount: new Prisma.Decimal(0),
-                status: PayableStatus.PENDIENTE,
-              },
-              include: { purchase: { include: { supplier: true } } },
-            })
-          : null;
-
-      if (payable) {
-        await tx.calendarEvent.create({
-          data: {
-            tenantId,
-            campaignId: campaign.id,
-            ownerUserId: userId,
-            type: CalendarEventType.PAGO_PROXIMO,
-            status: CalendarEventStatus.PENDIENTE,
-            title: `Pago pendiente a ${supplier.name}`,
-            description: `Cuenta por pagar de compra ${purchase.id}.`,
-            eventDate: payable.dueDate,
-            sourceEntity: 'PayableAccount',
-            sourceEntityId: payable.id,
-            metadata: { purchaseId: purchase.id, totalAmount: payable.totalAmount.toString() },
-          },
-        });
-      }
-
-      if (status === PurchaseStatus.PROGRAMADA) {
-        await tx.calendarEvent.create({
-          data: {
-            tenantId,
-            campaignId: campaign.id,
-            ownerUserId: userId,
-            type: CalendarEventType.COMPRA_PROGRAMADA,
-            status: CalendarEventStatus.PENDIENTE,
-            title: `Compra programada con ${supplier.name}`,
-            description: dto.notes ?? null,
-            eventDate: expectedAt ?? purchasedAt,
-            sourceEntity: 'Purchase',
-            sourceEntityId: purchase.id,
-            metadata: { paymentMode: dto.paymentMode, totalAmount: totalAmount.toString() },
-          },
-        });
-      }
+      await this.createScheduledPurchaseCalendarEvent(tx, {
+        tenantId,
+        campaignId: campaign.id,
+        userId,
+        purchaseId: purchase.id,
+        supplierName: supplier.name,
+        status,
+        notes: dto.notes,
+        eventDate: expectedAt ?? purchasedAt,
+        paymentMode: dto.paymentMode,
+        totalAmount,
+      });
 
       return {
         message: 'Compra registrada correctamente.',
@@ -232,6 +146,222 @@ export class CreatePurchaseUseCase {
             }
           : null,
       };
+    });
+  }
+
+  private async createItemsAndStock(
+    tx: TxClient,
+    data: {
+      tenantId: string;
+      userId: string;
+      campaignId: string;
+      purchaseId: string;
+      warehouseId?: string;
+      paymentMode: PurchasePaymentMode;
+      receivesStock: boolean;
+      items: CreatePurchaseItemDto[];
+    },
+  ) {
+    const createdItems = [];
+    const createdLots = [];
+    const createdMovements = [];
+
+    for (const item of data.items) {
+      const product = await this.resolveProduct(tx, data.tenantId, item.product);
+      const quantity = this.toDecimal(item.quantity);
+      const receivedQuantity = this.toDecimal(item.receivedQuantity ?? item.quantity);
+      const unitCost = this.toDecimal(item.unitCost);
+      const itemDiscount = this.toDecimal(item.discountAmount ?? 0);
+      const subtotal = this.calculateSubtotal(quantity, unitCost, itemDiscount);
+
+      const purchaseItem = await tx.purchaseItem.create({
+        data: {
+          tenantId: data.tenantId,
+          purchaseId: data.purchaseId,
+          productId: product.id,
+          quantity,
+          unitCost,
+          discountAmount: itemDiscount,
+          subtotal,
+        },
+        include: { product: true },
+      });
+
+      if (data.receivesStock && receivedQuantity.greaterThan(0)) {
+        const stock = await this.registerPurchasedStock(tx, {
+          tenantId: data.tenantId,
+          userId: data.userId,
+          campaignId: data.campaignId,
+          warehouseId: data.warehouseId,
+          purchaseItemId: purchaseItem.id,
+          productId: product.id,
+          paymentMode: data.paymentMode,
+          receivedQuantity,
+          unitCost,
+          lotNumber: item.lotNumber,
+          expirationDate: item.expirationDate,
+        });
+        createdLots.push(stock.lot);
+        createdMovements.push(stock.movement);
+      }
+
+      createdItems.push(this.mapPurchaseItem(purchaseItem));
+    }
+
+    return { createdItems, createdLots, createdMovements };
+  }
+
+  private async registerPurchasedStock(
+    tx: TxClient,
+    data: {
+      tenantId: string;
+      userId: string;
+      campaignId: string;
+      warehouseId?: string;
+      purchaseItemId: string;
+      productId: string;
+      paymentMode: PurchasePaymentMode;
+      receivedQuantity: Prisma.Decimal;
+      unitCost: Prisma.Decimal;
+      lotNumber?: string;
+      expirationDate?: string;
+    },
+  ) {
+    const lot = await tx.inventoryLot.create({
+      data: {
+        tenantId: data.tenantId,
+        ownerUserId: data.userId,
+        campaignId: data.campaignId,
+        productId: data.productId,
+        warehouseId: data.warehouseId,
+        purchaseItemId: data.purchaseItemId,
+        lotNumber: data.lotNumber,
+        expirationDate: data.expirationDate ? new Date(data.expirationDate) : null,
+        initialQuantity: data.receivedQuantity,
+        currentQuantity: data.receivedQuantity,
+        unitCost: data.unitCost,
+      },
+      include: { product: true, warehouse: true },
+    });
+
+    const movement = await tx.stockMovement.create({
+      data: {
+        tenantId: data.tenantId,
+        ownerUserId: data.userId,
+        campaignId: data.campaignId,
+        productId: data.productId,
+        inventoryLotId: lot.id,
+        warehouseId: data.warehouseId,
+        userId: data.userId,
+        type: StockMovementType.ENTRADA,
+        reasonType: StockMovementReasonType.COMPRA,
+        quantity: data.receivedQuantity,
+        reason: `COMPRA_${data.paymentMode}`,
+      },
+      include: { product: true, inventoryLot: true, warehouse: true },
+    });
+
+    await tx.product.update({
+      where: { id: data.productId },
+      data: { currentStock: { increment: data.receivedQuantity } },
+    });
+
+    return {
+      lot: this.mapLot(lot),
+      movement: this.mapMovement(movement),
+    };
+  }
+
+  private async createPayableAccount(
+    tx: TxClient,
+    data: {
+      tenantId: string;
+      campaignId: string;
+      userId: string;
+      purchaseId: string;
+      paymentMode: PurchasePaymentMode;
+      dueDate?: string;
+      totalAmount: Prisma.Decimal;
+    },
+  ) {
+    if (data.paymentMode !== PurchasePaymentMode.CREDITO) return null;
+
+    return tx.payableAccount.create({
+      data: {
+        tenantId: data.tenantId,
+        campaignId: data.campaignId,
+        purchaseId: data.purchaseId,
+        responsibleUserId: data.userId,
+        dueDate: new Date(data.dueDate as string),
+        totalAmount: data.totalAmount,
+        paidAmount: new Prisma.Decimal(0),
+        status: PayableStatus.PENDIENTE,
+      },
+      include: { purchase: { include: { supplier: true } } },
+    });
+  }
+
+  private async createPayableCalendarEvent(
+    tx: TxClient,
+    data: {
+      tenantId: string;
+      campaignId: string;
+      userId: string;
+      purchaseId: string;
+      supplierName: string;
+      payable: Awaited<ReturnType<CreatePurchaseUseCase['createPayableAccount']>>;
+    },
+  ) {
+    if (!data.payable) return;
+
+    await tx.calendarEvent.create({
+      data: {
+        tenantId: data.tenantId,
+        campaignId: data.campaignId,
+        ownerUserId: data.userId,
+        type: CalendarEventType.PAGO_PROXIMO,
+        status: CalendarEventStatus.PENDIENTE,
+        title: `Pago pendiente a ${data.supplierName}`,
+        description: `Cuenta por pagar de compra ${data.purchaseId}.`,
+        eventDate: data.payable.dueDate,
+        sourceEntity: 'PayableAccount',
+        sourceEntityId: data.payable.id,
+        metadata: { purchaseId: data.purchaseId, totalAmount: data.payable.totalAmount.toString() },
+      },
+    });
+  }
+
+  private async createScheduledPurchaseCalendarEvent(
+    tx: TxClient,
+    data: {
+      tenantId: string;
+      campaignId: string;
+      userId: string;
+      purchaseId: string;
+      supplierName: string;
+      status: PurchaseStatus;
+      notes?: string | null;
+      eventDate: Date;
+      paymentMode: PurchasePaymentMode;
+      totalAmount: Prisma.Decimal;
+    },
+  ) {
+    if (data.status !== PurchaseStatus.PROGRAMADA) return;
+
+    await tx.calendarEvent.create({
+      data: {
+        tenantId: data.tenantId,
+        campaignId: data.campaignId,
+        ownerUserId: data.userId,
+        type: CalendarEventType.COMPRA_PROGRAMADA,
+        status: CalendarEventStatus.PENDIENTE,
+        title: `Compra programada con ${data.supplierName}`,
+        description: data.notes ?? null,
+        eventDate: data.eventDate,
+        sourceEntity: 'Purchase',
+        sourceEntityId: data.purchaseId,
+        metadata: { paymentMode: data.paymentMode, totalAmount: data.totalAmount.toString() },
+      },
     });
   }
 

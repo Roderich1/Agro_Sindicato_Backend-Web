@@ -1,6 +1,5 @@
 import { api } from '../lib/axios';
 import type {
-  CreateJointPurchaseItemPayload,
   CreatePurchaseResult,
   CreatePurchasePayload,
   CreateSupplierPayload,
@@ -30,4 +29,4 @@ export const purchasesService = {
   get: (id: string) => api.get<Purchase>(`/purchases/${id}`).then((r) => r.data),
 };
 
-export type { CreateJointPurchaseItemPayload };
+export type { CreateJointPurchaseItemPayload } from '../types/procurement';

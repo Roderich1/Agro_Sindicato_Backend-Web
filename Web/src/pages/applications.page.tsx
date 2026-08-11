@@ -227,6 +227,23 @@ export function ApplicationsPage() {
   );
 }
 
+type ApplicationFiltersProps = Readonly<{
+  campaigns: Campaign[];
+  plots: Plot[];
+  crops: Crop[];
+  products: Product[];
+  campaignId: string;
+  plotId: string;
+  cropId: string;
+  productId: string;
+  status: AgrochemicalApplicationStatus | '';
+  onCampaign: (value: string) => void;
+  onPlot: (value: string) => void;
+  onCrop: (value: string) => void;
+  onProduct: (value: string) => void;
+  onStatus: (value: AgrochemicalApplicationStatus | '') => void;
+}>;
+
 function ApplicationFilters({
   campaigns,
   plots,
@@ -242,22 +259,7 @@ function ApplicationFilters({
   onCrop,
   onProduct,
   onStatus,
-}: {
-  campaigns: Campaign[];
-  plots: Plot[];
-  crops: Crop[];
-  products: Product[];
-  campaignId: string;
-  plotId: string;
-  cropId: string;
-  productId: string;
-  status: AgrochemicalApplicationStatus | '';
-  onCampaign: (value: string) => void;
-  onPlot: (value: string) => void;
-  onCrop: (value: string) => void;
-  onProduct: (value: string) => void;
-  onStatus: (value: AgrochemicalApplicationStatus | '') => void;
-}) {
+}: ApplicationFiltersProps) {
   return (
     <div className={`${cardClass} mb-4 p-4`}>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

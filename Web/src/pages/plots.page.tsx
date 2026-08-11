@@ -354,7 +354,15 @@ function DeactivatePlotForm({ plot, onDone }: { plot: Plot; onDone: (message: st
   return <form className="space-y-4" onSubmit={submit}><Notice kind="warn">La parcela {plot.name} no se eliminara. Su historial permanecera disponible.</Notice>{error && <Notice kind="error">{error}</Notice>}<button className={dangerButtonClass} disabled={saving}>{saving ? 'Inactivando...' : 'Inactivar parcela'}</button></form>;
 }
 
-function AssignmentForm({ assignment, campaignId, plots, crops, onDone }: { assignment: PlotCropAssignment | null; campaignId: string; plots: Plot[]; crops: Crop[]; onDone: (message: string) => Promise<void> }) {
+type AssignmentFormProps = Readonly<{
+  assignment: PlotCropAssignment | null;
+  campaignId: string;
+  plots: Plot[];
+  crops: Crop[];
+  onDone: (message: string) => Promise<void>;
+}>;
+
+function AssignmentForm({ assignment, campaignId, plots, crops, onDone }: AssignmentFormProps) {
   const [form, setForm] = useState({ plotId: assignment?.plotId ?? '', cropId: assignment?.cropId ?? '', plantedArea: assignment?.plantedArea?.toString() ?? '', plantedAt: assignment?.plantedAt?.slice(0, 10) ?? '', status: assignment?.status ?? 'ACTIVO' as CropAssignmentStatus, notes: assignment?.notes ?? '' });
   const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null); const set = (field: keyof typeof form, value: string) => setForm((previous) => ({ ...previous, [field]: value }));
   const submit = async (event: FormEvent) => { event.preventDefault(); setSaving(true); setError(null); try { if (assignment) { await plotCropAssignmentsService.update(assignment.id, { cropId: form.cropId, status: form.status, plantedArea: form.plantedArea ? Number(form.plantedArea) : null, plantedAt: form.plantedAt || null, notes: form.notes || null }); await onDone('Asignacion actualizada.'); } else { await plotCropAssignmentsService.create({ campaignId, plotId: form.plotId, cropId: form.cropId, plantedArea: form.plantedArea ? Number(form.plantedArea) : null, plantedAt: form.plantedAt || null, notes: form.notes || null }); await onDone('Cultivo asignado a la parcela.'); } } catch (err) { setError(extractError(err, 'No fue posible guardar la asignacion.')); } finally { setSaving(false); } };

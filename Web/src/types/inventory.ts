@@ -1,14 +1,4 @@
 import type { ApiDateString, DecimalString, UserSummary } from './common';
-import type {
-  CreatePurchasePayload,
-  CreateSupplierPayload,
-  JointPurchasePayload,
-  PurchasePaymentMode,
-  Supplier,
-  UpdateSupplierPayload,
-} from './procurement';
-import type { PayableAccount, PayableStatus } from './accounts-payable';
-import type { OfflineOperation, OfflineOperationType } from './sync';
 
 export type StockMovementType = 'ENTRADA' | 'SALIDA' | 'AJUSTE';
 export type InventoryCriticality = 'BAJO_MINIMO' | 'VENCIDO' | 'POR_VENCER' | 'OK';
@@ -254,15 +244,13 @@ export interface UpdateProductSettingsPayload {
   expirationWarningDays?: number;
 }
 
+export type { PayableAccount, PayableStatus } from './accounts-payable';
 export type {
   CreatePurchasePayload,
   CreateSupplierPayload,
   JointPurchasePayload,
-  OfflineOperation,
-  OfflineOperationType,
-  PayableAccount,
-  PayableStatus,
   PurchasePaymentMode,
   Supplier,
   UpdateSupplierPayload,
-};
+} from './procurement';
+export type { OfflineOperation, OfflineOperationType } from './sync';

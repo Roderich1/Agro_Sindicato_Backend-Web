@@ -309,9 +309,14 @@ function CampaignForm({ campaign, onDone }: { campaign: Campaign | null; onDone:
         <textarea id="campaign-notes" className={inputClass} rows={3} value={form.notes} onChange={(event) => set('notes', event.target.value)} />
       </div>
       {error && <Notice kind="error">{error}</Notice>}
-      <button disabled={saving} className={buttonClass}>{saving ? 'Guardando...' : campaign ? 'Actualizar' : 'Crear'}</button>
+      <button disabled={saving} className={buttonClass}>{getCampaignSubmitLabel(saving, Boolean(campaign))}</button>
     </form>
   );
+}
+
+function getCampaignSubmitLabel(saving: boolean, isEditing: boolean) {
+  if (saving) return 'Guardando...';
+  return isEditing ? 'Actualizar' : 'Crear';
 }
 
 function CloseCampaignForm({ campaign, onDone }: { campaign: Campaign; onDone: (message: string) => Promise<void> }) {

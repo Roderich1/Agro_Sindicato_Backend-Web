@@ -280,7 +280,7 @@ export class InventoryAdjustmentUseCase {
         action: AuditAction.AJUSTAR_STOCK,
         entityName: 'StockMovement',
         summary: data.summary,
-        after: JSON.parse(JSON.stringify(data.after)) as Prisma.InputJsonValue,
+        after: structuredClone(data.after) as Prisma.InputJsonValue,
       },
     });
   }

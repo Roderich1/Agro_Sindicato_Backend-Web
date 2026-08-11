@@ -2,6 +2,7 @@ import type { ApiDateString, UserSummary } from './common';
 import type { CampaignStatus } from './campaigns';
 
 export type AuditAction =
+  | (string & {})
   | 'CREAR'
   | 'ACTUALIZAR'
   | 'INACTIVAR'
@@ -11,8 +12,7 @@ export type AuditAction =
   | 'AJUSTAR_STOCK'
   | 'REGISTRAR_PAGO'
   | 'SINCRONIZAR'
-  | 'OTRO'
-  | string;
+  | 'OTRO';
 
 export type AuditJsonValue =
   | string

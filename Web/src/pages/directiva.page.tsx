@@ -313,7 +313,11 @@ export function DirectivaPage() {
 /* ─────────────────────────────────────────
    Joint Purchase Form
 ───────────────────────────────────────── */
-function JointPurchasesView({ purchases }: { purchases: Purchase[] }) {
+type JointPurchasesViewProps = Readonly<{
+  purchases: Purchase[];
+}>;
+
+function JointPurchasesView({ purchases }: JointPurchasesViewProps) {
   if (purchases.length === 0) {
     return <div className={cardClass}><EmptyState title="Sin compras conjuntas" description="Las compras registradas por directiva aparecerán aquí." /></div>;
   }

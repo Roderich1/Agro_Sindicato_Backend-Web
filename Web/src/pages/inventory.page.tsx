@@ -346,6 +346,7 @@ export function InventoryPage() {
                   Entrada
                 </button>
                 <button
+                  type="button"
                   disabled={!hasActiveCampaign}
                   onClick={() => { setStockMode('exit'); setShowStockDrawer(true); }}
                   className="rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100/80 text-amber-700 py-2 px-3.5 text-xs font-semibold flex items-center gap-1.5 transition duration-200"
@@ -1080,7 +1081,13 @@ function ToxicologyBadge({ value }: { value: string | null }) {
   return <span className={`inline-flex max-w-[190px] rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${color}`}>{value}</span>;
 }
 
-function DeactivateProductForm({ product, onDone, onCancel }: { product: Product; onDone: (message: string) => Promise<void>; onCancel: () => void }) {
+type DeactivateProductFormProps = Readonly<{
+  product: Product;
+  onDone: (message: string) => Promise<void>;
+  onCancel: () => void;
+}>;
+
+function DeactivateProductForm({ product, onDone, onCancel }: DeactivateProductFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1265,13 +1272,15 @@ const MOVEMENT_REASON_LABELS: Record<StockMovementReasonType, string> = {
   OTRO: 'Otro',
 };
 
+type MovementsTabProps = Readonly<{
+  products: Product[];
+  activeCampaignId: string | null;
+}>;
+
 function MovementsTab({
   products,
   activeCampaignId,
-}: {
-  products: Product[];
-  activeCampaignId: string | null;
-}) {
+}: MovementsTabProps) {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignId, setCampaignId] = useState(activeCampaignId ?? '');
@@ -1414,17 +1423,19 @@ function MovementsTab({
   );
 }
 
+type AdjustmentsTabProps = Readonly<{
+  lots: StockLot[];
+  products: StockLot['product'][];
+  canOperate: boolean;
+  onDone: (msg: string) => Promise<void>;
+}>;
+
 function AdjustmentsTab({
   lots,
   products,
   canOperate,
   onDone,
-}: {
-  lots: StockLot[];
-  products: StockLot['product'][];
-  canOperate: boolean;
-  onDone: (msg: string) => Promise<void>;
-}) {
+}: AdjustmentsTabProps) {
   const [form, setForm] = useState({
     productId: '', inventoryLotId: '', direction: 'DECREMENTO' as AdjustmentDirection,
     reasonType: 'AJUSTE' as AdjustmentReasonType, quantity: '', reason: '',
