@@ -44,3 +44,10 @@ cd Web
 npm install
 npm run dev
 ```
+
+Contacto:
+
+```telefono
+63526749
+
+```
