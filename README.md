@@ -44,3 +44,9 @@ cd Web
 npm install
 npm run dev
 ```
+
+Contacto:
+```telefono
+nombre: Rodrigo Rendon Cardenas
+63526749
+```
