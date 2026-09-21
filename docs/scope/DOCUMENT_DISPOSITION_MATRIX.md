@@ -22,7 +22,7 @@ Clasificación cerrada: `ACTIVE_CURRENT`, `ACTIVE_REQUIRES_ALIGNMENT`, `HISTORIC
 | `docs/ai/definition-of-done.md` | DoD del MVP Web anterior | Gates no vigentes | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Crear DoD nuevo cuando se apruebe F02 |
 | `docs/ai/prompting-guide.md` | Prompts para MVP Back+Web | Instrucciones obsoletas | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Preservar |
 | `docs/ai/ai-workflow-checklists.md` | Checklist del alcance anterior | Excluye Mobile/voz en general | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Preservar |
-| `docs/ai/security-and-ai-guidelines.md` | Seguridad del MVP anterior | Mezcla controles útiles y alcance viejo | HISTORICAL_REFERENCE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Reincorporar controles mediante F09 |
+| `docs/ai/security-and-ai-guidelines.md` | Seguridad del MVP anterior | Mezcla controles útiles y alcance viejo | HISTORICAL_REFERENCE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Reincorporar controles mediante F10 |
 | `Back/docs/Flujo.md` | Flujo agricultor completo central/PWA | No vigente | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Preservar |
 | `Back/docs/modelo-datos-flujo.md` | Modelo central ampliado | No define autoridad vigente | HISTORICAL_REFERENCE | HISTORICAL_BANNER | Matrices scope | Banner | Usar sólo en inventario legacy |
 | `Back/docs/codex-backend-implementation.md` | Plan del backend anterior | Podría reactivar scope viejo | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `TRANSITION_PLAN.md` | Banner | Preservar |

@@ -14,9 +14,9 @@ La frontera es: **Flutter/Mobile → proyección autorizada → Backend central 
 
 ## 3. Mobile / Flutter
 
-Flutter es el sistema de registro individual y offline-first. Es autoridad, cuando corresponda, sobre campañas personales/locales, chacos o parcelas, inventario individual, lotes, movimientos, compras individuales, distribución/asignación, transferencias, aplicaciones, necesidades declaradas, datos familiares privados, comprobantes/fotografías, recordatorios privados, outbox local y voz asistida.
+Flutter es el sistema de registro individual y offline-first. Es autoridad, cuando corresponda, sobre campañas personales/locales, chacos o parcelas, inventario individual, lotes, movimientos, compras individuales, distribución/asignación, transferencias, aplicaciones, necesidades declaradas, datos familiares privados, comprobantes/fotografías, outbox local y voz asistida.
 
-El flujo de voz obligatorio es:
+Si se utiliza captura por voz, el flujo obligatorio es:
 
 `speech → draft → preview editable → confirmación humana → operación`
 
@@ -24,7 +24,7 @@ Nunca se permite `speech → efecto automático`.
 
 ## 4. Central Backend
 
-El Backend es responsable de Tenant/Sindicato, identidad, Account/User, Member/Person cuando quede formalizado, sesiones, dispositivos/clientId, campañas compartidas, catálogos compartidos, vínculo/consentimiento, sync idempotente, recepción de proyección mínima, consumo colectivo autorizado, necesidad declarada, estado de última sincronización, propuesta de compra conjunta, auditoría central minimizada y metadata de backup privado.
+El Backend es responsable de Tenant/Sindicato, identidad, Account/User, Member/Person cuando quede formalizado, sesiones, dispositivos/clientId, campañas compartidas, catálogos compartidos, vínculo/consentimiento, sync idempotente, recepción de proyección mínima, consumo colectivo autorizado, recepción y persistencia de la proyección autorizada de necesidad declarada, estado de última sincronización, propuesta de compra conjunta, auditoría central minimizada y metadata de backup privado.
 
 No es autoridad sobre todo el dominio privado móvil. Los contratos actuales más amplios son legacy y deben migrarse mediante [TRANSITION_PLAN.md](TRANSITION_PLAN.md).
 
@@ -48,7 +48,7 @@ Backup no es Sync. El backup es owner-scoped, privado, orientado a recuperación
 
 ## 8. Declared Need
 
-La necesidad declarada es una declaración explícita del agricultor; no es forecast, predicción ni recomendación. Cuando aplique y las unidades sean compatibles:
+La necesidad declarada nace en Mobile como declaración explícita del agricultor. El Backend no es su autoridad originaria: recibe y persiste sólo la proyección autorizada para consolidación. No es forecast, predicción ni recomendación. Cuando aplique y las unidades sean compatibles:
 
 `net_need = max(0, declared_need - declared_stock)`
 
@@ -86,4 +86,4 @@ El código y los documentos legacy se preservan para compatibilidad, evidencia y
 - [#80 F01-SCOPE-02](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/80): frontera de datos y autoridad.
 - [#81 ALIGN-TECH-01](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/81): transición técnica cross-cutting; permanece bloqueada hasta contar con contratos y gates.
 
-F01 gobierna baseline/arquitectura; F02 contratos; F05 sync; F06 backend; F07 Web; F09 privacidad/seguridad; F10 transición y evidencia.
+F01 cubre análisis, documentación, arquitectura y baseline; F02 identidad, membership, ownership y device; F03 autenticación/sesión Mobile; F04 modos y dominio Mobile; F05 sincronización; F06 proyección colectiva; F07 Web Directiva y planificación/compra conjunta; F08 está fuera de alcance; F09 backup privado; F10 QA, seguridad, UX, performance y evaluación; F11 release, documentación final y trazabilidad final. Los contratos se asignan a la fase de la capacidad responsable. PRE-VOICE/EVO gobierna la voz Mobile existente y #81 coordina la realineación cross-cutting.

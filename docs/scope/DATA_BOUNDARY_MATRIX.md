@@ -25,13 +25,14 @@
 | invoice photo | Mobile target | Mobile | Documento sensible | No | N/A | Sí | No | TBD | PROPOSED | #80 |
 | family relationship | Mobile target | Mobile | Personal sensible | No | N/A | Sí | No | TBD | PROPOSED | #80 |
 | private note | Mobile target | Mobile | Privada sensible | No | N/A | Sí | No | TBD | PROPOSED | #80 |
-| declared need | Contrato futuro | Mobile (declaración) | Compartida por consentimiento | Sí | Consolidación | Sí | Consolidada/autorizada | TBD | PROPOSED | #79, #80 |
+| declared need | Mobile origen / Backend proyección futura | Mobile/agricultor (declaración); Backend sólo persiste proyección autorizada | Compartida por consentimiento | Sí | Consolidación | Sí | Consolidada/autorizada | TBD | PROPOSED | #79, #80 |
 | declared stock | Contrato futuro | Mobile (declaración) | Compartida por consentimiento | Sí | Cálculo determinista compatible | Sí | Consolidada/autorizada | TBD | TBD | #79, #80 |
 | consumption projection | Contrato futuro | Backend, derivada | Colectiva minimizada | Sí | Planificación | Sí | Sí | TBD | PROPOSED | #79, #80 |
 | last synchronization | Backend | Backend | Técnica | Sí | Estado/frescura | Metadata | Sí | TBD | PROPOSED | #80 |
 | sync payload | SyncOperation legacy / contrato futuro | Mobile emite; Backend recibe | Mixta | Sí, sólo whitelist | Proyección | No como backup | No en bruto | TBD | TBD | #80, #81 |
 | sync conflict snapshot | SyncConflict | Backend | Mixta potencialmente sensible | Interna | Reconciliación | No por defecto | Resumen autorizado | TBD | TBD | #80, #81 |
 | audit | AuditLog | Backend | Restringida | Interna | Trazabilidad | No por defecto | Directiva/Admin autorizada | TBD | PROPOSED | #80 |
+| calendar event | CalendarEvent legacy | Ninguno Live aprobado | Mixta potencialmente privada | No como target vigente | N/A | Sólo como dato legacy hasta decisión de retiro | No como capacidad Live | Retiro TBD mediante migración nueva | PROPOSED | #81 |
 | collective purchase proposal | Contrato futuro | Backend/Directiva | Colectiva | Sí | Decisión humana | Sí | Sí | TBD | PROPOSED | #79, #81 |
 | backup metadata | Contrato futuro | Backend | Técnica/privada | Sí | Localizar/validar backup | N/A | Sólo owner/admin técnico TBD | TBD | PROPOSED | #80 |
 | backup binary | Mobile/private storage TBD | Mobile/owner | Privada sensible | No como sync | Recuperación | Es el backup | No | TBD | TBD | #80 |

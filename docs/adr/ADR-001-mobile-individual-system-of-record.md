@@ -22,11 +22,11 @@ Mobile conserva autoridad sobre el dominio privado individual. Central conserva 
 
 ## Mobile responsibilities
 
-Operación individual offline-first, outbox, inventario/lotes/movimientos privados, compras y pagos individuales, parcelas/aplicaciones, evidencia privada, necesidades declaradas y voz siempre confirmada por una persona.
+Operación individual offline-first, outbox, inventario/lotes/movimientos privados, compras y pagos individuales, parcelas/aplicaciones, evidencia privada y origen de las necesidades declaradas. Si se utiliza voz, siempre requiere preview editable y confirmación humana.
 
 ## Central responsibilities
 
-IAM, tenant/membership, dispositivos, contratos versionados e idempotentes, ACK/reconciliación, proyección mínima, consolidación determinista, propuesta colectiva, auditoría minimizada y metadata de backup.
+IAM, tenant/membership, dispositivos, contratos versionados e idempotentes, ACK/reconciliación, recepción y persistencia de la proyección autorizada —incluida la necesidad declarada originada por el agricultor—, consolidación determinista, propuesta colectiva, auditoría minimizada y metadata de backup.
 
 ## Web responsibilities
 
