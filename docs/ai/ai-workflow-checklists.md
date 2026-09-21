@@ -1,3 +1,9 @@
+> **HISTORICAL / OBSOLETE**
+>
+> Este documento se conserva como evidencia histórica.
+> No representa la arquitectura vigente.
+> Fuente vigente: [docs/scope/CURRENT_SCOPE.md](../scope/CURRENT_SCOPE.md)
+
 # Checklists para trabajo con IA
 
 ## Antes de pedir una tarea

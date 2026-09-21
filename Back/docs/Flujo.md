@@ -1,3 +1,9 @@
+> **HISTORICAL / OBSOLETE**
+>
+> Este documento se conserva como evidencia histórica.
+> No representa la arquitectura vigente.
+> Fuente vigente: [docs/scope/CURRENT_SCOPE.md](../../docs/scope/CURRENT_SCOPE.md)
+
 # Flujo funcional decidido
 
 Este documento describe el flujo funcional que se usara como base para ampliar el sistema. La directiva controla las campanas agricolas y el agricultor trabaja sobre sus parcelas, inventario, compras, salidas, aplicaciones, pagos, calendario y reportes.

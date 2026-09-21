@@ -12,7 +12,7 @@ Clasificación cerrada: `ACTIVE_CURRENT`, `ACTIVE_REQUIRES_ALIGNMENT`, `HISTORIC
 | `Web/README.md` | README genérico Vite | No documenta producto | ACTIVE_CURRENT | ACTIVE_REWRITE | `CURRENT_SCOPE.md` | Alineado | Mantener setup real |
 | `docs/scope/**` | Baseline vigente | Nuevo | ACTIVE_CURRENT | NO_CHANGE | Sí mismo | Creado | Evolucionar por decisiones aprobadas |
 | `docs/adr/ADR-001-*` | Decisión propuesta | Requiere review | ACTIVE_CURRENT | NO_CHANGE | Sí mismo | Creado PROPOSED | Aceptar sólo tras review/merge |
-| `docs/ai/README.md` | Índice de guías históricas como activas | Puede dirigir trabajo incorrecto | ACTIVE_REQUIRES_ALIGNMENT | ACTIVE_REWRITE | `docs/scope/README.md` | Alinear como índice histórico | Simplificar tras transición |
+| `docs/ai/README.md` | Índice de guías históricas como activas | Puede dirigir trabajo incorrecto | ACTIVE_CURRENT | ACTIVE_REWRITE | `docs/scope/README.md` | Alineado como índice histórico | Simplificar tras transición |
 | `docs/ai/architecture-guidelines.md` | PWA y backend central operativo | Arquitectura sustituida | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Preservar |
 | `docs/ai/backend-guidelines.md` | Reglas del dominio individual central | Alcance legacy | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Preservar |
 | `docs/ai/frontend-guidelines.md` | Offline pertenece a PWA | Contradice Web online-first | HISTORICAL_OBSOLETE | HISTORICAL_BANNER | `CURRENT_SCOPE.md` | Banner | Preservar |

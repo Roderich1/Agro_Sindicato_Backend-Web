@@ -1,3 +1,9 @@
+> **HISTORICAL / OBSOLETE**
+>
+> Este documento se conserva como evidencia histórica.
+> No representa la arquitectura vigente.
+> Fuente vigente: [docs/scope/CURRENT_SCOPE.md](../../docs/scope/CURRENT_SCOPE.md)
+
 # HU-16 a HU-20: guia de uso para frontend
 
 Base URL:

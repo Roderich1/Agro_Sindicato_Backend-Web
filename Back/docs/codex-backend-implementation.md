@@ -1,3 +1,9 @@
+> **HISTORICAL / OBSOLETE**
+>
+> Este documento se conserva como evidencia histórica.
+> No representa la arquitectura vigente.
+> Fuente vigente: [docs/scope/CURRENT_SCOPE.md](../../docs/scope/CURRENT_SCOPE.md)
+
 # Guia Codex para implementar el flujo backend
 
 Esta guia convierte el flujo decidido en una ruta de implementacion para Codex. Debe usarse antes de pedir cambios grandes al backend.
