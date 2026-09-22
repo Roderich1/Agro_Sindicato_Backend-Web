@@ -1,3 +1,9 @@
+> **HISTORICAL / OBSOLETE**
+>
+> Este documento se conserva como evidencia histórica.
+> No representa la arquitectura vigente.
+> Fuente vigente: [docs/scope/CURRENT_SCOPE.md](../scope/CURRENT_SCOPE.md)
+
 # Analisis del perfil de proyecto
 
 Documento base: `rcr-Perfil_de_proyecto_de_grado_v8.docx`.

@@ -1,3 +1,9 @@
+> **HISTORICAL / OBSOLETE**
+>
+> Este documento se conserva como evidencia histórica.
+> No representa la arquitectura vigente.
+> Fuente vigente: [docs/scope/CURRENT_SCOPE.md](../../docs/scope/CURRENT_SCOPE.md)
+
 # AG-2 compras, cuentas, consulta y alertas: guia para frontend
 
 Base URL:

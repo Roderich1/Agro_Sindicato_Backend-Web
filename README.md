@@ -1,32 +1,33 @@
-# Proyecto PWA Agroquimicos
+# Agrocuentas — Backend central y Web Directiva
 
-Monorepo con frontend React/Vite PWA y backend NestJS/Prisma/PostgreSQL.
+Este repositorio contiene el servicio central NestJS/Prisma/PostgreSQL y la Web online-first para Directiva/Admin. El cliente del agricultor es Flutter/Mobile, offline-first, en su repositorio propio.
 
-## Levantar con Docker
+La fuente vigente de alcance es [docs/scope/CURRENT_SCOPE.md](docs/scope/CURRENT_SCOPE.md). El código legacy puede seguir presente durante la transición y no constituye por sí mismo un requisito.
+
+## Frontera
+
+`Flutter/Mobile → proyección autorizada → Backend central → Web Directiva online-first`
+
+- Mobile: autoridad sobre la operación individual y privada.
+- Backend: identidad, datos compartidos, proyección mínima, idempotencia y auditoría minimizada.
+- Web: planificación, propuestas, reportes y gobierno colectivo; no CRUD operativo del agricultor.
+
+Consulte [docs/scope/README.md](docs/scope/README.md) antes de diseñar cambios.
+
+## Desarrollo local legacy
+
+La ejecución local actual se conserva mientras se realiza la transición:
 
 ```bash
 docker compose up --build
 ```
 
-Servicios:
-
-- Web PWA: `http://localhost:8080`
+- Web: `http://localhost:8080`
 - API: `http://localhost:3000/api/v1`
 - Swagger: `http://localhost:3000/docs`
 - PostgreSQL: `localhost:5432`
 
-El contenedor de la API intenta `prisma migrate deploy` al iniciar. Si detecta una base local ya creada sin historial de migraciones, usa `prisma db push --skip-generate` como respaldo no destructivo y luego corre el seed idempotente.
-
-Usuario inicial del seed:
-
-- Email: `admin@agro.local`
-- Password: `Admin123!`
-
-Para uso local por `http://localhost:8080`, Docker configura `COOKIE_SECURE=false`. En despliegue con HTTPS cambia ese valor a `true` y ajusta `CORS_ORIGIN`.
-
-## Levantar sin Docker
-
-Backend:
+Backend sin Docker:
 
 ```bash
 cd Back
@@ -37,16 +38,10 @@ npm run prisma:migrate
 npm run start:dev
 ```
 
-Frontend:
+Web sin Docker:
 
 ```bash
 cd Web
 npm install
 npm run dev
-```
-
-Contacto:
-```telefono
-nombre: Rodrigo Rendon Cardenas
-63526749
 ```

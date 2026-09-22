@@ -1,3 +1,9 @@
+> **HISTORICAL / OBSOLETE**
+>
+> Este documento se conserva como evidencia histórica.
+> No representa la arquitectura vigente.
+> Fuente vigente: [docs/scope/CURRENT_SCOPE.md](../../docs/scope/CURRENT_SCOPE.md)
+
 # Guia Codex para implementar el flujo frontend
 
 ## Objetivo
