@@ -11,6 +11,6 @@ Esta carpeta es la fuente activa para interpretar el alcance técnico de Agrocue
 - [LEGACY_CONTRACT_CONSUMERS.md](LEGACY_CONTRACT_CONSUMERS.md): productores y consumidores comprobados.
 - [TRANSITION_PLAN.md](TRANSITION_PLAN.md): migración incremental y puntos de rollback.
 - [TRACEABILITY_BASELINE.md](TRACEABILITY_BASELINE.md): trazabilidad vigente y vacíos abiertos.
-- [ADR-001](../adr/ADR-001-mobile-individual-system-of-record.md): decisión propuesta de arquitectura.
+- [ADR-001](../adr/ADR-001-mobile-individual-system-of-record.md): decisión aceptada de arquitectura target.
 
 Los documentos marcados `HISTORICAL / OBSOLETE` se conservan como evidencia y no gobiernan trabajo nuevo.

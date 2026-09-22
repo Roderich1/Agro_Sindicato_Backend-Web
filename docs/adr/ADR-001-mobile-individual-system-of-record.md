@@ -1,7 +1,8 @@
 # ADR-001: Mobile as Individual System of Record and Central as Authorized Collective Projection
 
-- **Status:** PROPOSED
-- **Date:** 2026-09-21
+- **Status:** ACCEPTED
+- **Decision date:** 2026-09-21
+- **Accepted through:** F01 scope/architecture review and PR #82
 - **Decision owners:** revisión F01
 
 ## Context
@@ -14,7 +15,9 @@ Se necesita una autoridad inequívoca para datos individuales, una proyección c
 
 ## Decision
 
-Se propone que Flutter/Mobile sea el sistema de registro individual; el Backend reciba sólo proyecciones colectivas autorizadas; y Web sea un cliente online-first de Directiva/Admin. La decisión no queda aceptada hasta revisión y merge.
+Se acepta que Flutter/Mobile sea el sistema de registro individual y offline-first; el Backend central gestione identidad, compartidos, proyección colectiva autorizada, sync idempotente, propuesta colectiva y metadata de backup; y Web sea un cliente online-first de Directiva/Admin.
+
+Esta aceptación define exclusivamente la arquitectura target. La implementación legacy todavía existe; aceptar el ADR no elimina APIs, tablas ni consumidores. La transición se ejecutará posteriormente mediante sus fases responsables y [#81](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/81) permanece bloqueado.
 
 ## Data ownership
 
@@ -60,7 +63,7 @@ Simplificaría algunas lecturas centrales, pero confunde sync con réplica/backu
 
 ### D. Autoridad móvil + proyecciones centrales mínimas
 
-Es la alternativa propuesta porque mantiene la operación rural offline, reduce datos centrales y limita la Web al propósito colectivo vigente.
+Es la alternativa seleccionada porque mantiene la operación rural offline, reduce datos centrales y limita la Web al propósito colectivo vigente.
 
 ## Consequences
 
@@ -76,7 +79,7 @@ Duplicidad temporal, divergencia de autoridades, proyección excesiva, backfill 
 
 ## Superseded architecture
 
-Al ser aceptado, este ADR sustituirá como guía activa la arquitectura PWA operativa para agricultor descrita en documentos históricos; no borra su evidencia ni cambia por sí mismo el código.
+Este ADR sustituye como guía activa la arquitectura PWA operativa para agricultor descrita en documentos históricos; no borra su evidencia, no cambia por sí mismo el código y no afirma que la migración técnica esté implementada.
 
 ## Related issues
 
