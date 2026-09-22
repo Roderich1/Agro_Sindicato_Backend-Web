@@ -4,8 +4,8 @@ Regla invariable: ningún `DROP` ocurre en la misma entrega que introduce el ree
 
 | Phase | Outcome | Exit evidence | Rollback point |
 |---|---|---|---|
-| PHASE 0 — baseline | Alcance, datos, contratos y riesgos inventariados | Esta baseline revisada; ADR aún PROPOSED | Revertir sólo la PR documental |
-| PHASE 1 — expand | URS/SRS, privacidad, unidades, retención y consentimiento definidos | `TBD_F01` resueltos y decisiones aprobadas | Mantener contratos legacy sin expansión |
+| PHASE 0 — baseline | Alcance, datos, contratos y riesgos inventariados | Baseline revisada y ADR-001 ACCEPTED | Revertir sólo la PR documental |
+| PHASE 1 — expand | URS/SRS y decisiones F01 formalizados; detalles implementables asignados | Requisitos BASELINED y DEC-F01-01–12 congeladas | Mantener contratos legacy sin expansión |
 | PHASE 2 — parallel API/contracts | Contratos versionados de proyección, ACK, propuesta y backup metadata | Contract tests y documentación | Deshabilitar ruta nueva mediante configuración; legacy sigue operativo |
 | PHASE 3 — controlled backfill | Proyección mínima derivada con lote, métricas y auditoría | Conteos, hashes/reconciliación y muestra revisada | Borrar/revertir sólo proyección nueva conforme a retención; origen intacto |
 | PHASE 4 — Flutter switch | Mobile emite/consume contrato nuevo | Pruebas offline, idempotencia, conflicto y dispositivo | Volver cliente a contrato anterior sin perder outbox |
