@@ -2,23 +2,23 @@
 
 ## Cadena vigente
 
-`Objetivo del Proyecto → CURRENT_SCOPE → URS → SRS → ADR → issue de implementación → verificación futura`
+`Objetivo del Proyecto → CURRENT_SCOPE → URS → SRS → ADR/decisión → issue/fase → verificación futura`
 
-| Project Objective | Current scope | URS | SRS | Architecture decision | Implementation issue | Future verification |
+Los IDs URS/SRS fueron creados en F01 como identificadores de ingeniería a partir del alcance ya aceptado. No se atribuyen al DOCX histórico y su estado `BASELINED` no implica implementación.
+
+| Project Objective | Current scope | URS formalizados | SRS formalizados | Architecture decision | Implementation issue | Future verification |
 |---|---|---|---|---|---|---|
-| OE1 — analizar procesos y requisitos | Baseline y vacíos documentados | `TBD_F01` | `TBD_F01` | ADR-001 (ACCEPTED) | #7, #8, #79, #80 | GATE-F01 y trazabilidad final F11 |
-| OE2 — diseñar arquitectura, información, roles, interfaces, sync y recuperación | Frontera Mobile/Central/Web; identidad y contratos por capacidad | `TBD_F01` | `TBD_F01` | ADR-001 (ACCEPTED) | #8, #80, #81 | F02/F05/F09; evaluación F10 |
-| OE3 — implementar gestión individual Mobile | Mobile/Flutter como autoridad individual y outbox local | `TBD_F01` | `TBD_F01` | ADR-001 (ACCEPTED) | AppMovil F03/F04/F05; #81 | Gates Mobile; evaluación F10 |
-| OE3 — captura por voz opcional | Draft editable y confirmación humana | `TBD_F01` | `TBD_F01` | ADR-001 (ACCEPTED) | AppMovil #10–#17 (PRE-VOICE); EVO-009 en PR móvil #8 | GATE-PRE; EVO-010 no iniciado |
-| OE4 — servicio central y Web colectiva | Proyección mínima + Backend + Web Directiva | `TBD_F01` | `TBD_F01` | ADR-001 (ACCEPTED) | #79, #80, #81 y trabajo F06/F07 | GATE-F06/GATE-F07; evaluación F10 |
-| OE5 — evaluar integración, sync, seguridad, recuperación y usabilidad | Evidencia y trazabilidad verificables | `TBD_F01` | `TBD_F01` | ADR-001 (ACCEPTED) | Trabajo F10/F11 | GATE-F10/GATE-F11 |
+| OE1 — analizar procesos y requisitos | Baseline, fuentes y trazabilidad | Conjunto de 12 URS F01 | Conjunto de 19 SRS F01 | ADR-001; DEC-F01-01–12 | #7, #8, #9 | REVIEW, TRACE; F11 #51 |
+| OE2 — diseñar arquitectura, información, roles, interfaces, sync y recuperación | Frontera Mobile/Central/Web y decisiones delegadas | URS-SYNC-01, URS-PRIV-01, URS-BKP-01, URS-SEC-01 | SRS-IAM-01/02, SRS-DEVICE-01, SRS-SYNC-01/02, SRS-PRIV-01, SRS-BKP-01/02, SRS-TRANS-01 | ADR-001; DEC-F01-01–12 | F02/F05/F06/F09; #81 | REVIEW, CONTRACT, SECURITY, BACKUP_RESTORE |
+| OE3 — implementar gestión individual Mobile | Autoridad Mobile y operación offline-first | URS-MOB-01/02/03/04, URS-VOICE-01 | SRS-MOB-01, SRS-SYNC-01/02, SRS-COLL-02, SRS-VOICE-01 | ADR-001; DEC-F01-02–07 | Mobile F03/F04/F05/F06 y PRE-VOICE; #81 | UNIT, INT, DEVICE, RECONCILIATION |
+| OE4 — servicio central y Web colectiva | Proyección autorizada, Web Directiva y propuesta colectiva | URS-SYNC-01, URS-WEB-01, URS-JP-01, URS-PRIV-01, URS-SEC-01, URS-REP-01 | SRS-IAM-01/02, SRS-SYNC-01/02, SRS-COLL-01/02/03, SRS-WEB-01, SRS-JP-01/02, SRS-PRIV-01, SRS-AUDIT-01, SRS-REP-01 | ADR-001; DEC-F01-01–09/11/12 | F02/F05/F06/F07; #81 | CONTRACT, INT, E2E, SECURITY, USABILITY |
+| OE5 — evaluar integración, sync, seguridad, recuperación y usabilidad | Targets de evidencia sin afirmar PASS | URS-SYNC-01, URS-PRIV-01, URS-BKP-01, URS-SEC-01, URS-REP-01 | SRS-SYNC-01/02, SRS-COLL-01/03, SRS-PRIV-01, SRS-AUDIT-01, SRS-BKP-01/02, SRS-REP-01, SRS-TRANS-01 | ADR-001; decisiones aplicables | F10/F11 | E2E, SECURITY, BACKUP_RESTORE, USABILITY, RECONCILIATION |
 
-## Evidencia de voz verificada
+## Fuentes formales
 
-En `Roderich1/AppMovilAgroquimico` existen los issues #10–#17 para PRE-VOICE y el PR móvil #8 para EVO-009. Esta referencia no inicia EVO-010 ni convierte la voz en requisito obligatorio: sólo identifica el trabajo real existente.
+- [`URS.md`](../requirements/URS.md)
+- [`SRS.md`](../requirements/SRS.md)
+- [`TRACEABILITY_MATRIX.md`](../requirements/TRACEABILITY_MATRIX.md)
+- [`F01_INTEGRATION_DECISIONS.md`](../architecture/F01_INTEGRATION_DECISIONS.md)
 
-## Hallazgo
-
-No se encontraron identificadores URS/SRS verificables en los Markdown auditados. El DOCX histórico describe objetivos y requisitos académicos, pero no aporta una taxonomía URS/SRS inequívoca que pueda adoptarse sin reinterpretación. Por ello se mantiene `TBD_F01`; resolverlo corresponde a [#7](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/7) y [#8](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/8).
-
-Esta baseline contribuye a #7, pero no autoriza su cierre ni el de ningún gate.
+La matriz detallada enlaza cada requisito con OE, decisión, fase, issue y objetivo de verificación. Esta baseline contribuye a #7/#8, pero no autoriza cerrarlos ni cambiar GATE-F01 antes del review/merge.
