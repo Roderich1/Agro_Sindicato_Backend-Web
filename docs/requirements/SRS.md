@@ -44,7 +44,7 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 ## SRS-MOB-01 — Persistencia local y outbox
 
 - **ID:** `SRS-MOB-01`
-- **Title:** Persistencia offline-first y outbox atómica
+- **Title:** Persistencia offline-first y outbox
 - **Statement:** Mobile debe persistir el dominio individual localmente y conservar en outbox las operaciones proyectables hasta que un ACK autorizado permita retirarlas, incluso entre cierres o fallos de conectividad.
 - **Source:** `URS-MOB-01`, `URS-MOB-02`, `URS-MOB-04`; ADR-001.
 - **Related OE:** OE3
