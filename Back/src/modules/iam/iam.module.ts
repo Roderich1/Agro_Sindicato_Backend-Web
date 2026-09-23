@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from './api/rest/auth.controller';
+import { ClientRegistrationsController } from './api/rest/client-registrations.controller';
 import { JwtAuthGuard } from './api/rest/guards/jwt-auth.guard';
 import { RolesGuard } from './api/rest/guards/roles.guard';
 
@@ -12,11 +13,14 @@ import { GetMeUseCase } from './application/use-cases/get-me.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from './application/use-cases/refresh-session.use-case';
+import { ManageClientRegistrationsUseCase } from './application/use-cases/manage-client-registrations.use-case';
 
+import { CLIENT_REGISTRATION_REPOSITORY } from './domain/ports/client-registration.repository.port';
 import { REFRESH_TOKEN_REPOSITORY } from './domain/ports/refresh-token.repository.port';
 import { USER_REPOSITORY } from './domain/ports/user.repository.port';
 
 import { JwtStrategy } from './infrastructure/auth/jwt.strategy';
+import { PrismaClientRegistrationRepository } from './infrastructure/persistence/prisma-client-registration.repository';
 import { PrismaRefreshTokenRepository } from './infrastructure/persistence/prisma-refresh-token.repository';
 import { PrismaUserRepository } from './infrastructure/persistence/prisma-user.repository';
 
@@ -32,13 +36,15 @@ import { PrismaUserRepository } from './infrastructure/persistence/prisma-user.r
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, ClientRegistrationsController],
   providers: [
     LoginUseCase,
     RefreshSessionUseCase,
     LogoutUseCase,
     GetMeUseCase,
+    ManageClientRegistrationsUseCase,
     JwtStrategy,
+    { provide: CLIENT_REGISTRATION_REPOSITORY, useClass: PrismaClientRegistrationRepository },
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
     { provide: REFRESH_TOKEN_REPOSITORY, useClass: PrismaRefreshTokenRepository },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
