@@ -131,6 +131,11 @@ enum SyncOperationStatus {
   RECHAZADA
 }
 
+enum ClientRegistrationStatus {
+  ACTIVE
+  REVOKED
+}
+
 model Tenant {
   id        String   @id @default(uuid())
   name      String
@@ -141,6 +146,7 @@ model Tenant {
 
   users                    User[]
   members                  Member[]
+  clientRegistrations      ClientRegistration[]
   products                 Product[]
   suppliers                Supplier[]
   warehouses               Warehouse[]
@@ -208,13 +214,32 @@ model Member {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id])
+  clientRegistrations ClientRegistration[]
 
   @@unique([tenantId, userId])
   @@index([tenantId])
   @@index([userId])
   @@index([tenantId, isActive])
+}
+
+model ClientRegistration {
+  id           String                   @id @default(uuid())
+  tenantId     String
+  memberId     String
+  clientIdHash String
+  status       ClientRegistrationStatus @default(ACTIVE)
+  createdAt    DateTime                 @default(now())
+  lastSeenAt   DateTime                 @default(now())
+  revokedAt    DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@unique([tenantId, memberId, clientIdHash])
+  @@index([tenantId, memberId])
+  @@index([tenantId, memberId, status])
 }
 
 model RefreshToken {
