@@ -8,7 +8,9 @@
 - Rama: `fix/initial-migration-bom`.
 - Baseline: `main@122cfefae3fb3992309fb2738be23da3778ede95`.
 - Archivo: `Back/prisma/migrations/20260618010000_init_expanded_flow/migration.sql`.
-- PR: pendiente de registrar después del push.
+- PR: Backend [#87](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/87).
+- Commit de reparación byte-level: `e60704110d183adcebff32abe959778e564aa97a`.
+- Commit inicial de evidencia: `d76da4c57260c41651af020423b82cefeee3f101`.
 
 ## Problema
 
