@@ -32,7 +32,11 @@ export interface UserAdminRepositoryPort {
   findByEmail(email: string): Promise<AdminUserView | null>;
   findByIdInTenant(id: string, tenantId: string): Promise<AdminUserView | null>;
   listByTenant(tenantId: string): Promise<AdminUserView[]>;
-  create(data: CreateUserData): Promise<AdminUserView>;
-  update(id: string, data: UpdateUserData): Promise<AdminUserView>;
-  updatePasswordHash(id: string, passwordHash: string): Promise<void>;
+  createWithMember(data: CreateUserData): Promise<AdminUserView>;
+  updateWithMember(
+    id: string,
+    tenantId: string,
+    data: UpdateUserData,
+  ): Promise<AdminUserView>;
+  updatePasswordHash(id: string, tenantId: string, passwordHash: string): Promise<void>;
 }

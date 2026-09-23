@@ -140,6 +140,7 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   users                    User[]
+  members                  Member[]
   products                 Product[]
   suppliers                Supplier[]
   warehouses               Warehouse[]
@@ -175,6 +176,7 @@ model User {
   updatedAt    DateTime  @updatedAt
 
   tenant                  Tenant                    @relation(fields: [tenantId], references: [id])
+  members                 Member[]
   refreshTokens           RefreshToken[]
   warehouses              Warehouse[]
   inventoryLots           InventoryLot[]
@@ -195,6 +197,24 @@ model User {
   calendarEvents          CalendarEvent[]
   auditLogsAsActor        AuditLog[]                @relation("AuditActor")
   auditLogsAsOwner        AuditLog[]                @relation("AuditOwner")
+}
+
+model Member {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  role      UserRole
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([tenantId, isActive])
 }
 
 model RefreshToken {

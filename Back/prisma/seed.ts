@@ -78,10 +78,33 @@ async function upsertUser(
   email: string,
   role: UserRole,
 ) {
-  return prisma.user.upsert({
-    where: { email },
-    update: { name, role, isActive: true },
-    create: { tenantId, name, email, role, passwordHash },
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.upsert({
+      where: { email },
+      update: { name, role, isActive: true },
+      create: { tenantId, name, email, role, passwordHash },
+    });
+
+    await tx.member.upsert({
+      where: {
+        tenantId_userId: {
+          tenantId: user.tenantId,
+          userId: user.id,
+        },
+      },
+      update: {
+        role: user.role,
+        isActive: user.isActive,
+      },
+      create: {
+        tenantId: user.tenantId,
+        userId: user.id,
+        role: user.role,
+        isActive: user.isActive,
+      },
+    });
+
+    return user;
   });
 }
 

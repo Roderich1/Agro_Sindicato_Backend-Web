@@ -36,7 +36,7 @@ export class CreateUserUseCase {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
-    const created = await this.repo.create({
+    const created = await this.repo.createWithMember({
       tenantId,
       name: dto.name,
       email: dto.email,

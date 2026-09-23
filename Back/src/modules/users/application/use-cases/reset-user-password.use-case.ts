@@ -26,6 +26,6 @@ export class ResetUserPasswordUseCase {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    await this.repo.updatePasswordHash(id, passwordHash);
+    await this.repo.updatePasswordHash(id, tenantId, passwordHash);
   }
 }

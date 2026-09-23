@@ -36,7 +36,9 @@ export class DeactivateUserUseCase {
       throw new BadRequestException('El usuario ya esta desactivado.');
     }
 
-    const updated = await this.repo.update(id, { isActive: false });
+    const updated = await this.repo.updateWithMember(id, tenantId, {
+      isActive: false,
+    });
     return toUserResponse(updated);
   }
 }
