@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
+import { beforeEach } from "@jest/globals";
 import { RegisterClientDto } from "../dtos/register-client.dto";
 import {
   ClientRegistrationRecord,
