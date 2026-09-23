@@ -48,7 +48,7 @@ export class UpdateUserUseCase {
       throw new ForbiddenException('No puede desactivarse a si mismo.');
     }
 
-    const updated = await this.repo.update(id, {
+    const updated = await this.repo.updateWithMember(id, tenantId, {
       name: dto.name,
       role: dto.role,
       isActive: dto.isActive,
