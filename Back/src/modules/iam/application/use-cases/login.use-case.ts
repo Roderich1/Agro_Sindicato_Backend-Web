@@ -40,7 +40,7 @@ export class LoginUseCase {
   }> {
     const user = await this.userRepo.findByEmail(dto.email);
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || !user.tenant.isActive || !user.currentMember?.isActive) {
       await bcrypt.compare(dto.password, TIMING_SAFE_FAKE_HASH);
       throw new UnauthorizedException(INVALID_CREDENTIALS_MSG);
     }
@@ -53,7 +53,7 @@ export class LoginUseCase {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role: user.currentMember.role,
       tenantId: user.tenantId,
     };
 
@@ -86,7 +86,7 @@ export class LoginUseCase {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.currentMember.role,
         tenantId: user.tenantId,
         tenant: user.tenant,
       },

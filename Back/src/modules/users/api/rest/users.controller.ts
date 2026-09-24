@@ -14,7 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import { CreateUserDto } from '../../application/dtos/create-user.dto';
 import { ResetUserPasswordDto } from '../../application/dtos/reset-user-password.dto';
 import { UpdateUserDto } from '../../application/dtos/update-user.dto';
@@ -43,7 +43,7 @@ export class UsersController {
 
   @Post()
   @ApiOperation({ summary: 'Crear un usuario en el tenant actual' })
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateUserDto) {
+  async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateUserDto) {
     this.logger.log(`[USERS CREATE] by=${user.sub} tenantId=${user.tenantId} role=${dto.role} email=${dto.email}`);
     return this.createUserUseCase.execute(user.tenantId, dto);
   }
@@ -51,14 +51,14 @@ export class UsersController {
   @Get()
   @Roles(UserRole.ADMINISTRADOR, UserRole.DIRECTIVA)
   @ApiOperation({ summary: 'Listar usuarios del tenant actual' })
-  async list(@CurrentUser() user: JwtPayload) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.listUsersUseCase.execute(user.tenantId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario del tenant actual' })
   async get(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.getUserUseCase.execute(user.tenantId, id);
@@ -67,7 +67,7 @@ export class UsersController {
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar nombre, rol o estado de un usuario' })
   async update(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateUserDto,
   ) {
@@ -79,7 +79,7 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Resetear la contrasena de un usuario' })
   async resetPassword(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: ResetUserPasswordDto,
   ) {
@@ -90,7 +90,7 @@ export class UsersController {
   @Patch(':id/deactivate')
   @ApiOperation({ summary: 'Desactivar logicamente un usuario (isActive=false)' })
   async deactivate(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     this.logger.log(`[USERS DEACTIVATE] by=${user.sub} tenantId=${user.tenantId} targetId=${id}`);

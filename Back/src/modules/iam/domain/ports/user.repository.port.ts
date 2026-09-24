@@ -15,6 +15,12 @@ export interface UserWithTenant {
     slug: string;
     isActive: boolean;
   };
+  currentMember: {
+    id: string;
+    tenantId: string;
+    role: string;
+    isActive: boolean;
+  } | null;
 }
 
 export interface UserRepositoryPort {

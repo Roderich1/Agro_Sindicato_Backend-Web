@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Logger, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import { CreateSupplierDto, ListSuppliersQueryDto, UpdateSupplierDto } from '../../application/dto/supplier.dto';
 import { SuppliersUseCase } from '../../application/use-cases/suppliers.use-case';
 
@@ -18,21 +18,25 @@ export class SuppliersController {
 
   @Get()
   @ApiOperation({ summary: 'Listar proveedores del sindicato' })
-  async list(@CurrentUser() user: JwtPayload, @Query() query: ListSuppliersQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListSuppliersQueryDto) {
     return this.suppliersUseCase.list(user.tenantId, query);
   }
 
   @Post()
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @ApiForbiddenResponse({ description: 'Mutación compartida temporal: sólo Directiva o Administración vigente.' })
   @ApiOperation({ summary: 'Registrar proveedor' })
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateSupplierDto) {
+  async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateSupplierDto) {
     this.logger.log(`[SUPPLIER CREATE] userId=${user.sub} tenantId=${user.tenantId} name=${dto.name}`);
     return this.suppliersUseCase.create(user.tenantId, dto);
   }
 
   @Patch(':id')
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @ApiForbiddenResponse({ description: 'Mutación compartida temporal: sólo Directiva o Administración vigente.' })
   @ApiOperation({ summary: 'Actualizar proveedor' })
   async update(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateSupplierDto,
   ) {

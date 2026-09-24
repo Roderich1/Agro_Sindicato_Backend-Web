@@ -29,7 +29,7 @@ import {
 } from "../../application/dtos/auth-v2.dto";
 import { AuthV2Service } from "../../application/services/auth-v2.service";
 import { AuthTtlPolicy } from "../../application/services/auth-ttl-policy";
-import { JwtPayload } from "../../application/types/jwt-payload.type";
+import { AuthenticatedPrincipal } from "../../application/types/authenticated-principal.type";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { Public } from "./decorators/public.decorator";
 
@@ -167,7 +167,7 @@ export class AuthV2Controller {
   @ApiUnauthorizedResponse({
     description: "Contexto actual inactivo o revocado.",
   })
-  me(@CurrentUser() payload: JwtPayload) {
+  me(@CurrentUser() payload: AuthenticatedPrincipal) {
     return this.auth.me(payload);
   }
 
@@ -182,7 +182,7 @@ export class AuthV2Controller {
     description: "La sesión ya está ligada a otro registro.",
   })
   bindClient(
-    @CurrentUser() payload: JwtPayload,
+    @CurrentUser() payload: AuthenticatedPrincipal,
     @Body() dto: BindSessionClientDto,
   ) {
     return this.auth.bindClient(payload, dto.registrationId);

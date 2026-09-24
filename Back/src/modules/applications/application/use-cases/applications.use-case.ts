@@ -115,6 +115,20 @@ export class ApplicationsUseCase {
       }
 
       const quantity = this.toDecimal(input.quantity);
+      if (input.inventoryLotId) {
+        const visibleLot = await tx.inventoryLot.findFirst({
+          where: {
+            id: input.inventoryLotId,
+            tenantId,
+            ownerUserId: actor.userId,
+            productId: input.productId,
+          },
+          select: { id: true },
+        });
+        if (!visibleLot) {
+          throw new NotFoundException('El lote no existe para este agricultor.');
+        }
+      }
       const lots = await tx.inventoryLot.findMany({
         where: {
           tenantId,

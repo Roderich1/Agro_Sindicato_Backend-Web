@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import {
   CancelApplicationDto,
   CreateApplicationDto,
@@ -22,7 +22,7 @@ export class ApplicationsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar aplicaciones de agroquimicos visibles para el usuario' })
-  async list(@CurrentUser() user: JwtPayload, @Query() query: ListApplicationsQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListApplicationsQueryDto) {
     return this.applicationsUseCase.list(
       user.tenantId,
       { userId: user.sub, role: user.role as UserRole },
@@ -33,7 +33,7 @@ export class ApplicationsController {
   @Post()
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Registrar aplicacion de agroquimico a parcela y descontar stock' })
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateApplicationDto) {
+  async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateApplicationDto) {
     this.logger.log(
       `[APPLICATION CREATE] userId=${user.sub} tenantId=${user.tenantId} plotId=${dto.plotId} productId=${dto.productId}`,
     );
@@ -47,7 +47,7 @@ export class ApplicationsController {
   @Get(':id')
   @ApiOperation({ summary: 'Obtener detalle de una aplicacion visible para el usuario' })
   async get(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.applicationsUseCase.get(
@@ -62,7 +62,7 @@ export class ApplicationsController {
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Anular una aplicacion propia indicando motivo' })
   async cancel(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: CancelApplicationDto,
   ) {

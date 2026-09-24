@@ -48,8 +48,10 @@ export class CreateJointPurchaseUseCase {
         where: {
           tenantId,
           id: { in: participantIds },
-          role: UserRole.AGRICULTOR,
           isActive: true,
+          members: {
+            some: { tenantId, role: UserRole.AGRICULTOR, isActive: true },
+          },
         },
       });
 

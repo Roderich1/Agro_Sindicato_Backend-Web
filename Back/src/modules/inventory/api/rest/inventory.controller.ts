@@ -11,11 +11,11 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import { ListGlobalStockQueryDto } from '../../application/dto/list-global-stock-query.dto';
 import { ListLotsQueryDto, UpdateInventoryLotDto } from '../../application/dto/inventory-lot.dto';
 import { ListStockMovementsQueryDto } from '../../application/dto/list-stock-movements-query.dto';
@@ -49,21 +49,25 @@ export class InventoryController {
 
   @Get('products')
   @ApiOperation({ summary: 'Listar productos agroquimicos del sindicato' })
-  async listProducts(@CurrentUser() user: JwtPayload, @Query() query: ListProductsQueryDto) {
+  async listProducts(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListProductsQueryDto) {
     return this.productCatalogUseCase.list(user.tenantId, query);
   }
 
   @Post('products')
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @ApiForbiddenResponse({ description: 'Sólo Directiva o Administración vigente.' })
   @ApiOperation({ summary: 'Registrar un producto agroquimico' })
-  async createProduct(@CurrentUser() user: JwtPayload, @Body() dto: CreateProductDto) {
+  async createProduct(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateProductDto) {
     this.logger.log(`[INVENTORY PRODUCT_CREATE] userId=${user.sub} tenantId=${user.tenantId} name=${dto.name}`);
     return this.productCatalogUseCase.create(user.tenantId, dto);
   }
 
   @Patch('products/:id')
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @ApiForbiddenResponse({ description: 'Sólo Directiva o Administración vigente.' })
   @ApiOperation({ summary: 'Actualizar datos de un producto agroquimico' })
   async updateProduct(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateProductDto,
   ) {
@@ -72,10 +76,12 @@ export class InventoryController {
   }
 
   @Post('products/:id/deactivate')
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @ApiForbiddenResponse({ description: 'Sólo Directiva o Administración vigente.' })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Inactivar un producto agroquimico sin borrar su historial' })
   async deactivateProduct(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     this.logger.log(`[INVENTORY PRODUCT_DEACTIVATE] userId=${user.sub} tenantId=${user.tenantId} productId=${id}`);
@@ -85,7 +91,7 @@ export class InventoryController {
   @Post('initial-stock')
   @ApiOperation({ summary: 'Registrar inventario inicial del agricultor autenticado' })
   async registerInitialStock(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Body() dto: RegisterInitialStockDto,
   ) {
     this.logger.log(`[INVENTORY INITIAL] userId=${user.sub} tenantId=${user.tenantId}`);
@@ -94,7 +100,7 @@ export class InventoryController {
 
   @Post('entries')
   @ApiOperation({ summary: 'Registrar una entrada de agroquimico' })
-  async registerEntry(@CurrentUser() user: JwtPayload, @Body() dto: RegisterStockEntryDto) {
+  async registerEntry(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RegisterStockEntryDto) {
     this.logger.log(`[INVENTORY ENTRY] userId=${user.sub} tenantId=${user.tenantId} reason=${dto.entryReason}`);
     return this.inventoryStockUseCase.registerEntry(user.tenantId, user.sub, dto);
   }
@@ -102,7 +108,7 @@ export class InventoryController {
   @Post('exits')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Registrar una salida de agroquimico validando stock disponible' })
-  async registerExit(@CurrentUser() user: JwtPayload, @Body() dto: RegisterStockExitDto) {
+  async registerExit(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RegisterStockExitDto) {
     this.logger.log(`[INVENTORY EXIT] userId=${user.sub} tenantId=${user.tenantId} productId=${dto.productId}`);
     return this.inventoryStockUseCase.registerExit(user.tenantId, user.sub, dto);
   }
@@ -110,21 +116,21 @@ export class InventoryController {
   @Post('adjustments')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Registrar ajuste de inventario por perdida, dano o correccion' })
-  async registerAdjustment(@CurrentUser() user: JwtPayload, @Body() dto: RegisterStockAdjustmentDto) {
+  async registerAdjustment(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RegisterStockAdjustmentDto) {
     this.logger.log(`[INVENTORY ADJUSTMENT] userId=${user.sub} tenantId=${user.tenantId} productId=${dto.productId}`);
     return this.inventoryAdjustmentUseCase.execute(user.tenantId, user.sub, dto);
   }
 
   @Get('lots')
   @ApiOperation({ summary: 'Listar lotes del agricultor autenticado' })
-  async listLots(@CurrentUser() user: JwtPayload, @Query() query: ListLotsQueryDto) {
+  async listLots(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListLotsQueryDto) {
     return this.inventoryLotUseCase.list(user.tenantId, user.sub, query);
   }
 
   @Patch('lots/:id')
   @ApiOperation({ summary: 'Actualizar lote, vencimiento o almacen de un lote' })
   async updateLot(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateInventoryLotDto,
   ) {
@@ -134,27 +140,29 @@ export class InventoryController {
 
   @Get('stock')
   @ApiOperation({ summary: 'Consultar stock disponible con filtros y busqueda' })
-  async listStock(@CurrentUser() user: JwtPayload, @Query() query: ListStockQueryDto) {
+  async listStock(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListStockQueryDto) {
     return this.inventoryStockUseCase.listStock(user.tenantId, user.sub, query);
   }
 
   @Get('global-stock')
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
   @ApiOperation({ summary: 'Consultar inventario global de todos los agricultores' })
-  async listGlobalStock(@CurrentUser() user: JwtPayload, @Query() query: ListGlobalStockQueryDto) {
+  async listGlobalStock(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListGlobalStockQueryDto) {
     return this.inventoryStockUseCase.listGlobalStock(user.tenantId, query);
   }
 
   @Get('alerts')
   @ApiOperation({ summary: 'Consultar alertas de stock minimo y vencimiento' })
-  async listAlerts(@CurrentUser() user: JwtPayload) {
+  async listAlerts(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.inventoryStockUseCase.listAlerts(user.tenantId, user.sub);
   }
 
   @Patch('products/:id/settings')
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @ApiForbiddenResponse({ description: 'Sólo Directiva o Administración vigente.' })
   @ApiOperation({ summary: 'Configurar categoria, stock minimo y umbral de vencimiento' })
   async updateProductSettings(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateProductInventorySettingsDto,
   ) {
@@ -165,7 +173,7 @@ export class InventoryController {
   @Get('movements')
   @ApiOperation({ summary: 'Consultar historial de movimientos con filtros' })
   async listMovements(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Query() query: ListStockMovementsQueryDto,
   ) {
     return this.inventoryStockUseCase.listMovements(user.tenantId, user.sub, query);
