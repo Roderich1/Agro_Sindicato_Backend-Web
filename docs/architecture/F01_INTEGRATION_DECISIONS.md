@@ -2,6 +2,8 @@
 
 Este registro complementa ADR-001 `ACCEPTED`. Congela decisiones arquitectónicas necesarias para evaluar #8, sin definir schema, DTOs, APIs ni proveedores finales y sin iniciar #81.
 
+**Lectura vigente:** las formulaciones originales de F01 se conservan como evidencia de la decisión aceptada. La [aclaración posterior al gate](#post-gate-clarification--2026-09-24) delimita su alcance académico; no reabre #8 ni GATE-F01.
+
 ## DEC-F01-01 — Account/User, Member y Person
 
 - **Decision ID:** `DEC-F01-01`
@@ -152,3 +154,17 @@ Este registro complementa ADR-001 `ACCEPTED`. Congela decisiones arquitectónica
 | Legacy transition | DELEGATED_DETAIL | Expand/backfill/switch/contract con rollback | Plan por capacidad | #81 + fases responsables | Consumidores, backup y reconciliación |
 
 `DELEGATED_DETAIL` no equivale a omisión: F01 fija la regla, identifica el aspecto delegado, asigna responsables y exige una precondición verificable.
+
+## Post-gate clarification — 2026-09-24
+
+Esta aclaración de [F01-CORR-01 #90](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/90) se añade después de la aceptación histórica. El texto anterior permanece intacto para auditar qué se había afirmado; el Proyecto de Grado académico vigente limita su interpretación. No cambia OE1–OE5 ni producto.
+
+| Decisión | Formulación original que requiere límite | Interpretación vigente |
+|---|---|---|
+| DEC-F01-01 | Relaciones familiares privadas nombradas | `Person` sigue siendo condicional; relaciones familiares son ejemplos privados sólo si existen, no un requisito ni un modelo central. |
+| DEC-F01-06 | “consentimiento” en detalles y precondición | Necesidad declarada es explícita y no predictiva. F06 define contrato, finalidad y autorización aplicable; consentimiento formal sólo con requisito legal o académico aprobado. `declared_stock` y unidades no quedan congelados por F01. |
+| DEC-F01-08 | “consentimiento/autorización exactos” | Default deny y finalidad aprobada permanecen; no se infiere un consent service/record obligatorio. F02/#12 y F06/#20 concretan autorización contextual y proyección; consentimiento formal sólo si se aprueba como requisito. |
+| DEC-F01-10 | “Central conserva metadata”, “abstracción dedicada” y “storage separado” | F01 sólo fija recuperación remota privada owner-scoped, autenticación, integridad, separación lógica/de servicio respecto de Sync y prohibición de alimentar automáticamente la proyección. F09 decide provider, almacenamiento físico, metadata exacta, cifrado, lifecycle, retención y formato/binario. |
+| DEC-F01-11 | “deuda ni pago” y “ejecución privada y consentimiento” | La propuesta nunca crea compra individual ni efectos automáticos. La mención de deuda/pago es una prohibición de efectos sobre modelos legacy, no un target Mobile ni un requisito de cuentas/pagos. La revisión humana no implica un subsistema de consentimiento formal. |
+
+La voz continúa opcional y condicionada: si se usa, produce draft editable y confirmación humana; F01 no exige almacenar audio ni transcripciones. `PayableAccount`, `Payment`, `CalendarEvent` y `DemandForecast` no adquieren target Live por aparecer en inventarios históricos.

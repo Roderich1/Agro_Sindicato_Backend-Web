@@ -5,6 +5,8 @@
 - **Accepted through:** F01 scope/architecture review and PR #82
 - **Decision owners:** revisión F01
 
+**Lectura vigente:** la aceptación histórica se conserva. La [clarificación posterior](#clarificación-posterior--2026-09-24) delimita formulaciones que excedían el alcance académico; no altera retrospectivamente esta decisión.
+
 ## Context
 
 El repositorio conserva una implementación donde Backend y Web cubren operaciones individuales. El alcance académico vigente separa la gestión privada offline-first de la planificación colectiva.
@@ -84,3 +86,15 @@ Este ADR sustituye como guía activa la arquitectura PWA operativa para agricult
 ## Related issues
 
 [#7](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/7), [#8](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/8), [#79](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/79), [#80](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/80), [#81](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/81).
+
+## Clarificación posterior — 2026-09-24
+
+Esta sección pertenece al corrigendum [F01-CORR-01 #90](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/90). Conserva el texto y la aceptación de 2026-09-21 como evidencia histórica; no afirma que el ADR siempre hubiera usado la interpretación siguiente ni reescribe el historial Git.
+
+- **Autoridad de campaña:** la campaña compartida puede ser definida centralmente. Mobile usa/cachea ese contexto offline; no se deduce una autoridad de campañas personales/locales.
+- **Dominio Mobile:** compra individual, inventario/stock, transferencias, aplicaciones y necesidades declaradas permanecen en su alcance. Las referencias originales a “pagos individuales” no crean un target Mobile para `PayableAccount`/`Payment`, que son legacy sin target Live. Lotes/movimientos son detalles técnicos condicionales, no capacidades académicas independientes. `Person` y relaciones familiares tampoco son obligatorios por su mención.
+- **Autorización:** “consentimiento” en data ownership, sync y consecuencias significa finalidad y autorización aplicables; no aprueba un consent service/record formal. Consentimiento formal sólo si existe requisito legal o académico aprobado.
+- **Backup:** F01 fija recuperación remota privada owner-scoped, autenticación, integridad, separación lógica/de servicio de Sync y ninguna alimentación automática de proyección. La metadata central, el almacenamiento físico, provider, cifrado, lifecycle, retención y formato quedan a F09.
+- **Ejemplos privados y voz:** la lista original de datos familiares, deuda/pagos, lotes/movimientos y audio describe protección **si esos datos existen**, no requisitos de captura/persistencia. Deuda/pagos no tienen target Live. La voz es opcional; si se usa, exige draft editable y confirmación humana, sin imponer persistencia de audio o transcripción.
+
+Esta aclaración es documental; no modifica schema, migraciones, producto ni la compatibilidad de F02-A/B/C.
