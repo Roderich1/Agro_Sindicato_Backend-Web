@@ -47,6 +47,30 @@ describePostgres("F02-IAM-04 current authorization context — PostgreSQL 16 + H
 
   function bearer(token: string) { return { Authorization: `Bearer ${token}` }; }
 
+  async function purchaseEffects() {
+    const where = { tenantId: ids.tenantA };
+    return {
+      purchases: await prisma.purchase.count({ where }),
+      items: await prisma.purchaseItem.count({ where }),
+      allocations: await prisma.purchaseItemAllocation.count({ where }),
+      lots: await prisma.inventoryLot.count({ where }),
+      movements: await prisma.stockMovement.count({ where }),
+      payables: await prisma.payableAccount.count({ where }),
+      payments: await prisma.payment.count({ where }),
+      events: await prisma.calendarEvent.count({ where }),
+    };
+  }
+
+  function individualPurchase(product: Record<string, unknown>, supplier: Record<string, unknown>, warehouseId?: string) {
+    return {
+      campaignId: ids.campaignA,
+      paymentMode: "CONTADO",
+      supplier,
+      items: [{ product, quantity: 1, unitCost: 1 }],
+      ...(warehouseId ? { warehouseId } : {}),
+    };
+  }
+
   beforeAll(async () => {
     process.env["DATABASE_URL"] = postgresUrl;
     process.env["NODE_ENV"] = "test";
@@ -309,5 +333,137 @@ describePostgres("F02-IAM-04 current authorization context — PostgreSQL 16 + H
       title: "Legacy event", eventDate: new Date("2026-12-01"),
     } });
     expect((await request(app.getHttpServer()).post(`/api/v1/calendar/events/${event.id}/complete`).set(bearer(farmer))).status).toBe(404);
+  });
+
+  it("does not create a shared Product from individual purchase or initial/entry stock", async () => {
+    const farmer = await v2(`a1-${ids.a1}@example.test`);
+    const supplier = await prisma.supplier.findFirstOrThrow({ where: { tenantId: ids.tenantA } });
+    const before = await prisma.product.count({ where: { tenantId: ids.tenantA } });
+    const missing = `missing-product-${randomUUID()}`;
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases").set(bearer(farmer)).send(
+      individualPurchase({ productName: missing }, { supplierId: supplier.id }),
+    )).status).toBe(404);
+    expect((await request(app.getHttpServer()).post("/api/v1/inventory/initial-stock").set(bearer(farmer)).send({
+      product: { productName: missing }, quantity: 1,
+    })).status).toBe(404);
+    expect((await request(app.getHttpServer()).post("/api/v1/inventory/entries").set(bearer(farmer)).send({
+      product: { productName: missing }, campaignId: ids.campaignA, entryReason: "ENTRADA_SIMPLE", quantity: 1, notes: "test",
+    })).status).toBe(404);
+    expect(await prisma.product.count({ where: { tenantId: ids.tenantA } })).toBe(before);
+    expect(await prisma.product.findFirst({ where: { tenantId: ids.tenantA, name: missing } })).toBeNull();
+  });
+
+  it("ignores shared Product metadata supplied by farmer legacy flows", async () => {
+    const farmer = await v2(`a1-${ids.a1}@example.test`);
+    const supplier = await prisma.supplier.findFirstOrThrow({ where: { tenantId: ids.tenantA } });
+    const before = await prisma.product.findUniqueOrThrow({ where: { id: ids.productA } });
+    const supplied = { productName: before.name, activeIngredient: "forged", category: "forged", unit: "forged", minimumStock: 999, expirationWarningDays: 1 };
+    expect((await request(app.getHttpServer()).post("/api/v1/inventory/initial-stock").set(bearer(farmer)).send({ product: supplied, quantity: 1 })).status).toBe(201);
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases").set(bearer(farmer)).send(
+      individualPurchase(supplied, { supplierId: supplier.id }),
+    )).status).toBe(201);
+    const after = await prisma.product.findUniqueOrThrow({ where: { id: ids.productA } });
+    expect({ activeIngredient: after.activeIngredient, category: after.category, unit: after.unit,
+      minimumStock: after.minimumStock.toString(), expirationWarningDays: after.expirationWarningDays }).toEqual({
+      activeIngredient: before.activeIngredient, category: before.category, unit: before.unit,
+      minimumStock: before.minimumStock.toString(), expirationWarningDays: before.expirationWarningDays,
+    });
+  });
+
+  it("does not mutate shared Product through Sync INITIAL_STOCK", async () => {
+    const farmer = await v2(`a1-${ids.a1}@example.test`);
+    const before = await prisma.product.findUniqueOrThrow({ where: { id: ids.productA } });
+    const count = await prisma.product.count({ where: { tenantId: ids.tenantA } });
+    const response = await request(app.getHttpServer()).post("/api/v1/sync/operations").set(bearer(farmer)).send({
+      clientId: `review-${randomUUID()}`,
+      operations: [
+        { clientOperationId: randomUUID(), operation: "INITIAL_STOCK", payload: { product: {
+          productName: before.name, activeIngredient: "sync-forged", category: "sync-forged", unit: "sync-forged",
+        }, quantity: 1 } },
+        { clientOperationId: randomUUID(), operation: "INITIAL_STOCK", payload: { product: {
+          productName: `sync-missing-${randomUUID()}`,
+        }, quantity: 1 } },
+      ],
+    });
+    expect(response.status).toBe(201);
+    expect(response.body.applied).toBe(1);
+    expect(response.body.results[1].status).not.toBe("APLICADA");
+    const after = await prisma.product.findUniqueOrThrow({ where: { id: ids.productA } });
+    expect(after.activeIngredient).toBe(before.activeIngredient);
+    expect(after.category).toBe(before.category);
+    expect(after.unit).toBe(before.unit);
+    expect(await prisma.product.count({ where: { tenantId: ids.tenantA } })).toBe(count);
+  });
+
+  it("does not create or mutate Supplier from individual purchase", async () => {
+    const farmer = await v2(`a1-${ids.a1}@example.test`);
+    const supplier = await prisma.supplier.findFirstOrThrow({ where: { tenantId: ids.tenantA } });
+    const count = await prisma.supplier.count({ where: { tenantId: ids.tenantA } });
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases").set(bearer(farmer)).send(
+      individualPurchase({ productId: ids.productA }, { supplierName: `missing-${randomUUID()}` }),
+    )).status).toBe(404);
+    expect(await prisma.supplier.count({ where: { tenantId: ids.tenantA } })).toBe(count);
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases").set(bearer(farmer)).send(
+      individualPurchase({ productId: ids.productA }, { supplierName: supplier.name, phone: "forged", address: "forged" }),
+    )).status).toBe(201);
+    const after = await prisma.supplier.findUniqueOrThrow({ where: { id: supplier.id } });
+    expect({ phone: after.phone, address: after.address }).toEqual({ phone: supplier.phone, address: supplier.address });
+    const foreign = await prisma.supplier.findFirstOrThrow({ where: { tenantId: ids.tenantB } });
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases").set(bearer(farmer)).send(
+      individualPurchase({ productId: ids.productA }, { supplierId: foreign.id }),
+    )).status).toBe(404);
+  });
+
+  it("rejects A2 private Warehouse for A1 initial/entry stock without new lots or movements", async () => {
+    const farmer = await v2(`a1-${ids.a1}@example.test`);
+    const warehouse = await prisma.warehouse.create({ data: { tenantId: ids.tenantA, ownerUserId: ids.a2, name: `A2-${randomUUID()}` } });
+    const before = await purchaseEffects();
+    expect((await request(app.getHttpServer()).post("/api/v1/inventory/initial-stock").set(bearer(farmer)).send({
+      product: { productId: ids.productA }, quantity: 1, warehouseId: warehouse.id,
+    })).status).toBe(404);
+    expect((await request(app.getHttpServer()).post("/api/v1/inventory/entries").set(bearer(farmer)).send({
+      product: { productId: ids.productA }, campaignId: ids.campaignA, entryReason: "ENTRADA_SIMPLE", quantity: 1,
+      notes: "test", warehouseId: warehouse.id,
+    })).status).toBe(404);
+    expect(await purchaseEffects()).toEqual(before);
+  });
+
+  it("rejects moving A1 Lot into A2 private Warehouse without modifying the lot", async () => {
+    const farmer = await v2(`a1-${ids.a1}@example.test`);
+    const warehouse = await prisma.warehouse.create({ data: { tenantId: ids.tenantA, ownerUserId: ids.a2, name: `A2-${randomUUID()}` } });
+    const lot = await prisma.inventoryLot.create({ data: {
+      tenantId: ids.tenantA, ownerUserId: ids.a1, productId: ids.productA, campaignId: ids.campaignA,
+      initialQuantity: 1, currentQuantity: 1,
+    } });
+    expect((await request(app.getHttpServer()).patch(`/api/v1/inventory/lots/${lot.id}`).set(bearer(farmer)).send({
+      warehouseId: warehouse.id,
+    })).status).toBe(404);
+    expect((await prisma.inventoryLot.findUniqueOrThrow({ where: { id: lot.id } })).warehouseId).toBeNull();
+  });
+
+  it("rolls back individual purchase with A2 private Warehouse and all side effects", async () => {
+    const farmer = await v2(`a1-${ids.a1}@example.test`);
+    const supplier = await prisma.supplier.findFirstOrThrow({ where: { tenantId: ids.tenantA } });
+    const warehouse = await prisma.warehouse.create({ data: { tenantId: ids.tenantA, ownerUserId: ids.a2, name: `A2-${randomUUID()}` } });
+    const before = await purchaseEffects();
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases").set(bearer(farmer)).send(
+      individualPurchase({ productId: ids.productA }, { supplierId: supplier.id }, warehouse.id),
+    )).status).toBe(404);
+    expect(await purchaseEffects()).toEqual(before);
+  });
+
+  it("checks joint Warehouse against each allocation owner and rolls back invalid allocations", async () => {
+    const director = await v2(`d-${ids.director}@example.test`);
+    const supplier = await prisma.supplier.findFirstOrThrow({ where: { tenantId: ids.tenantA } });
+    const warehouse = await prisma.warehouse.create({ data: { tenantId: ids.tenantA, ownerUserId: ids.a1, name: `A1-${randomUUID()}` } });
+    const base = {
+      campaignId: ids.campaignA, paymentMode: "CONTADO", supplier: { supplierId: supplier.id }, warehouseId: warehouse.id,
+      items: [{ product: { productId: ids.productA }, quantity: 1, unitCost: 1, allocations: [{ userId: ids.a1, quantity: 1 }] }],
+    };
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases/joint").set(bearer(director)).send(base)).status).toBe(201);
+    const before = await purchaseEffects();
+    const invalid = { ...base, items: [{ ...base.items[0], allocations: [{ userId: ids.a1, quantity: 0.5 }, { userId: ids.a2, quantity: 0.5 }] }] };
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases/joint").set(bearer(director)).send(invalid)).status).toBe(404);
+    expect(await purchaseEffects()).toEqual(before);
   });
 });
