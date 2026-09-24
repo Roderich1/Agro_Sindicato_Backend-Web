@@ -65,11 +65,11 @@ describe('CreatePurchaseUseCase', () => {
       receivedAt: new Date('2026-05-01T00:00:00.000Z'),
     };
     const tx = {
-      supplier: { upsert: jest.fn().mockResolvedValue(supplier) },
+      supplier: { findFirst: jest.fn().mockResolvedValue(supplier) },
       warehouse: { create: jest.fn() },
       purchase: { create: jest.fn().mockResolvedValue(purchase) },
       product: {
-        upsert: jest.fn().mockResolvedValue(product),
+        findFirst: jest.fn().mockResolvedValue(product),
         update: jest.fn(),
       },
       purchaseItem: {
@@ -132,6 +132,8 @@ describe('CreatePurchaseUseCase', () => {
     });
 
     expect(campaignContext.resolveCampaignForOperation).toHaveBeenCalledWith(tenantId, undefined, tx);
+    expect(tx.supplier.findFirst).toHaveBeenCalledWith({ where: { tenantId, name: 'Proveedor' } });
+    expect(tx.product.findFirst).toHaveBeenCalledWith({ where: { tenantId, name: 'Glifosato', isActive: true } });
     expect(tx.purchase.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ campaignId, status: PurchaseStatus.RECIBIDA }),
       include: { supplier: true },
@@ -159,7 +161,7 @@ describe('CreatePurchaseUseCase', () => {
     const supplier = { id: 'supplier-1', name: 'Proveedor' };
     const product = { id: productId, name: 'Glifosato', unit: 'L' };
     const tx = {
-      supplier: { upsert: jest.fn().mockResolvedValue(supplier) },
+      supplier: { findFirst: jest.fn().mockResolvedValue(supplier) },
       warehouse: { create: jest.fn() },
       purchase: {
         create: jest.fn().mockResolvedValue({
@@ -175,7 +177,7 @@ describe('CreatePurchaseUseCase', () => {
           receivedAt: null,
         }),
       },
-      product: { upsert: jest.fn().mockResolvedValue(product), update: jest.fn() },
+      product: { findFirst: jest.fn().mockResolvedValue(product), update: jest.fn() },
       purchaseItem: {
         create: jest.fn().mockResolvedValue({
           id: 'item-1',

@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import { ListCalendarEventsQueryDto } from '../../application/dto/calendar-event.dto';
 import { CalendarEventsUseCase } from '../../application/use-cases/calendar-events.use-case';
 
@@ -16,7 +16,7 @@ export class CalendarEventsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar eventos de calendario visibles para el usuario autenticado' })
-  async list(@CurrentUser() user: JwtPayload, @Query() query: ListCalendarEventsQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListCalendarEventsQueryDto) {
     return this.calendarEventsUseCase.list(
       user.tenantId,
       { userId: user.sub, role: user.role as UserRole },
@@ -28,7 +28,7 @@ export class CalendarEventsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Marcar evento de calendario como completado' })
   async complete(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.calendarEventsUseCase.complete(
@@ -42,7 +42,7 @@ export class CalendarEventsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancelar evento de calendario' })
   async cancel(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.calendarEventsUseCase.cancel(

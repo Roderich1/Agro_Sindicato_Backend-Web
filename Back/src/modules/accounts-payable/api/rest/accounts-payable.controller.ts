@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import { ListPayablesQueryDto } from '../../application/dto/list-payables-query.dto';
 import { RegisterPaymentDto } from '../../application/dto/register-payment.dto';
 import { AccountsPayableUseCase } from '../../application/use-cases/accounts-payable.use-case';
@@ -19,14 +19,14 @@ export class AccountsPayableController {
 
   @Get()
   @ApiOperation({ summary: 'Listar cuentas por pagar visibles para el usuario autenticado' })
-  async list(@CurrentUser() user: JwtPayload, @Query() query: ListPayablesQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListPayablesQueryDto) {
     return this.accountsPayableUseCase.list(user.tenantId, user.sub, user.role, query);
   }
 
   @Post(':id/payments')
   @ApiOperation({ summary: 'Registrar abono parcial o total' })
   async registerPayment(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: RegisterPaymentDto,
   ) {
@@ -37,7 +37,7 @@ export class AccountsPayableController {
   @Post(':id/pay-total')
   @ApiOperation({ summary: 'Registrar pago total del saldo pendiente' })
   async payTotal(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: { notes?: string },
   ) {

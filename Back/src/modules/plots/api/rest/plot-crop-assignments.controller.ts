@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import {
   CreatePlotCropAssignmentDto,
   ListPlotCropAssignmentsQueryDto,
@@ -22,7 +22,7 @@ export class PlotCropAssignmentsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar asignaciones cultivo/parcela/campana visibles' })
-  async list(@CurrentUser() user: JwtPayload, @Query() query: ListPlotCropAssignmentsQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListPlotCropAssignmentsQueryDto) {
     return this.plotFlowUseCase.listAssignments(
       user.tenantId,
       { userId: user.sub, role: user.role as UserRole },
@@ -33,7 +33,7 @@ export class PlotCropAssignmentsController {
   @Post()
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Asignar cultivo principal a una parcela propia en campana abierta' })
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreatePlotCropAssignmentDto) {
+  async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreatePlotCropAssignmentDto) {
     this.logger.log(
       `[PLOT_CROP_ASSIGNMENT CREATE] userId=${user.sub} tenantId=${user.tenantId} plotId=${dto.plotId} cropId=${dto.cropId}`,
     );
@@ -48,7 +48,7 @@ export class PlotCropAssignmentsController {
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Actualizar cultivo asignado a una parcela propia en campana abierta' })
   async update(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdatePlotCropAssignmentDto,
   ) {

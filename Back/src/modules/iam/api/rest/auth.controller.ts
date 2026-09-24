@@ -17,7 +17,7 @@ import { GetMeUseCase } from "../../application/use-cases/get-me.use-case";
 import { LoginUseCase } from "../../application/use-cases/login.use-case";
 import { LogoutUseCase } from "../../application/use-cases/logout.use-case";
 import { RefreshSessionUseCase } from "../../application/use-cases/refresh-session.use-case";
-import { JwtPayload } from "../../application/types/jwt-payload.type";
+import { AuthenticatedPrincipal } from "../../application/types/authenticated-principal.type";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { Public } from "./decorators/public.decorator";
 
@@ -157,7 +157,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Get("me")
   @ApiOperation({ summary: "Obtener perfil del usuario autenticado" })
-  async me(@CurrentUser() user: JwtPayload) {
+  async me(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.getMeUseCase.execute(user.sub);
   }
 }

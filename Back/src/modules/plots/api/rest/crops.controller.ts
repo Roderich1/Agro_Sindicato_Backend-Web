@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import {
   CreateCropDto,
   ListCropsQueryDto,
@@ -22,14 +22,14 @@ export class CropsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar catalogo de cultivos del sindicato' })
-  async list(@CurrentUser() user: JwtPayload, @Query() query: ListCropsQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListCropsQueryDto) {
     return this.plotFlowUseCase.listCrops(user.tenantId, query);
   }
 
   @Post()
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
   @ApiOperation({ summary: 'Crear un cultivo del catalogo del sindicato' })
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCropDto) {
+  async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateCropDto) {
     this.logger.log(`[CROP CREATE] userId=${user.sub} tenantId=${user.tenantId} name=${dto.name}`);
     return this.plotFlowUseCase.createCrop(
       user.tenantId,
@@ -42,7 +42,7 @@ export class CropsController {
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
   @ApiOperation({ summary: 'Actualizar un cultivo del catalogo del sindicato' })
   async update(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateCropDto,
   ) {

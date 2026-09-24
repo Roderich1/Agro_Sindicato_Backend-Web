@@ -15,7 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
 import { Roles } from '../../../iam/api/rest/decorators/roles.decorator';
-import { JwtPayload } from '../../../iam/application/types/jwt-payload.type';
+import { AuthenticatedPrincipal } from '../../../iam/application/types/authenticated-principal.type';
 import {
   CloseCampaignDto,
   CreateCampaignDto,
@@ -35,20 +35,20 @@ export class CampaignsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar campanas agricolas del sindicato' })
-  async list(@CurrentUser() user: JwtPayload, @Query() query: ListCampaignsQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListCampaignsQueryDto) {
     return this.campaignManagementUseCase.listCampaigns(user.tenantId, query);
   }
 
   @Get('active')
   @ApiOperation({ summary: 'Consultar la campana agricola activa del sindicato' })
-  async getActive(@CurrentUser() user: JwtPayload) {
+  async getActive(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.campaignManagementUseCase.getActiveCampaign(user.tenantId);
   }
 
   @Post()
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
   @ApiOperation({ summary: 'Crear una campana agricola planificada' })
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCampaignDto) {
+  async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateCampaignDto) {
     this.logger.log(`[CAMPAIGN CREATE] userId=${user.sub} tenantId=${user.tenantId} name=${dto.name}`);
     return this.campaignManagementUseCase.createCampaign(
       user.tenantId,
@@ -62,7 +62,7 @@ export class CampaignsController {
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
   @ApiOperation({ summary: 'Editar una campana agricola planificada o abierta' })
   async update(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateCampaignDto,
   ) {
@@ -81,7 +81,7 @@ export class CampaignsController {
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
   @ApiOperation({ summary: 'Abrir una campana agricola' })
   async open(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     this.logger.log(`[CAMPAIGN OPEN] userId=${user.sub} tenantId=${user.tenantId} campaignId=${id}`);
@@ -93,7 +93,7 @@ export class CampaignsController {
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
   @ApiOperation({ summary: 'Cerrar una campana agricola activa' })
   async close(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: CloseCampaignDto,
   ) {

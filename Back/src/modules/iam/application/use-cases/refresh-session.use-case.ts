@@ -59,7 +59,10 @@ export class RefreshSessionUseCase {
     }
 
     const user = await this.userRepo.findById(stored.userId);
-    if (!user || !user.isActive) {
+    if (
+      !user || !user.isActive || !user.tenant.isActive ||
+      !user.currentMember?.isActive || stored.tenantId !== user.tenantId
+    ) {
       throw new UnauthorizedException("Sesión no válida");
     }
 
@@ -68,7 +71,7 @@ export class RefreshSessionUseCase {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role: user.currentMember.role,
       tenantId: user.tenantId,
     };
     const accessToken = this.jwtService.sign(payload);
@@ -98,7 +101,7 @@ export class RefreshSessionUseCase {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.currentMember.role,
         tenantId: user.tenantId,
         tenant: user.tenant,
       },

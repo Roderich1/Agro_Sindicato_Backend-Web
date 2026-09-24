@@ -9,17 +9,21 @@ export class PrismaUserRepository implements UserRepositoryPort {
   async findByEmail(email: string): Promise<UserWithTenant | null> {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { tenant: true },
+      include: { tenant: true, members: true },
     });
-    return user as UserWithTenant | null;
+    return user
+      ? { ...user, currentMember: user.members.find((member) => member.tenantId === user.tenantId) ?? null }
+      : null;
   }
 
   async findById(id: string): Promise<UserWithTenant | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      include: { tenant: true },
+      include: { tenant: true, members: true },
     });
-    return user as UserWithTenant | null;
+    return user
+      ? { ...user, currentMember: user.members.find((member) => member.tenantId === user.tenantId) ?? null }
+      : null;
   }
 
   async updateLastLogin(userId: string, date: Date): Promise<void> {

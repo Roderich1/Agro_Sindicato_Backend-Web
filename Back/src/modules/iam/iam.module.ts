@@ -17,6 +17,7 @@ import { RefreshSessionUseCase } from "./application/use-cases/refresh-session.u
 import { ManageClientRegistrationsUseCase } from "./application/use-cases/manage-client-registrations.use-case";
 import { AuthTtlPolicy } from "./application/services/auth-ttl-policy";
 import { AuthV2Service } from "./application/services/auth-v2.service";
+import { CurrentAuthContextResolver } from "./application/services/current-auth-context.resolver";
 
 import { CLIENT_REGISTRATION_REPOSITORY } from "./domain/ports/client-registration.repository.port";
 import { REFRESH_TOKEN_REPOSITORY } from "./domain/ports/refresh-token.repository.port";
@@ -54,6 +55,7 @@ import { PrismaUserRepository } from "./infrastructure/persistence/prisma-user.r
     ManageClientRegistrationsUseCase,
     AuthTtlPolicy,
     AuthV2Service,
+    CurrentAuthContextResolver,
     JwtStrategy,
     {
       provide: CLIENT_REGISTRATION_REPOSITORY,
