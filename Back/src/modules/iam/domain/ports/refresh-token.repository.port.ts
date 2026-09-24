@@ -1,4 +1,4 @@
-export const REFRESH_TOKEN_REPOSITORY = 'REFRESH_TOKEN_REPOSITORY';
+export const REFRESH_TOKEN_REPOSITORY = "REFRESH_TOKEN_REPOSITORY";
 
 export interface CreateRefreshTokenData {
   tokenHash: string;
@@ -7,13 +7,17 @@ export interface CreateRefreshTokenData {
   expiresAt: Date;
   ipAddress?: string;
   userAgent?: string;
+  contractVersion?: number;
 }
 
 export interface StoredRefreshToken {
   id: string;
   userId: string;
   tenantId: string;
+  sessionId: string | null;
+  contractVersion: number;
   expiresAt: Date;
+  consumedAt: Date | null;
   revokedAt: Date | null;
 }
 

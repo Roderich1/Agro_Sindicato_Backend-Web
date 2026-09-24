@@ -1,36 +1,43 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
-import { LoginDto } from '../dtos/login.dto';
-import { AuthResponseDto } from '../dtos/auth-response.dto';
-import { USER_REPOSITORY, UserRepositoryPort } from '../../domain/ports/user.repository.port';
-import { REFRESH_TOKEN_REPOSITORY, RefreshTokenRepositoryPort } from '../../domain/ports/refresh-token.repository.port';
-import { JwtPayload } from '../types/jwt-payload.type';
+import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import * as crypto from "crypto";
+import { LoginDto } from "../dtos/login.dto";
+import { AuthResponseDto } from "../dtos/auth-response.dto";
+import {
+  USER_REPOSITORY,
+  UserRepositoryPort,
+} from "../../domain/ports/user.repository.port";
+import {
+  REFRESH_TOKEN_REPOSITORY,
+  RefreshTokenRepositoryPort,
+} from "../../domain/ports/refresh-token.repository.port";
+import { JwtPayload } from "../types/jwt-payload.type";
+import { AuthTtlPolicy } from "../services/auth-ttl-policy";
 
-const TIMING_SAFE_FAKE_HASH = '$2b$12$invalidhashfortimingattackprotectiononly';
-const INVALID_CREDENTIALS_MSG = 'Credenciales inválidas';
-
-function parseDaysFromExpiry(expiry: string): number {
-  const match = /^(\d+)d$/.exec(expiry);
-  return match ? parseInt(match[1], 10) : 7;
-}
+const TIMING_SAFE_FAKE_HASH = "$2b$12$invalidhashfortimingattackprotectiononly";
+const INVALID_CREDENTIALS_MSG = "Credenciales inválidas";
 
 @Injectable()
 export class LoginUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepositoryPort,
-    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshRepo: RefreshTokenRepositoryPort,
+    @Inject(REFRESH_TOKEN_REPOSITORY)
+    private readonly refreshRepo: RefreshTokenRepositoryPort,
     private readonly jwtService: JwtService,
-    private readonly config: ConfigService,
+    private readonly ttl: AuthTtlPolicy,
   ) {}
 
   async execute(
     dto: LoginDto,
     ipAddress?: string,
     userAgent?: string,
-  ): Promise<{ accessToken: string; rawRefreshToken: string; user: AuthResponseDto['user'] }> {
+  ): Promise<{
+    accessToken: string;
+    rawRefreshToken: string;
+    refreshExpiresAt: Date;
+    user: AuthResponseDto["user"];
+  }> {
     const user = await this.userRepo.findByEmail(dto.email);
 
     if (!user || !user.isActive) {
@@ -53,18 +60,28 @@ export class LoginUseCase {
     const accessToken = this.jwtService.sign(payload);
 
     const rawRefreshToken = crypto.randomUUID();
-    const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawRefreshToken)
+      .digest("hex");
 
-    const refreshExpiresIn = this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
-    const days = parseDaysFromExpiry(refreshExpiresIn);
-    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const expiresAt = this.ttl.refreshExpiresAt();
 
-    await this.refreshRepo.save({ tokenHash, userId: user.id, tenantId: user.tenantId, expiresAt, ipAddress, userAgent });
+    await this.refreshRepo.save({
+      tokenHash,
+      userId: user.id,
+      tenantId: user.tenantId,
+      expiresAt,
+      ipAddress,
+      userAgent,
+      contractVersion: 1,
+    });
     await this.userRepo.updateLastLogin(user.id, new Date());
 
     return {
       accessToken,
       rawRefreshToken,
+      refreshExpiresAt: expiresAt,
       user: {
         id: user.id,
         name: user.name,

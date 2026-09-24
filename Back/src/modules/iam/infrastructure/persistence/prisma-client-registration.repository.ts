@@ -128,6 +128,7 @@ export class PrismaClientRegistrationRepository implements ClientRegistrationRep
       });
       if (!existing) return { outcome: "not-found" };
       if (existing.status === "REVOKED") {
+        await this.revokeBoundSessions(tx, existing.id, now);
         return {
           outcome: "already-revoked",
           registration: existing as ClientRegistrationRecord,
@@ -139,6 +140,7 @@ export class PrismaClientRegistrationRepository implements ClientRegistrationRep
         data: { status: "REVOKED", revokedAt: now },
         select: REGISTRATION_SELECT,
       });
+      await this.revokeBoundSessions(tx, registration.id, now);
       return {
         outcome: "revoked",
         registration: registration as ClientRegistrationRecord,
@@ -167,5 +169,34 @@ export class PrismaClientRegistrationRepository implements ClientRegistrationRep
       .then((member) =>
         member?.isActive && member.tenant.isActive ? member : null,
       );
+  }
+
+  private async revokeBoundSessions(
+    tx: Prisma.TransactionClient,
+    registrationId: string,
+    now: Date,
+  ): Promise<void> {
+    const sessions = await tx.authSession.findMany({
+      where: {
+        clientRegistrationId: registrationId,
+        status: "ACTIVE",
+      },
+      select: { id: true },
+    });
+    if (sessions.length === 0) return;
+
+    const sessionIds = sessions.map((session) => session.id);
+    await tx.authSession.updateMany({
+      where: { id: { in: sessionIds }, status: "ACTIVE" },
+      data: { status: "REVOKED", revokedAt: now },
+    });
+    await tx.refreshToken.updateMany({
+      where: {
+        sessionId: { in: sessionIds },
+        contractVersion: 2,
+        revokedAt: null,
+      },
+      data: { revokedAt: now },
+    });
   }
 }

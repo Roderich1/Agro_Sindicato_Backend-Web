@@ -136,6 +136,17 @@ enum ClientRegistrationStatus {
   REVOKED
 }
 
+enum AuthSessionStatus {
+  ACTIVE
+  REVOKED
+  COMPROMISED
+}
+
+enum AuthRefreshTransport {
+  COOKIE
+  BODY
+}
+
 model Tenant {
   id        String   @id @default(uuid())
   name      String
@@ -217,6 +228,7 @@ model Member {
   tenant              Tenant               @relation(fields: [tenantId], references: [id])
   user                User                 @relation(fields: [userId], references: [id])
   clientRegistrations ClientRegistration[]
+  authSessions        AuthSession[]
 
   @@unique([tenantId, userId])
   @@index([tenantId])
@@ -234,8 +246,9 @@ model ClientRegistration {
   lastSeenAt   DateTime                 @default(now())
   revokedAt    DateTime?
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  member Member @relation(fields: [memberId], references: [id])
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  member       Member        @relation(fields: [memberId], references: [id])
+  authSessions AuthSession[]
 
   @@unique([tenantId, memberId, clientIdHash])
   @@index([tenantId, memberId])
@@ -243,17 +256,47 @@ model ClientRegistration {
 }
 
 model RefreshToken {
-  id        String    @id @default(uuid())
-  tokenHash String    @unique
-  userId    String
-  tenantId  String
-  ipAddress String?
-  userAgent String?
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id              String    @id @default(uuid())
+  tokenHash       String    @unique
+  userId          String
+  tenantId        String
+  sessionId       String?
+  contractVersion Int       @default(1)
+  ipAddress       String?
+  userAgent       String?
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+  session AuthSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@index([contractVersion, sessionId])
+}
+
+model AuthSession {
+  id                   String               @id @default(uuid())
+  memberId             String
+  clientRegistrationId String?
+  status               AuthSessionStatus    @default(ACTIVE)
+  refreshTransport     AuthRefreshTransport
+  createdAt            DateTime             @default(now())
+  lastSeenAt           DateTime             @default(now())
+  expiresAt            DateTime
+  revokedAt            DateTime?
+  compromisedAt        DateTime?
+  ipAddress            String?
+  userAgent            String?
+
+  member             Member              @relation(fields: [memberId], references: [id])
+  clientRegistration ClientRegistration? @relation(fields: [clientRegistrationId], references: [id])
+  refreshTokens      RefreshToken[]
+
+  @@index([memberId, status])
+  @@index([clientRegistrationId, status])
+  @@index([expiresAt])
 }
 
 model Product {

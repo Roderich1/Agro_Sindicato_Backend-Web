@@ -21,6 +21,11 @@ describe("PrismaClientRegistrationRepository", () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      authSession: {
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn(),
+      },
+      refreshToken: { updateMany: jest.fn() },
     };
     const prisma = {
       $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) =>
@@ -150,6 +155,42 @@ describe("PrismaClientRegistrationRepository", () => {
       ),
     ).resolves.toMatchObject({ outcome: "already-revoked" });
     expect(tx.clientRegistration.update).not.toHaveBeenCalled();
+  });
+
+  it("revokes only active sessions bound to the revoked registration", async () => {
+    const { repository, tx } = setup();
+    tx.clientRegistration.findFirst.mockResolvedValue(registration);
+    tx.clientRegistration.update.mockResolvedValue({
+      ...registration,
+      status: "REVOKED",
+      revokedAt: now,
+    });
+    tx.authSession.findMany.mockResolvedValue([
+      { id: "session-a" },
+      { id: "session-b" },
+    ]);
+
+    await repository.revoke(
+      { tenantId: "tenant-a", userId: "user-a" },
+      registration.id,
+      now,
+    );
+
+    expect(tx.authSession.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["session-a", "session-b"] },
+        status: "ACTIVE",
+      },
+      data: { status: "REVOKED", revokedAt: now },
+    });
+    expect(tx.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: {
+        sessionId: { in: ["session-a", "session-b"] },
+        contractVersion: 2,
+        revokedAt: null,
+      },
+      data: { revokedAt: now },
+    });
   });
 
   it("rejects inactive Member or Tenant contexts before any registration access", async () => {
