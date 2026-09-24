@@ -19,11 +19,11 @@ Estos IDs fueron creados como identificadores de ingeniería de F01 a partir de 
 
 - **ID:** `URS-MOB-02`
 - **Title:** Inventario, compras, transferencias y aplicaciones individuales
-- **Statement:** El agricultor debe gestionar inventario, lotes, movimientos, compras, transferencias y aplicaciones individuales desde Mobile sin convertir Central o Web en autoridad de esas operaciones.
+- **Statement:** El agricultor gestiona desde Mobile el inventario/stock, compras, transferencias y aplicaciones dentro del contexto de campaña. Lotes y movimientos, si se utilizan, son detalles de implementación y no requisitos funcionales independientes.
 - **Source:** [`CURRENT_SCOPE.md` §3](../scope/CURRENT_SCOPE.md); [`CAPABILITY_DISPOSITION_MATRIX.md`](../scope/CAPABILITY_DISPOSITION_MATRIX.md).
 - **Related OE:** OE3
 - **Owner:** Mobile/Flutter
-- **Privacy impact:** Alto; incluye datos operativos y financieros privados.
+- **Privacy impact:** Alto; el detalle operativo individual no se proyecta por defecto.
 - **Implementation phase:** Dominio Mobile vigente; realineación coordinada por #81.
 - **Verification target:** UNIT, INT, DEVICE
 - **Status:** `BASELINED`
@@ -36,7 +36,7 @@ Estos IDs fueron creados como identificadores de ingeniería de F01 a partir de 
 - **Source:** [`CURRENT_SCOPE.md` §8](../scope/CURRENT_SCOPE.md); [`DATA_BOUNDARY_MATRIX.md`](../scope/DATA_BOUNDARY_MATRIX.md).
 - **Related OE:** OE3, OE4
 - **Owner:** Mobile origina; Central recibe sólo proyección autorizada.
-- **Privacy impact:** Medio; cruza la frontera únicamente por consentimiento/finalidad aprobados.
+- **Privacy impact:** Medio; cruza la frontera únicamente con finalidad y autorización aplicables. Consentimiento formal sólo si lo exige un requisito aprobado.
 - **Implementation phase:** F06; Mobile issue `Roderich1/AppMovilAgroquimico#34`.
 - **Verification target:** CONTRACT, INT, E2E
 - **Status:** `BASELINED`
@@ -113,7 +113,7 @@ Estos IDs fueron creados como identificadores de ingeniería de F01 a partir de 
 - **Statement:** El propietario debe poder recuperar su información privada mediante un mecanismo autenticado, verificable y separado de la sincronización colectiva.
 - **Source:** [`CURRENT_SCOPE.md` §7](../scope/CURRENT_SCOPE.md); ADR-001, Backup boundary.
 - **Related OE:** OE2, OE5
-- **Owner:** Mobile y servicio central de metadata/storage de backup.
+- **Owner:** Mobile y servicio de recuperación privada; ubicación física y metadata exacta delegadas a F09.
 - **Privacy impact:** Crítico; el binario es privado y owner-scoped.
 - **Implementation phase:** F09; issues #37–#40 y Mobile #35–#36.
 - **Verification target:** BACKUP_RESTORE, SECURITY, DEVICE
@@ -127,7 +127,7 @@ Estos IDs fueron creados como identificadores de ingeniería de F01 a partir de 
 - **Source:** [`CURRENT_SCOPE.md` §3](../scope/CURRENT_SCOPE.md); ADR-001; Mobile PRE-VOICE issues #10–#17.
 - **Related OE:** OE3
 - **Owner:** Mobile/Flutter
-- **Privacy impact:** Alto; audio y transcripción no se proyectan por defecto.
+- **Privacy impact:** Alto; audio y transcripción, si existen, no se proyectan por defecto ni se exige persistirlos.
 - **Implementation phase:** PRE-VOICE/EVO; no F04.
 - **Verification target:** UNIT, DEVICE, SECURITY, USABILITY
 - **Status:** `BASELINED`

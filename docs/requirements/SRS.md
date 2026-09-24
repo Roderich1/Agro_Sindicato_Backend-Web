@@ -6,7 +6,7 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-IAM-01`
 - **Title:** Separación conceptual de identidad, pertenencia y persona
-- **Statement:** Account/User representa autenticación y cuenta; Member representa pertenencia al Sindicato/tenant y estado/rol organizacional; Person representa información humana sólo cuando el dominio la requiere. Una Person no implica una cuenta y las relaciones familiares privadas Mobile no se centralizan por defecto. No se imponen nombres de tablas.
+- **Statement:** Account/User representa autenticación y cuenta; Member representa pertenencia al Sindicato/tenant y estado/rol organizacional; Person representa información humana sólo cuando el dominio la requiere. Una Person no implica una cuenta. Si existen relaciones familiares en Mobile, permanecen privadas por defecto; esta mención no exige crearlas ni centralizarlas. No se imponen nombres de tablas.
 - **Source:** `URS-SEC-01`; ADR-001; `DEC-F01-01`; issue #8.
 - **Related OE:** OE2, OE4
 - **Owner:** Central
@@ -136,7 +136,7 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-JP-01`
 - **Title:** Necesidad neta con unidades compatibles
-- **Statement:** Cuando exista `declared_stock` compatible, el sistema debe calcular `net_need = max(0, declared_need - declared_stock)` y rechazar o separar unidades incompatibles.
+- **Statement:** Si el contrato F06 aprobado incluye `declared_stock` compatible, el sistema calcula `net_need = max(0, declared_need - declared_stock)` y rechaza o separa unidades incompatibles. F01 no congela shape, procedencia ni unidades.
 - **Source:** `URS-JP-01`; [`CURRENT_SCOPE.md` §8](../scope/CURRENT_SCOPE.md).
 - **Related OE:** OE4
 - **Owner:** Central
@@ -149,7 +149,7 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-JP-02`
 - **Title:** Consolidación, propuesta y decisión humana
-- **Statement:** La compra conjunta debe seguir consolidación → propuesta → revisión humana y no crear automáticamente compra individual, lote, movimiento, deuda ni pago.
+- **Statement:** La compra conjunta debe seguir consolidación → propuesta → revisión humana y no crear automáticamente compras individuales ni efectos sobre inventario. Tampoco crea `PayableAccount` ni `Payment`, modelos legacy sin target Live aprobado.
 - **Source:** `URS-JP-01`; ADR-001; `DEC-F01-11`.
 - **Related OE:** OE4
 - **Owner:** Central y Web Directiva
@@ -162,11 +162,11 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-PRIV-01`
 - **Title:** Exclusión explícita de datos privados
-- **Statement:** Por defecto no deben proyectarse ubicación precisa, notas privadas, relaciones familiares, fotografías/facturas, proveedores/precios privados, deudas, pagos, detalle de lotes, movimientos, aplicaciones detalladas, audio/transcripción ni binario de backup.
+- **Statement:** Cuando tales datos existan en componentes privados o legacy, no se proyectan por defecto ubicación precisa, notas privadas, relaciones familiares, fotografías/facturas, proveedores/precios privados, detalle de lotes/movimientos/aplicaciones, audio/transcripción ni binario de backup. Esta enumeración no crea requisitos de captura o persistencia. `PayableAccount` y `Payment` no tienen target Live vigente y tampoco se proyectan.
 - **Source:** `URS-PRIV-01`; [`CURRENT_SCOPE.md` §10](../scope/CURRENT_SCOPE.md); `DEC-F01-08`.
 - **Related OE:** OE2, OE4, OE5
 - **Owner:** Mobile, Central y Web según frontera.
-- **Privacy impact:** Crítico; lista mínima de exclusión predeterminada.
+- **Privacy impact:** Crítico; ejemplos condicionales de exclusión predeterminada, sujetos a finalidad y autorización aplicables.
 - **Implementation phase:** F06 #20; auditoría F10 #45.
 - **Verification target:** REVIEW, CONTRACT, SECURITY, E2E
 - **Status:** `BASELINED`
@@ -188,7 +188,7 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-BKP-01`
 - **Title:** Contratos y ciclos de vida separados
-- **Statement:** Backup y Sync deben operar mediante contratos, almacenamiento, autorización y ciclos de vida separados; el contenido del backup no puede convertirse automáticamente en proyección colectiva.
+- **Statement:** Backup y Sync deben tener contratos, separación lógica/de servicio y ciclos de vida distintos; el backup remoto privado requiere autenticación e integridad verificable y su contenido no alimenta automáticamente la proyección colectiva. F09 define almacenamiento físico, metadata, cifrado, lifecycle, retención y formato.
 - **Source:** `URS-BKP-01`; [`CURRENT_SCOPE.md` §7](../scope/CURRENT_SCOPE.md); `DEC-F01-10`.
 - **Related OE:** OE2, OE5
 - **Owner:** Mobile y servicio Central de backup.
@@ -201,11 +201,11 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-BKP-02`
 - **Title:** Recuperación autenticada con integridad verificable
-- **Statement:** El backup debe ser owner-scoped y autenticado, y la restauración debe verificar integridad antes de reemplazar estado. Central puede conservar metadata; el provider/binario exacto queda delegado a F09.
+- **Statement:** El backup remoto debe ser owner-scoped y autenticado, y la restauración debe verificar integridad antes de reemplazar estado. Provider, almacenamiento físico, metadata exacta, cifrado y formato/binario quedan delegados a F09.
 - **Source:** `URS-BKP-01`; ADR-001; `DEC-F01-10`.
 - **Related OE:** OE2, OE5
 - **Owner:** Mobile y servicio Central de backup.
-- **Privacy impact:** Crítico; contenido privado cifrado/protegido según diseño F09.
+- **Privacy impact:** Crítico; protección y cifrado se concretan en el diseño F09.
 - **Implementation phase:** F09 #37–#40 y Mobile #35–#36.
 - **Verification target:** BACKUP_RESTORE, SECURITY, DEVICE, E2E
 - **Status:** `BASELINED`
@@ -218,7 +218,7 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 - **Source:** `URS-VOICE-01`; [`CURRENT_SCOPE.md` §3](../scope/CURRENT_SCOPE.md); ADR-001.
 - **Related OE:** OE3
 - **Owner:** Mobile/Flutter
-- **Privacy impact:** Alto; audio/transcripción no se proyectan por defecto.
+- **Privacy impact:** Alto; audio/transcripción, si existen, no se proyectan por defecto y este requisito no exige persistirlos.
 - **Implementation phase:** PRE-VOICE/EVO; Mobile issues #10–#17.
 - **Verification target:** UNIT, DEVICE, SECURITY, USABILITY
 - **Status:** `BASELINED`
