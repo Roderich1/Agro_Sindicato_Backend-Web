@@ -1,0 +1,5344 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access V1 y usuario; refresh V1 en cookie HttpOnly refresh_token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "accessToken",
+                    "user"
+                  ],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "Bearer V1; refresh se entrega solo en cookie HttpOnly."
+                    },
+                    "user": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "role",
+                        "tenantId",
+                        "tenant"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "type": "string"
+                        },
+                        "tenant": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "DTO invalido."
+          },
+          "401": {
+            "description": "Credenciales o contexto invalidos."
+          },
+          "429": {
+            "description": "Limite de intentos excedido."
+          }
+        },
+        "summary": "Iniciar sesión",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Access V1 renovado; refresh V1 rotado en cookie HttpOnly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "accessToken",
+                    "user"
+                  ],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "Bearer V1; refresh se entrega solo en cookie HttpOnly."
+                    },
+                    "user": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "role",
+                        "tenantId",
+                        "tenant"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "type": "string"
+                        },
+                        "tenant": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh V1 invalido o revocado."
+          }
+        },
+        "security": [
+          {
+            "refresh_token": []
+          }
+        ],
+        "summary": "Renovar sesión con refresh token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Refresh V1 revocado; cookie eliminada."
+          },
+          "401": {
+            "description": "Access invalido."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cerrar sesión (revoca refresh token del dispositivo)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Perfil revalidado con Member actual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "role",
+                    "tenantId",
+                    "tenant"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "tenant": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Contexto inactivo o invalido."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener perfil del usuario autenticado",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/v2/login": {
+      "post": {
+        "description": "Contrato versionado 2. COOKIE es el transporte Web por defecto; BODY prepara clientes Mobile futuros.",
+        "operationId": "AuthV2Controller_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginV2Dto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión V2 creada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "contractVersion",
+                    "accessToken",
+                    "refreshTransport",
+                    "sessionExpiresAt",
+                    "context"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        2
+                      ]
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "Bearer JWT con memberId, sessionId y ver=2."
+                    },
+                    "refreshTransport": {
+                      "type": "string",
+                      "enum": [
+                        "COOKIE",
+                        "BODY"
+                      ]
+                    },
+                    "sessionExpiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "context": {
+                      "type": "object",
+                      "properties": {
+                        "account": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string"
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "member": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string"
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "tenant": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "session": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "refreshTransport": {
+                              "type": "string",
+                              "enum": [
+                                "COOKIE",
+                                "BODY"
+                              ]
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "lastSeenAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "expiresAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "clientRegistrationId": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "Solo aparece con transporte BODY; COOKIE usa refresh_token_v2 HttpOnly."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "DTO o transporte invalido."
+          },
+          "401": {
+            "description": "Credenciales o contexto inactivos."
+          },
+          "429": {
+            "description": "Limite de intentos excedido."
+          }
+        },
+        "summary": "Iniciar una sesión auth V2",
+        "tags": [
+          "auth v2"
+        ]
+      }
+    },
+    "/api/v1/auth/v2/refresh": {
+      "post": {
+        "description": "Acepta refresh_token_v2 para COOKIE o refreshToken para BODY. Rechaza ambigüedad y mantiene la expiración absoluta de la sesión.",
+        "operationId": "AuthV2Controller_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshV2Dto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access V2 y refresh rotado; COOKIE usa refresh_token_v2 HttpOnly, BODY devuelve refreshToken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "contractVersion",
+                    "accessToken",
+                    "refreshTransport",
+                    "sessionExpiresAt",
+                    "context"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        2
+                      ]
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "Bearer JWT con memberId, sessionId y ver=2."
+                    },
+                    "refreshTransport": {
+                      "type": "string",
+                      "enum": [
+                        "COOKIE",
+                        "BODY"
+                      ]
+                    },
+                    "sessionExpiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "context": {
+                      "type": "object",
+                      "properties": {
+                        "account": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string"
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "member": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string"
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "tenant": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "session": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "refreshTransport": {
+                              "type": "string",
+                              "enum": [
+                                "COOKIE",
+                                "BODY"
+                              ]
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "lastSeenAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "expiresAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "clientRegistrationId": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "Solo aparece con transporte BODY; COOKIE usa refresh_token_v2 HttpOnly."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cookie y body simultaneos o DTO invalido."
+          },
+          "401": {
+            "description": "Refresh/sesión V2 inválidos."
+          }
+        },
+        "security": [
+          {
+            "refresh_token_v2": []
+          },
+          {}
+        ],
+        "summary": "Rotar refresh V2 atómicamente",
+        "tags": [
+          "auth v2"
+        ]
+      }
+    },
+    "/api/v1/auth/v2/logout": {
+      "post": {
+        "description": "Idempotente y utilizable aunque el access haya expirado. No revoca ClientRegistration.",
+        "operationId": "AuthV2Controller_logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutV2Dto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Session V2 revocada; cookie eliminada."
+          },
+          "400": {
+            "description": "Transporte ambiguo o DTO invalido."
+          }
+        },
+        "security": [
+          {
+            "refresh_token_v2": []
+          },
+          {}
+        ],
+        "summary": "Revocar la sesión V2 actual",
+        "tags": [
+          "auth v2"
+        ]
+      }
+    },
+    "/api/v1/auth/v2/me": {
+      "get": {
+        "description": "Revalida Account, Member, Tenant, rol, Session y ClientRegistration asociado.",
+        "operationId": "AuthV2Controller_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Contexto V2 actual revalidado."
+          },
+          "401": {
+            "description": "Contexto actual inactivo o revocado."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener contexto vigente de la sesión V2",
+        "tags": [
+          "auth v2"
+        ]
+      }
+    },
+    "/api/v1/auth/v2/session/client": {
+      "post": {
+        "description": "Deriva session/member/tenant del access V2. El mismo binding es idempotente y un rebind distinto responde 409.",
+        "operationId": "AuthV2Controller_bindClient",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindSessionClientDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Binding idempotente a ClientRegistration propio activo."
+          },
+          "400": {
+            "description": "Registration ID invalido."
+          },
+          "401": {
+            "description": "Session o ClientRegistration revocados."
+          },
+          "404": {
+            "description": "Registro no visible."
+          },
+          "409": {
+            "description": "La sesión ya está ligada a otro registro."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asociar la sesión V2 a un ClientRegistration activo",
+        "tags": [
+          "auth v2"
+        ]
+      }
+    },
+    "/api/v1/auth/clients": {
+      "post": {
+        "operationId": "ClientRegistrationsController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterClientDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "ClientRegistration propio creado; clientId no se almacena en claro.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "registrationId",
+                    "status",
+                    "createdAt",
+                    "lastSeenAt",
+                    "revokedAt"
+                  ],
+                  "properties": {
+                    "registrationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "REVOKED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lastSeenAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revokedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "clientId no es UUID v4 valido."
+          },
+          "401": {
+            "description": "Contexto invalido o inactivo."
+          },
+          "409": {
+            "description": "Registro de cliente en conflicto."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar la identidad lógica de esta instalación",
+        "tags": [
+          "auth clients"
+        ]
+      },
+      "get": {
+        "operationId": "ClientRegistrationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Registros de la membresia actual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "registrationId",
+                      "status",
+                      "createdAt",
+                      "lastSeenAt",
+                      "revokedAt"
+                    ],
+                    "properties": {
+                      "registrationId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "ACTIVE",
+                          "REVOKED"
+                        ]
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "lastSeenAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "revokedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Contexto invalido o inactivo."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar registros de cliente de la membership autenticada",
+        "tags": [
+          "auth clients"
+        ]
+      }
+    },
+    "/api/v1/auth/clients/{id}/revoke": {
+      "post": {
+        "operationId": "ClientRegistrationsController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registro propio revocado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "registrationId",
+                    "status",
+                    "createdAt",
+                    "lastSeenAt",
+                    "revokedAt"
+                  ],
+                  "properties": {
+                    "registrationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "REVOKED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lastSeenAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revokedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalido."
+          },
+          "401": {
+            "description": "Contexto invalido o inactivo."
+          },
+          "404": {
+            "description": "Registro no visible."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revocar un registro de cliente propio",
+        "tags": [
+          "auth clients"
+        ]
+      }
+    },
+    "/api/v1/inventory/products": {
+      "get": {
+        "operationId": "InventoryController_listProducts",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "glifosato",
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Herbicida",
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar productos agroquimicos del sindicato",
+        "tags": [
+          "inventory"
+        ]
+      },
+      "post": {
+        "operationId": "InventoryController_createProduct",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Sólo Directiva o Administración vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar un producto agroquimico",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/products/{id}": {
+      "patch": {
+        "operationId": "InventoryController_updateProduct",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Sólo Directiva o Administración vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar datos de un producto agroquimico",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/products/{id}/deactivate": {
+      "post": {
+        "operationId": "InventoryController_deactivateProduct",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Sólo Directiva o Administración vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inactivar un producto agroquimico sin borrar su historial",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/initial-stock": {
+      "post": {
+        "operationId": "InventoryController_registerInitialStock",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInitialStockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar inventario inicial del agricultor autenticado",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/entries": {
+      "post": {
+        "operationId": "InventoryController_registerEntry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterStockEntryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar una entrada de agroquimico",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/exits": {
+      "post": {
+        "operationId": "InventoryController_registerExit",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterStockExitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar una salida de agroquimico validando stock disponible",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/adjustments": {
+      "post": {
+        "operationId": "InventoryController_registerAdjustment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterStockAdjustmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar ajuste de inventario por perdida, dano o correccion",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/lots": {
+      "get": {
+        "operationId": "InventoryController_listLots",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar lotes del agricultor autenticado",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/lots/{id}": {
+      "patch": {
+        "operationId": "InventoryController_updateLot",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInventoryLotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar lote, vencimiento o almacen de un lote",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/stock": {
+      "get": {
+        "operationId": "InventoryController_listStock",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "glifosato",
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Herbicida",
+              "type": "string"
+            }
+          },
+          {
+            "name": "criticality",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BAJO_MINIMO",
+                "VENCIDO",
+                "POR_VENCER",
+                "OK"
+              ]
+            }
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "stock",
+                "expiration"
+              ]
+            }
+          },
+          {
+            "name": "orderDirection",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar stock disponible con filtros y busqueda",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/global-stock": {
+      "get": {
+        "operationId": "InventoryController_listGlobalStock",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "glifosato",
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Herbicida",
+              "type": "string"
+            }
+          },
+          {
+            "name": "criticality",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BAJO_MINIMO",
+                "VENCIDO",
+                "POR_VENCER",
+                "OK"
+              ]
+            }
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "stock",
+                "expiration"
+              ]
+            }
+          },
+          {
+            "name": "orderDirection",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtra el inventario global por agricultor.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar inventario global de todos los agricultores",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/alerts": {
+      "get": {
+        "operationId": "InventoryController_listAlerts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar alertas de stock minimo y vencimiento",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/products/{id}/settings": {
+      "patch": {
+        "operationId": "InventoryController_updateProductSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductInventorySettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Sólo Directiva o Administración vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Configurar categoria, stock minimo y umbral de vencimiento",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/movements": {
+      "get": {
+        "operationId": "InventoryController_listMovements",
+        "parameters": [
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ENTRADA",
+                "SALIDA",
+                "AJUSTE"
+              ]
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reasonType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COMPRA",
+                "ENTRADA_SIMPLE",
+                "APLICACION",
+                "PERDIDA_DERRAME",
+                "VENCIMIENTO",
+                "PRESTAMO_ENTREGA",
+                "DEVOLUCION",
+                "AJUSTE",
+                "OTRO"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar historial de movimientos con filtros",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/campaigns": {
+      "get": {
+        "operationId": "CampaignsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PLANIFICADA",
+                "ABIERTA",
+                "CERRADA",
+                "CANCELADA"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Invierno",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar campanas agricolas del sindicato",
+        "tags": [
+          "campaigns"
+        ]
+      },
+      "post": {
+        "operationId": "CampaignsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear una campana agricola planificada",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/v1/campaigns/active": {
+      "get": {
+        "operationId": "CampaignsController_getActive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar la campana agricola activa del sindicato",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{id}": {
+      "patch": {
+        "operationId": "CampaignsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Editar una campana agricola planificada o abierta",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{id}/open": {
+      "post": {
+        "operationId": "CampaignsController_open",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Abrir una campana agricola",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{id}/close": {
+      "post": {
+        "operationId": "CampaignsController_close",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cerrar una campana agricola activa",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/v1/plots": {
+      "get": {
+        "operationId": "PlotsController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Campo norte",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVA",
+                "INACTIVA"
+              ]
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro para directiva o administrador",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar parcelas visibles para el usuario autenticado",
+        "tags": [
+          "plots"
+        ]
+      },
+      "post": {
+        "operationId": "PlotsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear una parcela del agricultor autenticado",
+        "tags": [
+          "plots"
+        ]
+      }
+    },
+    "/api/v1/plots/{id}": {
+      "patch": {
+        "operationId": "PlotsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Editar una parcela propia del agricultor autenticado",
+        "tags": [
+          "plots"
+        ]
+      }
+    },
+    "/api/v1/plots/{id}/deactivate": {
+      "post": {
+        "operationId": "PlotsController_deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inactivar una parcela propia sin borrar su historial",
+        "tags": [
+          "plots"
+        ]
+      }
+    },
+    "/api/v1/crops": {
+      "get": {
+        "operationId": "CropsController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "soya",
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar catalogo de cultivos del sindicato",
+        "tags": [
+          "crops"
+        ]
+      },
+      "post": {
+        "operationId": "CropsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCropDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear un cultivo del catalogo del sindicato",
+        "tags": [
+          "crops"
+        ]
+      }
+    },
+    "/api/v1/crops/{id}": {
+      "patch": {
+        "operationId": "CropsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCropDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar un cultivo del catalogo del sindicato",
+        "tags": [
+          "crops"
+        ]
+      }
+    },
+    "/api/v1/plot-crop-assignments": {
+      "get": {
+        "operationId": "PlotCropAssignmentsController_list",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro para directiva o administrador",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PLANIFICADO",
+                "ACTIVO",
+                "CAMBIADO",
+                "CERRADO"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar asignaciones cultivo/parcela/campana visibles",
+        "tags": [
+          "plot-crop-assignments"
+        ]
+      },
+      "post": {
+        "operationId": "PlotCropAssignmentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlotCropAssignmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asignar cultivo principal a una parcela propia en campana abierta",
+        "tags": [
+          "plot-crop-assignments"
+        ]
+      }
+    },
+    "/api/v1/plot-crop-assignments/{id}": {
+      "patch": {
+        "operationId": "PlotCropAssignmentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlotCropAssignmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar cultivo asignado a una parcela propia en campana abierta",
+        "tags": [
+          "plot-crop-assignments"
+        ]
+      }
+    },
+    "/api/v1/purchases": {
+      "get": {
+        "operationId": "PurchasesController_list",
+        "parameters": [
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INDIVIDUAL",
+                "CONJUNTA"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BORRADOR",
+                "PROGRAMADA",
+                "CONFIRMADA",
+                "RECIBIDA_PARCIAL",
+                "RECIBIDA",
+                "CERRADA",
+                "CANCELADA"
+              ]
+            }
+          },
+          {
+            "name": "paymentMode",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CONTADO",
+                "CREDITO"
+              ]
+            }
+          },
+          {
+            "name": "supplierId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar compras visibles para el usuario autenticado",
+        "tags": [
+          "purchases"
+        ]
+      },
+      "post": {
+        "operationId": "PurchasesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePurchaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Compra individual legacy: sólo Agricultor vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar compra al contado o a credito con entrada de inventario",
+        "tags": [
+          "purchases"
+        ]
+      }
+    },
+    "/api/v1/purchases/{id}": {
+      "get": {
+        "operationId": "PurchasesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener detalle de una compra visible para el usuario autenticado",
+        "tags": [
+          "purchases"
+        ]
+      }
+    },
+    "/api/v1/purchases/joint": {
+      "post": {
+        "operationId": "PurchasesController_createJoint",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJointPurchaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear compra conjunta y distribuir productos entre agricultores",
+        "tags": [
+          "purchases"
+        ]
+      }
+    },
+    "/api/v1/suppliers": {
+      "get": {
+        "operationId": "SuppliersController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "agroservicios",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar proveedores del sindicato",
+        "tags": [
+          "suppliers"
+        ]
+      },
+      "post": {
+        "operationId": "SuppliersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Mutación compartida temporal: sólo Directiva o Administración vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar proveedor",
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{id}": {
+      "patch": {
+        "operationId": "SuppliersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Mutación compartida temporal: sólo Directiva o Administración vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar proveedor",
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/accounts-payable": {
+      "get": {
+        "operationId": "AccountsPayableController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDIENTE",
+                "PARCIAL",
+                "PAGADA",
+                "VENCIDA"
+              ]
+            }
+          },
+          {
+            "name": "supplierId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro para directiva o administrador",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar cuentas por pagar visibles para el usuario autenticado",
+        "tags": [
+          "accounts-payable"
+        ]
+      }
+    },
+    "/api/v1/accounts-payable/{id}/payments": {
+      "post": {
+        "operationId": "AccountsPayableController_registerPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar abono parcial o total",
+        "tags": [
+          "accounts-payable"
+        ]
+      }
+    },
+    "/api/v1/accounts-payable/{id}/pay-total": {
+      "post": {
+        "operationId": "AccountsPayableController_payTotal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar pago total del saldo pendiente",
+        "tags": [
+          "accounts-payable"
+        ]
+      }
+    },
+    "/api/v1/audit-logs": {
+      "get": {
+        "operationId": "AuditLogsController_list",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorUserId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CREAR",
+                "ACTUALIZAR",
+                "INACTIVAR",
+                "ELIMINAR",
+                "ABRIR_CAMPANA",
+                "CERRAR_CAMPANA",
+                "AJUSTAR_STOCK",
+                "REGISTRAR_PAGO",
+                "SINCRONIZAR",
+                "OTRO"
+              ]
+            }
+          },
+          {
+            "name": "entityName",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "AgrochemicalApplication",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar bitacora de cambios importantes",
+        "tags": [
+          "audit-logs"
+        ]
+      }
+    },
+    "/api/v1/applications": {
+      "get": {
+        "operationId": "ApplicationsController_list",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro para directiva o administrador",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REGISTRADA",
+                "ANULADA"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar aplicaciones de agroquimicos visibles para el usuario",
+        "tags": [
+          "applications"
+        ]
+      },
+      "post": {
+        "operationId": "ApplicationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar aplicacion de agroquimico a parcela y descontar stock",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/api/v1/applications/{id}": {
+      "get": {
+        "operationId": "ApplicationsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener detalle de una aplicacion visible para el usuario",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/api/v1/applications/{id}/cancel": {
+      "post": {
+        "operationId": "ApplicationsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Anular una aplicacion propia indicando motivo",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/api/v1/calendar/events": {
+      "get": {
+        "operationId": "CalendarEventsController_list",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro para directiva o administrador",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "VENCIMIENTO_LOTE",
+                "PAGO_PROXIMO",
+                "APLICACION",
+                "COMPRA_PROGRAMADA",
+                "STOCK_BAJO",
+                "CIERRE_CAMPANA"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDIENTE",
+                "COMPLETADO",
+                "CANCELADO"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar eventos de calendario visibles para el usuario autenticado",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/events/{id}/complete": {
+      "post": {
+        "operationId": "CalendarEventsController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marcar evento de calendario como completado",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/events/{id}/cancel": {
+      "post": {
+        "operationId": "CalendarEventsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancelar evento de calendario",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/reports/inventory/current": {
+      "get": {
+        "operationId": "ReportsController_inventoryCurrent",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de inventario actual",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/inventory/by-campaign": {
+      "get": {
+        "operationId": "ReportsController_inventoryByCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de inventario agrupado por campana",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/inventory/by-farmer": {
+      "get": {
+        "operationId": "ReportsController_inventoryByFarmer",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de inventario agrupado por agricultor",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/purchases/by-campaign": {
+      "get": {
+        "operationId": "ReportsController_purchasesByCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de compras por campana",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/purchases/joint": {
+      "get": {
+        "operationId": "ReportsController_jointPurchases",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de compras conjuntas",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/applications/by-plot-crop": {
+      "get": {
+        "operationId": "ReportsController_applicationsByPlotCrop",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de aplicaciones por parcela y cultivo",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/consumption/by-product": {
+      "get": {
+        "operationId": "ReportsController_consumptionByProduct",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de consumo por producto",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/consumption/by-crop": {
+      "get": {
+        "operationId": "ReportsController_consumptionByCrop",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de consumo por cultivo",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/products/expired": {
+      "get": {
+        "operationId": "ReportsController_expiredProducts",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de productos vencidos y proximos a vencer",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/payables": {
+      "get": {
+        "operationId": "ReportsController_payablesAndPayments",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de cuentas por pagar y pagos",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/audit-log": {
+      "get": {
+        "operationId": "ReportsController_auditByCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUserId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por agricultor para directiva o administrador.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cropId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reporte de bitacora por campana",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/sync/operations": {
+      "post": {
+        "operationId": "SyncController_sync",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncOperationsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Operación individual legacy: sólo Agricultor vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sincronizar operaciones registradas sin conexion",
+        "tags": [
+          "sync"
+        ]
+      },
+      "get": {
+        "operationId": "SyncController_list",
+        "parameters": [
+          {
+            "name": "clientId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "android-juan-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Consulta individual legacy: sólo Agricultor vigente."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar estado de operaciones sincronizadas",
+        "tags": [
+          "sync"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear un usuario en el tenant actual",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar usuarios del tenant actual",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "operationId": "UsersController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener un usuario del tenant actual",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar nombre, rol o estado de un usuario",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{id}/password": {
+      "patch": {
+        "operationId": "UsersController_resetPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetUserPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resetear la contrasena de un usuario",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{id}/deactivate": {
+      "patch": {
+        "operationId": "UsersController_deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Desactivar logicamente un usuario (isActive=false)",
+        "tags": [
+          "users"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Agrochemical Inventory API",
+    "description": "API central de identidad, membresia, contratos autorizados, campanas y catalogos compartidos, con autenticacion versionada. Algunos endpoints legacy permanecen por compatibilidad; su presencia en OpenAPI no los convierte en arquitectura target del Proyecto de Grado.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      },
+      "refresh_token": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refresh_token"
+      },
+      "refresh_token_v2": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refresh_token_v2"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@agro.local"
+          },
+          "password": {
+            "type": "string",
+            "example": "Admin123!"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginV2Dto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@agro.local"
+          },
+          "password": {
+            "type": "string",
+            "example": "Admin123!"
+          },
+          "refreshTransport": {
+            "type": "string",
+            "enum": [
+              "COOKIE",
+              "BODY"
+            ],
+            "default": "COOKIE",
+            "description": "COOKIE para Web; BODY prepara clientes Mobile futuros."
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RefreshV2Dto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh opaco V2. Exclusivo del transporte BODY."
+          }
+        }
+      },
+      "LogoutV2Dto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh opaco V2. Exclusivo del transporte BODY."
+          }
+        }
+      },
+      "BindSessionClientDto": {
+        "type": "object",
+        "properties": {
+          "registrationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID central de ClientRegistration."
+          }
+        },
+        "required": [
+          "registrationId"
+        ]
+      },
+      "RegisterClientDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "UUID v4 canónico y seudónimo generado por la instalación Mobile",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "clientId"
+        ]
+      },
+      "CreateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Glifosato 48%"
+          },
+          "commercialName": {
+            "type": "string",
+            "example": "Glifosato Max"
+          },
+          "activeIngredient": {
+            "type": "string",
+            "example": "Glifosato"
+          },
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "toxicologicalCategory": {
+            "type": "object",
+            "example": "II - Moderadamente peligroso",
+            "nullable": true
+          },
+          "safetyDataSheetUrl": {
+            "type": "object",
+            "example": "https://example.com/fds/glifosato.pdf",
+            "nullable": true
+          },
+          "safetyDataSheetName": {
+            "type": "object",
+            "example": "FDS Glifosato 48%",
+            "nullable": true
+          },
+          "safetyInstructions": {
+            "type": "object",
+            "example": "Usar guantes, mascara y evitar deriva.",
+            "nullable": true
+          },
+          "qrCodeValue": {
+            "type": "object",
+            "example": "AGRO-PRODUCT-GLIFOSATO-48",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "example": "L"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        },
+        "required": [
+          "name",
+          "unit"
+        ]
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Glifosato 48%"
+          },
+          "commercialName": {
+            "type": "string",
+            "example": "Glifosato Max"
+          },
+          "activeIngredient": {
+            "type": "string",
+            "example": "Glifosato"
+          },
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "toxicologicalCategory": {
+            "type": "object",
+            "example": "II - Moderadamente peligroso",
+            "nullable": true
+          },
+          "safetyDataSheetUrl": {
+            "type": "object",
+            "example": "https://example.com/fds/glifosato.pdf",
+            "nullable": true
+          },
+          "safetyDataSheetName": {
+            "type": "object",
+            "example": "FDS Glifosato 48%",
+            "nullable": true
+          },
+          "safetyInstructions": {
+            "type": "object",
+            "example": "Usar guantes, mascara y evitar deriva.",
+            "nullable": true
+          },
+          "qrCodeValue": {
+            "type": "object",
+            "example": "AGRO-PRODUCT-GLIFOSATO-48",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "example": "L"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        }
+      },
+      "ProductReferenceDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "ID de un producto existente. Si no se envia, se crea/busca por nombre."
+          },
+          "productName": {
+            "type": "string",
+            "example": "Glifosato 48%"
+          },
+          "activeIngredient": {
+            "type": "string",
+            "example": "Glifosato"
+          },
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "unit": {
+            "type": "string",
+            "example": "L"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        }
+      },
+      "RegisterInitialStockDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 25
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-2026-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-10-30"
+          },
+          "warehouseId": {
+            "type": "string",
+            "description": "Almacen existente donde se guardara el producto."
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Inventario cargado al iniciar el sistema"
+          }
+        },
+        "required": [
+          "product",
+          "quantity"
+        ]
+      },
+      "RegisterStockEntryDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "entryReason": {
+            "type": "string",
+            "enum": [
+              "COMPRA",
+              "ENTRADA_SIMPLE",
+              "DEVOLUCION",
+              "AJUSTE"
+            ],
+            "example": "ENTRADA_SIMPLE"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 10
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-2026-02"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Compra semanal o devolucion de campaña"
+          }
+        },
+        "required": [
+          "product",
+          "entryReason",
+          "quantity"
+        ]
+      },
+      "RegisterStockExitDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Producto del que se descontara stock."
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "inventoryLotId": {
+            "type": "string",
+            "description": "Lote especifico a descontar. Si no se envia, se descuentan primero los lotes con vencimiento mas cercano."
+          },
+          "quantity": {
+            "type": "number",
+            "example": 5
+          },
+          "reasonType": {
+            "type": "string",
+            "enum": [
+              "COMPRA",
+              "ENTRADA_SIMPLE",
+              "APLICACION",
+              "PERDIDA_DERRAME",
+              "VENCIMIENTO",
+              "PRESTAMO_ENTREGA",
+              "DEVOLUCION",
+              "AJUSTE",
+              "OTRO"
+            ],
+            "example": "OTRO"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Aplicacion en parcela norte"
+          }
+        },
+        "required": [
+          "productId",
+          "quantity",
+          "reasonType",
+          "reason"
+        ]
+      },
+      "RegisterStockAdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "inventoryLotId": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "INCREMENTO",
+              "DECREMENTO"
+            ]
+          },
+          "reasonType": {
+            "type": "string",
+            "enum": [
+              "COMPRA",
+              "ENTRADA_SIMPLE",
+              "APLICACION",
+              "PERDIDA_DERRAME",
+              "VENCIMIENTO",
+              "PRESTAMO_ENTREGA",
+              "DEVOLUCION",
+              "AJUSTE",
+              "OTRO"
+            ],
+            "example": "AJUSTE"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2
+          },
+          "reason": {
+            "type": "string",
+            "example": "Envase roto durante transporte"
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-AJUSTE-01",
+            "description": "Usado cuando direction=INCREMENTO y no se envia inventoryLotId."
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          }
+        },
+        "required": [
+          "productId",
+          "direction",
+          "reasonType",
+          "quantity"
+        ]
+      },
+      "UpdateInventoryLotDto": {
+        "type": "object",
+        "properties": {
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-2026-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          }
+        }
+      },
+      "UpdateProductInventorySettingsDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        }
+      },
+      "CreateCampaignDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Invierno 2026"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-04-01"
+          },
+          "estimatedEndDate": {
+            "type": "object",
+            "example": "2026-08-31",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Campana de invierno para el sindicato.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "startDate"
+        ]
+      },
+      "UpdateCampaignDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Invierno 2026"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-04-01"
+          },
+          "estimatedEndDate": {
+            "type": "object",
+            "example": "2026-08-31",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Campana de invierno para el sindicato.",
+            "nullable": true
+          }
+        }
+      },
+      "CloseCampaignDto": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "object",
+            "example": "Cierre administrativo de campana.",
+            "nullable": true
+          }
+        }
+      },
+      "CreatePlotDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Campo norte"
+          },
+          "location": {
+            "type": "object",
+            "example": "Comunidad 19 de Agosto, lote 3",
+            "nullable": true
+          },
+          "area": {
+            "type": "object",
+            "example": 12.5,
+            "nullable": true
+          },
+          "areaUnit": {
+            "type": "string",
+            "example": "ha"
+          },
+          "notes": {
+            "type": "object",
+            "example": "Parcela principal del agricultor.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdatePlotDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Campo norte"
+          },
+          "location": {
+            "type": "object",
+            "example": "Comunidad 19 de Agosto, lote 3",
+            "nullable": true
+          },
+          "area": {
+            "type": "object",
+            "example": 12.5,
+            "nullable": true
+          },
+          "areaUnit": {
+            "type": "string",
+            "example": "ha"
+          },
+          "notes": {
+            "type": "object",
+            "example": "Parcela principal del agricultor.",
+            "nullable": true
+          }
+        }
+      },
+      "CreateCropDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Soya"
+          },
+          "variety": {
+            "type": "object",
+            "example": "Munasqa",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cultivo habilitado para campanas de verano.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCropDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Soya"
+          },
+          "variety": {
+            "type": "object",
+            "example": "Munasqa",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cultivo habilitado para campanas de verano.",
+            "nullable": true
+          }
+        }
+      },
+      "CreatePlotCropAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "plotId": {
+            "type": "string"
+          },
+          "cropId": {
+            "type": "string"
+          },
+          "plantedArea": {
+            "type": "object",
+            "example": 10.5,
+            "nullable": true
+          },
+          "plantedAt": {
+            "type": "object",
+            "example": "2026-04-15",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cultivo principal de la parcela.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "plotId",
+          "cropId"
+        ]
+      },
+      "UpdatePlotCropAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "cropId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PLANIFICADO",
+              "ACTIVO",
+              "CAMBIADO",
+              "CERRADO"
+            ]
+          },
+          "plantedArea": {
+            "type": "object",
+            "example": 10.5,
+            "nullable": true
+          },
+          "plantedAt": {
+            "type": "object",
+            "example": "2026-04-15",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cambio de cultivo registrado.",
+            "nullable": true
+          }
+        }
+      },
+      "SupplierReferenceDto": {
+        "type": "object",
+        "properties": {
+          "supplierId": {
+            "type": "string"
+          },
+          "supplierName": {
+            "type": "string",
+            "example": "Agroservicios San Julian"
+          },
+          "phone": {
+            "type": "string",
+            "example": "70000000"
+          },
+          "address": {
+            "type": "string",
+            "example": "San Julian, Santa Cruz"
+          }
+        }
+      },
+      "CreatePurchaseItemDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 20
+          },
+          "unitCost": {
+            "type": "number",
+            "example": 45.5
+          },
+          "discountAmount": {
+            "type": "number",
+            "example": 15
+          },
+          "receivedQuantity": {
+            "type": "number",
+            "example": 10,
+            "description": "Cantidad recibida cuando la compra es parcial."
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-COMPRA-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          }
+        },
+        "required": [
+          "product",
+          "quantity",
+          "unitCost"
+        ]
+      },
+      "CreatePurchaseDto": {
+        "type": "object",
+        "properties": {
+          "supplier": {
+            "$ref": "#/components/schemas/SupplierReferenceDto"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "paymentMode": {
+            "type": "string",
+            "enum": [
+              "CONTADO",
+              "CREDITO"
+            ],
+            "example": "CREDITO"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "PROGRAMADA",
+              "CONFIRMADA",
+              "RECIBIDA_PARCIAL",
+              "RECIBIDA",
+              "CERRADA",
+              "CANCELADA"
+            ],
+            "example": "RECIBIDA"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreatePurchaseItemDto"
+            }
+          },
+          "purchasedAt": {
+            "type": "string",
+            "example": "2026-05-28"
+          },
+          "expectedAt": {
+            "type": "string",
+            "example": "2026-06-05",
+            "description": "Fecha esperada para compra programada."
+          },
+          "dueDate": {
+            "type": "string",
+            "example": "2026-06-28",
+            "description": "Obligatorio cuando paymentMode=CREDITO."
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Compra registrada desde formulario"
+          }
+        },
+        "required": [
+          "supplier",
+          "paymentMode",
+          "items"
+        ]
+      },
+      "JointPurchaseAllocationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": [
+          "userId",
+          "quantity"
+        ]
+      },
+      "CreateJointPurchaseItemDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 50
+          },
+          "unitCost": {
+            "type": "number",
+            "example": 42
+          },
+          "discountAmount": {
+            "type": "number",
+            "example": 120
+          },
+          "receivedQuantity": {
+            "type": "number",
+            "example": 25,
+            "description": "Cantidad recibida cuando la compra es parcial."
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-CONJ-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JointPurchaseAllocationDto"
+            }
+          }
+        },
+        "required": [
+          "product",
+          "quantity",
+          "unitCost",
+          "allocations"
+        ]
+      },
+      "CreateJointPurchaseDto": {
+        "type": "object",
+        "properties": {
+          "supplier": {
+            "$ref": "#/components/schemas/SupplierReferenceDto"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "paymentMode": {
+            "type": "string",
+            "enum": [
+              "CONTADO",
+              "CREDITO"
+            ],
+            "example": "CREDITO"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "PROGRAMADA",
+              "CONFIRMADA",
+              "RECIBIDA_PARCIAL",
+              "RECIBIDA",
+              "CERRADA",
+              "CANCELADA"
+            ],
+            "example": "RECIBIDA"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateJointPurchaseItemDto"
+            }
+          },
+          "purchasedAt": {
+            "type": "string",
+            "example": "2026-05-28"
+          },
+          "expectedAt": {
+            "type": "string",
+            "example": "2026-06-05",
+            "description": "Fecha esperada para compra programada."
+          },
+          "dueDate": {
+            "type": "string",
+            "example": "2026-06-28",
+            "description": "Obligatorio si paymentMode=CREDITO."
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Deposito comun del sindicato"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Compra conjunta para aprovechar descuento por volumen"
+          }
+        },
+        "required": [
+          "supplier",
+          "paymentMode",
+          "items"
+        ]
+      },
+      "CreateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Agroservicios San Julian"
+          },
+          "phone": {
+            "type": "string",
+            "example": "70000000"
+          },
+          "address": {
+            "type": "string",
+            "example": "San Julian, Santa Cruz"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Proveedor de herbicidas y fertilizantes"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Agroservicios San Julian"
+          },
+          "phone": {
+            "type": "string",
+            "example": "70000000"
+          },
+          "address": {
+            "type": "string",
+            "example": "San Julian, Santa Cruz"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Proveedor de herbicidas y fertilizantes"
+          }
+        }
+      },
+      "RegisterPaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 150
+          },
+          "paidAt": {
+            "type": "string",
+            "example": "2026-05-28"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Abono parcial realizado en efectivo"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
+      "CreateApplicationDto": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "plotId": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "inventoryLotId": {
+            "type": "string",
+            "description": "Lote especifico a descontar. Si se omite, se usa el lote con vencimiento mas cercano."
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2.5
+          },
+          "dose": {
+            "type": "object",
+            "example": "1 L/ha",
+            "nullable": true
+          },
+          "targetPest": {
+            "type": "object",
+            "example": "Malezas de hoja ancha",
+            "nullable": true
+          },
+          "weatherConditions": {
+            "type": "object",
+            "example": "Sin lluvia, viento leve",
+            "nullable": true
+          },
+          "responsibleName": {
+            "type": "object",
+            "example": "Juan Perez",
+            "nullable": true
+          },
+          "appliedAt": {
+            "type": "string",
+            "example": "2026-05-10T08:30:00.000Z"
+          },
+          "notes": {
+            "type": "object",
+            "example": "Aplicacion preventiva.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "plotId",
+          "productId",
+          "quantity"
+        ]
+      },
+      "CancelApplicationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Registro duplicado o error de cantidad."
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "OfflineOperationDto": {
+        "type": "object",
+        "properties": {
+          "clientOperationId": {
+            "type": "string",
+            "example": "device-op-001"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "INITIAL_STOCK",
+              "PLOT_CREATE",
+              "PLOT_UPDATE",
+              "PLOT_DEACTIVATE",
+              "PLOT_CROP_ASSIGN",
+              "STOCK_ENTRY",
+              "STOCK_EXIT",
+              "AGROCHEMICAL_APPLICATION",
+              "PAYMENT_CREATE"
+            ]
+          },
+          "payload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "clientOperationId",
+          "operation",
+          "payload"
+        ]
+      },
+      "SyncOperationsDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "example": "android-juan-001"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfflineOperationDto"
+            }
+          }
+        },
+        "required": [
+          "clientId",
+          "operations"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Juan Perez"
+          },
+          "email": {
+            "type": "string",
+            "example": "juan.perez@agro.local"
+          },
+          "password": {
+            "type": "string",
+            "example": "Contrasena123!"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "AGRICULTOR",
+              "DIRECTIVA",
+              "ADMINISTRADOR"
+            ],
+            "example": "AGRICULTOR"
+          },
+          "allowAdministrator": {
+            "type": "boolean",
+            "description": "Confirma explicitamente la creacion de un usuario ADMINISTRADOR.",
+            "example": false
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+          "role"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Juan Perez"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "AGRICULTOR",
+              "DIRECTIVA",
+              "ADMINISTRADOR"
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ResetUserPasswordDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "example": "NuevaContrasena123!"
+          }
+        },
+        "required": [
+          "password"
+        ]
+      }
+    }
+  }
+}

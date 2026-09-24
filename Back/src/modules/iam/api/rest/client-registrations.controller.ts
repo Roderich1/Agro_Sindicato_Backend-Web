@@ -6,11 +6,12 @@ import {
   ParseUUIDPipe,
   Post,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { RegisterClientDto } from "../../application/dtos/register-client.dto";
 import { AuthenticatedPrincipal } from "../../application/types/authenticated-principal.type";
 import { ManageClientRegistrationsUseCase } from "../../application/use-cases/manage-client-registrations.use-case";
 import { CurrentUser } from "./decorators/current-user.decorator";
+import { clientRegistrationResponseSchema } from "./auth-openapi.schemas";
 
 @ApiTags("auth clients")
 @ApiBearerAuth()
@@ -19,6 +20,10 @@ export class ClientRegistrationsController {
   constructor(private readonly clients: ManageClientRegistrationsUseCase) {}
 
   @Post()
+  @ApiResponse({ status: 201, description: "ClientRegistration propio creado; clientId no se almacena en claro.", schema: clientRegistrationResponseSchema })
+  @ApiResponse({ status: 400, description: "clientId no es UUID v4 valido." })
+  @ApiResponse({ status: 401, description: "Contexto invalido o inactivo." })
+  @ApiResponse({ status: 409, description: "Registro de cliente en conflicto." })
   @ApiOperation({
     summary: "Registrar la identidad lógica de esta instalación",
   })
@@ -27,6 +32,8 @@ export class ClientRegistrationsController {
   }
 
   @Get()
+  @ApiResponse({ status: 200, description: "Registros de la membresia actual.", schema: { type: "array", items: clientRegistrationResponseSchema } })
+  @ApiResponse({ status: 401, description: "Contexto invalido o inactivo." })
   @ApiOperation({
     summary: "Listar registros de cliente de la membership autenticada",
   })
@@ -35,6 +42,10 @@ export class ClientRegistrationsController {
   }
 
   @Post(":id/revoke")
+  @ApiResponse({ status: 201, description: "Registro propio revocado.", schema: clientRegistrationResponseSchema })
+  @ApiResponse({ status: 400, description: "ID invalido." })
+  @ApiResponse({ status: 401, description: "Contexto invalido o inactivo." })
+  @ApiResponse({ status: 404, description: "Registro no visible." })
   @ApiOperation({ summary: "Revocar un registro de cliente propio" })
   revoke(
     @CurrentUser() user: AuthenticatedPrincipal,
