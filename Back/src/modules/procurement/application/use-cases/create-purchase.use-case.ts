@@ -376,24 +376,16 @@ export class CreatePurchaseUseCase {
       throw new BadRequestException('Debe enviar supplierId o supplierName.');
     }
 
-    return tx.supplier.upsert({
-      where: { tenantId_name: { tenantId, name: dto.supplierName.trim() } },
-      update: {
-        phone: dto.phone?.trim() || undefined,
-        address: dto.address?.trim() || undefined,
-      },
-      create: {
-        tenantId,
-        name: dto.supplierName.trim(),
-        phone: dto.phone?.trim(),
-        address: dto.address?.trim(),
-      },
+    const supplier = await tx.supplier.findFirst({
+      where: { tenantId, name: dto.supplierName.trim() },
     });
+    if (!supplier) throw new NotFoundException('El proveedor no existe en este sindicato.');
+    return supplier;
   }
 
   private async resolveProduct(tx: TxClient, tenantId: string, dto: ProductReferenceDto) {
     if (dto.productId) {
-      const product = await tx.product.findFirst({ where: { id: dto.productId, tenantId } });
+      const product = await tx.product.findFirst({ where: { id: dto.productId, tenantId, isActive: true } });
       if (!product) throw new NotFoundException('El producto no existe en este sindicato.');
       return product;
     }
@@ -402,29 +394,11 @@ export class CreatePurchaseUseCase {
       throw new BadRequestException('Debe enviar productId o productName.');
     }
 
-    return tx.product.upsert({
-      where: { tenantId_name: { tenantId, name: dto.productName.trim() } },
-      update: {
-        activeIngredient: dto.activeIngredient?.trim() || undefined,
-        category: dto.category?.trim() || undefined,
-        unit: dto.unit?.trim() || undefined,
-        ...(dto.minimumStock !== undefined ? { minimumStock: this.toDecimal(dto.minimumStock) } : {}),
-        ...(dto.expirationWarningDays !== undefined
-          ? { expirationWarningDays: dto.expirationWarningDays }
-          : {}),
-      },
-      create: {
-        tenantId,
-        name: dto.productName.trim(),
-        activeIngredient: dto.activeIngredient?.trim(),
-        category: dto.category?.trim(),
-        unit: dto.unit?.trim() || 'unidad',
-        ...(dto.minimumStock !== undefined ? { minimumStock: this.toDecimal(dto.minimumStock) } : {}),
-        ...(dto.expirationWarningDays !== undefined
-          ? { expirationWarningDays: dto.expirationWarningDays }
-          : {}),
-      },
+    const product = await tx.product.findFirst({
+      where: { tenantId, name: dto.productName.trim(), isActive: true },
     });
+    if (!product) throw new NotFoundException('El producto no existe en este sindicato.');
+    return product;
   }
 
   private async resolveWarehouse(
@@ -434,7 +408,7 @@ export class CreatePurchaseUseCase {
     data: { warehouseId?: string; warehouseName?: string },
   ) {
     if (data.warehouseId) {
-      const warehouse = await tx.warehouse.findFirst({ where: { id: data.warehouseId, tenantId } });
+      const warehouse = await tx.warehouse.findFirst({ where: { id: data.warehouseId, tenantId, ownerUserId: userId } });
       if (!warehouse) throw new NotFoundException('El almacen no existe en este sindicato.');
       return warehouse;
     }
