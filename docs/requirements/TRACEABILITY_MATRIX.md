@@ -2,6 +2,8 @@
 
 Esta matriz formaliza `Project/OE → URS → SRS → decisión → fase/issue → verificación`. `BASELINED` significa especificado y revisable, no implementado ni probado.
 
+La trazabilidad no convierte ejemplos privados o modelos legacy en requisitos nuevos. `URS-MOB-02` se refiere a inventario/stock, compras, transferencias y aplicaciones; `SRS-PRIV-01` es condicional; `SRS-JP-01` depende del contrato F06 para `declared_stock`; `SRS-BKP-01/02` delegan detalles físicos a F09. `PayableAccount`/`Payment` no tienen target Live.
+
 | OE | URS | SRS | ADR / Decision | Phase | GitHub Issue | Verification target | Status |
 |---|---|---|---|---|---|---|---|
 | OE1 | Conjunto URS F01 | Conjunto SRS F01 | ADR-001; DEC-F01-01–12 | F01 | #7, #8, #9 | REVIEW, TRACE | BASELINED |
