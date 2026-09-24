@@ -483,7 +483,7 @@ export class CreateJointPurchaseUseCase {
     data: { warehouseId?: string; warehouseName?: string },
   ) {
     if (data.warehouseId) {
-      const warehouse = await tx.warehouse.findFirst({ where: { id: data.warehouseId, tenantId } });
+      const warehouse = await tx.warehouse.findFirst({ where: { id: data.warehouseId, tenantId, ownerUserId } });
       if (!warehouse) throw new NotFoundException('El almacen no existe en este sindicato.');
       return warehouse;
     }

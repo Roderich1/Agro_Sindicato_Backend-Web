@@ -47,7 +47,7 @@ export class InventoryLotUseCase {
   private async resolveWarehouse(tenantId: string, userId: string, dto: UpdateInventoryLotDto) {
     if (dto.warehouseId) {
       const warehouse = await this.prisma.warehouse.findFirst({
-        where: { id: dto.warehouseId, tenantId },
+        where: { id: dto.warehouseId, tenantId, ownerUserId: userId },
       });
       if (!warehouse) throw new NotFoundException('El almacen no existe en este sindicato.');
       return warehouse;
