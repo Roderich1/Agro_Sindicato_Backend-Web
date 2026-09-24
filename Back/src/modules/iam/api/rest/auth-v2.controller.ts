@@ -56,7 +56,7 @@ export function selectCredential(req: Request, bodyToken?: string) {
   ];
   if (cookieToken && bodyToken) {
     throw new BadRequestException(
-      "Use refresh V2 por cookie o body, nunca ambos simultÃ¡neamente.",
+      "Use refresh V2 por cookie o body, nunca ambos simultáneamente.",
     );
   }
   return bodyToken
@@ -77,11 +77,11 @@ export class AuthV2Controller {
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: "Iniciar una sesiÃ³n auth V2",
+    summary: "Iniciar una sesión auth V2",
     description:
       "Contrato versionado 2. COOKIE es el transporte Web por defecto; BODY prepara clientes Mobile futuros.",
   })
-  @ApiResponse({ status: 200, description: "SesiÃ³n V2 creada." })
+  @ApiResponse({ status: 200, description: "Sesión V2 creada." })
   @ApiUnauthorizedResponse({
     description: "Credenciales o contexto inactivos.",
   })
@@ -111,11 +111,11 @@ export class AuthV2Controller {
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth(V2_REFRESH_COOKIE)
   @ApiOperation({
-    summary: "Rotar refresh V2 atÃ³micamente",
+    summary: "Rotar refresh V2 atómicamente",
     description:
-      "Acepta refresh_token_v2 para COOKIE o refreshToken para BODY. Rechaza ambigÃ¼edad y mantiene la expiraciÃ³n absoluta de la sesiÃ³n.",
+      "Acepta refresh_token_v2 para COOKIE o refreshToken para BODY. Rechaza ambigüedad y mantiene la expiración absoluta de la sesión.",
   })
-  @ApiUnauthorizedResponse({ description: "Refresh/sesiÃ³n V2 invÃ¡lidos." })
+  @ApiUnauthorizedResponse({ description: "Refresh/sesión V2 inválidos." })
   async refresh(
     @Body() dto: RefreshV2Dto,
     @Req() req: Request,
@@ -143,7 +143,7 @@ export class AuthV2Controller {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiCookieAuth(V2_REFRESH_COOKIE)
   @ApiOperation({
-    summary: "Revocar la sesiÃ³n V2 actual",
+    summary: "Revocar la sesión V2 actual",
     description:
       "Idempotente y utilizable aunque el access haya expirado. No revoca ClientRegistration.",
   })
@@ -160,7 +160,7 @@ export class AuthV2Controller {
   @ApiBearerAuth()
   @Get("me")
   @ApiOperation({
-    summary: "Obtener contexto vigente de la sesiÃ³n V2",
+    summary: "Obtener contexto vigente de la sesión V2",
     description:
       "Revalida Account, Member, Tenant, rol, Session y ClientRegistration asociado.",
   })
@@ -174,12 +174,12 @@ export class AuthV2Controller {
   @ApiBearerAuth()
   @Post("session/client")
   @ApiOperation({
-    summary: "Asociar la sesiÃ³n V2 a un ClientRegistration activo",
+    summary: "Asociar la sesión V2 a un ClientRegistration activo",
     description:
       "Deriva session/member/tenant del access V2. El mismo binding es idempotente y un rebind distinto responde 409.",
   })
   @ApiConflictResponse({
-    description: "La sesiÃ³n ya estÃ¡ ligada a otro registro.",
+    description: "La sesión ya está ligada a otro registro.",
   })
   bindClient(
     @CurrentUser() payload: JwtPayload,

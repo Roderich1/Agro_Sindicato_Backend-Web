@@ -33,7 +33,7 @@ export class RefreshSessionUseCase {
     refreshExpiresAt: Date;
     user: AuthResponseDto["user"];
   }> {
-    if (!rawToken) throw new UnauthorizedException("SesiÃ³n no vÃ¡lida");
+    if (!rawToken) throw new UnauthorizedException("Sesión no válida");
 
     const tokenHash = crypto
       .createHash("sha256")
@@ -42,25 +42,25 @@ export class RefreshSessionUseCase {
     const stored = await this.refreshRepo.findByHash(tokenHash);
 
     if (!stored || stored.contractVersion !== 1 || stored.sessionId !== null) {
-      throw new UnauthorizedException("SesiÃ³n no vÃ¡lida");
+      throw new UnauthorizedException("Sesión no válida");
     }
 
     if (stored.revokedAt) {
       // V1 keeps its legacy user-wide reuse behavior during coexistence.
       await this.refreshRepo.revokeAllByUser(stored.userId);
       throw new UnauthorizedException(
-        "SesiÃ³n invÃ¡lida. Inicia sesiÃ³n nuevamente.",
+        "Sesión inválida. Inicia sesión nuevamente.",
       );
     }
 
     if (stored.expiresAt < new Date()) {
       await this.refreshRepo.revokeById(stored.id);
-      throw new UnauthorizedException("SesiÃ³n expirada");
+      throw new UnauthorizedException("Sesión expirada");
     }
 
     const user = await this.userRepo.findById(stored.userId);
     if (!user || !user.isActive) {
-      throw new UnauthorizedException("SesiÃ³n no vÃ¡lida");
+      throw new UnauthorizedException("Sesión no válida");
     }
 
     await this.refreshRepo.revokeById(stored.id);

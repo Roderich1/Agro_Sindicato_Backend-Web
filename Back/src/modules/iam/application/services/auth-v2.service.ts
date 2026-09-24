@@ -14,8 +14,8 @@ import { LoginV2Dto, RefreshTransportDto } from "../dtos/auth-v2.dto";
 import { JwtPayload } from "../types/jwt-payload.type";
 import { AuthTtlPolicy } from "./auth-ttl-policy";
 
-const INVALID_CREDENTIALS = "Credenciales invÃ¡lidas";
-const INVALID_SESSION = "SesiÃ³n V2 no vÃ¡lida";
+const INVALID_CREDENTIALS = "Credenciales inválidas";
+const INVALID_SESSION = "Sesión V2 no válida";
 const TIMING_SAFE_FAKE_HASH = "$2b$12$invalidhashfortimingattackprotectiononly";
 
 type RefreshCredentialSource = "COOKIE" | "BODY";
@@ -178,7 +178,7 @@ export class AuthV2Service {
       if (outcome.kind === "retry") continue;
       if (outcome.kind === "reuse") {
         throw new UnauthorizedException(
-          "Reuso de refresh detectado; la sesiÃ³n fue comprometida.",
+          "Reuso de refresh detectado; la sesión fue comprometida.",
         );
       }
       if (outcome.kind === "invalid") {
@@ -194,7 +194,7 @@ export class AuthV2Service {
       };
     }
     throw new ServiceUnavailableException(
-      "No se pudo completar la rotaciÃ³n atÃ³mica.",
+      "No se pudo completar la rotación atómica.",
     );
   }
 
@@ -244,7 +244,7 @@ export class AuthV2Service {
     }
     if (context.session.clientRegistrationId) {
       throw new ConflictException(
-        "La sesiÃ³n ya estÃ¡ asociada a otro registro de cliente.",
+        "La sesión ya está asociada a otro registro de cliente.",
       );
     }
 
@@ -266,7 +266,7 @@ export class AuthV2Service {
         return { registrationId: registration.id, status: registration.status };
       }
       throw new ConflictException(
-        "La sesiÃ³n ya estÃ¡ asociada a otro registro de cliente.",
+        "La sesión ya está asociada a otro registro de cliente.",
       );
     }
     return { registrationId: registration.id, status: registration.status };
