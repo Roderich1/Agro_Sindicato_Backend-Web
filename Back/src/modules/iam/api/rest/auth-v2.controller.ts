@@ -12,7 +12,6 @@ import {
 import {
   ApiBearerAuth,
   ApiConflictResponse,
-  ApiCookieAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -32,6 +31,7 @@ import { AuthTtlPolicy } from "../../application/services/auth-ttl-policy";
 import { AuthenticatedPrincipal } from "../../application/types/authenticated-principal.type";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { Public } from "./decorators/public.decorator";
+import { v2AuthResponseSchema } from "./auth-openapi.schemas";
 
 const V2_REFRESH_COOKIE = "refresh_token_v2";
 const V2_COOKIE_PATH = "/api/v1/auth/v2";
@@ -76,12 +76,14 @@ export class AuthV2Controller {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 400, description: "DTO o transporte invalido." })
+  @ApiResponse({ status: 429, description: "Limite de intentos excedido." })
   @ApiOperation({
     summary: "Iniciar una sesión auth V2",
     description:
       "Contrato versionado 2. COOKIE es el transporte Web por defecto; BODY prepara clientes Mobile futuros.",
   })
-  @ApiResponse({ status: 200, description: "Sesión V2 creada." })
+  @ApiResponse({ status: 200, description: "Sesión V2 creada.", schema: v2AuthResponseSchema })
   @ApiUnauthorizedResponse({
     description: "Credenciales o contexto inactivos.",
   })
@@ -109,11 +111,13 @@ export class AuthV2Controller {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
-  @ApiCookieAuth(V2_REFRESH_COOKIE)
+  @ApiResponse({ status: 200, description: "Access V2 y refresh rotado; COOKIE usa refresh_token_v2 HttpOnly, BODY devuelve refreshToken.", schema: v2AuthResponseSchema })
+  @ApiResponse({ status: 400, description: "Cookie y body simultaneos o DTO invalido." })
   @ApiOperation({
     summary: "Rotar refresh V2 atómicamente",
     description:
       "Acepta refresh_token_v2 para COOKIE o refreshToken para BODY. Rechaza ambigüedad y mantiene la expiración absoluta de la sesión.",
+    security: [{ refresh_token_v2: [] }, {}],
   })
   @ApiUnauthorizedResponse({ description: "Refresh/sesión V2 inválidos." })
   async refresh(
@@ -141,11 +145,13 @@ export class AuthV2Controller {
   @Public()
   @Post("logout")
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiCookieAuth(V2_REFRESH_COOKIE)
+  @ApiResponse({ status: 204, description: "Session V2 revocada; cookie eliminada." })
+  @ApiResponse({ status: 400, description: "Transporte ambiguo o DTO invalido." })
   @ApiOperation({
     summary: "Revocar la sesión V2 actual",
     description:
       "Idempotente y utilizable aunque el access haya expirado. No revoca ClientRegistration.",
+    security: [{ refresh_token_v2: [] }, {}],
   })
   async logout(
     @Body() dto: LogoutV2Dto,
@@ -159,6 +165,7 @@ export class AuthV2Controller {
 
   @ApiBearerAuth()
   @Get("me")
+  @ApiResponse({ status: 200, description: "Contexto V2 actual revalidado." })
   @ApiOperation({
     summary: "Obtener contexto vigente de la sesión V2",
     description:
@@ -173,6 +180,10 @@ export class AuthV2Controller {
 
   @ApiBearerAuth()
   @Post("session/client")
+  @ApiResponse({ status: 201, description: "Binding idempotente a ClientRegistration propio activo." })
+  @ApiResponse({ status: 400, description: "Registration ID invalido." })
+  @ApiResponse({ status: 401, description: "Session o ClientRegistration revocados." })
+  @ApiResponse({ status: 404, description: "Registro no visible." })
   @ApiOperation({
     summary: "Asociar la sesión V2 a un ClientRegistration activo",
     description:

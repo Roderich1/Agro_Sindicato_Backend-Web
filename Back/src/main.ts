@@ -1,11 +1,12 @@
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { SwaggerModule } from "@nestjs/swagger";
 import cookieParser = require("cookie-parser");
 import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { HttpExceptionLoggingFilter } from "./bootstrap/http-exception-logging.filter";
+import { createOpenApiDocument } from "./bootstrap/openapi";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,20 +28,7 @@ async function bootstrap() {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle("Agrochemical Inventory API")
-    .setDescription(
-      "API para inventario agroquimico, compras, pagos y sincronizacion offline.",
-    )
-    .setVersion("0.1.0")
-    .addBearerAuth()
-    .addCookieAuth(
-      "refresh_token_v2",
-      { type: "apiKey", in: "cookie", name: "refresh_token_v2" },
-      "refresh_token_v2",
-    )
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  const document = createOpenApiDocument(app);
   SwaggerModule.setup("docs", app, document);
 
   await app.listen(config.get<number>("PORT") ?? 3000);
