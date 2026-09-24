@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import {
   CreateRefreshTokenData,
   RefreshTokenRepositoryPort,
   StoredRefreshToken,
-} from '../../domain/ports/refresh-token.repository.port';
+} from "../../domain/ports/refresh-token.repository.port";
 
 @Injectable()
 export class PrismaRefreshTokenRepository implements RefreshTokenRepositoryPort {
@@ -19,6 +19,7 @@ export class PrismaRefreshTokenRepository implements RefreshTokenRepositoryPort 
         expiresAt: data.expiresAt,
         ipAddress: data.ipAddress,
         userAgent: data.userAgent,
+        contractVersion: data.contractVersion ?? 1,
       },
       select: { id: true },
     });
@@ -27,7 +28,16 @@ export class PrismaRefreshTokenRepository implements RefreshTokenRepositoryPort 
   async findByHash(tokenHash: string): Promise<StoredRefreshToken | null> {
     return this.prisma.refreshToken.findUnique({
       where: { tokenHash },
-      select: { id: true, userId: true, tenantId: true, expiresAt: true, revokedAt: true },
+      select: {
+        id: true,
+        userId: true,
+        tenantId: true,
+        sessionId: true,
+        contractVersion: true,
+        expiresAt: true,
+        consumedAt: true,
+        revokedAt: true,
+      },
     });
   }
 
@@ -40,7 +50,7 @@ export class PrismaRefreshTokenRepository implements RefreshTokenRepositoryPort 
 
   async revokeAllByUser(userId: string): Promise<void> {
     await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
+      where: { userId, contractVersion: 1, revokedAt: null },
       data: { revokedAt: new Date() },
     });
   }
