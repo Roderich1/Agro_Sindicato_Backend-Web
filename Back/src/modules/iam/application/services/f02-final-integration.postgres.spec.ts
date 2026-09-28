@@ -126,4 +126,44 @@ describePostgres("F02-IAM-05 final HTTP/PostgreSQL integration", () => {
       expect(response.status).toBe(400);
     }
   });
+
+  it("completes V2 COOKIE login, conflict, bodyless refresh and logout over HTTP", async () => {
+    const login = await request(app.getHttpServer()).post("/api/v1/auth/v2/login")
+      .send({ email, password, refreshTransport: "COOKIE" });
+    expect(login.status).toBe(200);
+    expect(login.body.contractVersion).toBe(2);
+    expect(login.body.refreshTransport).toBe("COOKIE");
+    expect(login.body).not.toHaveProperty("refreshToken");
+    const initialCookie = (login.headers["set-cookie"] as string[])
+      .find((value) => value.startsWith("refresh_token_v2="));
+    expect(initialCookie).toContain("HttpOnly");
+    const initialCredential = initialCookie!.split(";")[0];
+    const rawRefreshToken = initialCredential.split("=")[1];
+
+    const ambiguous = await request(app.getHttpServer()).post("/api/v1/auth/v2/refresh")
+      .set("Cookie", initialCredential).send({ refreshToken: rawRefreshToken });
+    expect(ambiguous.status).toBe(400);
+
+    const refreshed = await request(app.getHttpServer()).post("/api/v1/auth/v2/refresh")
+      .set("Cookie", initialCredential);
+    expect(refreshed.status).toBe(200);
+    expect(refreshed.body.refreshTransport).toBe("COOKIE");
+    expect(refreshed.body).not.toHaveProperty("refreshToken");
+    const rotatedCookie = (refreshed.headers["set-cookie"] as string[])
+      .find((value) => value.startsWith("refresh_token_v2="));
+    expect(rotatedCookie).toContain("HttpOnly");
+    const rotatedCredential = rotatedCookie!.split(";")[0];
+    expect(rotatedCredential).not.toBe(initialCredential);
+    const access = refreshed.body.accessToken;
+    expect((await request(app.getHttpServer()).get("/api/v1/auth/v2/me")
+      .set(bearer(access))).status).toBe(200);
+
+    const logout = await request(app.getHttpServer()).post("/api/v1/auth/v2/logout")
+      .set("Cookie", rotatedCredential);
+    expect(logout.status).toBe(204);
+    expect((await request(app.getHttpServer()).get("/api/v1/auth/v2/me")
+      .set(bearer(access))).status).toBe(401);
+    expect((await request(app.getHttpServer()).post("/api/v1/auth/v2/refresh")).status).toBe(401);
+    expect((await request(app.getHttpServer()).post("/api/v1/auth/v2/logout")).status).toBe(204);
+  });
 });
