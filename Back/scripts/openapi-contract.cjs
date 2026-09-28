@@ -44,15 +44,31 @@ assert.ok(spec.paths["/api/v1/auth/v2/refresh"].post.requestBody);
 assert.ok(spec.paths["/api/v1/auth/clients"].post.requestBody);
 const v1Response = spec.paths["/api/v1/auth/login"].post.responses["200"].content["application/json"].schema;
 const v2Response = spec.paths["/api/v1/auth/v2/login"].post.responses["200"].content["application/json"].schema;
+const v2MeResponse = spec.paths["/api/v1/auth/v2/me"].get.responses["200"].content["application/json"].schema;
+const bindResponse = spec.paths["/api/v1/auth/v2/session/client"].post.responses["201"].content["application/json"].schema;
 const clientResponse = spec.paths["/api/v1/auth/clients"].post.responses["201"].content["application/json"].schema;
 assert.ok(v1Response.properties.accessToken);
 assert.ok(v1Response.properties.user);
+assert.deepEqual(v1Response.properties.user.properties.tenant.required, ["id", "name", "slug"]);
 assert.deepEqual(v2Response.properties.contractVersion.enum, [2]);
-assert.ok(v2Response.properties.context.properties.member);
-assert.ok(v2Response.properties.context.properties.session);
+assert.deepEqual(v2MeResponse.required, ["account", "member", "tenant", "role", "session"]);
+assert.deepEqual(v2MeResponse.properties.account.required, ["id", "name", "email", "isActive"]);
+assert.deepEqual(v2MeResponse.properties.member.required, ["id", "role", "isActive"]);
+assert.deepEqual(v2MeResponse.properties.tenant.required, ["id", "name", "slug", "isActive"]);
+assert.deepEqual(v2MeResponse.properties.session.required, ["id", "status", "refreshTransport", "createdAt", "lastSeenAt", "expiresAt", "clientRegistrationId"]);
+assert.equal(v2MeResponse.properties.session.properties.clientRegistrationId.nullable, true);
+assert.deepEqual(v2MeResponse.properties.session.properties.status.enum, ["ACTIVE"]);
+assert.deepEqual(v2Response.properties.context, v2MeResponse);
+assert.deepEqual(spec.paths["/api/v1/auth/v2/refresh"].post.responses["200"].content["application/json"].schema.properties.context, v2MeResponse);
 assert.ok(v2Response.properties.refreshToken);
+assert.deepEqual(bindResponse.required, ["registrationId", "status"]);
+assert.equal(bindResponse.properties.registrationId.format, "uuid");
+assert.deepEqual(bindResponse.properties.status.enum, ["ACTIVE"]);
 assert.ok(clientResponse.properties.registrationId);
-for (const response of [v1Response, v2Response, clientResponse]) {
+for (const path of ["/api/v1/auth/v2/refresh", "/api/v1/auth/v2/logout"]) {
+  assert.equal(spec.paths[path].post.requestBody.required, false, `${path} body is optional`);
+}
+for (const response of [v1Response, v2Response, v2MeResponse, bindResponse, clientResponse]) {
   const serialized = JSON.stringify(response);
   for (const secret of ["passwordHash", "clientIdHash", "rawRefreshToken"]) {
     assert.ok(!serialized.includes(secret), `${secret} must not appear in public response`);

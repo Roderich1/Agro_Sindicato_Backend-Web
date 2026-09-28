@@ -73,6 +73,11 @@
                         },
                         "tenant": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "slug"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -156,6 +161,11 @@
                         },
                         "tenant": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "slug"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -250,6 +260,11 @@
                     },
                     "tenant": {
                       "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "slug"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -335,9 +350,22 @@
                     },
                     "context": {
                       "type": "object",
+                      "required": [
+                        "account",
+                        "member",
+                        "tenant",
+                        "role",
+                        "session"
+                      ],
                       "properties": {
                         "account": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "email",
+                            "isActive"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -355,12 +383,22 @@
                         },
                         "member": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "role",
+                            "isActive"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
                             },
                             "role": {
-                              "type": "string"
+                              "type": "string",
+                              "enum": [
+                                "AGRICULTOR",
+                                "DIRECTIVA",
+                                "ADMINISTRADOR"
+                              ]
                             },
                             "isActive": {
                               "type": "boolean"
@@ -369,6 +407,12 @@
                         },
                         "tenant": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "slug",
+                            "isActive"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -385,16 +429,34 @@
                           }
                         },
                         "role": {
-                          "type": "string"
+                          "type": "string",
+                          "enum": [
+                            "AGRICULTOR",
+                            "DIRECTIVA",
+                            "ADMINISTRADOR"
+                          ]
                         },
                         "session": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "status",
+                            "refreshTransport",
+                            "createdAt",
+                            "lastSeenAt",
+                            "expiresAt",
+                            "clientRegistrationId"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
                             },
                             "status": {
-                              "type": "string"
+                              "type": "string",
+                              "enum": [
+                                "ACTIVE"
+                              ],
+                              "description": "El contexto se entrega solo para sesiones activas; el modelo persistido tambien contempla REVOKED y COMPROMISED."
                             },
                             "refreshTransport": {
                               "type": "string",
@@ -450,11 +512,12 @@
     },
     "/api/v1/auth/v2/refresh": {
       "post": {
-        "description": "Acepta refresh_token_v2 para COOKIE o refreshToken para BODY. Rechaza ambigüedad y mantiene la expiración absoluta de la sesión.",
+        "description": "Acepta exactamente una fuente: refresh_token_v2 cookie HttpOnly o refreshToken BODY. Ambas fuentes causan 400; ninguna causa 401. OpenAPI usa cookie security OR {} porque BODY no tiene security scheme estándar. Mantiene la expiración absoluta de la sesión.",
         "operationId": "AuthV2Controller_refresh",
         "parameters": [],
         "requestBody": {
-          "required": true,
+          "required": false,
+          "description": "Opcional con refresh_token_v2 por cookie HttpOnly; con BODY enviar refreshToken. Exactamente una fuente efectiva.",
           "content": {
             "application/json": {
               "schema": {
@@ -501,9 +564,22 @@
                     },
                     "context": {
                       "type": "object",
+                      "required": [
+                        "account",
+                        "member",
+                        "tenant",
+                        "role",
+                        "session"
+                      ],
                       "properties": {
                         "account": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "email",
+                            "isActive"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -521,12 +597,22 @@
                         },
                         "member": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "role",
+                            "isActive"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
                             },
                             "role": {
-                              "type": "string"
+                              "type": "string",
+                              "enum": [
+                                "AGRICULTOR",
+                                "DIRECTIVA",
+                                "ADMINISTRADOR"
+                              ]
                             },
                             "isActive": {
                               "type": "boolean"
@@ -535,6 +621,12 @@
                         },
                         "tenant": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "slug",
+                            "isActive"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -551,16 +643,34 @@
                           }
                         },
                         "role": {
-                          "type": "string"
+                          "type": "string",
+                          "enum": [
+                            "AGRICULTOR",
+                            "DIRECTIVA",
+                            "ADMINISTRADOR"
+                          ]
                         },
                         "session": {
                           "type": "object",
+                          "required": [
+                            "id",
+                            "status",
+                            "refreshTransport",
+                            "createdAt",
+                            "lastSeenAt",
+                            "expiresAt",
+                            "clientRegistrationId"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
                             },
                             "status": {
-                              "type": "string"
+                              "type": "string",
+                              "enum": [
+                                "ACTIVE"
+                              ],
+                              "description": "El contexto se entrega solo para sesiones activas; el modelo persistido tambien contempla REVOKED y COMPROMISED."
                             },
                             "refreshTransport": {
                               "type": "string",
@@ -619,11 +729,12 @@
     },
     "/api/v1/auth/v2/logout": {
       "post": {
-        "description": "Idempotente y utilizable aunque el access haya expirado. No revoca ClientRegistration.",
+        "description": "Idempotente incluso sin credencial y utilizable aunque el access haya expirado. Cookie y BODY son alternativas; OpenAPI usa {} para BODY o ausencia de credencial. No revoca ClientRegistration.",
         "operationId": "AuthV2Controller_logout",
         "parameters": [],
         "requestBody": {
-          "required": true,
+          "required": false,
+          "description": "Opcional: refresh_token_v2 por cookie o refreshToken por BODY. Sin credencial, logout es idempotente (204). Ambas fuentes causan 400.",
           "content": {
             "application/json": {
               "schema": {
@@ -659,7 +770,148 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Contexto V2 actual revalidado."
+            "description": "Contexto V2 actual revalidado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "account",
+                    "member",
+                    "tenant",
+                    "role",
+                    "session"
+                  ],
+                  "properties": {
+                    "account": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "isActive"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "isActive": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "member": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "role",
+                        "isActive"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "AGRICULTOR",
+                            "DIRECTIVA",
+                            "ADMINISTRADOR"
+                          ]
+                        },
+                        "isActive": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "tenant": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "slug",
+                        "isActive"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "isActive": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "AGRICULTOR",
+                        "DIRECTIVA",
+                        "ADMINISTRADOR"
+                      ]
+                    },
+                    "session": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "status",
+                        "refreshTransport",
+                        "createdAt",
+                        "lastSeenAt",
+                        "expiresAt",
+                        "clientRegistrationId"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "ACTIVE"
+                          ],
+                          "description": "El contexto se entrega solo para sesiones activas; el modelo persistido tambien contempla REVOKED y COMPROMISED."
+                        },
+                        "refreshTransport": {
+                          "type": "string",
+                          "enum": [
+                            "COOKIE",
+                            "BODY"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastSeenAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "clientRegistrationId": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Contexto actual inactivo o revocado."
@@ -693,7 +945,30 @@
         },
         "responses": {
           "201": {
-            "description": "Binding idempotente a ClientRegistration propio activo."
+            "description": "Binding idempotente a ClientRegistration propio activo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "registrationId",
+                    "status"
+                  ],
+                  "properties": {
+                    "registrationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Registration ID invalido."
