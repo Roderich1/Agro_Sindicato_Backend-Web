@@ -11,10 +11,10 @@
 
 ## Decisión y fundamento
 
-`GATE_F02 = PASSED`  
-`SCOPE = ACADEMIC_F02_ONLY`  
-`EVIDENCE = VERIFIED`  
-`PRODUCTION_DEPLOYMENT_AUTHORIZATION = NOT_GRANTED`
+- `GATE_F02 = PASSED`
+- `SCOPE = ACADEMIC_F02_ONLY`
+- `EVIDENCE = VERIFIED`
+- `PRODUCTION_DEPLOYMENT_AUTHORIZATION = NOT_GRANTED`
 
 La aprobación se limita a los criterios de identidad, Member, ClientRegistration, Session, contratos V1/V2 y autorización central definidos para F02. No declara terminado Agrocuentas, no inicia fases posteriores y no sustituye la autorización de producción.
 
