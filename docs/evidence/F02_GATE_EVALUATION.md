@@ -1,0 +1,93 @@
+# GATE-F02 — evaluación técnica independiente (propuesta)
+
+**Estado:** `PROPOSED_PASSED`, sujeto a revisión humana de esta PR documental. **No es una decisión `Gate=Passed` ni una autorización de despliegue.**
+
+## Baseline, alcance y método
+
+- Backend `main`: `8f5e29ee91cd891b816c5e60027def62b6a0bbb6`, merge commit de [PR #93](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/93), verificado contra GitHub y en un checkout limpio. Sus padres son `931c7e565d51d669f0a1111c947beef25f2ca57c` y `b26b32a9b4f48b7da93e0614fdf21b8a3369b1aa`.
+- Mobile `main`: `9e9cb2334eeaa4c710dc87feb7cfa847ea339724`, verificado contra GitHub; es el merge de [PR #61](https://github.com/Roderich1/AppMovilAgroquimico/pull/61). No se usó el checkout Mobile local, que está en otra rama con cambios ajenos.
+- [GATE-F02 #15](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/15) continúa `OPEN`, `Evidence=Pending`, `Gate=Pending`. Los cinco entregables [#10](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/10), [#11](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/11), [#13](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/13), [#12](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/12) y [#14](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/14) están `CLOSED/COMPLETED` y `Done/Verified` en el Project; sus PRs [#85](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/85), [#88](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/88), [#89](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/89), [#92](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/92) y #93 están fusionadas. Mobile [#60](https://github.com/Roderich1/AppMovilAgroquimico/issues/60) está `CLOSED/COMPLETED`.
+- Se contrastaron issues/PRs y checks remotos, logs de CI, código y aserciones versionadas, SQL y hashes, evidencia DEVICE del commit Mobile esperado, matrices de alcance/autorización y una nueva ejecución **sólo de `npm audit`** sobre el lockfile integrado. No se reejecutaron Jest, migraciones, upgrade, rollback ni pruebas físicas en esta auditoría; sus resultados se clasifican por procedencia a continuación.
+
+El gate académico cubre identidad, Member, ClientRegistration, Session, contratos V1/V2 y autorización central. El código legacy se evalúa como compatibilidad transitoria, no como arquitectura objetivo. `Person` sigue condicional y no materializada, de acuerdo con [`CURRENT_SCOPE.md`](../scope/CURRENT_SCOPE.md) y las matrices de `docs/scope/`.
+
+## Auditoría de los cinco entregables
+
+| Entrega y criterio | Contraste independiente | Límite preservado | Resultado |
+|---|---|---|---|
+| **#10 / F02-IAM-01:** separar Account/User y Member; backfill y rol organizacional | `schema.prisma` tiene `User` y `Member` separados y unicidad `(tenantId,userId)`; la migración `20260923033000_f02_add_member` realiza `INSERT … SELECT` determinista sin borrar User. `CurrentAuthContextResolver` obtiene el rol efectivo de `Member.role`, no del claim JWT ni de `User.role`. [Evidencia F02-IAM-01](F02_IAM_01.md) documenta fresh/upgrade y dual-write; [CI de main](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/actions/runs/36501369969) aplica la migración en tres DB vacías. | `User.tenantId` sigue seleccionando la membership de compatibilidad; selector multi-membership delegado. `Person` no se creó. Los escenarios históricos de backfill no se reejecutaron aquí. | **EVIDENCED_F02** |
+| **#11 / F02-IAM-02:** clientId lógico, privacidad, revocación y DEVICE | `ClientRegistration` guarda `clientIdHash`, no el UUID raw; `ManageClientRegistrationsUseCase` aplica SHA-256 al UUID canónico y el repositorio deriva Member/Tenant efectivos, impide reactivar un registro revocado y revoca sólo sesiones ligadas. Unit/repository specs y la integración final cubren los caminos. Mobile `main` contiene `InstallationClientIdStore` con UUID v4 CSPRNG en `noBackupFilesDir`; [evidencia física](https://github.com/Roderich1/AppMovilAgroquimico/blob/9e9cb2334eeaa4c710dc87feb7cfa847ea339724/docs/evolution/features/F02_DEVICE_CLIENT_ID_EVIDENCE.md) registra A–F. Entre el commit físico `32096fa` y Mobile `main` sólo se añadió ese documento: no cambió el código de identidad/backup probado. | Evidencia DEVICE **reutilizada**, no nueva certificación. ZIP interno `NOT_READABLE_VIA_ADB`, corrupción en dispositivo `NOT_MEASURED`; el contenedor/restore sí tiene tests automatizados. Registro remoto Mobile→Backend no implementado; Sync binding delegado a F05. | **EVIDENCED_F02_WITH_LIMITS** |
+| **#13 / F02-IAM-03:** V1/V2, Session, rotación y reuso | `AuthV2Service` emite refresh CSPRNG, sólo persiste hash, conserva expiración absoluta y usa `updateMany` condicional + transacción para un único sucesor. Reuso compromete la sesión afectada; otra sesión sigue válida. `auth-v2.postgres.spec.ts` tiene casos de V1, COOKIE/BODY, expiración, concurrencia, binding y revocación; **12/12** en CI. `auth-v2.controller.ts` y la suite HTTP final corroboran COOKIE sin BODY, conflicto 400, rotación y logout. | La política de duplicado concurrente compromete conservadoramente esa sesión; Mobile aún no consume auth remoto. V1 no dispone de AuthSession individual. El intento inicial de concurrencia fallido se conserva en [F02-IAM-03](F02_IAM_03.md). | **EVIDENCED_F02** |
+| **#12 / F02-IAM-04:** contexto vigente, ownership y tenant | `CurrentAuthContextResolver` consulta User/Member/Tenant por request y, para V2, Session/ClientRegistration; rechaza rol stale, inactividad y revocación. La [matriz de autorización](../security/F02_AUTHORIZATION_MATRIX.md) distingue target central de acceso legacy. `current-auth-context.postgres.spec.ts` ejercita 401/403/404, referencias indirectas, campos forjados y rollback de efectos parciales con Nest/JWT/PostgreSQL: **25/25** en CI, incluidos ocho casos correctivos adicionales. | Los endpoints privados legacy persisten como compatibilidad; no prueban la arquitectura Mobile/Web futura. La suite usa fixtures controlados, no un despliegue real ni todas las combinaciones de la matriz. V1 no puede revocar individualmente un access aún válido. | **EVIDENCED_F02** |
+| **#14 / F02-IAM-05:** migración/upgrade/rollback, OpenAPI, integración y CI | SQL F02 expand-only y hashes coinciden con [F02-IAM-05](F02_IAM_05.md); el código incluye snapshot, generador y guard OpenAPI, contratos V1/V2/ClientRegistration y schemas V2. La [suite final](../../Back/src/modules/iam/application/services/f02-final-integration.postgres.spec.ts) añade COOKIE HTTP sin `.send()` y pasa **3/3** en la CI de `main`; el guard OpenAPI también pasa. La evidencia histórica detalla fresh, upgrade pre-F02, upgrades intermedios, preservación de datos y rollback de **aplicación** a F02-B. | CI revalida instalación limpia, pero no vuelve a ejecutar upgrades históricos ni rollback en cada push. No hay downgrade de BD probado ni soportado. Esta revisión detectó que [F02_FINAL_TRACEABILITY.md](F02_FINAL_TRACEABILITY.md) conservaba la cifra antigua 2/2; la errata se corrigió dentro de esta misma PR #95 a 3/3, conforme a la matriz final, el test versionado y el log del merge. | **EVIDENCED_F02** |
+
+Los documentos de F02-A/B/C/D conservan dictámenes temporales `READY_FOR_REVIEW` u `OPEN` de sus revisiones originales. El estado actual se tomó de GitHub y del merge de `main`, sin reescribir esos hitos históricos.
+
+## Criterios y Definition of Done de #15
+
+| Punto de #15 | Evaluación independiente | Estado para esta propuesta |
+|---|---|---|
+| Evidencia de #10, #11, #13, #12 y #14 | Cada entregable fue contrastado arriba con código, tests, CI y limitaciones. Los cinco están integrados/cerrados. | 5/5 **evidenciados**; no significa `Gate=Passed`. |
+| Revisión GATE/EVIDENCE de UNIT/INT/CONTRACT/E2E/SECURITY y DEVICE aplicable | Se revisaron suites, aserciones, workflow, threat model, `npm audit` y DEVICE reutilizado. El E2E Mobile→Backend y el contrato final Sync no son evidencia F02 y siguen `NOT_MEASURED`/delegados. | Revisión realizada para **proponer** decisión; casilla de #15 sin cambiar. |
+| DoD: criterios con evidencia real | Los requisitos específicos de F02 tienen implementación y pruebas; los resultados negativos y límites figuran aquí. | Sustentado para F02. |
+| DoD: tests aplicables verdes | Log del merge: 105/105 normal; 12/12, 25/25 y 3/3 en DB separadas. | Sustentado. |
+| DoD: revisión, trazabilidad y riesgos | Matriz/contratos/threat model revisados; #94 abierto. El 2/2 residual detectado en trazabilidad se corrigió a 3/3 en esta misma PR #95; se conserva aquí el historial del hallazgo. | Sustentado con errata documental corregida. |
+| DoD: ningún defecto crítico F02 abierto | El Project muestra cinco entregables Done/Verified y ningún defecto crítico F02 abierto identificado. #94 es High y sin remediar; #81 es Critical cross-cutting/Blocked, pero no constituye por sí mismo un defecto IAM-F02 demostrado. | Sustentado **sólo para el alcance F02**; no para producción ni para #81. |
+| DoD: decisión Passed/Failed/Waived explícita | Una propuesta documental no es una decisión de gobierno aprobada. | **PENDIENTE de revisión y formalización posterior**. |
+
+## Ejecución de pruebas y límites de conteo
+
+El [workflow de `main` 36501369969](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/actions/runs/36501369969) ejecutó Node 22 + PostgreSQL 16 tras el merge `8f5e29e`. Su log, no el informe de cierre anterior, registra:
+
+| Ejecución | Resultado | Procedencia |
+|---|---|---|
+| Jest normal | 25 suites / **105 passed**, 40 skipped | CI `main`; las suites PG se saltan sin sus variables de entorno. |
+| F02-C PostgreSQL | **12/12 passed** | CI `main`, `f02_auth_v2`. |
+| F02-D PostgreSQL | **25/25 passed** | CI `main`, `f02_auth_context`. |
+| Integración final HTTP/PostgreSQL | **3/3 passed** | CI `main`, `f02_final`. |
+| Prisma validate/generate, build, `openapi:check` | **passed** | CI `main`; snapshot y aserciones contractuales pasaron. |
+
+Las 40 pruebas omitidas en la corrida normal son exactamente **12 + 25 + 3** y fueron ejecutadas después, una vez por suite. No se suman repeticiones locales como casos nuevos. La suite F02-C comprueba servicio y PostgreSQL, no se presenta como E2E HTTP; la nueva observación COOKIE sí atraviesa Nest HTTP/JWT/PostgreSQL en la suite final. Los primeros intentos documentados incluyen un fallo de concurrencia F02-C corregido y un timeout de 5 s en `beforeAll` de la suite final antes de las aserciones COOKIE; luego pasó 3/3 con timeout ampliado y de nuevo con el timeout normal. La CI secuencial de `main` pasó 3/3 sin modificar el límite productivo de throttling.
+
+No se ejecutó una nueva prueba DEVICE, full Mobile→Backend E2E, auditoría de despliegue ni restauración física de BD en esta revisión: `NOT_MEASURED` donde aplica.
+
+## Contratos, migraciones y rollback
+
+`auth-v2.controller.ts`, DTOs y el snapshot `docs/api/openapi-f02.json` documentan COOKIE y BODY alternativos; el cuerpo de refresh/logout es opcional, ambos transportes simultáneos dan 400 y sin credencial refresh da 401. V1 conserva sus rutas y shape; V2 introduce Session, binding a ClientRegistration y revocación por sesión. La suite final confirma el recorrido HTTP COOKIE; la suite F02-C comprueba rotación atómica y aislamiento V1/V2 en PostgreSQL. `scripts/openapi.cjs` genera desde la misma función de Swagger usada en runtime; `openapi-contract.cjs` valida rutas, errores, security schemes y schemas. La CI de `main` comprobó ausencia de drift. Las rutas legacy descritas en el snapshot **no son** arquitectura objetivo.
+
+Las tres migraciones F02 mantienen los siguientes SHA-256, calculados de nuevo sobre `main`:
+
+| Migración | SHA-256 |
+|---|---|
+| `20260923033000_f02_add_member` | `09647EB7DACFB3593C723F4B83FA0C234FEA4C70A7E86A88457FD3F0F8960E50` |
+| `20260923050000_f02_add_client_registration` | `565D6CB9115B29404B6039747F41BC608DF028ED7142337281938AEC51A74404` |
+| `20260924143000_f02_add_auth_session_v2` | `15C2CB4D56502DF6DDC6568821249BB61D941078C30AF6FEBC420FFD758B051F` |
+
+La inspección SQL no halló `DROP`, `TRUNCATE`, `DELETE` ni rename destructivo en F02. Git muestra un commit de creación por cada migración F02, sin reescrituras posteriores. La migración **inicial** histórica sí tuvo una reparación gobernada y limitada al BOM UTF-8 en [PR #87](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/87); no se debe describir como «nunca modificada». CI instala las cuatro migraciones en tres bases vacías. [F02-IAM-05](F02_IAM_05.md) documenta, como ejecuciones previas no repetidas aquí, upgrade desde pre-F02 y F02-A/B, preservación de User/Member/V1 RefreshToken, `migrate diff` sin drift y aplicación F02-B construida/arrancada sobre schema expandido con V1 HTTP operativo. **Rollback de aplicación probado; downgrade de base de datos `NOT_MEASURED`/`NOT_SUPPORTED_BY_DESIGN`.**
+
+## DEVICE Mobile: evidencia reutilizada, no ampliada
+
+Mobile [PR #61](https://github.com/Roderich1/AppMovilAgroquimico/pull/61) está fusionada y #60 cerrada. El commit físico `32096fa69530b45150c94669787d213e428aef00` y Mobile `main@9e9cb23` difieren sólo por la adición del documento de evidencia: no cambió el store, backup, bridge Android ni sus tests. El reporte registra instalación limpia, force-stop, reinicio, export/restore desde UI, reinstalación y privacidad A–F en POCO X5 Pro 5G/API 31; se compararon hashes seudónimos, no se publicó el UUID raw. La PR Mobile tuvo CI verde. El código usa `Random.secure()` y `noBackupFilesDir`; los tests automatizados inspeccionan el `.agrobackup` y comprueban que restore no sustituye la identidad.
+
+Limitaciones obligatorias: el ZIP físico no se leyó internamente por ADB/FUSE (`NOT_READABLE_VIA_ADB`); corrupción del archivo en teléfono es `NOT_MEASURED` aunque tiene tests automatizados; registro remoto Mobile→Backend, almacenamiento seguro del refresh y auth Mobile remota siguen sin implementar. La evidencia DEVICE se clasifica `REUSED_VERIFIED_EVIDENCE`, no una prueba física nueva ni una certificación E2E.
+
+## Seguridad, #94 y autorización de despliegue
+
+La lectura de [`F02_THREAT_MODEL.md`](../security/F02_THREAT_MODEL.md), la [matriz de autorización](../security/F02_AUTHORIZATION_MATRIX.md) y una repetición read-only de `npm audit --json` sobre `Back/package-lock.json` confirmaron **15 findings: 10 High, 3 Moderate, 2 Low, 0 Critical**. `npm audit --omit=dev --json` deja **9** (6 High, 2 Moderate, 1 Low), pero «instalado como producción» no equivale a «alcanzable durante una petición»; `prisma` CLI es un ejemplo. Los diez High se distribuyen en dos paquetes de la cadena HTTP Nest/Multer, uno `js-yaml` de la cadena Swagger/YAML y siete de tooling/CLI/build/test. Moderate y Low también incluyen superficies HTTP generales; no se consideran inocuos por ser anteriores a F02.
+
+1. **Explotación directa identificada en F02:** no se encontró una ruta IAM que invoque Multer, parseo YAML no confiable ni una vulnerabilidad demostrada de JWT/cookie/autorización. Esto es ausencia de evidencia de exploit en lo inspeccionado, **no prueba de seguridad global**.
+2. **Potencial instalado no demostrado:** `@nestjs/platform-express` incluye Multer; el [advisory GHSA-72gw-mp4g-v24j](https://github.com/advisories/GHSA-72gw-mp4g-v24j) describe DoS con multipart profundamente anidado si se invoca el parser. La búsqueda en `Back/src` no encontró `FileInterceptor`, `MulterModule` o `@UploadedFile`. La ruta efectiva de exposición debe revisarse de nuevo, incluso fuera de IAM. `js-yaml` requiere asimismo una ruta de parseo de YAML no confiable, no hallada en auth F02.
+3. **Otros módulos y tooling:** endpoints legacy y documentación Swagger tienen superficies distintas de los contratos IAM; siete High de CLI/build/test no prueban un riesgo request-time, aunque requieren actualización gobernada. La auditoría no demuestra que todos los módulos Backend sean inmunes a DoS.
+4. **Despliegue:** el análisis de exposición, upgrades y regresión siguen abiertos. [SEC-DEP-01 #94](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/94) está `OPEN`, asignado a `Roderich1`, prioridad P1, riesgo High, con trazabilidad y cinco criterios antes de producción. No se actualizó ninguna dependencia. Este seguimiento acota el riesgo para **proponer** el gate académico; no es remediación ni autorización de producción.
+
+`F02_ACADEMIC_GATE_DECISION = PROPOSED_PASSED` (pendiente de revisión formal).
+
+`PRODUCTION_DEPLOYMENT_AUTHORIZATION = NOT_GRANTED_BY_THIS_REVIEW`; requiere resolver o aceptar expresamente los riesgos de #94 y las validaciones de despliegue aplicables. Si la revisión posterior demuestra una ruta explotable que incumple un requisito obligatorio F02, la propuesta debe volver a `PENDING_MORE_EVIDENCE` o `PROPOSED_FAILED` según el hecho comprobado.
+
+## Checks remotos, delegaciones y decisión propuesta
+
+- PR #93, HEAD `b26b32a`: GitHub Actions `SUCCESS` y SonarCloud `SUCCESS` / `Quality Gate passed`. El reporte Sonar indicó 0.0 % de cobertura de código nuevo: **no** acredita ejecución de tests; esa evidencia viene de Jest/Actions.
+- Merge `main@8f5e29e`: [Actions 36501369969](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/actions/runs/36501369969) `SUCCESS`; SonarCloud `NEUTRAL` / `Quality Gate not computed`. No se presenta como PASS ni como fallo de tests. El Quality Gate de `main` no aporta una aprobación independiente post-merge.
+- F05 (Sync DTO/ACK/conflictos/binding), Mobile auth remota, F06 (proyección colectiva), F07 (propuesta conjunta), F09 (backup remoto), F10 (evaluación integral) y [#81](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/81) (realineación legacy) permanecen delegados. #81 está `OPEN/Blocked`; su riesgo Critical cross-cutting no se transforma en funcionalidad F02 ni se desbloquea aquí.
+
+**Propuesta:** `PROPOSED_PASSED` para el alcance académico F02. La evidencia ejecutada en CI, el código integrado y DEVICE reutilizado sustentan los criterios propios de identidad/contratos; no se identificó defecto crítico IAM-F02 abierto. La errata de trazabilidad `2/2` detectada en esta revisión quedó corregida a `3/3` dentro de la misma PR #95. La propuesta está condicionada a que el revisor de esta PR acepte explícitamente los límites restantes: #94 sin resolver, Sonar `main` neutral, Mobile→Backend no implementado, no downgrade de BD y contratos legacy pendientes. No se usa `WAIVED` porque no existe excepción formal. La decisión `Passed/Failed/Waived`, las casillas de verificación y los campos de #15 permanecen sin alterar hasta la revisión posterior.
