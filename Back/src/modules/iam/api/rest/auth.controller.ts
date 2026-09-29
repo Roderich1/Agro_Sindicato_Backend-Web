@@ -9,7 +9,7 @@ import {
   Req,
   Res,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { Request, Response } from "express";
 import { LoginDto } from "../../application/dtos/login.dto";
@@ -20,6 +20,7 @@ import { RefreshSessionUseCase } from "../../application/use-cases/refresh-sessi
 import { AuthenticatedPrincipal } from "../../application/types/authenticated-principal.type";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { Public } from "./decorators/public.decorator";
+import { v1AuthResponseSchema, v1UserResponseSchema } from "./auth-openapi.schemas";
 
 const REFRESH_COOKIE = "refresh_token";
 
@@ -64,6 +65,10 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 200, description: "Access V1 y usuario; refresh V1 en cookie HttpOnly refresh_token.", schema: v1AuthResponseSchema })
+  @ApiResponse({ status: 400, description: "DTO invalido." })
+  @ApiResponse({ status: 401, description: "Credenciales o contexto invalidos." })
+  @ApiResponse({ status: 429, description: "Limite de intentos excedido." })
   @ApiOperation({ summary: "Iniciar sesión" })
   async login(
     @Body() dto: LoginDto,
@@ -103,6 +108,9 @@ export class AuthController {
   @Public()
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth("refresh_token")
+  @ApiResponse({ status: 200, description: "Access V1 renovado; refresh V1 rotado en cookie HttpOnly.", schema: v1AuthResponseSchema })
+  @ApiResponse({ status: 401, description: "Refresh V1 invalido o revocado." })
   @ApiOperation({ summary: "Renovar sesión con refresh token" })
   async refresh(
     @Req() req: Request,
@@ -140,6 +148,9 @@ export class AuthController {
 
   @Post("logout")
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 204, description: "Refresh V1 revocado; cookie eliminada." })
+  @ApiResponse({ status: 401, description: "Access invalido." })
   @ApiOperation({
     summary: "Cerrar sesión (revoca refresh token del dispositivo)",
   })
@@ -156,6 +167,8 @@ export class AuthController {
 
   @ApiBearerAuth()
   @Get("me")
+  @ApiResponse({ status: 200, description: "Perfil revalidado con Member actual.", schema: v1UserResponseSchema })
+  @ApiResponse({ status: 401, description: "Contexto inactivo o invalido." })
   @ApiOperation({ summary: "Obtener perfil del usuario autenticado" })
   async me(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.getMeUseCase.execute(user.sub);

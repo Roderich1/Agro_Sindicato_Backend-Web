@@ -1,0 +1,74 @@
+name: Backend F02 verification
+
+on:
+  pull_request:
+    paths:
+      - 'Back/**'
+      - 'docs/api/**'
+      - 'docs/security/**'
+      - 'docs/testing/**'
+      - 'docs/evidence/F02_*'
+      - '.github/workflows/backend-f02.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Back/**'
+      - 'docs/api/**'
+      - 'docs/security/**'
+      - 'docs/testing/**'
+      - 'docs/evidence/F02_*'
+      - '.github/workflows/backend-f02.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: f02_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: Back
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: f02_ci_only
+      DATABASE_URL: postgresql://postgres:f02_ci_only@localhost:5432/f02_final?schema=public
+      JWT_SECRET: f02-ci-jwt-secret-long-enough-123
+      JWT_REFRESH_SECRET: f02-ci-refresh-secret-long-enough-123
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Back/package-lock.json
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npx prisma generate
+      - run: npm run build
+      - run: npm test -- --runInBand
+      - name: Prepare isolated databases
+        run: |
+          for db in f02_auth_v2 f02_auth_context f02_final; do
+            createdb "$db"
+            DATABASE_URL="postgresql://postgres:f02_ci_only@localhost:5432/$db?schema=public" npx prisma migrate deploy
+          done
+      - run: npm run openapi:check
+      - run: npx jest auth-v2.postgres.spec.ts --runInBand
+        env:
+          F02_PG_TEST_URL: postgresql://postgres:f02_ci_only@localhost:5432/f02_auth_v2?schema=public
+      - run: npx jest current-auth-context.postgres.spec.ts --runInBand
+        env:
+          F02_D_PG_TEST_URL: postgresql://postgres:f02_ci_only@localhost:5432/f02_auth_context?schema=public
+      - run: npx jest f02-final-integration.postgres.spec.ts --runInBand
+        env:
+          F02_FINAL_PG_TEST_URL: postgresql://postgres:f02_ci_only@localhost:5432/f02_final?schema=public
