@@ -21,4 +21,4 @@ El código, schema, migraciones y documentación legacy describen compatibilidad
 - [Requisitos F01](../requirements/README.md): URS/SRS baselined y matriz detallada; formalizan, no reemplazan, `CURRENT_SCOPE.md`.
 - [Decisiones de integración F01](../architecture/F01_INTEGRATION_DECISIONS.md): decisiones congeladas de #8 y detalles delegados.
 
-Los documentos marcados `HISTORICAL / OBSOLETE` se conservan como evidencia y no gobiernan trabajo nuevo.
+La matriz documental identifica qué contratos legacy se conservan para la transición y qué documentos sustituidos se retiraron del árbol actual con su historial preservado en Git. Los documentos históricos que permanecen no gobiernan trabajo nuevo.

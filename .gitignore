@@ -1,0 +1,49 @@
+# Local assistant configuration and execution artifacts
+.claude/
+.claude-*/
+.codex/
+.codex-*/
+
+# Dependencies and generated application output
+node_modules/
+/Back/dist/
+/Back/build/
+/Web/dist/
+/Web/dist-ssr/
+/Web/build/
+coverage/
+*.tsbuildinfo
+.cache/
+.tmp/
+
+# Logs and temporary files; add explicit exceptions for required fixtures
+*.log
+*.jtl
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Local environment files; keep development examples
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# External academic documents and office temporary files
+*.doc
+*.docx
+~$*
+
+# Operating system and local editor artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+**/.vscode/*
+!**/.vscode/extensions.json
+*.suo
+*.user
+
+# Generated load-test reports; test plans remain eligible for versioning
+/jmeter-tests/reporte/

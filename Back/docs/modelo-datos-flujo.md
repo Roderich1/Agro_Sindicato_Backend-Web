@@ -6,7 +6,7 @@
 
 # Modelo de datos para el nuevo flujo
 
-Este documento conecta el flujo funcional de `Back/docs/Flujo.md` con el modelo Prisma. El objetivo es que las siguientes fases de backend y frontend usen las mismas entidades y reglas.
+Este documento describe el modelo Prisma del flujo legacy. El flujo original se conserva en [Git](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/blob/a09876106dd696868217b301a9abf9125ac6d01d/Back/docs/Flujo.md); los consumidores actuales y su retirada controlada se rigen por [LEGACY_CONTRACT_CONSUMERS.md](../../docs/scope/LEGACY_CONTRACT_CONSUMERS.md) y [TRANSITION_PLAN.md](../../docs/scope/TRANSITION_PLAN.md). Estas relaciones no autorizan nuevas capacidades fuera del alcance vigente.
 
 ## Entidades nuevas
 
