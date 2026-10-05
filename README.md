@@ -14,6 +14,8 @@ La fuente vigente de alcance es [docs/scope/CURRENT_SCOPE.md](docs/scope/CURRENT
 
 Consulte [docs/scope/README.md](docs/scope/README.md) antes de diseñar cambios.
 
+Las reglas compartidas de contribución están en [AGENTS.md](AGENTS.md) y los [controles de seguridad para desarrollo](docs/security/DEVELOPMENT_CONTROLS.md). La [matriz documental](docs/scope/DOCUMENT_DISPOSITION_MATRIX.md) distingue documentación vigente, contratos de transición y referencias preservadas en Git.
+
 ## Desarrollo local legacy
 
 La ejecución local actual se conserva mientras se realiza la transición:

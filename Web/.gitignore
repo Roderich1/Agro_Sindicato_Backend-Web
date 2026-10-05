@@ -25,7 +25,7 @@ coverage/
 *.local
 
 # Editor / OS
-.vscode/
+.vscode/*
 !.vscode/extensions.json
 .idea/
 .DS_Store
