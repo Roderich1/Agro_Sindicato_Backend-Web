@@ -140,10 +140,14 @@ export class PrismaSyncV1JournalRepository implements SyncV1JournalRepository<Pr
         journal.predecessorOperationId === input.predecessorOperationId &&
         journal.causalReconciliationReference ===
           input.causalReconciliationReference;
+      if (!same)
+        return {
+          classification: "EXISTING_DIFFERENT_FINGERPRINT" as const,
+          journal,
+        };
       return {
-        classification: !same
-          ? ("EXISTING_DIFFERENT_FINGERPRINT" as const)
-          : journal.processingState === "PROCESSING"
+        classification:
+          journal.processingState === "PROCESSING"
             ? ("EXISTING_PROCESSING" as const)
             : ("EXISTING_SAME_FINGERPRINT" as const),
         journal,
