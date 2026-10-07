@@ -72,3 +72,4 @@ jobs:
       - run: npx jest f02-final-integration.postgres.spec.ts --runInBand
         env:
           F02_FINAL_PG_TEST_URL: postgresql://postgres:f02_ci_only@localhost:5432/f02_final?schema=public
+      - run: F05_SYNC_05A_PG_TEST_URL="$DATABASE_URL" npx jest sync-v1-journal.postgres.spec.ts --runInBand

@@ -147,6 +147,34 @@ enum AuthRefreshTransport {
   BODY
 }
 
+enum SyncV1ProjectionType {
+  CONSUMPTION_TOTAL
+  DECLARED_NEED
+}
+
+enum SyncV1Action {
+  PUBLISH
+  SUPERSEDE
+  CANCEL
+}
+
+enum SyncV1ProcessingState {
+  PROCESSING
+  FINAL
+}
+
+enum SyncV1Outcome {
+  APPLIED
+  CONFLICT
+  REJECTED
+}
+
+enum SyncV1Disposition {
+  RETIRE_FROM_OUTBOX
+  KEEP_FOR_RECONCILIATION
+  MOVE_TO_TERMINAL_FAILURE
+}
+
 model Tenant {
   id        String   @id @default(uuid())
   name      String
@@ -178,6 +206,7 @@ model Tenant {
   agrochemicalApplications AgrochemicalApplication[]
   calendarEvents           CalendarEvent[]
   auditLogs                AuditLog[]
+  syncV1OperationJournals   SyncV1OperationJournal[]
 }
 
 model User {
@@ -229,8 +258,11 @@ model Member {
   user                User                 @relation(fields: [userId], references: [id])
   clientRegistrations ClientRegistration[]
   authSessions        AuthSession[]
+  syncV1OperationJournals SyncV1OperationJournal[]
 
   @@unique([tenantId, userId])
+  // Referenced by the journal's composite FK: Member must belong to its tenant.
+  @@unique([tenantId, id])
   @@index([tenantId])
   @@index([userId])
   @@index([tenantId, isActive])
@@ -799,6 +831,36 @@ model AuditLog {
   @@index([tenantId, actorUserId])
   @@index([tenantId, ownerUserId])
   @@index([entityName, entityId])
+}
+
+// Parallel technical journal; no controller/module registration or business payload.
+model SyncV1OperationJournal {
+  id                            String                @id @default(uuid()) @db.Uuid
+  tenantId                      String
+  memberId                      String
+  operationId                   String                @db.Uuid
+  contractVersion               Int                   @default(1)
+  projectionType                SyncV1ProjectionType
+  action                        SyncV1Action
+  predecessorOperationId        String?               @db.Uuid
+  causalReconciliationReference String?               @db.Uuid
+  reconciliationReference       String?               @db.Uuid
+  fingerprint                   Bytes                 @db.ByteA
+  fingerprintKeyVersion         Int
+  processingState               SyncV1ProcessingState @default(PROCESSING)
+  outcome                       SyncV1Outcome?
+  disposition                   SyncV1Disposition?
+  resultCode                    String?               @db.VarChar(40)
+  serverAcceptedAt              DateTime?
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member Member @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([tenantId, memberId, operationId])
+  // Scoped internal processing lookup; no global operationId index/list endpoint.
+  @@index([tenantId, memberId, processingState])
 }
 
 model SyncConflict {
