@@ -100,4 +100,15 @@ assert.deepEqual(error.required, ["contractVersion", "operationId", "errorCode",
 const envelope = f05.paths["/api/v1/sync/v1/push"].post.requestBody.content["application/json"].schema;
 assert.equal(envelope.additionalProperties, false);
 assert.deepEqual(envelope.required, ["contractVersion", "operationId", "projectionType", "action", "causal", "payload"]);
+const references = f05.paths["/api/v1/sync/v1/references"].get.responses["200"].content["application/json"].schema;
+assert.equal(references.additionalProperties, false);
+assert.deepEqual(references.required, ["contractVersion", "campaigns", "products"]);
+const campaign = references.properties.campaigns.items;
+assert.equal(campaign.additionalProperties, false);
+assert.deepEqual(campaign.required, ["campaign_ref", "name", "status", "start_date", "end_date", "accepts_contributions"]);
+assert.deepEqual(Object.keys(campaign.properties).sort(), [...campaign.required].sort());
+const product = references.properties.products.items;
+assert.equal(product.additionalProperties, false);
+assert.deepEqual(product.required, ["product_ref", "name", "unit", "base_unit", "is_active", "linkable"]);
+assert.deepEqual(Object.keys(product.properties).sort(), [...product.required].sort());
 process.stdout.write("F05 Sync v1 OpenAPI contract assertions passed.\n");
