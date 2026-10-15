@@ -91,6 +91,7 @@ export class SyncV1Controller {
   @error(403, "Contexto revocado, inactivo o no permitido.")
   @error(404, "Operación ajena, inexistente o no visible (indistinguibles).")
   @error(422, "Registro de otra versión de contrato.")
+  @error(429, "Límite de solicitudes; respetar Retry-After.")
   getOperation(
     @Req() request: SyncV1Request,
     @Param("operationId") operationId: string,
@@ -104,6 +105,7 @@ export class SyncV1Controller {
   @ApiResponse({ status: 200, description: "Whitelist cerrada; sin stock, fichas, notas ni usuarios.", schema: syncV1ReferencesSchema })
   @error(401, "Credencial ausente, inválida o expirada.")
   @error(403, "Contexto revocado, inactivo o sin rol AGRICULTOR.")
+  @error(429, "Límite de solicitudes; respetar Retry-After.")
   listReferences(@Req() request: SyncV1Request) {
     return this.references.execute(contextOf(request));
   }

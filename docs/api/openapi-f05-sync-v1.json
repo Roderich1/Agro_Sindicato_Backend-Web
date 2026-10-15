@@ -1054,6 +1054,61 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Límite de solicitudes; respetar Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1239,6 +1294,61 @@
           },
           "403": {
             "description": "Contexto revocado, inactivo o sin rol AGRICULTOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes; respetar Retry-After.",
             "content": {
               "application/json": {
                 "schema": {

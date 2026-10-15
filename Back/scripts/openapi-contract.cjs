@@ -81,8 +81,8 @@ process.stdout.write("F02 OpenAPI contract assertions passed.\n");
 const f05 = JSON.parse(readFileSync(resolve(__dirname, "../../docs/api/openapi-f05-sync-v1.json"), "utf8"));
 const f05Required = {
   "/api/v1/sync/v1/push": ["post", "200", "400", "401", "403", "413", "415", "422", "429", "503"],
-  "/api/v1/sync/v1/operations/{operationId}": ["get", "200", "400", "401", "403", "404", "422"],
-  "/api/v1/sync/v1/references": ["get", "200", "401", "403"],
+  "/api/v1/sync/v1/operations/{operationId}": ["get", "200", "400", "401", "403", "404", "422", "429"],
+  "/api/v1/sync/v1/references": ["get", "200", "401", "403", "429"],
 };
 assert.deepEqual(Object.keys(f05.paths).sort(), Object.keys(f05Required).sort());
 for (const [path, [method, ...statuses]] of Object.entries(f05Required)) {
