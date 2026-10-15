@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import { URL } from "node:url";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { configureSyncV1BodyParser } from "../api/rest/sync-v1-body";
+import cookieParser = require("cookie-parser");
 
 /**
  * Disposable PostgreSQL + real Nest application for Sync v1 suites. The given
@@ -72,6 +73,8 @@ export async function createSyncV1App(
   const module = await builder.compile();
   const app = module.createNestApplication({ logger: false });
   app.setGlobalPrefix("api/v1");
+  // As in main.ts: the V2 refresh reads the cookie jar even for BODY.
+  app.use(cookieParser());
   configureSyncV1BodyParser(app);
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),

@@ -142,7 +142,7 @@ describePostgres("F05-SYNC-07 references and real Auth V2 path on PostgreSQL", (
     }
   });
 
-  it("end to end with the real login path: V1 login, client registration, V2 login, binding, refs and push", async () => {
+  it("end to end with the real login path: V1 login, client registration, V2 login, binding, refs, push and refresh", async () => {
     const password = "F05-Sintetico-Password-123!";
     const userId = randomUUID();
     const email = `e2e-${userId}@example.test`;
@@ -171,15 +171,27 @@ describePostgres("F05-SYNC-07 references and real Auth V2 path on PostgreSQL", (
     const campaign = references.body.campaigns.find((c: { accepts_contributions: boolean }) => c.accepts_contributions);
     const product = references.body.products.find((p: { base_unit: string | null }) => p.base_unit === "ML");
     const operationId = randomUUID();
+    const body = JSON.stringify({
+      contractVersion: 1, operationId, projectionType: "DECLARED_NEED", action: "PUBLISH",
+      causal: { predecessorOperationId: null, reconciliationReference: null },
+      payload: { campaign_ref: campaign.campaign_ref, product_ref: product.product_ref, base_unit: "ML", quantity_base: "2500" },
+    });
     const push = await request(server).post("/api/v1/sync/v1/push")
-      .set("Authorization", `Bearer ${token}`).set("Content-Type", "application/json")
-      .send(JSON.stringify({
-        contractVersion: 1, operationId, projectionType: "DECLARED_NEED", action: "PUBLISH",
-        causal: { predecessorOperationId: null, reconciliationReference: null },
-        payload: { campaign_ref: campaign.campaign_ref, product_ref: product.product_ref, base_unit: "ML", quantity_base: "2500" },
-      }));
+      .set("Authorization", `Bearer ${token}`).set("Content-Type", "application/json").send(body);
     expect(push.status).toBe(200);
     expect(push.body).toEqual(expect.objectContaining({ operationId, outcome: "APPLIED", code: "OK" }));
+
+    // C24 with the real refresh: the rotated access token keeps the same
+    // session and binding, and the same intention is not applied twice.
+    const refreshed = await request(server).post("/api/v1/auth/v2/refresh").send({ refreshToken: v2.body.refreshToken });
+    expect(refreshed.status).toBe(200);
+    expect(refreshed.body.refreshToken).not.toBe(v2.body.refreshToken);
+    const replay = await request(server).post("/api/v1/sync/v1/push")
+      .set("Authorization", `Bearer ${refreshed.body.accessToken}`).set("Content-Type", "application/json")
+      .send(body);
+    expect(replay.status).toBe(200);
+    expect(replay.body).toEqual(expect.objectContaining({ operationId, outcome: "ALREADY_APPLIED", code: "OK", serverAcceptedAt: push.body.serverAcceptedAt }));
+    expect(await prisma.syncV1OperationJournal.count({ where: { operationId } })).toBe(1);
   });
 
   describe("C29 real rate limit", () => {
