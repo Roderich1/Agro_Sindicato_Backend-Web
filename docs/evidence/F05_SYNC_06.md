@@ -1,0 +1,108 @@
+# Evidencia F05-SYNC-06 — suite adversarial C01–C40 contra Sync v1
+
+Issue [#18](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/18). Ejecuta la [matriz de reintento e idempotencia](../architecture/F05_SYNC_V1_RETRY_IDEMPOTENCY_MATRIX.md) (40 casos / 11 columnas, sin reducción) contra el runtime Sync v1 de [F05_SYNC_05](F05_SYNC_05.md) (#17), no contra el sync legacy.
+
+Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GATE-F05 (#19)**, que sigue Pending. Las filas que dependen de Mobile quedan `NOT_MEASURED`.
+
+## 1. Identidad de la ejecución
+
+| Elemento | Valor |
+| --- | --- |
+| Rama / commits | `feat/f05-sync-v1-push`: `0ed30b6318de423d6a2f63df787d2f7a7261ca57`, `6e2aff49fec105596ca943e82e65a44f37cdabf9`, `0c5167c958c7f69b321a70e77060d82341b758b9`, `7ee0ec143f9e5ede4e8d1f40264a40e85cf105fd`, `6a86c57c948e2f07422dd56abddaf2cc487cfd83`, `74bc47378cd310787654199d432c3e2392f8ec92`, `a8e1cd7bb87c8a88ee55a51d5d36a0c0f7c4cb0a`, `720d1af0977ca7f74c8b9c585ff19abfb2b9bb52`, `db870043f072cb42bf3a5d7c1d83cdc196c0ae40` |
+| Suites | `Back/src/modules/sync-v1/sync-v1-adversarial.postgres.spec.ts` (**A**, 41 pruebas); `Back/src/modules/sync-v1/sync-v1-references.postgres.spec.ts` (**R**, 7 pruebas, con el login real y el límite real) |
+| Comando | `cd Back && F05_SYNC_06_PG_TEST_URL=<servidor desechable> npx jest sync-v1-adversarial.postgres.spec.ts --runInBand` (y `F05_SYNC_07_PG_TEST_URL` para R). Cada suite crea una base nueva y la migra desde cero |
+| Base | PostgreSQL `postgres:16-alpine` desechable (local); en CI, el servicio `postgres:16` del workflow |
+| Resultado | A **41/41** y R **7/7** sobre el código final `db87004`. Antes, A 41/41 sobre `7ee0ec1` y `6a86c57`, y R 7/7 sobre `6a86c57` y `74bc473`. A también 40/40 tres veces seguidas sobre `0c5167c`, para descartar inestabilidad en las pruebas con concurrencia |
+| Datos | Sintéticos; ningún token, contraseña o clave se imprimió ni se guardó |
+
+## 2. Cómo leer la tabla
+
+- **Central** cubre las columnas de estado Central, HTTP, outcome/code, disposition, mismo ID, `business_effect_count` y privacidad. Cada ACK de A pasa por `expectAck`, que comprueba:
+  - exactamente las 7 claves;
+  - el `operationId`;
+  - la disposition que corresponde al outcome;
+  - `serverAcceptedAt` sólo para la aceptación y `reconciliationReference` sólo para CONFLICT;
+  - `Cache-Control: no-store`;
+  - que no aparezca la cantidad centinela.
+
+  Cada error pasa por `expectError`, que comprueba el cuerpo cerrado de 4 claves.
+- **Mobile** cubre las columnas «Acción Mobile» y «Retry». Dependen del outbox y del worker (Mobile [#29](https://github.com/Roderich1/AppMovilAgroquimico/issues/29)–[#31](https://github.com/Roderich1/AppMovilAgroquimico/issues/31)), que no existen todavía. Quedan **NOT_MEASURED** en todas las filas, no NOT_APPLICABLE.
+- Resultado: PASS, FAIL, NOT_MEASURED o NOT_APPLICABLE, con la justificación en la última columna.
+
+## 3. Resultados por caso
+
+| Caso | Prueba | Central | Mobile | Justificación |
+| --- | --- | --- | --- | --- |
+| C01 PUBLISH nominal | A «C01 nominal PUBLISH» | PASS | NOT_MEASURED | APPLIED/OK. Una contribución ACTIVE con la cantidad. Journal FINAL |
+| C02 ACK perdido, replay idéntico | A «C02 … ×3» | PASS | NOT_MEASURED | Tres reenvíos dan ALREADY_APPLIED con la hora original; un solo journal y una sola transición |
+| C03 request perdido antes de Central | A «C03» | PASS | NOT_MEASURED | Antes del envío no hay journal; el único envío posterior es el único efecto. NO_ACK/OUTCOME_UNKNOWN es estado local de Mobile |
+| C04 commit durable y conexión caída | A «C04»; A «Central crash … restart after it» | PASS | NOT_MEASURED | El caso de uso se ejecuta y la respuesta se descarta; el reenvío da ALREADY_APPLIED con la misma hora. Además, tras cerrar y volver a levantar la aplicación sobre la misma base, el reenvío da ALREADY_APPLIED con la hora original |
+| C05 500 antes del commit | A «C05»; A «Central crash before the commit …» | PASS | NOT_MEASURED | Fallo inyectado en `finalize`: 500 TEMPORARILY_UNAVAILABLE / KEEP_FOR_RETRY, sin journal ni transición. Caída real: se termina la sesión PostgreSQL del push en curso (`pg_terminate_backend`) y el cliente recibe 500, sin journal ni contribución. En los dos, el reintento es el único efecto |
+| C06 500 con commit desconocido | A «C06» | PASS | NOT_MEASURED | El commit ocurre y la respuesta falla con 500. El reintento con el mismo ID da ALREADY_APPLIED con la hora confirmada |
+| C07 claves reordenadas | A «C07» | PASS | NOT_MEASURED | Claves reordenadas y espacios distintos dan la misma huella: ALREADY_APPLIED |
+| C08 mismo ID, otro contenido | A «C08»; A «C25» | PASS | NOT_MEASURED | Otra cantidad, acción o causal: REJECTED/IDEMPOTENCY_MISMATCH y el original intacto. Otra versión del contrato: 422 sin ACK (C25) |
+| C09 retries simultáneos del mismo ID | A «C09» | PASS | NOT_MEASURED | Tres requests concurrentes: exactamente un APPLIED; los demás, ALREADY_APPLIED (se admite RETRYABLE). Un journal y una transición |
+| C10 otra instalación del mismo Member | A «C10» | PASS | NOT_MEASURED | Un segundo ClientRegistration ACTIVE del mismo Member da ALREADY_APPLIED: el registro no forma parte de la clave. El journal no guarda clientId. La verificación de bindings y del propietario restaurado es de Mobile |
+| C11 dos sucesores del mismo head | A «C11 order a→b», «b→a», «concurrent», «CANCEL accepted before», «competitor accepted before a CANCEL» | PASS | NOT_MEASURED | Ambos órdenes y la concurrencia: un APPLIED y un CONFLICT/CAUSAL_FORK. CONTESTED sin cantidad y con referencia. El GET separa el recibo histórico del estado actual. CANCEL antes y después del competidor |
+| C12 CANCEL aceptado y replay antiguo | A «C12» | PASS | NOT_MEASURED | El replay antiguo da ALREADY_APPLIED y la retirada se mantiene: CANCELLED, sin cantidad |
+| C13 sucesor atrasado tras CANCEL | A «C13» | PASS | NOT_MEASURED | CONFLICT/CANCELLED_PREDECESSOR; el tombstone se mantiene, sin resurrección |
+| C14 resolución humana con head y referencia vigentes | A «C14 …» | PASS | NOT_MEASURED | APPLIED. Disputa RESOLVED con `closedAt` y la operación que la resolvió, sin payload. Cerca hasta la secuencia anterior. Los replays conservan su resultado: el CONFLICT vuelve con la misma referencia |
+| C15 referencia de reconciliación obsoleta | A «C15 …» | PASS | NOT_MEASURED | CONFLICT/RECONCILIATION_STALE con la referencia vigente; el estado no cambia y la disputa anterior queda SUPERSEDED |
+| C16 campaña cerrada para un valor nuevo | A «C16» | PASS | NOT_MEASURED | REJECTED/CAMPAIGN_NOT_OPEN, sin total |
+| C17 campaña cerrada tras la aceptación | A «C17/C18/C39» | PASS | NOT_MEASURED | El replay da ALREADY_APPLIED: el resultado persistido se lee antes que las reglas de campaña |
+| C18 CANCEL en campaña cerrada | A «C17/C18/C39» | PASS | NOT_MEASURED | APPLIED; CANCELLED sin cantidad |
+| C19 producto inexistente, ajeno o inactivo | A «C19» | PASS | NOT_MEASURED | El mismo REFERENCE_UNAVAILABLE en los tres casos, sin revelar la existencia en otro tenant |
+| C20 unidad de otra dimensión | A «C20» | PASS | NOT_MEASURED | UNIT_INCOMPATIBLE, también para una unidad central que no es L ni KG. Sin conversión |
+| C21 cantidad mayor que int64 | A «C21» | PASS | NOT_MEASURED | QUANTITY_INVALID; el máximo exacto se acepta sin pérdida |
+| C22 Member, sesión o tenant revocado o inactivo | A «C22/C40 …» | PASS | NOT_MEASURED | Member inactivo, cuenta inactiva, tenant inactivo y sesión revocada: 403 AUTH_CONTEXT_FORBIDDEN en POST y GET, sin tocar el journal y sin exponer el resultado histórico |
+| C23 ClientRegistration revocado | A «C23»; R «401 … 403» | PASS | NOT_MEASURED | 403 sin journal. El mismo propietario reanuda con un registro nuevo: APPLIED una vez, y después ALREADY_APPLIED. El registro revocado no se reactiva |
+| C24 access token expirado y refresh | A «C24»; R «end to end … push and refresh» | PASS | NOT_MEASURED | Token expirado: 401 AUTH_REQUIRED con `WWW-Authenticate` y sin journal; con un token vigente de la misma sesión, APPLIED una vez. En R, el refresh V2 real rota el refresh token, y con el access nuevo el mismo push da ALREADY_APPLIED con la hora original (un journal). El refresh de Mobile es #31 |
+| C25 contractVersion distinto de 1 | A «C25»; A «the journal only admits contractVersion 1 …» | PASS | NOT_MEASURED | Versiones 2 y 0: 422 CONTRACT_VERSION_MISMATCH, sin almacenar nada. El journal sólo admite la versión 1 |
+| C26 campo privado extra | A «C26» | PASS | NOT_MEASURED | Campo extra en el envelope (`tenantId`), en causal (`clientId`) y en el payload (`notes`, `backup`): 400 FIELD_NOT_ALLOWED, sin journal. El valor no aparece en los logs |
+| C27 antecesor inválido | A «C27» | PASS | NOT_MEASURED | Desconocido, ajeno, rechazado o de otra contribución: INVALID_PREDECESSOR, y el head se mantiene |
+| C28 antecesor propio en procesamiento | A «C28 …» | PASS (desde `0c5167c`) | NOT_MEASURED | El antecesor se detiene dentro de su transacción y el sucesor recibe RETRYABLE/DEPENDENCY_PENDING sin journal. El antecesor queda APPLIED y el reintento del sucesor, APPLIED una vez (3 journals, secuencia 3). **Antes de `0c5167c` no había prueba**; las mutaciones E16 y E17 de [F05_SYNC_05](F05_SYNC_05.md), que reproducen esa lógica, hacen fallar el caso |
+| C29 rate limit / mantenimiento | R «C29 real rate limit»; A «C36» | PASS | NOT_MEASURED | Con el límite real de la aplicación: 429 RATE_LIMITED con `Retry-After` mayor que 0. Mantenimiento: 503 TEMPORARILY_UNAVAILABLE / KEEP_FOR_RETRY. El 503 no envía `Retry-After` porque la demora no se conoce (el contrato lo pide «si conocido»). La espera `max(backoff, Retry-After)` es de Mobile |
+| C30 ACK 2xx incompleto o contradictorio | todas las respuestas de A (`expectAck`) | PASS (Central no emite ACK inválidos en los casos probados) | NOT_MEASURED | El caso trata de cómo Mobile maneja un ACK inválido (INVALID_ACK → OUTCOME_UNKNOWN), y eso no se puede medir sin el worker. Del lado Central, cada ACK tiene exactamente 7 claves, el ID propio y una disposition coherente |
+| C31 GET del dueño tras ACK perdido | A «C31/C32 GET»; A «C11 …» | PASS | NOT_MEASURED | El GET devuelve exactamente `{ack, contribution}`: ALREADY_APPLIED y el estado actual (ACTIVE, CANCELLED o CONTESTED), sin cantidades. No crea efectos |
+| C32 GET ajeno o inexistente | A «C31/C32 GET» | PASS | NOT_MEASURED | El mismo 404 OPERATION_NOT_FOUND con `operationId` null para otro Member, otro tenant o un ID desconocido |
+| C33 sucesor tardío de una rama cercada | A «C14 …» | PASS | NOT_MEASURED | REJECTED/CAUSAL_FENCED; la resolución sigue vigente |
+| C34 mismo operationId bajo otro Member o tenant | A «C34» | PASS | NOT_MEASURED | Claves y efectos independientes; el GET ajeno da 404 |
+| C35 restore sin prueba de propietario | A «C35 …» | PASS (parte Central) | NOT_MEASURED | Central rechaza con 403 una sesión sin ClientRegistration vinculado, un token V1, Directiva y Administrador, sin journal. `OWNERSHIP_NOT_PROVEN` no se emite: la prueba de propiedad es una precondición de Mobile (#29/#30), no un campo del envelope. Sync no acepta archivos ni backups (C26) |
+| C36 purga sin garantía de replay | A «C36» | PASS | NOT_MEASURED | Admisión cerrada: 503 y ningún ID desconocido se acepta como nuevo. No hay purga implementada, y la admisión de producción queda cerrada mientras no exista la política (F10 #45) |
+| C37 batch, claves duplicadas o tipos inválidos | A «C37» | PASS | NOT_MEASURED | Array, claves duplicadas, UUID en mayúsculas, cantidad numérica o fuera de formato (`01`, `-1`, `1.5`, `1e3`, ` 1`), JSON mal formado y cuerpo vacío dan 400 INVALID_REQUEST. Un Content-Type no JSON da 415 y más de 16 KiB, 413. Nada se almacena |
+| C38 cambio de tenant o Member en relogin | A «C34»; A «C22/C40 …» | PASS (parte Central) | NOT_MEASURED | Central no reatribuye: cada clave está atada a su tenant y Member, y un contexto inválido da 403. No reatribuir ni pausar el outbox anterior es de Mobile (#30/#31) |
+| C39 resultado final tras un cambio de catálogo | A «C17/C18/C39» | PASS | NOT_MEASURED | Al reabrir la campaña, el replay del rechazo devuelve el mismo REJECTED/CAMPAIGN_NOT_OPEN, sin reevaluar |
+| C40 revocación antes de la aceptación durable | A «C40 revocation committed after the guard …»; A «C22/C40 …» | PASS (desde `6e2aff4`) | NOT_MEASURED | La revocación se confirma después del guard y antes de la decisión: 403, sin journal ni contribución. La decisión revalida con `FOR SHARE` dentro de su transacción |
+
+**Resumen.** Central: 40 de 40 casos con evidencia PASS (C30, C35 y C38 sólo en su parte Central). Mobile: 40 de 40 casos NOT_MEASURED. Ningún FAIL abierto.
+
+## 4. Cobertura mínima de #18
+
+| Aspecto | Evidencia |
+| --- | --- |
+| Replay idéntico; misma clave con otro contenido; replay concurrente | C02, C07, C08, C09 |
+| Timeout antes del ACK; timeout tras el commit; 500 ambiguo; ACK perdido | C03, C04, C05, C06 |
+| Refresh o rotación de token; revocación de registro o sesión | C24 (con el refresh real), C23, C22, C40 |
+| Otra instalación del mismo Member; otro Member; otro tenant | C10, C34 |
+| OPERATION_IN_PROGRESS; Retry-After; backoff/jitter | C09 (sin PROCESSING visible, el concurrente recibe ALREADY_APPLIED) y C28 (RETRYABLE/DEPENDENCY_PENDING); C29; backoff/jitter NOT_MEASURED (Mobile #31) |
+| Replay final de APPLIED, CONFLICT y REJECTED | C02; C14 (mismo CONFLICT y referencia); C39 |
+| Claves duplicadas; campos desconocidos; versión, UUID o cantidad inválidos | C37, C26, C25, C21 |
+| Antecesor fallido; fork; CANCEL y cerco; reconciliación obsoleta | C27, C28, C11, C12, C13, C14, C33, C15 |
+| Reinicio y recuperación del servidor | C05 y C04 con caída real: sesión PostgreSQL terminada antes del commit y aplicación reiniciada después |
+| Privacidad y logs | A «privacy and individual domain»: los logs no contienen la cantidad centinela, nombres de campos del payload ni el token. C26 no registra el valor rechazado |
+| Separación de sync y backup; dominio individual | Sync no crea compras, lotes, movimientos, deudas, pagos, aplicaciones, filas del sync legacy ni auditoría legacy (todas las cuentas en 0). C26 rechaza un campo `backup`. Las transiciones aceptadas coinciden con los journals APPLIED |
+| Crash de Mobile entre el ACK y la retirada | NOT_MEASURED (Mobile #30/#31) |
+
+## 5. Lo que esta ejecución no prueba
+
+- Ninguna acción de Mobile: outbox, worker, backoff con jitter, manejo de un ACK inválido, pausa por auth, restore y relogin (#29–#31).
+- La rotación real de la clave de huella en un despliegue. La verificación con claves anteriores está cubierta en las pruebas de dominio, no en un entorno desplegado.
+- El rendimiento bajo carga, más allá de la concurrencia puntual de C09, C11 y C28.
+- Producción: la admisión sigue cerrada (C36) y no hay purga.
+
+## 6. Revisiones
+
+- Ejecución automatizada: Claude Code, 2026-10-15 (arriba). El CI del PR ejecuta A y R en cada push.
+- Revisión de Roderich Rendón: pendiente.
+- Revisión del tutor: se registra aparte, por entregable o gate, en GOV-01.
+- GATE-F05 (#19): Pending. Esta evidencia no lo cierra.
