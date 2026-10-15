@@ -1,4 +1,4 @@
-import { INestApplication } from "@nestjs/common";
+import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, beforeAll } from "@jest/globals";
 import * as bcrypt from "bcrypt";
@@ -108,26 +108,37 @@ describePostgres("F05-SYNC-07 references and real Auth V2 path on PostgreSQL", (
     expect(b.body.products.map((p: { product_ref: string }) => p.product_ref)).toEqual([f.products.liquidB]);
   });
 
-  it("gives identical references for two reads of an unchanged catalogue and writes nothing", async () => {
-    const before = await Promise.all([
+  it("gives identical references for two reads of an unchanged catalogue, writes nothing and logs no body", async () => {
+    const snapshot = () => Promise.all([
       prisma.agriculturalCampaign.findMany({ orderBy: { id: "asc" } }),
       prisma.product.findMany({ orderBy: { id: "asc" } }),
       prisma.syncV1OperationJournal.count(),
       prisma.syncV1Contribution.count(),
+      prisma.auditLog.count(),
     ]);
-    const first = (await refs(farmerA)).body;
-    const second = (await refs(farmerA)).body;
+    const before = await snapshot();
+    const logged: string[] = [];
+    const spies = (["log", "warn", "error", "debug", "verbose"] as const).map((level) =>
+      jest.spyOn(Logger.prototype, level).mockImplementation((...args: unknown[]) => {
+        logged.push(args.map(String).join(" "));
+      }),
+    );
+    let first: unknown;
+    let second: unknown;
+    try {
+      first = (await refs(farmerA)).body;
+      second = (await refs(farmerA)).body;
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
     expect(second).toEqual(first);
-    const after = await Promise.all([
-      prisma.agriculturalCampaign.findMany({ orderBy: { id: "asc" } }),
-      prisma.product.findMany({ orderBy: { id: "asc" } }),
-      prisma.syncV1OperationJournal.count(),
-      prisma.syncV1Contribution.count(),
-    ]);
-    expect(after).toEqual(before);
+    expect(await snapshot()).toEqual(before);
+    const text = logged.join(" | ");
+    for (const value of ["Herbicida sintético", "Campaña abierta A", f.products.liquidA, f.campaigns.openA])
+      expect(text).not.toContain(value);
   });
 
-  it("401 without a valid credential; 403 for Directiva, Administrador, inactive or revoked context", async () => {
+  it("401 without a valid credential; 403 for Directiva, Administrador, revoked registration, inactive Member or account", async () => {
     const missing = await request(app.getHttpServer()).get(REFS);
     expect(missing.status).toBe(401);
     expect(missing.body).toEqual({ contractVersion: 1, operationId: null, errorCode: "AUTH_REQUIRED", disposition: "KEEP_FOR_RETRY" });
@@ -135,10 +146,27 @@ describePostgres("F05-SYNC-07 references and real Auth V2 path on PostgreSQL", (
     const admin = await createSession(prisma, jwt, f.members.adminA);
     const revoked = await createSession(prisma, jwt, f.members.farmerA2);
     await prisma.clientRegistration.update({ where: { id: revoked.registrationId! }, data: { status: "REVOKED", revokedAt: new Date() } });
+    const forbidden = { contractVersion: 1, operationId: null, errorCode: "AUTH_CONTEXT_FORBIDDEN", disposition: "KEEP_FOR_RECONCILIATION" };
     for (const session of [director, admin, revoked]) {
       const response = await refs(session);
       expect(response.status).toBe(403);
-      expect(response.body).toEqual({ contractVersion: 1, operationId: null, errorCode: "AUTH_CONTEXT_FORBIDDEN", disposition: "KEEP_FOR_RECONCILIATION" });
+      expect(response.body).toEqual(forbidden);
+    }
+    // Inactive Member or account: the same 403 and no data (contract §9).
+    const inactive = await createSession(prisma, jwt, f.members.farmerA);
+    const member = await prisma.member.findUniqueOrThrow({ where: { id: f.members.farmerA } });
+    for (const [deactivate, restore] of [
+      [() => prisma.member.update({ where: { id: member.id }, data: { isActive: false } }), () => prisma.member.update({ where: { id: member.id }, data: { isActive: true } })],
+      [() => prisma.user.update({ where: { id: member.userId }, data: { isActive: false } }), () => prisma.user.update({ where: { id: member.userId }, data: { isActive: true } })],
+    ] as const) {
+      await deactivate();
+      try {
+        const response = await refs(inactive);
+        expect(response.status).toBe(403);
+        expect(response.body).toEqual(forbidden);
+      } finally {
+        await restore();
+      }
     }
   });
 
