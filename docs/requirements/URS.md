@@ -113,9 +113,9 @@ Estos IDs fueron creados como identificadores de ingeniería de F01 a partir de 
 - **Statement:** El propietario debe poder recuperar su información privada mediante un mecanismo autenticado, verificable y separado de la sincronización colectiva.
 - **Source:** [`CURRENT_SCOPE.md` §7](../scope/CURRENT_SCOPE.md); ADR-001, Backup boundary.
 - **Related OE:** OE2, OE5
-- **Owner:** Mobile y servicio de recuperación privada; ubicación física y metadata exacta delegadas a F09.
+- **Owner:** Mobile y servicio de recuperación privada; ubicación física y metadata exacta delegadas a F08.
 - **Privacy impact:** Crítico; el binario es privado y owner-scoped.
-- **Implementation phase:** F09; issues #37–#40 y Mobile #35–#36.
+- **Implementation phase:** F08; issues #37–#40 y Mobile #35–#36.
 - **Verification target:** BACKUP_RESTORE, SECURITY, DEVICE
 - **Status:** `BASELINED`
 
@@ -124,11 +124,11 @@ Estos IDs fueron creados como identificadores de ingeniería de F01 a partir de 
 - **ID:** `URS-VOICE-01`
 - **Title:** Voz sólo como captura asistida
 - **Statement:** Si se utiliza voz, debe producir un draft, permitir preview editable y requerir confirmación humana antes de cualquier operación; nunca produce efectos automáticamente.
-- **Source:** [`CURRENT_SCOPE.md` §3](../scope/CURRENT_SCOPE.md); ADR-001; Mobile PRE-VOICE issues #10–#17.
+- **Source:** [`CURRENT_SCOPE.md` §3](../scope/CURRENT_SCOPE.md); ADR-001; Mobile F09-VOZ issues #10–#17.
 - **Related OE:** OE3
 - **Owner:** Mobile/Flutter
 - **Privacy impact:** Alto; audio y transcripción, si existen, no se proyectan por defecto ni se exige persistirlos.
-- **Implementation phase:** PRE-VOICE/EVO; no F04.
+- **Implementation phase:** F09-VOZ/EVO; no F04.
 - **Verification target:** UNIT, DEVICE, SECURITY, USABILITY
 - **Status:** `BASELINED`
 

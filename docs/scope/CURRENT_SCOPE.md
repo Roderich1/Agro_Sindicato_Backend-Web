@@ -24,7 +24,7 @@ Nunca se permite `speech → efecto automático`.
 
 ## 4. Central Backend
 
-El Backend es responsable de Tenant/Sindicato, identidad, Account/User, Member y Person sólo si el dominio la requiere, sesiones, dispositivos/clientId, campañas compartidas como contexto autoritativo, catálogos compartidos, vínculo y autorización aplicable, sync idempotente, recepción de proyección mínima, consumo colectivo autorizado, recepción y persistencia de la proyección autorizada de necesidad declarada, estado de última sincronización, propuesta de compra conjunta y auditoría central minimizada. El servicio de backup privado es separado de Sync; su metadata exacta se decide en F09.
+El Backend es responsable de Tenant/Sindicato, identidad, Account/User, Member y Person sólo si el dominio la requiere, sesiones, dispositivos/clientId, campañas compartidas como contexto autoritativo, catálogos compartidos, vínculo y autorización aplicable, sync idempotente, recepción de proyección mínima, consumo colectivo autorizado, recepción y persistencia de la proyección autorizada de necesidad declarada, estado de última sincronización, propuesta de compra conjunta y auditoría central minimizada. El servicio de backup privado es separado de Sync; su metadata exacta se decide en F08.
 
 No es autoridad sobre todo el dominio privado móvil. Los contratos actuales más amplios son legacy y deben migrarse mediante [TRANSITION_PLAN.md](TRANSITION_PLAN.md).
 
@@ -44,7 +44,7 @@ La proyección debe ser mínima, autorizada según finalidad y alcance aprobados
 
 ## 7. Backup
 
-Backup no es Sync. El backup remoto es privado, owner-scoped, autenticado, con integridad verificable y separado lógicamente de Sync y del dataset colectivo. Su contenido no alimenta automáticamente proyecciones. F09 decide provider, almacenamiento físico, metadata exacta, cifrado, lifecycle, retención y formato/binario.
+Backup no es Sync. El backup remoto es privado, owner-scoped, autenticado, con integridad verificable y separado lógicamente de Sync y del dataset colectivo. Su contenido no alimenta automáticamente proyecciones. F08 decide provider, almacenamiento físico, metadata exacta, cifrado, lifecycle, retención y formato/binario.
 
 ## 8. Declared Need
 
@@ -87,4 +87,4 @@ El código y los documentos legacy se preservan para compatibilidad, evidencia y
 - [#80 F01-SCOPE-02](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/80): frontera de datos y autoridad.
 - [#81 ALIGN-TECH-01](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/81): transición técnica cross-cutting; permanece bloqueada hasta contar con contratos y gates.
 
-F01 cubre análisis, documentación, arquitectura y baseline; F02 identidad, membership, ownership y device; F03 autenticación/sesión Mobile; F04 modos y dominio Mobile; F05 sincronización; F06 proyección colectiva; F07 Web Directiva y planificación/compra conjunta; F08 está fuera de alcance; F09 backup privado; F10 QA, seguridad, UX, performance y evaluación; F11 release, documentación final y trazabilidad final. Los contratos se asignan a la fase de la capacidad responsable. PRE-VOICE/EVO gobierna la voz Mobile existente y #81 coordina la realineación cross-cutting.
+F01 análisis, documentación, arquitectura y baseline; F02 identidad, membership, ownership y device; F03 autenticación/sesión Mobile; F04 modos y dominio Mobile; F05 sincronización; F06 proyección colectiva; F07 Web Directiva y planificación/compra conjunta; F08 backup privado; F09 voz Mobile (opcional, borrador sin efectos); F10 QA, seguridad, UX, performance y evaluación; F11 release, documentación final y trazabilidad final. Aportes queda retirado del alcance ([ADR-002](../adr/ADR-002-renumeracion-fases.md)). Los contratos se asignan a la fase de la capacidad responsable. F09-VOZ/EVO gobierna la voz Mobile existente y #81 coordina la realineación cross-cutting.
