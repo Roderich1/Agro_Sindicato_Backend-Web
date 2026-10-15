@@ -7,6 +7,7 @@ import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { PushOperationUseCase } from "./application/push-operation.use-case";
 import { SyncV1Config } from "./application/sync-v1-config";
+import type { PrismaSyncV1ContributionRepository } from "./infrastructure/prisma-sync-v1-contribution.repository";
 import { PrismaSyncV1JournalRepository } from "./infrastructure/prisma-sync-v1-journal.repository";
 import {
   createIsolatedDatabase,
@@ -523,7 +524,7 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
     expect((await contributionOf(s))!.quantityBase).toBe(9223372036854775807n);
   });
 
-  it("C22/C40 Member, account or tenant inactive: 403 without touching the journal", async () => {
+  it("C22/C40 Member, account or tenant inactive, or session revoked: 403 without touching the journal", async () => {
     const s = await freshMember();
     const operationId = await published(s);
     const before = await journalCount();
@@ -542,6 +543,16 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
     } finally {
       await prisma.user.update({ where: { id: member.userId }, data: { isActive: true } });
     }
+    await prisma.tenant.update({ where: { id: s.tenantId }, data: { isActive: false } });
+    try {
+      expectError(await post(s, envelope()), 403, "AUTH_CONTEXT_FORBIDDEN", "KEEP_FOR_RECONCILIATION");
+      expectError(await get(s, operationId), 403, "AUTH_CONTEXT_FORBIDDEN", "KEEP_FOR_RECONCILIATION");
+    } finally {
+      await prisma.tenant.update({ where: { id: s.tenantId }, data: { isActive: true } });
+    }
+    await prisma.authSession.update({ where: { id: s.sessionId }, data: { status: "REVOKED", revokedAt: new Date() } });
+    expectError(await post(s, envelope()), 403, "AUTH_CONTEXT_FORBIDDEN", "KEEP_FOR_RECONCILIATION");
+    expectError(await get(s, operationId), 403, "AUTH_CONTEXT_FORBIDDEN", "KEEP_FOR_RECONCILIATION");
     expect(await journalCount()).toBe(before);
   });
 
@@ -627,6 +638,41 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
       expectAck(await post(s, body), body.operationId, "REJECTED", "INVALID_PREDECESSOR");
     }
     expect(await contributionOf(s)).toEqual(expect.objectContaining({ headOperationId: head, status: "ACTIVE" }));
+  });
+
+  it("C28 own predecessor still in processing: RETRYABLE DEPENDENCY_PENDING, nothing kept; accepted once afterwards", async () => {
+    const s = await freshMember();
+    const head = await published(s);
+    const predecessor = envelope({ action: "SUPERSEDE", pred: head, quantity: "200" });
+    const successor = envelope({ action: "SUPERSEDE", pred: predecessor.operationId, quantity: "300" });
+    // Hold the predecessor inside its transaction: reserved, not yet decided.
+    const repo = (app.get(PushOperationUseCase) as unknown as { contributions: PrismaSyncV1ContributionRepository }).contributions;
+    const original = repo.lockOrCreate.bind(repo);
+    let entered!: () => void;
+    const reached = new Promise<void>((resolve) => (entered = resolve));
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const spy = jest.spyOn(repo, "lockOrCreate").mockImplementationOnce(async (...args) => {
+      entered();
+      await gate;
+      return original(...args);
+    });
+    let first: Promise<Res> | undefined;
+    try {
+      first = post(s, predecessor).then((r: Res) => r);
+      await reached;
+      expectAck(await post(s, successor), successor.operationId, "RETRYABLE", "DEPENDENCY_PENDING");
+      expect(await journalOf(s, successor.operationId)).toBeNull();
+    } finally {
+      release();
+      spy.mockRestore();
+    }
+    expectAck(await first!, predecessor.operationId, "APPLIED", "OK");
+    expectAck(await post(s, successor), successor.operationId, "APPLIED", "OK");
+    expect(await contributionOf(s)).toEqual(
+      expect.objectContaining({ status: "ACTIVE", headOperationId: successor.operationId, quantityBase: 300n, lastSequence: 3 }),
+    );
+    expect(await journalCount(s.memberId)).toBe(3);
   });
 
   it("C31/C32 GET: owner sees ack and current state; others and unknown IDs get the same 404", async () => {

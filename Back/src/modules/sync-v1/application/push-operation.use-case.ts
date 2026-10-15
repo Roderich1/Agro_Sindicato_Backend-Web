@@ -19,6 +19,15 @@ import { SyncV1Context, SyncV1HttpError } from "./sync-v1-http-error";
 /** Prisma errors that leave no committed result: the client retries. */
 const TRANSIENT_PRISMA_CODES = new Set(["P2028", "P2034"]);
 
+/** Advisory lock key of one operation, scoped to its owner. */
+const operationLockKey = (
+  owner: { tenantId: string; memberId: string },
+  operationId: string,
+) => `sync-v1:${owner.tenantId}:${owner.memberId}:${operationId}`;
+
+/** The predecessor is still being processed: roll back, nothing is kept. */
+class DependencyPending extends Error {}
+
 /**
  * F05-SYNC-05 push (contract §5–§10). One transaction holds the journal
  * reservation, the contribution lock, the decision, the transition and the
@@ -56,13 +65,17 @@ export class PushOperationUseCase {
         },
       );
     } catch (error) {
-      if (
+      if (error instanceof DependencyPending) {
+        // Not a final result: the reservation was rolled back (§7, C28).
+        result = ack(envelope.operationId, "RETRYABLE", "DEPENDENCY_PENDING");
+      } else if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         TRANSIENT_PRISMA_CODES.has(error.code)
       ) {
         throw new SyncV1HttpError(503, "TEMPORARILY_UNAVAILABLE");
+      } else {
+        throw error;
       }
-      throw error;
     }
     this.logger.log(
       `push outcome=${result.outcome} code=${result.code} operation=${envelope.operationId} type=${envelope.projectionType} action=${envelope.action}`,
@@ -82,6 +95,9 @@ export class PushOperationUseCase {
       operationId: envelope.operationId,
     };
     await this.revalidateContext(tx, context);
+    // Held until commit or rollback: requests with the same operationId take
+    // turns, and a successor can tell that this one is still in processing.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${operationLockKey(identity, identity.operationId)}, 0))`;
     // A journal created before a key rotation is compared with its own key.
     const existing = await this.journal.findByIdentity(identity, tx);
     const version = existing?.fingerprintKeyVersion ?? keyring.currentVersion;
@@ -143,6 +159,21 @@ export class PushOperationUseCase {
     if (valid.length !== 1) throw new SyncV1HttpError(403, "AUTH_CONTEXT_FORBIDDEN");
   }
 
+  /**
+   * True while another transaction holds the lock of that operation. The
+   * attempt never waits, so it cannot deadlock with the predecessor, which may
+   * be waiting for the contribution lock held here.
+   */
+  private async inFlight(
+    tx: Prisma.TransactionClient,
+    owner: { tenantId: string; memberId: string },
+    operationId: string,
+  ): Promise<boolean> {
+    const [row] = await tx.$queryRaw<{ free: boolean }[]>`
+      SELECT pg_try_advisory_xact_lock_shared(hashtextextended(${operationLockKey(owner, operationId)}, 0)) AS free`;
+    return !row.free;
+  }
+
   private async process(
     tx: Prisma.TransactionClient,
     identity: JournalIdentity,
@@ -184,14 +215,25 @@ export class PushOperationUseCase {
     }
 
     const contribution = await this.contributions.lockOrCreate(tx, key);
+    const predecessorId = envelope.causal.predecessorOperationId;
+    const predecessor = await this.contributions.predecessorInfo(
+      tx,
+      owner,
+      contribution,
+      predecessorId,
+    );
+    // An own predecessor not yet visible may be in flight in another
+    // request: DEPENDENCY_PENDING, never a terminal rejection (§6, C28).
+    if (
+      predecessor.kind === "NOT_ACCEPTED_HERE" &&
+      predecessorId !== null &&
+      (await this.inFlight(tx, owner, predecessorId))
+    ) {
+      throw new DependencyPending();
+    }
     const decision = decideCausal({
       action: envelope.action,
-      predecessor: await this.contributions.predecessorInfo(
-        tx,
-        owner,
-        contribution,
-        envelope.causal.predecessorOperationId,
-      ),
+      predecessor,
       reconciliationReference: envelope.causal.reconciliationReference,
       contribution: {
         status: contribution.status,
