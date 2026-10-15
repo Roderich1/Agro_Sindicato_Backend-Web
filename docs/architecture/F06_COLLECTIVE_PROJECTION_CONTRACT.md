@@ -8,7 +8,7 @@ Baselines de lectura: Backend/Web `6fa1c0c0083965b7d8da0b8ac3cd1907a418f29e`; Mo
 
 Rigen [ADR-001](../adr/ADR-001-mobile-individual-system-of-record.md), [CURRENT_SCOPE](../scope/CURRENT_SCOPE.md), las matrices de alcance y [F01](F01_INTEGRATION_DECISIONS.md), incluidos sus ajustes semánticos. El código histórico no crea requisitos. Mobile conserva autoridad sobre operaciones individuales; Central conserva identidad, membresía, catálogos y campañas compartidas. Central custodia únicamente una proyección autorizada para planificación, visualización y reportes colectivos. Web es consumidor Directiva/Admin online-first.
 
-Regla: **DENY por defecto**. Sólo entran campos con finalidad, trazabilidad, propietario, acceso, minimización y retención definidos. No hay réplica de SQLite, sincronización financiera, forecasting, IA, recomendación, aportes (retirado), operación individual desde Web ni publicación implícita desde backup.
+Regla: **DENY por defecto**. Sólo entran campos con finalidad, trazabilidad, propietario, acceso, minimización y retención definidos. No hay réplica de SQLite, sincronización financiera, forecasting, IA, recomendación, aportes comunales (retirados, ADR-002), operación individual desde Web ni publicación implícita desde backup.
 
 | Decisión | Finalidad concreta | Respaldo y consumidor |
 | --- | --- | --- |
