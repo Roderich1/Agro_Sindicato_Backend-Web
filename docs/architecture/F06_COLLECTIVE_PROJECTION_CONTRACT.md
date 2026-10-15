@@ -8,7 +8,7 @@ Baselines de lectura: Backend/Web `6fa1c0c0083965b7d8da0b8ac3cd1907a418f29e`; Mo
 
 Rigen [ADR-001](../adr/ADR-001-mobile-individual-system-of-record.md), [CURRENT_SCOPE](../scope/CURRENT_SCOPE.md), las matrices de alcance y [F01](F01_INTEGRATION_DECISIONS.md), incluidos sus ajustes semánticos. El código histórico no crea requisitos. Mobile conserva autoridad sobre operaciones individuales; Central conserva identidad, membresía, catálogos y campañas compartidas. Central custodia únicamente una proyección autorizada para planificación, visualización y reportes colectivos. Web es consumidor Directiva/Admin online-first.
 
-Regla: **DENY por defecto**. Sólo entran campos con finalidad, trazabilidad, propietario, acceso, minimización y retención definidos. No hay réplica de SQLite, sincronización financiera, forecasting, IA, recomendación, F08, operación individual desde Web ni publicación implícita desde backup.
+Regla: **DENY por defecto**. Sólo entran campos con finalidad, trazabilidad, propietario, acceso, minimización y retención definidos. No hay réplica de SQLite, sincronización financiera, forecasting, IA, recomendación, aportes comunales (retirados, ADR-002), operación individual desde Web ni publicación implícita desde backup.
 
 | Decisión | Finalidad concreta | Respaldo y consumidor |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ Regla: **DENY por defecto**. Sólo entran campos con finalidad, trazabilidad, pr
 | COLL-02 | Total expresamente solicitado por agricultores para preparar una propuesta humana | OE3/OE4; URS-MOB-03, URS-WEB-01, URS-JP-01; SRS-COLL-02, SRS-JP-02; DEC-F01-06/07/11. Mobile [Roderich1/AppMovilAgroquimico#34](https://github.com/Roderich1/AppMovilAgroquimico/issues/34); Web F07 #26–28. |
 | COLL-03 | Referencias y cantidades exactas sin identidad privada redundante | OE2/OE4/OE5; URS-PRIV-01, URS-SEC-01; SRS-IAM-02, SRS-COLL-01, SRS-PRIV-01; DEC-F01-01/07/08. F05 #16, F06 #21. |
 | COLL-04 | Sustitución/cancelación causal sin duplicar ni reactivar aportes obsoletos | OE2/OE4/OE5; URS-SYNC-01; SRS-SYNC-01/02; DEC-F01-04/05. F05 #16–18. |
-| COLL-05 | Retención por finalidad, auditoría mínima y separación del backup | OE2/OE4/OE5; URS-PRIV-01, URS-BKP-01; SRS-AUDIT-01, SRS-BKP-01/02; DEC-F01-08/09/10. F06 #20, F09 #40, F10 #45. |
+| COLL-05 | Retención por finalidad, auditoría mínima y separación del backup | OE2/OE4/OE5; URS-PRIV-01, URS-BKP-01; SRS-AUDIT-01, SRS-BKP-01/02; DEC-F01-08/09/10. F06 #20, F08 #40, F10 #45. |
 
 Los identificadores OE/URS/SRS/DEC remiten a [URS](../requirements/URS.md), [SRS](../requirements/SRS.md), [TRACEABILITY_MATRIX](../requirements/TRACEABILITY_MATRIX.md) y F01; no se crean requisitos académicos adicionales.
 
@@ -127,7 +127,7 @@ Se fijan finalidad, inicio, salida y responsable; **no se inventan días**. `PER
 | `R_CENTRAL_AUDIT` | Validación/aceptación/rechazo/retirada; actor/contexto interno, acción, resultado, referencia opaca y hora de servidor | Finalidad de accountability; no snapshots privados, cuerpos completos, secretos, notas o binarios. Separar accesos de auditoría del consumo Web. Eliminar/minimizar al terminar la finalidad aprobada. | Roderich1: F06 #20 política; SRS-AUDIT-01; F10 #45 verificación. `PERIOD_DELEGATED`. |
 | `R_CENTRAL_REFERENCE` | Campaña/producto central ya existentes, no una copia nueva desde Mobile | Rige su política central y referencial; cancelar aporte no elimina catálogo. No duplicar fichas de catálogo en cada revisión. | Roderich1: autoridad Central, F06 #20/F05 #16 validación de referencias. Política central vigente; periodo fuera de esta proyección. |
 | `R_PRIVATE_LOCAL` | Dato individual o candidato excluido | Central no lo admite: cero retención en proyección y en logs/cuarentena del Sync. Conservación local pertenece a Mobile. | Roderich1: Mobile [Roderich1/AppMovilAgroquimico#29](https://github.com/Roderich1/AppMovilAgroquimico/issues/29)/[Roderich1/AppMovilAgroquimico#32](https://github.com/Roderich1/AppMovilAgroquimico/issues/32)/[Roderich1/AppMovilAgroquimico#33](https://github.com/Roderich1/AppMovilAgroquimico/issues/33)/[Roderich1/AppMovilAgroquimico#34](https://github.com/Roderich1/AppMovilAgroquimico/issues/34); F06 #20/F10 #45 boundary. Sin periodo central. |
-| `R_BACKUP_F09` | Backup privado del propietario | No ingresar al Sync; F09 define conservación, restore, integridad, cifrado y purga. No aplicar retención de proyección al backup. | Roderich1: F09 #37–40, especialmente #40. `PERIOD_DELEGATED` a F09. |
+| `R_BACKUP_F08` | Backup privado del propietario | No ingresar al Sync; F08 define conservación, restore, integridad, cifrado y purga. No aplicar retención de proyección al backup. | Roderich1: F08 #37–40, especialmente #40. `PERIOD_DELEGATED` a F08. |
 
 En rechazo por campos privados, la auditoría registra clasificación y referencia mínima segura, **no el valor rechazado ni el cuerpo**. No guardar conflictos como snapshots completos de SQLite. Los datos mínimos de conflicto sólo los consulta el propietario autorizado o el proceso central que necesite resolverlo; Directiva recibe estado autorizado sin cantidades individuales.
 
@@ -155,7 +155,7 @@ Restaurar SQLite, fotos o identidades locales no autoriza re-publicación masiva
 | Calendar legacy | `REMOVE_LATER` | No nuevo consumidor ni proyección por su mera existencia. #81 y matriz de disposición. |
 | DemandForecast legacy | `REMOVE_LATER` | Forecasting fuera de alcance; no migrar a necesidad declarada. #81. |
 | Cola offline Web | `REMOVE_LATER` | Web Directiva/Admin online-first; retirar mediante transición de consumidores. F07 #23–25/#81. |
-| Backup privado | `NO_RELATION` | Ruta F09 separada; no reemplazarla por Sync. |
+| Backup privado | `NO_RELATION` | Ruta F08 separada; no reemplazarla por Sync. |
 
 Estas disposiciones son decisiones propuestas para planificación, no ejecución ni autorización para borrar contratos. [LEGACY_CONTRACT_CONSUMERS](../scope/LEGACY_CONTRACT_CONSUMERS.md) y [TRANSITION_PLAN](../scope/TRANSITION_PLAN.md) conservan autoridad sobre inventario, cambio gradual, validación y rollback.
 

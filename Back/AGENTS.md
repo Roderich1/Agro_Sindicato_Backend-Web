@@ -14,7 +14,7 @@ Los módulos y tablas actuales de inventario, parcelas, aplicaciones, compras, c
 - Sync es proyección versionada y autorizada, no réplica de SQLite ni backup.
 - Backup privado y metadata central tienen contratos separados.
 - Una propuesta colectiva requiere decisión humana y no produce efectos individuales automáticos.
-- No implementar forecasting ni F08/aportes.
+- No implementar forecasting ni aportes comunales (retirados, ADR-002).
 - No ejecutar voz ni operaciones financieras desde transcripción.
 - No eliminar un contrato/schema/migración hasta migrar consumidores y completar retención, reconciliación y rollback.
 

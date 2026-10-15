@@ -16,5 +16,5 @@ La autoridad de objetivos, alcance y capacidades requeridas es el Proyecto de Gr
 - Estado inicial: `BASELINED`; nunca significa implementado o probado.
 - Fuentes válidas: baseline vigente, ADR-001 y decisiones/issues Live.
 - Los documentos `HISTORICAL / OBSOLETE` y el DOCX histórico no generan requisitos nuevos.
-- Una enumeración condicional de datos privados no exige capturarlos. `Purchase` individual es válido en Mobile; `PayableAccount`/`Payment` no tienen target Live. Los detalles físicos de backup pertenecen a F09.
+- Una enumeración condicional de datos privados no exige capturarlos. `Purchase` individual es válido en Mobile; `PayableAccount`/`Payment` no tienen target Live. Los detalles físicos de backup pertenecen a F08.
 - La verificación futura usa objetivos explícitos como `REVIEW`, `CONTRACT`, `UNIT`, `INT`, `E2E`, `SECURITY`, `DEVICE`, `BACKUP_RESTORE`, `USABILITY` y `RECONCILIATION`.
