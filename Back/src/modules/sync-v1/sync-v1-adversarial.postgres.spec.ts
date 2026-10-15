@@ -44,6 +44,7 @@ interface Res {
 }
 
 describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
+  let databaseUrl: string;
   let app: INestApplication;
   let prisma: PrismaService;
   let jwt: JwtService;
@@ -54,8 +55,8 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
   const logged: string[] = [];
 
   beforeAll(async () => {
-    const url = await createIsolatedDatabase(postgresUrl!, "f05_sync_06");
-    ({ app, prisma, jwt } = await createSyncV1App(url));
+    databaseUrl = await createIsolatedDatabase(postgresUrl!, "f05_sync_06");
+    ({ app, prisma, jwt } = await createSyncV1App(databaseUrl));
     f = await seedFixture(prisma);
     farmerA = await createSession(prisma, jwt, f.members.farmerA);
     farmerA2 = await createSession(prisma, jwt, f.members.farmerA2);
@@ -199,6 +200,28 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
     const operationId = randomUUID();
     expectAck(await post(session, envelope({ operationId, quantity })), operationId, "APPLIED", "OK");
     return operationId;
+  }
+
+  /** Pauses the next push inside its transaction: reserved, not yet decided. */
+  function holdNextPush() {
+    const repo = (app.get(PushOperationUseCase) as unknown as { contributions: PrismaSyncV1ContributionRepository }).contributions;
+    const original = repo.lockOrCreate.bind(repo);
+    let entered!: () => void;
+    const reached = new Promise<void>((resolve) => (entered = resolve));
+    let open!: () => void;
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    const spy = jest.spyOn(repo, "lockOrCreate").mockImplementationOnce(async (...args) => {
+      entered();
+      await gate;
+      return original(...args);
+    });
+    return {
+      reached,
+      release: () => {
+        open();
+        spy.mockRestore();
+      },
+    };
   }
 
   it("C01 nominal PUBLISH: APPLIED, one ACTIVE total, journal FINAL", async () => {
@@ -645,27 +668,15 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
     const head = await published(s);
     const predecessor = envelope({ action: "SUPERSEDE", pred: head, quantity: "200" });
     const successor = envelope({ action: "SUPERSEDE", pred: predecessor.operationId, quantity: "300" });
-    // Hold the predecessor inside its transaction: reserved, not yet decided.
-    const repo = (app.get(PushOperationUseCase) as unknown as { contributions: PrismaSyncV1ContributionRepository }).contributions;
-    const original = repo.lockOrCreate.bind(repo);
-    let entered!: () => void;
-    const reached = new Promise<void>((resolve) => (entered = resolve));
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => (release = resolve));
-    const spy = jest.spyOn(repo, "lockOrCreate").mockImplementationOnce(async (...args) => {
-      entered();
-      await gate;
-      return original(...args);
-    });
+    const hold = holdNextPush();
     let first: Promise<Res> | undefined;
     try {
       first = post(s, predecessor).then((r: Res) => r);
-      await reached;
+      await hold.reached;
       expectAck(await post(s, successor), successor.operationId, "RETRYABLE", "DEPENDENCY_PENDING");
       expect(await journalOf(s, successor.operationId)).toBeNull();
     } finally {
-      release();
-      spy.mockRestore();
+      hold.release();
     }
     expectAck(await first!, predecessor.operationId, "APPLIED", "OK");
     expectAck(await post(s, successor), successor.operationId, "APPLIED", "OK");
@@ -781,6 +792,41 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
         },
       }),
     ).rejects.toThrow(/contract_v1_check/);
+  });
+
+  it("Central crash before the commit and restart after it: no partial acceptance, the durable result survives", async () => {
+    const s = await freshMember();
+    const body = envelope({ quantity: "321" });
+    // The PostgreSQL session of the in-flight push dies before its commit.
+    const hold = holdNextPush();
+    let crashed: Res;
+    try {
+      const pending = post(s, body).then((r: Res) => r);
+      await hold.reached;
+      const inFlight = await prisma.$queryRaw<{ pid: number }[]>`
+        SELECT pid FROM pg_stat_activity
+        WHERE datname = current_database() AND pid <> pg_backend_pid() AND state = 'idle in transaction'`;
+      expect(inFlight).toHaveLength(1);
+      await prisma.$queryRaw`SELECT pg_terminate_backend(${inFlight[0].pid}::int)`;
+      hold.release();
+      crashed = await pending;
+    } finally {
+      hold.release();
+    }
+    expect([500, 503]).toContain(crashed.status);
+    expect(crashed.body).toEqual({ contractVersion: 1, operationId: null, errorCode: "TEMPORARILY_UNAVAILABLE", disposition: "KEEP_FOR_RETRY" });
+    expect(await journalOf(s, body.operationId)).toBeNull();
+    expect(await contributionOf(s)).toBeNull();
+    const accepted = expectAck(await post(s, body), body.operationId, "APPLIED", "OK");
+
+    // Central restarts after the commit, with the same key custody.
+    const key = process.env["SYNC_V1_FINGERPRINT_KEY"]!;
+    await app.close();
+    ({ app, prisma, jwt } = await createSyncV1App(databaseUrl, { fingerprintKey: key }));
+    const replay = expectAck(await post(s, body), body.operationId, "ALREADY_APPLIED", "OK");
+    expect(replay.serverAcceptedAt).toBe(accepted.serverAcceptedAt);
+    expect(await journalCount(s.memberId)).toBe(1);
+    expect(await contributionOf(s)).toEqual(expect.objectContaining({ status: "ACTIVE", quantityBase: 321n, lastSequence: 1 }));
   });
 
   it("privacy and individual domain: no quantities logged, no private or legacy effects", async () => {
