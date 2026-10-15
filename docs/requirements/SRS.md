@@ -188,12 +188,12 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-BKP-01`
 - **Title:** Contratos y ciclos de vida separados
-- **Statement:** Backup y Sync deben tener contratos, separación lógica/de servicio y ciclos de vida distintos; el backup remoto privado requiere autenticación e integridad verificable y su contenido no alimenta automáticamente la proyección colectiva. F09 define almacenamiento físico, metadata, cifrado, lifecycle, retención y formato.
+- **Statement:** Backup y Sync deben tener contratos, separación lógica/de servicio y ciclos de vida distintos; el backup remoto privado requiere autenticación e integridad verificable y su contenido no alimenta automáticamente la proyección colectiva. F08 define almacenamiento físico, metadata, cifrado, lifecycle, retención y formato.
 - **Source:** `URS-BKP-01`; [`CURRENT_SCOPE.md` §7](../scope/CURRENT_SCOPE.md); `DEC-F01-10`.
 - **Related OE:** OE2, OE5
 - **Owner:** Mobile y servicio Central de backup.
 - **Privacy impact:** Crítico; impide reutilización secundaria del contenido privado.
-- **Implementation phase:** F09 #37–#40.
+- **Implementation phase:** F08 #37–#40.
 - **Verification target:** REVIEW, CONTRACT, SECURITY, BACKUP_RESTORE
 - **Status:** `BASELINED`
 
@@ -201,12 +201,12 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 
 - **ID:** `SRS-BKP-02`
 - **Title:** Recuperación autenticada con integridad verificable
-- **Statement:** El backup remoto debe ser owner-scoped y autenticado, y la restauración debe verificar integridad antes de reemplazar estado. Provider, almacenamiento físico, metadata exacta, cifrado y formato/binario quedan delegados a F09.
+- **Statement:** El backup remoto debe ser owner-scoped y autenticado, y la restauración debe verificar integridad antes de reemplazar estado. Provider, almacenamiento físico, metadata exacta, cifrado y formato/binario quedan delegados a F08.
 - **Source:** `URS-BKP-01`; ADR-001; `DEC-F01-10`.
 - **Related OE:** OE2, OE5
 - **Owner:** Mobile y servicio Central de backup.
-- **Privacy impact:** Crítico; protección y cifrado se concretan en el diseño F09.
-- **Implementation phase:** F09 #37–#40 y Mobile #35–#36.
+- **Privacy impact:** Crítico; protección y cifrado se concretan en el diseño F08.
+- **Implementation phase:** F08 #37–#40 y Mobile #35–#36.
 - **Verification target:** BACKUP_RESTORE, SECURITY, DEVICE, E2E
 - **Status:** `BASELINED`
 
@@ -219,7 +219,7 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 - **Related OE:** OE3
 - **Owner:** Mobile/Flutter
 - **Privacy impact:** Alto; audio/transcripción, si existen, no se proyectan por defecto y este requisito no exige persistirlos.
-- **Implementation phase:** PRE-VOICE/EVO; Mobile issues #10–#17.
+- **Implementation phase:** F09-VOZ/EVO; Mobile issues #10–#17.
 - **Verification target:** UNIT, DEVICE, SECURITY, USABILITY
 - **Status:** `BASELINED`
 
@@ -245,6 +245,6 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 - **Related OE:** OE2, OE4, OE5
 - **Owner:** #81 y fases responsables
 - **Privacy impact:** Alto; evita pérdida o exposición durante coexistencia/migración.
-- **Implementation phase:** #81 cross-cutting; F02/F05/F06/F07/F09; verificación F10.
+- **Implementation phase:** #81 cross-cutting; F02/F05/F06/F07/F08; verificación F10.
 - **Verification target:** REVIEW, INT, E2E, RECONCILIATION, BACKUP_RESTORE
 - **Status:** `BASELINED`

@@ -2,7 +2,7 @@
 
 Esta matriz formaliza `Project/OE → URS → SRS → decisión → fase/issue → verificación`. `BASELINED` significa especificado y revisable, no implementado ni probado.
 
-La trazabilidad no convierte ejemplos privados o modelos legacy en requisitos nuevos. `URS-MOB-02` se refiere a inventario/stock, compras, transferencias y aplicaciones; `SRS-PRIV-01` es condicional; `SRS-JP-01` depende del contrato F06 para `declared_stock`; `SRS-BKP-01/02` delegan detalles físicos a F09. `PayableAccount`/`Payment` no tienen target Live.
+La trazabilidad no convierte ejemplos privados o modelos legacy en requisitos nuevos. `URS-MOB-02` se refiere a inventario/stock, compras, transferencias y aplicaciones; `SRS-PRIV-01` es condicional; `SRS-JP-01` depende del contrato F06 para `declared_stock`; `SRS-BKP-01/02` delegan detalles físicos a F08. `PayableAccount`/`Payment` no tienen target Live.
 
 | OE | URS | SRS | ADR / Decision | Phase | GitHub Issue | Verification target | Status |
 |---|---|---|---|---|---|---|---|
@@ -15,8 +15,8 @@ La trazabilidad no convierte ejemplos privados o modelos legacy en requisitos nu
 | OE4 | URS-WEB-01 | SRS-WEB-01, SRS-COLL-03, SRS-IAM-02 | ADR-001; DEC-F01-07/08 | F02/F06/F07 | #12, #20, #23–#25, #81 | CONTRACT, E2E, SECURITY, USABILITY | BASELINED |
 | OE4 | URS-JP-01 | SRS-COLL-02, SRS-JP-01, SRS-JP-02 | ADR-001; DEC-F01-06/11 | F06/F07 | #20, #26–#28 | UNIT, CONTRACT, E2E, REVIEW | BASELINED |
 | OE2/OE4/OE5 | URS-PRIV-01 | SRS-COLL-01, SRS-COLL-03, SRS-PRIV-01, SRS-AUDIT-01 | ADR-001; DEC-F01-07/08/09 | F06/F10 | #20, #44–#45, #81 | REVIEW, CONTRACT, SECURITY, E2E | BASELINED |
-| OE2/OE5 | URS-BKP-01 | SRS-IAM-02, SRS-BKP-01, SRS-BKP-02, SRS-TRANS-01 | ADR-001; DEC-F01-08/09/10/12 | F09/F10 | #37–#41, #46; Mobile #35–#36 | BACKUP_RESTORE, SECURITY, DEVICE, E2E | BASELINED |
-| OE3 | URS-VOICE-01 | SRS-VOICE-01, SRS-PRIV-01 | ADR-001 | PRE-VOICE/EVO | Mobile #10–#17 | UNIT, DEVICE, SECURITY, USABILITY | BASELINED |
+| OE2/OE5 | URS-BKP-01 | SRS-IAM-02, SRS-BKP-01, SRS-BKP-02, SRS-TRANS-01 | ADR-001; DEC-F01-08/09/10/12 | F08/F10 | #37–#41, #46; Mobile #35–#36 | BACKUP_RESTORE, SECURITY, DEVICE, E2E | BASELINED |
+| OE3 | URS-VOICE-01 | SRS-VOICE-01, SRS-PRIV-01 | ADR-001 | F09-VOZ/EVO | Mobile #10–#17 | UNIT, DEVICE, SECURITY, USABILITY | BASELINED |
 | OE2/OE4/OE5 | URS-SEC-01 | SRS-IAM-01, SRS-IAM-02, SRS-DEVICE-01, SRS-AUDIT-01 | ADR-001; DEC-F01-01/02/08/09 | F02/F06/F10 | #10–#14, #20, #44–#45 | REVIEW, UNIT, INT, SECURITY | BASELINED |
 | OE4/OE5 | URS-REP-01 | SRS-COLL-03, SRS-PRIV-01, SRS-REP-01 | ADR-001; DEC-F01-07/08/09 | F06/F07/F10 | #20, #28, #45/#47 | CONTRACT, E2E, SECURITY, USABILITY | BASELINED |
 

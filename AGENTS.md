@@ -9,7 +9,7 @@ El código, schema y documentos legacy describen compatibilidad/transición, no 
 ## Límites obligatorios
 
 - No reintroducir forecasting, predicción o recomendaciones automáticas.
-- No reintroducir F08/aportes, tesorería, banca o contabilidad.
+- No reintroducir aportes (retirado), tesorería, banca o contabilidad.
 - No construir Web como cliente operativo del agricultor ni ampliar su cola offline.
 - No convertir sync en réplica total de SQLite ni proyectar datos privados por conveniencia.
 - No mezclar backup privado con sync/proyección colectiva.

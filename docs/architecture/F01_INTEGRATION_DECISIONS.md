@@ -4,6 +4,8 @@ Este registro complementa ADR-001 `ACCEPTED`. Congela decisiones arquitectónica
 
 **Lectura vigente:** las formulaciones originales de F01 se conservan como evidencia de la decisión aceptada. La [aclaración posterior al gate](#post-gate-clarification--2026-09-24) delimita su alcance académico; no reabre #8 ni GATE-F01.
 
+**Nota de renumeración — 2026-10-15:** las formulaciones de este registro se conservan sin cambios. Sus referencias a «F09» designan la fase de backup privado, que desde 2026-10-15 se denomina F08 según [ADR-002](../adr/ADR-002-renumeracion-fases.md).
+
 ## DEC-F01-01 — Account/User, Member y Person
 
 - **Decision ID:** `DEC-F01-01`

@@ -98,3 +98,7 @@ Esta sección pertenece al corrigendum [F01-CORR-01 #90](https://github.com/Rode
 - **Ejemplos privados y voz:** la lista original de datos familiares, deuda/pagos, lotes/movimientos y audio describe protección **si esos datos existen**, no requisitos de captura/persistencia. Deuda/pagos no tienen target Live. La voz es opcional; si se usa, exige draft editable y confirmación humana, sin imponer persistencia de audio o transcripción.
 
 Esta aclaración es documental; no modifica schema, migraciones, producto ni la compatibilidad de F02-A/B/C.
+
+## Nota de renumeración — 2026-10-15
+
+El texto anterior se conserva sin cambios. En él, «F09» designa la fase de backup privado, que desde 2026-10-15 se denomina F08 según [ADR-002](ADR-002-renumeracion-fases.md).
