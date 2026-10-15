@@ -4189,6 +4189,1309 @@
         ]
       }
     },
+    "/api/v1/sync/v1/push": {
+      "post": {
+        "operationId": "SyncV1Controller_pushOperation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "contractVersion",
+                  "operationId",
+                  "projectionType",
+                  "action",
+                  "causal",
+                  "payload"
+                ],
+                "properties": {
+                  "contractVersion": {
+                    "type": "integer",
+                    "enum": [
+                      1
+                    ]
+                  },
+                  "operationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID v4 lowercase, generado una vez por intención."
+                  },
+                  "projectionType": {
+                    "type": "string",
+                    "enum": [
+                      "CONSUMPTION_TOTAL",
+                      "DECLARED_NEED"
+                    ]
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "PUBLISH",
+                      "SUPERSEDE",
+                      "CANCEL"
+                    ]
+                  },
+                  "causal": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "predecessorOperationId",
+                      "reconciliationReference"
+                    ],
+                    "properties": {
+                      "predecessorOperationId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "reconciliationReference": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "campaign_ref",
+                      "product_ref",
+                      "base_unit"
+                    ],
+                    "description": "PUBLISH/SUPERSEDE exigen quantity_base; CANCEL no lo admite.",
+                    "properties": {
+                      "campaign_ref": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "product_ref": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "base_unit": {
+                        "type": "string",
+                        "enum": [
+                          "ML",
+                          "G"
+                        ]
+                      },
+                      "quantity_base": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "description": "Entero exacto como texto decimal; máximo 9223372036854775807."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ACK de una operación admitida (APPLIED, ALREADY_APPLIED, CONFLICT, REJECTED o RETRYABLE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "outcome",
+                    "disposition",
+                    "serverAcceptedAt",
+                    "code",
+                    "reconciliationReference"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "APPLIED",
+                        "ALREADY_APPLIED",
+                        "CONFLICT",
+                        "REJECTED",
+                        "RETRYABLE"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "RETIRE_FROM_OUTBOX",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION",
+                        "MOVE_TO_TERMINAL_FAILURE"
+                      ]
+                    },
+                    "serverAcceptedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "CAUSAL_FORK",
+                        "STALE_PREDECESSOR",
+                        "CANCELLED_PREDECESSOR",
+                        "RECONCILIATION_STALE",
+                        "IDEMPOTENCY_MISMATCH",
+                        "CAMPAIGN_NOT_OPEN",
+                        "REFERENCE_UNAVAILABLE",
+                        "UNIT_INCOMPATIBLE",
+                        "QUANTITY_INVALID",
+                        "INVALID_PREDECESSOR",
+                        "INVALID_TRANSITION",
+                        "OWNERSHIP_NOT_PROVEN",
+                        "PURPOSE_NOT_AUTHORIZED",
+                        "CAUSAL_FENCED",
+                        "OPERATION_IN_PROGRESS",
+                        "DEPENDENCY_PENDING",
+                        "TRANSIENT_UNAVAILABLE"
+                      ]
+                    },
+                    "reconciliationReference": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON, estructura, enum, UUID o whitelist inválidos; batch; claves duplicadas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sesión, Member, registro de cliente o rol revocado, inactivo o no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Envelope mayor que el límite operativo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type distinto de application/json UTF-8.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "contractVersion distinto de 1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes; respetar Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Admisión cerrada o transitoriamente no disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publicar, sustituir o cancelar una proyección mínima (una operación por request)",
+        "tags": [
+          "sync v1"
+        ]
+      }
+    },
+    "/api/v1/sync/v1/operations/{operationId}": {
+      "get": {
+        "operationId": "SyncV1Controller_getOperation",
+        "parameters": [
+          {
+            "name": "operationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado persistido; APPLIED se presenta como ALREADY_APPLIED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "ack",
+                    "contribution"
+                  ],
+                  "properties": {
+                    "ack": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "contractVersion",
+                        "operationId",
+                        "outcome",
+                        "disposition",
+                        "serverAcceptedAt",
+                        "code",
+                        "reconciliationReference"
+                      ],
+                      "properties": {
+                        "contractVersion": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "operationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "outcome": {
+                          "type": "string",
+                          "enum": [
+                            "APPLIED",
+                            "ALREADY_APPLIED",
+                            "CONFLICT",
+                            "REJECTED",
+                            "RETRYABLE"
+                          ]
+                        },
+                        "disposition": {
+                          "type": "string",
+                          "enum": [
+                            "RETIRE_FROM_OUTBOX",
+                            "KEEP_FOR_RETRY",
+                            "KEEP_FOR_RECONCILIATION",
+                            "MOVE_TO_TERMINAL_FAILURE"
+                          ]
+                        },
+                        "serverAcceptedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "OK",
+                            "CAUSAL_FORK",
+                            "STALE_PREDECESSOR",
+                            "CANCELLED_PREDECESSOR",
+                            "RECONCILIATION_STALE",
+                            "IDEMPOTENCY_MISMATCH",
+                            "CAMPAIGN_NOT_OPEN",
+                            "REFERENCE_UNAVAILABLE",
+                            "UNIT_INCOMPATIBLE",
+                            "QUANTITY_INVALID",
+                            "INVALID_PREDECESSOR",
+                            "INVALID_TRANSITION",
+                            "OWNERSHIP_NOT_PROVEN",
+                            "PURPOSE_NOT_AUTHORIZED",
+                            "CAUSAL_FENCED",
+                            "OPERATION_IN_PROGRESS",
+                            "DEPENDENCY_PENDING",
+                            "TRANSIENT_UNAVAILABLE"
+                          ]
+                        },
+                        "reconciliationReference": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "contribution": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "status",
+                        "headOperationId",
+                        "reconciliationReference"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "NEVER_PUBLISHED",
+                            "ACTIVE",
+                            "CANCELLED",
+                            "CONTESTED"
+                          ]
+                        },
+                        "headOperationId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true
+                        },
+                        "reconciliationReference": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "operationId no es UUID v4 lowercase.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto revocado, inactivo o no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operación ajena, inexistente o no visible (indistinguibles).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Registro de otra versión de contrato.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar el resultado y el estado causal de una operación propia",
+        "tags": [
+          "sync v1"
+        ]
+      }
+    },
+    "/api/v1/sync/v1/references": {
+      "get": {
+        "operationId": "SyncV1Controller_listReferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Whitelist cerrada; sin stock, fichas, notas ni usuarios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "campaigns",
+                    "products"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "campaigns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "campaign_ref",
+                          "name",
+                          "status",
+                          "start_date",
+                          "end_date",
+                          "accepts_contributions"
+                        ],
+                        "properties": {
+                          "campaign_ref": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PLANIFICADA",
+                              "ABIERTA",
+                              "CERRADA",
+                              "CANCELADA"
+                            ]
+                          },
+                          "start_date": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "end_date": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "accepts_contributions": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "product_ref",
+                          "name",
+                          "unit",
+                          "base_unit",
+                          "is_active",
+                          "linkable"
+                        ],
+                        "properties": {
+                          "product_ref": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "unit": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ],
+                            "nullable": true
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          },
+                          "linkable": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto revocado, inactivo o sin rol AGRICULTOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "operationId",
+                    "errorCode",
+                    "disposition"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "operationId": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "FIELD_NOT_ALLOWED",
+                        "CONTRACT_VERSION_MISMATCH",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "REQUEST_TOO_LARGE",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "OPERATION_NOT_FOUND"
+                      ]
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "enum": [
+                        "MOVE_TO_TERMINAL_FAILURE",
+                        "KEEP_FOR_RETRY",
+                        "KEEP_FOR_RECONCILIATION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Referencias centrales de campañas y productos del tenant para vinculación móvil (F05-SYNC-07)",
+        "tags": [
+          "sync v1"
+        ]
+      }
+    },
     "/api/v1/users": {
       "post": {
         "operationId": "UsersController_create",

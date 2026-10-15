@@ -13,6 +13,7 @@ import { PlotsModule } from './modules/plots/plots.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SyncModule } from './modules/sync/sync.module';
+import { SyncV1Module } from './modules/sync-v1/sync-v1.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './shared/infrastructure/persistence/prisma/prisma.module';
 import { envSchema } from './config/env.schema';
@@ -37,6 +38,7 @@ import { HealthController } from './bootstrap/health.controller';
     CalendarModule,
     ReportsModule,
     SyncModule,
+    SyncV1Module,
     UsersModule
   ],
   controllers: [HealthController],

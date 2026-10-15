@@ -47,6 +47,10 @@ export interface FinalizeJournal {
   resultCode: JournalResultCode;
   serverAcceptedAt: Date | null;
   reconciliationReference: string | null;
+  /** Contribution resolved for the intention, when its references resolved. */
+  contributionId?: string | null;
+  /** Order of an APPLIED transition within its contribution. */
+  contributionSequence?: number | null;
 }
 
 export type ReservationClassification =

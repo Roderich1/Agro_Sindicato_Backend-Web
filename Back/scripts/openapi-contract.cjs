@@ -76,3 +76,28 @@ for (const response of [v1Response, v2Response, v2MeResponse, bindResponse, clie
 }
 assert.ok(spec.info.description.includes("legacy"));
 process.stdout.write("F02 OpenAPI contract assertions passed.\n");
+
+// F05 Sync Contract v1 (#17, #106): routes, statuses, bearer and closed shapes.
+const f05 = JSON.parse(readFileSync(resolve(__dirname, "../../docs/api/openapi-f05-sync-v1.json"), "utf8"));
+const f05Required = {
+  "/api/v1/sync/v1/push": ["post", "200", "400", "401", "403", "413", "415", "422", "429", "503"],
+  "/api/v1/sync/v1/operations/{operationId}": ["get", "200", "400", "401", "403", "404", "422"],
+  "/api/v1/sync/v1/references": ["get", "200", "401", "403"],
+};
+assert.deepEqual(Object.keys(f05.paths).sort(), Object.keys(f05Required).sort());
+for (const [path, [method, ...statuses]] of Object.entries(f05Required)) {
+  const operation = f05.paths[path]?.[method];
+  assert.ok(operation, `Missing ${method.toUpperCase()} ${path}`);
+  assert.deepEqual(spec.paths[path][method], operation, `${path} differs from the main snapshot`);
+  assert.ok(operation.security?.some((security) => "bearer" in security), `${path} requires bearer`);
+  for (const status of statuses) assert.ok(operation.responses[status], `Missing ${status} on ${path}`);
+}
+const ack = f05.paths["/api/v1/sync/v1/push"].post.responses["200"].content["application/json"].schema;
+assert.deepEqual(ack.required, ["contractVersion", "operationId", "outcome", "disposition", "serverAcceptedAt", "code", "reconciliationReference"]);
+assert.equal(ack.additionalProperties, false);
+const error = f05.paths["/api/v1/sync/v1/push"].post.responses["400"].content["application/json"].schema;
+assert.deepEqual(error.required, ["contractVersion", "operationId", "errorCode", "disposition"]);
+const envelope = f05.paths["/api/v1/sync/v1/push"].post.requestBody.content["application/json"].schema;
+assert.equal(envelope.additionalProperties, false);
+assert.deepEqual(envelope.required, ["contractVersion", "operationId", "projectionType", "action", "causal", "payload"]);
+process.stdout.write("F05 Sync v1 OpenAPI contract assertions passed.\n");

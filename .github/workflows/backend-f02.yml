@@ -8,6 +8,7 @@ on:
       - 'docs/security/**'
       - 'docs/testing/**'
       - 'docs/evidence/F02_*'
+      - 'docs/evidence/F05_*'
       - '.github/workflows/backend-f02.yml'
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - 'docs/security/**'
       - 'docs/testing/**'
       - 'docs/evidence/F02_*'
+      - 'docs/evidence/F05_*'
       - '.github/workflows/backend-f02.yml'
 
 jobs:
@@ -73,3 +75,5 @@ jobs:
         env:
           F02_FINAL_PG_TEST_URL: postgresql://postgres:f02_ci_only@localhost:5432/f02_final?schema=public
       - run: F05_SYNC_05A_PG_TEST_URL="$DATABASE_URL" npx jest sync-v1-journal.postgres.spec.ts --runInBand
+      - run: F05_SYNC_06_PG_TEST_URL="$DATABASE_URL" npx jest sync-v1-adversarial.postgres.spec.ts --runInBand
+      - run: F05_SYNC_07_PG_TEST_URL="$DATABASE_URL" npx jest sync-v1-references.postgres.spec.ts --runInBand
