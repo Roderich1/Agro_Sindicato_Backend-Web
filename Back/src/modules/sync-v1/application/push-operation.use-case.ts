@@ -81,6 +81,7 @@ export class PushOperationUseCase {
       memberId: context.memberId,
       operationId: envelope.operationId,
     };
+    await this.revalidateContext(tx, context);
     // A journal created before a key rotation is compared with its own key.
     const existing = await this.journal.findByIdentity(identity, tx);
     const version = existing?.fingerprintKeyVersion ?? keyring.currentVersion;
@@ -112,6 +113,34 @@ export class PushOperationUseCase {
       case "CREATED":
         return this.process(tx, identity, envelope);
     }
+  }
+
+  /**
+   * Authorization revalidated at the decision point, inside the transaction
+   * (contract §10, matrix C40). `FOR SHARE` makes a concurrent revocation of
+   * the session, registration, Member, account or tenant wait for this
+   * commit, or be seen here if it committed first: never half-way.
+   */
+  private async revalidateContext(
+    tx: Prisma.TransactionClient,
+    context: SyncV1Context,
+  ): Promise<void> {
+    if (!context.sessionId) throw new SyncV1HttpError(403, "AUTH_CONTEXT_FORBIDDEN");
+    const valid = await tx.$queryRaw<{ ok: number }[]>`
+      SELECT 1 AS ok
+      FROM "AuthSession" s
+      JOIN "Member" m ON m."id" = s."memberId"
+      JOIN "User" u ON u."id" = m."userId"
+      JOIN "Tenant" t ON t."id" = m."tenantId"
+      JOIN "ClientRegistration" r ON r."id" = s."clientRegistrationId"
+      WHERE s."id" = ${context.sessionId}
+        AND s."status" = 'ACTIVE' AND s."expiresAt" > now()
+        AND m."id" = ${context.memberId} AND m."tenantId" = ${context.tenantId}
+        AND m."isActive" AND m."role" = 'AGRICULTOR'
+        AND u."isActive" AND u."tenantId" = m."tenantId" AND t."isActive"
+        AND r."status" = 'ACTIVE' AND r."memberId" = m."id" AND r."tenantId" = m."tenantId"
+      FOR SHARE OF s, m, u, t, r`;
+    if (valid.length !== 1) throw new SyncV1HttpError(403, "AUTH_CONTEXT_FORBIDDEN");
   }
 
   private async process(

@@ -237,7 +237,7 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
     const body = envelope({ quantity: "40" });
     // Run the use case directly and discard the answer, as if the socket died.
     const lost = await app.get(PushOperationUseCase).execute(
-      { tenantId: s.tenantId, memberId: s.memberId },
+      { tenantId: s.tenantId, memberId: s.memberId, sessionId: s.sessionId },
       { ...body, contractVersion: 1, payload: { ...body.payload, quantity_base: "40" } } as never,
     );
     expect(lost.outcome).toBe("APPLIED");
@@ -543,6 +543,25 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
       await prisma.user.update({ where: { id: member.userId }, data: { isActive: true } });
     }
     expect(await journalCount()).toBe(before);
+  });
+
+  it("C40 revocation committed after the guard and before the decision: 403, nothing accepted", async () => {
+    const s = await freshMember();
+    const body = envelope();
+    const useCase = app.get(PushOperationUseCase);
+    const original = useCase.execute.bind(useCase);
+    const spy = jest.spyOn(useCase, "execute").mockImplementationOnce(async (...args) => {
+      // The guard already admitted the request; the registration is revoked now.
+      await prisma.clientRegistration.update({ where: { id: s.registrationId! }, data: { status: "REVOKED", revokedAt: new Date() } });
+      return original(...args);
+    });
+    try {
+      expectError(await post(s, body), 403, "AUTH_CONTEXT_FORBIDDEN", "KEEP_FOR_RECONCILIATION");
+    } finally {
+      spy.mockRestore();
+    }
+    expect(await journalOf(s, body.operationId)).toBeNull();
+    expect(await prisma.syncV1Contribution.count({ where: { memberId: s.memberId } })).toBe(0);
   });
 
   it("C23 ClientRegistration revoked: 403; the same owner resumes with a new registration", async () => {

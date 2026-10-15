@@ -15,4 +15,6 @@ export class SyncV1HttpError extends Error {
 export interface SyncV1Context {
   tenantId: string;
   memberId: string;
+  /** AuthSession that authorised the request; revalidated when deciding. */
+  sessionId?: string;
 }

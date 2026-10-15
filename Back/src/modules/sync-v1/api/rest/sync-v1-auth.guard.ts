@@ -80,7 +80,11 @@ export class SyncV1AuthGuard implements CanActivate {
     ) {
       throw FORBIDDEN();
     }
-    request.syncV1Context = { tenantId: member.tenantId, memberId: member.id };
+    request.syncV1Context = {
+      tenantId: member.tenantId,
+      memberId: member.id,
+      sessionId: session.id,
+    };
     return true;
   }
 }
