@@ -110,7 +110,18 @@ try {
   check('API: deudas de agricultores, 403 para ADMINISTRADOR', payables.status === 403, `${payables.status}`);
   const products = await api('/inventory/products', adminToken);
   check('API: catálogo sin currentStock', products.status === 200 && !products.body.includes('currentStock'), `${products.status}`);
+  const campaignsApi = await api('/campaigns', adminToken);
+  check('API: campañas sin conteos de registros privados', campaignsApi.status === 200 && !campaignsApi.body.includes('"summary"'), `${campaignsApi.status}`);
+  const campaignsPath = await visit('/campaigns');
+  await page.waitForSelector('table tbody tr');
+  const campaignsText = await page.$eval('table', (t) => t.textContent ?? '');
+  check('Web: la tabla de campañas no muestra conteos de compras ni movimientos', campaignsPath === '/campaigns' && !/compras|mov\./.test(campaignsText), campaignsPath);
+  await shot('04-campanas-sin-conteos-privados');
   await logout();
+
+  // El paso 1 consume casi todo el límite de 20 peticiones/min de GET /campaigns
+  // (cada pantalla lo pide): se espera a que se renueve la ventana.
+  await sleep(61000);
 
   // 3. Directiva: la cobertura de un borrador lleva su fecha; la del resumen es la actual.
   await login('directiva@f07.example.test');

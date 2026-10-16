@@ -1,7 +1,7 @@
 {
-  "when": "2026-10-16T20:23:24.372Z",
-  "passed": 17,
-  "total": 17,
+  "when": "2026-10-16T21:15:07.477Z",
+  "passed": 19,
+  "total": 19,
   "checks": [
     {
       "name": "ADMINISTRADOR en /inventory vuelve al resumen colectivo",
@@ -69,6 +69,16 @@
       "detail": "200"
     },
     {
+      "name": "API: campañas sin conteos de registros privados",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "Web: la tabla de campañas no muestra conteos de compras ni movimientos",
+      "ok": true,
+      "detail": "/campaigns"
+    },
+    {
       "name": "Resumen: cobertura actual, sin rótulo histórico",
       "ok": true,
       "detail": "Cobertura · Campaña Verano 2026 (sintética)3 de 4 agricultores vinculados aportaron datosAusencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron."
@@ -76,7 +86,7 @@
     {
       "name": "Borrador: cobertura rotulada con su fecha de generación",
       "ok": true,
-      "detail": "Cobertura al generar el borrador (16 oct de 2026, 4:23 p. m.) · Campaña Verano 2026 (sintética)3 de 4 agricultores vinculados habían aportado datos en esa fechaNo es la cobertura actual: consulte el resumen de la campaña para la de hoy. Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron."
+      "detail": "Cobertura al generar el borrador (16 oct de 2026, 5:15 p. m.) · Campaña Verano 2026 (sintética)3 de 4 agricultores vinculados habían aportado datos en esa fechaNo es la cobertura actual: consulte el resumen de la campaña para la de hoy. Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron."
     },
     {
       "name": "AGRICULTOR conserva /inventory",

@@ -13,7 +13,8 @@ Revisión técnica de la sesión B (F10), del 2026-10-16. Es automatizada y no t
 | Reproducción (sólo pruebas) | `9bd4d4d` |
 | Correcciones | `bba1208` (Backend), `94d19e5` (Web) |
 | Pruebas ajustadas | `eced37f` y `11a852f` (prueba de `App.tsx` en archivo propio, leída con `?raw`), `df17ab9` (pruebas F02 de compra conjunta, §4.3) |
-| Último commit de código | `df17ab9`; lo que sigue son sólo documentos y evidencia |
+| Revisión de la sesión A (2026-10-16) | Pruebas `37c99c8` (rojo antes del arreglo) y corrección `8b41f7f`: conteos privados en campañas y cultivos, filtros por agricultor inútiles y nits (§4.4) |
+| Último commit de código | `8b41f7f`; lo que sigue son sólo documentos y evidencia |
 | Mobile revisado (sólo lectura) | `4f203c7` (`main`) |
 | Datos | sintéticos, en bases PostgreSQL nuevas del contenedor local `agro_b_web_pg` (127.0.0.1:55442) |
 
@@ -53,12 +54,12 @@ Revisión técnica de la sesión B (F10), del 2026-10-16. Es automatizada y no t
 | 10 | `/accounts-payable/:id/payments`, `/:id/pay-total` | POST | F, D, A → **F** | D/A: **cualquier deuda de una compra conjunta**; F: dueño | Web `/directiva` (`registerPayment`, `payTotal`) | Registra pagos y cambia saldos en deudas ajenas | Ídem | Crítico: escritura financiera sobre datos privados ajenos | **Sólo F.** Otro agricultor sigue recibiendo 404 |
 | 11 | `/applications`, `/applications/:id` | GET | F, D, A → **F** | D/A: tenant completo con filtro `ownerUserId`; F: dueño | Web aplicaciones (F) | Parcela (con ubicación), cultivo, dosis, plaga, clima y notas | Registro Mobile más proyección agregada aprobada | Alto | **Sólo F** (las escrituras ya lo eran) |
 | 12 | `/plots`, `/plot-crop-assignments` | GET | F, D, A → **F** | D/A: tenant completo con `ownerUserId`; F: dueño | Web parcelas y aplicaciones (F) | Parcela, ubicación, área y notas | Parcela = Mobile; ubicación excluida (§10) | Alto | **Sólo F** (las escrituras ya lo eran) |
-| 13 | `/crops` | GET, POST, PATCH | GET F, D, A; escritura D, A → **sin cambio** | tenant | Web parcelas | Catálogo de cultivos | «Catálogo Crop central» (LEGACY_CONTRACT_CONSUMERS) | Bajo | **Se conserva** |
+| 13 | `/crops` | GET, POST, PATCH | GET F, D, A; escritura D, A → **sin cambio de roles** | tenant | Web parcelas (pestaña de cultivos) | Catálogo de cultivos **más `summary`**: conteos de todo el tenant de asignaciones y aplicaciones privadas | «Catálogo Crop central» (LEGACY_CONTRACT_CONSUMERS) | Medio: agregado sin política; quien conoce lo propio deduce lo ajeno | **Se conserva el catálogo. Minimizado:** sin `summary` (`8b41f7f`). La columna «Uso» de la Web desaparece |
 | 14 | `/reports/*` (11 rutas) | GET | F, D, A → **F** | D/A: tenant completo, con `ownerUserId` opcional (por agricultor); F: dueño | Web reportes (F) | Inventario por agricultor, compras, aplicaciones por parcela, consumo, vencidos, deudas y pagos, y bitácora | Reportes colectivos minimizados (#79/#80/#81) | Alto: por agricultor y fuera de la política de divulgación | **Sólo F.** En `/reports/purchases/joint`, un participante ve sólo su parte. La vista institucional es `/collective/*` |
 | 15 | `/audit-logs` | GET | F, D, A → **sin cambio de roles** | D/A: tenant completo con `before`/`after`; F: dueño o actor | Web `/audit-logs` (D, A; fuera del menú) | Antes y después de operaciones privadas (parcelas, stock, aplicaciones) | «Auditoría autorizada» (CURRENT_SCOPE §5) y minimizada (§4) | Alto | **Minimizada:** D y A ven sólo entradas **sin propietario** (campañas, catálogo de cultivos). Se ignora `ownerUserId`; `actorUserId` sólo filtra dentro de ese conjunto |
 | 16 | `/calendar/events` y `/:id/complete`, `/:id/cancel` | GET, POST | F, D, A → **sin cambio de roles** | D/A: tenant completo con `ownerUserId` (lectura y cambio de estado); F: dueño y eventos sin dueño | Web calendario | Eventos privados (aplicación, pago próximo, lote por vencer). El GET institucional **generaba** eventos a partir del stock privado de todos | Sin target Live (retiro controlado) | Medio/alto: lectura y escritura sobre eventos ajenos | **Minimizada:** D y A ven y cambian sólo eventos sin dueño (cierre de campaña) y no generan eventos derivados de lotes ajenos |
 | 17 | `/sync/operations` | GET, POST | F → **sin cambio** | dueño | Web `/sync` y `offline-queue.ts` (F) | Operaciones offline heredadas | Sustituido por Sync v1 (F05) | Crítico para el agricultor (payload abierto), pero **no** institucional | **Comprobado:** D y A 403, sin sesión 401. La retirada de la cola Web sigue en #23/#81 |
-| 18 | `/campaigns` y escrituras | GET, POST, PATCH | sin cambio | tenant | Web campañas | Campañas compartidas | Backend autoridad de campañas | Bajo | **Se conserva** (función institucional) |
+| 18 | `/campaigns`, `/campaigns/active` y escrituras (crear, editar, abrir, cerrar) | GET, POST, PATCH | sin cambio de roles (GET F, D, A; escritura D, A) | tenant | Web campañas y selector de campaña | Campañas compartidas **más `summary`**: conteos de todo el tenant de compras, movimientos, aplicaciones, deudas y asignaciones privadas | Backend autoridad de campañas; los conteos son un agregado de datos privados sin política (§10) | **Medio/alto** (antes figuraba como «Bajo» por error): con dos agricultores, uno resta lo suyo y obtiene las compras y deudas del otro | **Se conserva la función institucional. Minimizado:** sin `summary` para ningún rol (`8b41f7f`). La Web deja de mostrar «N cultivos · N mov. · N compras» |
 | 19 | `/users` | GET y escrituras | GET D, A; escritura A → sin cambio | tenant | Web usuarios (A) | Identidad y roles | IAM (F02) | Bajo | **Se conserva** (administración de accesos, ADR-003) |
 | 20 | `/collective/*` (resumen, CSV, propuestas, reconciliación, catálogo) | GET, POST | D, A → sin cambio | tenant | Web F07 | Agregados según F07-POL-01 | F06, F07 | Controlado por la política | **Se conserva.** No existe ruta de ejecución de la propuesta (404) |
 
@@ -74,7 +75,7 @@ Revisión técnica de la sesión B (F10), del 2026-10-16. Es automatizada y no t
 
 **Ocultar no basta.** Cada fila corregida se comprueba en la API, no en el menú.
 
-**Rollback.** Cada corrección es un `git revert` de su commit: `bba1208` en el Backend y `94d19e5` en la Web. Las pruebas de `9bd4d4d`, `eced37f`, `11a852f` y `df17ab9` se revierten con ellas. No hay migraciones, cambios de esquema ni variables de entorno nuevas. Los casos de uso cerrados (`CreateJointPurchaseUseCase`, `listGlobalStock`) siguen compilados y se reactivan quitando la guarda.
+**Rollback.** Cada corrección es un `git revert` de su commit: `bba1208` en el Backend, `94d19e5` en la Web y `8b41f7f` para los conteos de campañas y cultivos y los filtros. Las pruebas de `9bd4d4d`, `eced37f`, `11a852f`, `df17ab9` y `37c99c8` se revierten con ellas. No hay migraciones, cambios de esquema ni variables de entorno nuevas. Los casos de uso cerrados (`CreateJointPurchaseUseCase`, `listGlobalStock`) siguen compilados y se reactivan quitando la guarda.
 
 ## 4. Reproducción negativa (antes) y verificación (después)
 
@@ -142,7 +143,7 @@ La prueba de `App.tsx` se ejecutó en rojo leyendo el archivo con `node:fs`. En 
 
 ### 4.2 Después
 
-Resultados sobre `df17ab9` en la §6.
+Resultados sobre `8b41f7f` en la §6.
 
 ### 4.3 Pruebas anteriores que cambian (y por qué)
 
@@ -152,9 +153,25 @@ No se debilita ninguna prueba: las que cambian afirmaban justamente el acceso qu
 |---|---|---|
 | `calendar-events.use-case.spec.ts`, «lets directiva list global events with owner filter» | La DIRECTIVA lista eventos de un agricultor con `ownerUserId` | «gives directiva only institutional events and ignores the owner filter» (`ownerUserId: null`) |
 | `list-audit-logs.use-case.spec.ts`, «lets directiva filter by campaign, owner, entity and action» | La DIRECTIVA filtra la bitácora por agricultor | Filtra entradas institucionales (`ownerUserId: null`) por campaña, entidad y acción, nunca por agricultor |
+| `campaign-management.use-case.spec.ts`, «lists tenant campaigns with summary» | Esperaba `summary` con conteos | «lists tenant campaigns without counts of private records» (sin `summary`). En las demás pruebas del archivo se quita `include: expect.any(Object)`, porque la consulta ya no incluye conteos |
 | `current-auth-context.postgres.spec.ts` (F02): «rejects foreign-user allocations…» y «checks joint Warehouse…» | Comprobaban por `POST /purchases/joint`, como DIRECTIVA, que el caso de uso rechaza referencias de otro tenant y almacenes ajenos (400/404) y que revierte | Comprueban que la ruta responde **403 `LEGACY_ROUTE_CLOSED` sin efectos**. Las mismas comprobaciones de tenant y de almacén (400/404 y reversión sin efectos) se ejecutan sobre `CreateJointPurchaseUseCase`, que sigue en el código. Se detectó al correr la suite completa: 2 fallos contra `eced37f` |
 
 En la primera corrida completa local, `current-auth-context` falló sus 25 pruebas por un *timeout* de 5 s en `beforeAll`, sin llegar a ejecutarlas. En la repetición quedaron sólo los 2 fallos reales de la tabla.
+
+### 4.4 Revisión de la sesión A sobre `997dd30`
+
+**Rojo de las pruebas de `37c99c8` sobre el código de `df17ab9`** (2026-10-16 21:07:40Z):
+- **Backend: 1 de 21 falla**, la de campañas y cultivos sin conteos. Con la sesión del agricultor A, `GET /campaigns` devolvía `summary {agrochemicalApplications: 1, payableAccounts: 3, plotCropAssignments: 1, purchases: 2, stockMovements: 3}`, que son los registros de todo el tenant, incluidos los de A2.
+- **Web:** falla «bitácora y calendario no ofrecen filtrar por agricultor».
+
+**Pruebas de `app-routes.test.ts` sobre `e027938`:** 7 de 10 fallan.
+- Fallan el import del `FarmerRoute` compartido, cuatro rutas, `/directiva` y los filtros.
+- Pasan `/inventory`, `/purchases` y `/sync`, porque el `App.tsx` anterior ya las envolvía en un `FarmerRoute` **local**, que sólo excluía DIRECTIVA. Por eso se añadió la comprobación del import y de que no haya un `function FarmerRoute` local.
+
+**Otros cambios de la revisión:**
+- **Pago de otro tenant.** Se prueba con su AGRICULTOR, que pasa el control de rol, y recibe 404 por tenant y propietario. Su DIRECTIVA recibe 403 por rol.
+- **Filtros «Agricultor».** Se retiran de la bitácora y del calendario, porque el servidor los ignora para D y A.
+- **Conteos de cultivos.** `GET /crops` tenía los mismos conteos que las campañas. Lo encontró la sesión B al corregir el hallazgo de A.
 
 ## 5. Compra conjunta: el único camino es el borrador
 
@@ -167,21 +184,21 @@ En la primera corrida completa local, `current-auth-context` falló sus 25 prueb
 
   Resultado en la §6.
 
-## 6. Verificación sobre el HEAD `eced37f`
+## 6. Verificación sobre el último commit de código
 
-Ejecución en serie del 2026-10-16, de 20:23:48Z a 20:27:47Z, sobre `df17ab9365cc9761ae4960591f10b6357bdfbbcd`. Cada suite PostgreSQL se ejecutó en una base nueva de `agro_b_web_pg`. Las tres F02 usaron `prisma migrate deploy` previo, como en el CI.
+Ejecución en serie del 2026-10-16, de 21:15:19Z a 21:17:55Z, sobre `8b41f7fc8aa96c4b5df72daae6fe3d3a454e7df1`. Cada suite PostgreSQL se ejecutó en una base nueva de `agro_b_web_pg`. Las tres F02 usaron `prisma migrate deploy` previo, como en el CI. Hubo una ejecución anterior, igual de verde, sobre `df17ab9` (20:23–20:27Z).
 
 | Comando | Resultado |
 |---|---|
 | `npm run build` (Back) | OK |
-| `npm test -- --runInBand` | 218 pasan, 192 omitidas (las `*.postgres.spec.ts` sin URL) |
-| `npm run openapi:check` | Los snapshots coinciden, **sin regenerar** (ninguna forma de respuesta documentada cambió); las aserciones de contrato F02, F05, F06 y F08 pasan |
+| `npm test -- --runInBand` | 218 pasan, 193 omitidas (las `*.postgres.spec.ts` sin URL) |
+| `npm run openapi:check` | Los snapshots coinciden, **sin regenerar**; las aserciones de contrato F02, F05, F06 y F08 pasan |
 | `auth-v2` / `current-auth-context` / `f02-final-integration` | 12/12 · 25/25 · 3/3 |
 | `sync-v1-journal` / `sync-v1-adversarial` / `sync-v1-references` | 30/30 · 41/41 · 7/7 |
 | `f06-coll-05-collective-aggregate` / `product-reconciliation` / `backups` | 15/15 · 5/5 · 22/22 |
 | **`f07-web-proposal`** (incluye las regresiones de cifras retiradas y sustituidas, y sus CSV) | **12/12** |
-| **`f10-sec-02-legacy-boundary`** (nueva) | **20/20** |
-| Web: `npm ci` / `lint` / `build` / `test` | OK · 0 errores (2 avisos previos en los contextos) · OK · **50/50** (33 previas y 17 nuevas) |
+| **`f10-sec-02-legacy-boundary`** | **21/21** |
+| Web: `npm ci` / `lint` / `build` / `test` | OK · 0 errores (2 avisos previos en los contextos) · OK · **52/52** |
 
 El CI del PR se registra en `ESTADO_B_WEB.md` y en el PR.
 
@@ -196,20 +213,26 @@ El CI del PR se registra en `ESTADO_B_WEB.md` y en el PR.
 
 El resumen y la página de cobertura siguen mostrando la cobertura actual sin ese rótulo. Las pruebas cubren ambos casos.
 
-**Recorrido visual** (2026-10-16 20:21–20:23Z, `df17ab9`, datos sintéticos de `Back/scripts/f07-synthetic-seed.cjs`, modo `provisional-synthetic`; guion `docs/evidence/f10/walkthrough-f10.mjs`, Edge headless): **17/17** comprobaciones.
+**Recorrido visual** (2026-10-16 21:12–21:15Z, `8b41f7f`, datos sintéticos de `Back/scripts/f07-synthetic-seed.cjs`, modo `provisional-synthetic`; guion `docs/evidence/f10/walkthrough-f10.mjs`, Edge headless): **19/19** comprobaciones.
 - El ADMINISTRADOR vuelve al resumen desde las siete pantallas privadas, y `/directiva` lo lleva a la propuesta sin botones de compra ni de pago.
 - Con su sesión real, la API responde 403 en `global-stock`, en la compra conjunta y en las deudas, y el catálogo sale sin `currentStock`.
 - El resumen muestra la cobertura sin rótulo y el borrador, con su fecha.
 - El agricultor conserva `/inventory`, y `/directiva` no le muestra la página heredada.
+- `GET /campaigns` no trae `summary`, y la tabla de campañas no muestra conteos.
 
-Un primer intento quedó en 13/14: el guion recargaba la página en cada ruta y superó el límite de 20 peticiones/min de `/auth/refresh` (429 en el log de la API). El guion pasó a navegar en el cliente; el producto no cambió.
+Intentos fallidos del guion (el producto no cambió en ninguno):
+- **13/14:** recargaba la página en cada ruta y superó el límite de 20 peticiones/min de `/auth/refresh` (429). Pasó a navegar en el cliente.
+- **15/16:** el paso de campañas agotó el límite de `GET /campaigns` (429). Espera 61 s antes de la parte de la Directiva.
+
+Hubo una corrida anterior de 17/17 sobre `df17ab9`; sus capturas se sustituyeron por las de esta.
 
 | Archivo (`docs/evidence/img/f10/`) | SHA-256 |
 |---|---|
 | `01-presidente-directiva-redirige-a-propuesta.png` | `adba343be299d2b75f64dfc587343c81d5acfb050e9c3021d8ab23387260f8d0` |
-| `02-borrador-cobertura-con-fecha.png` | `16c4d32cab8408355f733ec48bc7b19bbc1164ca123262ee846797916e4c12c9` |
+| `02-borrador-cobertura-con-fecha.png` | `b75c18cd46661d31b595ab7852b635e660d174d544aaff323bc19d7b7af5667f` |
 | `03-agricultor-inventario-legacy.png` | `9db653d752715806f8490729a7003f816d444673c1931bfec9bb34d0b01e981d` |
-| `walkthrough-f10.json` | `0a4782e15f7f23c1a9206b0fc3fbe2856bcc8898c9e1b04780d0e044db2e6720` |
+| `04-campanas-sin-conteos-privados.png` | `b493fe130650b0c1d67e29b7f95377a13623cf4b1d8377b0086f89247b066435` |
+| `walkthrough-f10.json` | `268c25915c5d73bdd4d02c36bb80523d54a1a9d0511465e0e3edc21667a7f657` |
 
 ## 8. Alineación de #108 y #25/RF-22 (decisiones y discrepancias)
 
@@ -227,7 +250,9 @@ Lo que sigue son discrepancias registradas, no decisiones nuevas. La aprobación
 
 - **#45, auditoría de la proyección colectiva**, que es el objeto del issue. Esta entrega cubre las rutas heredadas. No repite la auditoría campo a campo de `F06_COLLECTIVE_PROJECTION_FIELD_MATRIX.md` (campos DENY en proyección, logs y conflictos) ni la política de divulgación, que siguen en #45 y #107.
 - **Escrituras legacy del agricultor.** `POST /purchases`, el inventario, las parcelas, las aplicaciones, los pagos propios y `/sync/operations` siguen activos para el AGRICULTOR, sobre lo propio. Su bloqueo es la PHASE 6 del plan de transición: requiere telemetría sin consumidores y un runbook, y no se hace aquí, porque no es una retirada destructiva. La Web sigue teniendo pantallas operativas para el agricultor y la cola `offline-queue.ts` (#23/#81).
-- **Totales de una compra conjunta heredada.** Un participante sigue viendo los ítems y el total de la compra. Con pocos participantes, por diferencia, se puede deducir la cantidad del resto. Es un riesgo residual del registro heredado: no hay compras conjuntas nuevas, porque la ruta está cerrada.
+- **Totales de una compra conjunta heredada.** Un participante sigue viendo los ítems y el total de la compra en `/purchases`. En `/reports/purchases/joint` ve además `totals.participants` (`reports.use-case.ts:123`), que cuenta a **todos** los participantes, no sólo a quien consulta. Con pocos participantes, por diferencia, se puede deducir la cantidad del resto. Es un riesgo residual del registro heredado: no hay compras conjuntas nuevas, porque la ruta está cerrada.
+- **Eventos `COMPRA_PROGRAMADA` heredados sin dueño.** `create-joint-purchase.use-case.ts:315-327` creaba, para una compra conjunta programada, un evento sin `ownerUserId` con proveedor, notas y total. El calendario muestra los eventos sin dueño a todo agricultor del tenant (y a D y A), así que los ya existentes siguen visibles para todos. No se crean nuevos, porque la ruta está cerrada; no se borran ni se migran aquí.
+- **OpenAPI.** No documenta el 403 `LEGACY_ROUTE_CLOSED` de `POST /purchases/joint` ni de `GET /inventory/global-stock`. Los snapshots no se regeneraron porque ninguna forma documentada cambió. Documentarlo es opcional.
 - **Proveedores (`/suppliers`).** Es un catálogo del tenant, sin compras ni precios: nombre, teléfono y dirección. Sigue legible para todos los roles y editable por D y A. No se cambia; se registra.
 - **`GET /users` para DIRECTIVA.** Devuelve nombre, correo y rol de las cuentas del tenant: es administración de accesos. No se cambia.
 - **Código heredado conservado.** `directiva.page.tsx`, `CreateJointPurchaseUseCase`, `listGlobalStock` y sus servicios Web. Su eliminación sigue la PHASE 9 (cero consumidores, respaldo y migración reversible).
