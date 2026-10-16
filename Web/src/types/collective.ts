@@ -4,7 +4,7 @@ import type { BaseUnit } from '../lib/quantity';
 export type DisclosureMode = 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC';
 export type ProjectionType = 'CONSUMPTION_TOTAL' | 'DECLARED_NEED';
 export type CellStatus = 'DISCLOSED' | 'SUPPRESSED_UNDER_THRESHOLD' | 'SUPPRESSED_REVISION' | 'OVERFLOW';
-export type ProposalLineStatus = CellStatus | 'WITHDRAWN' | 'POLICY_PENDING';
+export type ProposalLineStatus = CellStatus | 'WITHDRAWN' | 'SUPERSEDED' | 'POLICY_PENDING';
 
 export interface Coverage {
   linked_members: number;
@@ -68,7 +68,8 @@ export interface Proposal {
   campaign: CampaignRef;
   generated_at: string;
   generated_by: UserRef;
-  inputs_fingerprint: string;
+  /** null cuando alguna cifra del borrador ya no se publica. */
+  inputs_fingerprint: string | null;
   disclosure: { mode: DisclosureMode; policy: 'F07-POL-01'; approved: false };
   coverage: Coverage | null;
   lines: ProposalLine[];
@@ -80,7 +81,7 @@ export interface ProposalSummary {
   status: 'DRAFT';
   generated_at: string;
   generated_by: UserRef;
-  inputs_fingerprint: string;
+  inputs_fingerprint: string | null;
   line_count: number;
 }
 

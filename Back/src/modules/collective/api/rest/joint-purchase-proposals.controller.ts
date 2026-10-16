@@ -67,6 +67,7 @@ export class JointPurchaseProposalsController {
 
   @Get("proposals/:proposalId/csv")
   @Header("Content-Type", "text/csv; charset=utf-8")
+  @Header("Content-Disposition", 'attachment; filename="propuesta-conjunta.csv"')
   @Header("Cache-Control", "no-store")
   @ApiOperation({ summary: "El mismo detalle como CSV, con la misma política" })
   @ApiProduces("text/csv")

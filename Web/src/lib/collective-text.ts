@@ -13,7 +13,9 @@ export function statusReason(status: ProposalLineStatus, threshold?: number | nu
     case 'OVERFLOW':
       return 'El total supera el rango numérico admitido; no se trunca ni se redondea.';
     case 'WITHDRAWN':
-      return 'La cifra se retiró después de generar este borrador. Genere uno nuevo para ver el estado vigente.';
+      return 'El resumen ya no publica una cifra para este producto. Genere un borrador nuevo para ver el estado vigente.';
+    case 'SUPERSEDED':
+      return 'El resumen publica ahora una cifra más reciente. Genere un borrador nuevo para verla.';
     case 'POLICY_PENDING':
       return 'La política de divulgación no está aprobada: no se muestran cifras.';
     default:
@@ -28,7 +30,13 @@ export function collectiveError(err: unknown, fallback: string): string {
     const status = err.response.status;
     if (status === 403) return 'Su rol no tiene acceso a la información colectiva.';
     if (status === 404) return 'No existe o no pertenece a su organización.';
-    if (status === 409) return 'POLICY_PENDING';
+    if (status === 409) {
+      // Sólo la propuesta usa POLICY_PENDING; otro 409 es un cambio concurrente.
+      const message = (err.response.data as { message?: unknown } | undefined)?.message;
+      return message === 'POLICY_PENDING'
+        ? 'POLICY_PENDING'
+        : 'Los datos cambiaron mientras tanto. Recargue la página y vuelva a intentarlo.';
+    }
     if (status === 422) return 'Datos no válidos: revise la confirmación y el motivo.';
   }
   return fallback;

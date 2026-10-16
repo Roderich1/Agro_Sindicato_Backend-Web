@@ -46,7 +46,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(belator.textContent).toMatch(/umbral/);
     expect(belator.textContent).not.toMatch(/\d+ L/);
     const withdrawn = screen.getByTestId('line-Glifosato-ML');
-    expect(withdrawn.textContent).toMatch(/Genere uno nuevo/);
+    expect(withdrawn.textContent).toMatch(/Genere un borrador nuevo/);
     expect(withdrawn.textContent).not.toMatch(/\d+ L/);
     // Ninguna suma propia: no aparece 25 + 11,5.
     expect(document.body.textContent).not.toMatch(/36,5/);
@@ -79,6 +79,29 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(detail.textContent).toMatch(/no se muestran cifras/);
     expect(detail.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
     expect(screen.queryByTestId('coverage')).toBeNull();
+  });
+
+  it('una cifra sustituida o retirada no se muestra y la huella queda oculta', async () => {
+    vi.mocked(collectiveService.proposals).mockResolvedValue([
+      { proposal_ref: DRAFT.proposal_ref, status: 'DRAFT', generated_at: DRAFT.generated_at, generated_by: DRAFT.generated_by, inputs_fingerprint: null, line_count: 2 },
+    ]);
+    vi.mocked(collectiveService.proposal).mockResolvedValue(
+      proposalWith(
+        [
+          line({ position: 0, product_name: 'Urea', base_unit: 'G', status: 'SUPERSEDED' }),
+          line({ position: 1, product_name: 'Glifosato', status: 'WITHDRAWN' }),
+        ],
+        { inputs_fingerprint: null },
+      ),
+    );
+    renderAt(<JointProposalPage />, { path: PATH });
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
+    const urea = await screen.findByTestId('line-Urea-G');
+    expect(urea.textContent).toMatch(/Sustituido/);
+    expect(urea.textContent).toMatch(/cifra más reciente/);
+    expect(urea.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
+    expect(screen.getByTestId('line-Glifosato-ML').textContent).toMatch(/ya no publica/);
+    expect(screen.getAllByText('huella oculta').length).toBe(2);
   });
 
   it('el historial muestra huella y autor, sin cantidades', async () => {

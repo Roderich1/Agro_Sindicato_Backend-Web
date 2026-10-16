@@ -13,6 +13,7 @@ const STATUS_TEXT: Record<ProposalLineStatus, { label: string; cls: string }> = 
   SUPPRESSED_REVISION: { label: 'Oculto (revisión)', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
   OVERFLOW: { label: 'Fuera de rango', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
   WITHDRAWN: { label: 'Retirado', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
+  SUPERSEDED: { label: 'Sustituido', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
   POLICY_PENDING: { label: 'Política pendiente', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
 };
 
@@ -55,6 +56,14 @@ export function QuantityCell({
     return <span className="text-xs font-semibold text-red-700">Dato no válido recibido del servidor; no se muestra.</span>;
   }
   return <span className="font-semibold tabular-nums text-slate-900">{text}</span>;
+}
+
+/** Huella del borrador; oculta cuando alguna de sus cifras ya no se publica. */
+export function Fingerprint({ value }: { value: string | null }) {
+  if (value === null) {
+    return <span className="text-slate-400" title="Alguna cifra del borrador ya no se publica">huella oculta</span>;
+  }
+  return <code title={value}>{value.slice(0, 12)}</code>;
 }
 
 export function PendingChangesNote() {

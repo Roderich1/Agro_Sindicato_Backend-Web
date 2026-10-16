@@ -753,7 +753,8 @@
                     },
                     "inputs_fingerprint": {
                       "type": "string",
-                      "description": "SHA-256 de las entradas autorizadas, ordenadas"
+                      "nullable": true,
+                      "description": "SHA-256 de las entradas autorizadas, ordenadas; null si alguna cifra del borrador no se sirve"
                     },
                     "disclosure": {
                       "type": "object",
@@ -854,6 +855,7 @@
                               "SUPPRESSED_REVISION",
                               "OVERFLOW",
                               "WITHDRAWN",
+                              "SUPERSEDED",
                               "POLICY_PENDING"
                             ]
                           },
@@ -980,7 +982,8 @@
                         }
                       },
                       "inputs_fingerprint": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                       },
                       "line_count": {
                         "type": "integer"
@@ -1113,7 +1116,8 @@
                     },
                     "inputs_fingerprint": {
                       "type": "string",
-                      "description": "SHA-256 de las entradas autorizadas, ordenadas"
+                      "nullable": true,
+                      "description": "SHA-256 de las entradas autorizadas, ordenadas; null si alguna cifra del borrador no se sirve"
                     },
                     "disclosure": {
                       "type": "object",
@@ -1214,6 +1218,7 @@
                               "SUPPRESSED_REVISION",
                               "OVERFLOW",
                               "WITHDRAWN",
+                              "SUPERSEDED",
                               "POLICY_PENDING"
                             ]
                           },

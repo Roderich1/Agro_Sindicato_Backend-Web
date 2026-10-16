@@ -8,7 +8,15 @@ on:
       - 'Web/**'
       - 'Back/src/modules/collective/**'
       - 'Back/src/modules/inventory/**'
+      # Dependencias de la suite F07: IAM, Sync v1, infraestructura y arranque.
+      - 'Back/src/modules/iam/**'
+      - 'Back/src/modules/sync-v1/**'
+      - 'Back/src/shared/**'
+      - 'Back/src/app.module.ts'
+      - 'Back/src/config/**'
       - 'Back/prisma/**'
+      - 'Back/package.json'
+      - 'Back/package-lock.json'
       - '.github/workflows/web.yml'
   push:
     branches: [main]
@@ -16,7 +24,15 @@ on:
       - 'Web/**'
       - 'Back/src/modules/collective/**'
       - 'Back/src/modules/inventory/**'
+      # Dependencias de la suite F07: IAM, Sync v1, infraestructura y arranque.
+      - 'Back/src/modules/iam/**'
+      - 'Back/src/modules/sync-v1/**'
+      - 'Back/src/shared/**'
+      - 'Back/src/app.module.ts'
+      - 'Back/src/config/**'
       - 'Back/prisma/**'
+      - 'Back/package.json'
+      - 'Back/package-lock.json'
       - '.github/workflows/web.yml'
 
 jobs:

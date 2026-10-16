@@ -4,6 +4,7 @@ import {
   CampaignPicker,
   CoverageBanner,
   DisclosureNotice,
+  Fingerprint,
   PendingChangesNote,
   QuantityCell,
   StatusBadge,
@@ -86,8 +87,11 @@ export function JointProposalPage() {
       const link = document.createElement('a');
       link.href = url;
       link.download = `propuesta-${current.proposal_ref}.csv`;
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      // Revocar después: algunos navegadores leen el blob tras el clic.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       fail(err, 'No fue posible descargar el CSV.');
     }
@@ -126,7 +130,7 @@ function ProposalDetail({ proposal, onCsv }: { proposal: Proposal; onCsv: () => 
             <h2 className="text-base font-bold text-slate-900">Borrador · {proposal.campaign.name}</h2>
             <p className="mt-0.5 text-xs text-slate-500">
               Generado {fmtDateTime(proposal.generated_at)} por {proposal.generated_by.name} · huella{' '}
-              <code title={proposal.inputs_fingerprint}>{proposal.inputs_fingerprint.slice(0, 12)}</code>
+              <Fingerprint value={proposal.inputs_fingerprint} />
             </p>
             <p className="mt-1 text-xs text-slate-500">{proposal.notice}</p>
           </div>
@@ -205,7 +209,7 @@ function HistoryTable({
                 <td className="px-5 py-3">{fmtDateTime(entry.generated_at)}</td>
                 <td className="px-5 py-3">{entry.generated_by.name}</td>
                 <td className="px-5 py-3">
-                  <code title={entry.inputs_fingerprint}>{entry.inputs_fingerprint.slice(0, 12)}</code>
+                  <Fingerprint value={entry.inputs_fingerprint} />
                 </td>
                 <td className="px-5 py-3 text-xs text-slate-500">{entry.line_count} líneas</td>
                 <td className="px-5 py-3 text-right">

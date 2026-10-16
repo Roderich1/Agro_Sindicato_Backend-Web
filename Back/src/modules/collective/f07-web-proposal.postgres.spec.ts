@@ -93,7 +93,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     director = await createSession(prisma, jwt, f.members.directorA);
     admin = await createSession(prisma, jwt, f.members.adminA);
     otherTenantDirector = await fresh("DIRECTIVA", f.tenantB);
-    for (const [key, name] of [["C1", "Campana Verano 2026"], ["C2", "Campana Invierno 2026"], ["C3", "=Campana, con fórmula"]]) {
+    for (const [key, name] of [["C1", "Campana Verano 2026"], ["C2", "Campana Invierno 2026"], ["C3", "=Campana, con fórmula"], ["C4", "Campana R1 R2"]]) {
       campaigns[key] = randomUUID();
       await prisma.agriculturalCampaign.create({
         data: { id: campaigns[key], tenantId: f.tenantA, name, status: "ABIERTA", isActive: true, startDate: new Date("2026-09-01T00:00:00.000Z") },
@@ -471,6 +471,53 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     const s = await summary(campaigns.C1);
     expect(s.body.cells.find((cell: any) => cell.projection_type === "DECLARED_NEED" && nameOf(cell.product_ref) === "Urea F06").status)
       .toBe("SUPPRESSED_UNDER_THRESHOLD");
+  });
+
+  it("an older release that the summary no longer shows is never served: superseded, then withdrawn (R4/R8)", async () => {
+    const [a, b, c] = [farmers.F1, farmers.F2, farmers.F3];
+    const target = { campaign: campaigns.C4, product: products["Glifosato F06"], type: "DECLARED_NEED" as Type, unit: "ML" as const };
+    const heads = [
+      await push(a, { ...target, quantity: "1000" }),
+      await push(b, { ...target, quantity: "2000" }),
+      await push(c, { ...target, quantity: "3000" }),
+    ];
+    // P1 rests on R1 = 6000.
+    const p1 = await generate(campaigns.C4);
+    expect(p1.body.lines[0]).toMatchObject({ status: "DISCLOSED", quantity_base: "6000" });
+    expect(p1.body.inputs_fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    // k = 3 Members change: the summary publishes R2 = 6600; R1 is not withdrawn.
+    for (const [i, session] of [a, b, c].entries()) {
+      heads[i] = await push(session, { ...target, action: "SUPERSEDE", pred: heads[i], quantity: String((i + 1) * 1100) });
+    }
+    const s2 = await summary(campaigns.C4);
+    expect(s2.body.cells[0]).toMatchObject({ status: "DISCLOSED", total_base: "6600" });
+    const r1 = await prisma.collectiveRelease.findFirstOrThrow({ where: { campaignId: campaigns.C4, totalBase: 6000n } });
+    expect(r1.withdrawnAt).toBeNull();
+    const p2 = await generate(campaigns.C4);
+    expect(p2.body.lines[0]).toMatchObject({ status: "DISCLOSED", quantity_base: "6600" });
+    // P1 does not serve R1 next to R2: superseded, no figure, no fingerprint.
+    const superseded = await proposal(p1.body.proposal_ref);
+    expect(superseded.body.lines[0]).toMatchObject({ status: "SUPERSEDED", quantity_base: null, contributors: null });
+    expect(superseded.body.inputs_fingerprint).toBeNull();
+    expect(superseded.text).not.toContain("6000");
+    // A cancellation withdraws R2; the cell is suppressed. R1 still has withdrawnAt = null.
+    await push(c, { ...target, action: "CANCEL", pred: heads[2] });
+    for (const id of [p1.body.proposal_ref, p2.body.proposal_ref]) {
+      const detail = await proposal(id);
+      expect(detail.body.lines[0]).toMatchObject({ status: "WITHDRAWN", quantity_base: null, quantity_presentation: null });
+      expect(detail.body.inputs_fingerprint).toBeNull();
+      const file = await proposalCsv(id);
+      for (const text of [detail.text, file.text]) {
+        expect(text).not.toMatch(/(^|[^0-9a-f-])(6000|6600)([^0-9a-f-]|$)/);
+        expect(text).not.toContain(p1.body.inputs_fingerprint);
+      }
+    }
+    expect((await prisma.collectiveRelease.findUniqueOrThrow({ where: { id: r1.id } })).withdrawnAt).toBeNull();
+    const list = await history(campaigns.C4);
+    expect(list.body.map((entry: any) => entry.inputs_fingerprint)).toEqual([null, null]);
+    const cell = (await summary(campaigns.C4)).body.cells[0];
+    expect(cell.status).toMatch(/^SUPPRESSED_/);
+    expect(cell.total_base).toBeNull();
   });
 
   it("POLICY_PENDING: nothing is generated or stored and no stored proposal serves a figure", async () => {

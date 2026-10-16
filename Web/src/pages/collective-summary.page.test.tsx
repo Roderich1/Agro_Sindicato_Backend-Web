@@ -68,6 +68,14 @@ describe('Resumen colectivo', () => {
     expect(screen.getByTestId('coverage').textContent).toMatch(/desconocido, no cero/);
   });
 
+  it('un ?campaign= que no es UUID se ignora: se usa la campaña activa', async () => {
+    vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith([]));
+    renderAt(<CollectiveSummaryPage />, { path: '/colectivo/resumen?campaign=..%2F..%2Fusers' });
+    await screen.findAllByText(/Eso no significa cero/);
+    expect(collectiveService.summary).toHaveBeenCalledWith(CAMPAIGN.id);
+    expect(collectiveService.summary).not.toHaveBeenCalledWith(expect.stringContaining('users'));
+  });
+
   it('un dato no exacto del servidor se señala como error, no como cifra', async () => {
     vi.mocked(collectiveService.summary).mockResolvedValue(
       summaryWith([cell({ product_name: 'Raro', total_base: '1.5', total_presentation: '0.0015', contributors: 3 })]),

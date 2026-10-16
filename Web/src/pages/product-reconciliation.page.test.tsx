@@ -1,4 +1,5 @@
 import { fireEvent, screen, within } from '@testing-library/react';
+import { AxiosError, AxiosHeaders } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import type { Association, CatalogEntry } from '../types/collective';
@@ -98,6 +99,20 @@ describe('Reconciliación de denominaciones', () => {
     expect(old.textContent).toMatch(/Bellator → Otro canónico/);
     expect(old.textContent).toMatch(/Presidente sintético: era incorrecta/);
     expect(screen.getByTestId('history-a-2').textContent).toMatch(/vigente/);
+  });
+
+  it('un 409 de reconciliación es un cambio concurrente, no la política pendiente', async () => {
+    const error = new AxiosError('conflict', '409');
+    error.response = { status: 409, data: { message: 'ASSOCIATION_CHANGED' }, statusText: '', headers: {}, config: { headers: new AxiosHeaders() } };
+    vi.mocked(collectiveService.associate).mockRejectedValue(error);
+    renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
+    fireEvent.click(within(await screen.findByTestId('product-Bellator')).getByRole('button', { name: 'Asociar…' }));
+    fireEvent.change(screen.getByLabelText('Producto canónico'), { target: { value: 'belator' } });
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'misma formulación' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar asociación' }));
+    expect(await screen.findByText(/Los datos cambiaron mientras tanto/)).toBeTruthy();
+    expect(screen.queryByText(/POLICY_PENDING|política/i)).toBeNull();
   });
 
   it('deshacer exige motivo y confirmación', async () => {

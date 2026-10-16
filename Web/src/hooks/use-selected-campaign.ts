@@ -5,13 +5,16 @@ import { campaignsService } from '../services/campaigns.service';
 import type { Campaign } from '../types/campaigns';
 import { useCampaign } from './use-campaign';
 
-/** Campaña elegida, en la URL (`?campaign=`), por defecto la activa. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Campaña elegida, en la URL (`?campaign=`), por defecto la activa. Sólo se acepta un UUID. */
 export function useSelectedCampaign() {
   const { activeCampaign } = useCampaign();
   const [params, setParams] = useSearchParams();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const selected = params.get('campaign') ?? activeCampaign?.id ?? campaigns[0]?.id ?? null;
+  const requested = params.get('campaign');
+  const selected = (requested && UUID.test(requested) ? requested : null) ?? activeCampaign?.id ?? campaigns[0]?.id ?? null;
 
   useEffect(() => {
     let alive = true;
