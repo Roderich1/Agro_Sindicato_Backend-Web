@@ -1916,6 +1916,51 @@
           }
         }
       },
+      "AssociateProductDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Denominación del catálogo central"
+          },
+          "canonicalProductId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Producto canónico (no puede ser alias)"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita de la Directiva (RF-33)"
+          }
+        },
+        "required": [
+          "productId",
+          "canonicalProductId",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "CloseProductAssociationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "reason",
+          "confirmed"
+        ]
+      },
       "CreateCampaignDto": {
         "type": "object",
         "properties": {

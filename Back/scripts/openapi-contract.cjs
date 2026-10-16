@@ -112,3 +112,37 @@ assert.equal(product.additionalProperties, false);
 assert.deepEqual(product.required, ["product_ref", "name", "unit", "base_unit", "is_active", "linkable"]);
 assert.deepEqual(Object.keys(product.properties).sort(), [...product.required].sort());
 process.stdout.write("F05 Sync v1 OpenAPI contract assertions passed.\n");
+
+// F06 collective summary (#21) and F07-REC-01 associations (#108): routes,
+// statuses, bearer, closed shapes and no figures per Member.
+const f06 = JSON.parse(readFileSync(resolve(__dirname, "../../docs/api/openapi-f06-collective.json"), "utf8"));
+const f06Required = [
+  ["/api/v1/collective/campaigns/{campaignId}/summary", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/campaigns/{campaignId}/summary.csv", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/product-associations", "get", "200", "401", "403"],
+  ["/api/v1/collective/product-associations", "post", "200", "401", "403", "404", "409", "422"],
+  ["/api/v1/collective/product-associations/{productId}/close", "post", "200", "401", "403", "404", "422"],
+];
+assert.deepEqual(
+  Object.keys(f06.paths).sort(),
+  [...new Set(f06Required.map(([path]) => path))].sort(),
+);
+for (const [path, method, ...statuses] of f06Required) {
+  const operation = f06.paths[path]?.[method];
+  assert.ok(operation, `Missing ${method.toUpperCase()} ${path}`);
+  assert.deepEqual(spec.paths[path][method], operation, `${path} differs from the main snapshot`);
+  assert.ok(operation.security?.some((security) => "bearer" in security), `${path} requires bearer`);
+  for (const status of statuses) assert.ok(operation.responses[status], `Missing ${status} on ${path}`);
+}
+const summary = f06.paths["/api/v1/collective/campaigns/{campaignId}/summary"].get.responses["200"].content["application/json"].schema;
+assert.equal(summary.additionalProperties, false);
+assert.deepEqual(summary.required, ["contractVersion", "campaign", "disclosure", "coverage", "cells"]);
+assert.deepEqual(summary.properties.disclosure.properties.approved.enum, [false]);
+const cell = summary.properties.cells.items;
+assert.equal(cell.additionalProperties, false);
+assert.deepEqual(Object.keys(cell.properties).sort(), [...cell.required].sort());
+for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "quantity_base"]) {
+  assert.ok(!(forbidden in cell.properties), `Cell must not expose ${forbidden}`);
+}
+assert.ok(f06.paths["/api/v1/collective/campaigns/{campaignId}/summary.csv"].get.responses["200"].content["text/csv"]);
+process.stdout.write("F06 collective OpenAPI contract assertions passed.\n");

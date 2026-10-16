@@ -37,6 +37,12 @@ export const envSchema = z.object({
   SYNC_V1_FINGERPRINT_PREVIOUS_KEYS: optionalText(z.string()),
   // Production admission stays closed until retention/disclosure policies.
   SYNC_V1_PRODUCTION_ADMISSION: optionalText(z.enum(["enabled", "disabled"])),
+  // F06 #21 / F07-POL-01 (#107): no collective figures until the policy is
+  // approved. `provisional-synthetic` (k=3) only outside production, for
+  // synthetic data; production always behaves as `disabled`.
+  COLLECTIVE_DISCLOSURE_MODE: optionalText(
+    z.enum(["disabled", "provisional-synthetic"]),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -77,3 +77,5 @@ jobs:
       - run: F05_SYNC_05A_PG_TEST_URL="$DATABASE_URL" npx jest sync-v1-journal.postgres.spec.ts --runInBand
       - run: F05_SYNC_06_PG_TEST_URL="$DATABASE_URL" npx jest sync-v1-adversarial.postgres.spec.ts --runInBand
       - run: F05_SYNC_07_PG_TEST_URL="$DATABASE_URL" npx jest sync-v1-references.postgres.spec.ts --runInBand
+      - run: F06_COLL_05_PG_TEST_URL="$DATABASE_URL" npx jest f06-coll-05-collective-aggregate.postgres.spec.ts --runInBand
+      - run: F07_REC_01_PG_TEST_URL="$DATABASE_URL" npx jest product-reconciliation.postgres.spec.ts --runInBand

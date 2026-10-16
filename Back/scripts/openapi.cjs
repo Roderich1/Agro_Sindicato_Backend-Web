@@ -22,13 +22,27 @@ async function main() {
       ),
     }, null, 2)}\n`;
     const f05Target = resolve(__dirname, "../../docs/api/openapi-f05-sync-v1.json");
+    // F06 collective subset (#21) and F07-REC-01 associations (#108).
+    const f06Spec = `${JSON.stringify({
+      ...document,
+      paths: Object.fromEntries(
+        Object.entries(document.paths).filter(([path]) => path.startsWith("/api/v1/collective/")),
+      ),
+    }, null, 2)}
+`;
+    const f06Target = resolve(__dirname, "../../docs/api/openapi-f06-collective.json");
     if (process.argv.includes("--check")) {
-      if (readFileSync(target, "utf8") !== spec || readFileSync(f05Target, "utf8") !== f05Spec) {
+      if (
+        readFileSync(target, "utf8") !== spec ||
+        readFileSync(f05Target, "utf8") !== f05Spec ||
+        readFileSync(f06Target, "utf8") !== f06Spec
+      ) {
         throw new Error("OpenAPI drift: run npm run openapi:generate and review the diff");
       }
       process.stdout.write("OpenAPI snapshots match generated documents.\n");
     } else {
       writeFileSync(f05Target, f05Spec, "utf8");
+      writeFileSync(f06Target, f06Spec, "utf8");
       const output = process.argv[2] && !process.argv[2].startsWith("--")
         ? resolve(process.argv[2]) : target;
       mkdirSync(dirname(output), { recursive: true });
