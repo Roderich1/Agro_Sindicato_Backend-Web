@@ -227,6 +227,7 @@ model Tenant {
   syncV1Contributions      SyncV1Contribution[]
   productAssociations      ProductCanonicalAssociation[]
   collectiveReleases       CollectiveRelease[]
+  jointPurchaseProposals   JointPurchaseProposal[]
 }
 
 model User {
@@ -265,6 +266,7 @@ model User {
   auditLogsAsOwner          AuditLog[]                    @relation("AuditOwner")
   productAssociationsMade   ProductCanonicalAssociation[] @relation("ProductAssociationActor")
   productAssociationsClosed ProductCanonicalAssociation[] @relation("ProductAssociationCloser")
+  jointPurchaseProposals    JointPurchaseProposal[]       @relation("JointPurchaseProposalAuthor")
 }
 
 model Member {
@@ -374,16 +376,17 @@ model Product {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  tenant                   Tenant                        @relation(fields: [tenantId], references: [id])
-  inventoryLots            InventoryLot[]
-  movements                StockMovement[]
-  purchaseItems            PurchaseItem[]
-  demandForecasts          DemandForecast[]
-  agrochemicalApplications AgrochemicalApplication[]
-  syncV1Contributions      SyncV1Contribution[]
-  denominationAssociations ProductCanonicalAssociation[] @relation("ProductAssociationDenomination")
-  canonicalAssociations    ProductCanonicalAssociation[] @relation("ProductAssociationCanonical")
-  collectiveReleases       CollectiveRelease[]
+  tenant                     Tenant                        @relation(fields: [tenantId], references: [id])
+  inventoryLots              InventoryLot[]
+  movements                  StockMovement[]
+  purchaseItems              PurchaseItem[]
+  demandForecasts            DemandForecast[]
+  agrochemicalApplications   AgrochemicalApplication[]
+  syncV1Contributions        SyncV1Contribution[]
+  denominationAssociations   ProductCanonicalAssociation[] @relation("ProductAssociationDenomination")
+  canonicalAssociations      ProductCanonicalAssociation[] @relation("ProductAssociationCanonical")
+  collectiveReleases         CollectiveRelease[]
+  jointPurchaseProposalLines JointPurchaseProposalLine[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, qrCodeValue])
@@ -440,6 +443,7 @@ model AgriculturalCampaign {
   auditLogs                AuditLog[]
   syncV1Contributions      SyncV1Contribution[]
   collectiveReleases       CollectiveRelease[]
+  jointPurchaseProposals   JointPurchaseProposal[]
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -1021,10 +1025,11 @@ model CollectiveRelease {
   releasedAt         DateTime             @default(now())
   withdrawnAt        DateTime?
 
-  tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign         AgriculturalCampaign    @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  canonicalProduct Product                 @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant           Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign         AgriculturalCampaign        @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product                     @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   items            CollectiveReleaseItem[]
+  proposalLines    JointPurchaseProposalLine[]
 
   @@index([tenantId, campaignId, canonicalProductId, projectionType, baseUnit, releasedAt])
 }
@@ -1039,4 +1044,61 @@ model CollectiveReleaseItem {
   contribution SyncV1Contribution @relation(fields: [contributionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@id([releaseId, contributionId])
+}
+
+/// F07 #27 (JP-02): borrador de propuesta de compra conjunta para revisión
+/// humana. Sólo DRAFT: no ejecuta compras, ni crea lotes, movimientos, deudas
+/// o pagos. Usa la necesidad declarada (no resta stock: no es necesidad neta).
+enum JointPurchaseProposalStatus {
+  DRAFT
+}
+
+/// Estado de una línea, el mismo que decidió el resumen colectivo.
+enum JointPurchaseProposalLineStatus {
+  DISCLOSED
+  SUPPRESSED_UNDER_THRESHOLD
+  SUPPRESSED_REVISION
+  OVERFLOW
+}
+
+/// Generada desde las celdas DECLARED_NEED del resumen (F07-POL-01). Guarda la
+/// cobertura agregada autorizada y la huella de sus entradas, nunca cantidades
+/// por agricultor ni identidades.
+model JointPurchaseProposal {
+  id                      String                      @id @default(uuid()) @db.Uuid
+  tenantId                String
+  campaignId              String
+  status                  JointPurchaseProposalStatus @default(DRAFT)
+  inputsFingerprint       String                      @db.Char(64)
+  linkedMembers           Int
+  membersWithContribution Int
+  generatedAt             DateTime                    @default(now())
+  generatedByUserId       String
+
+  tenant      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign    AgriculturalCampaign        @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  generatedBy User                        @relation("JointPurchaseProposalAuthor", fields: [generatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  lines       JointPurchaseProposalLine[]
+
+  @@index([tenantId, campaignId, generatedAt])
+}
+
+/// Línea por producto canónico y unidad base. No guarda la cantidad: la
+/// referencia a la divulgación (CollectiveRelease) que mostró el resumen. Si
+/// esa divulgación se retira, la propuesta deja de servir la cifra.
+model JointPurchaseProposalLine {
+  proposalId         String                          @db.Uuid
+  position           Int
+  canonicalProductId String
+  baseUnit           SyncV1BaseUnit
+  status             JointPurchaseProposalLineStatus
+  releaseId          String?                         @db.Uuid
+  pendingChanges     Boolean                         @default(false)
+
+  proposal         JointPurchaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product               @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  release          CollectiveRelease?    @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([proposalId, position])
+  @@unique([proposalId, canonicalProductId, baseUnit])
 }

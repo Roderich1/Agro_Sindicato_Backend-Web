@@ -1905,8 +1905,10 @@
                           "valid_from",
                           "valid_to",
                           "actor_ref",
+                          "actor_name",
                           "reason",
                           "closed_by_ref",
+                          "closed_by_name",
                           "close_reason"
                         ],
                         "properties": {
@@ -1938,10 +1940,17 @@
                           "actor_ref": {
                             "type": "string"
                           },
+                          "actor_name": {
+                            "type": "string"
+                          },
                           "reason": {
                             "type": "string"
                           },
                           "closed_by_ref": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "closed_by_name": {
                             "type": "string",
                             "nullable": true
                           },
@@ -1966,8 +1975,10 @@
                           "valid_from",
                           "valid_to",
                           "actor_ref",
+                          "actor_name",
                           "reason",
                           "closed_by_ref",
+                          "closed_by_name",
                           "close_reason"
                         ],
                         "properties": {
@@ -1999,10 +2010,17 @@
                           "actor_ref": {
                             "type": "string"
                           },
+                          "actor_name": {
+                            "type": "string"
+                          },
                           "reason": {
                             "type": "string"
                           },
                           "closed_by_ref": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "closed_by_name": {
                             "type": "string",
                             "nullable": true
                           },
@@ -2095,6 +2113,73 @@
           }
         ],
         "summary": "Asociar o corregir una denominación (confirmación explícita)",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/product-associations/catalog": {
+      "get": {
+        "operationId": "ProductAssociationsController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "product_ref",
+                      "product_name",
+                      "unit",
+                      "base_unit",
+                      "is_active"
+                    ],
+                    "properties": {
+                      "product_ref": {
+                        "type": "string"
+                      },
+                      "product_name": {
+                        "type": "string"
+                      },
+                      "unit": {
+                        "type": "string"
+                      },
+                      "base_unit": {
+                        "type": "string",
+                        "enum": [
+                          "ML",
+                          "G"
+                        ],
+                        "nullable": true,
+                        "description": "null: unidad no vinculable"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Denominaciones del catálogo del tenant: nombre y unidad, sin stock",
         "tags": [
           "collective"
         ]
@@ -6163,6 +6248,675 @@
           }
         ],
         "summary": "El mismo consolidado como CSV, con la misma política",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/campaigns/{campaignId}/proposals": {
+      "post": {
+        "operationId": "JointPurchaseProposalsController_generate",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "proposal_ref",
+                    "status",
+                    "basis",
+                    "campaign",
+                    "generated_at",
+                    "generated_by",
+                    "inputs_fingerprint",
+                    "disclosure",
+                    "coverage",
+                    "lines",
+                    "notice"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "proposal_ref": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT"
+                      ]
+                    },
+                    "basis": {
+                      "type": "string",
+                      "enum": [
+                        "DECLARED_NEED"
+                      ],
+                      "description": "Necesidad declarada; no resta stock (no es necesidad neta)"
+                    },
+                    "campaign": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "campaign_ref",
+                        "name",
+                        "status"
+                      ],
+                      "properties": {
+                        "campaign_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "generated_by": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "user_ref",
+                        "name"
+                      ],
+                      "properties": {
+                        "user_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "inputs_fingerprint": {
+                      "type": "string",
+                      "description": "SHA-256 de las entradas autorizadas, ordenadas"
+                    },
+                    "disclosure": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mode",
+                        "policy",
+                        "approved"
+                      ],
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "POLICY_PENDING",
+                            "PROVISIONAL_SYNTHETIC"
+                          ]
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01"
+                          ]
+                        },
+                        "approved": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        }
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "linked_members",
+                        "members_with_contribution"
+                      ],
+                      "properties": {
+                        "linked_members": {
+                          "type": "integer"
+                        },
+                        "members_with_contribution": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "position",
+                          "product_ref",
+                          "product_name",
+                          "base_unit",
+                          "presentation_unit",
+                          "status",
+                          "quantity_base",
+                          "quantity_presentation",
+                          "contributors",
+                          "data_as_of",
+                          "released_at",
+                          "pending_changes"
+                        ],
+                        "properties": {
+                          "position": {
+                            "type": "integer"
+                          },
+                          "product_ref": {
+                            "type": "string",
+                            "description": "Producto canónico"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "presentation_unit": {
+                            "type": "string",
+                            "enum": [
+                              "L",
+                              "KG"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DISCLOSED",
+                              "SUPPRESSED_UNDER_THRESHOLD",
+                              "SUPPRESSED_REVISION",
+                              "OVERFLOW",
+                              "WITHDRAWN",
+                              "POLICY_PENDING"
+                            ]
+                          },
+                          "quantity_base": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Necesidad declarada divulgada, entero exacto; null si no se divulga"
+                          },
+                          "quantity_presentation": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "L/KG exactos; null si no se divulga"
+                          },
+                          "contributors": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "data_as_of": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "released_at": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "pending_changes": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          },
+          "409": {
+            "description": "POLICY_PENDING: sin divulgación autorizada no se genera ni guarda nada"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generar un borrador de propuesta desde la necesidad declarada divulgada",
+        "tags": [
+          "collective"
+        ]
+      },
+      "get": {
+        "operationId": "JointPurchaseProposalsController_list",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "proposal_ref",
+                      "status",
+                      "generated_at",
+                      "generated_by",
+                      "inputs_fingerprint",
+                      "line_count"
+                    ],
+                    "properties": {
+                      "proposal_ref": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "DRAFT"
+                        ]
+                      },
+                      "generated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "generated_by": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "user_ref",
+                          "name"
+                        ],
+                        "properties": {
+                          "user_ref": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "inputs_fingerprint": {
+                        "type": "string"
+                      },
+                      "line_count": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Historial de borradores de la campaña (sin cantidades)",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/proposals/{proposalId}": {
+      "get": {
+        "operationId": "JointPurchaseProposalsController_get",
+        "parameters": [
+          {
+            "name": "proposalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "proposal_ref",
+                    "status",
+                    "basis",
+                    "campaign",
+                    "generated_at",
+                    "generated_by",
+                    "inputs_fingerprint",
+                    "disclosure",
+                    "coverage",
+                    "lines",
+                    "notice"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "proposal_ref": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT"
+                      ]
+                    },
+                    "basis": {
+                      "type": "string",
+                      "enum": [
+                        "DECLARED_NEED"
+                      ],
+                      "description": "Necesidad declarada; no resta stock (no es necesidad neta)"
+                    },
+                    "campaign": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "campaign_ref",
+                        "name",
+                        "status"
+                      ],
+                      "properties": {
+                        "campaign_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "generated_by": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "user_ref",
+                        "name"
+                      ],
+                      "properties": {
+                        "user_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "inputs_fingerprint": {
+                      "type": "string",
+                      "description": "SHA-256 de las entradas autorizadas, ordenadas"
+                    },
+                    "disclosure": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mode",
+                        "policy",
+                        "approved"
+                      ],
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "POLICY_PENDING",
+                            "PROVISIONAL_SYNTHETIC"
+                          ]
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01"
+                          ]
+                        },
+                        "approved": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        }
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "linked_members",
+                        "members_with_contribution"
+                      ],
+                      "properties": {
+                        "linked_members": {
+                          "type": "integer"
+                        },
+                        "members_with_contribution": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "position",
+                          "product_ref",
+                          "product_name",
+                          "base_unit",
+                          "presentation_unit",
+                          "status",
+                          "quantity_base",
+                          "quantity_presentation",
+                          "contributors",
+                          "data_as_of",
+                          "released_at",
+                          "pending_changes"
+                        ],
+                        "properties": {
+                          "position": {
+                            "type": "integer"
+                          },
+                          "product_ref": {
+                            "type": "string",
+                            "description": "Producto canónico"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "presentation_unit": {
+                            "type": "string",
+                            "enum": [
+                              "L",
+                              "KG"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DISCLOSED",
+                              "SUPPRESSED_UNDER_THRESHOLD",
+                              "SUPPRESSED_REVISION",
+                              "OVERFLOW",
+                              "WITHDRAWN",
+                              "POLICY_PENDING"
+                            ]
+                          },
+                          "quantity_base": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Necesidad declarada divulgada, entero exacto; null si no se divulga"
+                          },
+                          "quantity_presentation": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "L/KG exactos; null si no se divulga"
+                          },
+                          "contributors": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "data_as_of": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "released_at": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "pending_changes": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Propuesta inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Detalle del borrador con la misma política que el resumen",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/proposals/{proposalId}/csv": {
+      "get": {
+        "operationId": "JointPurchaseProposalsController_csv",
+        "parameters": [
+          {
+            "name": "proposalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV con los mismos estados que el JSON",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Propuesta inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El mismo detalle como CSV, con la misma política",
         "tags": [
           "collective"
         ]
