@@ -139,14 +139,18 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     >`
       SELECT migration_name, finished_at FROM "_prisma_migrations" ORDER BY migration_name
     `;
-    // F05-SYNC-05 adds the contribution migration after the journal one.
-    expect(migrations).toHaveLength(6);
+    // F05-SYNC-05 adds the contribution migration after the journal one, and
+    // F06 #21 the collective consolidation after both.
+    expect(migrations).toHaveLength(7);
     expect(migrations.every((m) => m.finished_at !== null)).toBe(true);
     expect(migrations[4].migration_name).toMatch(
       /_f05_sync_v1_journal_expand$/,
     );
     expect(migrations[5].migration_name).toMatch(
       /_f05_sync_v1_contribution$/,
+    );
+    expect(migrations[6].migration_name).toMatch(
+      /_f06_collective_consolidation$/,
     );
   });
 

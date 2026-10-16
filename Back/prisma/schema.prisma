@@ -225,6 +225,8 @@ model Tenant {
   auditLogs                AuditLog[]
   syncV1OperationJournals  SyncV1OperationJournal[]
   syncV1Contributions      SyncV1Contribution[]
+  productAssociations      ProductCanonicalAssociation[]
+  collectiveReleases       CollectiveRelease[]
 }
 
 model User {
@@ -239,28 +241,30 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tenant                  Tenant                    @relation(fields: [tenantId], references: [id])
-  members                 Member[]
-  refreshTokens           RefreshToken[]
-  warehouses              Warehouse[]
-  inventoryLots           InventoryLot[]
-  stockMovements          StockMovement[]           @relation("StockMovementActor")
-  ownedStockMovements     StockMovement[]           @relation("StockMovementOwner")
-  purchases               Purchase[]
-  purchaseItemAllocations PurchaseItemAllocation[]
-  purchaseParticipants    PurchaseParticipant[]
-  payableAccounts         PayableAccount[]
-  payments                Payment[]                 @relation("PaymentRegistrar")
-  syncOperations          SyncOperation[]
-  createdCampaigns        AgriculturalCampaign[]    @relation("CampaignCreator")
-  closedCampaigns         AgriculturalCampaign[]    @relation("CampaignCloser")
-  plots                   Plot[]
-  plotCropAssignments     PlotCropAssignment[]
-  ownedApplications       AgrochemicalApplication[] @relation("AgrochemicalApplicationOwner")
-  appliedApplications     AgrochemicalApplication[] @relation("AgrochemicalApplicationAppliedBy")
-  calendarEvents          CalendarEvent[]
-  auditLogsAsActor        AuditLog[]                @relation("AuditActor")
-  auditLogsAsOwner        AuditLog[]                @relation("AuditOwner")
+  tenant                    Tenant                        @relation(fields: [tenantId], references: [id])
+  members                   Member[]
+  refreshTokens             RefreshToken[]
+  warehouses                Warehouse[]
+  inventoryLots             InventoryLot[]
+  stockMovements            StockMovement[]               @relation("StockMovementActor")
+  ownedStockMovements       StockMovement[]               @relation("StockMovementOwner")
+  purchases                 Purchase[]
+  purchaseItemAllocations   PurchaseItemAllocation[]
+  purchaseParticipants      PurchaseParticipant[]
+  payableAccounts           PayableAccount[]
+  payments                  Payment[]                     @relation("PaymentRegistrar")
+  syncOperations            SyncOperation[]
+  createdCampaigns          AgriculturalCampaign[]        @relation("CampaignCreator")
+  closedCampaigns           AgriculturalCampaign[]        @relation("CampaignCloser")
+  plots                     Plot[]
+  plotCropAssignments       PlotCropAssignment[]
+  ownedApplications         AgrochemicalApplication[]     @relation("AgrochemicalApplicationOwner")
+  appliedApplications       AgrochemicalApplication[]     @relation("AgrochemicalApplicationAppliedBy")
+  calendarEvents            CalendarEvent[]
+  auditLogsAsActor          AuditLog[]                    @relation("AuditActor")
+  auditLogsAsOwner          AuditLog[]                    @relation("AuditOwner")
+  productAssociationsMade   ProductCanonicalAssociation[] @relation("ProductAssociationActor")
+  productAssociationsClosed ProductCanonicalAssociation[] @relation("ProductAssociationCloser")
 }
 
 model Member {
@@ -370,13 +374,16 @@ model Product {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
+  tenant                   Tenant                        @relation(fields: [tenantId], references: [id])
   inventoryLots            InventoryLot[]
   movements                StockMovement[]
   purchaseItems            PurchaseItem[]
   demandForecasts          DemandForecast[]
   agrochemicalApplications AgrochemicalApplication[]
   syncV1Contributions      SyncV1Contribution[]
+  denominationAssociations ProductCanonicalAssociation[] @relation("ProductAssociationDenomination")
+  canonicalAssociations    ProductCanonicalAssociation[] @relation("ProductAssociationCanonical")
+  collectiveReleases       CollectiveRelease[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, qrCodeValue])
@@ -432,6 +439,7 @@ model AgriculturalCampaign {
   calendarEvents           CalendarEvent[]
   auditLogs                AuditLog[]
   syncV1Contributions      SyncV1Contribution[]
+  collectiveReleases       CollectiveRelease[]
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -912,12 +920,13 @@ model SyncV1Contribution {
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
-  tenant   Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  member   Member                   @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
-  campaign AgriculturalCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  product  Product                  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  journals SyncV1OperationJournal[]
-  disputes SyncV1Dispute[]
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member       Member                   @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  campaign     AgriculturalCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  product      Product                  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  journals     SyncV1OperationJournal[]
+  disputes     SyncV1Dispute[]
+  releaseItems CollectiveReleaseItem[]
 
   @@unique([tenantId, memberId, projectionType, campaignId, productId, baseUnit])
   @@index([tenantId, projectionType, campaignId, productId, status])
@@ -964,4 +973,70 @@ model DemandForecast {
   product Product @relation(fields: [productId], references: [id])
 
   @@index([tenantId, productId, generatedAt])
+}
+
+/// F07-REC-01 (#108) y F06 #21: asociación explícita de una denominación del
+/// catálogo central con su producto canónico, confirmada por la Directiva (o
+/// por el ADMINISTRADOR del tenant, RU-18). El historial es inmutable:
+/// corregir cierra la vigente (`validTo`) y abre otra; nunca se borra ni se
+/// renombra el producto. Sin asociación vigente, el producto es su propio
+/// canónico. Una sola vigente por producto (índice único parcial en la
+/// migración); nunca entre dimensiones distintas (L/KG).
+model ProductCanonicalAssociation {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String
+  productId          String
+  canonicalProductId String
+  validFrom          DateTime  @default(now())
+  validTo            DateTime?
+  actorUserId        String
+  reason             String    @db.VarChar(280)
+  closedByUserId     String?
+  closeReason        String?   @db.VarChar(280)
+
+  tenant           Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  product          Product @relation("ProductAssociationDenomination", fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product @relation("ProductAssociationCanonical", fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor            User    @relation("ProductAssociationActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  closedBy         User?   @relation("ProductAssociationCloser", fields: [closedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([tenantId, productId, validTo])
+  @@index([tenantId, canonicalProductId, validTo])
+}
+
+/// F06 #21 con la política provisional F07-POL-01 (#107): última divulgación
+/// de una celda (campaña × producto canónico × tipo × unidad base) y las
+/// contribuciones que la componen. Sólo se escribe en modo de divulgación
+/// provisional; no guarda cantidades por agricultor.
+model CollectiveRelease {
+  id                 String               @id @default(uuid()) @db.Uuid
+  tenantId           String
+  campaignId         String
+  canonicalProductId String
+  projectionType     SyncV1ProjectionType
+  baseUnit           SyncV1BaseUnit
+  totalBase          BigInt
+  contributorCount   Int
+  dataAsOf           DateTime?
+  releasedAt         DateTime             @default(now())
+  withdrawnAt        DateTime?
+
+  tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign         AgriculturalCampaign    @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product                 @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  items            CollectiveReleaseItem[]
+
+  @@index([tenantId, campaignId, canonicalProductId, projectionType, baseUnit, releasedAt])
+}
+
+/// Contribución incluida en una divulgación y la secuencia que tenía entonces.
+model CollectiveReleaseItem {
+  releaseId      String @db.Uuid
+  contributionId String @db.Uuid
+  sequence       Int
+
+  release      CollectiveRelease  @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  contribution SyncV1Contribution @relation(fields: [contributionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([releaseId, contributionId])
 }

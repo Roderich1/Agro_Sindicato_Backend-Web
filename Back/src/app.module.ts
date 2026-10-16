@@ -7,6 +7,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { ApplicationsModule } from './modules/applications/applications.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { CollectiveModule } from './modules/collective/collective.module';
 import { IamModule } from './modules/iam/iam.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { PlotsModule } from './modules/plots/plots.module';
@@ -39,6 +40,7 @@ import { HealthController } from './bootstrap/health.controller';
     ReportsModule,
     SyncModule,
     SyncV1Module,
+    CollectiveModule,
     UsersModule
   ],
   controllers: [HealthController],
