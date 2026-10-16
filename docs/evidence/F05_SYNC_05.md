@@ -10,8 +10,8 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz), en el entorno de desa
 | --- | --- |
 | Base | `main` `d3911cea7c5a68decbb0ea0e970129efd553c38c` |
 | Rama | `feat/f05-sync-v1-push` |
-| Commits | `0ed30b6318de423d6a2f63df787d2f7a7261ca57` (implementación); `6e2aff49fec105596ca943e82e65a44f37cdabf9` (revalidación al decidir, C40); `0c5167c958c7f69b321a70e77060d82341b758b9` (DEPENDENCY_PENDING, C28; C22 completo); `7ee0ec143f9e5ede4e8d1f40264a40e85cf105fd` (caída de Central antes del commit y reinicio después); `6a86c57c948e2f07422dd56abddaf2cc487cfd83` (C24 con el refresh V2 real); `74bc47378cd310787654199d432c3e2392f8ec92` (referencias sin escrituras ni logs); `a8e1cd7bb87c8a88ee55a51d5d36a0c0f7c4cb0a` (429 en las consultas); `720d1af0977ca7f74c8b9c585ff19abfb2b9bb52` (LF del snapshot); `db870043f072cb42bf3a5d7c1d83cdc196c0ae40` (forma cerrada de las referencias en el check OpenAPI) |
-| Código final verificado | `db87004`: el commit de evidencia que sigue sólo añade estos documentos |
+| Commits | `0ed30b6318de423d6a2f63df787d2f7a7261ca57` (implementación); `6e2aff49fec105596ca943e82e65a44f37cdabf9` (revalidación al decidir, C40); `0c5167c958c7f69b321a70e77060d82341b758b9` (DEPENDENCY_PENDING, C28; C22 completo); `7ee0ec143f9e5ede4e8d1f40264a40e85cf105fd` (caída de Central antes del commit y reinicio después); `6a86c57c948e2f07422dd56abddaf2cc487cfd83` (C24 con el refresh V2 real); `74bc47378cd310787654199d432c3e2392f8ec92` (referencias sin escrituras ni logs); `a8e1cd7bb87c8a88ee55a51d5d36a0c0f7c4cb0a` (429 en las consultas); `720d1af0977ca7f74c8b9c585ff19abfb2b9bb52` (LF del snapshot); `db870043f072cb42bf3a5d7c1d83cdc196c0ae40` (forma cerrada de las referencias en el check OpenAPI); `c2acbd4cc6b51befec92dc6f5f9ad9ed059d8357` (SonarCloud S2068 y `test-support` fuera de `dist`, §3.1) |
+| Código final verificado | `c2acbd4`. Antes `db87004`; entre ambos sólo hay el commit de evidencia `cbc74e3` |
 | Entorno | Windows 11 Home 10.0.26200; Node 25.9.0 local (el CI usa Node 22); PostgreSQL `postgres:16-alpine` desechable en `127.0.0.1:55433`, una base nueva por suite |
 | Datos | Sintéticos. Ningún token, contraseña o clave se imprimió ni se guardó |
 
@@ -64,7 +64,12 @@ No se modifican filas ni migraciones existentes. Las rutas y tablas legacy sigue
 | **`db87004` (final)** | `npm run build`; eslint `sync-v1`; `npm test -- --runInBand` | OK; sin problemas; 29 suites / **172** pasan, 118 omitidas por diseño |
 | **`db87004` (final)** | `npm run openapi:check` (con variables sintéticas como en CI) | sin deriva; aserciones F02 y F05 pasan |
 | **`db87004` (final)** | `sync-v1-journal` / `sync-v1-adversarial` / `sync-v1-references` | **30/30, 41/41, 7/7** |
-| **`db87004` (final)** | `auth-v2` / `current-auth-context` / `f02-final-integration` (base nueva migrada, eliminada al terminar) | **12/12, 25/25, 3/3** |
+| `db87004` | `auth-v2` / `current-auth-context` / `f02-final-integration` (base nueva migrada, eliminada al terminar) | **12/12, 25/25, 3/3** |
+| **`c2acbd4` (final)** | `npm run build` (limpio, sin `tsconfig.build.tsbuildinfo`); `find dist -path '*test-support*'`; `grep -rl nestjs/testing dist` | OK; **0** archivos de `test-support` y **0** referencias a `@nestjs/testing` en `dist` (antes, `tsc -p tsconfig.build.json --listFilesOnly` listaba `sync-v1-test-app.ts`) |
+| **`c2acbd4` (final)** | eslint `sync-v1`; `tsc --noEmit -p tsconfig.json`; `npm test -- --runInBand` | sin problemas; sin errores; 29 suites / **172** pasan, 118 omitidas por diseño |
+| **`c2acbd4` (final)** | `sync-v1-journal` / `sync-v1-adversarial` / `sync-v1-references` | **30/30, 41/41, 7/7** |
+| **`c2acbd4` (final)** | `npm run openapi:check` y `npx prisma validate` (variables sintéticas como en CI) | sin deriva; aserciones F02 y F05 pasan; válido |
+| **`c2acbd4` (final)** | CI `verify` (run 38832426237) y SonarCloud | **success**; Quality Gate **OK** (§3.1) |
 
 **Fallos observados durante el trabajo (conservados):**
 - La especificación del journal fijaba 5 migraciones y la nueva hizo 6. Ahora exige 6, con la del journal en su posición y la de contribución al final.
@@ -73,6 +78,29 @@ No se modifican filas ni migraciones existentes. Las rutas y tablas legacy sigue
 - **Defecto propio encontrado al redactar la matriz (corregido en `0c5167c`).** Un sucesor que tomaba el bloqueo de la contribución mientras su antecesor seguía reservado sin confirmar no lo veía (READ COMMITTED). Recibía un `INVALID_PREDECESSOR` terminal y persistido, aunque el antecesor se aceptara justo después. Ahora da `DEPENDENCY_PENDING` sin persistir; lo prueba C28 de forma determinista.
 - La prueba C22 se llamaba «Member, account or tenant inactive», pero no cubría el tenant ni la sesión revocada. Ahora cubre los dos, en POST y GET (`0c5167c`).
 - La primera versión de la prueba de caída fallaba: `pg_terminate_backend(bigint)` no existe, y se corrigió con un cast a `int`. Las suites F02 ejecutadas contra la base `postgres` sin migrar fallaron 12/25/3 porque faltaban las tablas. Con una base migrada, como en CI, pasan. `openapi:check` sin `DATABASE_URL` ni secretos JWT salió con código 1 sin mensaje; con esas variables, como en CI, pasa.
+
+### 3.1 SonarCloud en el PR #109 (2026-10-15)
+
+Sobre `cbc74e3`, `verify` pasaba, pero SonarCloud daba **Quality Gate failed**: `new_security_rating` = 3 (C), con A exigido. Las demás condiciones estaban en A, sin duplicación y con todos los hotspots revisados.
+
+Consulta de la API pública (`api/qualitygates/project_status`, `api/issues/search` y `api/hotspots/search` con `pullRequest=109`):
+- **Único hallazgo de seguridad:** `typescript:S2068` (MAJOR, VULNERABILITY), «Review this potentially hard-coded password», en `Back/src/modules/sync-v1/test-support/sync-v1-test-app.ts:136` (`passwordHash: "synthetic-unused-hash"`).
+- **Hotspots:** 0.
+- **Resto:** 16 code smells, que no afectan al gate (mantenibilidad en A).
+
+**Análisis.** El valor no era una credencial utilizable: no es un hash bcrypt, así que ninguna contraseña coincide. Pero el hallazgo apuntaba a un defecto real: `tsconfig.build.json` sólo excluía `**/*spec.ts`. Por eso `test-support/` entraba en `dist`, el artefacto que se sirve, con un `JWT_SECRET` fijo de pruebas y una importación de `@nestjs/testing`. Ninguna ruta lo usaba, pero no debía estar ahí.
+
+**Corrección (`c2acbd4`).** No se cambiaron umbrales ni reglas, ni se suprimió nada.
+- `tsconfig.build.json` excluye `src/**/test-support/**`.
+- Las claves JWT de prueba y los hash de contraseña sintéticos se generan al azar por proceso (`randomBytes`); ninguno queda escrito en el código. También es aleatoria la contraseña del e2e de referencias.
+- C35 firma su token V1 con la misma clave aleatoria. Así sigue probando el rechazo del token V1 y no un fallo de firma. **Comprobado:** con una clave distinta, C35 falla (recibe otro estado en lugar del 403); el archivo se restauró byte a byte.
+
+**Resultado sobre `c2acbd4`.**
+- CI `verify` success (run 38832426237).
+- SonarCloud Quality Gate **OK**: seguridad, fiabilidad y mantenibilidad en A, duplicación 0,0 y hotspots revisados al 100 %.
+- S2068 queda `CLOSED/FIXED` y no hay ningún hallazgo de seguridad abierto.
+
+Este Backend (`c2acbd4`) es el que se expuso por HTTPS en la sesión física del 2026-10-15 (`docs/evidence/F05_SYNC_06.md` §4).
 
 ### Mutaciones
 

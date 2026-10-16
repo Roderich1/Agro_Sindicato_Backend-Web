@@ -26,17 +26,17 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GA
   - que no aparezca la cantidad centinela.
 
   Cada error pasa por `expectError`, que comprueba el cuerpo cerrado de 4 claves.
-- **Mobile** cubre las columnas «Acción Mobile» y «Retry». Dependen del outbox y del worker (Mobile [#29](https://github.com/Roderich1/AppMovilAgroquimico/issues/29)–[#31](https://github.com/Roderich1/AppMovilAgroquimico/issues/31)), que no existen todavía. Quedan **NOT_MEASURED** en todas las filas, no NOT_APPLICABLE.
+- **Mobile** cubre las columnas «Acción Mobile» y «Retry». Dependen del outbox y del worker (Mobile [#29](https://github.com/Roderich1/AppMovilAgroquimico/issues/29)–[#31](https://github.com/Roderich1/AppMovilAgroquimico/issues/31), PR MOB #80). Sólo cuenta una ejecución en dispositivo contra este Backend; las pruebas de host de Mobile no la sustituyen. El 2026-10-15 se midieron en el POCO **C01–C04** (§4). Las demás filas siguen **NOT_MEASURED**, no NOT_APPLICABLE.
 - Resultado: PASS, FAIL, NOT_MEASURED o NOT_APPLICABLE, con la justificación en la última columna.
 
 ## 3. Resultados por caso
 
 | Caso | Prueba | Central | Mobile | Justificación |
 | --- | --- | --- | --- | --- |
-| C01 PUBLISH nominal | A «C01 nominal PUBLISH» | PASS | NOT_MEASURED | APPLIED/OK. Una contribución ACTIVE con la cantidad. Journal FINAL |
-| C02 ACK perdido, replay idéntico | A «C02 … ×3» | PASS | NOT_MEASURED | Tres reenvíos dan ALREADY_APPLIED con la hora original; un solo journal y una sola transición |
-| C03 request perdido antes de Central | A «C03» | PASS | NOT_MEASURED | Antes del envío no hay journal; el único envío posterior es el único efecto. NO_ACK/OUTCOME_UNKNOWN es estado local de Mobile |
-| C04 commit durable y conexión caída | A «C04»; A «Central crash … restart after it» | PASS | NOT_MEASURED | El caso de uso se ejecuta y la respuesta se descarta; el reenvío da ALREADY_APPLIED con la misma hora. Además, tras cerrar y volver a levantar la aplicación sobre la misma base, el reenvío da ALREADY_APPLIED con la hora original |
+| C01 PUBLISH nominal | A «C01 nominal PUBLISH»; dispositivo §4 | PASS | PASS (dispositivo) | APPLIED/OK. Una contribución ACTIVE con la cantidad. Journal FINAL |
+| C02 ACK perdido, replay idéntico | A «C02 … ×3»; dispositivo §4 | PASS | PASS (dispositivo) | Tres reenvíos dan ALREADY_APPLIED con la hora original; un solo journal y una sola transición |
+| C03 request perdido antes de Central | A «C03»; dispositivo §4 | PASS | PASS (dispositivo) | Antes del envío no hay journal; el único envío posterior es el único efecto. NO_ACK/OUTCOME_UNKNOWN es estado local de Mobile |
+| C04 commit durable y conexión caída | A «C04»; A «Central crash … restart after it»; dispositivo §4 | PASS | PASS (dispositivo) | El caso de uso se ejecuta y la respuesta se descarta; el reenvío da ALREADY_APPLIED con la misma hora. Además, tras cerrar y volver a levantar la aplicación sobre la misma base, el reenvío da ALREADY_APPLIED con la hora original |
 | C05 500 antes del commit | A «C05»; A «Central crash before the commit …» | PASS | NOT_MEASURED | Fallo inyectado en `finalize`: 500 TEMPORARILY_UNAVAILABLE / KEEP_FOR_RETRY, sin journal ni transición. Caída real: se termina la sesión PostgreSQL del push en curso (`pg_terminate_backend`) y el cliente recibe 500, sin journal ni contribución. En los dos, el reintento es el único efecto |
 | C06 500 con commit desconocido | A «C06» | PASS | NOT_MEASURED | El commit ocurre y la respuesta falla con 500. El reintento con el mismo ID da ALREADY_APPLIED con la hora confirmada |
 | C07 claves reordenadas | A «C07» | PASS | NOT_MEASURED | Claves reordenadas y espacios distintos dan la misma huella: ALREADY_APPLIED |
@@ -74,9 +74,25 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GA
 | C39 resultado final tras un cambio de catálogo | A «C17/C18/C39» | PASS | NOT_MEASURED | Al reabrir la campaña, el replay del rechazo devuelve el mismo REJECTED/CAMPAIGN_NOT_OPEN, sin reevaluar |
 | C40 revocación antes de la aceptación durable | A «C40 revocation committed after the guard …»; A «C22/C40 …» | PASS (desde `6e2aff4`) | NOT_MEASURED | La revocación se confirma después del guard y antes de la decisión: 403, sin journal ni contribución. La decisión revalida con `FOR SHARE` dentro de su transacción |
 
-**Resumen.** Central: 40 de 40 casos con evidencia PASS (C30, C35 y C38 sólo en su parte Central). Mobile: 40 de 40 casos NOT_MEASURED. Ningún FAIL abierto.
+**Resumen.** Central: 40 de 40 casos con evidencia PASS (C30, C35 y C38 sólo en su parte Central). Mobile: C01–C04 PASS en dispositivo (§4) y 36 de 40 NOT_MEASURED. Ningún FAIL abierto.
 
-## 4. Cobertura mínima de #18
+## 4. Sesión física del 2026-10-15 (columna Mobile)
+
+Ejecutada con Claude Code entre las 21:07 y las 22:25 (America/La_Paz) en un POCO X5 Pro 5G (22101320G, Android 12, API 31). Se usó una app aislada `com.comunidad.agro.agroquimicos.f03res01` contra este Backend en `c2acbd4cc6b51befec92dc6f5f9ad9ed059d8357`, expuesto por un túnel HTTPS temporal ya cerrado. La base PostgreSQL era desechable, con migraciones `prisma migrate deploy` y datos sintéticos. La admisión `SYNC_V1_PRODUCTION_ADMISSION=enabled` se abrió **sólo** en ese entorno. Detalle, capturas y SHA-256: [F05_MOBILE_SYNC_DEVICE](https://github.com/Roderich1/AppMovilAgroquimico/blob/feat/f05-outbox-sync-v1/docs/evidence/F05_MOBILE_SYNC_DEVICE.md).
+
+Fallo controlado: un proxy local entre el túnel y la API registra sólo método, ruta y estado.
+- `drop-push-response`: Central confirma y la respuesta no se entrega.
+- `hold-push-request`: la petición no llega a Central y se fuerza el cierre de la app mientras espera.
+
+| Caso | Mobile | Observado (teléfono y Central) |
+| --- | --- | --- |
+| C01 | `023a47b`, `5027a35` | PUBLISH `4f3ad1e2` declarado sin red y enviado al volver la red: ACKED, con `serverAcceptedAt` guardado. En Central, APPLIED, secuencia 1 y contribución ACTIVE con 12500 ML. Después, PUBLISH `964419b0` tras un CANCEL: APPLIED, secuencia 6. Un journal por operación |
+| C02 / C04 | `023a47b` | SUPERSEDE `75f4cb2b`: Central lo confirmó (APPLIED, secuencia 2, head 20000 ML) y la respuesta no llegó. El teléfono quedó en OUTCOME_UNKNOWN/TIMEOUT. El reenvío con el mismo ID registró en la API `outcome=ALREADY_APPLIED code=OK`, y el teléfono pasó a ACKED con la hora del commit original (02:01:14.271Z). En Central, 1 fila de journal para ese ID, secuencia sin cambio y cantidad sin sumar |
+| C03 | `023a47b`, `5027a35` | Sin red, dos intentos NETWORK de `4f3ad1e2` y uno de `714ed3fa` no llegaron a Central. Con `hold-push-request` y el cierre forzado, `868593c0` quedó en SENDING en SQLite, sin journal en Central. Al reabrir pasó a OUTCOME_UNKNOWN y no salió nada hasta verificar el acceso. Cada uno, al reenviarse con el mismo ID, dio APPLIED una sola vez |
+
+Conciliación final: 8 operaciones en la outbox del teléfono, las mismas 8 en el journal de Central y con los mismos antecesores, 8 filas para 8 IDs distintos y una contribución. No se midieron en el dispositivo: 401/403 en push (C22–C24), forks y resolución (C11, C13–C15), ACK inválido (C30), restore (C35) ni relogin (C38).
+
+## 5. Cobertura mínima de #18
 
 | Aspecto | Evidencia |
 | --- | --- |
@@ -91,16 +107,16 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GA
 | Reinicio y recuperación del servidor | C05 y C04 con caída real: sesión PostgreSQL terminada antes del commit y aplicación reiniciada después |
 | Privacidad y logs | A «privacy and individual domain»: los logs no contienen la cantidad centinela, nombres de campos del payload ni el token. C26 no registra el valor rechazado |
 | Separación de sync y backup; dominio individual | Sync no crea compras, lotes, movimientos, deudas, pagos, aplicaciones, filas del sync legacy ni auditoría legacy (todas las cuentas en 0). C26 rechaza un campo `backup`. Las transiciones aceptadas coinciden con los journals APPLIED |
-| Crash de Mobile entre el ACK y la retirada | NOT_MEASURED (Mobile #30/#31) |
+| Crash de Mobile entre el ACK y la retirada | NOT_MEASURED (Mobile #30/#31). En dispositivo sólo se midió el cierre forzado **antes** de llegar a Central (C03, §4) |
 
-## 5. Lo que esta ejecución no prueba
+## 6. Lo que esta ejecución no prueba
 
-- Ninguna acción de Mobile: outbox, worker, backoff con jitter, manejo de un ACK inválido, pausa por auth, restore y relogin (#29–#31).
+- Acciones de Mobile fuera de C01–C04: backoff con jitter medido, manejo de un ACK inválido, pausa por auth, restore y relogin (#29–#31).
 - La rotación real de la clave de huella en un despliegue. La verificación con claves anteriores está cubierta en las pruebas de dominio, no en un entorno desplegado.
 - El rendimiento bajo carga, más allá de la concurrencia puntual de C09, C11 y C28.
-- Producción: la admisión sigue cerrada (C36) y no hay purga.
+- Producción: la admisión sigue cerrada (C36) y no hay purga. La sesión física de §4 la abrió sólo en un entorno desechable.
 
-## 6. Revisiones
+## 7. Revisiones
 
 - Ejecución automatizada: Claude Code, 2026-10-15 (arriba). El CI del PR ejecuta A y R en cada push.
 - Revisión de Roderich Rendón: pendiente.
