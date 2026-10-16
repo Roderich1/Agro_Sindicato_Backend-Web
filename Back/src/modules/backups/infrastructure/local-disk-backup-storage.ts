@@ -127,7 +127,15 @@ export class LocalDiskBackupStorage implements BackupStorage, BackupStorageInven
     ] as const) {
       for (const entry of await readdir(directory, { withFileTypes: true })) {
         if (!entry.isFile()) continue;
-        const info = await stat(join(directory, entry.name));
+        let info;
+        try {
+          info = await stat(join(directory, entry.name));
+        } catch (error) {
+          // Desapareció entre readdir y stat (p. ej. un parcial de una subida
+          // que terminó): ya no forma parte del inventario.
+          if ((error as { code?: string }).code === "ENOENT") continue;
+          throw error;
+        }
         found.push({
           area,
           name: entry.name,

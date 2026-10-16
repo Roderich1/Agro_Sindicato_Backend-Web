@@ -10,7 +10,8 @@ import { LocalDiskBackupStorage } from "../infrastructure/local-disk-backup-stor
 
 /**
  * F10 (#40): inventario del almacenamiento privado de respaldos, para el
- * operador. Lee `DATABASE_URL` y `BACKUP_STORAGE_DIR` del entorno.
+ * operador. Lee `DATABASE_URL` y `BACKUP_STORAGE_DIR` del entorno. Se ejecuta
+ * desde `dist/`: requiere `npm run build` antes.
  *
  *   npm run backups:inventory
  *       Inventario. No modifica nada.

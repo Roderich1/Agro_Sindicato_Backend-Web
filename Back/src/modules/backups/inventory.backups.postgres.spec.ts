@@ -223,6 +223,43 @@ describePostgres("F10 backup inventory and leftover cleanup on PostgreSQL and di
     expect(await files()).toEqual(left);
   });
 
+  it("a candidate whose metadata row changes before removal is kept (row re-checked)", async () => {
+    // Un objeto sin fila, antiguo: candidato. Entre el plan y el borrado
+    // aparece su fila (UPLOADING): deja de ser un resto y no se toca.
+    const key = randomUUID();
+    await file(object(key), 16, old);
+    let calls = 0;
+    const racing = Object.create(storage) as LocalDiskBackupStorage;
+    racing.list = async () => {
+      calls += 1;
+      if (calls === 2)
+        await prisma.backupMetadata.create({
+          data: {
+            id: randomUUID(),
+            tenantId: f.tenantA,
+            memberId: f.members.farmerA,
+            status: "UPLOADING",
+            storageKey: key,
+            contentType: "application/vnd.agrocuentas.backup+zip",
+            formatVersion: 1,
+            schemaVersion: 9,
+            sha256: "0".repeat(64),
+          },
+        });
+      return storage.list();
+    };
+    const report = await cleanupBackupLeftovers(prisma, racing, {
+      olderThanMinutes: 60,
+      apply: true,
+      now,
+    });
+    expect(report.planned.unreferencedObject.count).toBe(1);
+    expect(report.removed.unreferencedObject.count).toBe(0);
+    // El que cambió y el reciente del principio (orphanYoung).
+    expect(report.kept.unreferencedObject.count).toBe(2);
+    expect((await files()).objects).toContain(key);
+  });
+
   it("the CLI prints only counts, flags AVAILABLE anomalies with exit 3 and validates arguments", async () => {
     const previous = { db: process.env["DATABASE_URL"], dir: process.env["BACKUP_STORAGE_DIR"] };
     process.env["DATABASE_URL"] = databaseUrl;

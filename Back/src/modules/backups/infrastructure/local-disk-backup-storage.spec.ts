@@ -137,6 +137,7 @@ describe("LocalDiskBackupStorage", () => {
       await expect(storage.removeStagedFile(bad)).rejects.toThrow("Not a backup staging file");
     await storage.removeStagedFile(part);
     await storage.removeStagedFile(part);
+    expect((await storage.list()).filter((f) => f.area === "staging")).toEqual([]);
     expect(await readdir(join(root, "staging"))).toEqual([]);
     expect((await readdir(join(root, "objects"))).sort()).toEqual([key, "notas.txt"].sort());
   });
