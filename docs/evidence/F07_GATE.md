@@ -36,7 +36,7 @@
 
 - **No** se implementó el párrafo que permitía incluir en la propuesta cantidades bajo el umbral. La propuesta, su detalle, su historial y su CSV siguen la misma política que el resumen; una línea suprimida sólo lleva estado y motivo.
 - **No** se creó `GET /collective/members-status` ni ningún listado de quién aportó: la cobertura es sólo agregada (#25 queda parcial).
-- Las celdas suprimidas no muestran el conteo exacto de aportantes (decisión del 2026-10-16 registrada en la continuación de tres sesiones).
+- Las celdas suprimidas no muestran el conteo exacto de aportantes. Es la decisión técnica delegada del 2026-10-16 «Celda suprimida: sin cantidad ni conteo exacto, con un motivo comprensible, nunca como cero», registrada en [F07_POL_01.md](F07_POL_01.md) («Decisiones técnicas delegadas (2026-10-16)») y en [F07_AGGREGATE_DISCLOSURE_POLICY.md](../architecture/F07_AGGREGATE_DISCLOSURE_POLICY.md) §7. No es una inspección personal de Roderich ni una revisión del tutor.
 
 ## Discrepancias que decide Roderich
 

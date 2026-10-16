@@ -58,7 +58,7 @@ No hay recomendaciones automáticas ni compras ejecutadas. Generar un borrador n
   - `render()` comprobaba sólo `release.withdrawnAt`.
   - El resumen sólo retira la **última** divulgación de una celda. Una divulgación anterior (R1), sustituida por R2, conserva `withdrawnAt = null` para siempre.
   - Con P1 sobre R1, k cambios que publican R2 y una cancelación que retira R2, P1 seguía sirviendo la cifra de R1 en JSON y CSV.
-  - Lo encontró la sesión A al revisar #116 (`PARALELO_CONTROL.md`, «REVISIÓN_A_B»).
+  - Lo encontró la revisión técnica de la sesión A del 2026-10-16 (no versionada); el hallazgo y su corrección se describen en esta sección.
 - **Corrección (`6db54b5`).** La línea sirve la cifra sólo si la decisión actual del resumen muestra esa misma `releaseId`; si no, sale `WITHDRAWN` o `SUPERSEDED`, sin cifra y con la huella oculta.
 - **Regresión completa, decidida por Roderich.** Va por la API real en PostgreSQL y recorre dos caminos:
   - retirada de la última divulgación;
@@ -220,7 +220,8 @@ La captura 09 muestra el panel legacy del agricultor. Esas pantallas siguen exis
   - run 38937972190 «Web F07 verification»: **failure**. El job `web` pasó. En `f07-proposal-postgres`, la prueba de roles falló con `ECONNRESET` porque lanzaba 21 peticiones supertest en paralelo.
 - **Corrección `f18c4a0`:** las mismas peticiones, en serie. Sin cambios de producto. En local, 11/11.
 - **HEAD `f18c4a0`:** run 38938428604 «Backend F02 verification» **success**; run 38938428597 «Web F07 verification» **success** (jobs `web` y `f07-proposal-postgres`). En ese commit seguía presente el defecto descrito en §2.
-- **Commit de código final `dee81dc`:** run 38943005476 «Backend F02 verification» **success**; run 38943005472 «Web F07 verification» **success**. Los commits posteriores son sólo documentos y no disparan los workflows por sus filtros de ruta.
+- **Commit de código final `dee81dc`:** run 38943005476 «Backend F02 verification» **success**; run 38943005472 «Web F07 verification» **success**. Los commits posteriores sólo cambian `docs/evidence/`.
+- **HEAD `49b834d` (sólo documentos):** los workflows **sí** se ejecutaron, porque el filtro de `pull_request` evalúa el diff completo del PR, no el último commit. Run 38943817004 «Backend F02 verification» **success**; run 38943817034 «Web F07 verification» **success**; SonarCloud Code Analysis **pass**.
 
 ## 4. Límites y pendientes
 
@@ -236,3 +237,4 @@ La captura 09 muestra el panel legacy del agricultor. Esas pantallas siguen exis
   - no hay eventos de `audit-logs` legacy: el historial de asociaciones es la auditoría de este flujo.
 - **Pruebas de UI:** son focalizadas, con HTTP simulado (vitest + Testing Library + jsdom). No hay pruebas E2E en CI. El recorrido real se automatizó con Edge sin interfaz y no lo revisó una persona.
 - **Bitácora heredada:** queda fuera del menú institucional porque guarda snapshots `before`/`after` (#45).
+- **Cobertura de un borrador:** el detalle y el CSV muestran la cobertura (`linked_members`, `members_with_contribution`) guardada **en la fecha de generación**. Es un dato agregado de la campaña en ese momento, no la cobertura actual, y no es una cifra por producto. Sigue visible aunque alguna línea pase a `WITHDRAWN` o `SUPERSEDED`. Bajo `POLICY_PENDING` no se muestra.
