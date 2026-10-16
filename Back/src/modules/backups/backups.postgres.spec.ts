@@ -471,6 +471,21 @@ describePostgres("F08 private backups on PostgreSQL and disk", () => {
     );
   });
 
+  it("an ambiguous AVAILABLE update that did commit keeps the copy and its bytes", async () => {
+    const { bytes } = payload();
+    const original = prisma.backupMetadata.updateMany.bind(prisma.backupMetadata);
+    jest.spyOn(prisma.backupMetadata, "updateMany").mockImplementationOnce((async (args: unknown) => {
+      await original(args as never);
+      throw new Error("connection lost after commit (simulated)");
+    }) as never);
+    const response = await upload(farmerA, bytes);
+    expect(response.status).toBe(201);
+    const row = await prisma.backupMetadata.findUniqueOrThrow({ where: { id: response.body.id } });
+    expect(row.status).toBe("AVAILABLE");
+    expect((await files()).objects).toContain(row.storageKey);
+    expect(Buffer.compare((await download(farmerA, row.id)).body, bytes)).toBe(0);
+  });
+
   /** Raw bytes over a real socket (superagent would re-encode a Buffer). */
   function rawPost(
     headers: Record<string, string>,

@@ -19,14 +19,15 @@ async function bootstrap() {
   configureSyncV1BodyParser(app);
   app.use(helmet());
   app.use(cookieParser());
-  // F08: the backup body is a stream; no shared parser may read or echo it.
-  // Still before Nest's own parsers, which are registered on init.
-  configureBackupsBodyGuard(app);
   app.useGlobalFilters(new HttpExceptionLoggingFilter());
   app.enableCors({
     origin: config.get<string>("CORS_ORIGIN")?.split(",") ?? true,
     credentials: true,
   });
+  // F08: the backup body is a stream; no shared parser may read or echo it.
+  // After helmet and CORS (its 415 carries their headers) and still before
+  // Nest's own parsers, which are registered on init.
+  configureBackupsBodyGuard(app);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

@@ -175,7 +175,19 @@ export class BackupsService {
         data: { status: "AVAILABLE", sizeBytes: BigInt(meter.bytes), completedAt: new Date() },
       });
     } catch (error) {
-      // The copy never became AVAILABLE: its bytes must not stay behind.
+      // An ambiguous failure may still have committed: read the row again
+      // before removing anything, so an AVAILABLE copy never loses its bytes.
+      const current = await this.prisma.backupMetadata
+        .findUnique({ where: { id: row.id }, select: { status: true } })
+        .catch(() => null);
+      if (current?.status === "AVAILABLE") {
+        return toView(await this.prisma.backupMetadata.findUniqueOrThrow({ where: { id: row.id } }));
+      }
+      if (current === null) {
+        // State unknown: keep the bytes (an orphan at worst, never a
+        // listed copy without content) and report the failure.
+        throw error;
+      }
       await storage.remove(row.storageKey).catch(() => undefined);
       await this.fail(row.id, "METADATA_UPDATE_FAILED");
       throw error;
