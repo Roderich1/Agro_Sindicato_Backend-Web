@@ -1,0 +1,126 @@
+{
+  "phase": "provisional",
+  "date": "2026-10-16T17:06:40.670Z",
+  "checks": [
+    {
+      "name": "Directiva aterriza en /colectivo/resumen",
+      "ok": true,
+      "detail": "http://localhost:5174/colectivo/resumen"
+    },
+    {
+      "name": "Menú congelado de Directiva",
+      "ok": true,
+      "detail": "Resumen colectivo | Necesidades y propuesta | Cobertura | Reconciliación | Campanas"
+    },
+    {
+      "name": "RAW Urea necesidad = 25 KG / 3 (incluye un cero explícito)",
+      "ok": true,
+      "detail": "Urea F06(KG) | Publicado | 25 KG | 3 | 16 oct de 2026, 1:06 p. m."
+    },
+    {
+      "name": "RAW Belator suprimida, sin cifra (7000 ML ocultos)",
+      "ok": true,
+      "detail": "Belator(L) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "name": "RAW Bellator suprimida, sin cifra (4000 ML ocultos)",
+      "ok": true,
+      "detail": "Bellator(L) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "name": "RAW consumo Glifosato = 8,25 L / 3",
+      "ok": true,
+      "detail": "Glifosato F06(L) | Publicado | 8,25 L | 3 | 16 oct de 2026, 1:05 p. m."
+    },
+    {
+      "name": "Cobertura 3 de 4 (ausencia ≠ cero)",
+      "ok": true,
+      "detail": "Cobertura · Campaña Verano 2026 (sintética)3 de 4 agricultores vinculados aportaron datosAusencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron."
+    },
+    {
+      "name": "Glifosato necesidad C1 cancelada: ausente",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Propuesta RAW: 3 líneas, sólo Urea con cifra",
+      "ok": true,
+      "detail": "Belator(L) | Oculto | Menos aportantes que el umbral de la política: la cifra no se publica para no revelar aportes individuales. | — | — || Bellator(L) | Oculto | Menos aportantes que el umbral de la política: la cifra no se publica para no revelar aportes individuales. | — | — || Urea F06(KG) | Publicado | 25 KG | 3 | 16 oct de 2026, 1:06 p. m."
+    },
+    {
+      "name": "Regenerar sin cambios: misma huella",
+      "ok": true,
+      "detail": "08e8df9f40bb3d8bf164d25820ff3c50507a58b22a682449426d73576cb4a146 08e8df9f40bb3d8bf164d25820ff3c50507a58b22a682449426d73576cb4a146"
+    },
+    {
+      "name": "Sin marcar la confirmación no se puede asociar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CANONICAL Belator necesidad = 11 L / 3",
+      "ok": true,
+      "detail": "Belator(L) | Publicado | 11 L | 3 | 16 oct de 2026, 1:05 p. m."
+    },
+    {
+      "name": "CANONICAL Belator consumo = 8 L / 3",
+      "ok": true,
+      "detail": "Belator(L) | Publicado | 8 L | 3 | 16 oct de 2026, 1:05 p. m."
+    },
+    {
+      "name": "Bellator ya no es una fila propia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Propuesta regenerada: Belator 11 L",
+      "ok": true,
+      "detail": "Belator(L) | Publicado | 11 L | 3 | 16 oct de 2026, 1:05 p. m."
+    },
+    {
+      "name": "La asociación cambia la huella",
+      "ok": true,
+      "detail": "00cfde5054efff7270e23893701221de894e653496fd1338761aeb181ff14ddb 08e8df9f40bb3d8bf164d25820ff3c50507a58b22a682449426d73576cb4a146 08e8df9f40bb3d8bf164d25820ff3c50507a58b22a682449426d73576cb4a146"
+    },
+    {
+      "name": "CSV descargado del servidor con Belator 11000",
+      "ok": true,
+      "detail": "propuesta-283757c1-b1a7-4277-b290-26ce26d0bb63.csv"
+    },
+    {
+      "name": "Menú de ADMINISTRADOR = Directiva + Usuarios",
+      "ok": true,
+      "detail": "Resumen colectivo | Necesidades y propuesta | Cobertura | Reconciliación | Campanas | Usuarios"
+    },
+    {
+      "name": "AGRICULTOR redirigido fuera de /colectivo",
+      "ok": true,
+      "detail": "http://localhost:5174/dashboard"
+    },
+    {
+      "name": "AGRICULTOR no ve vistas colectivas en el menú",
+      "ok": true,
+      "detail": "Dashboard | Campanas | Parcelas | Inventario | Aplicaciones | Calendario | Reportes | Compras | Sincronización"
+    },
+    {
+      "name": "API /collective/campaigns/39e2597c-6566-4d36-89cd-4f45f865a14a/summary: AGRICULTOR 403, ajeno 404, sin sesión 401",
+      "ok": true,
+      "detail": "403/404/401"
+    },
+    {
+      "name": "API /collective/campaigns/39e2597c-6566-4d36-89cd-4f45f865a14a/summary: ninguna respuesta denegada contiene cifras",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "API /collective/campaigns/39e2597c-6566-4d36-89cd-4f45f865a14a/proposals: AGRICULTOR 403, ajeno 404, sin sesión 401",
+      "ok": true,
+      "detail": "403/404/401"
+    },
+    {
+      "name": "API /collective/campaigns/39e2597c-6566-4d36-89cd-4f45f865a14a/proposals: ninguna respuesta denegada contiene cifras",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
