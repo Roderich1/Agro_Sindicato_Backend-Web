@@ -8,7 +8,11 @@ import {
   assertStorageKey,
   BackupObjectMissingError,
   BackupStorage,
+  BackupStorageInventory,
+  objectKey,
   StagedBackupObject,
+  StoredBackupFile,
+  stagingKey,
 } from "../domain/backup-storage.port";
 
 /**
@@ -20,7 +24,7 @@ import {
  * Files are created with mode 0600 and directories 0700 (where the platform
  * honours POSIX modes). No encryption at rest: declared limitation of F08.
  */
-export class LocalDiskBackupStorage implements BackupStorage {
+export class LocalDiskBackupStorage implements BackupStorage, BackupStorageInventory {
   private readonly objects: string;
   private readonly staging: string;
   private ready?: Promise<void>;
@@ -111,5 +115,33 @@ export class LocalDiskBackupStorage implements BackupStorage {
       if (name.startsWith(`${key}.`) && name.endsWith(".part"))
         await rm(join(this.staging, name), { force: true });
     }
+  }
+
+  /** Every regular file in `objects/` and `staging/` (F10 inventory, #40). */
+  async list(): Promise<StoredBackupFile[]> {
+    await this.ensureDirectories();
+    const found: StoredBackupFile[] = [];
+    for (const [area, directory] of [
+      ["objects", this.objects],
+      ["staging", this.staging],
+    ] as const) {
+      for (const entry of await readdir(directory, { withFileTypes: true })) {
+        if (!entry.isFile()) continue;
+        const info = await stat(join(directory, entry.name));
+        found.push({
+          area,
+          name: entry.name,
+          key: area === "objects" ? objectKey(entry.name) : stagingKey(entry.name),
+          sizeBytes: info.size,
+          modifiedAt: info.mtime,
+        });
+      }
+    }
+    return found;
+  }
+
+  async removeStagedFile(name: string): Promise<void> {
+    if (stagingKey(name) === null) throw new Error("Not a backup staging file");
+    await rm(join(this.staging, name), { force: true });
   }
 }

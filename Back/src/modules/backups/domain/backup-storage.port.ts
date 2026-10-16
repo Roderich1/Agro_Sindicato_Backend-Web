@@ -47,3 +47,37 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 export function assertStorageKey(key: string): void {
   if (!UUID_V4.test(key)) throw new Error("Invalid backup storage key");
 }
+
+/** A file found in the private storage, for the inventory (F10, #40). */
+export interface StoredBackupFile {
+  area: "objects" | "staging";
+  /** File name inside its area; never a path. */
+  name: string;
+  /** Storage key the name belongs to, or null if it does not follow the layout. */
+  key: string | null;
+  sizeBytes: number;
+  modifiedAt: Date;
+}
+
+/**
+ * Optional capability of an adapter: list what it stores and remove leftover
+ * staging files. Used only by the operator inventory (`backups:inventory`),
+ * never by the API.
+ */
+export interface BackupStorageInventory {
+  list(): Promise<StoredBackupFile[]>;
+  /** Removes `staging/<name>` if it is a staging file. Idempotent. */
+  removeStagedFile(name: string): Promise<void>;
+}
+
+const STAGING_NAME = /^([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.[0-9a-f]{16}\.part$/;
+
+/** Storage key of a staging file name, or null if it is not one. */
+export function stagingKey(name: string): string | null {
+  return STAGING_NAME.exec(name)?.[1] ?? null;
+}
+
+/** Storage key of an object file name, or null if it is not one. */
+export function objectKey(name: string): string | null {
+  return UUID_V4.test(name) ? name : null;
+}

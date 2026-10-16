@@ -112,6 +112,34 @@ describe("LocalDiskBackupStorage", () => {
     await staged.commit();
     await expect(staged.commit()).rejects.toThrow("already settled");
   });
+
+  it("F10 inventory: lists objects and staging with their keys; removes only staging files", async () => {
+    const key = randomUUID();
+    const staged = await storage.stage(key, Readable.from([Buffer.from("x".repeat(10))]));
+    const pending = randomUUID();
+    await storage.stage(pending, Readable.from([Buffer.from("yy")]));
+    await staged.commit();
+    await writeFile(join(root, "objects", "notas.txt"), "z");
+
+    const listed = await storage.list();
+    expect(listed.map(({ area, key: k, sizeBytes }) => ({ area, key: k, sizeBytes })).sort(
+      (a, b) => `${a.area}${a.key}`.localeCompare(`${b.area}${b.key}`),
+    )).toEqual(
+      [
+        { area: "objects", key, sizeBytes: 10 },
+        { area: "objects", key: null, sizeBytes: 1 },
+        { area: "staging", key: pending, sizeBytes: 2 },
+      ].sort((a, b) => `${a.area}${a.key}`.localeCompare(`${b.area}${b.key}`)),
+    );
+
+    const part = listed.find((f) => f.area === "staging")!.name;
+    for (const bad of ["notas.txt", "../objects/" + key, key, `${key}.part`])
+      await expect(storage.removeStagedFile(bad)).rejects.toThrow("Not a backup staging file");
+    await storage.removeStagedFile(part);
+    await storage.removeStagedFile(part);
+    expect(await readdir(join(root, "staging"))).toEqual([]);
+    expect((await readdir(join(root, "objects"))).sort()).toEqual([key, "notas.txt"].sort());
+  });
 });
 
 describe("LocalDiskBackupStorage directory creation", () => {
