@@ -140,18 +140,18 @@ export class CollectiveSummaryUseCase {
     const contributions = await this.eligible(tx, tenantId, campaignId);
     const canonicalOf = await this.canonicalMap(tx, tenantId);
     const cells = consolidate(contributions, canonicalOf);
-    const priors = await this.latestReleases(tx, tenantId, campaignId);
+    const histories = await this.releaseHistories(tx, tenantId, campaignId);
     const now = new Date();
     const output: { key: CellKey; decision: CellDecision; cell: Cell | null; prior: PriorRelease | null }[] = [];
     for (const cell of cells) {
-      const prior = priors.get(cellId(cell)) ?? null;
-      output.push({ key: cell, decision: decideCell(cell, prior), cell, prior });
-      priors.delete(cellId(cell));
+      const history = histories.get(cellId(cell))?.history ?? [];
+      output.push({ key: cell, decision: decideCell(cell, history), cell, prior: history[0] ?? null });
+      histories.delete(cellId(cell));
     }
     // Cells whose contributions all left (cancelled, disputed, regrouped,
-    // inactive): the prior figure is withdrawn, not kept.
-    for (const prior of priors.values()) {
-      const key = (prior as PriorRelease & { key: CellKey }).key;
+    // inactive): the latest figure is withdrawn, not kept.
+    for (const { key, history } of histories.values()) {
+      const prior = history[0]!;
       output.push({
         key,
         decision: {
@@ -202,6 +202,7 @@ export class CollectiveSummaryUseCase {
                 create: cell!.contributions.map((contribution) => ({
                   contributionId: contribution.contributionId,
                   sequence: contribution.sequence,
+                  quantityBase: contribution.quantityBase,
                 })),
               },
             },
@@ -295,37 +296,38 @@ export class CollectiveSummaryUseCase {
     return new Map(rows.map((row) => [row.productId, row.canonicalProductId]));
   }
 
-  private async latestReleases(
+  /** Every disclosure of each cell, newest first (withdrawn ones included). */
+  private async releaseHistories(
     tx: Tx,
     tenantId: string,
     campaignId: string,
-  ): Promise<Map<string, PriorRelease & { key: CellKey }>> {
+  ): Promise<Map<string, { key: CellKey; history: PriorRelease[] }>> {
     const releases = await tx.collectiveRelease.findMany({
       where: { tenantId, campaignId },
       orderBy: [{ releasedAt: "desc" }, { id: "desc" }],
       include: { items: { include: { contribution: { select: { memberId: true } } } } },
     });
-    const latest = new Map<string, PriorRelease & { key: CellKey }>();
+    const histories = new Map<string, { key: CellKey; history: PriorRelease[] }>();
     for (const release of releases) {
       const key: CellKey = {
         projectionType: release.projectionType,
         canonicalProductId: release.canonicalProductId,
         baseUnit: release.baseUnit,
       };
-      if (latest.has(cellId(key))) continue;
-      latest.set(cellId(key), {
-        key,
+      const entry = histories.get(cellId(key)) ?? { key, history: [] };
+      histories.set(cellId(key), entry);
+      entry.history.push({
         id: release.id,
         totalBase: release.totalBase,
         contributorCount: release.contributorCount,
         dataAsOf: release.dataAsOf,
         releasedAt: release.releasedAt,
         withdrawnAt: release.withdrawnAt,
-        items: new Map(release.items.map((item) => [item.contributionId, item.sequence])),
+        items: new Map(release.items.map((item) => [item.contributionId, item.quantityBase])),
         memberOf: new Map(release.items.map((item) => [item.contributionId, item.contribution.memberId])),
       });
     }
-    return latest;
+    return histories;
   }
 
   private async productNames(tx: Tx, ids: string[]): Promise<Map<string, string>> {
