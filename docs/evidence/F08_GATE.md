@@ -15,7 +15,7 @@ Esta acta la redactó la sesión de Claude Code el 2026-10-16. Recoge la evidenc
 | 3 | Restauración en un teléfono limpio con los mismos conteos y fotos | **NOT_MEASURED en dispositivo.** Cubierto con pruebas automatizadas sobre base real: teléfono nuevo del mismo Member, comparación de todas las tablas y fotos con las transformaciones esperadas. El E2E en el POCO está preparado (`tool/f08_bkp/`) y pendiente del turno que asigna A. | Mobile `docs/evidence/F08_MOBILE_RESTORE.md` |
 | 4 | Restaurar no publica | Verificado por pruebas: RESTORE_PAUSED antes de liberar la exclusión, ningún push al abrir la app y liberación sólo con el acceso verificado del titular. **Dispositivo pendiente** (paso 2.6–2.7 del procedimiento). | Mobile `F08_MOBILE_RESTORE.md` |
 | 5 | El backup no toca Sync | Verificado: filas completas de Sync v1, colectivas y auditoría idénticas antes y después de todas las operaciones de backup | `F08_BACKUP.md` |
-| 6 | BKP-06 diferido con justificación | **Propuesto, pendiente de decisión.** #40 (retención, purga y reconciliación de huérfanos, prioridad P2) pasaría a F10. Las garantías críticas de restauración —hash, validación, rollback, exclusión y restore + sync sin reenvío— **no se difieren**: están implementadas en Mobile. | Este documento |
+| 6 | BKP-06 diferido con justificación | **Decidido por Roderich (2026-10-16):** #40 se difiere a F10 **únicamente** para retención, purga y reconciliación de huérfanos. **No se difieren** la integridad, el aislamiento, la exclusión de escrituras ni la recuperación segura ante fallos, que están implementados y probados. | [`F08_BACKUP_THREAT_MODEL.md`](../architecture/F08_BACKUP_THREAT_MODEL.md) §6 |
 
 ## Discrepancia con el contrato: DEC-F01-10
 
@@ -33,11 +33,13 @@ Lo que limita el alcance de esta discrepancia:
 - no se declara proveedor ni despliegue;
 - el cifrado en reposo figura como limitación.
 
-**Decisión de Roderich, pendiente:**
-1. aceptar el modelo de amenaza y la decisión de proveedor como requisito previo **a la admisión en producción**, no a la implementación de desarrollo, registrándolo como cambio explícito; o
-2. exigirlos antes de integrar.
+**Resolución, decidida por Roderich el 2026-10-16 (opción 2):** completar la documentación antes de integrar #114. El modelo de amenaza está en [`F08_BACKUP_THREAT_MODEL.md`](../architecture/F08_BACKUP_THREAT_MODEL.md), con fecha real 2026-10-16. Contiene:
+- datos protegidos y límites de confianza;
+- amenazas, cada una con sus controles, las pruebas que los respaldan y el riesgo residual;
+- la decisión de almacenamiento: disco local sólo para desarrollo y pruebas, con el proveedor productivo pendiente;
+- las condiciones para admitir datos reales.
 
-Esta acta no lo decide.
+La discrepancia queda así: **documentación completada después de implementar**. El documento registra la omisión original. DEC-F01-10 no se modifica ni se da por cumplida retroactivamente. La admisión productiva sigue cerrada.
 
 ## Limitaciones que el gate debe considerar
 

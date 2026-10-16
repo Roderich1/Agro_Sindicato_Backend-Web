@@ -14,6 +14,7 @@
 | `9b0a2ba` | Precondición de orden en esa prueba. |
 | `5f8d566` | Primera versión de esta evidencia y del acta. |
 | `15c8cf4` | Correcciones de la revisión de A (B1–B3 y menores), descritas abajo. |
+| Commits posteriores (segunda revisión de A) | La guarda de cuerpo pasa detrás de CORS, así que el 415 lleva sus cabeceras. Si falla la marca AVAILABLE, se relee el estado antes de borrar el objeto: una copia que sí quedó AVAILABLE conserva sus bytes. Prueba nueva «an ambiguous AVAILABLE update that did commit keeps the copy and its bytes» (22/22). Se añade el [modelo de amenaza](../architecture/F08_BACKUP_THREAT_MODEL.md), decisión de Roderich sobre DEC-F01-10. |
 
 Base de la rama: `063437d3ebe7f10110a5faaeee3f052e7d89d100`; después se integró `main` en `3616fcf`. **Todas las ejecuciones de esta evidencia son sobre `15c8cf44dfb1cc759f5ae486159e28ad9054e131`**, salvo que se indique otra cosa.
 
