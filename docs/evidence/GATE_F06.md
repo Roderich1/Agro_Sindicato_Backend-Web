@@ -35,12 +35,36 @@
    - El issue pide `collective-reconciliation.spec.ts`; la reconciliación es `test/f06_reconciliation_integration_test.dart` (Mobile) más las suites `f06-coll-05…` y `product-reconciliation…` (Backend).
    - El brief nombraba esta acta `F06_GATE.md`; se usa el nombre del issue.
 
+### Resolución delegada de las discrepancias (2026-10-16)
+
+La adoptó la sesión de Claude Code, bajo la delegación de Roderich Rendón (`_briefs/CONTINUACION_TRES_SESIONES_2026-10-16.md` §3). No es una firma institucional ni una revisión del tutor, y el gate sigue **Pending**. Los textos anteriores se conservan arriba como antecedente.
+
+1. **Criterio 3: cambio explícito de redacción.**
+   - **Texto original de #22, conservado:** «el agregado no cambia hasta que el propietario emite una nueva intención válida».
+   - **Criterio aplicado desde el 2026-10-16:** el aporte en disputa se excluye del cálculo elegible y la cifra divulgada de su celda se **retira**. No se publica un total nuevo que permita deducir el aporte retirado. La cifra vuelve cuando el propietario emite una intención válida y la política lo permite.
+   - **Prueba:** `f06-coll-05…` «cancellation, dispute and membership change withdraw the figure».
+2. **Criterio 6: aceptado.**
+   - `projection_type` + `total_base` representan `consumed_total_base` y `declared_need_total_base`.
+   - La cobertura y los conteos se admiten como metadatos agregados sujetos a la misma política.
+   - Una celda suprimida no muestra cantidad ni conteo exacto.
+   - Sin identidades ni cantidades individuales.
+3. **Revisión de la política bajo F10-SEC-02 (#45).**
+   - La regla de diferencias contaba secuencias y sólo miraba la última cifra.
+   - Se corrige a cambio neto por Member frente a todo el historial (PR propio; ver `F10_SEC_02_REVISION_POLITICA.md`).
+
 ## Por qué `Evidence = Partial`
 
-- Las pruebas y la corrida están en ramas de PR sin fusionar (#110 y Mobile #86). No se ha medido el CI de `main` integrado con este código.
-- La divulgación se probó con la política provisional k = 3, que no está aprobada (#107).
-- Hay dos discrepancias abiertas (criterios 3 y 6).
-- **Pendiente (ADR-003).** Los endpoints heredados con datos centrales antiguos no se revisaron.
+**Actualizado el 2026-10-16.** Backend #110 y Mobile #86 ya están fusionados (Mobile #86 en `caf158e`).
+
+- La divulgación se probó sólo con datos sintéticos y la política provisional k = 3. La divulgación real no está aprobada (#107).
+- La revisión de la política (F10-SEC-02) está en un PR aparte, sin fusionar.
+- **Pendiente (ADR-003).** Los endpoints heredados con datos centrales antiguos no se revisaron: #45 no está completa.
+
+**Antecedente del 2026-10-16, antes de los merges:**
+- Las pruebas y la corrida estaban en ramas de PR sin fusionar (#110 y Mobile #86).
+- La divulgación se probó con la política provisional k = 3, no aprobada (#107).
+- Había dos discrepancias abiertas (criterios 3 y 6).
+- **Pendiente (ADR-003):** los endpoints heredados con datos centrales antiguos no se habían revisado.
 
 ## Fuera de esta acta
 

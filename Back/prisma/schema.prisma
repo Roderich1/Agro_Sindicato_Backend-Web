@@ -1031,9 +1031,12 @@ model CollectiveRelease {
 
 /// Contribución incluida en una divulgación y la secuencia que tenía entonces.
 model CollectiveReleaseItem {
-  releaseId      String @db.Uuid
-  contributionId String @db.Uuid
+  releaseId      String  @db.Uuid
+  contributionId String  @db.Uuid
   sequence       Int
+  /// Cantidad del aporte en esa divulgación (F10-SEC-02 #45). NULL en filas
+  /// anteriores a la revisión: desconocida; no prueba un cambio ni su ausencia.
+  quantityBase   BigInt?
 
   release      CollectiveRelease  @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   contribution SyncV1Contribution @relation(fields: [contributionId], references: [id], onDelete: Restrict, onUpdate: Restrict)

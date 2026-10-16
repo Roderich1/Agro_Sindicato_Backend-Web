@@ -139,9 +139,10 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     >`
       SELECT migration_name, finished_at FROM "_prisma_migrations" ORDER BY migration_name
     `;
-    // F05-SYNC-05 adds the contribution migration after the journal one, and
-    // F06 #21 the collective consolidation after both.
-    expect(migrations).toHaveLength(7);
+    // F05-SYNC-05 adds the contribution migration after the journal one,
+    // F06 #21 the collective consolidation after both, and the F10-SEC-02
+    // review the quantity of each released item.
+    expect(migrations).toHaveLength(8);
     expect(migrations.every((m) => m.finished_at !== null)).toBe(true);
     expect(migrations[4].migration_name).toMatch(
       /_f05_sync_v1_journal_expand$/,
@@ -151,6 +152,9 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     );
     expect(migrations[6].migration_name).toMatch(
       /_f06_collective_consolidation$/,
+    );
+    expect(migrations[7].migration_name).toMatch(
+      /_f07_pol_01_release_item_quantity$/,
     );
   });
 
