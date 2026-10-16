@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
@@ -32,6 +33,7 @@ import { InventoryAdjustmentUseCase } from '../../application/use-cases/inventor
 import { InventoryLotUseCase } from '../../application/use-cases/inventory-lot.use-case';
 import { InventoryStockUseCase } from '../../application/use-cases/inventory-stock.use-case';
 import { ProductCatalogUseCase } from '../../application/use-cases/product-catalog.use-case';
+import { LegacyRouteClosedGuard } from '@/shared/api/legacy-route-closed.guard';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -89,6 +91,8 @@ export class InventoryController {
   }
 
   @Post('initial-stock')
+  // F10-SEC-02 (#45): owner-scoped private operation; institutional roles do not operate it (ADR-003).
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Registrar inventario inicial del agricultor autenticado' })
   async registerInitialStock(
     @CurrentUser() user: AuthenticatedPrincipal,
@@ -99,6 +103,7 @@ export class InventoryController {
   }
 
   @Post('entries')
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Registrar una entrada de agroquimico' })
   async registerEntry(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RegisterStockEntryDto) {
     this.logger.log(`[INVENTORY ENTRY] userId=${user.sub} tenantId=${user.tenantId} reason=${dto.entryReason}`);
@@ -106,6 +111,7 @@ export class InventoryController {
   }
 
   @Post('exits')
+  @Roles(UserRole.AGRICULTOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Registrar una salida de agroquimico validando stock disponible' })
   async registerExit(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RegisterStockExitDto) {
@@ -114,6 +120,7 @@ export class InventoryController {
   }
 
   @Post('adjustments')
+  @Roles(UserRole.AGRICULTOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Registrar ajuste de inventario por perdida, dano o correccion' })
   async registerAdjustment(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RegisterStockAdjustmentDto) {
@@ -122,12 +129,14 @@ export class InventoryController {
   }
 
   @Get('lots')
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Listar lotes del agricultor autenticado' })
   async listLots(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListLotsQueryDto) {
     return this.inventoryLotUseCase.list(user.tenantId, user.sub, query);
   }
 
   @Patch('lots/:id')
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Actualizar lote, vencimiento o almacen de un lote' })
   async updateLot(
     @CurrentUser() user: AuthenticatedPrincipal,
@@ -139,6 +148,7 @@ export class InventoryController {
   }
 
   @Get('stock')
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Consultar stock disponible con filtros y busqueda' })
   async listStock(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListStockQueryDto) {
     return this.inventoryStockUseCase.listStock(user.tenantId, user.sub, query);
@@ -146,12 +156,16 @@ export class InventoryController {
 
   @Get('global-stock')
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  // F10-SEC-02 (#45): every farmer's lots with owner, supplier and quantities;
+  // not an authorised aggregate (F06/F07-POL-01). Closed; use /collective.
+  @UseGuards(LegacyRouteClosedGuard)
   @ApiOperation({ summary: 'Consultar inventario global de todos los agricultores' })
   async listGlobalStock(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListGlobalStockQueryDto) {
     return this.inventoryStockUseCase.listGlobalStock(user.tenantId, query);
   }
 
   @Get('alerts')
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Consultar alertas de stock minimo y vencimiento' })
   async listAlerts(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.inventoryStockUseCase.listAlerts(user.tenantId, user.sub);
@@ -171,6 +185,7 @@ export class InventoryController {
   }
 
   @Get('movements')
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Consultar historial de movimientos con filtros' })
   async listMovements(
     @CurrentUser() user: AuthenticatedPrincipal,

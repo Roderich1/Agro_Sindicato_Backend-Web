@@ -45,7 +45,6 @@ export class CampaignManagementUseCase {
           : {}),
       },
       orderBy: [{ isActive: 'desc' }, { startDate: 'desc' }],
-      include: this.summaryInclude(),
     });
 
     return campaigns.map((campaign) => this.mapCampaign(campaign));
@@ -59,7 +58,6 @@ export class CampaignManagementUseCase {
         status: CampaignStatus.ABIERTA,
       },
       orderBy: { startDate: 'desc' },
-      include: this.summaryInclude(),
     });
 
     return campaign ? this.mapCampaign(campaign) : null;
@@ -96,7 +94,6 @@ export class CampaignManagementUseCase {
           notes: input.notes?.trim() || null,
           createdById: actorUserId,
         },
-        include: this.summaryInclude(),
       });
 
       await this.recordAudit(tx, {
@@ -161,7 +158,6 @@ export class CampaignManagementUseCase {
       const updatedCampaign = await tx.agriculturalCampaign.update({
         where: { id: campaign.id },
         data,
-        include: this.summaryInclude(),
       });
 
       await this.recordAudit(tx, {
@@ -197,7 +193,6 @@ export class CampaignManagementUseCase {
           status: CampaignStatus.ABIERTA,
           isActive: true,
         },
-        include: this.summaryInclude(),
       });
 
       await this.recordAudit(tx, {
@@ -240,7 +235,6 @@ export class CampaignManagementUseCase {
           closedById: actorUserId,
           notes: input.notes?.trim() || campaign.notes,
         },
-        include: this.summaryInclude(),
       });
 
       await this.recordAudit(tx, {
@@ -284,20 +278,6 @@ export class CampaignManagementUseCase {
     return campaign;
   }
 
-  private summaryInclude() {
-    return {
-      _count: {
-        select: {
-          plotCropAssignments: true,
-          purchases: true,
-          stockMovements: true,
-          agrochemicalApplications: true,
-          payableAccounts: true,
-        },
-      },
-    } satisfies Prisma.AgriculturalCampaignInclude;
-  }
-
   private mapCampaign(campaign: {
     id: string;
     name: string;
@@ -309,13 +289,6 @@ export class CampaignManagementUseCase {
     notes: string | null;
     createdAt: Date;
     updatedAt: Date;
-    _count?: {
-      plotCropAssignments: number;
-      purchases: number;
-      stockMovements: number;
-      agrochemicalApplications: number;
-      payableAccounts: number;
-    };
   }) {
     return {
       id: campaign.id,
@@ -328,13 +301,9 @@ export class CampaignManagementUseCase {
       notes: campaign.notes,
       createdAt: campaign.createdAt.toISOString(),
       updatedAt: campaign.updatedAt.toISOString(),
-      summary: {
-        plotCropAssignments: campaign._count?.plotCropAssignments ?? 0,
-        purchases: campaign._count?.purchases ?? 0,
-        stockMovements: campaign._count?.stockMovements ?? 0,
-        agrochemicalApplications: campaign._count?.agrochemicalApplications ?? 0,
-        payableAccounts: campaign._count?.payableAccounts ?? 0,
-      },
+      // F10-SEC-02 (#45): no tenant-wide counts of farmers' private records
+      // (purchases, movements, applications, debts, assignments): an aggregate
+      // outside the disclosure policy that a farmer could subtract from.
     };
   }
 

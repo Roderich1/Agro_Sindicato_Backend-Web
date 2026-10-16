@@ -1,0 +1,102 @@
+{
+  "when": "2026-10-16T21:15:07.477Z",
+  "passed": 19,
+  "total": 19,
+  "checks": [
+    {
+      "name": "ADMINISTRADOR en /inventory vuelve al resumen colectivo",
+      "ok": true,
+      "detail": "/colectivo/resumen"
+    },
+    {
+      "name": "ADMINISTRADOR en /purchases vuelve al resumen colectivo",
+      "ok": true,
+      "detail": "/colectivo/resumen"
+    },
+    {
+      "name": "ADMINISTRADOR en /sync vuelve al resumen colectivo",
+      "ok": true,
+      "detail": "/colectivo/resumen"
+    },
+    {
+      "name": "ADMINISTRADOR en /plots vuelve al resumen colectivo",
+      "ok": true,
+      "detail": "/colectivo/resumen"
+    },
+    {
+      "name": "ADMINISTRADOR en /applications vuelve al resumen colectivo",
+      "ok": true,
+      "detail": "/colectivo/resumen"
+    },
+    {
+      "name": "ADMINISTRADOR en /reports vuelve al resumen colectivo",
+      "ok": true,
+      "detail": "/colectivo/resumen"
+    },
+    {
+      "name": "ADMINISTRADOR en /dashboard vuelve al resumen colectivo",
+      "ok": true,
+      "detail": "/colectivo/resumen"
+    },
+    {
+      "name": "ADMINISTRADOR en /directiva llega a la propuesta en borrador",
+      "ok": true,
+      "detail": "/colectivo/propuestas"
+    },
+    {
+      "name": "Sin botón de compra ejecutable ni pagos en /directiva",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "API: global-stock cerrada para ADMINISTRADOR (403)",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "name": "API: compra conjunta ejecutable cerrada (403)",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "name": "API: deudas de agricultores, 403 para ADMINISTRADOR",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "name": "API: catálogo sin currentStock",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "API: campañas sin conteos de registros privados",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "Web: la tabla de campañas no muestra conteos de compras ni movimientos",
+      "ok": true,
+      "detail": "/campaigns"
+    },
+    {
+      "name": "Resumen: cobertura actual, sin rótulo histórico",
+      "ok": true,
+      "detail": "Cobertura · Campaña Verano 2026 (sintética)3 de 4 agricultores vinculados aportaron datosAusencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron."
+    },
+    {
+      "name": "Borrador: cobertura rotulada con su fecha de generación",
+      "ok": true,
+      "detail": "Cobertura al generar el borrador (16 oct de 2026, 5:15 p. m.) · Campaña Verano 2026 (sintética)3 de 4 agricultores vinculados habían aportado datos en esa fechaNo es la cobertura actual: consulte el resumen de la campaña para la de hoy. Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron."
+    },
+    {
+      "name": "AGRICULTOR conserva /inventory",
+      "ok": true,
+      "detail": "/inventory"
+    },
+    {
+      "name": "AGRICULTOR en /directiva no ve la página heredada",
+      "ok": true,
+      "detail": "/dashboard"
+    }
+  ]
+}

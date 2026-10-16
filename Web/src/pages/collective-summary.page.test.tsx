@@ -66,6 +66,8 @@ describe('Resumen colectivo', () => {
 
     expect(screen.getByTestId('coverage').textContent).toMatch(/3 de 4 agricultores vinculados/);
     expect(screen.getByTestId('coverage').textContent).toMatch(/desconocido, no cero/);
+    // El resumen muestra la cobertura actual: sin rótulo de fecha histórica.
+    expect(screen.getByTestId('coverage').textContent).not.toMatch(/al generar el borrador|No es la cobertura actual/);
   });
 
   it('un ?campaign= que no es UUID se ignora: se usa la campaña activa', async () => {

@@ -123,7 +123,7 @@ function ProposalDetail({ proposal, onCsv }: { proposal: Proposal; onCsv: () => 
   return (
     <section className="space-y-4" aria-label="Detalle del borrador">
       <DisclosureNotice mode={proposal.disclosure.mode} />
-      {proposal.coverage && <CoverageBanner coverage={proposal.coverage} campaignName={proposal.campaign.name} />}
+      {proposal.coverage && <CoverageBanner coverage={proposal.coverage} campaignName={proposal.campaign.name} asOf={proposal.generated_at} />}
       <div className="glass-card overflow-hidden">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div>

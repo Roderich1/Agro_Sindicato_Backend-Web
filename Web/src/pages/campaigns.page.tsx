@@ -160,16 +160,15 @@ export function CampaignsPage() {
                 <th className="px-5 py-3.5" scope="col">Estado</th>
                 <th className="px-5 py-3.5" scope="col">Inicio</th>
                 <th className="px-5 py-3.5" scope="col">Cierre</th>
-                <th className="px-5 py-3.5" scope="col">Resumen</th>
                 <th className="px-5 py-3.5 text-right" scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100/80">
               {isLoading ? (
-                Array.from({ length: 4 }).map((_, index) => <SkeletonRow key={index} cols={6} />)
+                Array.from({ length: 4 }).map((_, index) => <SkeletonRow key={index} cols={5} />)
               ) : campaigns.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={5}>
                     <EmptyState title="Sin campanas" description="No hay campanas que coincidan con los filtros." />
                   </td>
                 </tr>
@@ -186,9 +185,6 @@ export function CampaignsPage() {
                     </td>
                     <td className="px-5 py-3.5 text-slate-600 tabular-nums">{fmtDate(campaign.startDate)}</td>
                     <td className="px-5 py-3.5 text-slate-600 tabular-nums">{fmtDate(campaign.closedAt ?? campaign.estimatedEndDate)}</td>
-                    <td className="px-5 py-3.5 text-xs text-slate-500">
-                      {campaign.summary.plotCropAssignments} cultivos · {campaign.summary.stockMovements} mov. · {campaign.summary.purchases} compras
-                    </td>
                     <td className="px-5 py-3.5">
                       <div className="flex justify-end gap-2">
                         {canManage ? (

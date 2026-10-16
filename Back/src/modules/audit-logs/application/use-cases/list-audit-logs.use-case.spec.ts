@@ -33,7 +33,9 @@ describe('ListAuditLogsUseCase', () => {
     });
   });
 
-  it('lets directiva filter by campaign, owner, entity and action', async () => {
+  // F10-SEC-02 (#45): replaces "lets directiva filter by campaign, owner,
+  // entity and action"; the owner filter exposed farmers' private entries.
+  it('lets directiva filter institutional entries by campaign, entity and action, never by owner', async () => {
     const { prisma, useCase } = createUseCase({});
 
     await useCase.execute(tenantId, 'directiva-1', UserRole.DIRECTIVA, {
@@ -46,7 +48,7 @@ describe('ListAuditLogsUseCase', () => {
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
       where: {
         tenantId,
-        ownerUserId: userId,
+        ownerUserId: null,
         campaignId: 'campaign-1',
         action: AuditAction.ACTUALIZAR,
         entityName: 'Plot',

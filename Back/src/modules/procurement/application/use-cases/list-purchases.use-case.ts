@@ -20,7 +20,7 @@ export class ListPurchasesUseCase {
       take: 100,
     });
 
-    return purchases.map((purchase) => this.map(purchase));
+    return purchases.map((purchase) => this.map(purchase, this.viewer(userId, role)));
   }
 
   async get(tenantId: string, userId: string, role: string, purchaseId: string) {
@@ -33,7 +33,7 @@ export class ListPurchasesUseCase {
     });
 
     if (!purchase) throw new NotFoundException('Compra no encontrada.');
-    return this.map(purchase);
+    return this.map(purchase, this.viewer(userId, role));
   }
 
   private buildWhere(
@@ -95,7 +95,18 @@ export class ListPurchasesUseCase {
     };
   }
 
-  private map(purchase: Prisma.PurchaseGetPayload<{ include: ReturnType<ListPurchasesUseCase['includeSummary']> }>) {
+  /**
+   * F10-SEC-02 (#45): a farmer who takes part in a legacy joint purchase sees
+   * only their own participation and debt, not the other farmers'.
+   */
+  private viewer(userId: string, role: string): string | null {
+    return role === UserRole.AGRICULTOR ? userId : null;
+  }
+
+  private map(
+    purchase: Prisma.PurchaseGetPayload<{ include: ReturnType<ListPurchasesUseCase['includeSummary']> }>,
+    viewer: string | null,
+  ) {
     return {
       id: purchase.id,
       campaignId: purchase.campaignId,
@@ -127,14 +138,14 @@ export class ListPurchasesUseCase {
         discountAmount: item.discountAmount.toString(),
         subtotal: item.subtotal.toString(),
       })),
-      participants: purchase.participants.map((participant) => ({
+      participants: purchase.participants.filter((participant) => viewer === null || participant.userId === viewer).map((participant) => ({
         id: participant.id,
         user: participant.user,
         status: participant.status,
         requestedAmount: participant.requestedAmount.toString(),
         allocatedAmount: participant.allocatedAmount.toString(),
       })),
-      payables: purchase.payables.map((payable) => ({
+      payables: purchase.payables.filter((payable) => viewer === null || payable.responsibleUserId === viewer).map((payable) => ({
         id: payable.id,
         campaignId: payable.campaignId,
         responsibleUser: payable.responsibleUser,

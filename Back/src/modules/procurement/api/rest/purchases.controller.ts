@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Logger, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../../iam/api/rest/decorators/current-user.decorator';
@@ -10,6 +10,7 @@ import { ListPurchasesQueryDto } from '../../application/dto/list-purchases-quer
 import { CreateJointPurchaseUseCase } from '../../application/use-cases/create-joint-purchase.use-case';
 import { CreatePurchaseUseCase } from '../../application/use-cases/create-purchase.use-case';
 import { ListPurchasesUseCase } from '../../application/use-cases/list-purchases.use-case';
+import { LegacyRouteClosedGuard } from '@/shared/api/legacy-route-closed.guard';
 
 @ApiTags('purchases')
 @ApiBearerAuth()
@@ -25,12 +26,15 @@ export class PurchasesController {
   ) {}
 
   @Get()
+  // F10-SEC-02 (#45): individual purchases are private; institutional roles do not read them (ADR-003).
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Listar compras visibles para el usuario autenticado' })
   async list(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListPurchasesQueryDto) {
     return this.listPurchasesUseCase.list(user.tenantId, user.sub, user.role, query);
   }
 
   @Get(':id')
+  @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Obtener detalle de una compra visible para el usuario autenticado' })
   async get(
     @CurrentUser() user: AuthenticatedPrincipal,
@@ -50,6 +54,10 @@ export class PurchasesController {
 
   @Post('joint')
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  // F10-SEC-02 (#45): executes a joint purchase that creates lots, movements,
+  // debts and events for farmers. The valid path is the draft proposal
+  // (/collective/.../proposals), with no automatic effects. Closed.
+  @UseGuards(LegacyRouteClosedGuard)
   @ApiOperation({ summary: 'Crear compra conjunta y distribuir productos entre agricultores' })
   async createJoint(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateJointPurchaseDto) {
     this.logger.log(`[PURCHASE JOINT_CREATE] userId=${user.sub} tenantId=${user.tenantId} mode=${dto.paymentMode}`);

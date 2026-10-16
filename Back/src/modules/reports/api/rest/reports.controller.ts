@@ -9,7 +9,9 @@ import { ReportsUseCase } from '../../application/use-cases/reports.use-case';
 
 @ApiTags('reports')
 @ApiBearerAuth()
-@Roles(UserRole.AGRICULTOR, UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+// F10-SEC-02 (#45): legacy per-farmer reports over private data, outside the
+// disclosure policy. Owner only; the institutional view is /collective.
+@Roles(UserRole.AGRICULTOR)
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsUseCase: ReportsUseCase) {}

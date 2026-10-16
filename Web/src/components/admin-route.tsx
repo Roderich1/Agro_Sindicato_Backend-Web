@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
+import { homePathFor } from '../lib/navigation';
 import type { ReactNode } from 'react';
 
 export function AdminRoute({ children }: { children: ReactNode }) {
@@ -20,7 +21,7 @@ export function AdminRoute({ children }: { children: ReactNode }) {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'ADMINISTRADOR') return <Navigate to="/dashboard" replace />;
+  if (user.role !== 'ADMINISTRADOR') return <Navigate to={homePathFor(user.role)} replace />;
 
   return <>{children}</>;
 }

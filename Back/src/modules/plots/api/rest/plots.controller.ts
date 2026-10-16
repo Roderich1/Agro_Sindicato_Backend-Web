@@ -25,7 +25,8 @@ import { PlotFlowUseCase } from '../../application/use-cases/plot-flow.use-case'
 
 @ApiTags('plots')
 @ApiBearerAuth()
-@Roles(UserRole.AGRICULTOR, UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+// F10-SEC-02 (#45): plots and their location are private; owner only.
+@Roles(UserRole.AGRICULTOR)
 @Controller('plots')
 export class PlotsController {
   private readonly logger = new Logger(PlotsController.name);

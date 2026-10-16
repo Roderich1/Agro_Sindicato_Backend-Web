@@ -48,7 +48,6 @@ export function CalendarPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [farmers, setFarmers] = useState<AdminUser[]>([]);
   const [campaignId, setCampaignId] = useState('');
-  const [ownerUserId, setOwnerUserId] = useState('');
   const [type, setType] = useState<CalendarEventType | ''>('');
   const [status, setStatus] = useState<CalendarEventStatus | ''>('PENDIENTE');
   const [from, setFrom] = useState('');
@@ -68,7 +67,6 @@ export function CalendarPage() {
       const [eventData, campaignData, usersData] = await Promise.all([
         calendarService.list({
           campaignId: campaignId || undefined,
-          ownerUserId: !isFarmer && ownerUserId ? ownerUserId : undefined,
           type: type || undefined,
           status: status || undefined,
           from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
@@ -92,7 +90,7 @@ export function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, [campaignId, from, isFarmer, ownerUserId, status, to, type]);
+  }, [campaignId, from, isFarmer, status, to, type]);
 
   useEffect(() => {
     void Promise.resolve().then(refresh);
@@ -154,7 +152,7 @@ export function CalendarPage() {
       <div className={`${cardClass} mb-5 p-4`}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <div><label htmlFor="calendar-campaign" className={labelClass}>Campaña</label><select id="calendar-campaign" className={inputClass} value={campaignId} onChange={(event) => setCampaignId(event.target.value)}><option value="">Todas</option>{campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}</select></div>
-          {!isFarmer && <div><label htmlFor="calendar-owner" className={labelClass}>Agricultor</label><select id="calendar-owner" className={inputClass} value={ownerUserId} onChange={(event) => setOwnerUserId(event.target.value)}><option value="">Todos</option>{farmers.map((farmer) => <option key={farmer.id} value={farmer.id}>{farmer.name}</option>)}</select></div>}
+          {/* F10-SEC-02 (#45): sin filtro por agricultor; Directiva y Administrador sólo ven eventos sin dueño. */}
           <div><label htmlFor="calendar-type" className={labelClass}>Tipo</label><select id="calendar-type" className={inputClass} value={type} onChange={(event) => setType(event.target.value as CalendarEventType | '')}><option value="">Todos</option>{Object.entries(TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
           <div><label htmlFor="calendar-status" className={labelClass}>Estado</label><select id="calendar-status" className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as CalendarEventStatus | '')}><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="COMPLETADO">Completado</option><option value="CANCELADO">Cancelado</option></select></div>
           <div><label htmlFor="calendar-from" className={labelClass}>Desde</label><input id="calendar-from" className={inputClass} type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} /></div>

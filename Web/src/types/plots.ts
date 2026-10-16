@@ -30,10 +30,6 @@ export interface Crop {
   notes: string | null;
   createdAt: ApiDateString;
   updatedAt: ApiDateString;
-  summary: {
-    cropAssignments: number;
-    agrochemicalApplications: number;
-  };
 }
 
 export interface PlotCropAssignment {

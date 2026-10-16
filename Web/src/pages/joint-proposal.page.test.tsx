@@ -1,6 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fmtDateTime } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
 import { line, proposalWith } from '../test/fixtures';
@@ -53,6 +54,16 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(document.body.textContent).toMatch(/no es una necesidad neta/);
     expect(document.body.textContent).toMatch(/No crea compras, lotes, movimientos, deudas ni pagos/);
     expect(screen.getByTestId('coverage').textContent).toMatch(/3 de 4/);
+  });
+
+  it('la cobertura de un borrador se rotula con su fecha de generación, no como la actual (F10)', async () => {
+    vi.mocked(collectiveService.generateProposal).mockResolvedValue(DRAFT);
+    renderAt(<JointProposalPage />, { path: PATH });
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    const coverage = await screen.findByTestId('coverage');
+    expect(coverage.textContent).toContain(`Cobertura al generar el borrador (${fmtDateTime(DRAFT.generated_at)})`);
+    expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados habían aportado datos en esa fecha/);
+    expect(coverage.textContent).toMatch(/No es la cobertura actual/);
   });
 
   it('POLICY_PENDING al generar: lo explica y no muestra ninguna línea', async () => {
