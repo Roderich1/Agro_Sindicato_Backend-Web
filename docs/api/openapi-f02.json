@@ -6927,6 +6927,1059 @@
         ]
       }
     },
+    "/api/v1/me/backups": {
+      "get": {
+        "operationId": "BackupsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Sólo copias AVAILABLE del Member autenticado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "backups"
+                  ],
+                  "properties": {
+                    "backups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "sha256",
+                          "sizeBytes",
+                          "contentType",
+                          "formatVersion",
+                          "schemaVersion",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sha256": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$",
+                            "description": "SHA-256 calculado por el servidor al recibir el archivo."
+                          },
+                          "sizeBytes": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "contentType": {
+                            "type": "string",
+                            "enum": [
+                              "application/octet-stream"
+                            ]
+                          },
+                          "formatVersion": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Versión del contenedor declarada por el cliente (compatibilidad)."
+                          },
+                          "schemaVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Versión del esquema SQLite declarada por el cliente (compatibilidad)."
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sesión, Member, registro de cliente o rol no permitido (Directiva/Administrador incluidos).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no configurado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar los respaldos privados propios disponibles",
+        "tags": [
+          "me backups"
+        ]
+      },
+      "post": {
+        "operationId": "BackupsController_upload",
+        "parameters": [
+          {
+            "name": "X-Backup-Schema-Version",
+            "in": "header",
+            "description": "Versión del esquema SQLite (entero >= 0).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Backup-Format-Version",
+            "in": "header",
+            "description": "Versión del contenedor (entero >= 1).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Content-SHA256",
+            "in": "header",
+            "description": "SHA-256 hex del cuerpo; el servidor lo recalcula en streaming.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Copia verificada y disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "sha256",
+                    "sizeBytes",
+                    "contentType",
+                    "formatVersion",
+                    "schemaVersion",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 calculado por el servidor al recibir el archivo."
+                    },
+                    "sizeBytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "enum": [
+                        "application/octet-stream"
+                      ]
+                    },
+                    "formatVersion": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Versión del contenedor declarada por el cliente (compatibilidad)."
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Versión del esquema SQLite declarada por el cliente (compatibilidad)."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cabeceras inválidas, cuerpo vacío o transferencia incompleta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cupo de copias del Member agotado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Mayor que BACKUP_MAX_BYTES.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type distinto de application/octet-stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El SHA-256 recalculado no coincide con X-Content-SHA256.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subir un respaldo privado (cuerpo binario en streaming)",
+        "tags": [
+          "me backups"
+        ]
+      }
+    },
+    "/api/v1/me/backups/{id}/content": {
+      "get": {
+        "operationId": "BackupsController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes de la copia; cabecera X-Content-SHA256.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Copia ajena, inexistente, eliminada o id inválido (indistinguibles).",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "La copia almacenada no coincide con su SHA-256: no se entrega.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no disponible.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Descargar un respaldo propio (se verifica su integridad antes de enviarlo)",
+        "tags": [
+          "me backups"
+        ]
+      }
+    },
+    "/api/v1/me/backups/{id}": {
+      "delete": {
+        "operationId": "BackupsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Eliminado; deja de listarse y de servirse."
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Copia ajena, inexistente, ya eliminada o id inválido (indistinguibles).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Eliminar un respaldo propio (borrado lógico y del archivo)",
+        "tags": [
+          "me backups"
+        ]
+      }
+    },
     "/api/v1/users": {
       "post": {
         "operationId": "UsersController_create",

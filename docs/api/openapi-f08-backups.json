@@ -1,0 +1,2347 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/me/backups": {
+      "get": {
+        "operationId": "BackupsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Sólo copias AVAILABLE del Member autenticado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "backups"
+                  ],
+                  "properties": {
+                    "backups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "sha256",
+                          "sizeBytes",
+                          "contentType",
+                          "formatVersion",
+                          "schemaVersion",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sha256": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$",
+                            "description": "SHA-256 calculado por el servidor al recibir el archivo."
+                          },
+                          "sizeBytes": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "contentType": {
+                            "type": "string",
+                            "enum": [
+                              "application/octet-stream"
+                            ]
+                          },
+                          "formatVersion": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Versión del contenedor declarada por el cliente (compatibilidad)."
+                          },
+                          "schemaVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Versión del esquema SQLite declarada por el cliente (compatibilidad)."
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sesión, Member, registro de cliente o rol no permitido (Directiva/Administrador incluidos).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no configurado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar los respaldos privados propios disponibles",
+        "tags": [
+          "me backups"
+        ]
+      },
+      "post": {
+        "operationId": "BackupsController_upload",
+        "parameters": [
+          {
+            "name": "X-Backup-Schema-Version",
+            "in": "header",
+            "description": "Versión del esquema SQLite (entero >= 0).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Backup-Format-Version",
+            "in": "header",
+            "description": "Versión del contenedor (entero >= 1).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Content-SHA256",
+            "in": "header",
+            "description": "SHA-256 hex del cuerpo; el servidor lo recalcula en streaming.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Copia verificada y disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "sha256",
+                    "sizeBytes",
+                    "contentType",
+                    "formatVersion",
+                    "schemaVersion",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 calculado por el servidor al recibir el archivo."
+                    },
+                    "sizeBytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "enum": [
+                        "application/octet-stream"
+                      ]
+                    },
+                    "formatVersion": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Versión del contenedor declarada por el cliente (compatibilidad)."
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Versión del esquema SQLite declarada por el cliente (compatibilidad)."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cabeceras inválidas, cuerpo vacío o transferencia incompleta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cupo de copias del Member agotado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Mayor que BACKUP_MAX_BYTES.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type distinto de application/octet-stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El SHA-256 recalculado no coincide con X-Content-SHA256.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subir un respaldo privado (cuerpo binario en streaming)",
+        "tags": [
+          "me backups"
+        ]
+      }
+    },
+    "/api/v1/me/backups/{id}/content": {
+      "get": {
+        "operationId": "BackupsController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes de la copia; cabecera X-Content-SHA256.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Copia ajena, inexistente, eliminada o id inválido (indistinguibles).",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "La copia almacenada no coincide con su SHA-256: no se entrega.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no disponible.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Descargar un respaldo propio (se verifica su integridad antes de enviarlo)",
+        "tags": [
+          "me backups"
+        ]
+      }
+    },
+    "/api/v1/me/backups/{id}": {
+      "delete": {
+        "operationId": "BackupsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Eliminado; deja de listarse y de servirse."
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Copia ajena, inexistente, ya eliminada o id inválido (indistinguibles).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Almacenamiento privado no disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "BACKUP_NOT_FOUND",
+                        "BACKUP_QUOTA_EXCEEDED",
+                        "BACKUP_TOO_LARGE",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_TRANSFER_INCOMPLETE",
+                        "RATE_LIMITED",
+                        "BACKUP_INTEGRITY_FAILED",
+                        "BACKUP_STORAGE_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Eliminar un respaldo propio (borrado lógico y del archivo)",
+        "tags": [
+          "me backups"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Agrochemical Inventory API",
+    "description": "API central de identidad, membresia, contratos autorizados, campanas y catalogos compartidos, con autenticacion versionada. Algunos endpoints legacy permanecen por compatibilidad; su presencia en OpenAPI no los convierte en arquitectura target del Proyecto de Grado.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      },
+      "refresh_token": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refresh_token"
+      },
+      "refresh_token_v2": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refresh_token_v2"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@agro.local"
+          },
+          "password": {
+            "type": "string",
+            "example": "Admin123!"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginV2Dto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@agro.local"
+          },
+          "password": {
+            "type": "string",
+            "example": "Admin123!"
+          },
+          "refreshTransport": {
+            "type": "string",
+            "enum": [
+              "COOKIE",
+              "BODY"
+            ],
+            "default": "COOKIE",
+            "description": "COOKIE para Web; BODY prepara clientes Mobile futuros."
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RefreshV2Dto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh opaco V2. Exclusivo del transporte BODY."
+          }
+        }
+      },
+      "LogoutV2Dto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh opaco V2. Exclusivo del transporte BODY."
+          }
+        }
+      },
+      "BindSessionClientDto": {
+        "type": "object",
+        "properties": {
+          "registrationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID central de ClientRegistration."
+          }
+        },
+        "required": [
+          "registrationId"
+        ]
+      },
+      "RegisterClientDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "UUID v4 canónico y seudónimo generado por la instalación Mobile",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "clientId"
+        ]
+      },
+      "CreateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Glifosato 48%"
+          },
+          "commercialName": {
+            "type": "string",
+            "example": "Glifosato Max"
+          },
+          "activeIngredient": {
+            "type": "string",
+            "example": "Glifosato"
+          },
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "toxicologicalCategory": {
+            "type": "object",
+            "example": "II - Moderadamente peligroso",
+            "nullable": true
+          },
+          "safetyDataSheetUrl": {
+            "type": "object",
+            "example": "https://example.com/fds/glifosato.pdf",
+            "nullable": true
+          },
+          "safetyDataSheetName": {
+            "type": "object",
+            "example": "FDS Glifosato 48%",
+            "nullable": true
+          },
+          "safetyInstructions": {
+            "type": "object",
+            "example": "Usar guantes, mascara y evitar deriva.",
+            "nullable": true
+          },
+          "qrCodeValue": {
+            "type": "object",
+            "example": "AGRO-PRODUCT-GLIFOSATO-48",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "example": "L"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        },
+        "required": [
+          "name",
+          "unit"
+        ]
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Glifosato 48%"
+          },
+          "commercialName": {
+            "type": "string",
+            "example": "Glifosato Max"
+          },
+          "activeIngredient": {
+            "type": "string",
+            "example": "Glifosato"
+          },
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "toxicologicalCategory": {
+            "type": "object",
+            "example": "II - Moderadamente peligroso",
+            "nullable": true
+          },
+          "safetyDataSheetUrl": {
+            "type": "object",
+            "example": "https://example.com/fds/glifosato.pdf",
+            "nullable": true
+          },
+          "safetyDataSheetName": {
+            "type": "object",
+            "example": "FDS Glifosato 48%",
+            "nullable": true
+          },
+          "safetyInstructions": {
+            "type": "object",
+            "example": "Usar guantes, mascara y evitar deriva.",
+            "nullable": true
+          },
+          "qrCodeValue": {
+            "type": "object",
+            "example": "AGRO-PRODUCT-GLIFOSATO-48",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "example": "L"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        }
+      },
+      "ProductReferenceDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "ID de un producto existente. Si no se envia, se crea/busca por nombre."
+          },
+          "productName": {
+            "type": "string",
+            "example": "Glifosato 48%"
+          },
+          "activeIngredient": {
+            "type": "string",
+            "example": "Glifosato"
+          },
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "unit": {
+            "type": "string",
+            "example": "L"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        }
+      },
+      "RegisterInitialStockDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 25
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-2026-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-10-30"
+          },
+          "warehouseId": {
+            "type": "string",
+            "description": "Almacen existente donde se guardara el producto."
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Inventario cargado al iniciar el sistema"
+          }
+        },
+        "required": [
+          "product",
+          "quantity"
+        ]
+      },
+      "RegisterStockEntryDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "entryReason": {
+            "type": "string",
+            "enum": [
+              "COMPRA",
+              "ENTRADA_SIMPLE",
+              "DEVOLUCION",
+              "AJUSTE"
+            ],
+            "example": "ENTRADA_SIMPLE"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 10
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-2026-02"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Compra semanal o devolucion de campaña"
+          }
+        },
+        "required": [
+          "product",
+          "entryReason",
+          "quantity"
+        ]
+      },
+      "RegisterStockExitDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Producto del que se descontara stock."
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "inventoryLotId": {
+            "type": "string",
+            "description": "Lote especifico a descontar. Si no se envia, se descuentan primero los lotes con vencimiento mas cercano."
+          },
+          "quantity": {
+            "type": "number",
+            "example": 5
+          },
+          "reasonType": {
+            "type": "string",
+            "enum": [
+              "COMPRA",
+              "ENTRADA_SIMPLE",
+              "APLICACION",
+              "PERDIDA_DERRAME",
+              "VENCIMIENTO",
+              "PRESTAMO_ENTREGA",
+              "DEVOLUCION",
+              "AJUSTE",
+              "OTRO"
+            ],
+            "example": "OTRO"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Aplicacion en parcela norte"
+          }
+        },
+        "required": [
+          "productId",
+          "quantity",
+          "reasonType",
+          "reason"
+        ]
+      },
+      "RegisterStockAdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "inventoryLotId": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "INCREMENTO",
+              "DECREMENTO"
+            ]
+          },
+          "reasonType": {
+            "type": "string",
+            "enum": [
+              "COMPRA",
+              "ENTRADA_SIMPLE",
+              "APLICACION",
+              "PERDIDA_DERRAME",
+              "VENCIMIENTO",
+              "PRESTAMO_ENTREGA",
+              "DEVOLUCION",
+              "AJUSTE",
+              "OTRO"
+            ],
+            "example": "AJUSTE"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2
+          },
+          "reason": {
+            "type": "string",
+            "example": "Envase roto durante transporte"
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-AJUSTE-01",
+            "description": "Usado cuando direction=INCREMENTO y no se envia inventoryLotId."
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          }
+        },
+        "required": [
+          "productId",
+          "direction",
+          "reasonType",
+          "quantity"
+        ]
+      },
+      "UpdateInventoryLotDto": {
+        "type": "object",
+        "properties": {
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-2026-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          }
+        }
+      },
+      "UpdateProductInventorySettingsDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "example": "Herbicida"
+          },
+          "minimumStock": {
+            "type": "number",
+            "example": 5
+          },
+          "expirationWarningDays": {
+            "type": "number",
+            "example": 90
+          }
+        }
+      },
+      "AssociateProductDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Denominación del catálogo central"
+          },
+          "canonicalProductId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Producto canónico (no puede ser alias)"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita de la Directiva (RF-33)"
+          }
+        },
+        "required": [
+          "productId",
+          "canonicalProductId",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "CloseProductAssociationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "reason",
+          "confirmed"
+        ]
+      },
+      "CreateCampaignDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Invierno 2026"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-04-01"
+          },
+          "estimatedEndDate": {
+            "type": "object",
+            "example": "2026-08-31",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Campana de invierno para el sindicato.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "startDate"
+        ]
+      },
+      "UpdateCampaignDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Invierno 2026"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-04-01"
+          },
+          "estimatedEndDate": {
+            "type": "object",
+            "example": "2026-08-31",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Campana de invierno para el sindicato.",
+            "nullable": true
+          }
+        }
+      },
+      "CloseCampaignDto": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "object",
+            "example": "Cierre administrativo de campana.",
+            "nullable": true
+          }
+        }
+      },
+      "CreatePlotDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Campo norte"
+          },
+          "location": {
+            "type": "object",
+            "example": "Comunidad 19 de Agosto, lote 3",
+            "nullable": true
+          },
+          "area": {
+            "type": "object",
+            "example": 12.5,
+            "nullable": true
+          },
+          "areaUnit": {
+            "type": "string",
+            "example": "ha"
+          },
+          "notes": {
+            "type": "object",
+            "example": "Parcela principal del agricultor.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdatePlotDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Campo norte"
+          },
+          "location": {
+            "type": "object",
+            "example": "Comunidad 19 de Agosto, lote 3",
+            "nullable": true
+          },
+          "area": {
+            "type": "object",
+            "example": 12.5,
+            "nullable": true
+          },
+          "areaUnit": {
+            "type": "string",
+            "example": "ha"
+          },
+          "notes": {
+            "type": "object",
+            "example": "Parcela principal del agricultor.",
+            "nullable": true
+          }
+        }
+      },
+      "CreateCropDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Soya"
+          },
+          "variety": {
+            "type": "object",
+            "example": "Munasqa",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cultivo habilitado para campanas de verano.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCropDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Soya"
+          },
+          "variety": {
+            "type": "object",
+            "example": "Munasqa",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cultivo habilitado para campanas de verano.",
+            "nullable": true
+          }
+        }
+      },
+      "CreatePlotCropAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "plotId": {
+            "type": "string"
+          },
+          "cropId": {
+            "type": "string"
+          },
+          "plantedArea": {
+            "type": "object",
+            "example": 10.5,
+            "nullable": true
+          },
+          "plantedAt": {
+            "type": "object",
+            "example": "2026-04-15",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cultivo principal de la parcela.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "plotId",
+          "cropId"
+        ]
+      },
+      "UpdatePlotCropAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "cropId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PLANIFICADO",
+              "ACTIVO",
+              "CAMBIADO",
+              "CERRADO"
+            ]
+          },
+          "plantedArea": {
+            "type": "object",
+            "example": 10.5,
+            "nullable": true
+          },
+          "plantedAt": {
+            "type": "object",
+            "example": "2026-04-15",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Cambio de cultivo registrado.",
+            "nullable": true
+          }
+        }
+      },
+      "SupplierReferenceDto": {
+        "type": "object",
+        "properties": {
+          "supplierId": {
+            "type": "string"
+          },
+          "supplierName": {
+            "type": "string",
+            "example": "Agroservicios San Julian"
+          },
+          "phone": {
+            "type": "string",
+            "example": "70000000"
+          },
+          "address": {
+            "type": "string",
+            "example": "San Julian, Santa Cruz"
+          }
+        }
+      },
+      "CreatePurchaseItemDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 20
+          },
+          "unitCost": {
+            "type": "number",
+            "example": 45.5
+          },
+          "discountAmount": {
+            "type": "number",
+            "example": 15
+          },
+          "receivedQuantity": {
+            "type": "number",
+            "example": 10,
+            "description": "Cantidad recibida cuando la compra es parcial."
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-COMPRA-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          }
+        },
+        "required": [
+          "product",
+          "quantity",
+          "unitCost"
+        ]
+      },
+      "CreatePurchaseDto": {
+        "type": "object",
+        "properties": {
+          "supplier": {
+            "$ref": "#/components/schemas/SupplierReferenceDto"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "paymentMode": {
+            "type": "string",
+            "enum": [
+              "CONTADO",
+              "CREDITO"
+            ],
+            "example": "CREDITO"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "PROGRAMADA",
+              "CONFIRMADA",
+              "RECIBIDA_PARCIAL",
+              "RECIBIDA",
+              "CERRADA",
+              "CANCELADA"
+            ],
+            "example": "RECIBIDA"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreatePurchaseItemDto"
+            }
+          },
+          "purchasedAt": {
+            "type": "string",
+            "example": "2026-05-28"
+          },
+          "expectedAt": {
+            "type": "string",
+            "example": "2026-06-05",
+            "description": "Fecha esperada para compra programada."
+          },
+          "dueDate": {
+            "type": "string",
+            "example": "2026-06-28",
+            "description": "Obligatorio cuando paymentMode=CREDITO."
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Galpon principal"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Compra registrada desde formulario"
+          }
+        },
+        "required": [
+          "supplier",
+          "paymentMode",
+          "items"
+        ]
+      },
+      "JointPurchaseAllocationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": [
+          "userId",
+          "quantity"
+        ]
+      },
+      "CreateJointPurchaseItemDto": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductReferenceDto"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 50
+          },
+          "unitCost": {
+            "type": "number",
+            "example": 42
+          },
+          "discountAmount": {
+            "type": "number",
+            "example": 120
+          },
+          "receivedQuantity": {
+            "type": "number",
+            "example": 25,
+            "description": "Cantidad recibida cuando la compra es parcial."
+          },
+          "lotNumber": {
+            "type": "string",
+            "example": "LOTE-CONJ-01"
+          },
+          "expirationDate": {
+            "type": "string",
+            "example": "2027-12-31"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JointPurchaseAllocationDto"
+            }
+          }
+        },
+        "required": [
+          "product",
+          "quantity",
+          "unitCost",
+          "allocations"
+        ]
+      },
+      "CreateJointPurchaseDto": {
+        "type": "object",
+        "properties": {
+          "supplier": {
+            "$ref": "#/components/schemas/SupplierReferenceDto"
+          },
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "paymentMode": {
+            "type": "string",
+            "enum": [
+              "CONTADO",
+              "CREDITO"
+            ],
+            "example": "CREDITO"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "PROGRAMADA",
+              "CONFIRMADA",
+              "RECIBIDA_PARCIAL",
+              "RECIBIDA",
+              "CERRADA",
+              "CANCELADA"
+            ],
+            "example": "RECIBIDA"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateJointPurchaseItemDto"
+            }
+          },
+          "purchasedAt": {
+            "type": "string",
+            "example": "2026-05-28"
+          },
+          "expectedAt": {
+            "type": "string",
+            "example": "2026-06-05",
+            "description": "Fecha esperada para compra programada."
+          },
+          "dueDate": {
+            "type": "string",
+            "example": "2026-06-28",
+            "description": "Obligatorio si paymentMode=CREDITO."
+          },
+          "warehouseName": {
+            "type": "string",
+            "example": "Deposito comun del sindicato"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Compra conjunta para aprovechar descuento por volumen"
+          }
+        },
+        "required": [
+          "supplier",
+          "paymentMode",
+          "items"
+        ]
+      },
+      "CreateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Agroservicios San Julian"
+          },
+          "phone": {
+            "type": "string",
+            "example": "70000000"
+          },
+          "address": {
+            "type": "string",
+            "example": "San Julian, Santa Cruz"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Proveedor de herbicidas y fertilizantes"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Agroservicios San Julian"
+          },
+          "phone": {
+            "type": "string",
+            "example": "70000000"
+          },
+          "address": {
+            "type": "string",
+            "example": "San Julian, Santa Cruz"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Proveedor de herbicidas y fertilizantes"
+          }
+        }
+      },
+      "RegisterPaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 150
+          },
+          "paidAt": {
+            "type": "string",
+            "example": "2026-05-28"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Abono parcial realizado en efectivo"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
+      "CreateApplicationDto": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "description": "Si se omite, se usa la campana activa."
+          },
+          "plotId": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "inventoryLotId": {
+            "type": "string",
+            "description": "Lote especifico a descontar. Si se omite, se usa el lote con vencimiento mas cercano."
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2.5
+          },
+          "dose": {
+            "type": "object",
+            "example": "1 L/ha",
+            "nullable": true
+          },
+          "targetPest": {
+            "type": "object",
+            "example": "Malezas de hoja ancha",
+            "nullable": true
+          },
+          "weatherConditions": {
+            "type": "object",
+            "example": "Sin lluvia, viento leve",
+            "nullable": true
+          },
+          "responsibleName": {
+            "type": "object",
+            "example": "Juan Perez",
+            "nullable": true
+          },
+          "appliedAt": {
+            "type": "string",
+            "example": "2026-05-10T08:30:00.000Z"
+          },
+          "notes": {
+            "type": "object",
+            "example": "Aplicacion preventiva.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "plotId",
+          "productId",
+          "quantity"
+        ]
+      },
+      "CancelApplicationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Registro duplicado o error de cantidad."
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "OfflineOperationDto": {
+        "type": "object",
+        "properties": {
+          "clientOperationId": {
+            "type": "string",
+            "example": "device-op-001"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "INITIAL_STOCK",
+              "PLOT_CREATE",
+              "PLOT_UPDATE",
+              "PLOT_DEACTIVATE",
+              "PLOT_CROP_ASSIGN",
+              "STOCK_ENTRY",
+              "STOCK_EXIT",
+              "AGROCHEMICAL_APPLICATION",
+              "PAYMENT_CREATE"
+            ]
+          },
+          "payload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "clientOperationId",
+          "operation",
+          "payload"
+        ]
+      },
+      "SyncOperationsDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "example": "android-juan-001"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfflineOperationDto"
+            }
+          }
+        },
+        "required": [
+          "clientId",
+          "operations"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Juan Perez"
+          },
+          "email": {
+            "type": "string",
+            "example": "juan.perez@agro.local"
+          },
+          "password": {
+            "type": "string",
+            "example": "Contrasena123!"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "AGRICULTOR",
+              "DIRECTIVA",
+              "ADMINISTRADOR"
+            ],
+            "example": "AGRICULTOR"
+          },
+          "allowAdministrator": {
+            "type": "boolean",
+            "description": "Confirma explicitamente la creacion de un usuario ADMINISTRADOR.",
+            "example": false
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+          "role"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Juan Perez"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "AGRICULTOR",
+              "DIRECTIVA",
+              "ADMINISTRADOR"
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ResetUserPasswordDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "example": "NuevaContrasena123!"
+          }
+        },
+        "required": [
+          "password"
+        ]
+      }
+    }
+  }
+}

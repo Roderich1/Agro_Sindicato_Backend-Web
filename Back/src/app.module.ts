@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AccountsPayableModule } from './modules/accounts-payable/accounts-payable.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { BackupsModule } from './modules/backups/backups.module';
 import { ApplicationsModule } from './modules/applications/applications.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
@@ -41,6 +42,7 @@ import { HealthController } from './bootstrap/health.controller';
     SyncModule,
     SyncV1Module,
     CollectiveModule,
+    BackupsModule,
     UsersModule
   ],
   controllers: [HealthController],

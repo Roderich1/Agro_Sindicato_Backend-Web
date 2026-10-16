@@ -1,0 +1,67 @@
+# F08 — Modelo de amenaza del respaldo privado
+
+**Fecha real de elaboración: 2026-10-16** (America/La_Paz), revisión del PR BE #114. Gate relacionado: GATE-F08 (#41), **Pending**.
+
+**Trazabilidad:** RF-26, RF-27, RNF-04, RNF-10, DAT-14, CU-14 y CU-15.
+
+## 0. Omisión original
+
+[DEC-F01-10](F01_INTEGRATION_DECISIONS.md) pedía, **antes de implementar**:
+- el modelo de amenaza;
+- la decisión de proveedor;
+- la integridad y la restauración de extremo a extremo.
+
+**Ese orden no se respetó.** La API `/api/v1/me/backups` y el adaptador de disco se implementaron (`a6cf658`, 2026-10-16) sin un modelo de amenaza escrito ni una decisión de proveedor registrada. La revisión de la sesión A lo detectó.
+
+Por decisión de Roderich Rendón (opción 2), este documento **completa la documentación después de implementar** y antes de integrar #114. No sustituye la verificación previa que pedía DEC-F01-10 ni la da por cumplida en su momento. DEC-F01-10 **no se modifica**.
+
+## 1. Datos protegidos
+
+| Dato | Dónde vive | Sensibilidad |
+|---|---|---|
+| Contenedor `.agrobackup`: la base SQLite completa del agricultor y las fotografías de factura | Binario en el almacenamiento privado, `BACKUP_STORAGE_DIR/objects/<storageKey>`; en tránsito, el cuerpo HTTP | **Alta.** Contiene compras, personas y familiares, liquidaciones, proveedores, precios, fotos e identificadores locales (CURRENT_SCOPE §10). |
+| Metadatos (`BackupMetadata`) | PostgreSQL | Media. Revelan quién tiene copias, cuándo y de qué tamaño; no el contenido. |
+| Credenciales de sesión Auth V2 | Almacén cifrado del teléfono; access token en memoria | Alta. Dan acceso a las copias del titular. |
+
+## 2. Límites de confianza
+
+1. **Teléfono ↔ API.** Red no confiable. La protección es TLS en un despliegue (no hay despliegue real). En el ensayo se usa un túnel HTTPS temporal.
+2. **API ↔ PostgreSQL.** Sólo metadatos.
+3. **API ↔ almacenamiento privado.** Disco local del servidor. **Quien administre el sistema operativo** del servidor (o tenga acceso al volumen o a sus copias) está **dentro** de este límite y puede leer los archivos.
+4. **Roles de la aplicación.** Directiva y Administrador son usuarios de la API, no operadores del servidor.
+
+## 3. Amenazas, controles, pruebas y riesgo residual
+
+| # | Amenaza | Controles existentes | Pruebas que los respaldan | Riesgo residual |
+|---|---|---|---|---|
+| T1 | **Otra cuenta o tenant** lista, descarga o borra una copia ajena, o intenta subir con un owner forjado | El propietario sale sólo de la sesión Auth V2, revalidada en cada petición: sesión, Member AGRICULTOR, cuenta, tenant y registro de cliente activos. Las consultas se filtran por tenant y Member. Una copia ajena, inexistente o con id inválido recibe un 404 idéntico. Directiva y Administrador reciben 403. Las cabeceras y la ruta del cliente nunca amplían el alcance. | `backups.postgres.spec.ts`: «lists and serves only the owner's copies; another Member or tenant gets an indistinguishable 404», «Directiva and Administrador of the same tenant have no access to private copies» y «uploads with SHA-256 verified by the server…», que comprueba las cabeceras ignoradas. Mutación sobre `15c8cf4`: quitar el filtro por Member hace fallar la prueba de aislamiento (`docs/evidence/F08_BACKUP.md`). | Bajo dentro de la API. **El 403 a Directiva y Administrador no protege frente al operador del servidor** (T3). |
+| T2 | **Robo de credenciales:** token o refresh robado o dispositivo comprometido | Access token de vida corta. Se revalidan en cada petición la sesión, el registro de cliente, la cuenta, el Member y el tenant. Revocar uno corta el acceso: 401 o 403. Ante un 401 o 403 el móvil descarta el acceso en memoria. | `backups.postgres.spec.ts`: «requires a live Auth V2 mobile session» y el bloque «Auth V2 context is revalidated on every request», que cubre registro REVOKED, Member, cuenta o tenant inactivos, sesión o token vencidos y tenant o Member del token distintos. Mobile `remote_backup_client_test.dart`: «un 401 o 403 descarta el acceso en memoria; un 404 no». | **Medio.** Mientras la sesión robada siga activa, el atacante puede descargar las copias del titular. No hay segundo factor ni cifrado del lado del cliente. |
+| T3 | **Exposición de archivos:** administrador del SO, volumen, copias del disco o un error de permisos | Los binarios están fuera de PostgreSQL, en una carpeta propia. Ficheros con modo 0600 y directorios 0700 (donde el SO aplica permisos POSIX). Las claves son UUID del servidor, sin nombres del cliente. No hay binarios en logs ni en la base. En producción el servicio está **cerrado** salvo `BACKUP_PRODUCTION_ADMISSION=enabled`, que no está autorizado. | `backups.postgres.spec.ts`: «uploads with SHA-256 verified by the server; the binary is on disk under a server key, never in PostgreSQL», que busca el marcador como texto y en hex en todas las tablas, y «no backup operation touched Sync v1, collective or audit tables, and nothing sensitive was logged». `backups.service.spec.ts`: «BackupsConfig production admission». Comprobación previa: «producción sin admisión: lista HTTP 503, subida HTTP 503». | **Alto si se admitieran datos reales hoy.** **No hay cifrado en reposo**: el administrador del sistema operativo, o quien acceda al volumen o a sus copias, **puede leer los respaldos**. Por eso la producción sigue cerrada. |
+| T4 | **Alteración** de la copia en el servidor o en tránsito | El servidor recalcula el SHA-256 en streaming al recibir y lo coteja con el declarado (422). Antes de servir recalcula el del archivo almacenado (500 si no coincide). El cliente coteja la cabecera, el tamaño y el SHA-256 con los metadatos y, además, valida el contenedor por dentro (SHA-256 de la base y de cada foto contra el manifiesto). | `backups.postgres.spec.ts`: «rejects a SHA-256 mismatch with 422…» y «does not deliver a stored copy that no longer matches its SHA-256». Mobile: «bytes alterados con la cabecera correcta…», «contenedor alterado por dentro con hash exterior coherente…» y `backup_restore_sha256_test.dart` «una base alterada con SQL válido se rechaza al validar». | **SHA-256 verifica la integridad respecto de una referencia confiable**: el hash que registró el servidor y el manifiesto interno. **No da confidencialidad.** Frente a un **servidor comprometido**, que puede reemplazar a la vez la copia y su metadato, **no protege por sí solo**. La validación interna sólo detecta un cambio si el manifiesto no se reescribió de forma coherente. No hay firma. |
+| T5 | **Descarga o subida incompleta:** corte, aborto o servidor caído | Servidor: staging, fsync y rename atómico; un corte deja FAILED sin bytes; un intento fallido no sustituye la copia disponible. Cliente: escribe `.part` y renombra sólo tras cotejar tamaño y hash. Plazo por inactividad y tope proporcional al tamaño; aborto real. Una restauración sólo empieza con la copia completa y validada, con exclusión de escrituras y rollback. | `backups.postgres.spec.ts`: «a transfer cut by the client is recorded as FAILED and leaves no partial bytes». `local-disk-backup-storage.spec.ts`: «a source that fails mid-transfer leaves no partial file and keeps the previous object». Mobile: «corte a mitad de la descarga: no queda parcial», «una descarga detenida se aborta por inactividad…» y las regresiones de rollback de `f04_restore_authorization_test.dart`. | Bajo. Las caídas entre el commit del objeto y su marca AVAILABLE dejan huérfanos inaccesibles (T6, BKP-06). |
+| T6 | **Agotamiento del almacenamiento** | `BACKUP_MAX_BYTES` (413 por `Content-Length` o durante el flujo). Cupo de copias en uso por Member (409). Una subida abandonada se marca FAILED y se limpia su staging. Requiere un agricultor autenticado. Límite global de peticiones (throttler). | `backups.postgres.spec.ts`: «enforces the size limit with 413, whether declared or streamed, leaving nothing» y «limits the copies in use per Member (409) and frees a slot on deletion». | **Medio.** No hay cupo global por tenant ni por disco. Los objetos huérfanos y las filas FAILED no se purgan: **BKP-06, diferido a F10**. Muchos agricultores con el máximo de copias pueden llenar el disco. |
+| T7 | **Fuga por logs o por eco del cuerpo** | Errores con cuerpo cerrado `{errorCode}` y sin eco. Guarda que impide que los parsers compartidos lean el cuerpo (415). Logs sin ids, claves, hashes ni contenido. | `backups.postgres.spec.ts`: «a body sent as JSON or urlencoded is never parsed, echoed or logged: closed 415» y la comprobación de logs de la última prueba. Comprobación previa contra la API compilada: «415 cerrado sin eco», con 0 apariciones del marcador en `api.log`. | Bajo. |
+| T8 | **Mezcla con Sync o con la proyección colectiva** | Módulo separado, que no importa Sync v1 ni el colectivo. Restaurar pausa la outbox (RESTORE_PAUSED) y sólo el titular verificado la libera. | `backups.postgres.spec.ts`: «no backup operation touched Sync v1…» (filas completas antes y después). Mobile: «la cola restaurada queda pausada antes de que nadie vea la base, y no se envía al abrir la app». | Bajo. |
+
+## 4. Decisión de almacenamiento
+
+- **Adaptador de disco local (`LocalDiskBackupStorage`): sólo para desarrollo y pruebas.**
+- **Proveedor productivo pendiente.** Puede ser un almacenamiento de objetos o un volumen gestionado. Están pendientes la integración externa, sus credenciales y sus costos. **No se probó ni se declara Backblaze B2 ni otro proveedor.**
+- Sin despliegue real. La admisión productiva sigue cerrada: `BACKUP_PRODUCTION_ADMISSION` no está autorizado y `docker-compose.yml` lo fija en `disabled`.
+
+## 5. Condiciones antes de admitir datos reales
+
+Ninguna se cumple hoy. Todas son necesarias:
+
+1. Decisión de proveedor productivo registrada, con la ubicación de los datos, los costos y quién lo administra.
+2. **Cifrado en reposo**: del proveedor, del volumen o del lado del cliente. Para que el operador del servidor no pueda leer los respaldos hace falta cifrado del lado del cliente con clave del agricultor, que es la única opción que protege de T3 y de parte de T4.
+3. TLS de extremo a extremo en el despliegue real, sin túneles de prueba.
+4. **Retención, purga y reconciliación de huérfanos (BKP-06, #40)**, con su período aprobado (R_BACKUP_F08 de F06 §7).
+5. Cupo global y alertas de capacidad del almacenamiento.
+6. Copias de seguridad del propio almacenamiento y procedimiento de restauración del servidor.
+7. Revisión de seguridad en F10 (#45) y decisión explícita de Roderich para habilitar `BACKUP_PRODUCTION_ADMISSION`.
+8. E2E en dispositivo superado (MOB #36).
+
+## 6. Lo que no se difiere
+
+BKP-06 se difiere a F10 **sólo** para retención, purga y reconciliación de huérfanos. **No se difieren** la integridad, el aislamiento, la exclusión de escrituras ni la recuperación segura ante fallos, que están implementados y probados (T1, T4, T5, T8).

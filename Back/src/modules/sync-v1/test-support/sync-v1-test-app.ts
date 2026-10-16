@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { URL } from "node:url";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
+import { configureBackupsBodyGuard } from "@/modules/backups/api/rest/backups-body";
 import { configureSyncV1BodyParser } from "../api/rest/sync-v1-body";
 import cookieParser = require("cookie-parser");
 
@@ -84,6 +85,8 @@ export async function createSyncV1App(
   // As in main.ts: the V2 refresh reads the cookie jar even for BODY.
   app.use(cookieParser());
   configureSyncV1BodyParser(app);
+  // As in main.ts (F08).
+  configureBackupsBodyGuard(app);
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
