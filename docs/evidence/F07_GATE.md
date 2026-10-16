@@ -3,7 +3,8 @@
 - **Estado propuesto:** `Status = Validation`, `Gate = Pending`, `Evidence = Partial`.
 - **Esta acta no aprueba el gate.** Sólo Roderich Rendón, con confirmación explícita, puede registrar Passed, Failed o Waived.
 - **Redactada:** 2026-10-16 por Claude Code (sesión B), con autorización delegada para construir. Es una evaluación técnica automatizada; no hubo inspección personal de capturas por Roderich ni revisión del tutor.
-- **Base evaluada:** rama `feat/f07-web-directiva`, código `ba14a20` (PR draft, sin fusionar). Resultados en [F07_WEB.md](F07_WEB.md).
+- **Base evaluada:** rama `feat/f07-web-directiva`, último commit de código `dee81dc`, con CI de Backend y Web en verde (PR draft, sin fusionar). Resultados en [F07_WEB.md](F07_WEB.md).
+- **Defecto corregido antes de esta evaluación.** La revisión de la sesión A sobre #116 encontró que un borrador podía servir una divulgación antigua sustituida y después retirada (R4/R8). Está corregido en `6db54b5` y cubierto por una regresión completa que fallaba con el código anterior ([F07_WEB.md](F07_WEB.md) §2). La versión anterior de la evidencia afirmaba lo contrario y se corrigió.
 - **Política de divulgación:** F07-POL-01 sigue **sin aprobar** (#107). Todo lo que muestra cifras se ejecutó con `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` y datos sintéticos. En producción no hay cifras.
 
 ## Criterios de #29

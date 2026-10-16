@@ -1,7 +1,7 @@
 # F07 — Web Directiva/Administrador, reconciliación y propuesta conjunta en borrador
 
 - **Fecha real:** 2026-10-16 (America/La_Paz). Ejecución automatizada por Claude Code (sesión B) con autorización delegada para construir. Sin revisión de Roderich ni del tutor.
-- **Rama:** `feat/f07-web-directiva`, base `063437d`, con `main` integrado (#112, #113) mediante merge `6e9e33d`.
+- **Rama:** `feat/f07-web-directiva`, base `063437d`, con `main` integrado mediante merges: `6e9e33d` (#112, #113) y `56d5317` (`c656921`, #115).
 - **Issues:** #23, #24, #25 (parcial), #26, #27, #108; #28 (CSV de la propuesta); Refs #29 (GATE-F07, Pending).
 - **Política de divulgación:** F07-POL-01 **no aprobada** (#107). Las cifras sólo se ven con `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` y datos sintéticos. Sin esa variable, o en producción, el servidor no publica cifras.
 
@@ -14,7 +14,7 @@
 | `JointPurchaseProposal` / `JointPurchaseProposalLine` | Borrador (`DRAFT` es el único estado). La línea **no guarda cantidades**: referencia la divulgación (`CollectiveRelease`) que el resumen decidió publicar. CHECK en la base: `releaseId` presente si y sólo si la línea es `DISCLOSED`. |
 | `POST /collective/campaigns/:id/proposals` | Ejecuta la decisión del resumen dentro de su transacción y bloqueo, y guarda sólo las celdas `DECLARED_NEED`. En `POLICY_PENDING` responde 409 y no guarda nada. |
 | `GET /collective/campaigns/:id/proposals` | Historial: fecha, autor, huella y número de líneas. Sin cantidades. |
-| `GET /collective/proposals/:id` y `/csv` | Antes de servir, vuelve a decidir con la política del resumen. Una cifra retirada después (`withdrawnAt`) se sirve como `WITHDRAWN`, sin cantidad. En `POLICY_PENDING` todas las líneas salen sin cifra y sin cobertura. El CSV sale de la misma vista y neutraliza textos que una hoja de cálculo ejecutaría como fórmula. |
+| `GET /collective/proposals/:id` y `/csv` | Antes de servir, vuelve a decidir con la política del resumen, dentro de su bloqueo. Una línea muestra su cifra **sólo si la celda muestra ahora esa misma divulgación**. Si la celda no muestra ninguna cifra, la línea sale `WITHDRAWN`; si muestra otra más reciente, `SUPERSEDED`. En ambos casos va sin cantidad y con la huella oculta. `pending_changes` se toma de la celda actual. En `POLICY_PENDING` todas las líneas salen sin cifra, sin cobertura y sin huella. El CSV sale de la misma vista y neutraliza textos que una hoja de cálculo ejecutaría como fórmula. |
 | Huella | SHA-256 de una serialización canónica, ordenada por producto y unidad, de lo que el resumen publicó: estado, total sólo si `DISCLOSED`, `pending_changes` y cobertura. Un total oculto nunca entra. |
 | `GET /collective/product-associations/catalog` | Denominaciones del tenant: nombre, unidad, unidad base y activo. Sin stock ni otros datos legacy. |
 | Historial de asociaciones | Añade `actor_name` y `closed_by_name` (Directiva/Administrador, no agricultores). |
@@ -43,7 +43,7 @@ No hay recomendaciones automáticas ni compras ejecutadas. Generar un borrador n
   - cero explícito;
   - ausencia: sin celda, con un aviso de que no es cero;
   - `OVERFLOW`;
-  - `WITHDRAWN`;
+  - `WITHDRAWN` y `SUPERSEDED`, sin cifra y con «huella oculta»;
   - errores 403/404/409, y sin conexión: no se encola nada.
 - **Cantidades:**
   - se presentan sólo con BigInt y strings, sin `Number` ni `parseFloat`;
@@ -51,17 +51,36 @@ No hay recomendaciones automáticas ni compras ejecutadas. Generar un borrador n
   - nunca se suma ni se resta en el navegador.
 - **Cola offline:** no se usa ni se amplía.
 
-## 2. Verificación ejecutada
+## 2. Defecto corregido tras la revisión de A
 
-- **SHA verificado:** `ba14a20c69ee98851afb6037dac19f707df153f3`, en la rama `feat/f07-web-directiva`, que incluye el merge de `main` `6e9e33d`.
-- **Fecha:** 2026-10-16. Verificación de 17:06:50Z a 17:10:33Z; recorrido de 17:04:43Z a 17:06:49Z.
+- **Qué decía la versión anterior.** Esta evidencia, en `ba14a20`/`5987fa0`, afirmaba que una cifra retirada no se servía. **Era incorrecto.**
+- **Por qué.**
+  - `render()` comprobaba sólo `release.withdrawnAt`.
+  - El resumen sólo retira la **última** divulgación de una celda. Una divulgación anterior (R1), sustituida por R2, conserva `withdrawnAt = null` para siempre.
+  - Con P1 sobre R1, k cambios que publican R2 y una cancelación que retira R2, P1 seguía sirviendo la cifra de R1 en JSON y CSV.
+  - Lo encontró la sesión A al revisar #116 (`PARALELO_CONTROL.md`, «REVISIÓN_A_B»).
+- **Corrección (`6db54b5`).** La línea sirve la cifra sólo si la decisión actual del resumen muestra esa misma `releaseId`; si no, sale `WITHDRAWN` o `SUPERSEDED`, sin cifra y con la huella oculta.
+- **Regresión completa, decidida por Roderich.** Va por la API real en PostgreSQL y recorre dos caminos:
+  - retirada de la última divulgación;
+  - R1 → R2 → retirada.
+
+  En cada camino, después de la retirada, ninguna respuesta nueva contiene la cantidad retirada ni la huella que la cubría: detalle, listado/historial (`GET …/proposals`) y CSV de cada borrador anterior, un borrador nuevo con su CSV, y el resumen JSON/CSV. La comprobación la hace el servidor, no la interfaz.
+- **Prueba en rojo antes del arreglo** (`dee81dc`, ejecutada contra el caso de uso de `5987fa0`). Fallan los dos caminos:
+  - **R1 → R2:** esperado `status: "SUPERSEDED", quantity_base: null, contributors: null`; recibido `status: "DISCLOSED", quantity_base: "6000", contributors: 3`.
+  - **Retirada de la última divulgación:** la cantidad ya no salía, pero el detalle seguía publicando la huella SHA-256 que la cubría (`inputs_fingerprint` no nulo). Con un espacio de valores pequeño, esa huella permite comprobar candidatos.
+- **En verde con la corrección.** Resultados en §3.
+
+## 3. Verificación ejecutada
+
+- **SHA verificado:** `dee81dcb0355be973fd5c7c7b0ad9e5836873b8f`, en la rama `feat/f07-web-directiva`. Es el último commit de código; lo que sigue son sólo documentos. Incluye los merges de `main` `6e9e33d` y `56d5317`.
+- **Fecha:** 2026-10-16. Verificación de 17:52:25Z a 17:55:22Z; recorrido de 17:55:22Z a 17:57:29Z.
 - **Entorno propio de la sesión B:**
   - PostgreSQL 16 en el contenedor `agro_b_web_pg` (`127.0.0.1:55442`), con bases nuevas por suite;
   - API en 3112 y Web en 5174;
   - Node v25.9.0 en local. El CI usa Node 22.
 - **Secretos:** se generan en memoria en cada corrida y no aparecen en archivos ni logs.
 
-### 2.1 Backend
+### 3.1 Backend
 
 | Comando | Resultado |
 |---|---|
@@ -69,7 +88,7 @@ No hay recomendaciones automáticas ni compras ejecutadas. Generar un borrador n
 | `prisma migrate diff --from-migrations … --to-schema-datamodel … --exit-code` (tras el merge) | «No difference detected» |
 | `npm run build` | OK |
 | `npx eslint` sobre los archivos cambiados | 0 problemas. `eslint src` completo mantiene el error preexistente `structuredClone` de `inventory-adjustment.use-case.ts`, ya presente en la base `063437d` |
-| `npm test -- --runInBand` | 198 pasan, 149 omitidas (las `*.postgres.spec.ts` sin URL). Incluye `domain/proposal.spec.ts` |
+| `npm test -- --runInBand` | 199 pasan, 150 omitidas (las `*.postgres.spec.ts` sin URL). Incluye `domain/proposal.spec.ts` y la prueba de neutralización de #115 |
 | `npm run openapi:check` | Snapshots coinciden; aserciones F02, F05 y F06 OK (con las rutas nuevas) |
 | `auth-v2.postgres.spec.ts` | 12/12 |
 | `current-auth-context.postgres.spec.ts` | 25/25 |
@@ -79,7 +98,7 @@ No hay recomendaciones automáticas ni compras ejecutadas. Generar un borrador n
 | `sync-v1-references.postgres.spec.ts` | 7/7 |
 | `f06-coll-05-collective-aggregate.postgres.spec.ts` | 15/15 (con la prueba de migración tomada de `9b0a2ba`) |
 | `product-reconciliation.postgres.spec.ts` | 5/5 |
-| **`f07-web-proposal.postgres.spec.ts`** (nueva) | **11/11** |
+| **`f07-web-proposal.postgres.spec.ts`** (nueva) | **12/12** |
 
 Lo que comprueba `f07-web-proposal.postgres.spec.ts`. Todo pasa por la API real, con contribuciones publicadas mediante `POST /sync/v1/push`.
 
@@ -102,18 +121,22 @@ Lo que comprueba `f07-web-proposal.postgres.spec.ts`. Todo pasa por la API real,
    - con cambios pendientes se mantiene la cifra anterior (6000, `pending_changes`) y 6500 no aparece;
    - con `OVERFLOW` no hay cifra;
    - el CSV neutraliza `=Campana, con fórmula`.
-9. **Retiro:** si un aportante cancela, los borradores anteriores sirven `WITHDRAWN` sin 25000, en JSON y en CSV, aunque nadie haya pedido el resumen.
-10. **`POLICY_PENDING`:** generar responde 409 sin guardar. Los borradores existentes no muestran cifras ni cobertura, y el tenant ajeno sigue en 404.
-11. **Logs:** no contienen cantidades.
+9. **Retiro de la última divulgación:** si un aportante cancela, los borradores anteriores sirven `WITHDRAWN` sin 25000, aunque nadie haya pedido el resumen. Después, la regresión completa de §2: detalle, listado/historial y CSV de todos los borradores de la campaña, un borrador nuevo con su CSV y el resumen JSON/CSV, sin 25000 y sin las huellas anteriores.
+10. **Divulgación antigua (añadida tras la revisión de A).** Secuencia: P1 sobre R1 (6000) → k cambios publican R2 (6600) → cancelación que retira R2.
+    - R1 conserva `withdrawnAt = null`.
+    - P1 sale primero `SUPERSEDED` y luego `WITHDRAWN`.
+    - La misma regresión completa, sin 6000 ni 6600 y sin las huellas de P1 y P2.
+11. **`POLICY_PENDING`:** generar responde 409 sin guardar. Los borradores existentes no muestran cifras, cobertura ni huella, y el tenant ajeno sigue en 404.
+12. **Logs:** no contienen cantidades.
 
-### 2.2 Web
+### 3.2 Web
 
 | Comando | Resultado |
 |---|---|
 | `npm ci` (desde limpio) | OK |
 | `npm run lint` | 0 errores, 2 avisos preexistentes (`contexts/*`) |
 | `npm run build` | OK |
-| `npm test` (vitest) | 30/30 en 5 archivos |
+| `npm test` (vitest) | 33/33 en 5 archivos |
 
 Qué cubren las pruebas de UI (HTTP simulado):
 
@@ -123,12 +146,13 @@ Qué cubren las pruebas de UI (HTTP simulado):
   - `POLICY_PENDING`;
   - una celda suprimida que, aun recibiendo un total por error, no lo muestra;
   - revisión, desbordamiento, cero, cambios pendientes y ausencia;
-  - error 403 y sin conexión, sin escribir `localStorage`.
+  - error 403 y sin conexión, sin escribir `localStorage`;
+  - un `?campaign=` que no es UUID se ignora.
 - **Propuesta:**
   - generar;
   - 409 `POLICY_PENDING`;
   - borrador abierto bajo `POLICY_PENDING`;
-  - `WITHDRAWN`;
+  - `WITHDRAWN` y `SUPERSEDED` sin cifra y con «huella oculta»;
   - historial sin cantidades;
   - CSV pedido al servidor.
 - **Reconciliación:**
@@ -137,9 +161,10 @@ Qué cubren las pruebas de UI (HTTP simulado):
   - unidad no vinculable;
   - canónico con alias;
   - historial;
-  - deshacer.
+  - deshacer;
+  - un 409 de reconciliación se presenta como cambio concurrente, no como política pendiente.
 
-### 2.3 Recorrido Web con datos sintéticos
+### 3.3 Recorrido Web con datos sintéticos
 
 - **Comando:** orquestador local de la sesión B. Pasos:
   1. base nueva y `prisma migrate deploy`;
@@ -152,6 +177,7 @@ Qué cubren las pruebas de UI (HTTP simulado):
 - **Resultado:** **provisional 24/24, pending 3/3**. Detalle en [`walkthrough-provisional.json`](img/f07/walkthrough-provisional.json) y [`walkthrough-pending.json`](img/f07/walkthrough-pending.json).
 - **Correcciones hechas por el propio recorrido:**
   - tras el login, la Web enviaba a todos a `/dashboard`; corregido en `ba14a20`;
+  - el guion leía el historial antes de que se recargara; corregido en `534adb8` (el producto mostraba las huellas correctas);
   - el resto de los intentos fallidos fueron errores del guion de navegación, también corregidos.
   - Ninguno se presenta como evidencia.
 
@@ -172,30 +198,31 @@ Capturas en `docs/evidence/img/f07/`, generadas por el guion y revisadas por Cla
 
 | Archivo | SHA-256 |
 |---|---|
-| `01-resumen-c1-raw.png` | `fc9099eeeb084bac8c3f5f9eac2115aa2411394c8e10f607f44212a793101372` |
-| `02-propuesta-c1-raw-regenerada.png` | `d1f9b79df683d6416b57e1e42d07565a7126b4f4a5ae7c6e44651a4104343cb5` |
+| `01-resumen-c1-raw.png` | `318f9189ab6ebbbc9c8dad3ff9fa00d41a574f7cfdedd831c8e6d9a2937d1fa6` |
+| `02-propuesta-c1-raw-regenerada.png` | `c7c6cc2673a379f8f527e8517fd609215750381cd2dc350e815692301cf6797a` |
 | `03-reconciliacion-confirmacion.png` | `80d47835393eebcd632cc32a81618d9c39e13a330532a8f552ccdb928faabf0e` |
-| `04-reconciliacion-historial.png` | `c37e2339a7d1998bad9e3e734d0e3f5b01f129b77b902e400bd62623476b76fb` |
-| `05-resumen-c1-canonico.png` | `ce219386fc2c4f3fd79766fe005a93ebcd18701004b0a01ddc4227dac71db2c6` |
-| `06-propuesta-c1-canonica.png` | `eb3b5b5f2f138c525de87ce14b792d7f3d3d409dfb731a04a167fa4b16032113` |
+| `04-reconciliacion-historial.png` | `6e4c7f77064af15ad481265c5988cde789e97d998de70f4f506d073b81e22373` |
+| `05-resumen-c1-canonico.png` | `46891bd5e5d2e6c42b09fdded1ec80383ed371c983a4510068d21a36b14c1cb7` |
+| `06-propuesta-c1-canonica.png` | `60cc01200dcd2c874397c87ba2b320d4cbfac3bfe7a09edbc9d7245373c84064` |
 | `07-cobertura.png` | `ad6901e1adda329e0115145e4e032ac0d7b06f4dde82a5699100a748fd541a1b` |
-| `08-menu-administrador.png` | `badc6c6d479858343a7d05b10307a28e4e4147c1be71ee24ff53636e3d390033` |
+| `08-menu-administrador.png` | `5aa102b2a0582cee7229c7e055c957947cd4128fd2c779d39f68c8ba1ba54d80` |
 | `09-agricultor-redirigido.png` | `dc97110597a1ffdb378ebc0984d88d9b27610ad57fe6f4d1372320f99016e281` |
 | `10-resumen-policy-pending.png` | `45da113d2091be22944be9256111e7af5392b61115dded42cdab27b9b5c96bfa` |
-| `11-propuesta-policy-pending.png` | `3136386f406fe0dc980199b49f22e57690bfa7ef06bbada445793ac3186c7294` |
-| `propuesta-c1-canonica.csv` | `a1306589da38c600a09c1d4a61ebafaf68a12e1800c04d7f672e332cc0e472ef` |
+| `11-propuesta-policy-pending.png` | `dd7f87889a4abd85da151b1aa642a5905860ebe26f3a787b2ae7d5ed7b098747` |
+| `propuesta-c1-canonica.csv` | `34bb7f67503e5c288883ce6566fae954c7fdd6559f08505dac528bbc4d500c32` |
 
 La captura 09 muestra el panel legacy del agricultor. Esas pantallas siguen existiendo para la transición (#81) y no forman parte de F07.
 
-### 2.4 CI del PR #116
+### 3.4 CI del PR #116
 
 - **HEAD `818e980`:**
   - run 38937972272 «Backend F02 verification»: **success**;
   - run 38937972190 «Web F07 verification»: **failure**. El job `web` pasó. En `f07-proposal-postgres`, la prueba de roles falló con `ECONNRESET` porque lanzaba 21 peticiones supertest en paralelo.
 - **Corrección `f18c4a0`:** las mismas peticiones, en serie. Sin cambios de producto. En local, 11/11.
-- **HEAD `f18c4a0`:** run 38938428604 «Backend F02 verification» **success**; run 38938428597 «Web F07 verification» **success** (jobs `web` y `f07-proposal-postgres`).
+- **HEAD `f18c4a0`:** run 38938428604 «Backend F02 verification» **success**; run 38938428597 «Web F07 verification» **success** (jobs `web` y `f07-proposal-postgres`). En ese commit seguía presente el defecto descrito en §2.
+- **Commit de código final `dee81dc`:** run 38943005476 «Backend F02 verification» **success**; run 38943005472 «Web F07 verification» **success**. Los commits posteriores son sólo documentos y no disparan los workflows por sus filtros de ruta.
 
-## 3. Límites y pendientes
+## 4. Límites y pendientes
 
 - **#25:** no hay estado por agricultor ni última sincronización individual, por decisión de alcance; sólo cobertura agregada.
 - **#23:**
