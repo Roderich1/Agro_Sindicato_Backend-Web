@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { lazy, Suspense, type ReactNode } from 'react';
 import { AdminRoute } from './components/admin-route';
 import { CollectiveRoute } from './components/collective-route';
+import { FarmerRoute, LegacyDirectivaRedirect } from './components/farmer-route';
 import { PrivateRoute } from './components/private-route';
 import { AuthProvider } from './contexts/auth.context';
 import { CampaignProvider } from './contexts/campaign.context';
@@ -20,9 +21,6 @@ const ApplicationsPage = lazy(() =>
 );
 const PurchasesPage = lazy(() =>
   import('./pages/purchases.page').then((module) => ({ default: module.PurchasesPage })),
-);
-const DirectivaPage = lazy(() =>
-  import('./pages/directiva.page').then((module) => ({ default: module.DirectivaPage })),
 );
 const CalendarPage = lazy(() =>
   import('./pages/calendar.page').then((module) => ({ default: module.CalendarPage })),
@@ -57,18 +55,6 @@ function RoleRoute({ roles, children }: { roles: string[]; children: ReactNode }
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
   return roles.includes(user.role) ? <>{children}</> : <Navigate to={homePathFor(user.role)} replace />;
-}
-
-/**
- * FarmerRoute: permite el acceso a agricultores y administradores,
- * pero BLOQUEA a DIRECTIVA (los redirige a su vista propia).
- */
-function FarmerRoute({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth();
-  if (isLoading) return null;
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'DIRECTIVA') return <Navigate to={homePathFor(user.role)} replace />;
-  return <>{children}</>;
 }
 
 function HomeRedirect() {
@@ -125,9 +111,9 @@ function AppRoutes() {
       <Route
         path="/dashboard"
         element={
-          <PrivateRoute>
+          <FarmerRoute>
             <DashboardPage />
-          </PrivateRoute>
+          </FarmerRoute>
         }
       />
       <Route
@@ -141,17 +127,17 @@ function AppRoutes() {
       <Route
         path="/plots"
         element={
-          <PrivateRoute>
+          <FarmerRoute>
             <PlotsPage />
-          </PrivateRoute>
+          </FarmerRoute>
         }
       />
       <Route
         path="/applications"
         element={
-          <PrivateRoute>
+          <FarmerRoute>
             <ApplicationsPage />
-          </PrivateRoute>
+          </FarmerRoute>
         }
       />
       <Route
@@ -165,9 +151,9 @@ function AppRoutes() {
       <Route
         path="/reports"
         element={
-          <PrivateRoute>
+          <FarmerRoute>
             <ReportsPage />
-          </PrivateRoute>
+          </FarmerRoute>
         }
       />
       <Route
@@ -186,7 +172,7 @@ function AppRoutes() {
           </AdminRoute>
         }
       />
-      {/* Solo agricultores y administradores — DIRECTIVA es redirigida */}
+      {/* F10-SEC-02 (#45): operación privada legacy, sólo AGRICULTOR (FarmerRoute) */}
       <Route
         path="/inventory"
         element={
@@ -211,15 +197,8 @@ function AppRoutes() {
           </FarmerRoute>
         }
       />
-      {/* Solo DIRECTIVA y ADMINISTRADOR */}
-      <Route
-        path="/directiva"
-        element={
-          <RoleRoute roles={['DIRECTIVA', 'ADMINISTRADOR']}>
-            <DirectivaPage />
-          </RoleRoute>
-        }
-      />
+      {/* F10-SEC-02 (#45): la pantalla heredada ejecutaba compras y pagos; el camino vigente es la propuesta */}
+      <Route path="/directiva" element={<LegacyDirectivaRedirect />} />
     </Routes>
   );
 }

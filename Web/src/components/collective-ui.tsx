@@ -1,4 +1,4 @@
-import { statusReason } from '../lib/collective-text';
+import { fmtDateTime, statusReason } from '../lib/collective-text';
 import { fmtDate } from '../lib/format';
 import { formatQuantity, type BaseUnit } from '../lib/quantity';
 import type { Campaign } from '../types/campaigns';
@@ -74,14 +74,22 @@ export function PendingChangesNote() {
   );
 }
 
-export function CoverageBanner({ coverage, campaignName }: { coverage: Coverage; campaignName: string }) {
+/**
+ * Cobertura agregada. Sin `asOf` es la cobertura actual (resumen); con `asOf`
+ * es la que quedó guardada al generar un borrador y no se actualiza después.
+ */
+export function CoverageBanner({ coverage, campaignName, asOf }: { coverage: Coverage; campaignName: string; asOf?: string }) {
   return (
     <div className="glass-card p-5" data-testid="coverage">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Cobertura · {campaignName}</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+        {asOf ? `Cobertura al generar el borrador (${fmtDateTime(asOf)})` : 'Cobertura'} · {campaignName}
+      </p>
       <p className="mt-1.5 text-lg font-bold text-slate-900">
-        {coverage.members_with_contribution} de {coverage.linked_members} agricultores vinculados aportaron datos
+        {coverage.members_with_contribution} de {coverage.linked_members} agricultores vinculados{' '}
+        {asOf ? 'habían aportado datos en esa fecha' : 'aportaron datos'}
       </p>
       <p className="mt-1 text-xs text-slate-500">
+        {asOf && 'No es la cobertura actual: consulte el resumen de la campaña para la de hoy. '}
         Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron.
       </p>
     </div>

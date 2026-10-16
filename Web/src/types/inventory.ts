@@ -40,7 +40,6 @@ export interface Product {
   qrCodeValue: string | null;
   unit: string;
   minimumStock: DecimalString;
-  currentStock: DecimalString;
   expirationWarningDays: number;
   isActive: boolean;
   createdAt: ApiDateString;
