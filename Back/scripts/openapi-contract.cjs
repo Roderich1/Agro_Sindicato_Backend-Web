@@ -122,6 +122,12 @@ const f06Required = [
   ["/api/v1/collective/product-associations", "get", "200", "401", "403"],
   ["/api/v1/collective/product-associations", "post", "200", "401", "403", "404", "409", "422"],
   ["/api/v1/collective/product-associations/{productId}/close", "post", "200", "401", "403", "404", "422"],
+  // F07 #108 catalogue and #26/#27 draft joint purchase proposals.
+  ["/api/v1/collective/product-associations/catalog", "get", "200", "401", "403"],
+  ["/api/v1/collective/campaigns/{campaignId}/proposals", "post", "201", "401", "403", "404", "409"],
+  ["/api/v1/collective/campaigns/{campaignId}/proposals", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/proposals/{proposalId}", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/proposals/{proposalId}/csv", "get", "200", "401", "403", "404"],
 ];
 assert.deepEqual(
   Object.keys(f06.paths).sort(),
@@ -145,6 +151,25 @@ for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "qua
   assert.ok(!(forbidden in cell.properties), `Cell must not expose ${forbidden}`);
 }
 assert.ok(f06.paths["/api/v1/collective/campaigns/{campaignId}/summary.csv"].get.responses["200"].content["text/csv"]);
+// F07 #27: closed proposal shapes, DRAFT only, declared need, no per-Member data.
+const proposal = f06.paths["/api/v1/collective/proposals/{proposalId}"].get.responses["200"].content["application/json"].schema;
+assert.equal(proposal.additionalProperties, false);
+assert.deepEqual(Object.keys(proposal.properties).sort(), [...proposal.required].sort());
+assert.deepEqual(proposal.properties.status.enum, ["DRAFT"]);
+assert.deepEqual(proposal.properties.basis.enum, ["DECLARED_NEED"]);
+const line = proposal.properties.lines.items;
+assert.equal(line.additionalProperties, false);
+assert.deepEqual(Object.keys(line.properties).sort(), [...line.required].sort());
+// A figure the summary no longer shows is WITHDRAWN or SUPERSEDED, and the
+// fingerprint that covers it can be hidden (null).
+for (const state of ["WITHDRAWN", "SUPERSEDED", "POLICY_PENDING"]) assert.ok(line.properties.status.enum.includes(state));
+assert.equal(proposal.properties.inputs_fingerprint.nullable, true);
+for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "net_need", "declared_stock"]) {
+  assert.ok(!(forbidden in line.properties), `Proposal line must not expose ${forbidden}`);
+}
+const history = f06.paths["/api/v1/collective/campaigns/{campaignId}/proposals"].get.responses["200"].content["application/json"].schema;
+assert.ok(!("lines" in history.items.properties) && !("quantity_base" in history.items.properties));
+assert.ok(f06.paths["/api/v1/collective/proposals/{proposalId}/csv"].get.responses["200"].content["text/csv"]);
 process.stdout.write("F06 collective OpenAPI contract assertions passed.\n");
 
 // F08 private backups (#39): owner-scoped routes, closed errors, no owner ids.

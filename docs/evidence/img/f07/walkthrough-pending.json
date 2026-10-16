@@ -1,0 +1,21 @@
+{
+  "phase": "pending",
+  "date": "2026-10-16T17:57:29.576Z",
+  "checks": [
+    {
+      "name": "POLICY_PENDING: aviso y ninguna tabla",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "POLICY_PENDING: generar se rechaza sin guardar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Borrador anterior bajo POLICY_PENDING: sin cifras",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

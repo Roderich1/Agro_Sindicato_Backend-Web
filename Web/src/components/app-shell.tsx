@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { fmtDate } from '../lib/format';
+import { COLLECTIVE_PATHS, menuPathsFor } from '../lib/navigation';
 import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
 
 /* ══════════════════════════════════════════
@@ -35,8 +36,6 @@ interface NavItem {
   label: string;
   to: string;
   icon: ReactNode;
-  roles?: string[];
-  excludeDirectiva?: boolean;
 }
 
 function NavIcon({ d }: { d: string }) {
@@ -48,6 +47,26 @@ function NavIcon({ d }: { d: string }) {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  {
+    label: 'Resumen colectivo',
+    to: COLLECTIVE_PATHS.summary,
+    icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
+  },
+  {
+    label: 'Necesidades y propuesta',
+    to: COLLECTIVE_PATHS.proposals,
+    icon: <NavIcon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
+  },
+  {
+    label: 'Cobertura',
+    to: COLLECTIVE_PATHS.coverage,
+    icon: <NavIcon d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
+  },
+  {
+    label: 'Reconciliación',
+    to: COLLECTIVE_PATHS.reconciliation,
+    icon: <NavIcon d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />,
+  },
   {
     label: 'Dashboard',
     to: '/dashboard',
@@ -67,7 +86,6 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Inventario',
     to: '/inventory',
     icon: <NavIcon d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />,
-    excludeDirectiva: true,
   },
   {
     label: 'Aplicaciones',
@@ -88,33 +106,35 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Bitacora',
     to: '/audit-logs',
     icon: <NavIcon d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
-    roles: ['DIRECTIVA', 'ADMINISTRADOR'],
   },
   {
     label: 'Compras',
     to: '/purchases',
     icon: <NavIcon d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />,
-    excludeDirectiva: true,
   },
   {
     label: 'Directiva',
     to: '/directiva',
     icon: <NavIcon d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
-    roles: ['DIRECTIVA', 'ADMINISTRADOR'],
   },
   {
     label: 'Sincronización',
     to: '/sync',
     icon: <NavIcon d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />,
-    excludeDirectiva: true,
   },
   {
     label: 'Usuarios',
     to: '/users',
     icon: <NavIcon d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />,
-    roles: ['ADMINISTRADOR'],
   },
 ];
+
+/** Ítems del menú de un rol, en el orden de `menuPathsFor` (F07-WEB-01). */
+function navItemsFor(role: string | null | undefined): NavItem[] {
+  return menuPathsFor(role)
+    .map((path) => NAV_ITEMS.find((item) => item.to === path))
+    .filter((item): item is NavItem => Boolean(item));
+}
 
 /* ══════════════════════════════════════════
    AVATAR COMPONENT
@@ -161,11 +181,7 @@ function Sidebar({
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const filteredNav = NAV_ITEMS.filter((item) => {
-    if (item.roles && !item.roles.includes(user?.role ?? '')) return false;
-    if (item.excludeDirectiva && user?.role === 'DIRECTIVA') return false;
-    return true;
-  });
+  const filteredNav = navItemsFor(user?.role);
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -315,16 +331,10 @@ export function AppShell({ title, section, actions, children }: { title: string;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineQueueCount, setOfflineQueueCount] = useState(() => readOfflineQueue().length);
-  const availableNav = NAV_ITEMS.filter((item) => {
-    if (item.roles && !item.roles.includes(user?.role ?? '')) return false;
-    if (item.excludeDirectiva && user?.role === 'DIRECTIVA') return false;
-    return true;
-  });
+  const availableNav = navItemsFor(user?.role);
   const preferredMobilePaths = user?.role === 'AGRICULTOR'
     ? ['/dashboard', '/plots', '/inventory', '/applications']
-    : user?.role === 'DIRECTIVA'
-      ? ['/dashboard', '/campaigns', '/plots', '/directiva']
-      : ['/dashboard', '/campaigns', '/plots', '/applications'];
+    : [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.coverage, COLLECTIVE_PATHS.reconciliation];
   const mobileNav = preferredMobilePaths
     .map((path) => availableNav.find((item) => item.to === path))
     .filter((item): item is NavItem => Boolean(item));
