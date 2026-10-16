@@ -363,25 +363,29 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     const asAdmin = await generate(campaigns.C1, admin);
     expect(asAdmin.status).toBe(201);
     expect((await proposal(id, admin)).status).toBe(200);
-    const routes = (session?: TestSession) => {
+    // One request at a time: parallel supertest servers reset connections on CI.
+    const routes = async (session?: TestSession): Promise<Res[]> => {
       const h = session ? auth(session) : {};
-      return [
-        http().get(`/api/v1/collective/campaigns/${campaigns.C1}/summary`).set(h),
-        http().post(`/api/v1/collective/campaigns/${campaigns.C1}/proposals`).set(h),
-        http().get(`/api/v1/collective/campaigns/${campaigns.C1}/proposals`).set(h),
-        http().get(`/api/v1/collective/proposals/${id}`).set(h),
-        http().get(`/api/v1/collective/proposals/${id}/csv`).set(h),
-        http().get(`${ASSOCIATIONS}/catalog`).set(h),
-        http().get(ASSOCIATIONS).set(h),
+      const calls = [
+        () => http().get(`/api/v1/collective/campaigns/${campaigns.C1}/summary`).set(h),
+        () => http().post(`/api/v1/collective/campaigns/${campaigns.C1}/proposals`).set(h),
+        () => http().get(`/api/v1/collective/campaigns/${campaigns.C1}/proposals`).set(h),
+        () => http().get(`/api/v1/collective/proposals/${id}`).set(h),
+        () => http().get(`/api/v1/collective/proposals/${id}/csv`).set(h),
+        () => http().get(`${ASSOCIATIONS}/catalog`).set(h),
+        () => http().get(ASSOCIATIONS).set(h),
       ];
+      const results: Res[] = [];
+      for (const call of calls) results.push(await call());
+      return results;
     };
     const count = await prisma.jointPurchaseProposal.count();
-    for (const res of await Promise.all(routes(farmerSession))) {
+    for (const res of await routes(farmerSession)) {
       expect(res.status).toBe(403);
       expect(res.text).not.toContain("25000");
     }
-    for (const res of await Promise.all(routes())) expect(res.status).toBe(401);
-    const foreign = await Promise.all(routes(otherTenantDirector));
+    for (const res of await routes()) expect(res.status).toBe(401);
+    const foreign = await routes(otherTenantDirector);
     // Campaign- and proposal-scoped routes: 404, indistinguishable from missing.
     for (const res of foreign.slice(0, 5)) {
       expect(res.status).toBe(404);
