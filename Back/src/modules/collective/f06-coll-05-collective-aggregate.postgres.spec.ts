@@ -208,6 +208,86 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     expect(logged.join("\n")).not.toContain(SENTINEL);
   });
 
+  describe("F10-SEC-02 (#45): only net changes count between figures", () => {
+    /** Publishes one value per farmer and returns their heads. */
+    async function publishAll(p: string, values: string[]): Promise<string[]> {
+      const heads: string[] = [];
+      for (const [i, value] of values.entries()) heads.push(await push(farmers[i]!, { product: p, quantity: value }));
+      return heads;
+    }
+
+    /** Valid SUPERSEDE on the farmer's own head; returns the new head. */
+    async function replace(heads: string[], i: number, p: string, value: string): Promise<void> {
+      heads[i] = await push(farmers[i]!, { product: p, quantity: value, action: "SUPERSEDE", pred: heads[i] });
+    }
+
+    it("6000 → 6100 with three new sequences but one net change keeps the prior figure", async () => {
+      const p = await product("Neto");
+      const heads = await publishAll(p, ["1000", "2000", "3000"]);
+      expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "6000" });
+      await replace(heads, 0, p, "1100");
+      await replace(heads, 1, p, "2000"); // same value, new sequence
+      await replace(heads, 2, p, "3000"); // same value, new sequence
+      const json = await summary();
+      expect(cellOf(json, p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", pending_changes: true });
+      const csv: Res = await http()
+        .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
+        .set("Authorization", `Bearer ${director.token}`);
+      expect(csv.text).toContain(`,${p},`);
+      expect(csv.text).not.toContain(",6100,");
+    });
+
+    it("replacements without a new value are not new information", async () => {
+      const p = await product("Sin variación");
+      const heads = await publishAll(p, ["1000", "2000", "3000"]);
+      const first = cellOf(await summary(), p);
+      for (const [i, value] of ["1000", "2000", "3000"].entries()) await replace(heads, i, p, value);
+      expect(cellOf(await summary(), p)).toMatchObject({
+        status: "DISCLOSED", total_base: "6000", pending_changes: false, released_at: first.released_at,
+      });
+    });
+
+    it("a change that goes back to its released value leaves nothing pending", async () => {
+      const p = await product("Vuelta");
+      const heads = await publishAll(p, ["1000", "2000", "3000"]);
+      await summary();
+      await replace(heads, 0, p, "1700");
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6000", pending_changes: true });
+      await replace(heads, 0, p, "1000");
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6000", pending_changes: false });
+    });
+
+    it("no figure differs from any earlier figure of the cell by fewer than k Members", async () => {
+      const p = await product("Historial");
+      const heads = await publishAll(p, ["1000", "2000", "3000", "4000"]);
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "10000" }); // R1
+      for (const [i, value] of ["1100", "2100", "3100", "4100"].entries()) await replace(heads, i, p, value);
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "10400", pending_changes: false }); // R2
+      // Three Members go back: three changes against R2, but only one against
+      // R1. Publishing 10100 would reveal the first Member's change (R3 − R1).
+      for (const [i, value] of [[1, "2000"], [2, "3000"], [3, "4000"]] as const) await replace(heads, i, p, value);
+      const res = cellOf(await summary(), p);
+      expect(res.total_base).not.toBe("10100");
+      expect(res).toMatchObject({ status: "DISCLOSED", total_base: "10400", pending_changes: true });
+    });
+
+    it("regrouping: a Member that joins through an association alone is not a new figure", async () => {
+      const belator = await product("Belator neto");
+      const bellator = await product("Bellator neto");
+      await publishAll(belator, ["1000", "2000", "3000"]);
+      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6000" });
+      await push(farmers[3]!, { product: bellator, quantity: "500" });
+      const res: Res = await http().post(ASSOCIATIONS).set("Authorization", `Bearer ${director.token}`)
+        .send({ productId: bellator, canonicalProductId: belator, reason: "misma denominación", confirmed: true });
+      expect(res.status).toBe(200);
+      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6000", pending_changes: true });
+      // Undoing the association brings back exactly the released contributions.
+      await http().post(`${ASSOCIATIONS}/${bellator}/close`).set("Authorization", `Bearer ${director.token}`)
+        .send({ reason: "denominación distinta", confirmed: true });
+      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6000", pending_changes: false });
+    });
+  });
+
   it("cancellation, dispute and membership change withdraw the figure", async () => {
     const p = await product("Retirada");
     const heads: string[] = [];
