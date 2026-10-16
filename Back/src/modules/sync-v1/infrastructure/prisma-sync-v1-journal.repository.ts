@@ -31,7 +31,7 @@ const rejectionCodes = new Set([
   "CAUSAL_FENCED",
 ]);
 
-/** Dormant adapter: instantiate explicitly in tests, never registered in AppModule. */
+/** Journal adapter; the Sync v1 use cases instantiate it with the shared PrismaService. */
 export class PrismaSyncV1JournalRepository implements SyncV1JournalRepository<Prisma.TransactionClient> {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -190,7 +190,17 @@ export class PrismaSyncV1JournalRepository implements SyncV1JournalRepository<Pr
         rejectionCodes.has(result.resultCode) &&
         result.serverAcceptedAt === null &&
         result.reconciliationReference === null);
-    if (!valid) throw new JournalValidationError();
+    const contributionId = result.contributionId ?? null;
+    const contributionSequence = result.contributionSequence ?? null;
+    // A sequence orders accepted transitions only; it needs its contribution.
+    const linkValid =
+      (contributionId === null || uuidV4.test(contributionId)) &&
+      (contributionSequence === null ||
+        (result.outcome === "APPLIED" &&
+          contributionId !== null &&
+          Number.isSafeInteger(contributionSequence) &&
+          contributionSequence > 0));
+    if (!valid || !linkValid) throw new JournalValidationError();
     const finalData = {
       processingState: "FINAL" as const,
       outcome: result.outcome,
@@ -199,6 +209,8 @@ export class PrismaSyncV1JournalRepository implements SyncV1JournalRepository<Pr
       serverAcceptedAt:
         result.serverAcceptedAt && new Date(result.serverAcceptedAt),
       reconciliationReference: result.reconciliationReference,
+      contributionId,
+      contributionSequence,
     };
     return this.withTransaction(transaction, async (tx) => {
       await this.validateOwner(tx, identity);
@@ -227,7 +239,9 @@ export class PrismaSyncV1JournalRepository implements SyncV1JournalRepository<Pr
       journal.resultCode === result.resultCode &&
       (journal.serverAcceptedAt?.getTime() ?? null) ===
         (result.serverAcceptedAt?.getTime() ?? null) &&
-      journal.reconciliationReference === result.reconciliationReference
+      journal.reconciliationReference === result.reconciliationReference &&
+      journal.contributionId === (result.contributionId ?? null) &&
+      journal.contributionSequence === (result.contributionSequence ?? null)
     );
   }
 }

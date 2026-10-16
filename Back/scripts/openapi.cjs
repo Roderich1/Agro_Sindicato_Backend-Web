@@ -11,14 +11,24 @@ async function main() {
   try {
     app.setGlobalPrefix("api/v1");
     await app.init();
-    const spec = `${JSON.stringify(createOpenApiDocument(app), null, 2)}\n`;
+    const document = createOpenApiDocument(app);
+    const spec = `${JSON.stringify(document, null, 2)}\n`;
     const target = resolve(__dirname, "../../docs/api/openapi-f02.json");
+    // F05 Sync Contract v1 subset: push, owner-scoped GET and references.
+    const f05Spec = `${JSON.stringify({
+      ...document,
+      paths: Object.fromEntries(
+        Object.entries(document.paths).filter(([path]) => path.startsWith("/api/v1/sync/v1/")),
+      ),
+    }, null, 2)}\n`;
+    const f05Target = resolve(__dirname, "../../docs/api/openapi-f05-sync-v1.json");
     if (process.argv.includes("--check")) {
-      if (readFileSync(target, "utf8") !== spec) {
+      if (readFileSync(target, "utf8") !== spec || readFileSync(f05Target, "utf8") !== f05Spec) {
         throw new Error("OpenAPI drift: run npm run openapi:generate and review the diff");
       }
-      process.stdout.write("OpenAPI snapshot matches generated document.\n");
+      process.stdout.write("OpenAPI snapshots match generated documents.\n");
     } else {
+      writeFileSync(f05Target, f05Spec, "utf8");
       const output = process.argv[2] && !process.argv[2].startsWith("--")
         ? resolve(process.argv[2]) : target;
       mkdirSync(dirname(output), { recursive: true });

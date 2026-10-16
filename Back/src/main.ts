@@ -7,12 +7,15 @@ import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { HttpExceptionLoggingFilter } from "./bootstrap/http-exception-logging.filter";
 import { createOpenApiDocument } from "./bootstrap/openapi";
+import { configureSyncV1BodyParser } from "./modules/sync-v1/api/rest/sync-v1-body";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix("api/v1");
+  // Before Nest's own JSON parser: Sync v1 bodies are parsed strictly.
+  configureSyncV1BodyParser(app);
   app.use(helmet());
   app.use(cookieParser());
   app.useGlobalFilters(new HttpExceptionLoggingFilter());

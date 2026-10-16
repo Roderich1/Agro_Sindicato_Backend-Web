@@ -8,6 +8,10 @@ const duration = z
     "must be a positive integer followed by s, m, h, or d",
   );
 
+/** An empty value (as in `.env.example`) means "not configured". */
+const optionalText = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
+
 export const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -23,6 +27,16 @@ export const envSchema = z.object({
     .enum(["true", "false"])
     .optional()
     .transform((value) => value === "true"),
+  // Sync v1 fingerprint HMAC (base64, >= 32 bytes) and its internal version.
+  // Without a key, Sync v1 writes answer 503 (admission closed).
+  SYNC_V1_FINGERPRINT_KEY: optionalText(z.string()),
+  SYNC_V1_FINGERPRINT_KEY_VERSION: optionalText(
+    z.coerce.number().int().positive(),
+  ),
+  // Keys of earlier versions, `version=base64` comma separated, for replays.
+  SYNC_V1_FINGERPRINT_PREVIOUS_KEYS: optionalText(z.string()),
+  // Production admission stays closed until retention/disclosure policies.
+  SYNC_V1_PRODUCTION_ADMISSION: optionalText(z.enum(["enabled", "disabled"])),
 });
 
 export type Env = z.infer<typeof envSchema>;

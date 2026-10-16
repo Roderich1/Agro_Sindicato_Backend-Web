@@ -175,6 +175,23 @@ enum SyncV1Disposition {
   MOVE_TO_TERMINAL_FAILURE
 }
 
+enum SyncV1BaseUnit {
+  ML
+  G
+}
+
+enum SyncV1ContributionStatus {
+  NEVER_PUBLISHED
+  ACTIVE
+  CANCELLED
+  CONTESTED
+}
+
+enum SyncV1DisputeCloseReason {
+  RESOLVED
+  SUPERSEDED
+}
+
 model Tenant {
   id        String   @id @default(uuid())
   name      String
@@ -206,7 +223,8 @@ model Tenant {
   agrochemicalApplications AgrochemicalApplication[]
   calendarEvents           CalendarEvent[]
   auditLogs                AuditLog[]
-  syncV1OperationJournals   SyncV1OperationJournal[]
+  syncV1OperationJournals  SyncV1OperationJournal[]
+  syncV1Contributions      SyncV1Contribution[]
 }
 
 model User {
@@ -254,11 +272,12 @@ model Member {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant              Tenant               @relation(fields: [tenantId], references: [id])
-  user                User                 @relation(fields: [userId], references: [id])
-  clientRegistrations ClientRegistration[]
-  authSessions        AuthSession[]
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
+  user                    User                     @relation(fields: [userId], references: [id])
+  clientRegistrations     ClientRegistration[]
+  authSessions            AuthSession[]
   syncV1OperationJournals SyncV1OperationJournal[]
+  syncV1Contributions     SyncV1Contribution[]
 
   @@unique([tenantId, userId])
   // Referenced by the journal's composite FK: Member must belong to its tenant.
@@ -357,6 +376,7 @@ model Product {
   purchaseItems            PurchaseItem[]
   demandForecasts          DemandForecast[]
   agrochemicalApplications AgrochemicalApplication[]
+  syncV1Contributions      SyncV1Contribution[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, qrCodeValue])
@@ -411,6 +431,7 @@ model AgriculturalCampaign {
   agrochemicalApplications AgrochemicalApplication[]
   calendarEvents           CalendarEvent[]
   auditLogs                AuditLog[]
+  syncV1Contributions      SyncV1Contribution[]
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -852,15 +873,69 @@ model SyncV1OperationJournal {
   disposition                   SyncV1Disposition?
   resultCode                    String?               @db.VarChar(40)
   serverAcceptedAt              DateTime?
+  // F05-SYNC-05: contribution resolved for this intention (null if its refs did
+  // not resolve) and its order among the contribution's accepted transitions.
+  contributionId                String?               @db.Uuid
+  contributionSequence          Int?
   createdAt                     DateTime              @default(now())
   updatedAt                     DateTime              @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  member Member @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member       Member              @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  contribution SyncV1Contribution? @relation(fields: [contributionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([tenantId, memberId, operationId])
   // Scoped internal processing lookup; no global operationId index/list endpoint.
   @@index([tenantId, memberId, processingState])
+  @@index([contributionId, contributionSequence])
+}
+
+// F05-SYNC-05 R_CURRENT: one current value per (tenant, Member, type, campaign,
+// product, unit). No history of quantities; transitions live in the journal.
+model SyncV1Contribution {
+  id                      String                   @id @default(uuid()) @db.Uuid
+  tenantId                String
+  memberId                String
+  projectionType          SyncV1ProjectionType
+  campaignId              String
+  productId               String
+  baseUnit                SyncV1BaseUnit
+  status                  SyncV1ContributionStatus @default(NEVER_PUBLISHED)
+  headOperationId         String?                  @db.Uuid
+  quantityBase            BigInt?
+  // Opaque reference of the open dispute (SyncV1Dispute.id), null if none.
+  reconciliationReference String?                  @db.Uuid
+  lastSequence            Int                      @default(0)
+  // Accepted transitions with sequence <= this value are fenced by a resolution.
+  fencedThroughSequence   Int                      @default(0)
+  acceptedAt              DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  tenant   Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member   Member                   @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  campaign AgriculturalCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  product  Product                  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  journals SyncV1OperationJournal[]
+  disputes SyncV1Dispute[]
+
+  @@unique([tenantId, memberId, projectionType, campaignId, productId, baseUnit])
+  @@index([tenantId, projectionType, campaignId, productId, status])
+}
+
+// F05-SYNC-05 minimal conflict record: no quantities, names, snapshots or bodies.
+model SyncV1Dispute {
+  id                    String                    @id @db.Uuid
+  contributionId        String                    @db.Uuid
+  openedByOperationId   String                    @db.Uuid
+  createdAt             DateTime                  @default(now())
+  closedAt              DateTime?
+  closeReason           SyncV1DisputeCloseReason?
+  resolvedByOperationId String?                   @db.Uuid
+
+  contribution SyncV1Contribution @relation(fields: [contributionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([contributionId, closedAt])
 }
 
 model SyncConflict {
