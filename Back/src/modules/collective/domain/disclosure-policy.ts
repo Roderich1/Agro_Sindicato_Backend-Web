@@ -26,7 +26,10 @@ export interface PriorRelease {
 export type CellDecision =
   /** Publish a new figure computed from the current contributions. */
   | { kind: "RELEASE" }
-  /** Keep showing the latest figure; `pendingChanges` if its Members' values changed. */
+  /**
+   * Keep showing the latest figure; `pendingChanges` unless the current values
+   * provably equal it (changed, or not provable because an amount is unknown).
+   */
   | { kind: "SHOW_PRIOR"; pendingChanges: boolean }
   /** No figure. `withdrawPrior` retracts a prior figure still shown. */
   | { kind: "SUPPRESS"; reason: "UNDER_THRESHOLD" | "REVISION"; withdrawPrior: boolean }
@@ -53,23 +56,44 @@ function releasedAmounts(release: PriorRelease): Map<string, bigint | null> {
   return amounts;
 }
 
+/** How the cell now compares with one disclosure, Member by Member. */
+interface Comparison {
+  /** Members that joined, left, or whose known amount differs. */
+  changed: number;
+  /** Members in both whose released amount is unknown (row older than the quantity column). */
+  unknown: number;
+}
+
 /**
- * Members whose amount in the cell differs between two states: joined, left,
- * or a different net amount. A replacement with the same value, or a change
- * that went back to the released value, is not a change. Unknown released
- * amounts count as changes.
+ * Net changes between two states. A replacement with the same value, or a
+ * change that went back to the released value, is not a change. An unknown
+ * released amount is neither a change nor its absence: it is never rebuilt
+ * from current values.
  */
-function netChanges(
-  now: ReadonlyMap<string, bigint>,
-  then: ReadonlyMap<string, bigint | null>,
-): Set<string> {
-  const changed = new Set<string>();
+function compare(now: ReadonlyMap<string, bigint>, then: ReadonlyMap<string, bigint | null>): Comparison {
+  let changed = 0;
+  let unknown = 0;
   for (const [member, amount] of now) {
     const before = then.get(member);
-    if (before === undefined || before === null || before !== amount) changed.add(member);
+    if (before === undefined) changed++;
+    else if (before === null) unknown++;
+    else if (before !== amount) changed++;
   }
-  for (const member of then.keys()) if (!now.has(member)) changed.add(member);
-  return changed;
+  for (const member of then.keys()) if (!now.has(member)) changed++;
+  return { changed, unknown };
+}
+
+/** Provably the same state as the disclosure. */
+function unchanged(c: Comparison): boolean {
+  return c.changed === 0 && c.unknown === 0;
+}
+
+/**
+ * Rule 2 against one disclosure: provably nothing changed, or at least k
+ * Members provably changed. Unknown amounts prove neither, so they never help.
+ */
+function provablySafe(c: Comparison, threshold: number): boolean {
+  return unchanged(c) || c.changed >= threshold;
 }
 
 /**
@@ -89,7 +113,10 @@ function netChanges(
  * 2. Differences: a new figure may only be published if, against **every**
  *    earlier disclosure of the cell, either nothing changed (the same figure
  *    again) or at least k Members changed their **net** amount. Sequences do
- *    not count: a replacement with the same value is not a change.
+ *    not count: a replacement with the same value is not a change. Both must
+ *    be provable: an amount unknown in a disclosure written before the
+ *    quantity column existed proves neither, so that cell keeps its figure
+ *    (or stays without one) until k Members provably changed against it.
  * 3. Removals (cancellation, dispute, inactive Member or account, regrouping)
  *    withdraw the latest figure instead of keeping a value that includes a
  *    contribution that no longer counts, until rule 2 allows a new one.
@@ -110,9 +137,9 @@ export function decideCell(
   const now = currentAmounts(cell);
   const latestShown = latest.withdrawnAt === null;
   const latestAmounts = releasedAmounts(latest);
-  const vsLatest = netChanges(now, latestAmounts);
+  const vsLatest = compare(now, latestAmounts);
   const removed = [...latestAmounts.keys()].some((member) => !now.has(member));
-  if (vsLatest.size === 0) {
+  if (unchanged(vsLatest)) {
     // Exactly the latest disclosed state: the same figure reveals nothing new.
     if (latestShown) return { kind: "SHOW_PRIOR", pendingChanges: false };
     return cell.members.size >= threshold && !cell.overflow
@@ -120,10 +147,9 @@ export function decideCell(
       : { kind: "SUPPRESS", reason: "REVISION", withdrawPrior: false };
   }
   if (cell.overflow) return { kind: "OVERFLOW", withdrawPrior: latestShown };
-  const safeAgainstHistory = history.every((release) => {
-    const changed = netChanges(now, releasedAmounts(release)).size;
-    return changed === 0 || changed >= threshold;
-  });
+  const safeAgainstHistory = history.every((release) =>
+    provablySafe(compare(now, releasedAmounts(release)), threshold),
+  );
   if (cell.members.size >= threshold && safeAgainstHistory) return { kind: "RELEASE" };
   if (removed || !latestShown) {
     return {

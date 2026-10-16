@@ -159,15 +159,32 @@ describe("provisional disclosure policy (F07-POL-01, k = 3)", () => {
     expect(decideCell(cell, [releaseOf(before)])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: false });
   });
 
-  it("F10-SEC-02: an unknown released amount counts as a change", () => {
+  it("F10-SEC-02: an unknown released amount proves no change (rows before the migration)", () => {
     const before = [contribution(1, 1000n), contribution(2, 2000n), contribution(3, 3000n)];
-    const unknown: PriorRelease = { ...releaseOf(before), items: new Map(before.map((c) => [c.contributionId, null])) };
-    expect(decideCell(cellOf(...before), [unknown])).toEqual({ kind: "RELEASE" });
+    // 6000 disclosed before 20261016150500: its quantities are NULL.
+    const legacy: PriorRelease = { ...releaseOf(before), items: new Map(before.map((c) => [c.contributionId, null])) };
+    // Only m1 changed. Counting the three unknown amounts as changes would
+    // publish 6100 and reveal m1's change (finding on PR #112).
+    const oneNet = cellOf(contribution(1, 1100n, 2), contribution(2, 2000n, 2), contribution(3, 3000n, 2));
+    expect(decideCell(oneNet, [legacy])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+    // Unchanged values cannot be proven unchanged either: the prior figure stays.
+    expect(decideCell(cellOf(...before), [legacy])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
     const legacyAndOne: PriorRelease = {
       ...releaseOf(before),
       items: new Map([["c1", null], ["c2", 2000n], ["c3", 3000n]]),
     };
     expect(decideCell(cellOf(...before), [legacyAndOne])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+    // Already withdrawn: still no new figure, and nothing left to withdraw.
+    expect(decideCell(oneNet, [{ ...legacy, withdrawnAt: new Date() }])).toEqual({
+      kind: "SUPPRESS",
+      reason: "REVISION",
+      withdrawPrior: false,
+    });
+    // k Members that provably changed (they joined) allow a new figure.
+    const threeJoin = cellOf(...oneNet.contributions, contribution(4, 500n), contribution(5, 500n), contribution(6, 500n));
+    expect(decideCell(threeJoin, [legacy])).toEqual({ kind: "RELEASE" });
+    const twoJoin = cellOf(...oneNet.contributions, contribution(4, 500n), contribution(5, 500n));
+    expect(decideCell(twoJoin, [legacy])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
   });
 
   it("an int64 overflow is never truncated", () => {
