@@ -448,6 +448,42 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     expect(file.text).not.toMatch(/(^|,)=Campana/m);
   });
 
+  /**
+   * After a figure leaves the summary, no new response serves it: detail,
+   * listing/history and CSV of every earlier draft, a fresh draft with its
+   * CSV, and the summary JSON/CSV. Fingerprints that covered it are hidden.
+   */
+  async function expectNoLongerServed(campaign: string, drafts: string[], amounts: string[], fingerprints: string[]) {
+    const number = new RegExp(`(^|[^0-9a-f-])(${amounts.join("|")})([^0-9a-f-]|$)`);
+    const fresh = await generate(campaign);
+    expect(fresh.status).toBe(201);
+    const responses: Res[] = [
+      fresh,
+      await proposalCsv(fresh.body.proposal_ref),
+      await summary(campaign),
+      await http().get(`/api/v1/collective/campaigns/${campaign}/summary.csv`).set(auth(director)),
+    ];
+    for (const id of drafts) {
+      const detail = await proposal(id);
+      expect(detail.status).toBe(200);
+      for (const line of detail.body.lines) {
+        if (line.status !== "DISCLOSED") expect(line).toMatchObject({ quantity_base: null, quantity_presentation: null, contributors: null });
+      }
+      expect(detail.body.inputs_fingerprint).toBeNull();
+      responses.push(detail, await proposalCsv(id));
+    }
+    const list = await history(campaign);
+    expect(list.status).toBe(200);
+    for (const id of drafts) {
+      expect(list.body.find((entry: any) => entry.proposal_ref === id).inputs_fingerprint).toBeNull();
+    }
+    responses.push(list);
+    for (const res of responses) {
+      expect(res.text).not.toMatch(number);
+      for (const fingerprint of fingerprints) expect(res.text).not.toContain(fingerprint);
+    }
+  }
+
   it("a figure withdrawn by the summary is not served by an earlier proposal, JSON or CSV", async () => {
     const c1 = await generate(campaigns.C1);
     expect(c1.body.lines.find((l: any) => nameOf(l.product_ref) === "Urea F06").status).toBe("DISCLOSED");
@@ -471,6 +507,10 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     const s = await summary(campaigns.C1);
     expect(s.body.cells.find((cell: any) => cell.projection_type === "DECLARED_NEED" && nameOf(cell.product_ref) === "Urea F06").status)
       .toBe("SUPPRESSED_UNDER_THRESHOLD");
+    // Every C1 draft has the Urea line: none serves 25000 or the fingerprint that covered it.
+    const drafts = (await prisma.jointPurchaseProposal.findMany({ where: { campaignId: campaigns.C1 }, select: { id: true } })).map((p) => p.id);
+    expect(drafts.length).toBeGreaterThanOrEqual(4);
+    await expectNoLongerServed(campaigns.C1, drafts, ["25000"], [c1.body.inputs_fingerprint, rawC1.body.inputs_fingerprint]);
   });
 
   it("an older release that the summary no longer shows is never served: superseded, then withdrawn (R4/R8)", async () => {
@@ -518,6 +558,13 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     const cell = (await summary(campaigns.C4)).body.cells[0];
     expect(cell.status).toMatch(/^SUPPRESSED_/);
     expect(cell.total_base).toBeNull();
+    // Detail, listing/history and CSV of P1 and P2, a fresh draft and the summary: neither figure.
+    await expectNoLongerServed(
+      campaigns.C4,
+      [p1.body.proposal_ref, p2.body.proposal_ref],
+      ["6000", "6600"],
+      [p1.body.inputs_fingerprint, p2.body.inputs_fingerprint],
+    );
   });
 
   it("POLICY_PENDING: nothing is generated or stored and no stored proposal serves a figure", async () => {
