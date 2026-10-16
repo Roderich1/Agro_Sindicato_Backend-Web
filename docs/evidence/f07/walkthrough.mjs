@@ -183,6 +183,11 @@ if (phase === 'provisional') {
   await page.waitForSelector('[data-testid="line-Belator-ML"]');
   const belatorLine = await text('[data-testid="line-Belator-ML"]');
   check('Propuesta regenerada: Belator 11 L', /\| 11 L \| 3 \|/.test(belatorLine), belatorLine);
+  // El historial se recarga después del detalle: esperar a sus tres entradas.
+  await page.waitForFunction(
+    () => document.querySelectorAll('[aria-label="Historial de borradores"] tbody tr').length === 3,
+    { timeout: 15000 },
+  );
   const fp = await page.$$eval('[aria-label="Historial de borradores"] code', (codes) => codes.map((c) => c.getAttribute('title')));
   check('La asociación cambia la huella', fp.length === 3 && fp[0] !== fp[1] && fp[1] === fp[2], fp.join(' '));
   await clickText('Exportar CSV');
