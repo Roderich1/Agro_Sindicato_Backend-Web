@@ -1,0 +1,69 @@
+name: Web F07 verification
+
+# F07 (#23–#27, #108): Web Directiva/Administrador and the PostgreSQL suite of
+# the draft joint purchase proposal. Synthetic data and mocked HTTP only.
+on:
+  pull_request:
+    paths:
+      - 'Web/**'
+      - 'Back/src/modules/collective/**'
+      - 'Back/src/modules/inventory/**'
+      - 'Back/prisma/**'
+      - '.github/workflows/web.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Web/**'
+      - 'Back/src/modules/collective/**'
+      - 'Back/src/modules/inventory/**'
+      - 'Back/prisma/**'
+      - '.github/workflows/web.yml'
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+
+  f07-proposal-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Throwaway CI service reachable only from this job.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: Back
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/postgres?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Back/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: F07_WEB_PG_TEST_URL="$DATABASE_URL" npx jest f07-web-proposal.postgres.spec.ts --runInBand
