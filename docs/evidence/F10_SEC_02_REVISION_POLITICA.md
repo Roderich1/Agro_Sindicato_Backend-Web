@@ -62,7 +62,7 @@ Casos nuevos en `Back/src/modules/collective/f06-coll-05-collective-aggregate.po
 - **Datos:**
   - cada fila de una divulgación guarda su cantidad, con la migración `20261016150500_f07_pol_01_release_item_quantity` (expand-only, columna nullable con CHECK ≥ 0);
   - el disparador de inmutabilidad sigue igual;
-  - las filas anteriores sin cantidad cuentan como cambio, que es lo conservador.
+  - las filas anteriores sin cantidad contaban como cambio, lo que **no** era conservador. Se corrigió después: ver «Hallazgo sobre `0d16f12`».
 - **Caso de uso:** carga el historial completo de cada celda y no sólo la última divulgación.
 - **Prueba unitaria corregida.** El caso antiguo «tres Members cambiaron» contaba una sustitución de m2 con el mismo valor (7000). Era exactamente el defecto, y ahora m2 cambia de verdad (7500).
 - **Canales.**
@@ -93,8 +93,76 @@ Casos nuevos en `Back/src/modules/collective/f06-coll-05-collective-aggregate.po
 | P1: cualquier secuencia nueva cuenta (regla anterior) | detectada (13 fallos) |
 | P2: sólo se compara con la última divulgación | detectada |
 | P3: las divulgaciones retiradas no cuentan | detectada |
-| P4: una cantidad desconocida no cuenta como cambio | detectada |
+| P4: una cantidad desconocida no cuenta como cambio | detectada. Esa prueba fijaba justo el defecto del hallazgo siguiente; se sustituyó |
 | P5: no se guarda la cantidad de cada aporte publicado | detectada (7 fallos en PostgreSQL) |
+
+## Hallazgo sobre `0d16f12`: cantidades históricas NULL (2026-10-16)
+
+**Origen.** Revisión técnica automatizada de Codex sobre el PR #112, transmitida por Roderich con la orden de no fusionar sobre `0d16f12`. No es una revisión personal de Roderich ni del tutor.
+
+**Defecto.**
+- La migración `20261016150500` deja en NULL la cantidad de las divulgaciones escritas antes de ella, y la regla de `0d16f12` contaba cada NULL como un cambio demostrado.
+- Con una divulgación histórica de 6000 (tres cantidades NULL) y cantidades actuales 1100/2000/3000, la función devolvía RELEASE. Se publicaba 6100, aunque sólo un Member había cambiado: la diferencia revela su +100.
+- **Una cantidad desconocida no prueba un cambio.**
+
+**Corrección (`3559784`).**
+- Frente a cada divulgación, cada Member se clasifica en:
+  - **cambio demostrado:** alta, baja o cantidad conocida distinta;
+  - **desconocido:** presente en ambos, con la cantidad publicada en NULL.
+- Una cifra nueva sólo se publica si, frente a **cada** divulgación, se demuestra que nada cambió (0 cambios y 0 desconocidos) o que cambiaron al menos k Members (k cambios demostrados). Los desconocidos nunca ayudan a alcanzar el umbral.
+- **Si no se puede demostrar:**
+  - se mantiene la cifra anterior, con `pending_changes = true` («no se puede demostrar que coincida con los aportes actuales»);
+  - o la celda sigue retirada, si su última cifra ya lo estaba;
+  - o se retira, si hubo bajas (R4).
+- **No se reconstruyen cantidades antiguas con valores actuales.** Tampoco se infiere una cantidad antigua de que la secuencia de un aporte no haya cambiado: sería reconstruirla a partir del valor actual.
+- Se corrigen los comentarios del schema y de la migración, que decían «cuenta como cambio». La migración sigue siendo la misma: expand-only, sin valor por defecto ni relleno. Todavía no está fusionada y sólo se aplicó en bases desechables.
+
+**Regresiones.**
+
+1. **Unitaria:** `disclosure-policy.spec.ts`, «F10-SEC-02: an unknown released amount proves no change (rows before the migration)». Cubre:
+   - el caso de Codex: 6000 con NULL y actuales 1100/2000/3000 → SHOW_PRIOR con pendientes;
+   - los valores iguales a los de entonces, que tampoco se pueden demostrar;
+   - una celda ya retirada, que sigue sin cifra;
+   - dos altas, que no bastan;
+   - tres altas: k cambios demostrados → RELEASE.
+2. **PostgreSQL**, en el bloque «F07-POL-01: disclosures written before the quantity migration» de `f06-coll-05-collective-aggregate.postgres.spec.ts`:
+   - Crea una base nueva migrada **sólo hasta `20261016043000`**. Los tres aportes 1000/2000/3000 entran por `POST /sync/v1/push`.
+   - Escribe la divulgación de 6000 con la misma forma que la escribía el código de `063437d`, sin cantidades. Es un INSERT, que el disparador de inmutabilidad permite. Ninguna fila se modifica por SQL.
+   - Ejecuta `prisma migrate deploy`, que aplica la migración nueva y deja las tres cantidades en NULL.
+   - Aplica SUPERSEDE válidos 1100/2000/3000 y consulta `/summary` y `/summary.csv` como Directiva.
+   - Después dan de alta dos Members, que no bastan, y luego un tercero, que permite publicar 7600 con las seis cantidades guardadas.
+
+| Prueba | Contra `0d16f12` | Con la corrección |
+|---|---|---|
+| Unitaria (16:13:37Z) | **FALLA**: `RELEASE` en lugar de `SHOW_PRIOR` | PASS |
+| PostgreSQL, primera ejecución (16:13:37Z) | **FALLA** antes de los SUPERSEDE: la primera consulta tras migrar volvía a publicar 6000 como cifra nueva (`pending_changes` false) | — |
+| PostgreSQL, con la consulta después de los SUPERSEDE (16:16:29Z) | **FALLA**: `total_base` **6100**, `pending_changes` false | PASS (16:20:33Z): 6000 con `pending_changes`; el CSV no contiene 6100; una sola divulgación; 7600 tras la tercera alta |
+
+En la primera ejecución en rojo, la consulta posterior a la migración se hacía antes de los SUPERSEDE y volvía a publicar la misma cifra. La prueba se reordenó para que la primera consulta tras la migración vea 1100/2000/3000, como en el caso de Codex.
+
+**Mutaciones** (16:24:20Z; reemplazo exacto y restauración desde el commit):
+
+| Mutación | Resultado |
+|---|---|
+| P6: una cantidad desconocida cuenta como cambio (regla de `0d16f12`) | detectada |
+| P7: una cantidad desconocida cuenta como igual | detectada |
+| P8: los desconocidos suman al umbral k | detectada |
+
+**Verificación** (2026-10-16 entre 16:17Z y 16:30Z, sobre el árbol confirmado en `3559784`):
+
+| Qué | Resultado |
+|---|---|
+| `prisma validate` / `npm run build` | válido / OK |
+| `eslint src/modules/collective` | sin errores |
+| `npm test -- --runInBand` | 32 suites pasan y 8 omitidas; 193 pruebas pasan y 138 omitidas (la nueva de PostgreSQL se omite sin URL) |
+| PostgreSQL `f06-coll-05-collective-aggregate` | 15/15 |
+| PostgreSQL `product-reconciliation` | 5/5 |
+| PostgreSQL `sync-v1-journal` | 30/30 (8 migraciones; no cambia) |
+| `openapi:check` (base recién migrada) | snapshots iguales; aserciones F02/F05/F06 |
+
+**Límite.** Una celda con una divulgación anterior a la migración en su historial queda congelada en esa cifra, o sin cifra, hasta que al menos k Members cambien de forma demostrable frente a ella. Esto es intencionado.
+- No existe un procedimiento de «nueva línea base» y no se propone en este bloque.
+- Como la divulgación real sigue deshabilitada, esas divulgaciones antiguas sólo existen con datos sintéticos.
 
 ## Límites
 
