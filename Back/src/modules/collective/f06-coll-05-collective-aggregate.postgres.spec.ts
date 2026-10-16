@@ -582,6 +582,10 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     const heads: string[] = [];
     for (const [i, value] of ["1000", "2000", "3000"].entries()) heads.push(await push(farmers[i]!, p, value));
     await legacyRelease(p);
+    // Precondition: the quantity migration is not applied yet (order fixed).
+    const pending = await prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*) AS n FROM "_prisma_migrations" WHERE migration_name = ${QUANTITY_MIGRATION}`;
+    expect(Number(pending[0]!.n)).toBe(0);
     deploy(databaseUrl);
     const applied = await prisma.$queryRaw<{ migration_name: string }[]>`
       SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL ORDER BY migration_name`;
