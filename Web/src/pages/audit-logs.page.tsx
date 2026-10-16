@@ -78,7 +78,6 @@ export function AuditLogsPage() {
   const [selected, setSelected] = useState<AuditLog | null>(null);
   const [filters, setFilters] = useState({
     campaignId: '',
-    ownerUserId: '',
     actorUserId: '',
     action: '',
     entityName: '',
@@ -90,7 +89,6 @@ export function AuditLogsPage() {
 
   const query = useMemo<ListAuditLogsQuery>(() => ({
     campaignId: filters.campaignId || undefined,
-    ownerUserId: filters.ownerUserId || undefined,
     actorUserId: filters.actorUserId || undefined,
     action: filters.action || undefined,
     entityName: filters.entityName || undefined,
@@ -121,7 +119,6 @@ export function AuditLogsPage() {
     void Promise.resolve().then(refresh);
   }, [refresh]);
 
-  const farmers = users.filter((item) => item.role === 'AGRICULTOR');
   const byAction = useMemo(() => {
     const totals = new Map<string, number>();
     logs.forEach((log) => totals.set(log.action, (totals.get(log.action) ?? 0) + 1));
@@ -158,13 +155,7 @@ export function AuditLogsPage() {
               {campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
             </select>
           </div>
-          <div>
-            <label htmlFor="audit-owner" className={labelClass}>Agricultor</label>
-            <select id="audit-owner" className={inputClass} value={filters.ownerUserId} onChange={(event) => setFilter('ownerUserId', event.target.value)}>
-              <option value="">Todos</option>
-              {farmers.map((farmer) => <option key={farmer.id} value={farmer.id}>{farmer.name}</option>)}
-            </select>
-          </div>
+          {/* F10-SEC-02 (#45): sin filtro por agricultor; la bitácora institucional sólo tiene entradas sin dueño. */}
           <div>
             <label htmlFor="audit-actor" className={labelClass}>Responsable</label>
             <select id="audit-actor" className={inputClass} value={filters.actorUserId} onChange={(event) => setFilter('actorUserId', event.target.value)}>

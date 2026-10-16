@@ -54,7 +54,9 @@ describe('CampaignManagementUseCase', () => {
     };
   }
 
-  it('lists tenant campaigns with summary', async () => {
+  // F10-SEC-02 (#45): replaces "lists tenant campaigns with summary"; the
+  // summary counted every farmer's private records in the tenant.
+  it('lists tenant campaigns without counts of private records', async () => {
     const prismaOverrides = {
       agriculturalCampaign: {
         findMany: jest.fn().mockResolvedValue([campaign()]),
@@ -62,14 +64,15 @@ describe('CampaignManagementUseCase', () => {
     };
     const { useCase } = createUseCase({}, undefined, prismaOverrides);
 
-    await expect(useCase.listCampaigns(tenantId, { search: ' invierno ' })).resolves.toEqual([
+    const listed = await useCase.listCampaigns(tenantId, { search: ' invierno ' });
+    expect(listed).toEqual([
       expect.objectContaining({
         id: campaignId,
         name: 'Invierno 2026',
         startDate: '2026-04-01T00:00:00.000Z',
-        summary: expect.objectContaining({ purchases: 0 }),
       }),
     ]);
+    expect(listed[0]).not.toHaveProperty('summary');
 
     expect(prismaOverrides.agriculturalCampaign.findMany).toHaveBeenCalledWith({
       where: {
@@ -77,7 +80,6 @@ describe('CampaignManagementUseCase', () => {
         name: { contains: 'invierno', mode: 'insensitive' },
       },
       orderBy: [{ isActive: 'desc' }, { startDate: 'desc' }],
-      include: expect.any(Object),
     });
   });
 
@@ -130,7 +132,6 @@ describe('CampaignManagementUseCase', () => {
         name: 'Invierno 2026',
         status: CampaignStatus.PLANIFICADA,
         startDate: '2026-04-01T00:00:00.000Z',
-        summary: expect.objectContaining({ plotCropAssignments: 0 }),
       }),
     );
 
@@ -143,7 +144,6 @@ describe('CampaignManagementUseCase', () => {
         notes: null,
         createdById: actorUserId,
       },
-      include: expect.any(Object),
     });
     expect(tx.auditLog.create).toHaveBeenCalled();
   });
@@ -198,7 +198,6 @@ describe('CampaignManagementUseCase', () => {
         name: 'Verano 2026',
         notes: 'Nueva planificacion',
       },
-      include: expect.any(Object),
     });
     expect(tx.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -247,7 +246,6 @@ describe('CampaignManagementUseCase', () => {
         status: CampaignStatus.ABIERTA,
         isActive: true,
       },
-      include: expect.any(Object),
     });
   });
 
@@ -320,7 +318,6 @@ describe('CampaignManagementUseCase', () => {
         isActive: false,
         closedById: actorUserId,
       }),
-      include: expect.any(Object),
     });
     expect(tx.calendarEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

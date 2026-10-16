@@ -20,7 +20,6 @@ export const CAMPAIGN: Campaign = {
   notes: null,
   createdAt: '2026-09-01T00:00:00.000Z',
   updatedAt: '2026-09-01T00:00:00.000Z',
-  summary: { plotCropAssignments: 0, purchases: 0, stockMovements: 0, agrochemicalApplications: 0, payableAccounts: 0 },
 };
 
 export function userWith(role: string): AuthUser {

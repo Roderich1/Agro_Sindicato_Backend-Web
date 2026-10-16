@@ -230,7 +230,6 @@ export class PlotFlowUseCase {
           : {}),
       },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
-      include: this.cropInclude(),
     });
 
     return crops.map((crop) => this.mapCrop(crop));
@@ -249,7 +248,6 @@ export class PlotFlowUseCase {
           variety: this.optionalText(input.variety),
           notes: this.optionalText(input.notes),
         },
-        include: this.cropInclude(),
       });
 
       await this.recordAudit(tx, {
@@ -286,7 +284,6 @@ export class PlotFlowUseCase {
       const updatedCrop = await tx.crop.update({
         where: { id: crop.id },
         data,
-        include: this.cropInclude(),
       });
 
       await this.recordAudit(tx, {
@@ -517,12 +514,6 @@ export class PlotFlowUseCase {
     } satisfies Prisma.PlotInclude;
   }
 
-  private cropInclude() {
-    return {
-      _count: { select: { cropAssignments: true, agrochemicalApplications: true } },
-    } satisfies Prisma.CropInclude;
-  }
-
   private assignmentInclude() {
     return {
       campaign: { select: { id: true, name: true, status: true, isActive: true } },
@@ -573,7 +564,6 @@ export class PlotFlowUseCase {
     notes: string | null;
     createdAt: Date;
     updatedAt: Date;
-    _count?: { cropAssignments: number; agrochemicalApplications: number };
   }) {
     return {
       id: crop.id,
@@ -583,10 +573,8 @@ export class PlotFlowUseCase {
       notes: crop.notes,
       createdAt: crop.createdAt.toISOString(),
       updatedAt: crop.updatedAt.toISOString(),
-      summary: {
-        cropAssignments: crop._count?.cropAssignments ?? 0,
-        agrochemicalApplications: crop._count?.agrochemicalApplications ?? 0,
-      },
+      // F10-SEC-02 (#45): the shared crop catalog carries no tenant-wide counts
+      // of farmers' private assignments and applications.
     };
   }
 
