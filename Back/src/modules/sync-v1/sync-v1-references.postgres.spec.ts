@@ -2,7 +2,7 @@ import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, beforeAll } from "@jest/globals";
 import * as bcrypt from "bcrypt";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
@@ -171,7 +171,7 @@ describePostgres("F05-SYNC-07 references and real Auth V2 path on PostgreSQL", (
   });
 
   it("end to end with the real login path: V1 login, client registration, V2 login, binding, refs, push and refresh", async () => {
-    const password = "F05-Sintetico-Password-123!";
+    const password = randomBytes(18).toString("base64url");
     const userId = randomUUID();
     const email = `e2e-${userId}@example.test`;
     await prisma.user.create({

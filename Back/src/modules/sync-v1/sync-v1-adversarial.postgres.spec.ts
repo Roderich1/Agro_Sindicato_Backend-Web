@@ -14,9 +14,11 @@ import {
   createSession,
   createSyncV1App,
   Fixture,
+  JWT_SECRET,
   seedFixture,
   signFor,
   TestSession,
+  unusablePasswordHash,
 } from "./test-support/sync-v1-test-app";
 
 /**
@@ -189,7 +191,7 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
     await prisma.user.create({
       data: {
         id: userId, tenantId, name: "Agricultor sintético", email: `fresh-${userId}@example.test`,
-        passwordHash: "synthetic-unused-hash", role: "AGRICULTOR",
+        passwordHash: unusablePasswordHash(), role: "AGRICULTOR",
         members: { create: { id: memberId, tenantId, role: "AGRICULTOR" } },
       },
     });
@@ -728,7 +730,7 @@ describePostgres("F05-SYNC-06 adversarial suite on PostgreSQL", () => {
     const director = await createSession(prisma, jwt, f.members.directorA);
     const admin = await createSession(prisma, jwt, f.members.adminA);
     const member = await prisma.member.findUniqueOrThrow({ where: { id: f.members.farmerA }, include: { user: true } });
-    const v1 = { token: jwt.sign({ sub: member.userId, email: member.user.email, tenantId: member.tenantId, role: "AGRICULTOR" }, { secret: "f05-sync-test-jwt-secret-long-enough", expiresIn: "15m" }) };
+    const v1 = { token: jwt.sign({ sub: member.userId, email: member.user.email, tenantId: member.tenantId, role: "AGRICULTOR" }, { secret: JWT_SECRET, expiresIn: "15m" }) };
     const before = await journalCount();
     for (const session of [unbound, director, admin, v1])
       expectError(await post(session, envelope()), 403, "AUTH_CONTEXT_FORBIDDEN", "KEEP_FOR_RECONCILIATION");

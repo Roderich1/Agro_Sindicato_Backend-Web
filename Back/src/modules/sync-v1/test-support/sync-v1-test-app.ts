@@ -17,7 +17,15 @@ import cookieParser = require("cookie-parser");
  * each suite and migrated from zero; nothing is truncated or deleted.
  * Every identity, name and value is synthetic.
  */
-export const JWT_SECRET = "f05-sync-test-jwt-secret-long-enough";
+// Signing keys and password hashes are random per process: no fixed
+// credential-like value lives in the source.
+export const JWT_SECRET = randomBytes(32).toString("hex");
+const JWT_REFRESH_SECRET = randomBytes(32).toString("hex");
+
+/** Not a bcrypt hash, so no password can ever match it. */
+export function unusablePasswordHash() {
+  return `unusable-${randomBytes(16).toString("hex")}`;
+}
 
 export async function createIsolatedDatabase(adminUrl: string, prefix: string) {
   const admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
@@ -51,7 +59,7 @@ export async function createSyncV1App(
   process.env["DATABASE_URL"] = databaseUrl;
   process.env["NODE_ENV"] = "test";
   process.env["JWT_SECRET"] = JWT_SECRET;
-  process.env["JWT_REFRESH_SECRET"] = "f05-sync-test-refresh-secret-long-enough-123";
+  process.env["JWT_REFRESH_SECRET"] = JWT_REFRESH_SECRET;
   if (options.fingerprintKey === null) {
     delete process.env["SYNC_V1_FINGERPRINT_KEY"];
     delete process.env["SYNC_V1_FINGERPRINT_KEY_VERSION"];
@@ -133,7 +141,7 @@ export async function seedFixture(prisma: PrismaService): Promise<Fixture> {
         tenantId,
         name: `Usuario sintético ${label}`,
         email: `${label}-${userId}@example.test`,
-        passwordHash: "synthetic-unused-hash",
+        passwordHash: unusablePasswordHash(),
         role,
         members: { create: { id: fixture.members[label], tenantId, role } },
       },

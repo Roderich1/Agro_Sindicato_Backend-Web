@@ -1,6 +1,6 @@
 import { afterAll, beforeAll } from "@jest/globals";
 import { PrismaClient } from "@prisma/client";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { URL } from "node:url";
@@ -80,7 +80,7 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
           tenantId,
           name: "Synthetic user",
           email: `${userId}@example.test`,
-          passwordHash: "synthetic-unused-hash",
+          passwordHash: `unusable-${randomBytes(16).toString("hex")}`,
           role: "AGRICULTOR",
           members: { create: { id: memberId, tenantId, role: "AGRICULTOR" } },
         },
