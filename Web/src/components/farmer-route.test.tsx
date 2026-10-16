@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
@@ -14,7 +12,7 @@ const FALLBACKS = [
   { path: COLLECTIVE_PATHS.proposals, element: <p>propuesta borrador</p> },
 ];
 const PRIVATE = <FarmerRoute><p>operación privada legacy</p></FarmerRoute>;
-// Pantallas legacy de operación privada; App.tsx las envuelve en FarmerRoute.
+// Pantallas legacy de operación privada (ver app-routes.test.ts).
 const LEGACY_PRIVATE = ['/inventory', '/purchases', '/sync', '/plots', '/applications', '/reports', '/dashboard'];
 
 describe('F10-SEC-02: pantallas legacy de operación privada', () => {
@@ -46,19 +44,5 @@ describe('F10-SEC-02: pantallas legacy de operación privada', () => {
     renderAt(<AdminRoute><p>usuarios</p></AdminRoute>, { role: 'DIRECTIVA', path: '/users', routes: FALLBACKS });
     expect(screen.queryByText('usuarios')).toBeNull();
     expect(screen.getByText('resumen colectivo')).toBeTruthy();
-  });
-});
-
-describe('F10-SEC-02: App.tsx protege cada ruta legacy de operación privada', () => {
-  // La tabla de rutas vive en App.tsx (con BrowserRouter); se comprueba su texto.
-  const app = readFileSync(resolve(process.cwd(), 'src/App.tsx'), 'utf8');
-
-  it.each(LEGACY_PRIVATE)('%s va envuelta en FarmerRoute', (path) => {
-    expect(app).toMatch(new RegExp(`path="${path}"[\\s]*element=[{][\\s]*<FarmerRoute>`));
-  });
-
-  it('/directiva no renderiza la página heredada', () => {
-    expect(app).toMatch(/path="\/directiva" element=\{<LegacyDirectivaRedirect \/>\}/);
-    expect(app).not.toMatch(/<DirectivaPage/);
   });
 });
