@@ -51,33 +51,50 @@ El puerto `BackupStorage` no cambia. La capacidad de listar es una interfaz apar
 
 ## 3. Pruebas
 
-Las ejecutó la sesión C el 2026-10-16, sobre el árbol de este PR. `main` era `e027938`.
+**SHA probado: `afa2dacb60a6dd5095359d5b31f040035cefb798`**, que es el código de este PR tras la revisión de A. Lo ejecutó la sesión C el 2026-10-16, con `main` en `e027938`. PostgreSQL desechable `agro_c_bkp_pg` (127.0.0.1:55443), arrancado para las pruebas y detenido después con su volumen; la contraseña se lee de un archivo local y no aparece en ninguna salida.
 
-| Comando | Resultado |
+**Commits:**
+
+| Commit | Contenido |
 |---|---|
-| `F08_BKP_PG_TEST_URL=… npx jest inventory.backups.postgres.spec.ts --runInBand`, con PostgreSQL desechable `agro_c_bkp_pg` y una carpeta temporal real | **6/6** |
-| `F08_BKP_PG_TEST_URL=… npx jest backups.postgres.spec.ts --runInBand`, el patrón de la CI, que ahora ejecuta las dos suites | **28/28** (22 + 6) |
-| `npx jest local-disk-backup-storage.spec.ts backups-inventory.spec.ts` | 16/16 |
-| `npx jest`, unitarias | 227 pasan / 178 omitidas |
-| `npm run build` (tras borrar `*.tsbuildinfo`) | `dist/modules/backups/cli/backups-inventory.js` generado |
-| `npm run openapi:check`, contra una base desechable migrada | OK; la API no cambia |
-| `npx eslint src/modules/backups` | Sin avisos |
-| Comando real compilado contra una base nueva con las 10 migraciones y una carpeta vacía | Inventario `{}` con salida 0; plan en dry-run con salida 0; `--cleanup --apply` sin umbral, salida 2 con el uso |
+| `1861e11` | Primera versión: inventario, limpieza, CLI, `BackupStorageInventory` y pruebas (6 en PostgreSQL) |
+| `8352023` | Primera versión de esta evidencia |
+| `afa2dac` | Revisión de A: `list()` salta un archivo que desaparece entre `readdir` y `stat`; prueba de la recomprobación de la fila; se documenta que el comando se ejecuta desde `dist/` |
 
-**Casos de la suite PostgreSQL:**
+**Resultados sobre `afa2dac`:**
+
+| Comando, en `Back/` | Salida resumida |
+|---|---|
+| `F08_BKP_PG_TEST_URL=… npx jest backups.postgres.spec.ts --runInBand` (el mismo patrón que la CI) | `PASS src/modules/backups/inventory.backups.postgres.spec.ts`, `PASS src/modules/backups/backups.postgres.spec.ts`, `Tests: 29 passed, 29 total` (7 + 22) |
+| `npx jest local-disk-backup-storage.spec.ts backups-inventory.spec.ts` | `Tests: 16 passed, 16 total` |
+| `npx jest` | `Tests: 179 skipped, 227 passed, 406 total` |
+| `npx eslint src/modules/backups` | Sin avisos |
+| `rm -f *.tsbuildinfo && npm run build` | `dist/modules/backups/cli/backups-inventory.js` generado |
+| `npm run openapi:check`, contra una base desechable con las 10 migraciones | `F05 …`, `F06 …` y `F08 backups OpenAPI contract assertions passed.`, exit 0. La API no cambia |
+| `npm run backups:inventory`, con base nueva y carpeta vacía | `{"inventario": {}}`, exit 0 |
+| `npm run backups:inventory -- --cleanup --older-than-minutes 60` | `"limpieza": "dry-run (sin --apply no se elimina nada)"`, plan vacío, exit 0 |
+| `npm run backups:inventory -- --cleanup --apply` | `uso: backups-inventory [--cleanup --older-than-minutes <N> [--apply]] (N entero >= 60)`, exit 2 |
+
+El comando **se ejecuta desde `dist/`**: requiere `npm run build` antes.
+
+**Casos de la suite PostgreSQL (7):**
 - **Inventario:** clasifica las 13 categorías sin modificar archivos ni filas.
 - **Umbral:** se rechazan 0, 1, 59 y 60.5.
 - **Dry-run:** planifica sólo lo antiguo y no borra.
-- **Carrera:** el objeto de una copia DELETED se reescribe entre el plan y el borrado y se conserva.
+- **Carrera sobre el archivo:** el objeto de una copia DELETED se reescribe entre el plan y el borrado y se conserva.
 - **`--apply`:** elimina sólo los restos. Las copias AVAILABLE, las UPLOADING con objeto, lo reciente y los archivos ajenos siguen. Las filas quedan idénticas y la segunda ejecución no hace nada.
+- **Carrera sobre la fila (`afa2dac`):** a un objeto sin fila le aparece su fila UPLOADING entre el plan y el borrado, y se conserva.
 - **Comando:** sólo imprime conteos, sin claves ni identificadores, sale con 3 ante anomalías AVAILABLE y valida los argumentos.
 
-**Mutaciones:**
+**Mutaciones, sobre `afa2dac`:**
 
 | Mutación | Resultado |
 |---|---|
-| Sin la recomprobación previa al borrado | 2 fallos |
-| `availableSizeMismatch` como categoría limpiable | 3 fallos |
+| Sin recomprobación antes del borrado (`true \|\| stillCandidate(…)`) | 3 fallos, 4 pasan |
+| Recomprobación de la fila siempre verdadera (`… \|\| true`) | 1 fallo, 6 pasan. Antes de `afa2dac`, esta mutación pasaba 6/6 |
+| Añadir `availableSizeMismatch`, una copia AVAILABLE, a `CLEANUP_CATEGORIES` | 3 fallos, 4 pasan |
+
+**No probado directamente:** el salto por `ENOENT` en `list()`. Exigiría provocar que un archivo desaparezca justo entre `readdir` y `stat`. Antes, ese caso abortaba todo el inventario con salida 1: una falla segura, pero sin informe. Ahora el archivo se omite y el resto del inventario continúa.
 
 ## 4. Límites
 
