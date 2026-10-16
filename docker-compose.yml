@@ -37,7 +37,10 @@ services:
       CORS_ORIGIN: http://localhost:8080,http://localhost:5173
       COOKIE_SECURE: "false"
       # F08: private backups on a dedicated volume, never in PostgreSQL.
+      # Closed in production (503) until BACKUP_PRODUCTION_ADMISSION=enabled,
+      # which is not authorised yet (DEC-F01-10, #40).
       BACKUP_STORAGE_DIR: /var/lib/agrocuentas/backups
+      BACKUP_PRODUCTION_ADMISSION: disabled
     volumes:
       - backup_data:/var/lib/agrocuentas/backups
     ports:

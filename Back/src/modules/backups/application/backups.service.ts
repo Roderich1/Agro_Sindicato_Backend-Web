@@ -168,10 +168,18 @@ export class BackupsService {
       throw new BackupHttpError(503, "BACKUP_STORAGE_UNAVAILABLE");
     }
 
-    const completed = await this.prisma.backupMetadata.updateMany({
-      where: { id: row.id, status: "UPLOADING" },
-      data: { status: "AVAILABLE", sizeBytes: BigInt(meter.bytes), completedAt: new Date() },
-    });
+    let completed: { count: number };
+    try {
+      completed = await this.prisma.backupMetadata.updateMany({
+        where: { id: row.id, status: "UPLOADING" },
+        data: { status: "AVAILABLE", sizeBytes: BigInt(meter.bytes), completedAt: new Date() },
+      });
+    } catch (error) {
+      // The copy never became AVAILABLE: its bytes must not stay behind.
+      await storage.remove(row.storageKey).catch(() => undefined);
+      await this.fail(row.id, "METADATA_UPDATE_FAILED");
+      throw error;
+    }
     if (completed.count !== 1) {
       // Marked abandoned meanwhile: the bytes must not outlive their row.
       await storage.remove(row.storageKey);
@@ -202,6 +210,11 @@ export class BackupsService {
       throw new BackupHttpError(500, "BACKUP_INTEGRITY_FAILED");
     } catch (error) {
       if (error instanceof BackupObjectMissingError) {
+        // Deleted meanwhile by its owner: same answer as any missing copy.
+        const still = await this.prisma.backupMetadata.count({
+          where: { id: row.id, status: "AVAILABLE" },
+        });
+        if (still === 0) throw NOT_FOUND();
         this.logger.error("Backup integrity check failed before download");
         throw new BackupHttpError(500, "BACKUP_INTEGRITY_FAILED");
       }

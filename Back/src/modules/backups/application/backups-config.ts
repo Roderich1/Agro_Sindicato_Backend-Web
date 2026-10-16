@@ -15,6 +15,19 @@ export class BackupsConfig {
     return this.config.get<string>("BACKUP_STORAGE_DIR") || undefined;
   }
 
+  /**
+   * In production the service stays closed (503) unless
+   * `BACKUP_PRODUCTION_ADMISSION=enabled`, as Sync v1 and the collective
+   * disclosure: provider, threat model, encryption at rest and retention
+   * (DEC-F01-10, #40) are not decided yet.
+   */
+  get admissionOpen(): boolean {
+    return (
+      this.config.get<string>("NODE_ENV") !== "production" ||
+      this.config.get<string>("BACKUP_PRODUCTION_ADMISSION") === "enabled"
+    );
+  }
+
   get maxBytes(): number {
     return this.config.get<number>("BACKUP_MAX_BYTES") ?? DEFAULT_BACKUP_MAX_BYTES;
   }

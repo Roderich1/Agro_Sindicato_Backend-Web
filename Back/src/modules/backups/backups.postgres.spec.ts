@@ -7,9 +7,11 @@ import { request as httpRequest, Server } from "node:http";
 import { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Readable } from "node:stream";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
+import { BACKUP_STORAGE, BackupStorage } from "./domain/backup-storage.port";
 import {
   createIsolatedDatabase,
   createSession,
@@ -17,7 +19,9 @@ import {
   Fixture,
   JWT_SECRET,
   seedFixture,
+  signFor,
   TestSession,
+  unusablePasswordHash,
 } from "../sync-v1/test-support/sync-v1-test-app";
 
 /**
@@ -145,7 +149,7 @@ describePostgres("F08 private backups on PostgreSQL and disk", () => {
       .get(`${BASE}/${id}/content`)
       .set(auth(session))
       .buffer(true)
-      .parse((res: NodeJS.ReadableStream, done: (e: Error | null, b: Buffer) => void) => {
+      .parse((res: Readable, done: (e: Error | null, b: Buffer) => void) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
         res.on("end", () => done(null, Buffer.concat(chunks)));
@@ -202,10 +206,14 @@ describePostgres("F08 private backups on PostgreSQL and disk", () => {
     const tables = await prisma.$queryRaw<{ table_name: string }[]>`
       SELECT table_name FROM information_schema.tables
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`;
+    // As text and as hex (how row_to_json renders a bytea column).
+    const hex = Buffer.from(marker).toString("hex");
     for (const { table_name } of tables) {
       const hits = await prisma.$queryRawUnsafe<{ n: bigint }[]>(
-        `SELECT count(*) AS n FROM "${table_name}" t WHERE row_to_json(t)::text LIKE $1`,
+        `SELECT count(*) AS n FROM "${table_name}" t
+         WHERE row_to_json(t)::text LIKE $1 OR lower(row_to_json(t)::text) LIKE $2`,
         `%${marker}%`,
+        `%${hex}%`,
       );
       expect({ table_name, n: Number(hits[0].n) }).toEqual({ table_name, n: 0 });
     }
@@ -436,6 +444,151 @@ describePostgres("F08 private backups on PostgreSQL and disk", () => {
     const absent = await download(farmerA, created.id);
     expect(absent.status).toBe(500);
     expect(absent.body.toString()).toBe(JSON.stringify({ errorCode: "BACKUP_INTEGRITY_FAILED" }));
+  });
+
+  it("a download racing with the owner's deletion answers 404, not an integrity failure", async () => {
+    const created = (await upload(farmerA, payload().bytes)).body;
+    const storage = app.get<BackupStorage>(BACKUP_STORAGE);
+    const original = storage.open.bind(storage);
+    jest.spyOn(storage, "open").mockImplementationOnce(async (key: string) => {
+      await prisma.backupMetadata.update({ where: { id: created.id }, data: { status: "DELETED", deletedAt: new Date() } });
+      await storage.remove(key);
+      return original(key);
+    });
+    const served = await download(farmerA, created.id);
+    expect({ status: served.status, body: served.body.toString() })
+      .toEqual({ status: 404, body: JSON.stringify({ errorCode: "BACKUP_NOT_FOUND" }) });
+  });
+
+  it("if marking the copy AVAILABLE fails after the commit, its bytes are removed", async () => {
+    const before = await files();
+    jest.spyOn(prisma.backupMetadata, "updateMany").mockRejectedValueOnce(new Error("simulated"));
+    const response = await upload(farmerA, payload().bytes);
+    expect(response.status).toBe(500);
+    expect(await files()).toEqual(before);
+    expect((await rowsOf(f.members.farmerA)).at(-1)).toEqual(
+      expect.objectContaining({ status: "FAILED", failureCode: "METADATA_UPDATE_FAILED" }),
+    );
+  });
+
+  /** Raw bytes over a real socket (superagent would re-encode a Buffer). */
+  function rawPost(
+    headers: Record<string, string>,
+    body: Buffer,
+  ): Promise<{ status: number; body: string; headers: Record<string, unknown> }> {
+    const { port } = server.address() as AddressInfo;
+    return new Promise((resolve, reject) => {
+      const req = httpRequest(
+        {
+          host: "127.0.0.1", port, method: "POST", path: BASE,
+          headers: { ...headers, "Content-Length": String(body.length) },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () =>
+            resolve({ status: res.statusCode!, body: Buffer.concat(chunks).toString("utf8"), headers: res.headers }),
+          );
+        },
+      );
+      req.on("error", reject);
+      req.end(body);
+    });
+  }
+
+  it("a body sent as JSON or urlencoded is never parsed, echoed or logged: closed 415", async () => {
+    const before = await files();
+    const rowsBefore = await prisma.backupMetadata.count();
+    for (const [contentType, body] of [
+      ["application/json", (marker: string) => Buffer.concat([Buffer.from(`{"x":"${marker}`), randomBytes(64)])],
+      ["application/x-www-form-urlencoded", (marker: string) => Buffer.from(`a=${marker}&b=%ZZ`)],
+      ["text/plain", (marker: string) => Buffer.from(marker)],
+    ] as const) {
+      const marker = `F08-PARSER-${randomUUID()}`;
+      secretsSeen.push(marker);
+      for (const authHeaders of [auth(farmerA), {}]) {
+        const response = await rawPost(
+          { ...authHeaders, "Content-Type": contentType, "X-Content-SHA256": "a".repeat(64),
+            "X-Backup-Format-Version": "1", "X-Backup-Schema-Version": "9" },
+          body(marker),
+        );
+        expect({ contentType, status: response.status, body: response.body }).toEqual({
+          contentType, status: 415, body: JSON.stringify({ errorCode: "UNSUPPORTED_MEDIA_TYPE" }),
+        });
+        expect(response.headers["cache-control"]).toBe("no-store");
+      }
+    }
+    expect(await files()).toEqual(before);
+    expect(await prisma.backupMetadata.count()).toBe(rowsBefore);
+  });
+
+  describe("Auth V2 context is revalidated on every request", () => {
+    async function freshFarmer(tenantId: string) {
+      const userId = randomUUID();
+      const memberId = randomUUID();
+      await prisma.user.create({
+        data: {
+          id: userId, tenantId, name: "Agricultor sintético de guardia",
+          email: `guard-${userId}@example.test`, passwordHash: unusablePasswordHash(), role: "AGRICULTOR",
+          members: { create: { id: memberId, tenantId, role: "AGRICULTOR" } },
+        },
+      });
+      const session = await createSession(prisma, jwt, memberId);
+      expect((await http().get(BASE).set(auth(session))).status).toBe(200);
+      return { session, userId, memberId };
+    }
+    const forbidden = { status: 403, body: { errorCode: "AUTH_CONTEXT_FORBIDDEN" } };
+    const required = { status: 401, body: { errorCode: "AUTH_REQUIRED" } };
+    const listAs = async (token: string) => {
+      const r = await http().get(BASE).set("Authorization", `Bearer ${token}`);
+      return { status: r.status, body: r.body };
+    };
+
+    it("revoked client registration: 403", async () => {
+      const { session } = await freshFarmer(f.tenantA);
+      await prisma.clientRegistration.update({ where: { id: session.registrationId! }, data: { status: "REVOKED" } });
+      expect(await listAs(session.token)).toEqual(forbidden);
+    });
+
+    it("inactive Member: 403", async () => {
+      const { session, memberId } = await freshFarmer(f.tenantA);
+      await prisma.member.update({ where: { id: memberId }, data: { isActive: false } });
+      expect(await listAs(session.token)).toEqual(forbidden);
+    });
+
+    it("inactive account (User): 403", async () => {
+      const { session, userId } = await freshFarmer(f.tenantA);
+      await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+      expect(await listAs(session.token)).toEqual(forbidden);
+    });
+
+    it("inactive tenant: 403", async () => {
+      const tenantId = randomUUID();
+      await prisma.tenant.create({ data: { id: tenantId, name: "Sintético C", slug: `f08-c-${tenantId}` } });
+      const { session } = await freshFarmer(tenantId);
+      await prisma.tenant.update({ where: { id: tenantId }, data: { isActive: false } });
+      expect(await listAs(session.token)).toEqual(forbidden);
+    });
+
+    it("expired session or expired token: 401", async () => {
+      const { session } = await freshFarmer(f.tenantA);
+      await prisma.authSession.update({ where: { id: session.sessionId }, data: { expiresAt: new Date(Date.now() - 1000) } });
+      expect(await listAs(session.token)).toEqual(required);
+
+      const other = (await freshFarmer(f.tenantA)).session;
+      const member = await prisma.member.findUniqueOrThrow({ where: { id: other.memberId }, include: { user: true } });
+      const expired = signFor(jwt, member, other.sessionId, Math.floor(Date.now() / 1000) - 60);
+      expect(await listAs(expired)).toEqual(required);
+    });
+
+    it("token whose tenant or Member differs from the session: 403", async () => {
+      const { session, memberId } = await freshFarmer(f.tenantA);
+      const member = await prisma.member.findUniqueOrThrow({ where: { id: memberId }, include: { user: true } });
+      expect(await listAs(signFor(jwt, { ...member, tenantId: f.tenantB }, session.sessionId))).toEqual(forbidden);
+      expect(await listAs(signFor(jwt, { ...member, id: f.members.farmerA }, session.sessionId))).toEqual(forbidden);
+      // The farmer whose id was borrowed is not affected, nor did anything leak.
+      expect((await http().get(BASE).set(auth(farmerA))).status).toBe(200);
+    });
   });
 
   it("no backup operation touched Sync v1, collective or audit tables, and nothing sensitive was logged", async () => {

@@ -49,6 +49,8 @@ export const envSchema = z.object({
   BACKUP_MAX_BYTES: optionalText(
     z.coerce.number().int().positive().max(1024 * 1024 * 1024),
   ),
+  // Production stays closed unless explicitly admitted (not authorised yet).
+  BACKUP_PRODUCTION_ADMISSION: optionalText(z.enum(["enabled", "disabled"])),
   BACKUP_MAX_ACTIVE_PER_MEMBER: optionalText(
     z.coerce.number().int().positive().max(100),
   ),

@@ -35,7 +35,11 @@ export class LocalDiskBackupStorage implements BackupStorage {
     this.ready ??= (async () => {
       await mkdir(this.objects, { recursive: true, mode: 0o700 });
       await mkdir(this.staging, { recursive: true, mode: 0o700 });
-    })();
+    })().catch((error: unknown) => {
+      // A failed attempt is not cached: the next request tries again.
+      this.ready = undefined;
+      throw error;
+    });
     return this.ready;
   }
 

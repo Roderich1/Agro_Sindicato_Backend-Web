@@ -5,6 +5,7 @@ import { Writable } from "node:stream";
 import type { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { BackupHttpError } from "./backup-http-error";
 import { BackupsConfig } from "./backups-config";
+import { createBackupStorage } from "../backups.module";
 import { BackupsService } from "./backups.service";
 import { BackupTooLargeError, Sha256Meter } from "./sha256-meter";
 
@@ -65,5 +66,21 @@ describe("BackupsService without configured storage", () => {
     const failure = await call().catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(BackupHttpError);
     expect(failure).toEqual(unavailable);
+  });
+});
+
+describe("BackupsConfig production admission", () => {
+  const configWith = (values: Record<string, string | undefined>) =>
+    new BackupsConfig({ get: (key: string) => values[key] } as never);
+
+  it.each([
+    [{ NODE_ENV: "development", BACKUP_STORAGE_DIR: "/x" }, true],
+    [{ NODE_ENV: "test", BACKUP_STORAGE_DIR: "/x" }, true],
+    [{ NODE_ENV: "production", BACKUP_STORAGE_DIR: "/x" }, false],
+    [{ NODE_ENV: "production", BACKUP_STORAGE_DIR: "/x", BACKUP_PRODUCTION_ADMISSION: "disabled" }, false],
+    [{ NODE_ENV: "production", BACKUP_STORAGE_DIR: "/x", BACKUP_PRODUCTION_ADMISSION: "enabled" }, true],
+    [{ NODE_ENV: "development" }, false],
+  ])("%j → storage %s", (values, open) => {
+    expect(createBackupStorage(configWith(values)) !== null).toBe(open);
   });
 });
