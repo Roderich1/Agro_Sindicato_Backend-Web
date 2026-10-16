@@ -66,8 +66,8 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GA
 | C31 GET del dueño tras ACK perdido | A «C31/C32 GET»; A «C11 …» | PASS | PASS (dispositivo, §4b, GET en la resolución) | El GET devuelve exactamente `{ack, contribution}`: ALREADY_APPLIED y el estado actual (ACTIVE, CANCELLED o CONTESTED), sin cantidades. No crea efectos |
 | C32 GET ajeno o inexistente | A «C31/C32 GET» | PASS | NOT_MEASURED | El mismo 404 OPERATION_NOT_FOUND con `operationId` null para otro Member, otro tenant o un ID desconocido |
 | C33 sucesor tardío de una rama cercada | A «C14 …» | PASS | NOT_MEASURED | REJECTED/CAUSAL_FENCED; la resolución sigue vigente |
-| C34 mismo operationId bajo otro Member o tenant | A «C34» | PASS | NOT_MEASURED | Claves y efectos independientes; el GET ajeno da 404 |
-| C35 restore sin prueba de propietario | A «C35 …» | PASS (parte Central) | NOT_MEASURED | Central rechaza con 403 una sesión sin ClientRegistration vinculado, un token V1, Directiva y Administrador, sin journal. `OWNERSHIP_NOT_PROVEN` no se emite: la prueba de propiedad es una precondición de Mobile (#29/#30), no un campo del envelope. Sync no acepta archivos ni backups (C26) |
+| C34 mismo operationId bajo otro Member o tenant | A «C34» | PASS | PASS (dispositivo, §4b, camino de restauración) | Claves y efectos independientes; el GET ajeno da 404 |
+| C35 restore sin prueba de propietario | A «C35 …» | PASS (parte Central) | PASS (dispositivo, §4b) | Central rechaza con 403 una sesión sin ClientRegistration vinculado, un token V1, Directiva y Administrador, sin journal. `OWNERSHIP_NOT_PROVEN` no se emite: la prueba de propiedad es una precondición de Mobile (#29/#30), no un campo del envelope. Sync no acepta archivos ni backups (C26) |
 | C36 purga sin garantía de replay | A «C36» | PASS | NOT_MEASURED | Admisión cerrada: 503 y ningún ID desconocido se acepta como nuevo. No hay purga implementada, y la admisión de producción queda cerrada mientras no exista la política (F10 #45) |
 | C37 batch, claves duplicadas o tipos inválidos | A «C37» | PASS | NOT_MEASURED | Array, claves duplicadas, UUID en mayúsculas, cantidad numérica o fuera de formato (`01`, `-1`, `1.5`, `1e3`, ` 1`), JSON mal formado y cuerpo vacío dan 400 INVALID_REQUEST. Un Content-Type no JSON da 415 y más de 16 KiB, 413. Nada se almacena |
 | C38 cambio de tenant o Member en relogin | A «C34»; A «C22/C40 …» | PASS (parte Central) | PASS (dispositivo, §4b) | Central no reatribuye: cada clave está atada a su tenant y Member, y un contexto inválido da 403. No reatribuir ni pausar el outbox anterior es de Mobile (#30/#31) |
@@ -76,7 +76,7 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GA
 
 **Resumen.** Central: 40 de 40 casos con evidencia PASS (C30, C35 y C38 sólo en su parte Central). Mobile: C01–C04 PASS en dispositivo (§4) y 36 de 40 NOT_MEASURED. Ningún FAIL abierto.
 
-**Actualización del 2026-10-16 (F10, tanda 1, §4b).** Mobile en dispositivo: PASS en C01–C04 (§4) y en C05, C06, C11, C14, C15, C22, C24, C30, C31, C38 y C40 (§4b), 15 de 40; C23 parcial (pausa PASS, reanudación NOT_MEASURED); **24 de 40 siguen NOT_MEASURED**. Ningún FAIL abierto. #18 sigue abierto.
+**Actualización del 2026-10-16 (F10, §4b).** Mobile en dispositivo: PASS en C01–C04 (§4) y en C05, C06, C11, C14, C15, C22, C24, C30, C31, C34, C35, C38 y C40 (§4b), 17 de 40; C23 parcial (pausa PASS, reanudación NOT_MEASURED); **22 de 40 siguen NOT_MEASURED**. Ningún FAIL abierto. #18 sigue abierto.
 
 ## 4. Sesión física del 2026-10-15 (columna Mobile)
 
@@ -110,7 +110,9 @@ Ejecutada por la sesión A entre las 20:08Z y las 21:29Z en el mismo POCO X5 Pro
 | C11 / C15 / C14 | PASS | Dos copias de la misma cuenta; head común por restauración F08 | Un APPLIED y un CAUSAL_FORK; referencia obsoleta → RECONCILIATION_STALE con el estado intacto; resolución vigente → APPLIED y disputa RESOLVED |
 | C31 | PASS | — | El GET del dueño se usa al resolver (3 GET 200, sin efectos) |
 
-Las respuestas inyectadas miden la reacción del cliente, no la decisión de Central. Restauración (C35, C34) y tanda 2 siguen NOT_MEASURED.
+Las respuestas inyectadas miden la reacción del cliente, no la decisión de Central. Tanda 2 sigue NOT_MEASURED.
+
+**Restauración (2026-10-16, 22:17–22:36Z, MOB `2f4b634`, copia `.f10bkp`):** C35 PASS (la intención restaurada queda `RESTORE_PAUSED`, 0 push al restaurar y en 80 s tras reabrir, y al liberarla con la verificación del titular sale un único push del mismo ID); C34 PASS en el camino de restauración (una copia de otro titular se rechaza antes de sustituir y sus intenciones no se envían bajo la cuenta activa; el cambio de cuenta al reautenticar es C38). Detalle: Mobile `docs/evidence/F10_RESTORE_DEVICE.md` (MOB #95).
 
 ## 5. Cobertura mínima de #18
 
