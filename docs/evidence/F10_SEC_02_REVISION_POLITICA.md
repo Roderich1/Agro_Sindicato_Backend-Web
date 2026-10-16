@@ -170,3 +170,21 @@ En la primera ejecución en rojo, la consulta posterior a la migración se hací
 - **Señales que se mantienen** y quedan documentadas: `pending_changes` y las retiradas revelan que hubo cambios, no cuánto.
 - **Coste.** El historial crece con cada divulgación de la celda; la comparación es lineal en su número. Para el volumen del piloto no es un problema medido; no se probó carga.
 - **Pendiente de #45:** endpoints heredados, revisión con datos reales y decisión de divulgación real.
+
+## CSV: neutralización de fórmulas (2026-10-16)
+
+**Origen.** La sesión B lo señaló al revisar la frontera privada/colectiva para F07 Web. Revisión técnica automatizada; sin revisión personal de Roderich ni del tutor.
+
+**Defecto.** `summaryCsv` entrecomillaba comas, comillas y saltos de línea, pero no neutralizaba los textos que una hoja de cálculo interpreta como fórmula. Un nombre de producto o de campaña como `=HYPERLINK(...)` se ejecutaba al abrir `summary.csv`. Las cifras y la política no cambiaban; era una inyección en el canal CSV.
+
+**Corrección** (rama `fix/f07-csv-formula`, desde `main` `110b534`):
+- un valor que empieza por `=`, `+`, `-`, `@`, tabulador o retorno de carro lleva delante un apóstrofo y va entre comillas;
+- las cifras y las fechas nunca empiezan así y no cambian;
+- el JSON no cambia.
+
+| Prueba | Contra `110b534` (17:07:19Z) | Con la corrección (17:08:23Z) |
+|---|---|---|
+| `collective-config.spec.ts` «a name that starts like a formula is neutralized, not executed (CSV injection)» | **FALLA**: el CSV contiene `=1+1` | PASS |
+| `npm test -- --runInBand` | — | 32 suites pasan y 8 omitidas; 194 pruebas pasan y 138 omitidas |
+| PostgreSQL `f06-coll-05-collective-aggregate` (JSON y CSV con las mismas decisiones) | — | 15/15 |
+| `npm run build` / `eslint src/modules/collective` | — | OK / sin errores |

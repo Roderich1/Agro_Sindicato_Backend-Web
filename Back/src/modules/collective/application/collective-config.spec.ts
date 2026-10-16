@@ -57,4 +57,36 @@ describe("collective output channels", () => {
     expect(csv).toContain('"Glifosato ""48"""');
     expect(csv).toContain("SUPPRESSED_UNDER_THRESHOLD,,,,,,false");
   });
+
+  it("a name that starts like a formula is neutralized, not executed (CSV injection)", () => {
+    const cell = {
+      projection_type: "DECLARED_NEED" as const,
+      product_ref: "p",
+      base_unit: "ML" as const,
+      presentation_unit: "L" as const,
+      status: "DISCLOSED" as const,
+      total_base: "6000",
+      total_presentation: "6",
+      contributors: 3,
+      data_as_of: "2026-10-16T10:00:00.000Z",
+      released_at: "2026-10-16T10:00:00.000Z",
+      pending_changes: false,
+    };
+    const names = ['=HYPERLINK("http://x","y")', "+1+1", "-2+3", "@SUM(A1)", "\tTab", "\rCR"];
+    const csv = summaryCsv({
+      contractVersion: 1,
+      campaign: { campaign_ref: "camp", name: "=1+1", status: "ABIERTA" },
+      disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: 3 },
+      coverage: { linked_members: 5, members_with_contribution: 3 },
+      cells: names.map((product_name) => ({ ...cell, product_name })),
+    });
+    const fields = csv.split("\n").flatMap((line) => line.split(","));
+    // No field may start with a formula trigger once parsed by a spreadsheet.
+    for (const field of fields) expect(field.replace(/^"/, "")).not.toMatch(/^[=+\-@\t\r]/);
+    expect(csv).toContain(`"'=HYPERLINK(""http://x"",""y"")"`);
+    expect(csv).toContain("\"'=1+1\"");
+    expect(csv).toContain("\"'-2+3\"");
+    // Figures and dates are untouched.
+    expect(csv).toContain("DISCLOSED,6000,6,3,2026-10-16T10:00:00.000Z");
+  });
 });

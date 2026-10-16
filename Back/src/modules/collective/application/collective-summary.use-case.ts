@@ -337,11 +337,19 @@ export function presentation(totalBase: bigint): string {
   return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
-/** Same disclosure decisions as JSON, as CSV (F07-POL-01: every channel). */
+/**
+ * Same disclosure decisions as JSON, as CSV (F07-POL-01: every channel). A
+ * text that a spreadsheet would read as a formula (=, +, -, @, tab or CR at
+ * the start, e.g. a product or campaign name) is prefixed with ' and quoted,
+ * so it is shown, never executed (CSV injection). Figures and dates never
+ * start with those characters and are left as they are.
+ */
 export function summaryCsv(summary: CollectiveSummary): string {
   const quote = (value: string | number | boolean | null) => {
-    const text = value === null ? "" : String(value);
-    return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+    const raw = value === null ? "" : String(value);
+    const formula = /^[=+\-@\t\r]/.test(raw);
+    const text = formula ? `'${raw}` : raw;
+    return formula || /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
   };
   const lines = [
     ["campaign_ref", "campaign", "disclosure", "policy", "approved", "threshold", "linked_members", "members_with_contribution"].join(","),
