@@ -17,6 +17,7 @@ import { RefreshTransportDto } from "../dtos/auth-v2.dto";
 import { LoginUseCase } from "../use-cases/login.use-case";
 import { RefreshSessionUseCase } from "../use-cases/refresh-session.use-case";
 import { GetMeUseCase } from "../use-cases/get-me.use-case";
+import { CreateJointPurchaseUseCase } from "@/modules/procurement/application/use-cases/create-joint-purchase.use-case";
 
 const postgresUrl = process.env["F02_D_PG_TEST_URL"];
 const describePostgres = postgresUrl ? describe : describe.skip;
@@ -275,11 +276,17 @@ describePostgres("F02-IAM-04 current authorization context — PostgreSQL 16 + H
       supplier: { supplierId: supplierA.id },
       items: [{ product: { productId: ids.productA }, quantity: 1, unitCost: 1, allocations: [{ userId: ids.a1, quantity: 1 }] }],
     };
+    // F10-SEC-02 (#45): POST /purchases/joint is closed (403, no effects); the
+    // tenant checks of the legacy use case, kept for the transition, are now
+    // exercised on the use case itself instead of through the closed route.
     const endpoint = "/api/v1/purchases/joint";
-    expect((await request(app.getHttpServer()).post(endpoint).set(bearer(director)).send({ ...base, items: [{ ...base.items[0], allocations: [{ userId: ids.b1, quantity: 1 }] }] })).status).toBe(400);
-    expect((await request(app.getHttpServer()).post(endpoint).set(bearer(director)).send({ ...base, supplier: { supplierId: supplierB.id } })).status).toBe(404);
-    expect((await request(app.getHttpServer()).post(endpoint).set(bearer(director)).send({ ...base, items: [{ ...base.items[0], product: { productId: ids.productB } }] })).status).toBe(404);
-    expect((await request(app.getHttpServer()).post(endpoint).set(bearer(director)).send({ ...base, warehouseId: warehouseB.id })).status).toBe(404);
+    const closed = await request(app.getHttpServer()).post(endpoint).set(bearer(director)).send(base);
+    expect([closed.status, closed.body.message]).toEqual([403, "LEGACY_ROUTE_CLOSED"]);
+    const joint = (dto: object) => app.get(CreateJointPurchaseUseCase).execute(ids.tenantA, ids.director, dto as never);
+    await expect(joint({ ...base, items: [{ ...base.items[0], allocations: [{ userId: ids.b1, quantity: 1 }] }] })).rejects.toHaveProperty("status", 400);
+    await expect(joint({ ...base, supplier: { supplierId: supplierB.id } })).rejects.toHaveProperty("status", 404);
+    await expect(joint({ ...base, items: [{ ...base.items[0], product: { productId: ids.productB } }] })).rejects.toHaveProperty("status", 404);
+    await expect(joint({ ...base, warehouseId: warehouseB.id })).rejects.toHaveProperty("status", 404);
   });
 
   it("enforces private application, purchase, payable, report and audit ownership", async () => {
@@ -460,10 +467,16 @@ describePostgres("F02-IAM-04 current authorization context — PostgreSQL 16 + H
       campaignId: ids.campaignA, paymentMode: "CONTADO", supplier: { supplierId: supplier.id }, warehouseId: warehouse.id,
       items: [{ product: { productId: ids.productA }, quantity: 1, unitCost: 1, allocations: [{ userId: ids.a1, quantity: 1 }] }],
     };
-    expect((await request(app.getHttpServer()).post("/api/v1/purchases/joint").set(bearer(director)).send(base)).status).toBe(201);
+    // F10-SEC-02 (#45): the route is closed for the director, with no effects;
+    // the use case keeps checking the Warehouse against each allocation owner.
+    const closedBefore = await purchaseEffects();
+    expect((await request(app.getHttpServer()).post("/api/v1/purchases/joint").set(bearer(director)).send(base)).status).toBe(403);
+    expect(await purchaseEffects()).toEqual(closedBefore);
+    const joint = (dto: object) => app.get(CreateJointPurchaseUseCase).execute(ids.tenantA, ids.director, dto as never);
+    await expect(joint(base)).resolves.toBeTruthy();
     const before = await purchaseEffects();
     const invalid = { ...base, items: [{ ...base.items[0], allocations: [{ userId: ids.a1, quantity: 0.5 }, { userId: ids.a2, quantity: 0.5 }] }] };
-    expect((await request(app.getHttpServer()).post("/api/v1/purchases/joint").set(bearer(director)).send(invalid)).status).toBe(404);
+    await expect(joint(invalid)).rejects.toHaveProperty("status", 404);
     expect(await purchaseEffects()).toEqual(before);
   });
 });
