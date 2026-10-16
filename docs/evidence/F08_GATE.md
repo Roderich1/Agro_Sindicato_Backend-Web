@@ -12,8 +12,8 @@ Esta acta la redactó la sesión de Claude Code el 2026-10-16. Recoge la evidenc
 |---|---|---|---|
 | 1 | Subida con el SHA-256 verificado en el servidor | Verificado sobre BE `15c8cf4` por `backups.postgres.spec.ts` (PostgreSQL y disco reales) y por la comprobación previa contra la API compilada. Esa comprobación usó `api_preflight.cjs` de MOB `2b3a0ce` (SHA-256 `3670d68c…`); el comando y la salida están en `F08_BACKUP.md` | [`F08_BACKUP.md`](F08_BACKUP.md), PR BE #114 |
 | 2 | Aislamiento por dueño: otro Member u otro tenant reciben 404 indistinguible; Directiva y Administrador, 403 | Verificado con las mismas pruebas y la misma comprobación previa, más una prueba de mutación que detecta la fuga. Las tres llevan SHA, comando y salida en `F08_BACKUP.md` | `F08_BACKUP.md` |
-| 3 | Restauración en un teléfono limpio con los mismos conteos y fotos | **NOT_MEASURED en dispositivo.** Cubierto con pruebas automatizadas sobre base real: teléfono nuevo del mismo Member, comparación de todas las tablas y fotos con las transformaciones esperadas. El E2E en el POCO está preparado (`tool/f08_bkp/`) y pendiente del turno que asigna A. | Mobile `docs/evidence/F08_MOBILE_RESTORE.md` |
-| 4 | Restaurar no publica | Verificado por pruebas: RESTORE_PAUSED antes de liberar la exclusión, ningún push al abrir la app y liberación sólo con el acceso verificado del titular. **Dispositivo pendiente** (paso 2.6–2.7 del procedimiento). | Mobile `F08_MOBILE_RESTORE.md` |
+| 3 | Restauración en un teléfono limpio con los mismos conteos y fotos | **PASS en dispositivo, en una instalación limpia del mismo POCO** (2026-10-16, turno 2 de A). POCO X5 Pro 5G `22101320G`, Android 12, paquete aislado `.f08bkp` de MOB `dc1b6eb` (SHA-256 de la APK `ba9d317f…7247`) y BE `a45ab83`. La comparación de 29 tablas y 3 fotos da PASS, con sólo las transformaciones previstas. *Antecedente:* NOT_MEASURED hasta este turno, con cobertura sólo automatizada. Que esta reinstalación valga como «teléfono nuevo o condición equivalente aprobada» (#36) lo decide Roderich. | Mobile `docs/evidence/F08_MOBILE_RESTORE.md` §5 (MOB #90, `977b585`) |
+| 4 | Restaurar no publica | Verificado por pruebas y **en dispositivo** (2026-10-16): ningún `POST /sync/v1/push` al restaurar ni al reabrir (0 peticiones en 80 s). La necesidad pendiente quedó RESTORE_PAUSED y, al liberarla con la verificación del titular, salió un único push con el mismo `operationId`. Central sin duplicados. | Mobile `F08_MOBILE_RESTORE.md` §5 |
 | 5 | El backup no toca Sync | Verificado: filas completas de Sync v1, colectivas y auditoría idénticas antes y después de todas las operaciones de backup | `F08_BACKUP.md` |
 | 6 | BKP-06 diferido con justificación | **Decidido por Roderich (2026-10-16):** #40 se difiere a F10 **únicamente** para retención, purga y reconciliación de huérfanos. **No se difieren** la integridad, el aislamiento, la exclusión de escrituras ni la recuperación segura ante fallos, que están implementados y probados. | [`F08_BACKUP_THREAT_MODEL.md`](../architecture/F08_BACKUP_THREAT_MODEL.md) §6 |
 
@@ -26,7 +26,7 @@ Esta acta la redactó la sesión de Claude Code el 2026-10-16. Recoge la evidenc
 
 CURRENT_SCOPE §7 delega en F08 el proveedor, el almacenamiento físico, el cifrado, el ciclo de vida y la retención.
 
-Esta entrega implementó la API y el adaptador de disco de desarrollo **sin** un modelo de amenaza escrito ni una decisión de proveedor registrada. La integridad está implementada y probada. La restauración de extremo a extremo está probada automáticamente; en dispositivo sigue pendiente.
+Esta entrega implementó la API y el adaptador de disco de desarrollo **sin** un modelo de amenaza escrito ni una decisión de proveedor registrada. La integridad está implementada y probada. La restauración de extremo a extremo está probada automáticamente; en dispositivo seguía pendiente cuando se redactó esta sección. *Actualización del 2026-10-16:* E2E en dispositivo PASS (criterio 3).
 
 Lo que limita el alcance de esta discrepancia:
 - **la producción queda cerrada** salvo `BACKUP_PRODUCTION_ADMISSION=enabled`, que no está autorizado;
@@ -51,7 +51,22 @@ La discrepancia queda así: **documentación completada después de implementar*
 
 ## Pendiente antes de una decisión
 
-1. Ejecutar el E2E del POCO (turno de A) y registrar el resultado tal como salga, PASS o FAIL.
-2. Revisar e integrar los PR de F08. Integrarlos no cierra el gate.
-3. Decidir el diferimiento de #40.
-4. Decidir el tratamiento de la discrepancia con DEC-F01-10.
+*Actualizado el 2026-10-16.* El texto anterior pedía ejecutar el E2E del POCO, integrar los PR de F08, decidir el diferimiento de #40 y decidir la discrepancia con DEC-F01-10. Esos cuatro puntos ya están resueltos:
+
+- **E2E del POCO:** PASS (criterios 3 y 4), registrado tal como salió en Mobile `F08_MOBILE_RESTORE.md` §5.
+- **Integración:**
+  - BE #114 en `ba51c70` y MOB #90 en `4f203c7`, ambos con CI en verde sobre su HEAD final;
+  - #37, #38, #39 y #35 cerrados por esos merges; #36 sigue abierta;
+  - integrar no cierra el gate.
+- **#40 (BKP-06):** lo decidió Roderich (criterio 6).
+- **DEC-F01-10:** lo decidió Roderich, con la opción 2 y el modelo de amenaza.
+
+**Sigue pendiente:**
+
+1. **Decisión de Roderich** sobre si la reinstalación limpia del paquete aislado en el mismo POCO vale como «teléfono nuevo o condición equivalente aprobada» para cerrar #36.
+2. **Decisión de Roderich** sobre el gate: Passed, Failed o Waived. Esta acta no lo decide.
+3. **No medido en dispositivo**, sólo con pruebas automatizadas: el rechazo de una copia ajena, alterada o incompatible y el rollback ante un fallo a mitad de la restauración. Tampoco un segundo modelo de teléfono.
+4. **Observaciones del E2E para F10:**
+   - la lista de Sincronización tarda en refrescarse tras liberar;
+   - el README §1.4 debe decir que la necesidad sin red queda OUTCOME_UNKNOWN.
+5. **Condiciones antes de admitir datos reales** (`F08_BACKUP_THREAT_MODEL.md` §5): ninguna se cumple hoy. La admisión productiva sigue cerrada.
