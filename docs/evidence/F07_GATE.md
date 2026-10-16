@@ -3,7 +3,7 @@
 - **Estado propuesto:** `Status = Validation`, `Gate = Pending`, `Evidence = Partial`.
 - **Esta acta no aprueba el gate.** Sólo Roderich Rendón, con confirmación explícita, puede registrar Passed, Failed o Waived.
 - **Redactada:** 2026-10-16 por Claude Code (sesión B), con autorización delegada para construir. Es una evaluación técnica automatizada; no hubo inspección personal de capturas por Roderich ni revisión del tutor.
-- **Base evaluada:** rama `feat/f07-web-directiva`, último commit de código `dee81dc`, con CI de Backend y Web en verde (PR draft, sin fusionar). Resultados en [F07_WEB.md](F07_WEB.md).
+- **Base evaluada:** rama `feat/f07-web-directiva`, último commit de código `dee81dc`, con CI de Backend y Web en verde. Al evaluarse era un PR draft sin fusionar; **se integró después** (ver «Estado de integración»). Resultados en [F07_WEB.md](F07_WEB.md).
 - **Defecto corregido antes de esta evaluación.** La revisión de la sesión A sobre #116 encontró que un borrador podía servir una divulgación antigua sustituida y después retirada (R4/R8). Está corregido en `6db54b5` y cubierto por una regresión completa que fallaba con el código anterior ([F07_WEB.md](F07_WEB.md) §2). La versión anterior de la evidencia afirmaba lo contrario y se corrigió.
 - **Política de divulgación:** F07-POL-01 sigue **sin aprobar** (#107). Todo lo que muestra cifras se ejecutó con `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` y datos sintéticos. En producción no hay cifras.
 
@@ -19,7 +19,7 @@
 | 6 | Cualquier efecto individual posterior exige confirmación humana y requisito aprobado | No existe ninguna acción que convierta un borrador en compra. La compra conjunta ejecutada legacy (`/directiva`, `CreateJointPurchaseUseCase`) no se usa y sale del menú | **Evidenciado por ausencia**; el flujo legacy sigue expuesto (ver límites) |
 | 7 | Filtros, actualidad y cobertura en cada vista; sin ahorro no medido | Campaña como filtro visible; «datos aceptados hasta»; cobertura «N de M»; ninguna cifra económica | **Evidenciado** |
 | 8 | La primitiva histórica `create-joint-purchase` no basta | La propuesta es un módulo nuevo; la primitiva no se reutiliza | **Evidenciado** |
-| 9 | Si F07-POL-01 o F07-REC-01 siguen abiertos, el gate sigue Pending | F07-POL-01 (#107) abierta; F07-REC-01 (#108) implementada en este PR, sin fusionar | Gate **Pending** |
+| 9 | Si F07-POL-01 o F07-REC-01 siguen abiertos, el gate sigue Pending | F07-POL-01 (#107) abierta. F07-REC-01 (#108) implementada en #116, **fusionado en `71460bf`**; #108 sigue abierta (su texto frente a ADR-003 está por decidir) | Gate **Pending** |
 
 ## Criterios del brief D5 (adaptados)
 
@@ -45,8 +45,22 @@
 3. **RF-22, detalle por agricultor «cuando el permiso lo habilite».** No existe tal permiso; no se implementa.
 4. **#23 pide retirar o desactivar la cola offline Web y revisar las páginas legacy.** No se amplía ni se usa en las páginas nuevas, pero sigue existiendo para la transición (#81). #23 queda parcial.
 
+## Estado de integración (actualizado el 2026-10-16 por la sesión A, bloque F10)
+
+Sólo se actualiza el estado; los dictámenes de arriba se conservan como se evaluaron sobre `dee81dc`.
+
+- **#116 fusionado** en `main` en **`71460bf`** (2026-10-16 18:09:19Z), sobre el HEAD `406e025`, que respecto de `49b834d`/`dee81dc` sólo cambia documentación.
+- **CI de `main`:**
+  - sobre `71460bf`: «Backend F02 verification» run 38945151622 (`verify`) y «Web F07 verification» run 38945151723 (`web` y `f07-proposal-postgres`), **SUCCESS**;
+  - sobre `ba51c70` (tras integrar F08): runs 38946474664 y 38946474741, **SUCCESS**.
+- **Verificación local de `main` integrado** por la sesión A sobre `ba51c70`: unitarias 218 y las 10 suites PostgreSQL, incluida la de propuestas.
+- **Después:** BE #118 (F10-SEC-02, rutas heredadas) se fusionó en **`f9ea66a`** (2026-10-16 21:29:05Z). Cierra en la API `POST /purchases/joint` y `GET /inventory/global-stock` (403 `LEGACY_ROUTE_CLOSED`), retira `currentStock` del catálogo y los conteos de registros privados de campañas y cultivos, y deja el inventario, las compras, las deudas, las aplicaciones, las parcelas y los reportes sólo para el AGRICULTOR sobre lo propio. Evidencia: [F10_SEC_02_ROUTES.md](F10_SEC_02_ROUTES.md). **#45 y #81 siguen abiertas** (pendientes en su §9).
+- **Discrepancias #108/ADR-003 y #25/RF-22:** la referencia es la §8 de [F10_SEC_02_ROUTES.md](F10_SEC_02_ROUTES.md). No se implementa ningún permiso nuevo de detalle por agricultor. Las decide Roderich.
+
+**Por qué el gate sigue Pending** (archivo de decisiones de F10): el criterio 9 exige resolver F07-POL-01 (#107) y F07-REC-01 (#108); la política de divulgación sólo está autorizada para demostración sintética, y las rutas heredadas siguen pendientes de #45/#81.
+
 ## Por qué `Evidence = Partial`
 
-- El código está en un PR draft sin fusionar; no hay CI de `main` integrado con este código.
+- ~~El código está en un PR draft sin fusionar; no hay CI de `main` integrado con este código.~~ Integrado en `71460bf` con CI de `main` en verde (ver «Estado de integración»).
 - La política F07-POL-01 no está aprobada: las cifras sólo se demostraron con datos sintéticos.
 - Las capturas del recorrido son automatizadas (Edge sin interfaz); nadie las revisó en persona.
