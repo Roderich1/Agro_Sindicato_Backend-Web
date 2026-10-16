@@ -187,6 +187,14 @@ Capturas en `docs/evidence/img/f07/`, generadas por el guion y revisadas por Cla
 
 La captura 09 muestra el panel legacy del agricultor. Esas pantallas siguen existiendo para la transición (#81) y no forman parte de F07.
 
+### 2.4 CI del PR #116
+
+- **HEAD `818e980`:**
+  - run 38937972272 «Backend F02 verification»: **success**;
+  - run 38937972190 «Web F07 verification»: **failure**. El job `web` pasó. En `f07-proposal-postgres`, la prueba de roles falló con `ECONNRESET` porque lanzaba 21 peticiones supertest en paralelo.
+- **Corrección `f18c4a0`:** las mismas peticiones, en serie. Sin cambios de producto. En local, 11/11.
+- **HEAD `f18c4a0`:** run 38938428604 «Backend F02 verification» **success**; run 38938428597 «Web F07 verification» **success** (jobs `web` y `f07-proposal-postgres`).
+
 ## 3. Límites y pendientes
 
 - **#25:** no hay estado por agricultor ni última sincronización individual, por decisión de alcance; sólo cobertura agregada.
