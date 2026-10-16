@@ -39,10 +39,10 @@ Todas dicen `Status = Validation` y `Gate = Pending`. Cada acta es una propuesta
 |---|---|---|---|---|
 | ☐ | GATE-F03 (MOB #23) | #71 se ejecutó en el dispositivo y está cerrado (MOB #89), pero el gate no se aprobó | ¿Passed, Failed o Waived, con qué alcance? | Issue MOB #23; `VALIDACIONES_EXTERNAS.md` |
 | ☐ | GATE-F04 (MOB #28) | Integrado en `main`; el gate sigue Pending | Lo mismo; confirmar el estado de #74 | Issue MOB #28; MOB `F04_CORRECCIONES_REVISION.md` |
-| ☐ | GATE-F05 (BE #19) | #18: tras la tanda 1 de F10, 15 de 40 filas Mobile PASS en dispositivo, C23 parcial y 24 NOT_MEASURED; sin prueba de carga | ¿Se miden antes del gate o se aceptan como límite (Waived parcial)? | BE `docs/evidence/F05_GATE_EVALUATION.md` («Para decidir») |
+| ☐ | GATE-F05 (BE #19) | #18: tras F10, 17 de 40 filas Mobile PASS en dispositivo, C23 parcial y 22 NOT_MEASURED; sin prueba de carga | ¿Se miden antes del gate o se aceptan como límite (Waived parcial)? | BE `docs/evidence/F05_GATE_EVALUATION.md` («Para decidir») |
 | ☐ | GATE-F06 (BE #22) | Política k = 3 no aprobada (#107); las discrepancias 3 y 6 se resolvieron por delegación técnica, no por el tutor | ¿Se acepta la lectura del criterio 3 («la cifra se retira»)? | BE `docs/evidence/GATE_F06.md` |
 | ☐ | GATE-F07 (BE #29) | Criterio 9: F07-POL-01 (#107) y F07-REC-01 (#108) abiertos; rutas heredadas #45/#81 (parte corregida en #118, el resto pendiente); el estado de #116 ya figura como fusionado | ¿Qué condición de salida se fija? | BE `docs/evidence/F07_GATE.md` («Estado de integración») |
-| ☐ | GATE-F08 (BE #41) | Corrección del rollback WAL y de los límites de extracción; #36 abierta; sin pruebas negativas en el dispositivo | ¿Qué se exige ver de la corrección de C antes de decidir? | BE `docs/evidence/F08_GATE.md` («Sigue pendiente») |
+| ☐ | GATE-F08 (BE #41) | Rollback WAL (#91) y extracción acotada (#92) integrados; comprobación focalizada en el POCO PASS (el teléfono no usa WAL: el defecto se demuestra en host); negativos medidos salvo esquema más nuevo; retención y purga (#40) sin plazo | ¿Se acepta ese alcance para decidir el gate? | BE `docs/evidence/F08_GATE.md` («Sigue pendiente») |
 
 ## 4. Evidencia física y sus límites
 
@@ -51,7 +51,7 @@ Todas dicen `Status = Validation` y `Gate = Pending`. Cada acta es una propuesta
 | ☐ | **Único dispositivo:** POCO X5 Pro 5G `22101320G`, Android 12 (API 31), MIUI V14.0.7.0, siempre con paquetes aislados | ¿Se declara en la tesis como límite, o se consigue un segundo modelo para RNF-08? |
 | ☐ | **Medido en el dispositivo:** F03-RES-01 y C01–C04 de F05 (2026-10-15); D4 de F06; E2E de restauración F08 y la tanda 1 de #18 (2026-10-16) | ¿Basta para los criterios de cada gate? |
 | ☐ | **Versión del E2E de F08:** se ejecutó con MOB `dc1b6eb` y BE `a45ab83`; la comprobación focalizada contra el Backend final `e027938` ya está hecha (`F08_BACKEND_INTEGRADO_F10.md`) y el PASS físico sigue atribuido a las versiones ejecutadas | ¿Conforme? |
-| ☐ | **No medido:** 24 filas de #18 y la reanudación de C23; la copia ajena, alterada o incompatible y el fallo a mitad de la restauración, en el dispositivo; rendimiento; compatibilidad en otros equipos; usabilidad con personas | ¿Qué se mide antes del cierre y qué queda como limitación declarada? |
+| ☐ | **No medido:** 22 filas de #18 y la reanudación de C23; una copia de esquema más nuevo en el dispositivo; rendimiento; compatibilidad en otros equipos; usabilidad con personas | ¿Qué se mide antes del cierre y qué queda como limitación declarada? |
 | ☐ | **Instalación limpia de `.f08bkp`:** aceptada como «condición equivalente» para #36 por delegación técnica (2026-10-16) | ¿El tutor está de acuerdo? Esa aceptación no prueba otro modelo de teléfono |
 
 ## 5. Issues abiertos (estado del 2026-10-16 según las actas y los archivos de estado; confirmar en GitHub)
