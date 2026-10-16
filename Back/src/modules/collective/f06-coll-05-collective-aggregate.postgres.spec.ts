@@ -1,7 +1,13 @@
 import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, beforeAll } from "@jest/globals";
+import { PrismaClient } from "@prisma/client";
+import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { cpSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative, resolve, sep } from "node:path";
+import { URL } from "node:url";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
@@ -208,6 +214,86 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     expect(logged.join("\n")).not.toContain(SENTINEL);
   });
 
+  describe("F10-SEC-02 (#45): only net changes count between figures", () => {
+    /** Publishes one value per farmer and returns their heads. */
+    async function publishAll(p: string, values: string[]): Promise<string[]> {
+      const heads: string[] = [];
+      for (const [i, value] of values.entries()) heads.push(await push(farmers[i]!, { product: p, quantity: value }));
+      return heads;
+    }
+
+    /** Valid SUPERSEDE on the farmer's own head; returns the new head. */
+    async function replace(heads: string[], i: number, p: string, value: string): Promise<void> {
+      heads[i] = await push(farmers[i]!, { product: p, quantity: value, action: "SUPERSEDE", pred: heads[i] });
+    }
+
+    it("6000 → 6100 with three new sequences but one net change keeps the prior figure", async () => {
+      const p = await product("Neto");
+      const heads = await publishAll(p, ["1000", "2000", "3000"]);
+      expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "6000" });
+      await replace(heads, 0, p, "1100");
+      await replace(heads, 1, p, "2000"); // same value, new sequence
+      await replace(heads, 2, p, "3000"); // same value, new sequence
+      const json = await summary();
+      expect(cellOf(json, p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", pending_changes: true });
+      const csv: Res = await http()
+        .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
+        .set("Authorization", `Bearer ${director.token}`);
+      expect(csv.text).toContain(`,${p},`);
+      expect(csv.text).not.toContain(",6100,");
+    });
+
+    it("replacements without a new value are not new information", async () => {
+      const p = await product("Sin variación");
+      const heads = await publishAll(p, ["1000", "2000", "3000"]);
+      const first = cellOf(await summary(), p);
+      for (const [i, value] of ["1000", "2000", "3000"].entries()) await replace(heads, i, p, value);
+      expect(cellOf(await summary(), p)).toMatchObject({
+        status: "DISCLOSED", total_base: "6000", pending_changes: false, released_at: first.released_at,
+      });
+    });
+
+    it("a change that goes back to its released value leaves nothing pending", async () => {
+      const p = await product("Vuelta");
+      const heads = await publishAll(p, ["1000", "2000", "3000"]);
+      await summary();
+      await replace(heads, 0, p, "1700");
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6000", pending_changes: true });
+      await replace(heads, 0, p, "1000");
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6000", pending_changes: false });
+    });
+
+    it("no figure differs from any earlier figure of the cell by fewer than k Members", async () => {
+      const p = await product("Historial");
+      const heads = await publishAll(p, ["1000", "2000", "3000", "4000"]);
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "10000" }); // R1
+      for (const [i, value] of ["1100", "2100", "3100", "4100"].entries()) await replace(heads, i, p, value);
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "10400", pending_changes: false }); // R2
+      // Three Members go back: three changes against R2, but only one against
+      // R1. Publishing 10100 would reveal the first Member's change (R3 − R1).
+      for (const [i, value] of [[1, "2000"], [2, "3000"], [3, "4000"]] as const) await replace(heads, i, p, value);
+      const res = cellOf(await summary(), p);
+      expect(res.total_base).not.toBe("10100");
+      expect(res).toMatchObject({ status: "DISCLOSED", total_base: "10400", pending_changes: true });
+    });
+
+    it("regrouping: a Member that joins through an association alone is not a new figure", async () => {
+      const belator = await product("Belator neto");
+      const bellator = await product("Bellator neto");
+      await publishAll(belator, ["1000", "2000", "3000"]);
+      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6000" });
+      await push(farmers[3]!, { product: bellator, quantity: "500" });
+      const res: Res = await http().post(ASSOCIATIONS).set("Authorization", `Bearer ${director.token}`)
+        .send({ productId: bellator, canonicalProductId: belator, reason: "misma denominación", confirmed: true });
+      expect(res.status).toBe(200);
+      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6000", pending_changes: true });
+      // Undoing the association brings back exactly the released contributions.
+      await http().post(`${ASSOCIATIONS}/${bellator}/close`).set("Authorization", `Bearer ${director.token}`)
+        .send({ reason: "denominación distinta", confirmed: true });
+      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6000", pending_changes: false });
+    });
+  });
+
   it("cancellation, dispute and membership change withdraw the figure", async () => {
     const p = await product("Retirada");
     const heads: string[] = [];
@@ -346,5 +432,188 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       prisma.collectiveRelease.update({ where: { id: release.id }, data: { totalBase: 1n } }),
     ).rejects.toThrow();
     await expect(prisma.collectiveReleaseItem.deleteMany({ where: { releaseId: release.id } })).rejects.toThrow();
+  });
+});
+
+/**
+ * F10-SEC-02 (#45), finding on PR #112: a disclosure written before
+ * 20261016150500 has no per-contribution quantity. The migration leaves it
+ * NULL (unknown, never rebuilt from current values), and an unknown amount
+ * proves no change. The database is migrated only up to the previous
+ * migration; the disclosure is written exactly as the code before the
+ * revision (063437d) wrote it; then the new migration is deployed.
+ */
+describePostgres("F07-POL-01: disclosures written before the quantity migration", () => {
+  const QUANTITY_MIGRATION = "20261016150500_f07_pol_01_release_item_quantity";
+  let app: INestApplication;
+  let prisma: PrismaService;
+  let jwt: JwtService;
+  let f: Fixture;
+  let databaseUrl: string;
+  let director: TestSession;
+  const farmers: TestSession[] = [];
+
+  /** `prisma migrate deploy` of the given schema folder (default: the real one). */
+  function deploy(url: string, schema?: string): void {
+    const result = spawnSync(
+      process.execPath,
+      [resolve("node_modules/prisma/build/index.js"), "migrate", "deploy", ...(schema ? ["--schema", schema] : [])],
+      { cwd: process.cwd(), env: { ...process.env, DATABASE_URL: url }, encoding: "utf8", timeout: 120000 },
+    );
+    if (result.status !== 0) throw new Error(`migrate deploy failed: ${result.stderr}`);
+  }
+
+  /**
+   * A new database migrated up to, but not including, `migration`: later
+   * migrations (e.g. F08's) are left out too, so none is applied out of order.
+   */
+  async function databaseBefore(adminUrl: string, migration: string): Promise<string> {
+    const admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
+    const name = `f07_pol_01_mig_${randomUUID().replaceAll("-", "")}`;
+    try {
+      await admin.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
+    } finally {
+      await admin.$disconnect();
+    }
+    const url = new URL(adminUrl);
+    url.pathname = `/${name}`;
+    const dir = mkdtempSync(join(tmpdir(), "f07-pol-01-"));
+    try {
+      cpSync("prisma/schema.prisma", join(dir, "schema.prisma"));
+      const root = resolve("prisma/migrations");
+      cpSync(root, join(dir, "migrations"), {
+        recursive: true,
+        filter: (source) => {
+          const entry = relative(root, resolve(source)).split(sep)[0] ?? "";
+          return !/^\d{14}_/.test(entry) || entry < migration;
+        },
+      });
+      deploy(url.toString(), join(dir, "schema.prisma"));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    return url.toString();
+  }
+
+  beforeAll(async () => {
+    process.env["COLLECTIVE_DISCLOSURE_MODE"] = "provisional-synthetic";
+    databaseUrl = await databaseBefore(postgresUrl!, QUANTITY_MIGRATION);
+    ({ app, prisma, jwt } = await createSyncV1App(databaseUrl));
+    f = await seedFixture(prisma);
+    farmers.push(
+      await createSession(prisma, jwt, f.members.farmerA),
+      await createSession(prisma, jwt, f.members.farmerA2),
+    );
+    for (let i = 0; i < 4; i++) {
+      const memberId = randomUUID();
+      await prisma.user.create({
+        data: {
+          id: randomUUID(), tenantId: f.tenantA, name: "Usuario sintético", email: `f07-${memberId}@example.test`,
+          passwordHash: unusablePasswordHash(), role: "AGRICULTOR",
+          members: { create: { id: memberId, tenantId: f.tenantA, role: "AGRICULTOR" } },
+        },
+      });
+      farmers.push(await createSession(prisma, jwt, memberId));
+    }
+    director = await createSession(prisma, jwt, f.members.directorA);
+  }, 240000);
+
+  afterAll(async () => {
+    delete process.env["COLLECTIVE_DISCLOSURE_MODE"];
+    await app?.close();
+  });
+
+  const http = () => request(app.getHttpServer());
+
+  async function push(session: TestSession, p: string, quantity: string, pred: string | null = null): Promise<string> {
+    const operationId = randomUUID();
+    const res: Res = await http()
+      .post(PUSH)
+      .set("Content-Type", "application/json")
+      .set("Authorization", `Bearer ${session.token}`)
+      .send(JSON.stringify({
+        contractVersion: 1,
+        operationId,
+        projectionType: "DECLARED_NEED",
+        action: pred === null ? "PUBLISH" : "SUPERSEDE",
+        causal: { predecessorOperationId: pred, reconciliationReference: null },
+        payload: { campaign_ref: f.campaigns.openA, product_ref: p, base_unit: "ML", quantity_base: quantity },
+      }));
+    expect(res.status).toBe(200);
+    expect(res.body.outcome).toBe("APPLIED");
+    return operationId;
+  }
+
+  async function cell(p: string) {
+    const res: Res = await http()
+      .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary`)
+      .set("Authorization", `Bearer ${director.token}`);
+    expect(res.status).toBe(200);
+    return (res.body.cells as any[]).find((row) => row.product_ref === p);
+  }
+
+  /** The disclosure as 063437d wrote it: release and items, no quantities. */
+  async function legacyRelease(p: string): Promise<void> {
+    const contributions = await prisma.syncV1Contribution.findMany({
+      where: { productId: p, status: "ACTIVE" },
+      select: { id: true, lastSequence: true, quantityBase: true, acceptedAt: true },
+    });
+    const id = randomUUID();
+    const total = contributions.reduce((sum, c) => sum + c.quantityBase!, 0n);
+    const dataAsOf = new Date(Math.max(...contributions.map((c) => c.acceptedAt!.getTime())));
+    await prisma.$executeRaw`
+      INSERT INTO "CollectiveRelease"
+        ("id", "tenantId", "campaignId", "canonicalProductId", "projectionType", "baseUnit",
+         "totalBase", "contributorCount", "dataAsOf", "releasedAt")
+      VALUES (${id}::uuid, ${f.tenantA}, ${f.campaigns.openA}, ${p}, 'DECLARED_NEED', 'ML',
+              ${total}, ${contributions.length}, ${dataAsOf}, now())`;
+    for (const c of contributions) {
+      await prisma.$executeRaw`
+        INSERT INTO "CollectiveReleaseItem" ("releaseId", "contributionId", "sequence")
+        VALUES (${id}::uuid, ${c.id}::uuid, ${c.lastSequence})`;
+    }
+  }
+
+  it("6000 disclosed before the migration: one net change does not publish 6100", async () => {
+    const created = await prisma.product.create({
+      data: { tenantId: f.tenantA, name: `Migración ${randomUUID().slice(0, 8)}`, unit: "L" },
+    });
+    const p = created.id;
+    const heads: string[] = [];
+    for (const [i, value] of ["1000", "2000", "3000"].entries()) heads.push(await push(farmers[i]!, p, value));
+    await legacyRelease(p);
+    deploy(databaseUrl);
+    const applied = await prisma.$queryRaw<{ migration_name: string }[]>`
+      SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL ORDER BY migration_name`;
+    // The deploy above applied the quantity migration (and any later one).
+    expect(applied.map((m) => m.migration_name)).toContain(QUANTITY_MIGRATION);
+    // The migration leaves the earlier quantities unknown; nothing rebuilds them.
+    const items = await prisma.collectiveReleaseItem.findMany({ where: { release: { canonicalProductId: p } } });
+    expect(items).toHaveLength(3);
+    expect(items.every((item) => item.quantityBase === null)).toBe(true);
+
+    // Valid SUPERSEDE: 1100 / 2000 / 3000, three sequences, one net change.
+    // The first consultation after the migration sees these values.
+    for (const [i, value] of ["1100", "2000", "3000"].entries()) heads[i] = await push(farmers[i]!, p, value, heads[i]!);
+    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", contributors: 3, pending_changes: true });
+    const csv: Res = await http()
+      .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
+      .set("Authorization", `Bearer ${director.token}`);
+    expect(csv.text).toContain(`,${p},`);
+    expect(csv.text).not.toContain(",6100,");
+    expect(await prisma.collectiveRelease.count({ where: { canonicalProductId: p } })).toBe(1);
+
+    // Two Members join: two provable changes, still fewer than k.
+    for (const i of [3, 4]) await push(farmers[i]!, p, "500");
+    expect(await cell(p)).toMatchObject({ total_base: "6000", pending_changes: true });
+    // A third joins: k Members provably changed against the old disclosure.
+    await push(farmers[5]!, p, "500");
+    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "7600", contributors: 6, pending_changes: false });
+    const latest = await prisma.collectiveReleaseItem.findMany({
+      where: { release: { canonicalProductId: p, totalBase: 7600n } },
+    });
+    expect(latest.map((item) => item.quantityBase?.toString()).sort()).toEqual(
+      ["1100", "2000", "3000", "500", "500", "500"],
+    );
   });
 });
