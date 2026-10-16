@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { URL } from "node:url";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
@@ -463,7 +463,10 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     if (result.status !== 0) throw new Error(`migrate deploy failed: ${result.stderr}`);
   }
 
-  /** A new database migrated up to, but not including, `migration`. */
+  /**
+   * A new database migrated up to, but not including, `migration`: later
+   * migrations (e.g. F08's) are left out too, so none is applied out of order.
+   */
   async function databaseBefore(adminUrl: string, migration: string): Promise<string> {
     const admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
     const name = `f07_pol_01_mig_${randomUUID().replaceAll("-", "")}`;
@@ -477,9 +480,13 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     const dir = mkdtempSync(join(tmpdir(), "f07-pol-01-"));
     try {
       cpSync("prisma/schema.prisma", join(dir, "schema.prisma"));
-      cpSync("prisma/migrations", join(dir, "migrations"), {
+      const root = resolve("prisma/migrations");
+      cpSync(root, join(dir, "migrations"), {
         recursive: true,
-        filter: (source) => !source.includes(migration),
+        filter: (source) => {
+          const entry = relative(root, resolve(source)).split(sep)[0] ?? "";
+          return !/^\d{14}_/.test(entry) || entry < migration;
+        },
       });
       deploy(url.toString(), join(dir, "schema.prisma"));
     } finally {
@@ -575,10 +582,15 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     const heads: string[] = [];
     for (const [i, value] of ["1000", "2000", "3000"].entries()) heads.push(await push(farmers[i]!, p, value));
     await legacyRelease(p);
+    // Precondition: the quantity migration is not applied yet (order fixed).
+    const pending = await prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*) AS n FROM "_prisma_migrations" WHERE migration_name = ${QUANTITY_MIGRATION}`;
+    expect(Number(pending[0]!.n)).toBe(0);
     deploy(databaseUrl);
     const applied = await prisma.$queryRaw<{ migration_name: string }[]>`
-      SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL ORDER BY migration_name DESC LIMIT 1`;
-    expect(applied[0]!.migration_name).toBe(QUANTITY_MIGRATION);
+      SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL ORDER BY migration_name`;
+    // The deploy above applied the quantity migration (and any later one).
+    expect(applied.map((m) => m.migration_name)).toContain(QUANTITY_MIGRATION);
     // The migration leaves the earlier quantities unknown; nothing rebuilds them.
     const items = await prisma.collectiveReleaseItem.findMany({ where: { release: { canonicalProductId: p } } });
     expect(items).toHaveLength(3);

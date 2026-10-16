@@ -1,10 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { lazy, Suspense, type ReactNode } from 'react';
 import { AdminRoute } from './components/admin-route';
+import { CollectiveRoute } from './components/collective-route';
 import { PrivateRoute } from './components/private-route';
 import { AuthProvider } from './contexts/auth.context';
 import { CampaignProvider } from './contexts/campaign.context';
 import { useAuth } from './hooks/use-auth';
+import { COLLECTIVE_PATHS, homePathFor } from './lib/navigation';
 import { CampaignsPage } from './pages/campaigns.page';
 import { DashboardPage } from './pages/dashboard.page';
 import { InventoryPage } from './pages/inventory.page';
@@ -28,6 +30,18 @@ const CalendarPage = lazy(() =>
 const ReportsPage = lazy(() =>
   import('./pages/reports.page').then((module) => ({ default: module.ReportsPage })),
 );
+const CollectiveSummaryPage = lazy(() =>
+  import('./pages/collective-summary.page').then((module) => ({ default: module.CollectiveSummaryPage })),
+);
+const JointProposalPage = lazy(() =>
+  import('./pages/joint-proposal.page').then((module) => ({ default: module.JointProposalPage })),
+);
+const CoveragePage = lazy(() =>
+  import('./pages/coverage.page').then((module) => ({ default: module.CoveragePage })),
+);
+const ProductReconciliationPage = lazy(() =>
+  import('./pages/product-reconciliation.page').then((module) => ({ default: module.ProductReconciliationPage })),
+);
 const AuditLogsPage = lazy(() =>
   import('./pages/audit-logs.page').then((module) => ({ default: module.AuditLogsPage })),
 );
@@ -35,14 +49,14 @@ const AuditLogsPage = lazy(() =>
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
-  return user ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+  return user ? <Navigate to={homePathFor(user.role)} replace /> : <>{children}</>;
 }
 
 function RoleRoute({ roles, children }: { roles: string[]; children: ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  return roles.includes(user.role) ? <>{children}</> : <Navigate to="/dashboard" replace />;
+  return roles.includes(user.role) ? <>{children}</> : <Navigate to={homePathFor(user.role)} replace />;
 }
 
 /**
@@ -53,14 +67,53 @@ function FarmerRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'DIRECTIVA') return <Navigate to="/directiva" replace />;
+  if (user.role === 'DIRECTIVA') return <Navigate to={homePathFor(user.role)} replace />;
   return <>{children}</>;
+}
+
+function HomeRedirect() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  return <Navigate to={user ? homePathFor(user.role) : '/login'} replace />;
 }
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<HomeRedirect />} />
+      {/* F07: Directiva y Administrador del tenant (ADR-003); el servidor autoriza */}
+      <Route
+        path={COLLECTIVE_PATHS.summary}
+        element={
+          <CollectiveRoute>
+            <CollectiveSummaryPage />
+          </CollectiveRoute>
+        }
+      />
+      <Route
+        path={COLLECTIVE_PATHS.proposals}
+        element={
+          <CollectiveRoute>
+            <JointProposalPage />
+          </CollectiveRoute>
+        }
+      />
+      <Route
+        path={COLLECTIVE_PATHS.coverage}
+        element={
+          <CollectiveRoute>
+            <CoveragePage />
+          </CollectiveRoute>
+        }
+      />
+      <Route
+        path={COLLECTIVE_PATHS.reconciliation}
+        element={
+          <CollectiveRoute>
+            <ProductReconciliationPage />
+          </CollectiveRoute>
+        }
+      />
       <Route
         path="/login"
         element={

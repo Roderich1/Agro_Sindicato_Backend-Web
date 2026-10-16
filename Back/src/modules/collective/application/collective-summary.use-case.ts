@@ -59,6 +59,15 @@ export interface CollectiveSummary {
 type Tx = Prisma.TransactionClient;
 
 /**
+ * A summary plus, keyed by `cellId`, the release whose figure each DISCLOSED
+ * cell shows. Internal only.
+ */
+export interface DecidedSummary {
+  summary: CollectiveSummary;
+  releaseOf: ReadonlyMap<string, string>;
+}
+
+/**
  * Collective summary of a campaign (F06 #21): read-only over Sync v1
  * contributions, grouped by the current canonical product (F07-REC-01) and
  * disclosed only under the provisional policy (F07-POL-01). Every output
@@ -74,6 +83,20 @@ export class CollectiveSummaryUseCase {
   ) {}
 
   async execute(tenantId: string, campaignId: string): Promise<CollectiveSummary> {
+    return (await this.decide(tenantId, campaignId)).summary;
+  }
+
+  /**
+   * The summary and, for each disclosed cell, the release that backs its
+   * figure (internal: never part of the JSON/CSV output). `within` runs in the
+   * same transaction and advisory lock, so a consumer such as the joint
+   * purchase proposal (F07 #27) sees exactly the decisions of this summary.
+   */
+  async decide(
+    tenantId: string,
+    campaignId: string,
+    within?: (tx: Tx, decided: DecidedSummary) => Promise<void>,
+  ): Promise<DecidedSummary> {
     // Another tenant's campaign and a missing one answer the same 404.
     const campaign = await this.prisma.agriculturalCampaign.findFirst({
       where: { id: campaignId, tenantId },
@@ -86,28 +109,34 @@ export class CollectiveSummaryUseCase {
     };
     if (this.config.mode === "POLICY_PENDING") {
       return {
-        ...header,
-        disclosure: { mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null },
-        coverage: null,
-        cells: [],
+        summary: {
+          ...header,
+          disclosure: { mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null },
+          coverage: null,
+          cells: [],
+        },
+        releaseOf: new Map(),
       };
     }
-    const summary = await this.prisma.$transaction(async (tx) => {
+    const decided = await this.prisma.$transaction(async (tx) => {
       // One summary at a time per campaign: releases are decided once.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`collective:${tenantId}:${campaignId}`}, 0))`;
-      return this.provisional(tx, tenantId, campaignId);
+      const { releaseOf, ...rest } = await this.provisional(tx, tenantId, campaignId);
+      const result: DecidedSummary = { summary: { ...header, ...rest }, releaseOf };
+      if (within) await within(tx, result);
+      return result;
     });
     this.logger.log(
-      `[COLLECTIVE SUMMARY] tenant=${tenantId} campaign=${campaignId} cells=${summary.cells.length}`,
+      `[COLLECTIVE SUMMARY] tenant=${tenantId} campaign=${campaignId} cells=${decided.summary.cells.length}`,
     );
-    return { ...header, ...summary };
+    return decided;
   }
 
   private async provisional(
     tx: Tx,
     tenantId: string,
     campaignId: string,
-  ): Promise<Pick<CollectiveSummary, "disclosure" | "coverage" | "cells">> {
+  ): Promise<Pick<CollectiveSummary, "disclosure" | "coverage" | "cells"> & Pick<DecidedSummary, "releaseOf">> {
     const contributions = await this.eligible(tx, tenantId, campaignId);
     const canonicalOf = await this.canonicalMap(tx, tenantId);
     const cells = consolidate(contributions, canonicalOf);
@@ -136,6 +165,7 @@ export class CollectiveSummaryUseCase {
     }
     const names = await this.productNames(tx, output.map((entry) => entry.key.canonicalProductId));
     const result: SummaryCell[] = [];
+    const releaseOf = new Map<string, string>();
     for (const { key, decision, cell, prior } of output) {
       if ("withdrawPrior" in decision && decision.withdrawPrior && prior) {
         await tx.collectiveRelease.update({ where: { id: prior.id }, data: { withdrawnAt: now } });
@@ -177,10 +207,12 @@ export class CollectiveSummaryUseCase {
               },
             },
           });
+          releaseOf.set(cellId(key), released.id);
           result.push({ ...base, status: "DISCLOSED", ...figure(released.totalBase, cell!.members.size, cell!.dataAsOf, now, false) });
           break;
         }
         case "SHOW_PRIOR":
+          releaseOf.set(cellId(key), prior!.id);
           result.push({
             ...base,
             status: "DISCLOSED",
@@ -218,6 +250,7 @@ export class CollectiveSummaryUseCase {
         members_with_contribution: new Set(contributions.map((c) => c.memberId)).size,
       },
       cells: result,
+      releaseOf,
     };
   }
 

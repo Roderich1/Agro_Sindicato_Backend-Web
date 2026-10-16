@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import { Body, Controller, Get, Header, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { UserRole } from "@prisma/client";
 import { CurrentUser } from "../../../iam/api/rest/decorators/current-user.decorator";
@@ -9,6 +9,7 @@ import { ProductReconciliationUseCase } from "../../application/use-cases/produc
 import {
   associationChangeSchema,
   associationListSchema,
+  productCatalogSchema,
 } from "../../../collective/api/rest/collective-openapi.schemas";
 
 /**
@@ -30,6 +31,16 @@ export class ProductAssociationsController {
   @ApiResponse({ status: 403, description: "Rol distinto de DIRECTIVA o ADMINISTRADOR" })
   list(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.reconciliation.list(user.tenantId);
+  }
+
+  @Get("catalog")
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Denominaciones del catálogo del tenant: nombre y unidad, sin stock" })
+  @ApiResponse({ status: 200, schema: productCatalogSchema })
+  @ApiResponse({ status: 401, description: "Sin credencial vigente" })
+  @ApiResponse({ status: 403, description: "Rol distinto de DIRECTIVA o ADMINISTRADOR" })
+  catalog(@CurrentUser() user: AuthenticatedPrincipal) {
+    return this.reconciliation.catalog(user.tenantId);
   }
 
   @Post()

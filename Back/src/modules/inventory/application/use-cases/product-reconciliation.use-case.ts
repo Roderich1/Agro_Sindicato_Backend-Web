@@ -32,9 +32,20 @@ export interface AssociationView {
   valid_from: string;
   valid_to: string | null;
   actor_ref: string;
+  actor_name: string;
   reason: string;
   closed_by_ref: string | null;
+  closed_by_name: string | null;
   close_reason: string | null;
+}
+
+/** A catalogue denomination: name and unit only, no stock or other legacy data. */
+export interface CatalogEntryView {
+  product_ref: string;
+  product_name: string;
+  unit: string;
+  base_unit: "ML" | "G" | null;
+  is_active: boolean;
 }
 
 /**
@@ -58,6 +69,8 @@ export class ProductReconciliationUseCase {
       include: {
         product: { select: { name: true } },
         canonicalProduct: { select: { name: true } },
+        actor: { select: { name: true } },
+        closedBy: { select: { name: true } },
       },
     });
     const views = rows.map(view);
@@ -65,6 +78,22 @@ export class ProductReconciliationUseCase {
       current: views.filter((row) => row.valid_to === null),
       history: views.filter((row) => row.valid_to !== null),
     };
+  }
+
+  /** Denominations of the tenant to choose from (F07-REC-01 screen). */
+  async catalog(tenantId: string): Promise<CatalogEntryView[]> {
+    const rows = await this.prisma.product.findMany({
+      where: { tenantId },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+      select: { id: true, name: true, unit: true, isActive: true },
+    });
+    return rows.map((row) => ({
+      product_ref: row.id,
+      product_name: row.name,
+      unit: row.unit,
+      base_unit: baseUnitForCentralUnit(row.unit),
+      is_active: row.isActive,
+    }));
   }
 
   async associate(tenantId: string, actorUserId: string, command: AssociateProductCommand) {
@@ -184,6 +213,8 @@ function view(row: {
   closeReason: string | null;
   product: { name: string };
   canonicalProduct: { name: string };
+  actor: { name: string };
+  closedBy: { name: string } | null;
 }): AssociationView {
   return {
     association_ref: row.id,
@@ -194,8 +225,10 @@ function view(row: {
     valid_from: row.validFrom.toISOString(),
     valid_to: row.validTo?.toISOString() ?? null,
     actor_ref: row.actorUserId,
+    actor_name: row.actor.name,
     reason: row.reason,
     closed_by_ref: row.closedByUserId,
+    closed_by_name: row.closedBy?.name ?? null,
     close_reason: row.closeReason,
   };
 }
