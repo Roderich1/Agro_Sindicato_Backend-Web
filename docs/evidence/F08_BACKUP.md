@@ -20,7 +20,7 @@ Base de la rama: `063437d3ebe7f10110a5faaeee3f052e7d89d100`; después se integr�
 
 ## Qué se implementó
 
-- **Metadatos (#37).** El modelo `BackupMetadata` (migración `20261016161400_f08_backup_metadata`) guarda:
+- **Metadatos (#37).** El modelo `BackupMetadata` (migración `20261016181000_f08_backup_metadata`, creada como `20261016161400_…` y renombrada con `git mv` al integrar `main` `71460bf` para que quede detrás de la de B) guarda:
   - Propietario: `tenantId` y `memberId` de la sesión.
   - Estado: `UPLOADING`, `AVAILABLE`, `FAILED` o `DELETED`.
   - `storageKey`: UUID generado por el servidor; nunca un nombre de archivo del cliente.
@@ -129,6 +129,16 @@ restos: contenedor=0, escucha en 3113=0, escucha en 3116=0
 
 La admisión `enabled` se usó **sólo** en ese entorno desechable y sintético, igual que la admisión de Sync v1 en el arnés F03.
 
+## Estado integrado con `main` `71460bf` (#116 y #115), merge `1f6806d`
+
+| Comprobación | Resultado |
+|---|---|
+| `prisma validate`; `prisma migrate diff` (migraciones → schema) con base sombra | Válido; diff vacío. |
+| `npm run openapi:generate` sobre el estado integrado; `npm run openapi:check` | Snapshots regenerados, no fusionados a mano. Frente a `main` sólo se añaden `/api/v1/me/backups` en `openapi-f02.json` y el subconjunto F08; F06 queda idéntico. Aserciones F02/F05/F06 (con propuestas)/F08 pasan. |
+| `npm test -- --runInBand` | 218 pasan / 172 omitidas. |
+| Suites PostgreSQL | auth-v2 12, current-auth-context 25, f02-final 3, sync-v1-journal 30 (10 migraciones, F08 en [9]), adversarial 41, references 7, f06-coll-05 15, product-reconciliation 5, **f07-web-proposal 12** (B, en `web.yml`) y backups 22: todas pasan. |
+| Neutralización de `summaryCsv` (#115) | Conservada; `collective-config.spec.ts` «a name that starts like a formula is neutralized…» pasa dentro de `npm test`. |
+
 ## Limitaciones declaradas
 
 - **Sin cifrado en reposo** en el servidor.
@@ -153,7 +163,7 @@ La admisión `enabled` se usó **sólo** en ese entorno desechable y sintético,
 | Archivo | Cambio |
 |---|---|
 | `Back/prisma/schema.prisma` | Enum `BackupStatus`, modelo `BackupMetadata` y relaciones inversas en `Tenant` y `Member`. |
-| `Back/prisma/migrations/20261016161400_f08_backup_metadata` | Migración nueva. **A integra antes #116 (B)**; esta migración se renombrará con un timestamp posterior a la de B al integrar `main`. |
+| `Back/prisma/migrations/20261016181000_f08_backup_metadata` | Migración nueva, posterior a `20261016162158_f07_joint_purchase_proposal` (B). Renombrada en el merge `1f6806d`. |
 | `Back/src/app.module.ts` | `BackupsModule`. |
 | `Back/src/main.ts` | `configureBackupsBodyGuard`, detrás de helmet y antes de los parsers de Nest. |
 | `Back/src/config/env.schema.ts`, `Back/.env.example` | `BACKUP_STORAGE_DIR`, `BACKUP_MAX_BYTES`, `BACKUP_MAX_ACTIVE_PER_MEMBER` y `BACKUP_PRODUCTION_ADMISSION`, sin valores por defecto inseguros. |
