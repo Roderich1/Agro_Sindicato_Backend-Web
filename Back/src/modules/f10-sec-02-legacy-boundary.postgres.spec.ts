@@ -222,6 +222,18 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       expect((await call("post", "/inventory/products", farmerA, { name: "Intento agricultor", unit: "L" })).status).toBe(403);
     });
 
+    it("campaigns and the crop catalog carry no tenant-wide counts of private records", async () => {
+      for (const session of [farmerA, farmerA2, director, admin]) {
+        for (const path of ["/campaigns", "/campaigns/active", "/crops"]) {
+          const res = await call("get", path, session);
+          expect({ path, status: res.status }).toEqual({ path, status: 200 });
+          const rows = Array.isArray(res.body) ? res.body : [res.body];
+          expect(rows.length).toBeGreaterThan(0);
+          for (const row of rows) expect({ path, summary: row.summary }).toEqual({ path, summary: undefined });
+        }
+      }
+    });
+
     it("does not show another tenant's catalog", async () => {
       const res = await call("get", "/inventory/products", otherTenantDirector);
       expect(res.status).toBe(200);
@@ -273,9 +285,14 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       expect(await effects()).toEqual(before);
     });
 
-    it("another tenant's directiva cannot reach the payable", async () => {
-      const res = await call("post", `/accounts-payable/${ids["jointPayableA"]}/payments`, otherTenantDirector, { amount: 1 });
-      expect([403, 404]).toContain(res.status);
+    it("another tenant's farmer cannot reach the payable (tenant filter, not role)", async () => {
+      // An AGRICULTOR passes the role check, so a 404 here comes from the tenant
+      // and owner filter; another tenant's DIRECTIVA is refused by role (403).
+      const before = await effects();
+      const res = await call("post", `/accounts-payable/${ids["jointPayableA"]}/payments`, farmerB, { amount: 1 });
+      expect(res.status).toBe(404);
+      expect((await call("post", `/accounts-payable/${ids["jointPayableA"]}/payments`, otherTenantDirector, { amount: 1 })).status).toBe(403);
+      expect(await effects()).toEqual(before);
     });
   });
 
