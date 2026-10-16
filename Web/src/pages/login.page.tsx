@@ -20,7 +20,8 @@ export function LoginPage() {
 
     try {
       await login(email, password);
-      navigate('/dashboard', { replace: true });
+      // La raíz elige la pantalla inicial según el rol (F07-WEB-01).
+      navigate('/', { replace: true });
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
         const status = err.response.status;
