@@ -51,8 +51,12 @@ export class CalendarEventsUseCase {
   }
 
   private async syncAutomaticEvents(tenantId: string, actor: Actor, query: ListCalendarEventsQueryDto) {
-    await this.syncLotExpirationEvents(tenantId, actor, query);
-    await this.syncLowStockEvents(tenantId, actor, query);
+    // F10-SEC-02 (#45): events derived from private lots are generated only for
+    // their owner; an institutional query does not read other farmers' stock.
+    if (actor.role === UserRole.AGRICULTOR) {
+      await this.syncLotExpirationEvents(tenantId, actor, query);
+      await this.syncLowStockEvents(tenantId, actor, query);
+    }
     await this.syncCampaignClosingEvents(tenantId, actor, query);
   }
 
@@ -246,11 +250,11 @@ export class CalendarEventsUseCase {
   ): Prisma.CalendarEventWhereInput {
     return {
       tenantId,
+      // F10-SEC-02 (#45): institutional roles see and change only institutional
+      // events (no owner), never a farmer's private ones.
       ...(actor.role === UserRole.AGRICULTOR
         ? { OR: [{ ownerUserId: actor.userId }, { ownerUserId: null }] }
-        : query.ownerUserId
-          ? { ownerUserId: query.ownerUserId }
-          : {}),
+        : { ownerUserId: null }),
       ...(query.campaignId ? { campaignId: query.campaignId } : {}),
       ...(query.type ? { type: query.type } : {}),
       ...(query.status ? { status: query.status } : {}),

@@ -408,7 +408,8 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       expect((await prisma.calendarEvent.findUniqueOrThrow({ where: { id: ids["eventA"] } })).status).toBe("PENDIENTE");
       expect(await prisma.calendarEvent.count({ where: { ownerUserId: { not: null } } })).toBe(derivedBefore);
       const institutionalEvent = await call("post", `/calendar/events/${ids["eventInstitutional"]}/complete`, director);
-      expect(institutionalEvent.status).toBe(201);
+      expect(institutionalEvent.status).toBe(200);
+      expect(institutionalEvent.body.status).toBe("COMPLETADO");
     });
   });
 

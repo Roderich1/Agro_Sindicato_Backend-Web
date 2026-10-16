@@ -46,10 +46,11 @@ export class ListAuditLogsUseCase {
   ): Prisma.AuditLogWhereInput {
     return {
       tenantId,
+      // F10-SEC-02 (#45): institutional roles see only institutional entries
+      // (no owner: campaigns, shared catalogs), never a farmer's private ones.
       ...(role === UserRole.AGRICULTOR
         ? { OR: [{ ownerUserId: userId }, { actorUserId: userId }] }
-        : {}),
-      ...(role !== UserRole.AGRICULTOR && query.ownerUserId ? { ownerUserId: query.ownerUserId } : {}),
+        : { ownerUserId: null }),
       ...(role !== UserRole.AGRICULTOR && query.actorUserId ? { actorUserId: query.actorUserId } : {}),
       ...(query.campaignId ? { campaignId: query.campaignId } : {}),
       ...(query.action ? { action: query.action } : {}),

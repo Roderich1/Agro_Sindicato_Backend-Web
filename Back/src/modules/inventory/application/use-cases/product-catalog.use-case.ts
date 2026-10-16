@@ -178,7 +178,8 @@ export class ProductCatalogUseCase {
       qrCodeValue: product.qrCodeValue,
       unit: product.unit,
       minimumStock: product.minimumStock.toString(),
-      currentStock: product.currentStock.toString(),
+      // F10-SEC-02 (#45): `currentStock` (the sum of every farmer's private lots)
+      // is not served by the shared catalog.
       expirationWarningDays: product.expirationWarningDays,
       isActive: product.isActive,
       createdAt: product.createdAt.toISOString(),

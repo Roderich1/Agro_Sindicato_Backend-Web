@@ -13,7 +13,8 @@ import { ApplicationsUseCase } from '../../application/use-cases/applications.us
 
 @ApiTags('applications')
 @ApiBearerAuth()
-@Roles(UserRole.AGRICULTOR, UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+// F10-SEC-02 (#45): applications (plot, dose, notes) are private; owner only.
+@Roles(UserRole.AGRICULTOR)
 @Controller('applications')
 export class ApplicationsController {
   private readonly logger = new Logger(ApplicationsController.name);

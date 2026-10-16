@@ -13,7 +13,8 @@ import { PlotFlowUseCase } from '../../application/use-cases/plot-flow.use-case'
 
 @ApiTags('plot-crop-assignments')
 @ApiBearerAuth()
-@Roles(UserRole.AGRICULTOR, UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+// F10-SEC-02 (#45): crop assignments of private plots; owner only.
+@Roles(UserRole.AGRICULTOR)
 @Controller('plot-crop-assignments')
 export class PlotCropAssignmentsController {
   private readonly logger = new Logger(PlotCropAssignmentsController.name);

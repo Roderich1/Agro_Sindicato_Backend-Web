@@ -124,7 +124,8 @@ export class ReportsUseCase {
       },
       rows: purchases.map((purchase) => ({
         ...this.mapPurchase(purchase),
-        participants: purchase.participants.map((participant) => ({
+        // F10-SEC-02 (#45): a participant sees only their own share.
+        participants: purchase.participants.filter((participant) => actor.role !== UserRole.AGRICULTOR || participant.userId === actor.userId).map((participant) => ({
           id: participant.id,
           user: participant.user,
           status: participant.status,

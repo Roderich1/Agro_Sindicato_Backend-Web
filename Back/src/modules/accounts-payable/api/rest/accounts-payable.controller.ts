@@ -10,7 +10,9 @@ import { AccountsPayableUseCase } from '../../application/use-cases/accounts-pay
 
 @ApiTags('accounts-payable')
 @ApiBearerAuth()
-@Roles(UserRole.AGRICULTOR, UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+// F10-SEC-02 (#45): farmers' debts and payments are private; institutional
+// roles neither read them nor pay them (ADR-003). Legacy, owner-scoped.
+@Roles(UserRole.AGRICULTOR)
 @Controller('accounts-payable')
 export class AccountsPayableController {
   private readonly logger = new Logger(AccountsPayableController.name);

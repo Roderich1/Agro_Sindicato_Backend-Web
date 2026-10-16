@@ -80,3 +80,4 @@ jobs:
       - run: F06_COLL_05_PG_TEST_URL="$DATABASE_URL" npx jest f06-coll-05-collective-aggregate.postgres.spec.ts --runInBand
       - run: F07_REC_01_PG_TEST_URL="$DATABASE_URL" npx jest product-reconciliation.postgres.spec.ts --runInBand
       - run: F08_BKP_PG_TEST_URL="$DATABASE_URL" npx jest backups.postgres.spec.ts --runInBand
+      - run: F10_SEC_PG_TEST_URL="$DATABASE_URL" npx jest f10-sec-02-legacy-boundary.postgres.spec.ts --runInBand

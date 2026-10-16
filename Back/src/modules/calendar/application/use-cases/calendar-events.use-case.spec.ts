@@ -72,7 +72,9 @@ describe('CalendarEventsUseCase', () => {
     });
   });
 
-  it('lets directiva list global events with owner filter', async () => {
+  // F10-SEC-02 (#45): replaces "lets directiva list global events with owner
+  // filter", which asserted the access this review removes (ADR-003).
+  it('gives directiva only institutional events and ignores the owner filter', async () => {
     const { prisma, useCase } = createUseCase({
       calendarEvent: {
         findMany: jest.fn().mockResolvedValue([event()]),
@@ -85,7 +87,7 @@ describe('CalendarEventsUseCase', () => {
     await useCase.list(tenantId, { userId: 'directiva-1', role: UserRole.DIRECTIVA }, { ownerUserId: userId });
 
     expect(prisma.calendarEvent.findMany).toHaveBeenCalledWith({
-      where: { tenantId, ownerUserId: userId },
+      where: { tenantId, ownerUserId: null },
       orderBy: [{ eventDate: 'asc' }, { createdAt: 'desc' }],
       take: 300,
     });
