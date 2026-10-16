@@ -36,6 +36,10 @@ services:
       JWT_REFRESH_EXPIRES_IN: 7d
       CORS_ORIGIN: http://localhost:8080,http://localhost:5173
       COOKIE_SECURE: "false"
+      # F08: private backups on a dedicated volume, never in PostgreSQL.
+      BACKUP_STORAGE_DIR: /var/lib/agrocuentas/backups
+    volumes:
+      - backup_data:/var/lib/agrocuentas/backups
     ports:
       - "3000:3000"
     command: sh -c "npx prisma migrate deploy || npx prisma db push --skip-generate && node dist/prisma/seed.js && node dist/main.js"
@@ -59,3 +63,4 @@ services:
 
 volumes:
   postgres_data:
+  backup_data:

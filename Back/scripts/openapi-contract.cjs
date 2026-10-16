@@ -146,3 +146,34 @@ for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "qua
 }
 assert.ok(f06.paths["/api/v1/collective/campaigns/{campaignId}/summary.csv"].get.responses["200"].content["text/csv"]);
 process.stdout.write("F06 collective OpenAPI contract assertions passed.\n");
+
+// F08 private backups (#39): owner-scoped routes, closed errors, no owner ids.
+const f08 = JSON.parse(readFileSync(resolve(__dirname, "../../docs/api/openapi-f08-backups.json"), "utf8"));
+const f08Required = [
+  ["/api/v1/me/backups", "get", "200", "401", "403", "503"],
+  ["/api/v1/me/backups", "post", "201", "400", "401", "403", "409", "413", "415", "422", "503"],
+  ["/api/v1/me/backups/{id}/content", "get", "200", "401", "403", "404", "500", "503"],
+  ["/api/v1/me/backups/{id}", "delete", "204", "401", "403", "404", "503"],
+];
+assert.deepEqual(
+  Object.keys(f08.paths).sort(),
+  [...new Set(f08Required.map(([path]) => path))].sort(),
+);
+for (const [path, method, ...statuses] of f08Required) {
+  const operation = f08.paths[path]?.[method];
+  assert.ok(operation, `Missing ${method.toUpperCase()} ${path}`);
+  assert.deepEqual(spec.paths[path][method], operation, `${path} differs from the main snapshot`);
+  assert.ok(operation.security?.some((security) => "bearer" in security), `${path} requires bearer`);
+  for (const status of statuses) assert.ok(operation.responses[status], `Missing ${status} on ${path}`);
+}
+const backupView = f08.paths["/api/v1/me/backups"].post.responses["201"].content["application/json"].schema;
+assert.equal(backupView.additionalProperties, false);
+assert.deepEqual(Object.keys(backupView.properties).sort(), [...backupView.required].sort());
+for (const forbidden of ["storageKey", "memberId", "tenantId", "fileName", "status"]) {
+  assert.ok(!(forbidden in backupView.properties), `Backup view must not expose ${forbidden}`);
+}
+assert.ok(f08.paths["/api/v1/me/backups"].post.requestBody.content["application/octet-stream"]);
+assert.ok(
+  f08.paths["/api/v1/me/backups/{id}/content"].get.responses["200"].content["application/octet-stream"],
+);
+process.stdout.write("F08 backups OpenAPI contract assertions passed.\n");

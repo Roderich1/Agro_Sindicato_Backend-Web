@@ -31,11 +31,21 @@ async function main() {
     }, null, 2)}
 `;
     const f06Target = resolve(__dirname, "../../docs/api/openapi-f06-collective.json");
+    // F08 private backups subset (#39): owner-scoped, separate from Sync.
+    const f08Spec = `${JSON.stringify({
+      ...document,
+      paths: Object.fromEntries(
+        Object.entries(document.paths).filter(([path]) => path.startsWith("/api/v1/me/backups")),
+      ),
+    }, null, 2)}
+`;
+    const f08Target = resolve(__dirname, "../../docs/api/openapi-f08-backups.json");
     if (process.argv.includes("--check")) {
       if (
         readFileSync(target, "utf8") !== spec ||
         readFileSync(f05Target, "utf8") !== f05Spec ||
-        readFileSync(f06Target, "utf8") !== f06Spec
+        readFileSync(f06Target, "utf8") !== f06Spec ||
+        readFileSync(f08Target, "utf8") !== f08Spec
       ) {
         throw new Error("OpenAPI drift: run npm run openapi:generate and review the diff");
       }
@@ -43,6 +53,7 @@ async function main() {
     } else {
       writeFileSync(f05Target, f05Spec, "utf8");
       writeFileSync(f06Target, f06Spec, "utf8");
+      writeFileSync(f08Target, f08Spec, "utf8");
       const output = process.argv[2] && !process.argv[2].startsWith("--")
         ? resolve(process.argv[2]) : target;
       mkdirSync(dirname(output), { recursive: true });

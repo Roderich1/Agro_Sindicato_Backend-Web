@@ -43,6 +43,15 @@ export const envSchema = z.object({
   COLLECTIVE_DISCLOSURE_MODE: optionalText(
     z.enum(["disabled", "provisional-synthetic"]),
   ),
+  // F08 private backups: development disk adapter directory. Without it the
+  // `/me/backups` routes answer 503. Not encrypted at rest (declared limit).
+  BACKUP_STORAGE_DIR: optionalText(z.string()),
+  BACKUP_MAX_BYTES: optionalText(
+    z.coerce.number().int().positive().max(1024 * 1024 * 1024),
+  ),
+  BACKUP_MAX_ACTIVE_PER_MEMBER: optionalText(
+    z.coerce.number().int().positive().max(100),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;
