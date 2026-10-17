@@ -15,7 +15,7 @@
 Gate relacionado: GATE-F10 (#49), **Pending**.
 
 **Fuentes que manda seguir:**
-- `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` §3, en la **versión aprobada que publique la sesión A** (anotar su SHA en cada sesión);
+- `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` §3 en su **versión 1.0**, aprobada técnicamente antes de medir (BE PR #122, commit `72a03be`, pendiente de integrar). En cada sesión se anota el SHA de `main` donde quede integrada;
 - las decisiones de cierre del 2026-10-16 (`_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §2, «Usabilidad: diseño aceptado»). Donde difieren del borrador del protocolo, **mandan las decisiones**.
 
 ## Contenido

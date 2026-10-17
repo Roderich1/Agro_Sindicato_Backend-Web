@@ -4,7 +4,7 @@
 
 **Claude Code no facilita ni observa sesiones** ni produce observaciones humanas.
 
-**Protocolo:** la versión aprobada de `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` que publique la sesión A, con su SHA. Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
+**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` v1.0 (BE PR #122), con el SHA de `main` donde quede integrado. Un resultado `INCORRECTA` (dijo «terminé» sin alcanzar el fin observable) cuenta como fallo, igual que el abandono o el tiempo agotado: no hay éxito sin el fin observable (§3.4 del protocolo). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
 
 Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo tono para todas las personas.
 
