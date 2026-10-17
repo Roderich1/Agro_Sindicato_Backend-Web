@@ -23,7 +23,7 @@ Revisión técnica de la sesión B, del 2026-10-17 (UTC), sobre `main` `e2263b04
 
 | Issue | Estado en el Project | Resultado de la revisión | Brecha real | Propuesta |
 |---|---|---|---|---|
-| #23 F07-WEB-01 | Abierto | Satisfecho con el PR #127 (PHASE 5 en la Web) | Sí; código en #127 | Cerrar al integrar #127 |
+| #23 F07-WEB-01 | Abierto | Satisfecho con el PR #127 (PHASE 5 en la Web) | Sí; código en #127 | Cerrar al integrar #127. *Nota del 2026-10-17: #127 se integró en `9df7888` y #23 se cerró a las 14:43:05Z; recorrido sobre `main` 25/25 (#132)* |
 | #24 F07-WEB-02 | Abierto | Satisfecho en lo agregado; el detalle por agricultor (RF-22) no está habilitado por decisión | No | Alinear el criterio de detalle con la decisión de #25 y cerrar |
 | #25 F07-WEB-03 | Abierto, con criterios vigentes del 2026-10-16 | Satisfecho: la condición «corrección de cobertura integrada» se cumple con #126 (`e2263b0`) | No | Cerrar (texto en F07_PROPUESTAS_ISSUES) |
 | #26 F07-JP-01 | Abierto («IMPLEMENTATION = NOT_STARTED» en el cuerpo, desactualizado) | Satisfecho por #116/#126 | No | Cerrar con una nota que corrige el estado del cuerpo |

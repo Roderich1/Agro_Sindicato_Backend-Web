@@ -1,6 +1,7 @@
 # F07-POL-01 (#107) — Hoja para la revisión institucional
 
 - **Preparada por** la sesión C de Claude Code el 2026-10-17 (America/La_Paz), sobre Backend/Web `main` `e4b9c29`, por pedido de Roderich Rendón.
+- **Consolidación del 2026-10-17:** esta hoja incorpora los ejemplos sintéticos y las preguntas de BE #133; las notas de cierre de #23 se conservan en sus documentos de origen. Es el único paquete de revisión de #107 (BE #135).
 - **Qué es:** el material y el formato para que una revisión real **pueda hacerse**.
 - **Qué no es:** no registra ninguna aprobación, firma, fecha ni respuesta de la Directiva, del tutor ni de Roderich, porque ninguna ha ocurrido. Todos los campos del §5 están vacíos a propósito. Un campo vacío significa «no ocurrió».
 - **Fuentes:**
@@ -31,8 +32,8 @@ Sirve para planificar compras conjuntas. Se pide decidir si se acepta mostrar es
 
 **La regla propuesta (k = 3):**
 - un total sólo se muestra si lo forman **al menos 3 agricultores distintos**;
-- si son menos, aparece como «suprimido», nunca como cero;
-- si un total nuevo, comparado con los ya mostrados, permitiría deducir lo de menos de 3 agricultores, no se publica y se mantiene el anterior;
+- si son menos, aparece como «suprimido», con un motivo comprensible y sin cantidad ni conteo exacto, nunca como cero;
+- si un total nuevo, comparado con los ya mostrados, permitiría deducir lo de menos de 3 agricultores, no se publica: se mantiene el anterior marcado como pendiente, si sigue siendo admisible, o se retira la cifra;
 - si alguien se da de baja o un aporte se disputa, el total se retira.
 
 ## 2. Lo que la regla no protege, y hay que aceptarlo o no
@@ -43,6 +44,23 @@ Sirve para planificar compras conjuntas. Se pide decidir si se acepta mostrar es
 - **Se notan algunas señales:** que un total cambió (no cuánto), cuántos agricultores tienen cifras publicadas y la hora de los datos.
 
 **k = 3 no hace anónimos los datos.**
+
+## 2.1 Ejemplos con datos sintéticos de D4
+
+Son ejemplos del conjunto controlado de [`F06_RECONCILIATION.md`](F06_RECONCILIATION.md), no datos de agricultores reales. En ese conjunto aportan tres agricultores sintéticos y hay doce vinculados. Necesidad declarada y consumo son conceptos distintos; no se suman entre sí, entre productos ni entre unidades. Un cero declarado cuenta como aporte; una declaración ausente no se interpreta como cero.
+
+| Campaña | Producto | Concepto | Qué se muestra con la política sintética |
+|---|---|---|---|
+| Verano 2026 | Urea | Necesidad declarada | 25 KG, 3 agricultores |
+| Verano 2026 | Glifosato | Consumo | 8,25 L, 3 agricultores |
+| Verano 2026 | Belator, antes de reconciliar «Bellator» | Necesidad declarada | Sin cifra: no alcanza el mínimo; sin conteo exacto |
+| Verano 2026 | Belator, después de reconciliar «Bellator» | Necesidad declarada | 11 L, 3 agricultores |
+| Invierno 2026 | Mancozeb | Necesidad declarada | 11,5 KG, 3 agricultores |
+| Ambas | Cobertura | Participación | 3 de 12 agricultores vinculados con cifras publicadas, con aviso de celdas sin cifra |
+
+Reconciliar denominaciones requiere una asociación canónica explícita; no se unen productos por semejanza del nombre. Un borrador de propuesta de compra conjunta no ejecuta compras ni crea deudas.
+
+Para mostrar estos ejemplos pueden usarse las capturas sintéticas de D4: [resumen original](img/f07/01-resumen-c1-raw.png), [resumen reconciliado](img/f07/05-resumen-c1-canonico.png) y [propuesta](img/f07/06-propuesta-c1-canonica.png). Las capturas de otros ensayos no representan necesariamente este conjunto.
 
 ## 3. Estado de hoy (comprobado el 2026-10-17 sobre `e4b9c29`)
 
@@ -65,7 +83,7 @@ Es el orden del paquete §5, sin cambios.
 | # | Quién | Qué tiene que responder |
 |---|---|---|
 | 1 | **Roderich Rendón, como autor** | (a) si aprueba el texto de la política; (b) el **k para datos reales**, con el número real de agricultores vinculados; (c) quién revisa la política y cuándo |
-| 2 | **Directiva del Sindicato 19 de Agosto** | (a) si acepta la **finalidad** (planificar compras conjuntas); (b) si acepta que la Directiva y el Administrador vean **sólo totales**, con la regla del §1; (c) si acepta los límites del §2; (d) **cómo y cuándo se informa a los agricultores** de que sus declaraciones y consumos cuentan en esos totales |
+| 2 | **Directiva del Sindicato 19 de Agosto** | (a) si acepta la **finalidad** (planificar compras conjuntas); (b) si acepta que la Directiva y el Administrador vean **sólo totales**, con la regla del §1; (c) si acepta los límites del §2; (d) **cómo y cuándo se informa a los agricultores** de que sus declaraciones y consumos cuentan en esos totales; (e) **quién revisa la decisión y cada cuánto**; (f) **qué se hace si un agricultor pide que no se cuenten sus datos** |
 | 3 | **Tutor** (GOV-01, #105) | Su revisión del entregable, en sus propios términos. Una revisión no equivale a una aprobación |
 
 **Ninguna respuesta sustituye a otra:**
@@ -95,6 +113,8 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - Respuesta a 2(b) qué se muestra y a quién:
 - Respuesta a 2(c) límites aceptados:
 - Respuesta a 2(d) cómo se informa a los agricultores:
+- Respuesta a 2(e) responsable y periodicidad de revisión:
+- Respuesta a 2(f) tratamiento de una solicitud de exclusión:
 - Observaciones o condiciones:
 
 ### 5.3 Tutor
