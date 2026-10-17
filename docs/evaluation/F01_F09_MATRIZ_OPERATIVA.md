@@ -5,7 +5,7 @@
   - Las decisiones de gate siguen siendo de Roderich, con su confirmación explícita.
   - La revisión del tutor se registra en GOV-01 (#105).
   - Las aprobaciones institucionales no se suponen.
-- **Base integrada:**
+- **Base inicial del bloque (conservada):**
   - Backend/Web `e2263b04d96dd9f049a92046a45232af847ce0da`, CI 39031734166 (Backend) y 39031734178 (Web) SUCCESS;
   - Mobile `ce5678f89449453c60c3f1889cd6e973f09f6548`, CI 39031740439 SUCCESS (1072 pasan, 3 omitidas).
 - **Fuentes:**
@@ -34,12 +34,12 @@ Procedencia: CI (GitHub Actions), HOST (pruebas en el PC), DEVICE (POCO X5 Pro 5
 | F01 | #9 **Passed** | CERRADO | Nada. `Requirement refs` de #6–#9 y #79/#80 no usa IDs del Cap. III: es cosmético y no se reabre | — |
 | F02 | #15 **Passed** | CERRADO | Nada para el alcance académico. #94 (SEC-DEP-01) es de F10, previo a producción | — |
 | F03 | MOB #23 Pending | CONSTRUIDO_SIN_CERRAR (decisión) | Acta propuesta `GATE_F03_EVALUATION.md` y #76 en el POCO, con los 5 criterios PASS (MOB #105, `2df6033`). Faltan la decisión del gate y el cierre de #76. Residuales NOT_MEASURED declarados | Roderich |
-| F04 | MOB #28 Pending (Validation) | CONSTRUIDO_SIN_CERRAR (decisión) | #24–#27 cerradas (#102, #107). Sesión en el POCO en los dos modos. Acta propuesta: criterio 5 **Parcial** (no hay campaña por fecha efectiva). **Las REC (#38–#57) no condicionan el gate** | Roderich |
+| F04 | MOB #28 Pending (Validation) | FUNCIONALIDAD_PENDIENTE + decisión | #24–#27 integradas y cerradas. Criterio 5 de #28 parcial: resolver campaña y fecha efectiva conforme a RF-03/RF-12 y cubrir persistencia multiproducto; no se acepta como Passed por el número de tests | A, con revisión técnica |
 | F05 | BE #19 Pending | CONSTRUIDO_SIN_CERRAR (decisión) | Decisión sobre #18 (columna Mobile: 18 PASS y 22 NOT_MEASURED) y #19. Nota de base en el acta (este PR) | Roderich |
 | F06 | BE #22 Pending | CONSTRUIDO_SIN_CERRAR (decisión) | Acta al día (con C35), contrato y política con la cobertura nueva, y **regresión D4 en PASS** sobre `e2263b0` + `ce5678f` (BE #131 → `30fbb56`). Faltan la decisión y ratificar la reescritura delegada del criterio 3 | Roderich |
-| F07 | BE #29 Pending | CONSTRUIDO_SIN_CERRAR + VALIDACION_EXTERNA | #23 cerrada (BE #127 → `9df7888`; recorrido 25/25 en #132). Matriz por criterio y paquete de #107 en BE #128, **cuyo merge rechazó el control de permisos** (queda para Roderich). **#107 requiere una decisión institucional real** | Roderich, Directiva |
-| F08 | BE #41 **Passed** (alcance académico reducido) | CERRADO para ese alcance + ALCANCE_DIFERIDO (#40) | #40: retención, purga, proveedor, cifrado y producción, diferidos. El contraste está en BE #129, rechazado por el control y para Roderich. MOB #55: la restauración real de una copia v7 ya está (MOB #106); sigue Partial por la interfaz e `InvoiceStorage` | Roderich |
-| F09 | MOB #17 Pending | FUNCIONALIDAD_PENDIENTE (en construcción) | Captura reconciliada (MOB #99), núcleo y compra (#100), planificación (#101). Falta la aplicación (#15), la conexión con el shell y la **prueba física con dictado real (#12)**. Siete decisiones de alcance de Roderich (D-F09-1…7) | C, A (conexión y POCO), Roderich |
+| F07 | BE #29 Pending | CONSTRUIDO_SIN_CERRAR + VALIDACION_EXTERNA | #127/#132 integrados. #128 integrado en `cab433d` tras revisión de Codex; aceptación funcional y matriz disponibles. #107 sigue institucionalmente pendiente, con cifras reales deshabilitadas | Roderich, Directiva |
+| F08 | BE #41 **Passed** (alcance académico reducido) | CERRADO para ese alcance + ALCANCE_DIFERIDO (#40) | #129 integrado en `19a167f`: retención/purga y ciclo productivo siguen diferidos. MOB #55 sigue Partial por la interfaz e InvoiceStorage. No se reabre el gate | Roderich |
+| F09 | MOB #17 Pending | CONSTRUIDO_PARCIALMENTE + VALIDACION_EXTERNA | #99/#100/#101/#104 integrados; conexión #109 integrada en `8a2c558`. Falta aplicar un plan pendiente por voz (D-F09-4), dictado real y holdout nuevo. Decisiones D-F09-1…7 registradas al final; no constituyen PASS | C, A, Roderich |
 
 ## F01 y F02 (no se reabren)
 
@@ -126,13 +126,13 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 |---|---|---|---|---|
 | MOB PR #8 (EVO-009) | Abierto, en conflicto | Rama de septiembre, 146 commits por detrás | Sustituido por MOB #99 (cherry-picks con `-x`). Se cierra como sustituido al integrar #99 | C → A |
 | MOB #13 ASR | Backlog | `docs/evolution/decisions/ADR-002-voice-transcription-engine.md` (Android SpeechRecognizer; whisper.cpp de reserva) | Evidencia de la decisión; sin buscar motores nuevos | C |
-| MOB #11, #14, #15, #16 | Backlog | #99 (captura), #100 (núcleo #16 + compra #11), #101 (planificación #14) | #15 en construcción. **«Crear nuevo» de #11 no está** (propuesta D-F09-2, pendiente) | C |
+| MOB #11, #14, #15, #16 | Construidas en parte, pendientes de cierre | #99 captura, #100 núcleo/compra, #101 planificación, #104 aplicación libre y #109 conexión | Sin «Crear nuevo» por decisión D-F09-2. Aplicar un plan pendiente sigue por construir (D-F09-4); ensayo físico pendiente | C, A |
 | MOB #12 | Backlog | — | **Prueba física con dictado real.** Sólo A usa el POCO. Si el segundo modelo no está disponible: NOT_MEASURED | C, A |
 | MOB #10 | In Progress | — | Investigación de streaming; propuesta D-F09-1: fuera del cierre de producto | Roderich |
 | MOB #58, #59 (REC) | Backlog | Banco en `benchmark/voice_benchmark` | **#59 no es verificable**: el commit `201886c` no existe y la rama híbrida no está en `main` | Roderich |
 | **MOB #17 GATE-F09** | Pending | — | Depende de lo anterior y de D-F09-1…7 | Roderich |
 
-**Decisiones de alcance de F09 que C propone y Roderich no ha tomado.** Ninguna se usa como criterio de cierre mientras no se decida:
+**Propuestas de alcance de C anteriores a esta revisión (antecedente).** Quedan resueltas por la actualización de decisiones al final; se conservan para distinguir propuesta, decisión e implementación:
 
 - **D-F09-1:** #10 fuera del cierre de producto.
 - **D-F09-2:** sin catálogos nuevos desde la voz; un faltante bloquea la confirmación.
@@ -142,14 +142,14 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 - **D-F09-6:** sin un segundo modelo de teléfono, NOT_MEASURED.
 - **D-F09-7:** reconocedor del sistema que puede usar Internet, con consentimiento visible.
 
-## PR antiguos MOB #69 y #70
+## PR antiguos MOB #69 y #70 (antecedente anterior a las integraciones)
 
 | PR | ¿Sustituido? | Estado | Recomendación |
 |---|---|---|---|
 | #69, renumeración ADR-002 en Mobile | **No**: `docs/adr/` no existe en MOB `main` | Sin conflictos; CI verde (run 38743956671). El cuerpo cita el nombre de archivo anterior al renombrado `BE-ADR-002-…` | Integrar tras corregir el cuerpo y actualizar con `main`. No se fusiona por antigüedad: aporta la referencia que falta en Mobile |
 | #70, línea base REC Mobile | **No**: `REC_MOBILE_BASELINE.md` y `REC_021_CI.md` no están en `main` | Sin conflictos; CI verde (run 38743977319). Registro válido del 2026-10-15 sobre `278cbd3` (690 pruebas, igual que la CI 37231657078; los 56 del banco de voz no los ejecuta la CI). Sus «pendientes» son anteriores a #75, #79 y #90, y queda un marcador `{{ORIGEN}}` | Integrar con una **nota fechada del 2026-10-17**, sin reescribir lo registrado. Al integrarse cierra 6 issues: dry-run previo |
 
-## Avance del bloque (2026-10-17, actualizado por la sesión A)
+## Avance comunicado por la sesión A antes de esta integración (2026-10-17)
 
 | Fase | Hecho | `main` / PR | Sigue pendiente |
 |---|---|---|---|
@@ -165,4 +165,52 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 
 ## Versión candidata y paso a F10
 
-Se completa al final del bloque, con el SHA candidato de cada repositorio y la lista cerrada de lo que falta. Ver §«Versión candidata» cuando exista.
+La actualización siguiente registra las bases integradas verificables y los pendientes. No declara terminadas F01–F09 ni autoriza comenzar F10.
+
+
+## Actualización de integración y decisiones (2026-10-17, Codex)
+
+**Procedencia:** revisión técnica de Codex en esta conversación, bajo la delegación técnica de Roderich. No atribuye inspección personal al autor, revisión al tutor ni aprobación institucional. Las secciones históricas se conservan con su procedencia.
+
+### Integración revisada
+
+| PR | HEAD revisado | Merge |
+|---|---|---|
+| MOB #109 | `6437b7eb05fe140c31ffbd84242ccc7f299ce245` | `8a2c5589b8ca4942d7c4800a8c54a669ecc0af8e` |
+| BE #128 | `f318d62a86db147c29c7e1e0287b0124a5b5c3bb` | `cab433d963eabd0351fdec4530610c5afbe7ac49` |
+| BE #129 | `4c4800168522a4c78dc782fdafcfae07a41312d8` | `19a167f06ce6a5c0751eb998b87facca765db756` |
+
+Los tres HEAD tenían sus controles completos en verde. Se revisaron los cambios de rutas, guardas, descarte y confirmación de borradores, la aceptación F07 y el contraste F08. No se ejecutó aquí Flutter, PostgreSQL ni DEVICE: la evidencia de ejecución procede de los CI y los ensayos citados, con sus SHA originales. El comentario situado encima de la función equivocada en la pantalla de compra es menor y no bloquea la integración.
+
+**Bases de código integradas para continuar, aún no candidatas finales para F10:**
+- Backend/Web: `19a167f06ce6a5c0751eb998b87facca765db756`.
+- Mobile: `8a2c5589b8ca4942d7c4800a8c54a669ecc0af8e`.
+- El merge documental de este PR cambiará el SHA de main del Backend; se registra aparte al integrar. Antes de compilar un ensayo hay que comprobar el CI de main correspondiente y fijar el SHA de la APK. No se reatribuyen las mediciones antiguas.
+
+El control local de Claude rechazó operaciones de A con «Merge Without Review». No se modifica una regla general de Bash ni se autoriza a B/C a actuar como relevo para eludirlo. Esta revisión y las operaciones concretas se realizaron por Codex con la autorización del propietario; cualquier nuevo rechazo de un control debe respetarse. El texto final no publicado del worktree de A no estuvo disponible aquí: esta actualización no afirma haberlo leído ni sustituido. A debe conservar su copia y conciliarla antes de actualizar su rama, sin reset ni pérdida de cambios.
+
+### Decisiones D-F09-1 a D-F09-7
+
+| Decisión | Tratamiento adoptado | Consecuencia verificable |
+|---|---|---|
+| D-F09-1 | La investigación de streaming/C3/C2 de #10 queda fuera del cierre de producto de este bloque; se conserva como diferida | No se declara implementada ni medida. No bloquea los tres borradores de producto |
+| D-F09-2 | No crear productos ni proveedores desde la voz. Un faltante bloquea confirmar; se crea por Catálogos mediante la vía manual y después se vuelve a resolver | Reducción explícita de #11/EVO-017: no se entrega creación atómica de catálogo + compra por voz. No se cierra el texto antiguo como si ese criterio se hubiera implementado |
+| D-F09-3 | Planificación = área y dosis por hectárea, con cantidad requerida calculada y visible, igual que addPlanMulti | Alinear #14 con el dominio vigente sin introducir otro modelo ni esquema |
+| D-F09-4 | Sí incluir la aplicación de un plan pendiente por voz, mediante selección explícita y el flujo manual existente | Requiere un PR adicional. Sólo planes pendientes de la campaña y chaco elegidos; no se autoelige entre varios. Nada cambia en plan, stock o FIFO antes de confirmar. La aplicación libre ya integrada se conserva |
+| D-F09-5 | Exigir un conjunto nuevo para la aceptación exploratoria: 20 dictados nuevos (7 compra, 6 planificación, 7 aplicación) y 2 entradas sin habla; escritos por una persona que no ajustó las reglas | Código/intérprete, protocolo, expectativas, criterios y SHA-256 del conjunto se fijan antes de la primera toma. No se ajusta con él. El corpus expuesto sigue expuesto; no se presenta como ciego. Es una muestra exploratoria, no una certificación general ni un resultado ya ejecutado |
+| D-F09-6 | El POCO acredita sólo el modelo realmente ensayado. HONOR queda NOT_MEASURED si no está disponible | #12 mantiene ese límite; no se declara validación en dos modelos ni se sustituye por un emulador. La excepción de Pixel/API36 ya aceptada se conserva |
+| D-F09-7 | Preferencia local primero; permitir el reconocedor del sistema que podría usar Internet únicamente con consentimiento visible, una vez por sesión y sin guardarlo | EXTRA_PREFER_OFFLINE es una preferencia, no prueba de operación offline. Negarse conserva el formulario manual. Sin descargas ni servicios adicionales silenciosos; sin audio/transcripciones en logs o Central |
+
+Estas decisiones definen alcance e instrucciones de construcción. No convierten ninguna prueba sin ejecutar en PASS y no cambian el estado de GATE-F09 ni de #12.
+
+### Lista cerrada para continuar F01–F09
+
+1. **F04, criterio 5:** contrastar RF-03/RF-12 y las reglas de campañas con la campaña de la fecha efectiva. Resolver la brecha de comportamiento o una contradicción contractual con decisión explícita, sin debilitar el criterio para hacer pasar el gate. Añadir pruebas de límites de fecha y de compra/aplicación multiproducto, conservación tras reabrir y ambos modos. El gate permanece Pending hasta resolverlo.
+2. **F09, plan pendiente:** construir el incremento D-F09-4 con pruebas sensibles a doble confirmación, plan de otro chaco/campaña, plan ya aplicado, cancelación sin efectos y callbacks tardíos. Después, congelar el SHA Mobile final del ensayo.
+3. **F09, DEVICE y holdout:** actualizar el protocolo antes de medir, ejecutar dictado real junto al POCO y los escenarios de app con datos sintéticos. El fake y el texto inyectado no prueban el reconocedor. Registrar por separado el reconocimiento crudo, las correcciones manuales y el resultado de negocio. Conservar FAIL y NOT_MEASURED.
+4. **F03/F05/F06:** completar las decisiones contra las actas ya versionadas, citando sus límites, sin repetir por rutina evidencias satisfechas. Las 22 filas sin medir de #18 no cambian por esta integración; una carga concurrente no se añade como criterio nuevo de #19.
+5. **F07:** reflejar las tareas técnicamente satisfechas con enlaces a #128, aplicando el dry-run de cambios de Project que corresponda. #107 requiere su validación real; no se habilitan cifras de producción. GATE-F07 sigue Pending.
+6. **F08/REC:** conservar F08 Passed para su alcance académico. #40 sigue diferida/abierta para el ciclo productivo; #55 mantiene su cobertura parcial. No borrar evidencia ni declarar resueltos los REC parciales por conveniencia de seguimiento.
+7. **Revisión externa:** GOV-01 registra la revisión efectiva del tutor cuando ocurra. No es una aprobación automática ni una inspección personal de Roderich atribuida por esta actualización.
+
+F10 global sigue pospuesta. Su punto de partida será una versión candidata con las brechas anteriores resueltas o con excepciones expresamente registradas, las pruebas de fase necesarias y una decisión clara de las gates. No se deduce el cumplimiento por contar PR o tests.
