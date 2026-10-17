@@ -19,7 +19,7 @@
 | 6 | Cualquier efecto individual posterior exige confirmación humana y requisito aprobado | No existe ninguna acción que convierta un borrador en compra. La compra conjunta ejecutada legacy (`/directiva`, `CreateJointPurchaseUseCase`) no se usa y sale del menú | **Evidenciado por ausencia**; el flujo legacy sigue expuesto (ver límites) |
 | 7 | Filtros, actualidad y cobertura en cada vista; sin ahorro no medido | Campaña como filtro visible; «datos aceptados hasta»; cobertura «N de M»; ninguna cifra económica | **Evidenciado** |
 | 8 | La primitiva histórica `create-joint-purchase` no basta | La propuesta es un módulo nuevo; la primitiva no se reutiliza | **Evidenciado** |
-| 9 | Si F07-POL-01 o F07-REC-01 siguen abiertos, el gate sigue Pending | F07-POL-01 (#107) abierta. F07-REC-01 (#108) implementada en #116, **fusionado en `71460bf`**; #108 sigue abierta (su texto frente a ADR-003 está por decidir) | Gate **Pending** |
+| 9 | Si F07-POL-01 o F07-REC-01 siguen abiertos, el gate sigue Pending | F07-POL-01 (#107) abierta. F07-REC-01 (#108) implementada en #116, **fusionado en `71460bf`**; *antecedente:* «#108 sigue abierta (su texto frente a ADR-003 está por decidir)». **2026-10-16:** criterio de #108 alineado con ADR-003 (ver «Decisiones del 2026-10-16») | Gate **Pending** (por #107) |
 
 ## Criterios del brief D5 (adaptados)
 
@@ -58,6 +58,51 @@ Sólo se actualiza el estado; los dictámenes de arriba se conservan como se eva
 - **Discrepancias #108/ADR-003 y #25/RF-22:** la referencia es la §8 de [F10_SEC_02_ROUTES.md](F10_SEC_02_ROUTES.md). No se implementa ningún permiso nuevo de detalle por agricultor. Las decide Roderich.
 
 **Por qué el gate sigue Pending** (archivo de decisiones de F10): el criterio 9 exige resolver F07-POL-01 (#107) y F07-REC-01 (#108); la política de divulgación sólo está autorizada para demostración sintética, y las rutas heredadas siguen pendientes de #45/#81.
+
+## Decisiones del 2026-10-16: #108 y #25/RF-22 (cierre técnico)
+
+- **Procedencia:** `_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §1, «F07, reconciliación y cobertura», decidido bajo la delegación técnica de Roderich.
+- **Lo que no es:** ni aprobación institucional ni revisión del tutor.
+- **La sesión A** registra las decisiones el 2026-10-17 UTC y conserva los textos anteriores de los issues como antecedente.
+
+**#108 (F07-REC-01): alineado con ADR-003.**
+- **Quién reconcilia:** DIRECTIVA y ADMINISTRADOR del mismo tenant ejercen las funciones institucionales de reconciliación.
+- **Quién no:** el AGRICULTOR recibe 403 y otro tenant no ve ni modifica la asociación.
+- **Qué no concede:** el rol institucional no da acceso a operaciones ni a respaldos privados.
+- **Sugerencias por similitud:** eran opcionales y **no se construyen**.
+- **Evidencia de los criterios obligatorios** (`main`; [F07_WEB.md](F07_WEB.md)):
+  - `product-reconciliation.postgres.spec.ts` 5/5:
+    - Belator y Bellator bajo un canónico, con los nombres intactos;
+    - una corrección cierra la fila vigente con actor, fecha y motivo y abre otra, y el historial no se puede reescribir ni borrar;
+    - sin cadenas de alias;
+    - sólo unidades compatibles, sólo el propio tenant (otro tenant da 404, indistinguible) y sólo DIRECTIVA o su ADMINISTRADOR (el AGRICULTOR, 403);
+    - correcciones concurrentes dejan una sola asociación vigente.
+  - `product-reconciliation.use-case.spec.ts`: sin confirmación no se escribe nada.
+  - Recorrido Web RAW/CANONICAL: las denominaciones sin reconciliar aparecen por separado, y el resumen y la propuesta regenerada reflejan la asociación vigente.
+
+**#25 (F07-WEB-03): resuelto para PG 2026 con cobertura agregada.**
+- **Construido:** `linked_members` y `members_with_contribution` («N de M»), con «sin datos ≠ 0» en lo agregado.
+- **Estado por agricultor y última sincronización de cada uno:** quedan como **alcance condicionado y no habilitado**, fuera de esta entrega.
+  - No se crea un permiso para cumplir la tarjeta antigua.
+  - No se traslada como un Must nuevo.
+- **RF-22:** construido y verificado **en su parte agregada**. Su variante de detalle individual depende de una autorización funcional que no existe y no se implementa en este bloque.
+
+**Hallazgos posteriores de la sesión B** (2026-10-16, revisión de #45; rojo por la API real sobre `ed069a6`, en modo `provisional-synthetic`):
+- **(a) Reasociación sin historial.**
+  - Reasociar un producto a otro canónico sin historial evita la regla de historial de F07-POL-01: una celda nueva se publica en cuanto llega a k, y la diferencia con la anterior aísla el cambio de un agricultor.
+  - Es un defecto de la regla de divulgación del resumen, no de la reconciliación.
+- **(b) Cobertura con celdas suprimidas.**
+  - `members_with_contribution` cuenta también a los aportantes de celdas suprimidas: con una sola celda, revela su conteo exacto. Pasa también al CSV y a la cobertura guardada en las propuestas.
+  - **Afecta a la cobertura de #25** y a los criterios 1 y 7 de este gate.
+- **Estado de la corrección:** la hace B en su PR de seguridad (#45). La divulgación real sigue cerrada; los datos son sintéticos.
+- **Estado de #25:** hasta que la corrección esté integrada, #25 **no se cierra** aunque su alcance agregado esté construido.
+- **Estado de #108:** sus criterios de reconciliación están evidenciados y la brecha (a) se sigue en #45.
+
+**GATE-F07 sigue Pending:**
+- su dependencia F07-POL-01 (#107) sigue sin resolver;
+- el criterio 9 la exige;
+- no hay aprobación institucional de la divulgación;
+- k = 3 se mantiene para la demostración sintética, y la divulgación real sigue cerrada.
 
 ## Por qué `Evidence = Partial`
 

@@ -1,6 +1,8 @@
 # GATE-F08 (#41) — Acta técnica propuesta
 
-**Gate: Pending.** Status: Validation.
+**Gate: Passed para el alcance académico reducido con datos sintéticos** (decisión del 2026-10-16, registrada por delegación: [`F08_GATE_DECISION.md`](F08_GATE_DECISION.md)).
+
+*Antecedente:* hasta esa decisión, esta acta decía «**Gate: Pending.** Status: Validation.». El resto del acta se conserva como se redactó; las actualizaciones llevan su fecha.
 
 Esta acta la redactó la sesión de Claude Code el 2026-10-16. Recoge la evidencia técnica disponible y lo que falta. No es una decisión: sólo Roderich Rendón puede, con confirmación explícita, marcar el gate como Passed, Failed o Waived. Tampoco es una inspección personal, una firma institucional ni una revisión del tutor.
 
@@ -66,7 +68,7 @@ La discrepancia queda así: **documentación completada después de implementar*
 **Sigue pendiente** (actualizado el 2026-10-16, bloque F10):
 
 1. ~~Decisión sobre la equivalencia de la reinstalación (#36).~~ **Decidida el 2026-10-16** (criterio 3). La corrección del riesgo WAL (MOB #91) y la extracción acotada (#92) están integradas y la comprobación focalizada en el POCO dio PASS en la ruta corregida, el rollback y los negativos (ver «Riesgo WAL» arriba y MOB #95). El cierre de #36 se registra en el issue con esa evidencia y sus límites.
-2. **GATE-F08 sigue Pending.** Las causas técnicas de F10 (copia de rollback y extracción) están corregidas e integradas; la decisión sobre el gate (Passed, Failed o Waived) es de Roderich, con el alcance, las versiones y los riesgos aceptados; esta acta no la toma.
+2. ~~**GATE-F08 sigue Pending.** Las causas técnicas de F10 (copia de rollback y extracción) están corregidas e integradas; la decisión sobre el gate (Passed, Failed o Waived) es de Roderich, con el alcance, las versiones y los riesgos aceptados; esta acta no la toma.~~ **Decidido el 2026-10-16:** Passed exclusivamente para el alcance académico reducido con datos sintéticos, por delegación técnica de Roderich, sin inspección personal ni revisión del tutor; #40 sigue abierta y los límites se conservan ([`F08_GATE_DECISION.md`](F08_GATE_DECISION.md)).
 3. ~~No medido en dispositivo: copia ajena, alterada o incompatible y rollback.~~ **Medido el 2026-10-16** en el mismo POCO (`.f10bkp`, MOB `2f4b634`, BE `e027938`): alterada y ajena rechazadas antes de sustituir; bomba de expansión rechazada por límites; rollback tras un fallo provocado después de sustituir con 29 tablas y 3 fotos iguales. **Sigue sin medir en dispositivo:** una copia de esquema o formato más nuevo (sólo prueba de host) y un segundo modelo de teléfono. El defecto WAL no se reproduce en ese teléfono.
 4. **Observaciones del E2E para F10:** el refresco de la lista de Sincronización tras liberar y el README §1.4 (OUTCOME_UNKNOWN) los corrige MOB #93 (integrado en `2f4b634`; refresco comprobado en el POCO, caso D).
 5. **Diferencia de versión del E2E:** cerrada con la comprobación focalizada contra `e027938` ([`F08_BACKEND_INTEGRADO_F10.md`](F08_BACKEND_INTEGRADO_F10.md)); el PASS físico sigue atribuido a `a45ab83`.
