@@ -228,6 +228,12 @@ F10 global sigue pospuesta. Su punto de partida será una versión candidata con
 | MOB PR #8 (l. 127) | «se cierra al integrar #99» | #99 está integrado y #8 sigue abierto: falta cerrarlo como sustituido (dry-run B10) |
 | PR antiguos #69 y #70 | Recomendaciones previas | Integrados: #69 → `e92e088`; #70 → `0eda364`, con una nota del 2026-10-17 |
 | BE #40 y #41 (responsable «A») | — | Las dos operaciones son del Project y quedan para Roderich: B9 (#40) y B4 (#41) |
+| F09 (l. 42 y l. 129) | «Falta aplicar un plan pendiente por voz (D-F09-4)», «sigue por construir» | Construido en MOB #112 (sesión C; HEAD `32b66c2`, CI 39062109223 SUCCESS, LISTO de B). Sin integrar: queda para Roderich |
+| MOB #10 (l. 131) | «propuesta D-F09-1» | D-F09-1 está decidida (§«Decisiones D-F09-1 a D-F09-7»): fuera del cierre de producto, diferida |
+| GATE-F09 (l. 133) | «Depende… de D-F09-1…7» | D-F09-1…7 ya están decididas, sin constituir PASS. Siguen pendientes #112 y el ensayo físico (#12) |
+| F04 (l. 37 y l. 75) | Criterio 5 «parcial… resolver campaña y fecha efectiva» | Es cierto en `main`. Está construido en MOB #110 (HEAD `0bc6848`, LISTO de B), sin integrar; ver «Criterio 5» abajo |
+
+*Las filas de F09 y F04 las señaló la sesión C.*
 
 **Mobile después de la sección «Integración revisada» de Codex:**
 - MOB #108 está integrado en `1ac8ea6`: una línea del acta de GATE-F04, con la revisión de C. Su CI de `main` es la 39047491613, SUCCESS.
