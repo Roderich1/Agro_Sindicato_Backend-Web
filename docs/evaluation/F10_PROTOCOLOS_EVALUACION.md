@@ -1,6 +1,6 @@
 # F10 — Protocolos de evaluación de Agrocuentas: rendimiento, compatibilidad y usabilidad
 
-- **Versión 1.0, aprobada técnicamente antes de medir.**
+- **Versión 1.1** (la 1.0, aprobada técnicamente antes de medir, más una precisión del entorno de R5 sin cambio de umbrales; ver el registro de versiones).
   - Publicada el 2026-10-16 (America/La_Paz; 2026-10-17 UTC) por la sesión A de Claude Code.
   - Incorpora las decisiones de `_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §1–§2, tomadas el 2026-10-16 bajo la **delegación técnica de Roderich**.
   - **No es una ratificación del tutor, ni una aprobación institucional, ni una inspección personal del autor.**
@@ -20,7 +20,8 @@
 | Versión | Fecha real | Procedencia | Cambios | Commit |
 |---|---|---|---|---|
 | Borrador | 2026-10-16 | Sesión A; sin aprobar | Propuesta inicial, sin umbrales acordados | BE `808acda` (merge `af0dbf1`, #120) |
-| **1.0** | 2026-10-16 (La Paz) | Aprobación técnica delegada por Roderich (archivo de decisiones de cierre §2). Sin ratificación del tutor | Umbrales, datasets, configuraciones, participantes e instrumentos fijados. Se corrige M6. Se retiran los pendientes ya resueltos del WAL y del refresco | El commit de este documento en `main`; su SHA se cita en cada evidencia |
+| **1.0** | 2026-10-16 (La Paz) | Aprobación técnica delegada por Roderich (archivo de decisiones de cierre §2). Sin ratificación del tutor | Umbrales, datasets, configuraciones, participantes e instrumentos fijados. Se corrige M6. Se retiran los pendientes ya resueltos del WAL y del refresco | BE `72a03be` (PR #122) |
+| **1.1** | 2026-10-16 (La Paz) | Sesión A, antes de cualquier medición de R5, a partir de una observación de la sesión B | **Precisión, sin cambiar umbrales ni repeticiones:** el entorno de R5 (§0.4) usa `NODE_ENV=development`, porque `CollectiveConfig` rechaza `provisional-synthetic` en producción y el resumen no tendría tablas | El commit de esta versión en la rama del PR #122; su SHA se cita en cada evidencia |
 
 Una versión posterior (1.1, …) sólo puede precisar algo que esta versión deja explícitamente para antes de su medición, como los bytes exactos de R6 (§1.4). **No puede tocar umbrales ni repeticiones.** Se publica antes de la primera repetición afectada y se añade a esta tabla.
 
@@ -60,6 +61,10 @@ Una versión posterior (1.1, …) sólo puede precisar algo que esta versión de
    - Compilado (`node dist/main.js`, `NODE_ENV=production`), con migraciones aplicadas en orden sobre un PostgreSQL propio. Contenedor, volumen y puertos **nuevos** por sesión:
      - A (Mobile): `agro_a_f10eval_pg`, volumen `agro_a_f10eval_pgdata`, PG 55448, API 3118, observador 3119;
      - B (central y Web): `agro_b_f10eval_pg`, PG 55450, API 3122, Web 4176.
+     - **R5 (v1.1):** el Backend de B sigue compilado (`node dist/main.js`), pero con `NODE_ENV=development` y `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`. Es una **desviación necesaria y declarada**: `CollectiveConfig` (`collective-config.ts:18-29`) ignora ese modo con `NODE_ENV=production`, y el resumen quedaría en `POLICY_PENDING`, sin cifras.
+       - Lo demás no cambia: límite de 20/min, mismas migraciones, Web de producción.
+       - La evidencia registra las ramas que dependen de `NODE_ENV`: admisión de respaldos (`backups-config.ts:26`), divulgación colectiva (`collective-config.ts:20`), admisión de Sync (`sync-v1-config.ts:23`) y `Secure` de la cookie por defecto (`auth-v2.controller.ts:48`, `auth.controller.ts:41`), con `COOKIE_SECURE` fijado de forma explícita.
+       - El entorno de A (Mobile) sigue con `NODE_ENV=production`: no usa el resumen colectivo.
    - Ningún entorno conservado se detiene, borra ni reutiliza.
    - **Se mantienen los límites de peticiones** (`ThrottlerModule`: 20 por minuto). Un 429 cuenta como fallo y se registra con su causa.
    - **Única configuración de capacidad distinta de la de fábrica:** `BACKUP_MAX_ACTIVE_PER_MEMBER=15` en el entorno de A (de fábrica, 5).
