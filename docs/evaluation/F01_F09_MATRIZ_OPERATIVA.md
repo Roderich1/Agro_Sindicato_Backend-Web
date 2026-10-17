@@ -39,7 +39,7 @@ Procedencia: CI (GitHub Actions), HOST (pruebas en el PC), DEVICE (POCO X5 Pro 5
 | F06 | BE #22 Pending | CONSTRUIDO_SIN_CERRAR (decisión) | Acta al día (con C35), contrato y política con la cobertura nueva, y **regresión D4 en PASS** sobre `e2263b0` + `ce5678f` (BE #131 → `30fbb56`). Faltan la decisión y ratificar la reescritura delegada del criterio 3 | Roderich |
 | F07 | BE #29 Pending | CONSTRUIDO_SIN_CERRAR + VALIDACION_EXTERNA | #23 cerrada (BE #127 → `9df7888`; recorrido 25/25 en #132). Matriz por criterio y paquete de #107 en BE #128, **cuyo merge rechazó el control de permisos** (queda para Roderich). **#107 requiere una decisión institucional real** | Roderich, Directiva |
 | F08 | BE #41 **Passed** (alcance académico reducido) | CERRADO para ese alcance + ALCANCE_DIFERIDO (#40) | #40: retención, purga, proveedor, cifrado y producción, diferidos. El contraste está en BE #129, rechazado por el control y para Roderich. MOB #55: la restauración real de una copia v7 ya está (MOB #106); sigue Partial por la interfaz e `InvoiceStorage` | Roderich |
-| F09 | MOB #17 Pending | FUNCIONALIDAD_PENDIENTE (en construcción) | Captura reconciliada (MOB #99), núcleo y compra (#100), planificación (#101). Falta la aplicación (#15), la conexión con el shell y la **prueba física con dictado real (#12)**. Siete decisiones de alcance de Roderich (D-F09-1…7) | C, A (conexión y POCO), Roderich |
+| F09 | MOB #17 Pending | CONSTRUIDO_SIN_CERRAR + VALIDACION_EXTERNA | Construida en `main`: captura (MOB #99), núcleo y compra (#100), planificación (#101) y aplicación (#104). La conexión con Operaciones, rutas y formularios está en MOB #109, revisado (LISTO) y **sin integrar**: queda para Roderich. Todo en host, con el puerto de voz fake. Falta la **prueba física con dictado real (#12)** y las siete decisiones de alcance de Roderich (D-F09-1…7) | A (POCO), Roderich |
 
 ## F01 y F02 (no se reabren)
 
@@ -78,7 +78,7 @@ Procedencia: CI (GitHub Actions), HOST (pruebas en el PC), DEVICE (POCO X5 Pro 5
 
 | REC | Evidencia verificable en `main` | Situación | Condición |
 |---|---|---|---|
-| #38, #41, #42, #52, #54, #57 | Ninguna en `docs/evidence/`; los tests existen y pasan en la CI de `ce5678f` | Su registro histórico (`REC_MOBILE_BASELINE.md` y `REC_021_CI.md`, ejecutados el 2026-10-15 sobre `278cbd3`, 690 pruebas, que coinciden con la CI 37231657078) **sólo está en MOB #70, sin integrar** | Integrar #70 con una nota fechada del 2026-10-17 sobre el estado posterior. Cierra estas seis |
+| #38, #41, #42, #52, #54, #57 | `REC_MOBILE_BASELINE.md` y `REC_021_CI.md` (ejecutados el 2026-10-15 sobre `278cbd3`, 690 pruebas, que coinciden con la CI 37231657078), integrados con MOB #70 (`0eda364`) y una nota fechada del 2026-10-17 | **#38, #41, #42 y #54 cerradas** (Verified). #52 y #57 siguen Partial: #57 se cerró por un enlace antiguo del cuerpo de #70 y se reabrió | #52 y #57: Partial hasta tener su prueba en `main`, o hasta que Roderich acepte el límite |
 | #39, #43, #46, #47, #48, #50, #51 | Parcial. #48 y #50 lo están en parte por `F04_BUG_01/02.md` | La cobertura añadida el 2026-10-15 está en ramas locales `test/rec-0NN-coverage` **nunca publicadas**, y sus archivos citan SHA reescritos | Quedan abiertas como Partial hasta publicar esas pruebas sobre `main` con SHA válidos, o hasta que Roderich acepte el límite |
 
 ## F05 — sincronización
@@ -88,7 +88,7 @@ Procedencia: CI (GitHub Actions), HOST (pruebas en el PC), DEVICE (POCO X5 Pro 5
 | BE #16, #17, #102, #106; MOB #29–#31, #72 | Cerrados, Verified | `F05_SYNC_04/05/07.md`, `F05-SYNC-01/02.md`, `F05_MOBILE_SYNC*.md`, `F05_SYNC_08.md`; CI `e2263b0`: sync-v1-journal 30/30, adversarial 41/41, references 7/7 | Ninguna. #102 no tiene archivo propio (anterior a la regla) | — | CERRADO |
 | MOB #82 (cerrado, Partial) | — | `F05_BUG_01.md` (`ac52e4e`, CI con zona horaria) | Ninguna frente a sus criterios | Roderich | **Candidato a Verified** |
 | **BE #18** SYNC-06 | In Progress | `F05_SYNC_06.md`: Central 40/40; **Mobile en DEVICE: 18 PASS y 22 NOT_MEASURED** (C23 completo el 2026-10-17) | Su 10.º criterio pide registrar los 40 casos con su resultado, y se cumple. Las 22 filas son límite declarado: no se convierten en PASS ni N/A | Roderich | Cerrar con el límite declarado, o medir antes alguna fila priorizada por riesgo (p. ej. C29 Retry-After) |
-| **BE #19 GATE-F05** | Pending | `F05_GATE_EVALUATION.md` (con C23). Criterios de #19: 1 en DEVICE; 2 sólo en CI (la app no puede generar C08); 3 en CI, sin «rechazada» en DEVICE; 4 por esquema cerrado | El acta no cita la base nueva. Entre `ed069a6` y `e2263b0` Sync v1 no cambió en ejecución; los mensajes de MOB #96 se probaron en HOST. **La prueba de carga no es criterio de #19** | A (nota), Roderich | Nota de regresión y `F05_GATE_DECISION.md` de Roderich |
+| **BE #19 GATE-F05** | Pending | `F05_GATE_EVALUATION.md` (con C23). Criterios de #19: 1 en DEVICE; 2 sólo en CI (la app no puede generar C08); 3 en CI, sin «rechazada» en DEVICE; 4 por esquema cerrado | La nota de base de este PR cita la base nueva: entre `ed069a6` y `e2263b0` Sync v1 no cambió en ejecución, y los mensajes de MOB #96 se probaron en HOST. **La prueba de carga no es criterio de #19** | Roderich | `F05_GATE_DECISION.md` de Roderich |
 
 ## F06 — proyección colectiva y reconciliación
 
@@ -116,17 +116,17 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 | Issue | Estado | Brecha real | Responsable | Condición de cierre |
 |---|---|---|---|---|
 | BE #37–#39, MOB #35, #36 | Cerrados; el Project dice `Evidence = Pending` (comprobado en vivo el 2026-10-17) | De trámite: hay `F08_BACKUP.md` y `F08_MOBILE_RESTORE.md` verificables | Roderich | Pasar `Evidence` a Verified (dry-run B3) |
-| BE #40 BKP-06 | Abierta, diferida | Retención, purga, proveedor, cifrado en reposo y producción. Contraste en BE #129. La issue conserva la numeración antigua F09 | B → A | Abierta con su nota, o `Post-PG` por decisión de Roderich |
-| BE #41 GATE-F08 | **Passed** (académico, sintético) | El comentario del 2026-10-15 puso como dependencia MOB #55, y el acta no lo menciona: sus dos defectos ya se corrigieron en MOB #90 (`6c6a1a2`) | A | Una línea en #41 que dé la dependencia por satisfecha; **no se reabre** |
+| BE #40 BKP-06 | Abierta, diferida | Retención, purga, proveedor, cifrado en reposo y producción. Contraste en BE #129, cuyo merge rechazó el control de permisos. La issue conserva la numeración antigua F09 | Roderich | Abierta con su nota (dry-run B9), o `Post-PG` por decisión de Roderich |
+| BE #41 GATE-F08 | **Passed** (académico, sintético) | El comentario del 2026-10-15 puso como dependencia MOB #55, y el acta no lo menciona: sus dos defectos ya se corrigieron en MOB #90 (`6c6a1a2`) | Roderich | Una línea en #41 que dé la dependencia por satisfecha (dry-run B4); **no se reabre** |
 | MOB #55 REC-019 | Abierta, Partial | El cierre histórico («Done», `de44d7c`) no tiene archivo. La restauración real de una copia v7 ya está cubierta (MOB #106, `rec_019_restore_legacy_schema_test`). **Siguen sin prueba** los flujos de interfaz de exportar y restaurar e `InvoiceStorage` | Roderich | Cerrar con ese límite, o exigir esas pruebas |
 
 ## F09 — voz asistida (opcional en la línea base; incorporada a este bloque)
 
 | Issue/PR | Estado | Implementación | Brecha real | Responsable |
 |---|---|---|---|---|
-| MOB PR #8 (EVO-009) | Abierto, en conflicto | Rama de septiembre, 146 commits por detrás | Sustituido por MOB #99 (cherry-picks con `-x`). Se cierra como sustituido al integrar #99 | C → A |
+| MOB PR #8 (EVO-009) | Abierto, en conflicto | Rama de septiembre, 146 commits por detrás | Sustituido por MOB #99 (cherry-picks con `-x`), ya integrado. Su pantalla sólo de texto no se expone (#109). Cerrarlo como sustituido está en el dry-run (B10) | Roderich |
 | MOB #13 ASR | Backlog | `docs/evolution/decisions/ADR-002-voice-transcription-engine.md` (Android SpeechRecognizer; whisper.cpp de reserva) | Evidencia de la decisión; sin buscar motores nuevos | C |
-| MOB #11, #14, #15, #16 | Backlog | #99 (captura), #100 (núcleo #16 + compra #11), #101 (planificación #14) | #15 en construcción. **«Crear nuevo» de #11 no está** (propuesta D-F09-2, pendiente) | C |
+| MOB #11, #14, #15, #16 | Abiertas | #99 (captura), #100 (núcleo #16 + compra #11), #101 (planificación #14), #104 (aplicación #15); #109 (conexión con la app, `F09_CONEXION_VOZ.md`), sin integrar | Construidas en host. **«Crear nuevo» de #11 no está** (propuesta D-F09-2). #14 y #15 siguen el alcance propuesto en D-F09-3 y D-F09-4. El cierre depende de esas decisiones y de #12 | Roderich |
 | MOB #12 | Backlog | — | **Prueba física con dictado real.** Sólo A usa el POCO. Si el segundo modelo no está disponible: NOT_MEASURED | C, A |
 | MOB #10 | In Progress | — | Investigación de streaming; propuesta D-F09-1: fuera del cierre de producto | Roderich |
 | MOB #58, #59 (REC) | Backlog | Banco en `benchmark/voice_benchmark` | **#59 no es verificable**: el commit `201886c` no existe y la rama híbrida no está en `main` | Roderich |
@@ -144,25 +144,82 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 
 ## PR antiguos MOB #69 y #70
 
-| PR | ¿Sustituido? | Estado | Recomendación |
+| PR | ¿Sustituido? | Estado | Resultado |
 |---|---|---|---|
-| #69, renumeración ADR-002 en Mobile | **No**: `docs/adr/` no existe en MOB `main` | Sin conflictos; CI verde (run 38743956671). El cuerpo cita el nombre de archivo anterior al renombrado `BE-ADR-002-…` | Integrar tras corregir el cuerpo y actualizar con `main`. No se fusiona por antigüedad: aporta la referencia que falta en Mobile |
-| #70, línea base REC Mobile | **No**: `REC_MOBILE_BASELINE.md` y `REC_021_CI.md` no están en `main` | Sin conflictos; CI verde (run 38743977319). Registro válido del 2026-10-15 sobre `278cbd3` (690 pruebas, igual que la CI 37231657078; los 56 del banco de voz no los ejecuta la CI). Sus «pendientes» son anteriores a #75, #79 y #90, y queda un marcador `{{ORIGEN}}` | Integrar con una **nota fechada del 2026-10-17**, sin reescribir lo registrado. Al integrarse cierra 6 issues: dry-run previo |
+| #69, renumeración ADR-002 en Mobile | **No**: `docs/adr/` no existía en MOB `main` | Cuerpo corregido y actualizado con `main` | **Integrado** (`e92e088`). No se fusionó por antigüedad: aporta la referencia que faltaba en Mobile |
+| #70, línea base REC Mobile | **No**: `REC_MOBILE_BASELINE.md` y `REC_021_CI.md` no estaban en `main` | Registro válido del 2026-10-15 sobre `278cbd3` (690 pruebas, igual que la CI 37231657078; los 56 del banco de voz no los ejecuta la CI) | **Integrado** (`0eda364`) con una nota fechada del 2026-10-17, sin reescribir lo registrado. Cerró #38, #41, #42 y #54; #52 y #57 quedan con `Refs` |
 
 ## Avance del bloque (2026-10-17, actualizado por la sesión A)
 
 | Fase | Hecho | `main` / PR | Sigue pendiente |
 |---|---|---|---|
 | F03 | #76 en el POCO: sus 5 criterios PASS (P1, P2, P11–P13). Primera acta versionada de GATE-F03. Añadido a `F03_BUG_01.md` (#83) | MOB **#105** → `2df6033` | Decisión de GATE-F03 y cierre de #76 (Roderich) |
-| F04 | #25/#26 construidos; en propio no se revierte actividad de terceros (`db0b10a`); menores de Liquidación (#107). Sesión física en los dos modos, sin red. #24–#27 **cerradas** con su mapeo (Done/Verified). Acta de #28: criterio 5 **Parcial** (no hay campaña por fecha efectiva) | MOB **#102** `cf3d510`, **#107** `a104971`, **#105** `2df6033` | Decisión de GATE-F04 (#28), en Validation |
+| F04 | #25/#26 construidos; en propio no se revierte actividad de terceros (`db0b10a`); menores de Liquidación (#107). Sesión física en los dos modos, sin red. #24–#27 **cerradas** con su mapeo (Done/Verified). Acta de #28: criterio 5 **Parcial** (no hay campaña por fecha efectiva) | MOB **#102** `cf3d510`, **#107** `a104971`, **#105** `2df6033`, **#108** `1ac8ea6` | Decisión de GATE-F04 (#28), en Validation |
 | F05 | Nota de base en el acta, sin repetir mediciones | BE #130 | Decisión de #18 y #19 |
 | F06 | Contrato §5 y política R9 con la cobertura nueva; acta al día. **Regresión D4 sobre `e2263b0` + `ce5678f`: PASS**, con CSV idénticos byte a byte a los del 2026-10-16 | BE **#131** → `30fbb56` | Decisión de #22; ratificar el criterio 3 |
 | F07 | La Web deja de ser cliente operativo del agricultor (#23 cerrada); recorrido sobre `9df7888`: 25/25 | BE **#127** `9df7888`, **#132** `81fae93` | **BE #128 y #129:** el control de permisos rechazó su merge; quedan para Roderich. #107 institucional |
 | F08 | Restauración real de una copia v7 (REC-019, requisito b) | MOB **#106** → `1e90d85` | Campos `Evidence` de F08 (dry-run B3); #55 sigue Partial (interfaz e `InvoiceStorage`) |
-| F09 | Captura reconciliada (#99), núcleo y compra (#100), planificación (#101) | MOB **#99** `1a1c80f`, **#100** `e017312`, **#101** `9cd9caf` | #104 (aplicación); conexión con el shell; **prueba física con dictado real (#12)**; D-F09-1…7 |
+| F09 | Captura reconciliada (#99), núcleo y compra (#100), planificación (#101), aplicación (#104). Conexión con Operaciones, rutas y formularios, alineada con F04, en MOB #109 (revisión de A: LISTO) | MOB **#99** `1a1c80f`, **#100** `e017312`, **#101** `9cd9caf`, **#104** `a25c216`; #109 (`6437b7e`) sin integrar | Integrar #109 (Roderich); **prueba física con dictado real (#12)**; D-F09-1…7 |
 | F10-COMPAT | #97 legible al 100 % y al 130 % (widget y POCO) | MOB **#103** → `8103766` | Cierre de #97 (Roderich). A1-F se vuelve a medir en F10 |
 | REC | Línea base con nota del 2026-10-17: **#38, #41, #42 y #54 cerradas** (Verified). #52 y #57 siguen Partial (#57 se cerró por un enlace antiguo y se reabrió). Renumeración ADR-002 en Mobile | MOB **#70** `0eda364`, **#69** `e92e088` | REC parciales (#39, #43, #46–#48, #50–#53, #55–#59) |
 
 ## Versión candidata y paso a F10
 
-Se completa al final del bloque, con el SHA candidato de cada repositorio y la lista cerrada de lo que falta. Ver §«Versión candidata» cuando exista.
+### Versión candidata (2026-10-17)
+
+| Repositorio | SHA candidato | CI que la respalda |
+|---|---|---|
+| Backend/Web | `81fae932b5c871ba686e2da21f07aece2f1f0547` (BE #132) | `Back/` es idéntico a `e2263b0`: `git diff e2263b0..81fae93 -- Back` da 0 líneas. Su CI Backend es la 39031734166, SUCCESS. `Web/` es idéntico a `9df7888` (0 líneas), con CI Web 39041936690 SUCCESS. Lo demás, de `e2263b0` a `81fae93`, son documentos (#131, #132) |
+| Mobile | `1ac8ea683826b846b527052a6c038ef1fdbad0d6` (MOB #108) | El código es el de `a25c216` (#104): #108 sólo cambia una línea del acta de GATE-F04. La CI de `main` sobre `a25c216` se canceló por concurrencia. La de `1ac8ea6` dio **SUCCESS** (run 39047491613; resultado visto por el monitor de la sesión A, sin el recuento). La CI del PR #104 (39046099180, sobre `c153e0b`) dio SUCCESS: 1396 pasan y 3 omitidas. **Si Roderich integra MOB #109, la candidata pasa a ser el `main` resultante** y su CI |
+
+**No es una versión aprobada.** Es la base sobre la que se toman las decisiones de abajo y sobre la que F10 vuelve a medir lo que cambió. Ningún gate cambia por fijarla.
+
+### Lo que falta para pasar a F10 (lista cerrada)
+
+**1. Decisiones de gate de Roderich.** Las actas están propuestas; ninguna cambia sin su confirmación explícita.
+
+| Gate | Decisión pendiente | Acta |
+|---|---|---|
+| F03, MOB #23 | Passed académico con residuales, Pending o Waived parcial. Con ella, el cierre de #76 | `GATE_F03_EVALUATION.md` |
+| F04, MOB #28 (Validation) | Decisión con el criterio 5 **Parcial**: no hay campaña por fecha efectiva | `gate-f04-modo-propio-compartido.md` |
+| F05, BE #19 | Junto con #18: aceptar las 22 filas NOT_MEASURED como límite, o medir antes alguna (p. ej. C29) | `F05_GATE_EVALUATION.md` (nota de base de este PR) |
+| F06, BE #22 | Ratificar la reescritura delegada del criterio 3 y las discrepancias en que ganó el contrato (#32 c1, #33) | `GATE_F06.md` |
+| F07, BE #29 | Depende de la **decisión institucional real** de #107 (Directiva). No se supone | Paquete en BE #128 |
+| F09, MOB #17 | D-F09-1…7, y depende del punto 3 | — |
+
+F01, F02 y F08 (alcance académico reducido) ya están Passed.
+
+**2. Integraciones pendientes por el control de permisos.** Quedan para Roderich, que las integra o las autoriza:
+- BE #128 (`f318d62`, matriz de F07 y paquete de #107) y BE #129 (`4c48001`, contraste de #40). El control rechazó su merge a las 14:46Z.
+- MOB #109 (`6437b7e`, conexión de la voz), revisado (LISTO), y este PR (BE #130). La CI 39047013114 de #109 dio SUCCESS sobre `6437b7e`. El resultado lo vio el monitor de A; el recuento (1401 pasan y 3 omitidas) es de la sesión C. Después del merge de MOB #108, el control rechazó también las órdenes siguientes, aunque eran de sólo lectura. La sesión A dejó de integrar.
+
+En las dos ocasiones el mensaje fue: «Permission for this action was denied by the Claude Code auto mode classifier. Reason: [Merge Without Review].»
+
+**3. Validación física y externa.**
+- **#12:** prueba física de F09 con dictado real de una persona en el POCO, según `docs/evolution/features/F09_VOZ_ENSAYO_FISICO_PLAN.md` de Mobile; sólo A usa el teléfono. Incluye la navegación de la voz en el teléfono. Sin segundo modelo: NOT_MEASURED (D-F09-6). El holdout ciego necesita D-F09-5.
+- **Revisión del tutor** en GOV-01 (BE #105).
+
+**4. Cambios del Project pendientes de autorización** (dry-run, parte B):
+- B1: cerrar #76;
+- B2: cerrar #97;
+- B3: `Evidence` de BE #37–#39 y MOB #35, #36;
+- B4: comentario en #41;
+- B5: #55;
+- B6 y B7: comentarios en #19 y #22;
+- B8: textos de F07, tras #128;
+- B9: #40, tras #129;
+- B10: cerrar MOB PR #8 como sustituido;
+- B11: #59 no verificable.
+
+**5. Límites declarados que no bloquean F10.** Roderich los acepta como límite o pide medirlos. No se convierten en PASS:
+- REC parciales: #39, #43, #46–#48, #50–#53, #55–#59;
+- MOB #18–#22 Partial, sin archivo en `docs/evidence/`;
+- candidatos a Verified: #71, #82 y #83;
+- residuales NOT_MEASURED de GATE-F03;
+- transferencia y multiproducto de F04, sólo en host;
+- un solo modelo de teléfono.
+
+**6. Lo que se hace ya en F10.** No se empieza en este bloque, y las pruebas de F10 ya hechas se conservan con sus versiones (BE `ed069a6`, MOB `dff6802`):
+- repetir las series afectadas: R5, W2 y W4 tras la cobertura de #126; las series Mobile y A1-F tras F04, #97 y F09;
+- compatibilidad;
+- estudio de usabilidad con personas.
