@@ -122,6 +122,16 @@ No se convierten en criterios de este gate. Tampoco dejan de registrarse.
 
 **Discrepancia de nombres.** #19 pide `application/sync-v1-retry-adversarial.spec.ts`; la suite real es `sync-v1-adversarial.postgres.spec.ts`, el nombre que fija #18.
 
+## Nota de base (2026-10-17, sesión A)
+
+Comprobado sobre la base integrada del bloque «terminar F01–F09», **sin repetir mediciones**:
+
+- **Backend:** BE `e2263b0` (CI «Backend F02» 39031734166) mantiene `sync-v1-journal` 30/30, `sync-v1-adversarial` 41/41 y `sync-v1-references` 7/7. Entre `ed069a6` y `e2263b0`, Sync v1 no cambia en ejecución; sólo cambian #125/#126 (proyección colectiva y salidas heredadas) y una migración aditiva (11 en total). BE #127 (`9df7888`) sólo toca la Web.
+- **Mobile:** MOB `ce5678f` (CI 39031740439) y `cf3d510` (F04 #102) no cambian el worker, la outbox ni el contrato. Los mensajes de cuenta y autorización de #96 (C38, 403 y C23) sólo se probaron en host (`F10_MENSAJES_AUTORIZACION.md`).
+- **#18:** columna Mobile en dispositivo con **18 PASS y 22 NOT_MEASURED**. C23 está completo (§4c de `F05_SYNC_06.md`). Las 22 filas no se convierten en PASS ni N/A por calendario.
+- **La prueba de carga no es criterio de #19** ni se introduce como condición nueva.
+- **Las respuestas inyectadas** (C05, C30 y similares) prueban la reacción del cliente; **las acciones reales** (journal y adversarial en PostgreSQL) prueban Central.
+
 ## Para decidir (Roderich)
 
 1. Si las 22 filas `NOT_MEASURED` se miden antes de decidir el gate o se aceptan como límite con su alcance (Waived parcial). C23 ya está completo.
