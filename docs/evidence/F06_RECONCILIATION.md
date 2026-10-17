@@ -149,3 +149,63 @@ Esas bases quedan en el volumen y no son evidencia.
 - **Transporte.** El origen HTTPS se reescribe al Backend local en el transporte de prueba: aquí no se ejercita TLS. La ruta física sí usó HTTPS.
 - **Fork entre instalaciones.** No se reproduce en este dataset. Lo cubren la suite adversarial F05 (D2) y `f06-coll-05-collective-aggregate.postgres.spec.ts`.
 - **Política.** La divulgación usa la política provisional k = 3 (F07-POL-01 pendiente). Sin `provisional-synthetic`, el Backend no devuelve cifras.
+
+## Regresión sobre e2263b0 + ce5678f (2026-10-17)
+
+Pedida por la sesión A para GATE-F06 (#22). No es una prueba de F10. **La corrida de 2026-10-16 de arriba se conserva tal cual**, sobre BE `3c01a16` y MOB `5e7ed78`.
+
+**Estado:** primer intento detenido por falta de memoria; **repetición completa: PASS** (2026-10-17 14:37:59–14:50:40Z).
+
+**Entorno:**
+- Backend `e2263b04d96dd9f049a92046a45232af847ce0da`: `dist` y seed compilados en un worktree limpio.
+- Mobile `ce5678f89449453c60c3f1889cd6e973f09f6548`, worktree limpio.
+- Contenedor nuevo y aislado `agro_b_f06reg_pg` (`postgres:16-alpine`, `127.0.0.1:55460`, volumen `agro_b_f06reg_pgdata`), con bases nuevas `agro_f06reg_e1` (host) y `agro_f06reg_poco`, y API en 3210/3211.
+- No se tocaron `agro_f06d4_pg`, `agro_a_f10eval_pg`, `agro_a_f10int_pg` ni ninguna base conservada.
+
+**Comando:** `tool/f06_d4/up.sh && tool/f06_d4/reconcile.sh` del worktree Mobile, ejecutados desde una copia en la que sólo cambian, en `config.sh`, el contenedor, el volumen, la base y los puertos.
+
+**Primer intento (detenido):**
+- **13:47:44–13:49:29Z:** `up.sh` OK, con base `agro_f06reg_e1`. 11 migraciones por base; seed de 12 agricultores; catálogo F06; las dos API respondieron `health` 200.
+- **13:49:31Z:** `reconcile.sh` rotó las contraseñas y empezó la ejecución 1 de `test/f06_reconciliation_integration_test.dart`.
+- Poco después, **Claude Code detuvo el proceso porque el sistema se quedó sin memoria**. No es un fallo de la prueba ni del código.
+- Se detuvieron las API y el contenedor, conservando el volumen. Esa base no se reutiliza.
+
+**Repetición** (base nueva `agro_f06reg_e2`, tras la ventana física de A, sin otra carga pesada):
+- **Comando:** `F06_DB_HOST=agro_f06reg_e2 up.sh && reconcile.sh`, con `F06_BE_DIR` y `F06_MOB_DIR` en los worktrees citados.
+- **Backend:** worktree en `09eeca4` (rama de este PR, sólo documentos); `git diff e2263b0 -- Back/src Back/prisma` vacío, y `dist` compilado desde ese código.
+- **Mobile:** `ce5678f`.
+- **14:37:59–14:40:07Z:** `up.sh` OK. 11 migraciones y seed en `agro_f06reg_e2`; las API respondieron 200.
+- **Ejecución 1** (14:40:09–14:46:27Z): `All tests passed!`.
+  - Por agricultor (F1/F2/F3): 9/10/8 operaciones ACKED y 26/26 cabezas en Central.
+  - 27 respuestas perdidas a propósito y reenviadas, en 102 peticiones HTTP.
+  - Las **27 celdas** de las etapas RAW y CANONICAL tienen **diferencia 0** frente al oráculo.
+  - La asociación devolvió `changed: true`.
+- **Ejecución 2** (14:46:27–14:50:39Z): `All tests passed!`.
+  - Hubo 27 reenvíos literales, en 71 peticiones.
+  - La asociación devolvió `changed: false` y el resultado es `identicalToExecution1: true`.
+- **Oráculo:** `aportaciones 26/26`, `celdas 27/27`, `ORÁCULO COINCIDE`; `Central: obtenidas=26 esperadas=26 faltan=0 sobran=0`, `CENTRAL COINCIDE CON EL ORÁCULO`.
+- **Journal:** 27 operaciones. 6 publicaciones del agregado y 1 asociación vigente, como en la corrida del 2026-10-16.
+
+**Diferencias frente a la corrida del 2026-10-16:**
+- Los resultados por celda y las aportaciones en Central son **idénticos byte a byte**: `execution1.csv`, `execution2.csv` y `central_contributions.csv` tienen los mismos SHA-256 que los artefactos del 2026-10-16.
+- **Cobertura (#126, H2):**
+  - C1 y C2 siguen en `linked_members = 12` y `members_with_contribution = 3`, porque los tres aportantes de la D4 tienen al menos una cifra publicada en cada campaña. Con la regla nueva no cambia el conteo.
+  - Lo que cambia es el campo nuevo `suppressed_cells: true` en las dos campañas, que avisa sin conteo de que hay celdas suprimidas.
+- **Los informes JSON** sólo difieren en las fechas, en los identificadores cortos de los Members (semilla nueva) y en ese campo.
+
+**Artefactos** ([`f06_regresion_20261017/`](f06_regresion_20261017/), SHA-256):
+- Sin las bases SQLite de los agricultores ni el volcado canónico con UUID, que quedan fuera del repositorio.
+- No contienen correos ni UUID completos.
+
+| Archivo | SHA-256 |
+|---|---|
+| `execution1.csv` | `11bf1a1a924bb639597ba24567f4b745f6fe456ba3b3ec7365c24aad1415912b` (= 2026-10-16) |
+| `execution1.json` | `ed6ae41c10c1d8dfb9d3b9ae11255b418e7f2e4c9a7f83b3977e811f756fe6e1` |
+| `execution2.csv` | `5715bfbe2d68ea9db44d39303f085e61e922106b08e4400f3aab7a872ce3fa15` (= 2026-10-16) |
+| `execution2.json` | `4cc8f374e22436112972d73b31c19058820e895d7e12acb99f20375252498b50` |
+| `central_contributions.csv` | `66b41b8c224600414edf20ba62e7cb4747bd62209c9970863189db6b4646bca6` (= 2026-10-16) |
+
+**Límites:**
+- Es la ruta de host: el código Mobile corre en `flutter test` contra la API real.
+- No se repitió la ruta física (el POCO es de A).
+- La política es la provisional k = 3 con datos sintéticos.

@@ -80,6 +80,19 @@ La publicación de valores numéricos exige una política aprobada que evalúe g
 
 `last_sync`/frescura es hora de aceptación central derivada, no `applied_at`, fecha de compra ni un timestamp privado aportado. Indica frescura, no completitud del inventario local. Un cambio de membresía o revocación exige reevaluar el acceso y la contribución bajo la política; nunca abrir lectura cross-tenant.
 
+**Cambio del 2026-10-17 (PR #126, F10-SEC-02).** Se añade sin borrar el texto anterior.
+
+**Cobertura** que acompaña al consolidado (`coverage`):
+- `linked_members`: agricultores activos del tenant;
+- `members_with_contribution`: cuenta **sólo los Members cuyas aportaciones están dentro de cifras publicadas**. Antes contaba a todos los aportantes, también los de celdas suprimidas, y con una sola celda suprimida revelaba su conteo exacto;
+- `suppressed_cells` (booleano): avisa, sin conteo, de que alguna celda no tiene cifra.
+
+**Cada borrador de propuesta** guarda la regla con la que se contó (`coverage.basis`):
+- `PUBLISHED_FIGURES` para los nuevos;
+- `ALL_CONTRIBUTORS` para los anteriores, que no se reescriben.
+
+La cobertura es un metadato agregado sujeto a la misma política. No es un listado de agricultores ni una cifra por producto. Ver `F07_AGGREGATE_DISCLOSURE_POLICY.md` (R9 y §9).
+
 Se excluyen finanzas, pagos, deudas, liquidaciones, proveedores, precios, costos, facturas, archivos, fotos, PDFs/CSV, coordenadas, parcelas, detalle de aplicaciones, personas/familiares, planes, lotes, movimientos, transferencias, audio, tokens y huellas físicas. La matriz enumera los candidatos relevantes. Cualquier campo no enumerado como ALLOW se rechaza, no se ignora silenciosamente ni se guarda para uso futuro.
 
 ## 6. Identidad de dominio, causalidad y conflictos

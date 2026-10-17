@@ -1,0 +1,50 @@
+{
+  "execution": 1,
+  "startedAt": "2026-10-17T14:40:14.694873Z",
+  "farmers": {
+    "F1": {
+      "member": "ceaa4f91",
+      "consumptionEnqueued": 6,
+      "cancellations": 0,
+      "workerCycles": 18,
+      "pushRequests": 18,
+      "contributions": 9,
+      "centralHeadsMatched": 9,
+      "operationsAcked": 9
+    },
+    "F2": {
+      "member": "4efd7ea2",
+      "consumptionEnqueued": 5,
+      "cancellations": 1,
+      "workerCycles": 20,
+      "pushRequests": 20,
+      "contributions": 9,
+      "centralHeadsMatched": 9,
+      "operationsAcked": 10
+    },
+    "F3": {
+      "member": "de06744a",
+      "consumptionEnqueued": 4,
+      "cancellations": 0,
+      "workerCycles": 16,
+      "pushRequests": 16,
+      "contributions": 8,
+      "centralHeadsMatched": 8,
+      "operationsAcked": 8
+    }
+  },
+  "coverage_C1": {
+    "linked_members": 12,
+    "members_with_contribution": 3,
+    "suppressed_cells": true
+  },
+  "coverage_C2": {
+    "linked_members": 12,
+    "members_with_contribution": 3,
+    "suppressed_cells": true
+  },
+  "associationChanged": true,
+  "httpRequests": 102,
+  "droppedResponses": 27,
+  "finishedAt": "2026-10-17T14:46:27.135339Z"
+}
