@@ -11,11 +11,11 @@
 # - Con el segundo argumento «ensayo» sólo hace 2 repeticiones (ensayo de
 #   herramienta, fuera de las series de aceptación).
 set -euo pipefail
-OUT=${1:?salida}
+mkdir -p "${1:?salida}"
+OUT=$(cd "$1" && pwd -W)
 TRIAL=${2:-}
 ROOT=$(cd "$(dirname "$0")/../.." && pwd -W)
 TOOL=$ROOT/tool/f10_eval_web
-mkdir -p "$OUT"
 LOGS=$OUT/logs
 mkdir -p "$LOGS"
 clean() { tr -d '\r\n'; }
