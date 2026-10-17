@@ -8016,6 +8016,7 @@
         ]
       },
       "get": {
+        "description": "ADMINISTRADOR: vista completa para administrar accesos (ADR-003). DIRECTIVA: sólo id, nombre, rol y estado, para nombrar actores (F10-SEC-02).",
         "operationId": "UsersController_list",
         "parameters": [],
         "responses": {
