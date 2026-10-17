@@ -1,0 +1,19 @@
+cpu_percent_5s=16.6
+
+Name                  Id   CPU_s WS_MB
+----                  --   ----- -----
+Taskmgr            34744 14427.5    76
+dart               12400 12472.9  1360
+Docker Desktop     26960 12243.8   120
+Code               25632  5932.5   330
+DCv2                2756  4602.4    44
+Code               29380  4223.6   548
+com.docker.backend 25508  3069.1   455
+claude             29552  2746.7   324
+Code               10552  2656.6   110
+node                9412  2376.6     3
+msedge             20312  2201.1   157
+msedge             26856  2079.4     4
+
+
+

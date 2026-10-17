@@ -1,0 +1,9 @@
+{
+  "name": "f10-eval-web",
+  "private": true,
+  "description": "F10 (RNF-06/RNF-08): medición R5a/R5b y matriz B1/B2 de la Web y la API central. Herramienta de evaluación, no dependencia de la aplicación.",
+  "type": "module",
+  "devDependencies": {
+    "puppeteer-core": "25.12.0"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "seed": "20261016",
+  "generator_sha256": "894736e58bc20c3c7dd4dc69def27365a7c66a727d32c54b7c309d0e30e5a4c3",
+  "dataset_sha256": "2a9d80316b71f8edb37cd728db03eed322c45252da2e98cc68d7a341d499a2f4",
+  "spec": {
+    "farmers": 74,
+    "products": 20,
+    "liquids": 12,
+    "campaigns": 2,
+    "needMembers": 60,
+    "consumptionMembers": 45,
+    "productsPerMember": [
+      1,
+      6
+    ],
+    "emptyProducts": [
+      "P19",
+      "P20"
+    ],
+    "rareProducts": {
+      "P16": {
+        "DECLARED_NEED": 1,
+        "CONSUMPTION_TOTAL": 2
+      },
+      "P17": {
+        "DECLARED_NEED": 2,
+        "CONSUMPTION_TOTAL": 1
+      },
+      "P18": {
+        "DECLARED_NEED": 2,
+        "CONSUMPTION_TOTAL": 0
+      }
+    },
+    "quantityStep": 250,
+    "quantityMaxSteps": 80,
+    "threshold": 3
+  },
+  "tenant": "b40f1284",
+  "campaigns": {
+    "C1": "a7479864",
+    "C2": "b8be3abf"
+  },
+  "counts": {
+    "farmers": 74,
+    "institutional": 2,
+    "products": 20,
+    "campaigns": 2,
+    "contributions": 761,
+    "journal": 761,
+    "contributing_farmers": 72
+  },
+  "per_campaign": {
+    "C1": {
+      "need_members": 60,
+      "consumption_members": 45,
+      "products_without_data": [
+        "P19",
+        "P20"
+      ],
+      "cells": 35,
+      "cells_under_k": [
+        "P16:CONSUMPTION_TOTAL=2",
+        "P16:DECLARED_NEED=1",
+        "P17:CONSUMPTION_TOTAL=1",
+        "P17:DECLARED_NEED=2",
+        "P18:DECLARED_NEED=2"
+      ],
+      "products_under_k": [
+        "P16",
+        "P17",
+        "P18"
+      ]
+    },
+    "C2": {
+      "need_members": 60,
+      "consumption_members": 45,
+      "products_without_data": [
+        "P19",
+        "P20"
+      ],
+      "cells": 35,
+      "cells_under_k": [
+        "P16:CONSUMPTION_TOTAL=2",
+        "P16:DECLARED_NEED=1",
+        "P17:CONSUMPTION_TOTAL=1",
+        "P17:DECLARED_NEED=2",
+        "P18:DECLARED_NEED=2"
+      ],
+      "products_under_k": [
+        "P16",
+        "P17",
+        "P18"
+      ]
+    }
+  },
+  "per_type": [
+    {
+      "campaign": "C1",
+      "projectionType": "DECLARED_NEED",
+      "members": 60,
+      "products_per_member": [
+        1,
+        6
+      ]
+    },
+    {
+      "campaign": "C1",
+      "projectionType": "CONSUMPTION_TOTAL",
+      "members": 45,
+      "products_per_member": [
+        1,
+        6
+      ]
+    },
+    {
+      "campaign": "C2",
+      "projectionType": "DECLARED_NEED",
+      "members": 60,
+      "products_per_member": [
+        1,
+        6
+      ]
+    },
+    {
+      "campaign": "C2",
+      "projectionType": "CONSUMPTION_TOTAL",
+      "members": 45,
+      "products_per_member": [
+        1,
+        6
+      ]
+    }
+  ],
+  "masking": "UUID enmascarados a sus 8 primeros hex; correos de las cuentas sintéticas retirados (F10, §0.9)"
+}
