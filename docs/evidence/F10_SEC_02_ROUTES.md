@@ -250,9 +250,17 @@ Lo que sigue son discrepancias registradas, no decisiones nuevas. La aprobación
 
 - **#45, auditoría de la proyección colectiva**, que es el objeto del issue. Esta entrega cubre las rutas heredadas. No repite la auditoría campo a campo de `F06_COLLECTIVE_PROJECTION_FIELD_MATRIX.md` (campos DENY en proyección, logs y conflictos) ni la política de divulgación, que siguen en #45 y #107. **El cotejo campo a campo se hizo el 2026-10-17 en `F10_SEC_02_PROJECTION.md`**; la política sigue en #107.
 - **Escrituras legacy del agricultor.** `POST /purchases`, el inventario, las parcelas, las aplicaciones, los pagos propios y `/sync/operations` siguen activos para el AGRICULTOR, sobre lo propio. Su bloqueo es la PHASE 6 del plan de transición: requiere telemetría sin consumidores y un runbook, y no se hace aquí, porque no es una retirada destructiva. La Web sigue teniendo pantallas operativas para el agricultor y la cola `offline-queue.ts` (#23/#81).
-- **Totales de una compra conjunta heredada.** ~~Un participante veía los ítems y el total del grupo~~. **Resuelto el 2026-10-17** (`fix/f10-sec-02-residuos`, `25d2a8f`): ve su parte y su propia participación. Ver `F10_SEC_02_PROJECTION.md` R1.
-- **Eventos `COMPRA_PROGRAMADA` heredados sin dueño.** **Resuelto el 2026-10-17** (`25d2a8f`): un evento sin dueño sólo es visible si su tipo es público (cierre de campaña). No se borra ni se reasigna. Ver `F10_SEC_02_PROJECTION.md` R2.
-- **OpenAPI.** **Resuelto el 2026-10-17** (`25d2a8f`): las dos rutas cerradas documentan el 403 `LEGACY_ROUTE_CLOSED`, sin respuesta de éxito.
+- **Totales de una compra conjunta heredada.** Un participante veía los ítems y el total del grupo. **Corregido en la rama el 2026-10-17**, pendiente de integrar (`fix/f10-sec-02-residuos`): ve su parte y su propia participación.
+  - `25d2a8f`: `/purchases` y los reportes.
+  - `acb07af`: `/accounts-payable`, que la revisión de A halló todavía abierta.
+
+  Ver `F10_SEC_02_PROJECTION.md` R1.
+- **Eventos `COMPRA_PROGRAMADA` heredados sin dueño.** **Corregido en la rama el 2026-10-17**, pendiente de integrar.
+  - `25d2a8f`: un evento sin dueño sólo es visible si su tipo es público (cierre de campaña). No se borra ni se reasigna.
+  - `9047b2a`: el AGRICULTOR no completa ni cancela el evento público.
+
+  Ver `F10_SEC_02_PROJECTION.md` R2.
+- **OpenAPI.** **Corregido en la rama el 2026-10-17**, pendiente de integrar (`25d2a8f`): las dos rutas cerradas documentan el 403 `LEGACY_ROUTE_CLOSED`, sin respuesta de éxito.
 - **Proveedores (`/suppliers`).** ~~«Sin compras ni precios»~~: la revisión por finalidad del 2026-10-17 halló que **sí** servía las 3 compras más recientes del tenant con cada proveedor. **Corregido** (`2ece555`); el catálogo conserva nombre y contacto. Ver `F10_SEC_02_PROJECTION.md` H3.
 - **`GET /users` para DIRECTIVA.** **Minimizado el 2026-10-17** (`eea07d3`): la DIRECTIVA recibe id, nombre, rol y estado; el ADMINISTRADOR conserva la vista completa para administrar accesos. Ver `F10_SEC_02_PROJECTION.md` H4.
 - **Código heredado conservado.** `directiva.page.tsx`, `CreateJointPurchaseUseCase`, `listGlobalStock` y sus servicios Web. Su eliminación sigue la PHASE 9 (cero consumidores, respaldo y migración reversible).
