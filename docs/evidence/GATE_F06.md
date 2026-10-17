@@ -78,7 +78,7 @@ La adoptó la sesión de Claude Code, bajo la delegación de Roderich Rendón (`
 | Texto de arriba | Estado al 2026-10-17 |
 |---|---|
 | «Base evaluada (aún sin fusionar)» | Backend #110 y Mobile #86 están fusionados. `main` actual: BE `e2263b0`, MOB `ce5678f` |
-| «La revisión de la política (F10-SEC-02) está en un PR aparte, sin fusionar» | Fusionada: #118 (rutas heredadas), #126 (proyección, salidas y regla de combinaciones; `e2263b0`). Revisión independiente de A: LISTO en `8069971` |
+| «La revisión de la política (F10-SEC-02) está en un PR aparte, sin fusionar» | Fusionada: #118 (rutas heredadas), #126 (proyección, salidas y regla de combinaciones; `e2263b0`). Revisión de la sesión A: LISTO en `8069971` |
 | «Pendiente (ADR-003): los endpoints heredados… no se revisaron» | Revisados y corregidos en #118 y #126 (`F10_SEC_02_ROUTES.md` y `F10_SEC_02_PROJECTION.md`). Siguen las PHASE 6–9 de #81 (bloqueo y retirada de escrituras legacy) |
 | Criterio 5: «cobertura 3 de 12» | Era la semántica anterior. Desde #126, `members_with_contribution` cuenta **sólo los Members dentro de cifras publicadas**, y `suppressed_cells` avisa sin conteo (contrato F06 §5 y política R9, notas del 2026-10-17). En la D4, un agricultor que sólo aportara a celdas suprimidas ya no se contaría. La regresión que lo comprueba sobre `e2263b0` + `ce5678f` está en `F06_RECONCILIATION.md` («Regresión sobre e2263b0 + ce5678f») |
 | Criterio 6: «La Web de F07 no existe todavía» | Existe: F07 #116 (`71460bf`). Consume sólo `/summary` y la propuesta, sin cantidades individuales (`F07_WEB.md`). Desde #127 (pendiente de integrar), un AGRICULTOR no recibe menú ni datos en la Web |
