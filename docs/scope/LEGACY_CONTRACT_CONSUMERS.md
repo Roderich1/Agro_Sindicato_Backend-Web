@@ -54,3 +54,13 @@ Todos los siguientes archivos están versionados y se clasifican `EXISTS_NOT_EXE
 - **Resultado por revisión:** `main@521c6ee`: `NOT_FOUND_IN_AUDITED_REVISION`; `PR#8@534d6b0`: `NOT_FOUND_IN_AUDITED_REVISION`.
 - **Revisión local previa:** `fd5ce96c1b4c62285b54b038e09b13df5d5e79ee` queda clasificada `LOCAL_UNPUBLISHED_REVISION`; no se usa como evidencia autoritativa o reproducible.
 - **Límite:** no equivale a “Flutter no consume Backend” en toda revisión o despliegue. Antes de bloquear/eliminar contratos, #81/F05/F06 debe reauditar el HEAD Mobile objetivo y cualquier consumidor externo.
+
+## Actualización 2026-10-17: PHASE 5 en la Web (F07-WEB-01, #23)
+
+- **Consumidor Web que deja de ofrecerse:** las pantallas del AGRICULTOR (`dashboard`, `inventory`, `purchases`, `plots`, `applications`, `calendar`, `reports`, `sync`) y `offline-queue.ts`. Ya no se ofrecen en la Web; el AGRICULTOR recibe un aviso que lo remite a la app móvil.
+- **Lo que sigue igual:**
+  - las rutas del API siguen activas para el AGRICULTOR sobre lo propio, y el código Web se conserva;
+  - los consumidores de esta tabla no cambian para ningún cliente que no sea la Web;
+  - el bloqueo de escrituras es la PHASE 6 (#81).
+- **Rollback:** compilar la Web con `VITE_LEGACY_FARMER_WEB=enabled` o revertir el commit.
+- **Evidencia:** [F07_WEB_01.md](../evidence/F07_WEB_01.md).
