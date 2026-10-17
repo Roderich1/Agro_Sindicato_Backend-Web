@@ -94,7 +94,12 @@ Sólo se actualiza el estado; los dictámenes de arriba se conservan como se eva
 - **(b) Cobertura con celdas suprimidas.**
   - `members_with_contribution` cuenta también a los aportantes de celdas suprimidas: con una sola celda, revela su conteo exacto. Pasa también al CSV y a la cobertura guardada en las propuestas.
   - **Afecta a la cobertura de #25** y a los criterios 1 y 7 de este gate.
-- **Estado de la corrección:** la hace B en su PR de seguridad (#45). La divulgación real sigue cerrada; los datos son sintéticos.
+- **Estado de la corrección** (PR #126 de B, revisado por A el 2026-10-17 UTC): la divulgación real sigue cerrada; los datos son sintéticos.
+  - **(a):** se sustituyó por una comprobación exacta de rango (`differencing.ts`, HEAD `9f350cf`), correcta para cada celda decidida por separado. **La revisión final da NO LISTO:**
+    - las celdas que se publican **en una misma lectura** no se comprueban entre sí. Al deshacer una asociación todavía se puede obtener la cantidad de un agricultor (fuzz: 71 de 1 000 corridas);
+    - el coste no tiene cota y bloquea la API (~31 s por lectura con 40 versiones publicadas de una celda).
+  - **(b):** la cobertura «con cifras publicadas» está corregida en la rama.
+  - Nada de esto está integrado.
 - **Estado de #25:** hasta que la corrección esté integrada, #25 **no se cierra** aunque su alcance agregado esté construido.
 - **Estado de #108:** sus criterios de reconciliación están evidenciados y la brecha (a) se sigue en #45.
 
