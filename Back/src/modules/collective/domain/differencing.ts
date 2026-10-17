@@ -86,7 +86,7 @@ export function revealedGroups(figures: readonly DisclosedFigure[], threshold: n
     if (chosen.length > 0) {
       const removed = new Set(chosen.map((i) => candidates[i]!.column));
       const kept = all.map((p) => p.column).filter((column) => !removed.has(column));
-      if (rank(rows, kept) < full) revealed.add([...members].sort().join(","));
+      if (rank(rows, kept) < full) revealed.add([...members].sort((a, b) => a.localeCompare(b)).join(","));
     }
     for (let i = start; i < candidates.length; i++) {
       const union = new Set([...members, ...candidates[i]!.members]);
