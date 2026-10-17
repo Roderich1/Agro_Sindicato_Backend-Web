@@ -62,10 +62,10 @@ Propuesta: **k = 3 Members distintos** por celda.
 |---|---|---|
 | R1 | **Supresión primaria** | Menos de k Members → `SUPPRESSED_UNDER_THRESHOLD`, **sin cantidad y sin conteo exacto**: sólo el estado, que es el motivo comprensible. Nunca se muestra como cero. |
 | R2 | **Cero explícito frente a ausencia** | Un cero declarado es una aportación: cuenta como aportante y suma 0. Un agricultor sin aporte es *desconocido*: no suma, no cuenta y sólo se ve en la cobertura. Una celda que nunca tuvo aportaciones no aparece. Si tuvo una cifra publicada y se queda sin aportaciones, aparece retirada (R4). |
-| R3 | **Diferencias entre consultas** | Se cuenta el **cambio neto por Member**: su suma en la celda (altas, bajas o cantidad distinta). Una sustitución con el mismo valor, o un cambio que vuelve al valor publicado, no cuenta. Una cifra nueva sólo se publica si, frente a **cada** cifra anterior de la celda (también las retiradas, porque un lector pudo guardarlas), **se demuestra** que nada cambió o que cambiaron al menos k Members. Una cantidad desconocida (divulgación anterior a la migración `20261016150500`, en NULL) no prueba un cambio ni su ausencia, y no se reconstruye con valores actuales. Si no se cumple o no se puede demostrar, se sigue mostrando la última cifra con `pending_changes = true`, o se retira según R4. Así, la diferencia entre dos cifras publicadas no aísla el cambio de **un** Member; contra una colusión de k − 1 no protege (§0). |
+| R3 | **Diferencias entre consultas** *(sustituida por la §9 desde #126; el texto se conserva como antecedente)* | Se cuenta el **cambio neto por Member**: su suma en la celda (altas, bajas o cantidad distinta). Una sustitución con el mismo valor, o un cambio que vuelve al valor publicado, no cuenta. Una cifra nueva sólo se publica si, frente a **cada** cifra anterior de la celda (también las retiradas, porque un lector pudo guardarlas), **se demuestra** que nada cambió o que cambiaron al menos k Members. Una cantidad desconocida (divulgación anterior a la migración `20261016150500`, en NULL) no prueba un cambio ni su ausencia, y no se reconstruye con valores actuales. Si no se cumple o no se puede demostrar, se sigue mostrando la última cifra con `pending_changes = true`, o se retira según R4. Así, la diferencia entre dos cifras publicadas no aísla el cambio de **un** Member; contra una colusión de k − 1 no protege (§0). |
 | R4 | **Bajas** | Una cancelación, una disputa (`CONTESTED`; decisión delegada del 2026-10-16, §7) o un Member o cuenta inactivos retiran la cifra vigente (`SUPPRESSED_REVISION`). No se publica un total nuevo que permita deducir el aporte retirado. Lo mismo ocurre cuando una aportación sale de la celda por una reagrupación. La cifra no vuelve hasta que R3 lo permite. Si la celda vuelve exactamente a las aportaciones publicadas, se publica la misma cifra. |
 | R5 | **Supresión complementaria** | No hay totales por encima de la celda (ni por campaña, ni entre productos, ni entre unidades), así que ninguna cifra publicada permite despejar una celda suprimida. El único filtro es la campaña: no hay filtros por agricultor, dispositivo, parcela, persona ni fecha que permitan restar subconjuntos. |
-| R6 | **Asociaciones** | Una asociación nueva o corregida cambia la composición de las celdas canónicas. Se trata con R3 y R4: entra o sale una aportación, no hay atajo. Un Member que mueve su valor entre alias de la misma celda no cambia su suma. Las celdas que desaparecen al agrupar retiran su cifra. |
+| R6 | **Asociaciones** *(sustituida por la §9 desde #126)* | Una asociación nueva o corregida cambia la composición de las celdas canónicas. Se trata con R3 y R4: entra o sale una aportación, no hay atajo. Un Member que mueve su valor entre alias de la misma celda no cambia su suma. Las celdas que desaparecen al agrupar retiran su cifra. |
 | R7 | **Desbordamiento** | Un total por encima de int64 nunca se trunca: la celda muestra `OVERFLOW` y retira la cifra anterior. |
 | R8 | **Todos los canales** | JSON y CSV salen de la misma decisión. Toda salida futura (Web F07, reportes, **propuesta de compra conjunta**) consume estas respuestas: no recalcula, no guarda ni sirve cifras por otro camino, y no incluye cantidades de celdas suprimidas. |
 | R9 | **Presentación** | Toda cifra se muestra con la campaña (filtro aplicado), `data_as_of` y la cobertura («N de M agricultores aportaron»). Nunca se presenta como el total del sindicato. |
@@ -133,3 +133,41 @@ Las decisiones 2 y 3 quedaron resueltas por las decisiones delegadas de §7. Sig
 **Hallazgo sobre `0d16f12` (revisión técnica automatizada de Codex).** Contar como cambio una cantidad NULL permitía publicar 6100 frente a una divulgación de 6000 anterior a la migración, con un solo cambio real. **Corrección (`3559784`):** una cantidad desconocida no prueba nada; una cifra nueva exige, frente a cada divulgación, cero cambios y cero desconocidos, o al menos k cambios demostrados. La celda queda con su cifra anterior (o sin cifra) hasta entonces; no hay «nueva línea base». Regresión unitaria y de PostgreSQL con la migración real; ver la evidencia.
 
 Esta corrección sigue sin ser una garantía de anonimato (§0).
+
+## 9. Regla vigente tras F10-SEC-02 (PR #126, integrado en `e2263b0`)
+
+Registrada el 2026-10-17 por la sesión B. Describe lo que hace el código. **Sigue siendo una propuesta para datos sintéticos.** La revisión independiente de la sesión A (2026-10-17) dio la implementación por correcta; eso no es una aprobación institucional.
+
+**Por qué se cambió.** La comparación de la cifra nueva con cada cifra anterior (R3) era eludible:
+- N − R1 − P aislaba a un agricultor tras una reasociación;
+- N − (R2 − R1) lo aislaba con una sola clave;
+- dos celdas decididas en la misma lectura podían aislarlo al deshacer una asociación (65 + 600 − 660).
+
+**Regla de combinaciones** (sustituye a R3 y R6). Una cifra nueva sólo se publica si, junto con todas las cifras ya publicadas, no hace calculable nada nuevo sobre un grupo de menos de k Members. Cuentan las cifras:
+- de la celda, también las retiradas;
+- de las celdas que compartieron aportaciones con ella;
+- de las decididas antes en la misma lectura, en orden de clave.
+
+Cada cifra se modela como una suma de columnas `aportación|cantidad`, con aritmética entera exacta (`domain/differencing.ts`). Si la cifra revela algo:
+- la celda conserva su cifra anterior con `pending_changes`, si todavía la describe;
+- si no, se retira (`SUPPRESSED_REVISION`).
+
+**Falla cerrada:**
+- **Cantidades heredadas desconocidas.** Si alguna cifra conocida tiene cantidades no registradas (anterior a `20261016150500`), no se publican cifras nuevas conectadas con ella.
+- **Presupuesto de cálculo por lectura.** Si se agota, la respuesta es «revela». Una celda muy pesada puede así dejar sin cifras nuevas a las celdas posteriores de esa lectura. Es disponibilidad, no fuga, y es una limitación aceptada.
+
+**Cobertura (R9):**
+- `members_with_contribution` cuenta sólo los Members dentro de cifras publicadas;
+- `suppressed_cells` avisa, sin conteo, de que alguna celda no tiene cifra;
+- cada borrador guarda la regla con la que se contó (`coverage.basis`).
+
+**Casos resueltos añadidos** (pruebas en `main`; abreviaturas de `F07_CIERRE_MATRIZ.md`):
+- bypass3, base3 y retirada intermedia (DP);
+- reasociación sin historial y cobertura con celdas suprimidas (GAPS);
+- división en la misma lectura, S1 (DP y la aceptación de F07);
+- grupo ya expuesto (DP);
+- cantidades heredadas desconocidas (DP y F06C5);
+- historia larga dentro del presupuesto (DP).
+
+Evidencia: `F10_SEC_02_PROJECTION.md` (H1–H2) y `F07_CIERRE_MATRIZ.md` §2. Paquete de decisión: `F07_POL_01_PAQUETE_DECISION.md`.
+
