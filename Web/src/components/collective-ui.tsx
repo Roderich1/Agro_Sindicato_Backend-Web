@@ -88,9 +88,15 @@ export function CoverageBanner({ coverage, campaignName, asOf }: { coverage: Cov
         {asOf ? `Cobertura al generar el borrador (${fmtDateTime(asOf)})` : 'Cobertura'} · {campaignName}
       </p>
       <p className="mt-1.5 text-lg font-bold text-slate-900">
-        {coverage.members_with_contribution} de {coverage.linked_members} agricultores vinculados con cifras publicadas
-        {asOf ? ' en esa fecha' : ''}
+        {coverage.basis === 'ALL_CONTRIBUTORS'
+          ? `${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados habían aportado datos en esa fecha`
+          : `${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados con cifras publicadas${asOf ? ' en esa fecha' : ''}`}
       </p>
+      {coverage.basis === 'ALL_CONTRIBUTORS' && (
+        <p className="mt-1 text-xs text-slate-500">
+          Borrador guardado con la regla anterior a F10-SEC-02: el conteo incluye a quienes aportaron a filas sin cifra.
+        </p>
+      )}
       <p className="mt-1 text-xs text-slate-500">
         {asOf && 'No es la cobertura actual: consulte el resumen de la campaña para la de hoy. '}
         {coverage.suppressed_cells &&

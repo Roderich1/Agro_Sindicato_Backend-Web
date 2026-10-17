@@ -240,8 +240,16 @@ export const proposalSchema: SchemaObject = {
       type: "object",
       nullable: true,
       additionalProperties: false,
-      required: ["linked_members", "members_with_contribution"],
-      properties: { linked_members: { type: "integer" }, members_with_contribution: { type: "integer" } },
+      required: ["linked_members", "members_with_contribution", "basis"],
+      properties: {
+        linked_members: { type: "integer" },
+        members_with_contribution: { type: "integer" },
+        basis: {
+          type: "string",
+          enum: ["PUBLISHED_FIGURES", "ALL_CONTRIBUTORS"],
+          description: "Rule of members_with_contribution when the draft was generated (F10-SEC-02); stored drafts are never rewritten.",
+        },
+      },
     },
     lines: { type: "array", items: proposalLineSchema },
     notice: { type: "string" },

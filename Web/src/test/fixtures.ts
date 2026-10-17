@@ -59,7 +59,7 @@ export function proposalWith(lines: ProposalLine[], overrides: Partial<Proposal>
     generated_by: { user_ref: 'u-1', name: 'Directiva sintética' },
     inputs_fingerprint: 'f'.repeat(64),
     disclosure: { mode: 'PROVISIONAL_SYNTHETIC', policy: 'F07-POL-01', approved: false },
-    coverage: { linked_members: 4, members_with_contribution: 3 },
+    coverage: { linked_members: 4, members_with_contribution: 3, basis: 'PUBLISHED_FIGURES' },
     lines,
     notice: 'Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos.',
     ...overrides,

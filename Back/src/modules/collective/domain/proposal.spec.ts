@@ -60,7 +60,7 @@ describe("proposal CSV", () => {
       generated_by: { user_ref: "u", name: "Directiva" },
       inputs_fingerprint: "f".repeat(64),
       disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false },
-      coverage: { linked_members: 4, members_with_contribution: 3 },
+      coverage: { linked_members: 4, members_with_contribution: 3, basis: "PUBLISHED_FIGURES" },
       lines: [
         { position: 0, product_ref: "a", product_name: "Belator", base_unit: "ML", presentation_unit: "L", status: "SUPPRESSED_UNDER_THRESHOLD", quantity_base: null, quantity_presentation: null, contributors: null, data_as_of: null, released_at: null, pending_changes: false },
         { position: 1, product_ref: "b", product_name: "Urea", base_unit: "G", presentation_unit: "KG", status: "DISCLOSED", quantity_base: "25000", quantity_presentation: "25", contributors: 3, data_as_of: null, released_at: null, pending_changes: false },
@@ -69,6 +69,7 @@ describe("proposal CSV", () => {
     };
     const text = proposalCsv(view);
     expect(text).toContain(",'=Campana,");
+    expect(text).toContain(",4,3,PUBLISHED_FIGURES");
     expect(text).toContain("0,a,Belator,ML,L,SUPPRESSED_UNDER_THRESHOLD,,,,,,false");
     expect(text).toContain("1,b,Urea,G,KG,DISCLOSED,25000,25,3,,,false");
     expect(text.trim().split("\n")).toHaveLength(7);

@@ -66,6 +66,19 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(coverage.textContent).toMatch(/No es la cobertura actual/);
   });
 
+  it('un borrador guardado con la regla anterior no se rotula «con cifras publicadas» (F10-SEC-02)', async () => {
+    vi.mocked(collectiveService.generateProposal).mockResolvedValue({
+      ...DRAFT,
+      coverage: { linked_members: 4, members_with_contribution: 3, basis: 'ALL_CONTRIBUTORS' },
+    });
+    renderAt(<JointProposalPage />, { path: PATH });
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    const coverage = await screen.findByTestId('coverage');
+    expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados habían aportado datos en esa fecha/);
+    expect(coverage.textContent).toMatch(/regla anterior a F10-SEC-02/);
+    expect(coverage.textContent).not.toMatch(/con cifras publicadas/);
+  });
+
   it('POLICY_PENDING al generar: lo explica y no muestra ninguna línea', async () => {
     vi.mocked(collectiveService.generateProposal).mockRejectedValue(conflict());
     renderAt(<JointProposalPage />, { path: PATH });

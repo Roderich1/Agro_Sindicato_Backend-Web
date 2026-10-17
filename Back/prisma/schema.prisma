@@ -1117,6 +1117,10 @@ model JointPurchaseProposal {
   inputsFingerprint       String                      @db.Char(64)
   linkedMembers           Int
   membersWithContribution Int
+  // F10-SEC-02: rule of membersWithContribution. NULL = drafts generated
+  // before the change (contributors of every cell, suppressed ones included);
+  // PUBLISHED_FIGURES = Members inside a published figure. Never rewritten.
+  coverageBasis           String?                     @db.VarChar(24)
   generatedAt             DateTime                    @default(now())
   generatedByUserId       String
 

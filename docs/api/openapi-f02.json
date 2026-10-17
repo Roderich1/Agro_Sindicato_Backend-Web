@@ -6399,7 +6399,8 @@
                       "additionalProperties": false,
                       "required": [
                         "linked_members",
-                        "members_with_contribution"
+                        "members_with_contribution",
+                        "basis"
                       ],
                       "properties": {
                         "linked_members": {
@@ -6407,6 +6408,14 @@
                         },
                         "members_with_contribution": {
                           "type": "integer"
+                        },
+                        "basis": {
+                          "type": "string",
+                          "enum": [
+                            "PUBLISHED_FIGURES",
+                            "ALL_CONTRIBUTORS"
+                          ],
+                          "description": "Rule of members_with_contribution when the draft was generated (F10-SEC-02); stored drafts are never rewritten."
                         }
                       }
                     },
@@ -6762,7 +6771,8 @@
                       "additionalProperties": false,
                       "required": [
                         "linked_members",
-                        "members_with_contribution"
+                        "members_with_contribution",
+                        "basis"
                       ],
                       "properties": {
                         "linked_members": {
@@ -6770,6 +6780,14 @@
                         },
                         "members_with_contribution": {
                           "type": "integer"
+                        },
+                        "basis": {
+                          "type": "string",
+                          "enum": [
+                            "PUBLISHED_FIGURES",
+                            "ALL_CONTRIBUTORS"
+                          ],
+                          "description": "Rule of members_with_contribution when the draft was generated (F10-SEC-02); stored drafts are never rewritten."
                         }
                       }
                     },
