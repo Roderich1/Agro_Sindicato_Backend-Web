@@ -9,7 +9,7 @@
 **Nunca se guardan aquí:**
 - nombres, firmas ni hojas de consentimiento;
 - fotos, audio ni grabaciones;
-- datos del piloto como resultados (el piloto va con `es_piloto=si` y el cálculo lo excluye);
+- datos del piloto. El piloto **no es un resultado**: lo único que se publica de él es qué se ajustó y por qué (`../README.md`, registro de versiones). Si por error una fila de piloto llegara aquí con `es_piloto=si`, el cálculo la excluye, pero no debe estar;
 - datos de ejemplo (`EJ-…`).
 
 La evidencia final se redacta en `docs/evidence/F10_USABILIDAD.md`, en Backend/Web (UX-02, #47) y en Mobile (UX-01, #37). Lleva:

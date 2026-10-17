@@ -45,14 +45,16 @@ class ExampleReport(unittest.TestCase):
     def test_pilot_excluded(self):
         self.assertIn('Piloto excluido de todos los cálculos: 1 (EJ-X01)', self.report)
         self.assertNotIn('| EJ-X01 |', self.report)
-        self.assertIn('Participantes (sin piloto): 5.', self.report)
+        self.assertIn('Participantes (sin piloto): 5; muestra planificada: 5.', self.report)
 
     def test_task_rows_with_denominators(self):
         expected = [
             '| T1 | 5 | 2/5 | 1/5 | 3/5 (60 %) | 1/5 | 1/5 | 0/5 | 0 | 3 | 0 | NO CUMPLE |',
             '| T2 | 5 | 5/5 | 0/5 | 5/5 (100 %) | 0/5 | 0/5 | 0/5 | 0 | 0 | 1 | NO CUMPLE |',
             '| T3 | 5 | 4/5 | 0/5 | 4/5 (80 %) | 0/5 | 0/5 | 1/5 | 0 | 0 | 0 | CUMPLE |',
-            '| T4 | 4 | 0/4 | 4/4 | 4/4 (100 %) | 0/4 | 0/4 | 0/4 | 1 | 0 | 0 | CUMPLE |',
+            # 4/4 éxitos, pero la muestra planificada es 5: nunca CUMPLE con menos.
+            '| T4 | 4 | 0/4 | 4/4 | 4/4 (100 %) | 0/4 | 0/4 | 0/4 | 1 | 0 | 0 | '
+            'NO EJECUTADA (muestra incompleta: 4 de 5) |',
             '| T5 | 5 | 3/5 | 0/5 | 3/5 (60 %) | 0/5 | 0/5 | 2/5 | 0 | 0 | 0 | NO CUMPLE |',
             '| W2 | 2 | 1/2 | 0/2 | 1/2 (50 %) | 1/2 | 0/2 | 0/2 | 0 | 0 | 0 | NO CUMPLE |',
             '| W4 | 2 | 1/2 | 0/2 | 1/2 (50 %) | 0/2 | 0/2 | 1/2 | 0 | 0 | 0 | NO CUMPLE |',
@@ -75,6 +77,11 @@ class ExampleReport(unittest.TestCase):
         self.assertIn('Media 78,1; mediana 81,3; rango 50,0–100,0.', self.report)
         self.assertIn('Sin cuestionario SUS: EJ-D02.', self.report)
         self.assertIn('n válido: 1 de 2 participantes', self.report)
+
+    def test_profile_counts(self):
+        self.assertIn('Perfil: comodidad digital 1–2: 2; 3: 1; 4–5: 2; modalidad compartida: 2, '
+                      'individual: 3.', self.report)
+        self.assertIn('Perfil: comodidad digital 1–2: 1; 3: 0; 4–5: 1.', self.report)
 
     def test_sus_never_as_percentage(self):
         sus_part = self.report.split('### SUS')[1]
@@ -125,6 +132,88 @@ class Validation(unittest.TestCase):
     def test_timeout_must_record_the_limit(self):
         self._edit('tareas.csv', lambda rows: rows[26].update(tiempo_s='250'))
         self.assertRejected('TIEMPO_AGOTADO')
+
+    def _verdict(self, task):
+        line = next(l for l in cu.build_report(self.dir).splitlines()
+                    if l.startswith(f'| {task} | '))
+        return line.rsplit('|', 2)[1].strip()
+
+    def test_web_with_one_of_two_attempts_is_not_executed(self):
+        # D02 no intentó W1 y D01 acierta: 1/1 no es CUMPLE.
+        def mutate(rows):
+            for row in rows:
+                if row['codigo'] == 'EJ-D02' and row['tarea'] == 'W1':
+                    row.update(intentada='no', tiempo_s='', resultado='', nivel_ayuda='',
+                               errores='', errores_criticos='', seq='')
+        self._edit('tareas.csv', mutate)
+        self.assertEqual(self._verdict('W1'), 'NO EJECUTADA (muestra incompleta: 1 de 2)')
+
+    def test_mobile_with_one_of_five_attempts_is_not_executed(self):
+        def mutate(rows):
+            for row in rows:
+                if row['tarea'] == 'T6' and row['codigo'] != 'EJ-P01' and row['codigo'] != 'EJ-X01':
+                    row.update(intentada='no', tiempo_s='', resultado='', nivel_ayuda='',
+                               errores='', errores_criticos='', seq='')
+        self._edit('tareas.csv', mutate)
+        self.assertEqual(self._verdict('T6'), 'NO EJECUTADA (muestra incompleta: 1 de 5)')
+
+    def test_not_attempted_row_cannot_carry_measures(self):
+        def mutate(rows):
+            for row in rows:
+                if row['codigo'] == 'EJ-P05' and row['tarea'] == 'T4':
+                    row.update(errores_criticos='1')
+        self._edit('tareas.csv', mutate)
+        self.assertRejected('no intentada no lleva mediciones')
+
+    def test_missing_column_is_rejected(self):
+        path = self.dir / 'sus.csv'
+        lines = path.read_text(encoding='utf-8').splitlines()
+        trimmed = [','.join(l.split(',')[:11] + l.split(',')[12:]) for l in lines]  # sin i10
+        path.write_text('\n'.join(trimmed) + '\n', encoding='utf-8')
+        self.assertRejected("faltan: ['i10']")
+
+    def test_missing_seq_column_is_rejected(self):
+        path = self.dir / 'tareas.csv'
+        lines = path.read_text(encoding='utf-8').splitlines()
+        trimmed = [','.join(l.split(',')[:8] + l.split(',')[9:]) for l in lines]  # sin seq
+        path.write_text('\n'.join(trimmed) + '\n', encoding='utf-8')
+        self.assertRejected("faltan: ['seq']")
+
+    def test_bom_is_accepted_and_semicolon_is_explained(self):
+        path = self.dir / 'participantes.csv'
+        text = path.read_text(encoding='utf-8')
+        path.write_text('\ufeff' + text, encoding='utf-8')
+        cu.build_report(self.dir)
+        path.write_text(text.replace(',', ';'), encoding='utf-8')
+        self.assertRejected('separador es «;»')
+
+    def test_profile_must_match_interface(self):
+        self._edit('participantes.csv', lambda rows: rows[1].update(perfil='DIRECTIVA'))
+        self.assertRejected('corresponde al perfil AGRICULTOR')
+
+    def test_modality_is_validated(self):
+        self._edit('participantes.csv', lambda rows: rows[1].update(modalidad='OTRA'))
+        self.assertRejected('modalidad')
+        self._edit('participantes.csv', lambda rows: rows[1].update(modalidad='INDIVIDUAL'))
+        self._edit('participantes.csv', lambda rows: rows[6].update(modalidad='INDIVIDUAL'))
+        self.assertRejected('sólo se registra para agricultores')
+
+    def test_level_three_prevails_over_result(self):
+        def mutate(rows):
+            for row in rows:
+                if row['codigo'] == 'EJ-P01' and row['tarea'] == 'T6':
+                    row.update(nivel_ayuda='3', resultado='ABANDONO')
+        self._edit('tareas.csv', mutate)
+        line = next(l for l in cu.build_report(self.dir).splitlines() if l.startswith('| T6 | '))
+        # Intervención 1/5, fallo 0/5: el nivel 3 no se cuenta como fallo.
+        self.assertIn('| 1/5 | 0/5 | 0 |', line)
+
+    def test_lowercase_example_prefix_is_still_an_example(self):
+        for name in ('participantes.csv', 'tareas.csv', 'sus.csv'):
+            path = self.dir / name
+            path.write_text(path.read_text(encoding='utf-8').replace('EJ-', 'ej-'),
+                            encoding='utf-8')
+        self.assertTrue(cu.build_report(self.dir).startswith('# EJEMPLO FICTICIO'))
 
     def test_example_not_written_into_results(self):
         out = self.dir / 'resultados'

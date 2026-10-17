@@ -4,7 +4,7 @@
 - Se imprimen dos copias: una queda con la persona y la otra la conserva Roderich.
 - Esta hoja **es la única** que lleva el nombre del participante. Se guarda **separada** de las hojas de registro y del SUS, que sólo llevan el código, y **nunca** se escanea ni se sube a un repositorio.
 - Antes de usarla:
-  - confirmar con el tutor si Univalle exige algún trámite adicional (protocolo §3.6);
+  - confirmar con el tutor si Univalle exige algún trámite adicional (protocolo v1.1 §3.3);
   - completar los datos de contacto con los reales de Roderich. Aquí quedan en blanco a propósito.
 - No se fija ninguna fecha hasta que la persona haya aceptado participar.
 

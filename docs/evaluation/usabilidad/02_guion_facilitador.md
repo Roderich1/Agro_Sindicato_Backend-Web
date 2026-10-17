@@ -4,7 +4,7 @@
 
 **Claude Code no facilita ni observa sesiones** ni produce observaciones humanas.
 
-**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` v1.0 (BE PR #122), con el SHA de `main` donde quede integrado. Un resultado `INCORRECTA` (dijo «terminé» sin alcanzar el fin observable) cuenta como fallo, igual que el abandono o el tiempo agotado: no hay éxito sin el fin observable (§3.4 del protocolo). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
+**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.1** (BE PR #122, commit `7581af2`, pendiente de integrar). En cada sesión se anota el SHA de `main` donde quede integrado. Las reglas que este guion añade al protocolo (ayuda a los 60 s, `INCORRECTA` = fallo, doble marca en el SUS = vacía, pregunta «¿Dejó alguna sin marcar a propósito?») son **precisiones propuestas**: se confirman en el piloto y se registran en el protocolo (`README.md`, «Precisiones»). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
 
 Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo tono para todas las personas.
 
@@ -71,7 +71,7 @@ Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo
 4. **Ayudas.** Sólo si la persona la pide o lleva **60 s** sin avanzar. Siempre en este orden, y anotando la ayuda **más alta** usada:
    - **Nivel 1 — pista general:** «¿Dónde cree que podría estar?»
    - **Nivel 2 — pista específica:** la frase predefinida de la tarea (§6), sin cambiarla.
-   - **Nivel 3 — el facilitador hace el paso.** La tarea cuenta como **fallo**, aunque después se termine.
+   - **Nivel 3 — el facilitador hace el paso.** Se registra como **intervención del facilitador**: no es éxito y se informa aparte de los fallos (protocolo v1.1 §3.5). **Prevalece** sobre el resultado: aunque después se termine o se abandone, cuenta como intervención.
 5. Si la persona dice «terminé», no se le confirma si está bien ni mal. El resultado se anota en la hoja.
 6. Inmediatamente, la pregunta SEQ (`05_cuestionario_SEQ.md`). Si no quiere responder, se deja en blanco.
 7. Anotar los **errores**:
@@ -113,7 +113,7 @@ Los enunciados están en las tarjetas (`03_…` y `04_…`). Las pistas de nivel
 |---|---|---|---|
 | T1 | Activar el **modo avión** antes de entregar la tarjeta | La compra aparece con las 2 líneas y las cantidades y unidades correctas (2 L y 500 mL) | «Las compras se registran en Operaciones, en Compras.» |
 | T2 | Modo avión sigue activo | Aplicación con las 2 líneas (1 L y 200 mL) en la parcela Norte | «Las aplicaciones se registran en Operaciones, en Aplicaciones.» |
-| T3 | — | Dice el saldo correcto de Bellator y señala la compra y la aplicación | «El saldo está en Inventario; al tocar el producto se ven sus movimientos.» |
+| T3 | Antes de la tarjeta, consultar en silencio el saldo de Bellator y anotarlo (`09_…` §2) | Dice ese saldo y señala los movimientos guardados (`09_…` §2) | «El saldo está en Inventario; al tocar el producto se ven sus movimientos.» |
 | T4 | Modo avión sigue activo | Necesidad vigente de 20 L de Glifosato Demo | «Las necesidades se declaran en Operaciones, Planificación, "Necesidad declarada al sindicato".» |
 | T5 | **Desactivar el modo avión** antes de leer la tarjeta y decir sólo: «Ya hay Internet» | Encuentra Sincronización y responde según el estado real que muestra la aplicación. Se anota ese estado; la respuesta es correcta si coincide con él, sea el que sea | «Lo que se envía al sindicato está en Inicio, "Sincronización con el sindicato".» |
 | T6 | — | Explica que no hay saldo suficiente y cómo continuar. Después se comprueba que **no** se guardó una aplicación de 5 L | «Lea el mensaje que muestra la aplicación al guardar.» |
@@ -122,7 +122,7 @@ Los enunciados están en las tarjetas (`03_…` y `04_…`). Las pistas de nivel
 
 | Tarea | Condición previa | Fin observable / éxito | Pista de nivel 2 |
 |---|---|---|---|
-| W1 | Sesión de Directiva en Resumen colectivo | Lee el valor correcto de la necesidad declarada total de Glifosato Demo en Verano Demo | «El resumen está en el menú, en "Resumen colectivo"; elija la campaña.» |
+| W1 | Sesión de Directiva en Resumen colectivo; entorno Web sembrado de nuevo (`09_…` §3) | Lee el valor registrado antes de la primera sesión (`09_…` §4) | «El resumen está en el menú, en "Resumen colectivo"; elija la campaña.» |
 | W2 | Tras W1 | Identifica la cobertura «N de M» y que quien no declaró no cuenta como cero | «Mire la línea de Cobertura en el resumen.» |
 | W3 | — | Asociación Belator = Bellator confirmada con motivo y visible en el historial | «Las equivalencias de productos están en "Reconciliación".» |
 | W4 | — | Borrador en el historial y CSV descargado | «Las propuestas están en "Necesidades y propuesta".» |

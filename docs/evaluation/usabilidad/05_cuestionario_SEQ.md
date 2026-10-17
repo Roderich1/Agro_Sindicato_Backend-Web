@@ -1,10 +1,10 @@
 # SEQ — pregunta única después de cada tarea
 
-**Instrumento:** *Single Ease Question* (Sauro y Dumas, 2009), una escala de 7 puntos, tal como la cita el protocolo (§3.8).
+**Instrumento:** *Single Ease Question* (Sauro y Dumas, 2009), una escala de 7 puntos, tal como la cita el protocolo (v1.1 §3.5: tiempo y SEQ 1–7, sólo descriptivos).
 
 **Texto en español: traducción de trabajo, no validada.**
 - No se encontró ni se verificó una versión española publicada y validada del SEQ al preparar este material. Por eso:
-  - el texto es el del protocolo F10 (§3.8), sin cambios;
+  - la v1.1 del protocolo no fija una redacción. El texto es el del **borrador** del protocolo (§3.8 del borrador, BE `808acda`) y se declara como **traducción de trabajo**;
   - su comprensión se comprueba en el piloto (`08_piloto_comprension.md`, §2);
   - en la evidencia se declara como traducción de trabajo.
 - Versión: **SEQ-ES-1**.

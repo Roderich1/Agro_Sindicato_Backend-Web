@@ -5,25 +5,35 @@ Uso (Python 3.9+, sólo biblioteca estándar):
     python -I -X utf8 calcular_usabilidad.py <carpeta_con_csv> [--salida informe.md]
 
 Lee `participantes.csv`, `tareas.csv` y `sus.csv` con el formato de
-`../plantillas/`. Escribe un informe en Markdown con todos los denominadores a
-la vista. No imputa, no redondea antes de calcular y no descarta fallos:
+`../plantillas/` (UTF-8, con o sin BOM; separador coma). Escribe un informe en
+Markdown con todos los denominadores a la vista. No imputa, no redondea antes
+de calcular y no descarta fallos. Ante datos inválidos se detiene sin informe
+parcial: cabeceras incompletas, valores fuera de rango, combinaciones
+imposibles o filas que faltan.
 
-- El piloto (`es_piloto=si`) se excluye de todos los resultados y se cuenta
-  aparte.
+Reglas (protocolo F10 v1.1 §3.3–§3.6; precisiones de `../README.md`):
+
+- El piloto (`es_piloto=si`) no es un resultado: se excluye y sólo se cuenta.
 - Móvil (T1–T6) y Web (W1–W5) se informan por separado.
-- Por tarea: éxito sin ayuda (nivel 0), éxito con pista general (nivel 1),
-  éxito con ayuda específica (nivel 2, NO cuenta para el criterio),
-  intervención del facilitador (nivel 3, fallo) y fallos (abandono, tiempo
-  agotado, resultado incorrecto). Criterio del estudio: (nivel 0 + nivel 1)
-  / intentos >= 80 % y cero errores críticos. Una tarea sin intentos es NO
-  EJECUTADA.
+- Cada intento se clasifica en exactamente una categoría, en este orden de
+  precedencia: nivel de ayuda 3 -> «intervención del facilitador» (se informa
+  aparte, no como éxito ni como fallo, sea cual sea el resultado); si no,
+  resultado distinto de COMPLETADA -> «fallo» (abandono, tiempo agotado,
+  incorrecta); si no, por nivel: 0 «sin ayuda», 1 «pista general»,
+  2 «ayuda específica».
+- Criterio por tarea: (sin ayuda + pista general) / intentos >= 80 % y cero
+  errores críticos. Sólo se evalúa si la tarea la intentó **toda** la muestra
+  planificada de la interfaz (5 Móvil, 2 Web). Con menos (o más) intentos el
+  resultado es «NO EJECUTADA (muestra incompleta …)», con los conteos a la
+  vista: nunca CUMPLE con menos.
 - Tiempos y SEQ: sólo descriptivos (n, mediana, mínimo, máximo).
 - SUS: puntaje por participante sólo con los 10 ítems respondidos; los
   incompletos se listan aparte sin puntaje. Media, mediana y rango de los
   completos. El puntaje SUS no es un porcentaje.
 
-Con datos de ejemplo (códigos que empiezan por `EJ-`) el informe se marca como
-EJEMPLO FICTICIO y se niega a escribirse dentro de una carpeta `resultados`.
+Con datos de ejemplo (códigos que empiezan por `EJ-`, sin distinguir
+mayúsculas) el informe se marca como EJEMPLO FICTICIO y se niega a escribirse
+dentro de una carpeta `resultados`.
 """
 from __future__ import annotations
 
@@ -39,11 +49,25 @@ TASKS = {
     'MOVIL': ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'],
     'WEB': ['W1', 'W2', 'W3', 'W4', 'W5'],
 }
+#: Muestra planificada (decisiones de cierre §2; protocolo v1.1 §3.3).
+PLANNED = {'MOVIL': 5, 'WEB': 2}
+PROFILE_FOR = {'MOVIL': 'AGRICULTOR', 'WEB': 'DIRECTIVA'}
+MODALITIES = {'INDIVIDUAL', 'COMPARTIDA'}
 MAX_SECONDS = {'MOVIL': 300, 'WEB': 240}
 RESULTS = {'COMPLETADA', 'INCORRECTA', 'ABANDONO', 'TIEMPO_AGOTADO'}
 SUCCESS_CRITERION = 0.8
 SUS_CRITERION = 68.0
 EXAMPLE_PREFIX = 'EJ-'
+
+COLUMNS = {
+    'participantes.csv': ['codigo', 'interfaz', 'perfil', 'comodidad_digital', 'modalidad',
+                          'es_piloto', 'version_tarjetas', 'version_sus', 'version_seq',
+                          'observador_independiente', 'notas'],
+    'tareas.csv': ['codigo', 'tarea', 'intentada', 'tiempo_s', 'resultado', 'nivel_ayuda',
+                   'errores', 'errores_criticos', 'seq', 'notas'],
+    'sus.csv': ['codigo', 'interfaz'] + [f'i{i}' for i in range(1, 11)] + ['notas'],
+}
+YES = {'si', 'sí'}
 
 
 class DataError(Exception):
@@ -55,6 +79,8 @@ class Participant:
     code: str
     interface: str
     profile: str
+    comfort: int
+    modality: str
     pilot: bool
 
 
@@ -72,7 +98,7 @@ class TaskRow:
 
     @property
     def category(self) -> str:
-        """Clasificación del intento según el protocolo y las decisiones."""
+        """Categoría única; el nivel 3 prevalece sobre el resultado."""
         if self.help_level == 3:
             return 'intervencion'
         if self.result != 'COMPLETADA':
@@ -102,10 +128,19 @@ class TaskSummary:
 
     @property
     def verdict(self) -> str:
+        planned = PLANNED[self.interface]
         if self.attempts == 0:
             return 'NO EJECUTADA'
+        if self.attempts < planned:
+            return f'NO EJECUTADA (muestra incompleta: {self.attempts} de {planned})'
+        if self.attempts > planned:
+            return f'NO EJECUTADA (muestra distinta de la planificada: {self.attempts} de {planned})'
         ok = self.successes / self.attempts >= SUCCESS_CRITERION and self.critical == 0
         return 'CUMPLE' if ok else 'NO CUMPLE'
+
+
+def is_example(code: str) -> bool:
+    return code.upper().startswith(EXAMPLE_PREFIX)
 
 
 def _int(value: str, name: str, where: str, lo: int, hi: int | None = None) -> int | None:
@@ -121,42 +156,67 @@ def _int(value: str, name: str, where: str, lo: int, hi: int | None = None) -> i
     return number
 
 
-def _read(path: Path) -> list[dict]:
+def _read(folder: Path, name: str) -> list[dict]:
+    path = folder / name
     if not path.exists():
-        raise DataError(f'Falta {path.name}')
-    with path.open(encoding='utf-8', newline='') as handle:
-        return list(csv.DictReader(handle))
+        raise DataError(f'Falta {name}')
+    # utf-8-sig: un BOM (p. ej. CSV guardado desde Excel) no altera la cabecera.
+    with path.open(encoding='utf-8-sig', newline='') as handle:
+        reader = csv.DictReader(handle)
+        header = reader.fieldnames or []
+        if len(header) <= 1 and header and ';' in header[0]:
+            raise DataError(f'{name}: el separador es «;»; guarde el CSV separado por comas')
+        missing = [c for c in COLUMNS[name] if c not in header]
+        extra = [c for c in header if c not in COLUMNS[name]]
+        if missing or extra:
+            raise DataError(f'{name}: cabecera inválida (faltan: {missing or "—"}; '
+                            f'sobran: {extra or "—"})')
+        rows = list(reader)
+    for n, row in enumerate(rows, start=2):
+        if None in row:
+            raise DataError(f'{name}:{n}: la fila tiene más columnas que la cabecera')
+    return rows
 
 
 def load_participants(folder: Path) -> dict[str, Participant]:
     participants: dict[str, Participant] = {}
-    for n, row in enumerate(_read(folder / 'participantes.csv'), start=2):
+    for n, row in enumerate(_read(folder, 'participantes.csv'), start=2):
         where = f'participantes.csv:{n}'
-        code = (row.get('codigo') or '').strip()
-        interface = (row.get('interfaz') or '').strip().upper()
-        pilot = (row.get('es_piloto') or '').strip().lower()
+        code = (row['codigo'] or '').strip()
+        interface = (row['interfaz'] or '').strip().upper()
+        profile = (row['perfil'] or '').strip().upper()
+        modality = (row['modalidad'] or '').strip().upper()
+        pilot = (row['es_piloto'] or '').strip().lower()
         if not code:
             raise DataError(f'{where}: código vacío')
         if code in participants:
             raise DataError(f'{where}: código repetido {code}')
         if interface not in TASKS:
             raise DataError(f'{where}: interfaz "{interface}" no es MOVIL ni WEB')
-        if pilot not in ('si', 'sí', 'no'):
+        if profile != PROFILE_FOR[interface]:
+            raise DataError(f'{where}: la interfaz {interface} corresponde al perfil '
+                            f'{PROFILE_FOR[interface]}, no a "{profile}"')
+        if profile == 'AGRICULTOR' and modality not in MODALITIES:
+            raise DataError(f'{where}: modalidad "{modality}" debe ser INDIVIDUAL o COMPARTIDA')
+        if profile == 'DIRECTIVA' and modality:
+            raise DataError(f'{where}: la modalidad sólo se registra para agricultores')
+        if pilot not in YES | {'no'}:
             raise DataError(f'{where}: es_piloto debe ser si/no')
-        _int(row.get('comodidad_digital', ''), 'comodidad_digital', where, 1, 5)
-        participants[code] = Participant(
-            code, interface, (row.get('perfil') or '').strip().upper(), pilot != 'no'
-        )
+        comfort = _int(row['comodidad_digital'], 'comodidad_digital', where, 1, 5)
+        if comfort is None:
+            raise DataError(f'{where}: falta comodidad_digital')
+        participants[code] = Participant(code, interface, profile, comfort, modality,
+                                         pilot in YES)
     return participants
 
 
 def load_tasks(folder: Path, participants: dict[str, Participant]) -> list[TaskRow]:
     rows: list[TaskRow] = []
     seen: set[tuple[str, str]] = set()
-    for n, row in enumerate(_read(folder / 'tareas.csv'), start=2):
+    for n, row in enumerate(_read(folder, 'tareas.csv'), start=2):
         where = f'tareas.csv:{n}'
-        code = (row.get('codigo') or '').strip()
-        task = (row.get('tarea') or '').strip().upper()
+        code = (row['codigo'] or '').strip()
+        task = (row['tarea'] or '').strip().upper()
         if code not in participants:
             raise DataError(f'{where}: código {code} no está en participantes.csv')
         interface = participants[code].interface
@@ -165,20 +225,25 @@ def load_tasks(folder: Path, participants: dict[str, Participant]) -> list[TaskR
         if (code, task) in seen:
             raise DataError(f'{where}: {code} tiene la tarea {task} repetida')
         seen.add((code, task))
-        attempted = (row.get('intentada') or '').strip().lower()
-        if attempted not in ('si', 'sí', 'no'):
+        attempted = (row['intentada'] or '').strip().lower()
+        if attempted not in YES | {'no'}:
             raise DataError(f'{where}: intentada debe ser si/no')
+        measures = ('tiempo_s', 'resultado', 'nivel_ayuda', 'errores', 'errores_criticos', 'seq')
         if attempted == 'no':
+            filled = [m for m in measures if (row[m] or '').strip()]
+            if filled:
+                raise DataError(f'{where}: una tarea no intentada no lleva mediciones '
+                                f'({", ".join(filled)}); el motivo va en notas')
             rows.append(TaskRow(code, task, False, None, None, None, None, None, None))
             continue
-        result = (row.get('resultado') or '').strip().upper()
+        result = (row['resultado'] or '').strip().upper()
         if result not in RESULTS:
             raise DataError(f'{where}: resultado "{result}" no válido')
-        seconds = _int(row.get('tiempo_s', ''), 'tiempo_s', where, 0, MAX_SECONDS[interface])
-        help_level = _int(row.get('nivel_ayuda', ''), 'nivel_ayuda', where, 0, 3)
-        errors = _int(row.get('errores', ''), 'errores', where, 0)
-        critical = _int(row.get('errores_criticos', ''), 'errores_criticos', where, 0)
-        seq = _int(row.get('seq', ''), 'seq', where, 1, 7)
+        seconds = _int(row['tiempo_s'], 'tiempo_s', where, 0, MAX_SECONDS[interface])
+        help_level = _int(row['nivel_ayuda'], 'nivel_ayuda', where, 0, 3)
+        errors = _int(row['errores'], 'errores', where, 0)
+        critical = _int(row['errores_criticos'], 'errores_criticos', where, 0)
+        seq = _int(row['seq'], 'seq', where, 1, 7)
         for name, value in (('tiempo_s', seconds), ('nivel_ayuda', help_level),
                             ('errores', errors), ('errores_criticos', critical)):
             if value is None:
@@ -192,18 +257,18 @@ def load_tasks(folder: Path, participants: dict[str, Participant]) -> list[TaskR
 def load_sus(folder: Path, participants: dict[str, Participant]) -> list[tuple[str, list]]:
     answers = []
     seen = set()
-    for n, row in enumerate(_read(folder / 'sus.csv'), start=2):
+    for n, row in enumerate(_read(folder, 'sus.csv'), start=2):
         where = f'sus.csv:{n}'
-        code = (row.get('codigo') or '').strip()
+        code = (row['codigo'] or '').strip()
         if code not in participants:
             raise DataError(f'{where}: código {code} no está en participantes.csv')
         if code in seen:
             raise DataError(f'{where}: SUS repetido para {code}')
         seen.add(code)
-        interface = (row.get('interfaz') or '').strip().upper()
+        interface = (row['interfaz'] or '').strip().upper()
         if interface != participants[code].interface:
             raise DataError(f'{where}: la interfaz no coincide con participantes.csv')
-        items = [_int(row.get(f'i{i}', ''), f'i{i}', where, 1, 5) for i in range(1, 11)]
+        items = [_int(row[f'i{i}'], f'i{i}', where, 1, 5) for i in range(1, 11)]
         answers.append((code, items))
     return answers
 
@@ -233,11 +298,28 @@ def describe(values: list) -> str:
             f'mín. {fmt(min(values), 0)}; máx. {fmt(max(values), 0)}')
 
 
+def profile_line(people: list[Participant], interface: str) -> str:
+    """n por perfil (protocolo v1.1 §3.3 y §3.7)."""
+    low = sum(p.comfort <= 2 for p in people)
+    mid = sum(p.comfort == 3 for p in people)
+    high = sum(p.comfort >= 4 for p in people)
+    text = (f'Perfil: comodidad digital 1–2: {low}; 3: {mid}; 4–5: {high}')
+    if interface == 'MOVIL':
+        shared = sum(p.modality == 'COMPARTIDA' for p in people)
+        text += (f'; modalidad compartida: {shared}, individual: {len(people) - shared}. '
+                 f'Objetivo del protocolo: al menos 2 con comodidad 1–2 '
+                 f'({"cumplido" if low >= 2 else "no cumplido"}) y al menos 1 compartida '
+                 f'({"cumplido" if shared >= 1 else "no cumplido"}).')
+    else:
+        text += '.'
+    return text
+
+
 def build_report(folder: Path) -> str:
     participants = load_participants(folder)
     tasks = load_tasks(folder, participants)
     sus = load_sus(folder, participants)
-    example = any(code.startswith(EXAMPLE_PREFIX) for code in participants)
+    example = any(is_example(code) for code in participants)
     pilots = sorted(c for c, p in participants.items() if p.pilot)
 
     lines: list[str] = []
@@ -249,9 +331,12 @@ def build_report(folder: Path) -> str:
               f'{len(pilots)} ({", ".join(pilots) or "ninguno"}).', '']
 
     for interface, label in (('MOVIL', 'Móvil (UX-01)'), ('WEB', 'Web (UX-02)')):
-        codes = sorted(c for c, p in participants.items()
-                       if p.interface == interface and not p.pilot)
-        lines += [f'## {label}', '', f'Participantes (sin piloto): {len(codes)}.', '']
+        people = sorted((p for p in participants.values()
+                         if p.interface == interface and not p.pilot), key=lambda p: p.code)
+        codes = [p.code for p in people]
+        lines += [f'## {label}', '',
+                  f'Participantes (sin piloto): {len(codes)}; muestra planificada: '
+                  f'{PLANNED[interface]}.', '', profile_line(people, interface), '']
         summaries = {t: TaskSummary(interface, t) for t in TASKS[interface]}
         recorded = {(r.code, r.task) for r in tasks}
         for code in codes:
@@ -292,7 +377,10 @@ def build_report(folder: Path) -> str:
                 f'{s.counts["intervencion"]}/{s.attempts} | {s.counts["fallo"]}/{s.attempts} | '
                 f'{s.not_attempted} | {s.errors} | {s.critical} | {s.verdict} |')
         lines += ['', 'Criterio del estudio: éxito con ayuda de nivel 0–1 ≥ 80 % de los intentos '
-                  'y ningún error crítico. «Éxito 0–1» no es «sin ayuda»: el nivel 0 se informa aparte.',
+                  'y ningún error crítico, evaluado sólo si intentó la tarea toda la muestra '
+                  f'planificada ({PLANNED[interface]}). «Éxito 0–1» no es «sin ayuda»: el nivel 0 se '
+                  'informa aparte. La intervención del facilitador (nivel 3) prevalece sobre el '
+                  'resultado y se informa aparte: no es éxito ni fallo.',
                   '', '### Tiempo (s) y SEQ (1–7), descriptivos', '',
                   '| Tarea | Tiempo, todos los intentos | Tiempo, éxitos 0–1 | SEQ |',
                   '|---|---|---|---|']
