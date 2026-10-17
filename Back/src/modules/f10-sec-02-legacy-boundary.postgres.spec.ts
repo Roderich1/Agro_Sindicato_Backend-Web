@@ -526,6 +526,22 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       expect([event.status, event.ownerUserId, event.description]).toEqual(["PENDIENTE", null, SCHEDULED_NOTE]);
     });
 
+    it("the supplier catalog carries no purchases of any farmer (catalog purpose only)", async () => {
+      // Farmer A's individual purchase (10 × 5 = 50) and the joint purchases
+      // were bought from this supplier.
+      for (const [who, session] of [["A2", farmerA2], ["A3", farmerA3], ["DIRECTIVA", director], ["ADMINISTRADOR", admin]] as const) {
+        const res = await call("get", "/suppliers", session);
+        expect({ who, status: res.status }).toEqual({ who, status: 200 });
+        const supplier = res.body.find((s: any) => s.id === ids["supplier"]);
+        expect({ who, name: supplier?.name }).toEqual({ who, name: "Proveedor sintético F10" });
+        expect({ who, recentPurchases: supplier.recentPurchases, leaksPurchase: res.text.includes(ids["purchaseA"]) })
+          .toEqual({ who, recentPurchases: undefined, leaksPurchase: false });
+      }
+      const updated = await call("patch", `/suppliers/${ids["supplier"]}`, director, { phone: "70000000" });
+      expect(updated.status).toBe(200);
+      expect([updated.body.recentPurchases, updated.text.includes(ids["purchaseA"])]).toEqual([undefined, false]);
+    });
+
     it("the public campaign-closing calendar stays visible to farmers and institutional roles", async () => {
       for (const session of [farmerA, farmerA3, director, admin]) {
         const res = await call("get", "/calendar/events", session);
