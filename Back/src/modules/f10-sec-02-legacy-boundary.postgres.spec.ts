@@ -555,6 +555,28 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       expect((await call("get", "/users", farmerA)).status).toBe(403);
     });
 
+    it("the debt of a historical joint purchase shows the farmer's own share of its items", async () => {
+      for (const [session, owner, units, amount] of [[farmerA, "farmerA", "5", "15"], [farmerA2, "farmerA2", "3", "9"]] as const) {
+        const res = await call("get", "/accounts-payable", session);
+        expect(res.status).toBe(200);
+        const debt = res.body.find((p: any) => p.purchaseId === ids["jointPurchase"]);
+        expect({ owner, share: debt.share, total: debt.totalAmount, items: debt.items.map((i: any) => [i.quantity, i.subtotal]) })
+          .toEqual({ owner, share: "OWN", total: amount, items: [[units, amount]] });
+      }
+    });
+
+    it("a farmer cannot complete or cancel a public event of the tenant", async () => {
+      const before = (await prisma.calendarEvent.findUniqueOrThrow({ where: { id: ids["eventInstitutional"] } })).status;
+      for (const session of [farmerA, farmerA3]) {
+        expect((await call("post", `/calendar/events/${ids["eventInstitutional"]}/complete`, session)).status).toBe(404);
+        expect((await call("post", `/calendar/events/${ids["eventInstitutional"]}/cancel`, session)).status).toBe(404);
+      }
+      expect((await prisma.calendarEvent.findUniqueOrThrow({ where: { id: ids["eventInstitutional"] } })).status).toBe(before);
+      // The farmer still sees it and still changes their own events.
+      expect((await call("get", "/calendar/events", farmerA)).body.some((e: any) => e.id === ids["eventInstitutional"])).toBe(true);
+      expect((await call("post", `/calendar/events/${ids["eventA"]}/cancel`, farmerA)).status).toBe(200);
+    });
+
     it("the public campaign-closing calendar stays visible to farmers and institutional roles", async () => {
       for (const session of [farmerA, farmerA3, director, admin]) {
         const res = await call("get", "/calendar/events", session);
