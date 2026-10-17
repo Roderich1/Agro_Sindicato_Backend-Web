@@ -1,4 +1,5 @@
 import type { Cell } from "./consolidation";
+import { amountColumn, DisclosedFigure, newlyRevealing } from "./differencing";
 
 /**
  * Provisional threshold of F07-POL-01 (#107): distinct Members per cell. The
@@ -162,15 +163,17 @@ export function decideCell(
 }
 
 /**
- * Rule 2 across cell keys (F10-SEC-02 #45). A contribution can move to another
- * cell when the Directiva associates its product with a different canonical
- * product. The disclosures of the cell it came from stay known to the reader,
- * so the history of a cell also includes **every earlier disclosure of other
- * keys that shares a contribution with it** (`related`, newest first per key).
+ * Rule 2 against **any combination** of known figures (F10-SEC-02 #45).
  *
- * A new figure is only allowed if, besides the cell's own history, it is
- * provably safe against each related disclosure and against the combination
- * of the latest disclosure of every key involved (a reader can add them up).
+ * `history` holds the cell's own disclosures and `related` those of every
+ * other key that shares contributions with it (directly or through other
+ * disclosures, e.g. after the Directiva re-keys a product). The reader may
+ * add and subtract all of them. A new figure is only allowed if it does not
+ * make computable, together with all those figures, the amount (or change) of
+ * a group of fewer than k Members that was not computable before (see
+ * `differencing.ts`). This covers re-keying (p → r), the difference of two own
+ * figures (R2 − R1) and their combinations, not only the latest ones.
+ *
  * Otherwise the cell keeps its own earlier figure with pending changes, if it
  * still describes it, or shows no figure (REVISION). A figure of another key
  * is never shown under this one.
@@ -182,28 +185,29 @@ export function decideCellWithRelated(
   threshold = PROVISIONAL_THRESHOLD,
 ): CellDecision {
   const own = decideCell(cell, history, threshold);
-  const foreign = related.filter((releases) => releases.length > 0);
-  if (own.kind !== "RELEASE" || foreign.length === 0) return own;
+  const known = [...history, ...related.flat()];
+  if (own.kind !== "RELEASE" || known.length === 0) return own;
+  if (!newlyRevealing(known.map(figureOf), currentFigure(cell), threshold)) return own;
   const now = currentAmounts(cell);
-  // Latest disclosure of each key; a contribution in two of them counts once,
-  // with the newest known amount.
-  const latest = [history[0], ...foreign.map((releases) => releases[0])]
-    .filter((release): release is PriorRelease => release !== undefined)
-    .sort((a, b) => b.releasedAt.getTime() - a.releasedAt.getTime());
-  const combined: PriorRelease = {
-    ...latest[0]!,
-    items: new Map(latest.flatMap((release) => [...release.items]).reverse()),
-    memberOf: new Map(latest.flatMap((release) => [...release.memberOf]).reverse()),
-  };
-  const safe =
-    foreign.every((releases) =>
-      releases.every((release) => provablySafe(compare(now, releasedAmounts(release)), threshold)),
-    ) && provablySafe(compare(now, releasedAmounts(combined)), threshold);
-  if (safe) return own;
   const ownLatest = history[0] ?? null;
   const ownShown = ownLatest !== null && ownLatest.withdrawnAt === null;
   const removedFromOwn =
     ownLatest !== null && [...releasedAmounts(ownLatest).keys()].some((member) => !now.has(member));
   if (ownShown && !removedFromOwn) return { kind: "SHOW_PRIOR", pendingChanges: true };
   return { kind: "SUPPRESS", reason: "REVISION", withdrawPrior: ownShown };
+}
+
+function figureOf(release: PriorRelease): DisclosedFigure {
+  const columns = new Map<string, string>();
+  for (const [contributionId, quantity] of release.items) {
+    const member = release.memberOf.get(contributionId);
+    if (member !== undefined) columns.set(amountColumn(contributionId, quantity, release.id), member);
+  }
+  return { columns };
+}
+
+function currentFigure(cell: Cell): DisclosedFigure {
+  return {
+    columns: new Map(cell.contributions.map((c) => [amountColumn(c.contributionId, c.quantityBase, "now"), c.memberId])),
+  };
 }

@@ -151,22 +151,45 @@ export class CollectiveSummaryUseCase {
     // cell is also compared with the disclosures of the keys its contributions
     // came from (a re-keyed product keeps its history).
     const keysOf = new Map<string, Set<string>>();
+    const contributionsOf = new Map<string, Set<string>>();
     for (const [id, { history }] of histories) {
+      const own = new Set<string>();
       for (const release of history) {
         for (const contributionId of release.items.keys()) {
           keysOf.set(contributionId, (keysOf.get(contributionId) ?? new Set()).add(id));
+          own.add(contributionId);
         }
       }
+      contributionsOf.set(id, own);
     }
+    // Every key connected to the cell through shared contributions, directly
+    // or through other disclosures: their figures can be combined.
+    const connectedKeys = (id: string, seed: Iterable<string>): string[] => {
+      const keys = new Set([id]);
+      const seen = new Set([...seed, ...(contributionsOf.get(id) ?? [])]);
+      const queue = [...seen];
+      while (queue.length > 0) {
+        for (const key of keysOf.get(queue.pop()!) ?? []) {
+          if (keys.has(key)) continue;
+          keys.add(key);
+          for (const contributionId of contributionsOf.get(key) ?? []) {
+            if (!seen.has(contributionId)) {
+              seen.add(contributionId);
+              queue.push(contributionId);
+            }
+          }
+        }
+      }
+      keys.delete(id);
+      return [...keys];
+    };
     const allHistories = new Map(histories);
     const now = new Date();
     const output: { key: CellKey; decision: CellDecision; cell: Cell | null; prior: PriorRelease | null }[] = [];
     for (const cell of cells) {
       const id = cellId(cell);
       const history = histories.get(id)?.history ?? [];
-      const relatedKeys = new Set(cell.contributions.flatMap((c) => [...(keysOf.get(c.contributionId) ?? [])]));
-      relatedKeys.delete(id);
-      const related = [...relatedKeys].map((key) => allHistories.get(key)!.history);
+      const related = connectedKeys(id, cell.contributions.map((c) => c.contributionId)).map((key) => allHistories.get(key)!.history);
       output.push({ key: cell, decision: decideCellWithRelated(cell, history, related), cell, prior: history[0] ?? null });
       histories.delete(id);
     }
