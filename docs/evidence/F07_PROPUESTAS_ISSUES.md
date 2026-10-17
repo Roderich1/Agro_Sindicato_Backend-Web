@@ -22,6 +22,12 @@ Resumen:
 
 ## #23 — comentario (y cierre al integrar #127)
 
+*Nota del 2026-10-17:*
+- #23 se cerró a las 14:43:05Z al integrarse #127 (`9df7888`, `Closes #23`).
+- El texto siguiente ya no es una propuesta de cierre: puede publicarse como comentario de evidencia, citando además el recorrido 25/25 de #132 (`81fae93`), o descartarse.
+- En los demás textos, `<SHA>` es `cab433d`, el merge de #128.
+
+
 ```text
 **Cierre (2026-10-17 UTC, por la revisión de la sesión B y la integración de #127).** Los criterios vigentes están cumplidos en `main` con la PHASE 5 del plan de transición:
 
