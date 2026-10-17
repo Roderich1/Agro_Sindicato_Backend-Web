@@ -33,6 +33,7 @@ const APPLICATION_NOTE = "MARCA-NOTA-APLICACION-F10";
 const AUDIT_PRIVATE = "MARCA-AUDITORIA-PRIVADA-F10";
 const EVENT_PRIVATE = "MARCA-EVENTO-PRIVADO-F10";
 const PURCHASE_NOTE = "MARCA-COMPRA-PRIVADA-F10";
+const SCHEDULED_NOTE = "MARCA-COMPRA-CONJUNTA-PROGRAMADA-F10";
 
 type Method = "get" | "post" | "patch";
 
@@ -53,6 +54,8 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
   let director: TestSession;
   let admin: TestSession;
   let otherTenantDirector: TestSession;
+  /** A farmer of tenant A who takes part in no joint purchase. */
+  let farmerA3: TestSession;
   const users: Record<string, { id: string; email: string; name: string }> = {};
   const ids: Record<string, string> = {};
 
@@ -73,6 +76,14 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       },
     });
     otherTenantDirector = await createSession(prisma, jwt, otherMember);
+    const thirdFarmer = randomUUID();
+    await prisma.user.create({
+      data: {
+        tenantId: f.tenantA, name: "Agricultor sintético A3", email: `f10-a3-${thirdFarmer}@example.test`,
+        passwordHash: "x", role: "AGRICULTOR", members: { create: { id: thirdFarmer, tenantId: f.tenantA, role: "AGRICULTOR" } },
+      },
+    });
+    farmerA3 = await createSession(prisma, jwt, thirdFarmer);
     for (const [key, memberId] of Object.entries(f.members)) {
       const member = await prisma.member.findUniqueOrThrow({ where: { id: memberId }, include: { user: true } });
       users[key] = { id: member.user.id, email: member.user.email, name: member.user.name };
@@ -101,6 +112,19 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       where: { purchaseId: ids["jointPurchase"], responsibleUserId: users["farmerA"].id },
     });
     ids["jointPayableA"] = jointPayableA.id;
+    // A legacy SCHEDULED joint purchase: its COMPRA_PROGRAMADA event has no
+    // owner and carries the supplier, the notes and the group total.
+    const scheduled = await app.get(CreateJointPurchaseUseCase).execute(f.tenantA, users["directorA"].id, {
+      ...jointPurchaseBody(),
+      paymentMode: "CONTADO" as const,
+      status: "PROGRAMADA" as const,
+      expectedAt: "2026-11-20T00:00:00.000Z",
+      notes: SCHEDULED_NOTE,
+    } as never);
+    ids["scheduledPurchase"] = (scheduled as any).purchase?.id ?? (scheduled as any).id;
+    ids["scheduledEvent"] = (await prisma.calendarEvent.findFirstOrThrow({
+      where: { sourceEntity: "Purchase", sourceEntityId: ids["scheduledPurchase"], type: "COMPRA_PROGRAMADA" },
+    })).id;
 
     // Private plot, assignment, application, calendar event and audit entry.
     const crop = await prisma.crop.create({ data: { tenantId: f.tenantA, name: "Papa sintética F10" } });
@@ -455,6 +479,59 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
         }
       }
       expect(await effects()).toEqual(before);
+    });
+  });
+  describe("residuos de F10_SEC_02_ROUTES §9: compras conjuntas históricas y eventos sin dueño", () => {
+    // Joint purchase: 8 units at 3 = 24; farmer A 5 units (15), farmer A2 3 units (9).
+    it("a participant sees only their own share of a historical joint purchase, never the group totals", async () => {
+      for (const [session, units, amount] of [[farmerA2, "3", "9"], [farmerA, "5", "15"]] as const) {
+        for (const path of ["/purchases", `/purchases/${ids["jointPurchase"]}`]) {
+          const res = await call("get", path, session);
+          expect({ path, status: res.status }).toEqual({ path, status: 200 });
+          const joint = Array.isArray(res.body) ? res.body.find((p: any) => p.id === ids["jointPurchase"]) : res.body;
+          expect({ path, share: joint.share, total: joint.totalAmount, items: joint.items.map((i: any) => [i.quantity, i.subtotal]) })
+            .toEqual({ path, share: "OWN", total: amount, items: [[units, amount]] });
+        }
+      }
+    });
+
+    it("joint purchase reports give a participant their own share and count only their own participation", async () => {
+      const joint = await call("get", "/reports/purchases/joint", farmerA2);
+      expect(joint.status).toBe(200);
+      const row = joint.body.rows.find((r: any) => r.id === ids["jointPurchase"]);
+      expect({ total: row.totalAmount, items: row.items.map((i: any) => [i.quantity, i.subtotal]), participants: row.participants.length })
+        .toEqual({ total: "9", items: [["3", "9"]], participants: 1 });
+      // Two joint purchases (received and scheduled), one participation each.
+      expect(joint.body.totals.participants).toBe(joint.body.rows.length);
+      expect(joint.body.totals.totalAmount).toBe("18");
+      const byCampaign = await call("get", "/reports/purchases/by-campaign", farmerA2);
+      expect(byCampaign.status).toBe(200);
+      expect(byCampaign.body.totals.totalAmount).toBe("18");
+      expect(byCampaign.text).not.toContain('"24"');
+    });
+
+    it("a scheduled joint purchase event without owner reaches neither farmers nor institutional roles", async () => {
+      const sessions = [["A (participante)", farmerA], ["A2 (participante)", farmerA2], ["A3 (ajeno)", farmerA3], ["DIRECTIVA", director], ["ADMINISTRADOR", admin]] as const;
+      for (const [who, session] of sessions) {
+        for (const path of ["/calendar/events", "/calendar/events?type=COMPRA_PROGRAMADA"]) {
+          const res = await call("get", path, session);
+          expect({ who, path, status: res.status }).toEqual({ who, path, status: 200 });
+          expect({ who, path, leaked: res.text.includes(SCHEDULED_NOTE) || res.text.includes(ids["scheduledEvent"]) })
+            .toEqual({ who, path, leaked: false });
+        }
+        const complete = await call("post", `/calendar/events/${ids["scheduledEvent"]}/complete`, session);
+        expect({ who, status: complete.status }).toEqual({ who, status: 404 });
+      }
+      const event = await prisma.calendarEvent.findUniqueOrThrow({ where: { id: ids["scheduledEvent"] } });
+      expect([event.status, event.ownerUserId, event.description]).toEqual(["PENDIENTE", null, SCHEDULED_NOTE]);
+    });
+
+    it("the public campaign-closing calendar stays visible to farmers and institutional roles", async () => {
+      for (const session of [farmerA, farmerA3, director, admin]) {
+        const res = await call("get", "/calendar/events", session);
+        expect(res.status).toBe(200);
+        expect(res.body.some((event: any) => event.id === ids["eventInstitutional"])).toBe(true);
+      }
     });
   });
 });
