@@ -4,7 +4,7 @@ Preparadas por la sesión B el 2026-10-17 (UTC). **B no las aplica.**
 - A las revisa, imprime el dry-run y aplica sólo lo autorizado.
 - Ningún cuerpo se reemplaza: se **añade** una sección «Actualización 2026-10-17» al final, y el texto anterior queda íntegro como antecedente.
 - Sin cambios de gate.
-- Las referencias a evidencia usan `main` `e2263b0`, salvo #23, que depende del PR #127.
+- Las referencias a evidencia usan `main` `e2263b0` para lo que ya está integrado. Lo que cita `f07-acceptance` llega con este PR (#128): esos textos dicen «`main` tras integrar #128 (`<SHA>`)», y A completa el SHA al integrar. #23 depende del PR #127.
 
 Resumen:
 
@@ -56,7 +56,7 @@ La registra la sesión B; la decisión es la del 2026-10-16 (`docs/evidence/F07_
 ## #24 — comentario de cierre
 
 ```text
-**Cierre (2026-10-17 UTC).** Criterios evidenciados en `main` (`e2263b0`) y en la aceptación de F07 (`docs/evidence/F07_CIERRE_MATRIZ.md`, sección #24):
+**Cierre (2026-10-17 UTC).** Criterios evidenciados en `main` tras integrar #128 (`<SHA>`) y en la aceptación de F07 (`docs/evidence/F07_CIERRE_MATRIZ.md`, sección #24):
 
 | Criterio | Evidencia |
 |---|---|
@@ -73,7 +73,7 @@ La divulgación real sigue cerrada (`POLICY_PENDING` en producción) hasta #107.
 ## #25 — comentario de cierre
 
 ```text
-**Cierre (2026-10-17 UTC).** Se cumple la condición de la «Actualización 2026-10-16»: la corrección de la cobertura (hallazgo (b) de la revisión de #45) está integrada y verificada en `main` `e2263b0` (PR #126).
+**Cierre (2026-10-17 UTC).** Se cumple la condición de la «Actualización 2026-10-16»: la corrección de la cobertura (hallazgo (b) de la revisión de #45) está integrada y verificada en `main` `e2263b0` (PR #126). Las pruebas de aceptación citadas abajo llegan con #128 (`main` tras integrarlo, `<SHA>`).
 
 | Criterio vigente | Evidencia |
 |---|---|
@@ -103,7 +103,7 @@ La registra la sesión B. **El texto anterior se conserva arriba como antecedent
 ## #26 — comentario de cierre
 
 ```text
-**Cierre (2026-10-17 UTC).** Los nueve criterios están evidenciados en `main` `e2263b0`, en `f06-coll-05`, `f07-web-proposal`, `f10-sec-02-*` y la aceptación `f07-acceptance` (`docs/evidence/F07_CIERRE_MATRIZ.md`, sección #26):
+**Cierre (2026-10-17 UTC).** Los nueve criterios están evidenciados en `main` tras integrar #128 (`<SHA>`), en `f06-coll-05`, `f07-web-proposal`, `f10-sec-02-*` y la aceptación `f07-acceptance` (`docs/evidence/F07_CIERRE_MATRIZ.md`, sección #26):
 - sólo vigentes, sin duplicar reenvíos;
 - CANCELLED y CONTESTED fuera;
 - ausencia ≠ cero y cero explícito;
@@ -119,7 +119,7 @@ La registra la sesión B. **El texto anterior se conserva arriba como antecedent
 ## #27 — comentario de cierre
 
 ```text
-**Cierre (2026-10-17 UTC).** Propuesta de compra conjunta sin IA evidenciada en `main` `e2263b0`:
+**Cierre (2026-10-17 UTC).** Propuesta de compra conjunta sin IA evidenciada en `main` tras integrar #128 (`<SHA>`):
 
 | Criterio | Evidencia |
 |---|---|

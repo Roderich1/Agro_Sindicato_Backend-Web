@@ -136,7 +136,7 @@ Esta corrección sigue sin ser una garantía de anonimato (§0).
 
 ## 9. Regla vigente tras F10-SEC-02 (PR #126, integrado en `e2263b0`)
 
-Registrada el 2026-10-17 por la sesión B. Describe lo que hace el código. **Sigue siendo una propuesta para datos sintéticos.** La revisión independiente de la sesión A (2026-10-17) dio la implementación por correcta; eso no es una aprobación institucional.
+Registrada el 2026-10-17 por la sesión B. Describe lo que hace el código. **Sigue siendo una propuesta para datos sintéticos.** La revisión de la sesión A (2026-10-17) dio la implementación por correcta; eso no es una aprobación institucional.
 
 **Por qué se cambió.** La comparación de la cifra nueva con cada cifra anterior (R3) era eludible:
 - N − R1 − P aislaba a un agricultor tras una reasociación;

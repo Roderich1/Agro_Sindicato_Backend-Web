@@ -181,5 +181,17 @@ PostgreSQL 16 (`agro_b_web_pg`) en el PC de desarrollo. Cada suite crea su base 
 | 13:09:13–13:09:24Z | `e2263b0`, con `differencing.ts`, `disclosure-policy.ts` y `collective-summary.use-case.ts` de `9f350cf` | `f07-acceptance` | **Rojo:** falla S1 (se publican 2 celdas); 5 pasan |
 | 13:19:39–13:20:05Z | `e2263b0` + la suite y los documentos de este PR | `f07-acceptance` y `f07-web-proposal` | 6/6 y 12/12 |
 
+**Comandos** (en `Back/`, con `JWT_SECRET` y `JWT_REFRESH_SECRET` generados con `openssl rand -hex` en la shell, sin imprimirlos). La URL es la base de administración: cada suite crea su base aislada.
+```
+# verde
+F07_WEB_PG_TEST_URL="postgresql://agro@127.0.0.1:55442/agro_b?schema=public" npx jest f07-acceptance.postgres.spec.ts --runInBand
+F07_WEB_PG_TEST_URL="postgresql://agro@127.0.0.1:55442/agro_b?schema=public" npx jest f07-web-proposal.postgres.spec.ts --runInBand
+# rojo: se sustituyen tres archivos por su versión de 9f350cf, se ejecuta y se restauran
+for f in src/modules/collective/domain/differencing.ts src/modules/collective/domain/disclosure-policy.ts src/modules/collective/application/collective-summary.use-case.ts; do
+  cp "$f" "$BACKUP/$f"; git show 9f350cf:Back/$f > "$f"; done
+F07_WEB_PG_TEST_URL="postgresql://agro@127.0.0.1:55442/agro_b?schema=public" npx jest f07-acceptance.postgres.spec.ts --runInBand
+# (restaurar los tres archivos desde $BACKUP)
+```
+
 - **Backend:** `tsc --noEmit` y ESLint de la suite nueva, sin errores.
 - **CI:** se añade el paso `f07-acceptance.postgres.spec.ts` al job `f07-proposal-postgres` de `web.yml`, que es un archivo global. El resultado del CI está en el PR.
