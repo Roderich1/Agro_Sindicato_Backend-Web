@@ -1,6 +1,6 @@
 # F10 — Protocolos de evaluación de Agrocuentas: rendimiento, compatibilidad y usabilidad
 
-- **Versión 1.2** (la 1.0, aprobada técnicamente antes de medir, más precisiones de la 1.1 y la 1.2 sin cambio de umbrales; ver el registro de versiones).
+- **Versión 1.3** (la 1.0, aprobada técnicamente antes de medir, más precisiones de la 1.1, la 1.2 y la 1.3 sin cambio de umbrales; ver el registro de versiones).
   - Publicada el 2026-10-16 (America/La_Paz; 2026-10-17 UTC) por la sesión A de Claude Code.
   - Incorpora las decisiones de `_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §1–§2, tomadas el 2026-10-16 bajo la **delegación técnica de Roderich**.
   - **No es una ratificación del tutor, ni una aprobación institucional, ni una inspección personal del autor.**
@@ -22,7 +22,8 @@
 | Borrador | 2026-10-16 | Sesión A; sin aprobar | Propuesta inicial, sin umbrales acordados | BE `808acda` (merge `af0dbf1`, #120) |
 | **1.0** | 2026-10-16 (La Paz) | Aprobación técnica delegada por Roderich (archivo de decisiones de cierre §2). Sin ratificación del tutor | Umbrales, datasets, configuraciones, participantes e instrumentos fijados. Se corrige M6. Se retiran los pendientes ya resueltos del WAL y del refresco | BE `72a03be` (PR #122) |
 | **1.1** | 2026-10-16 (La Paz) | Sesión A, antes de cualquier medición de R5, a partir de una observación de la sesión B | **Precisión, sin cambiar umbrales ni repeticiones:** el entorno de R5 (§0.4) usa `NODE_ENV=development`, porque `CollectiveConfig` rechaza `provisional-synthetic` en producción y el resumen no tendría tablas | BE `7581af2` (rama del PR #122) |
-| **1.2** | 2026-10-16 (La Paz; 2026-10-17 ~02:00 UTC) | Sesión A, antes de la primera repetición de R6 y antes de cualquier sesión de usabilidad | **Precisiones, sin cambiar umbrales ni repeticiones:** composición exacta de S1/S2/S3 (§1.4); el primer envío de cada tamaño es un calentamiento anotado aparte; criterio por tarea de usabilidad sólo con la muestra planificada completa (§3.6) | El commit de esta versión en la rama del PR #122; su SHA se cita en cada evidencia |
+| **1.2** | 2026-10-16 (La Paz; 2026-10-17 ~02:00 UTC) | Sesión A, antes de la primera repetición de R6 y antes de cualquier sesión de usabilidad | **Precisiones, sin cambiar umbrales ni repeticiones:** composición exacta de S1/S2/S3 (§1.4); el primer envío de cada tamaño es un calentamiento anotado aparte; criterio por tarea de usabilidad sólo con la muestra planificada completa (§3.6) | BE `9292425` (rama del PR #122) |
+| **1.3** | 2026-10-16 (La Paz; 2026-10-17 ~03:10 UTC) | Sesión A, después de S1 y antes de la primera repetición de S2 | **Precisión de capacidad, sin cambiar umbrales ni repeticiones:** `BACKUP_MAX_ACTIVE_PER_MEMBER=20` en el entorno de A (§0.4), reiniciando sólo la API. El cálculo de la v1.0 (15) no contaba los 3 calentamientos de la v1.2 (5 + 1 por tamaño = 18); con 15, la 16.ª subida recibiría `409 BACKUP_QUOTA_EXCEEDED` | El commit de esta versión en la rama del PR #122 |
 
 Una versión posterior (1.1, …) sólo puede precisar algo que esta versión deja explícitamente para antes de su medición, como los bytes exactos de R6 (§1.4). **No puede tocar umbrales ni repeticiones.** Se publica antes de la primera repetición afectada y se añade a esta tabla.
 
@@ -69,6 +70,7 @@ Una versión posterior (1.1, …) sólo puede precisar algo que esta versión de
    - Ningún entorno conservado se detiene, borra ni reutiliza.
    - **Se mantienen los límites de peticiones** (`ThrottlerModule`: 20 por minuto). Un 429 cuenta como fallo y se registra con su causa.
    - **Única configuración de capacidad distinta de la de fábrica:** `BACKUP_MAX_ACTIVE_PER_MEMBER=15` en el entorno de A (de fábrica, 5).
+     - **v1.3:** 20 desde S2 de R6 (reinicio sólo de la API). Los 3 calentamientos de la v1.2 elevan a 18 las copias de R6.
      - Permite conservar como evidencia las 15 copias de R6 sin borrar ninguna.
      - Sin ese cambio, la 6.ª subida recibiría `409 BACKUP_QUOTA_EXCEEDED`.
      - No es un control de seguridad ni afecta al tiempo medido.
