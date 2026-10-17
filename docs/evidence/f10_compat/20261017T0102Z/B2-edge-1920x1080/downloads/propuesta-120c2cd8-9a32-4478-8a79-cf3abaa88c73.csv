@@ -1,0 +1,8 @@
+proposal_ref,status,basis,campaign_ref,campaign,generated_at,generated_by,inputs_fingerprint,disclosure,policy,approved,linked_members,members_with_contribution
+120c2cd8-9a32-4478-8a79-cf3abaa88c73,DRAFT,DECLARED_NEED,a13616e0-d96a-4eec-91ba-eb60f85fb162,Campaña Verano 2026 (sintética),2026-10-17T01:10:25.498Z,Directiva sintética,683955cbeabc97ad1b803fc08f32c42c01de453bb8e9193cec8e5371aa7b408f,PROVISIONAL_SYNTHETIC,F07-POL-01,false,4,3
+notice,"Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos."
+
+position,product_ref,product_name,base_unit,presentation_unit,status,quantity_base,quantity_presentation,contributors,data_as_of,released_at,pending_changes
+0,c354c784-fdf5-4f88-9d08-aa7ffd37071d,Belator,ML,L,SUPPRESSED_UNDER_THRESHOLD,,,,,,false
+1,f83f317c-3310-4c43-a5c6-5771709c47fd,Bellator,ML,L,SUPPRESSED_UNDER_THRESHOLD,,,,,,false
+2,811ffc50-8274-4661-9613-c112bee77f7a,Urea F06,G,KG,DISCLOSED,25000,25,3,2026-10-17T01:10:08.084Z,2026-10-17T01:10:22.905Z,false

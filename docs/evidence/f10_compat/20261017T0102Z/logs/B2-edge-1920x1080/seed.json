@@ -1,0 +1,16 @@
+{
+  "tenantA": "7615d53f-15a8-4138-8223-666c28f4ff8c",
+  "tenantB": "3afe0054-5d00-49f0-804f-49db632a4109",
+  "campaigns": {
+    "C1": "a13616e0-d96a-4eec-91ba-eb60f85fb162",
+    "C2": "f767c83a-b63e-4f19-a1e2-9701d651590a"
+  },
+  "products": {
+    "Belator": "c354c784-fdf5-4f88-9d08-aa7ffd37071d",
+    "Bellator": "f83f317c-3310-4c43-a5c6-5771709c47fd",
+    "Glifosato F06": "f1e29a32-5b86-4261-b355-c81f0902f663",
+    "Urea F06": "811ffc50-8274-4661-9613-c112bee77f7a",
+    "Mancozeb F06": "977d144e-0830-44ef-80cf-f9a4f2f76181"
+  },
+  "pushes": 27
+}
