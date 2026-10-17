@@ -224,9 +224,9 @@ export class AccountsPayableUseCase {
     updatedAt: Date;
     purchase: {
       id: string;
-      type?: PurchaseType;
+      type: PurchaseType;
       supplier: { id: string; name: string; phone: string | null };
-      items?: {
+      items: {
         id: string;
         quantity: Prisma.Decimal;
         unitCost: Prisma.Decimal;
@@ -247,11 +247,14 @@ export class AccountsPayableUseCase {
   }) {
     const balance = payable.totalAmount.minus(payable.paidAmount);
     // F10-SEC-02 (#45): the debt of a legacy joint purchase shows only the
-    // responsible farmer's own share of its items, not the group's.
+    // responsible farmer's own share of its items, not the group's. Only an
+    // INDIVIDUAL purchase shows its items whole (fail-closed): a joint one
+    // without a responsible farmer shows none.
     const viewer = payable.responsibleUserId;
-    const items = payable.purchase.items ?? [];
-    const share =
-      payable.purchase.type !== undefined && isOwnShareView(payable.purchase.type, viewer) ? purchaseShare(items, viewer) : null;
+    const items = payable.purchase.items;
+    const whole = payable.purchase.type === PurchaseType.INDIVIDUAL;
+    let share: { items: ReturnType<typeof purchaseShare<(typeof items)[number]>>['items'] } | null = null;
+    if (!whole) share = isOwnShareView(payable.purchase.type, viewer) ? purchaseShare(items, viewer) : { items: [] };
     return {
       id: payable.id,
       campaignId: payable.campaignId,
