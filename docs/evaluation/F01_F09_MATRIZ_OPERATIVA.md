@@ -33,12 +33,12 @@ Procedencia: CI (GitHub Actions), HOST (pruebas en el PC), DEVICE (POCO X5 Pro 5
 |---|---|---|---|---|
 | F01 | #9 **Passed** | CERRADO | Nada. `Requirement refs` de #6–#9 y #79/#80 no usa IDs del Cap. III: es cosmético y no se reabre | — |
 | F02 | #15 **Passed** | CERRADO | Nada para el alcance académico. #94 (SEC-DEP-01) es de F10, previo a producción | — |
-| F03 | MOB #23 Pending | CONSTRUIDO_SIN_CERRAR + VALIDACION_EXTERNA | (1) **No hay acta de GATE-F03** en `docs/evidence/`: la decisión del 2026-10-04 sólo está en un comentario. (2) #76: sus cinco criterios tienen HOST/CI con mutaciones, pero **no DEVICE de los casos negativos** (escritura sin activar, base v7, sesión ilegible) | A (acta y DEVICE), Roderich (decisión) |
-| F04 | MOB #28 Pending | CONSTRUIDO_SIN_CERRAR | #24/#27 satisfechos por #77/#78. #25/#26 construidos en **MOB #102** (en revisión). #97 en **MOB #103**. Falta el DEVICE de F04 y de #97. **Las REC (#38–#57) no condicionan el gate** | A |
-| F05 | BE #19 Pending | CONSTRUIDO_SIN_CERRAR | Decisión sobre #18 (columna Mobile: 18 PASS y 22 NOT_MEASURED) y #19. Nota de base nueva en el acta | Roderich (decisión), A (nota) |
-| F06 | BE #22 Pending | CONSTRUIDO_SIN_CERRAR | Acta desfasada frente a `e2263b0`; regresión HOST de la reconciliación Mobile→Central sobre la base nueva; ratificar la reescritura delegada del criterio 3 | B (regresión y documentos), Roderich (ratificación) |
-| F07 | BE #29 Pending | CONSTRUIDO_SIN_CERRAR + VALIDACION_EXTERNA | #23 en BE #127 (en revisión); matriz por criterio en BE #128; **#107 requiere una decisión institucional real** | B, Roderich, Directiva |
-| F08 | BE #41 **Passed** (alcance académico reducido) | CERRADO para ese alcance + ALCANCE_DIFERIDO (#40) | #40: retención, purga, proveedor, cifrado y producción, diferidos (contraste en BE #129). MOB #55: falta un test de `restore()` de un esquema antiguo | B (#40), A (#55) |
+| F03 | MOB #23 Pending | CONSTRUIDO_SIN_CERRAR (decisión) | Acta propuesta `GATE_F03_EVALUATION.md` y #76 en el POCO, con los 5 criterios PASS (MOB #105, `2df6033`). Faltan la decisión del gate y el cierre de #76. Residuales NOT_MEASURED declarados | Roderich |
+| F04 | MOB #28 Pending (Validation) | CONSTRUIDO_SIN_CERRAR (decisión) | #24–#27 cerradas (#102, #107). Sesión en el POCO en los dos modos. Acta propuesta: criterio 5 **Parcial** (no hay campaña por fecha efectiva). **Las REC (#38–#57) no condicionan el gate** | Roderich |
+| F05 | BE #19 Pending | CONSTRUIDO_SIN_CERRAR (decisión) | Decisión sobre #18 (columna Mobile: 18 PASS y 22 NOT_MEASURED) y #19. Nota de base en el acta (este PR) | Roderich |
+| F06 | BE #22 Pending | CONSTRUIDO_SIN_CERRAR (decisión) | Acta al día (con C35), contrato y política con la cobertura nueva, y **regresión D4 en PASS** sobre `e2263b0` + `ce5678f` (BE #131 → `30fbb56`). Faltan la decisión y ratificar la reescritura delegada del criterio 3 | Roderich |
+| F07 | BE #29 Pending | CONSTRUIDO_SIN_CERRAR + VALIDACION_EXTERNA | #23 cerrada (BE #127 → `9df7888`; recorrido 25/25 en #132). Matriz por criterio y paquete de #107 en BE #128, **cuyo merge rechazó el control de permisos** (queda para Roderich). **#107 requiere una decisión institucional real** | Roderich, Directiva |
+| F08 | BE #41 **Passed** (alcance académico reducido) | CERRADO para ese alcance + ALCANCE_DIFERIDO (#40) | #40: retención, purga, proveedor, cifrado y producción, diferidos. El contraste está en BE #129, rechazado por el control y para Roderich. MOB #55: la restauración real de una copia v7 ya está (MOB #106); sigue Partial por la interfaz e `InvoiceStorage` | Roderich |
 | F09 | MOB #17 Pending | FUNCIONALIDAD_PENDIENTE (en construcción) | Captura reconciliada (MOB #99), núcleo y compra (#100), planificación (#101). Falta la aplicación (#15), la conexión con el shell y la **prueba física con dictado real (#12)**. Siete decisiones de alcance de Roderich (D-F09-1…7) | C, A (conexión y POCO), Roderich |
 
 ## F01 y F02 (no se reabren)
@@ -94,9 +94,9 @@ Procedencia: CI (GitHub Actions), HOST (pruebas en el PC), DEVICE (POCO X5 Pro 5
 
 | Issue | Estado | Evidencia y SHA | Brecha real | Responsable | Condición de cierre |
 |---|---|---|---|---|---|
-| BE #20 | Cerrado, Verified | `F06_COLL_01.md` | El contrato §5 no recoge la cobertura nueva de #126 | B | Nota de cambio en el contrato, sin reabrir |
-| BE #21; MOB #32–#34 (cerrados, Partial) | — | `F06_COLL_05.md` (`3c01a16`), `F06_RECONCILIATION.md` (BE `3c01a16`, MOB `5e7ed78`), `F06-COLL-0*.md`, `F06_D4_DEVICE.md` | Evidencia anterior a #112/#118/#126. Discrepancias en que ganó el contrato (#32 c1, #33), sin ratificar | B (regresión), Roderich (ratificación) | Regresión HOST sobre `e2263b0` + `ce5678f` y ratificación |
-| **BE #22 GATE-F06** | Pending | `GATE_F06.md` (`0d16f12`) | **Desfasada:** dice «base sin fusionar», «F10-SEC-02 sin fusionar» y «la Web F07 no existe», con la cobertura anterior. No cita el DEVICE C35. Reescritura **delegada** del criterio 3 («la cifra se retira»), sin ratificar | B (propuesta), A (integración), Roderich | Acta actualizada y decisión |
+| BE #20 | Cerrado, Verified | `F06_COLL_01.md` | Ninguna: el contrato §5 ya lleva la nota de la cobertura nueva de #126 (BE #131) | — | — |
+| BE #21; MOB #32–#34 (cerrados, Partial) | — | `F06_COLL_05.md` (`3c01a16`), `F06_RECONCILIATION.md` (BE `3c01a16`, MOB `5e7ed78`), `F06-COLL-0*.md`, `F06_D4_DEVICE.md` | La regresión HOST sobre `e2263b0` + `ce5678f` da PASS y los CSV son idénticos (BE #131). Quedan sin ratificar las discrepancias en que ganó el contrato (#32 c1, #33) | Roderich | Ratificación |
+| **BE #22 GATE-F06** | Pending | `GATE_F06.md`, con la actualización del 2026-10-17 (BE #131 → `30fbb56`) | Acta al día: frases corregidas, DEVICE C35 citado y regresión en PASS. Falta ratificar la reescritura **delegada** del criterio 3 («la cifra se retira») | Roderich | Decisión |
 
 ## F07 — Web de la Directiva y propuesta conjunta
 
@@ -104,9 +104,9 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 
 | Issue | Estado | Brecha real | Responsable | Condición de cierre |
 |---|---|---|---|---|
-| BE #23 WEB-01 | Backlog | La cola offline del agricultor seguía en uso en la Web. BE #127 la saca de uso (ADR-003), con flag de rollback y sin cambios en el API | B → A | Revisar e integrar #127 y cerrar |
-| BE #24, #26, #27, #28 | Backlog | Satisfechos según #128; el texto de #24 debe recoger la decisión de RF-22 (sólo agregado) | B → A | Integrar #128 y aplicar los textos tras el dry-run |
-| BE #25 WEB-03 | Backlog | Alcance agregado decidido; la corrección de cobertura (#126) está en `e2263b0` | A | Cierre tras la regresión de #128 |
+| BE #23 WEB-01 | **Cerrada** | Ninguna. BE #127 (`9df7888`) saca de uso la cola offline del agricultor (ADR-003), con flag de rollback y sin cambios en el API. Recorrido 25/25 en #132. El Project aún dice Evidence Pending (dry-run) | — | — |
+| BE #24, #26, #27, #28 | Backlog | Satisfechos según #128; el texto de #24 debe recoger la decisión de RF-22 (sólo agregado). **El merge de #128 lo rechazó el control de permisos** y queda para Roderich | Roderich | Integrar #128 y aplicar los textos tras el dry-run |
+| BE #25 WEB-03 | Backlog | Ninguna funcional: la corrección de cobertura (#126) está en `e2263b0` y la regresión F06 da PASS. Falta aplicar el texto del alcance agregado (#128) | Roderich | Aplicar el texto y cerrar |
 | BE #107 POL-01 | In Review | **Validación institucional pendiente.** Paquete de decisión en #128. Las cifras reales siguen cerradas | Roderich y Directiva | Decisión real; no se supone |
 | BE #108 | Cerrado (ADR-003) | — | — | CERRADO |
 | **BE #29 GATE-F07** | Pending | Depende de #107 | Roderich | No pasa a Passed sin #107 |
@@ -115,10 +115,10 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 
 | Issue | Estado | Brecha real | Responsable | Condición de cierre |
 |---|---|---|---|---|
-| BE #37–#39, MOB #35, #36 | Cerrados; el Project dice `Evidence = Pending` | De trámite: hay `F08_BACKUP.md` y `F08_MOBILE_RESTORE.md` verificables | A | Pasar `Evidence` a Verified (5 cambios: dry-run) |
+| BE #37–#39, MOB #35, #36 | Cerrados; el Project dice `Evidence = Pending` (comprobado en vivo el 2026-10-17) | De trámite: hay `F08_BACKUP.md` y `F08_MOBILE_RESTORE.md` verificables | Roderich | Pasar `Evidence` a Verified (dry-run B3) |
 | BE #40 BKP-06 | Abierta, diferida | Retención, purga, proveedor, cifrado en reposo y producción. Contraste en BE #129. La issue conserva la numeración antigua F09 | B → A | Abierta con su nota, o `Post-PG` por decisión de Roderich |
 | BE #41 GATE-F08 | **Passed** (académico, sintético) | El comentario del 2026-10-15 puso como dependencia MOB #55, y el acta no lo menciona: sus dos defectos ya se corrigieron en MOB #90 (`6c6a1a2`) | A | Una línea en #41 que dé la dependencia por satisfecha; **no se reabre** |
-| MOB #55 REC-019 | Abierta, Partial | El cierre histórico («Done», `de44d7c`) no tiene archivo. `backup_service_test` sólo **valida** un esquema antiguo: no lo restaura ni lo migra | A | Test de `restore()` v3 → actual, o límite aceptado por Roderich |
+| MOB #55 REC-019 | Abierta, Partial | El cierre histórico («Done», `de44d7c`) no tiene archivo. La restauración real de una copia v7 ya está cubierta (MOB #106, `rec_019_restore_legacy_schema_test`). **Siguen sin prueba** los flujos de interfaz de exportar y restaurar e `InvoiceStorage` | Roderich | Cerrar con ese límite, o exigir esas pruebas |
 
 ## F09 — voz asistida (opcional en la línea base; incorporada a este bloque)
 
