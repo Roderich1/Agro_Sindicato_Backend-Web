@@ -13,13 +13,33 @@ export const COLLECTIVE_PATHS = {
   reconciliation: '/colectivo/reconciliacion',
 } as const;
 
+/**
+ * F07-WEB-01 (#23), PHASE 5 de TRANSITION_PLAN.md: la Web deja de ser un
+ * cliente operativo del agricultor. Sus pantallas legacy (inventario, compras,
+ * parcelas, aplicaciones, calendario, reportes y la cola `/sync`) no se
+ * borran, pero no se ofrecen. Rollback de la transición: compilar con
+ * `VITE_LEGACY_FARMER_WEB=enabled` (o revertir el commit). El API no cambia:
+ * el bloqueo de escrituras legacy es la PHASE 6 (#81).
+ */
+export function legacyFarmerWebEnabled(): boolean {
+  return import.meta.env.VITE_LEGACY_FARMER_WEB === 'enabled';
+}
+
+/** Aviso para quien no es Directiva ni Administrador: la Web no es su cliente. */
+export const WEB_NOT_FOR_FARMERS_PATH = '/sin-acceso-web';
+
 export function isCollectiveRole(role: string | null | undefined): boolean {
   return (COLLECTIVE_ROLES as readonly string[]).includes(role ?? '');
 }
 
-/** Pantalla inicial: la Directiva y el Administrador entran al resumen colectivo. */
+/**
+ * Pantalla inicial: la Directiva y el Administrador entran al resumen
+ * colectivo; cualquier otro rol, al aviso (o al dashboard legacy si la
+ * transición se revierte con el flag).
+ */
 export function homePathFor(role: string | null | undefined): string {
-  return isCollectiveRole(role) ? COLLECTIVE_PATHS.summary : '/dashboard';
+  if (isCollectiveRole(role)) return COLLECTIVE_PATHS.summary;
+  return legacyFarmerWebEnabled() ? '/dashboard' : WEB_NOT_FOR_FARMERS_PATH;
 }
 
 /**
@@ -37,7 +57,7 @@ export const COLLECTIVE_MENU: readonly string[] = [
   '/users',
 ];
 
-/** Rutas legacy visibles en el menú del AGRICULTOR (sin cambios en F07). */
+/** Rutas legacy del menú del AGRICULTOR; sólo con el flag de rollback. */
 export const LEGACY_MENU: readonly string[] = [
   '/dashboard',
   '/campaigns',
@@ -56,5 +76,5 @@ export function menuPathsFor(role: string | null | undefined): readonly string[]
   if (isCollectiveRole(role)) {
     return COLLECTIVE_MENU.filter((path) => path !== '/users' || role === 'ADMINISTRADOR');
   }
-  return LEGACY_MENU;
+  return legacyFarmerWebEnabled() ? LEGACY_MENU : [];
 }

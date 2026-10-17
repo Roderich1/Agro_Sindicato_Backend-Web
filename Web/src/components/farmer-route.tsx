@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from '../hooks/use-auth';
-import { COLLECTIVE_PATHS, homePathFor } from '../lib/navigation';
+import { COLLECTIVE_PATHS, homePathFor, legacyFarmerWebEnabled } from '../lib/navigation';
 
 /**
  * F10-SEC-02 (#45/#81): pantallas legacy de operación privada (inventario,
@@ -9,12 +9,14 @@ import { COLLECTIVE_PATHS, homePathFor } from '../lib/navigation';
  * Sólo el AGRICULTOR, sobre sus propios registros; DIRECTIVA y ADMINISTRADOR
  * vuelven a su vista colectiva (ADR-003: el rol institucional no da acceso a
  * operaciones privadas). Es una ayuda de navegación: el servidor responde 403.
+ * F07-WEB-01 (#23): tampoco se ofrecen al AGRICULTOR salvo con el flag de
+ * rollback; su cliente es la app móvil.
  */
 export function FarmerRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'AGRICULTOR') return <Navigate to={homePathFor(user.role)} replace />;
+  if (user.role !== 'AGRICULTOR' || !legacyFarmerWebEnabled()) return <Navigate to={homePathFor(user.role)} replace />;
   return <>{children}</>;
 }
 

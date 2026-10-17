@@ -7,7 +7,7 @@ import { PrivateRoute } from './components/private-route';
 import { AuthProvider } from './contexts/auth.context';
 import { CampaignProvider } from './contexts/campaign.context';
 import { useAuth } from './hooks/use-auth';
-import { COLLECTIVE_PATHS, homePathFor } from './lib/navigation';
+import { COLLECTIVE_PATHS, homePathFor, WEB_NOT_FOR_FARMERS_PATH } from './lib/navigation';
 import { CampaignsPage } from './pages/campaigns.page';
 import { DashboardPage } from './pages/dashboard.page';
 import { InventoryPage } from './pages/inventory.page';
@@ -15,6 +15,7 @@ import { LoginPage } from './pages/login.page';
 import { PlotsPage } from './pages/plots.page';
 import { SyncPage } from './pages/sync.page';
 import { UsersPage } from './pages/users.page';
+import { WebNotForFarmersPage } from './pages/web-not-for-farmers.page';
 
 const ApplicationsPage = lazy(() =>
   import('./pages/applications.page').then((module) => ({ default: module.ApplicationsPage })),
@@ -100,6 +101,8 @@ function AppRoutes() {
           </CollectiveRoute>
         }
       />
+      {/* F07-WEB-01 (#23): otro rol no recibe menú ni datos, sólo este aviso */}
+      <Route path={WEB_NOT_FOR_FARMERS_PATH} element={<WebNotForFarmersPage />} />
       <Route
         path="/login"
         element={

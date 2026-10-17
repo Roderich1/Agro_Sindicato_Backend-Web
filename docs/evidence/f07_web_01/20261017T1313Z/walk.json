@@ -1,0 +1,117 @@
+{
+  "browser": "Chrome/155.0.8059.82",
+  "date": "2026-10-17T13:13:10.466Z",
+  "result": "CUMPLE",
+  "checks": [
+    {
+      "name": "AGRICULTOR entra al aviso",
+      "ok": true,
+      "detail": "http://localhost:4177/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR sin menú ni enlaces",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "El aviso remite a la app móvil",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "AGRICULTOR en /dashboard termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /inventory termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /purchases termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /sync termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /plots termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /applications termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /reports termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /campaigns termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /calendar termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /colectivo/resumen termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "AGRICULTOR en /directiva termina en el aviso",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "Ninguna cola offline legacy en localStorage (AGRICULTOR)",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "DIRECTIVA entra al resumen colectivo",
+      "ok": true,
+      "detail": "http://localhost:4177/colectivo/resumen"
+    },
+    {
+      "name": "Menú de DIRECTIVA sin operación del agricultor",
+      "ok": true,
+      "detail": "Resumen colectivo | Necesidades y propuesta | Cobertura | Reconciliación | Campanas"
+    },
+    {
+      "name": "Sin conexión: se informa la falta de conectividad",
+      "ok": true,
+      "detail": "\n    Agro PWASindicato sintéticoResumen colectivoNecesidades y propuestaCoberturaReconciliaciónCampanasDSDirectiva sintéticaDirectivaCerrar sesiónAgro PWASindicato sintéticoResumen colectivoNecesidade"
+    },
+    {
+      "name": "Sin conexión: nada queda en una cola",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "API disponible durante la prueba (el corte fue sólo del navegador)",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "Manifiesto PWA de la Directiva",
+      "ok": true,
+      "detail": "Agrocuentas Directiva — Vistas colectivas de la Directiva y el Administrador del sindicato (en línea)."
+    },
+    {
+      "name": "El service worker no tiene rutas del API",
+      "ok": true,
+      "detail": "sin /api"
+    }
+  ]
+}
