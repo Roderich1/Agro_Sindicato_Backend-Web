@@ -37,6 +37,7 @@
 | §4 | 2026-10-15, 21:07–22:25 (La Paz) | BE `c2acbd4`, MOB `023a47b`/`5027a35` | C01–C04 |
 | §4b, tanda 1 | 2026-10-16, 20:08–21:29Z | BE `e027938`, MOB `4f203c7` (copias `.f10s18a/b/c`) | C05, C06, C11, C14, C15, C22, C23 (pausa), C24, C30, C31, C38, C40 |
 | §4b, restauración | 2026-10-16, 22:17–22:36Z | BE `e027938`, MOB `2f4b634` (copia `.f10bkp`) | C34, C35 |
+| §4c, C23 | 2026-10-17, 04:38–04:48Z | BE `ed069a6`, MOB `dff6802` (copias `.f10c23x/y`) | C23, reanudación con un registro nuevo |
 
 Detalle: [`F05_SYNC_06.md`](F05_SYNC_06.md) §4 y §4b, y en Mobile `docs/evidence/F05_MOBILE_SYNC_DEVICE.md`, `F05_SYNC_06_DEVICE_F10.md` y `F10_RESTORE_DEVICE.md`.
 
@@ -65,7 +66,7 @@ No se convierten en criterios de este gate. Tampoco dejan de registrarse.
 
 | Ampliación | Dónde se trata | Relación con #19 |
 |---|---|---|
-| Columna Mobile de los 40 casos de #18 en dispositivo | #18 (`F05_SYNC_06.md`) | Es un criterio **de #18** («los 40 casos conservan su resultado, incluidos FAIL y NOT_MEASURED»), no de #19. #18 sigue abierto con 17 PASS, 1 parcial y 22 NOT_MEASURED |
+| Columna Mobile de los 40 casos de #18 en dispositivo | #18 (`F05_SYNC_06.md`) | Es un criterio **de #18** («los 40 casos conservan su resultado, incluidos FAIL y NOT_MEASURED»), no de #19. #18 sigue abierto con 18 PASS y 22 NOT_MEASURED |
 | Prueba de carga concurrente | Excluida también del protocolo de evaluación F10 (v1.0 §1.3) | **No es un criterio de #19.** La concurrencia puntual de C09, C11 y C28 está cubierta en CI. Medir la latencia con un solo usuario no demuestra capacidad concurrente |
 | Rendimiento y latencia de la sincronización (R4) | Protocolo de evaluación F10 (RNF-06), BE #48 | Tiene criterios propios; **no sustituye** a los ensayos adversariales ni decide este gate |
 | Configuraciones adicionales (otro teléfono, emuladores, tamaño de letra) | Protocolo de compatibilidad (RNF-08) | No forman parte de #19 |
@@ -77,7 +78,7 @@ No se convierten en criterios de este gate. Tampoco dejan de registrarse.
 | BE #16 | Cerrado (PR #99) | |
 | BE #17, #106 | Cerrados (PR #109) | |
 | MOB #29, #30, #31, #72 | Cerrados (PR #80) | |
-| **BE #18** (suite adversarial) | **Abierto** | Backend completo en CI (40/40 con evidencia PASS; C30, C35 y C38 sólo en su parte Central). **En dispositivo: 17 de 40 PASS, C23 parcial y 22 NOT_MEASURED** (2026-10-16). *Antecedente:* «sólo C01–C04 son PASS; 36 filas siguen NOT_MEASURED» |
+| **BE #18** (suite adversarial) | **Abierto** | Backend completo en CI (40/40 con evidencia PASS; C30, C35 y C38 sólo en su parte Central). **En dispositivo: 18 de 40 PASS y 22 NOT_MEASURED** (2026-10-17; C23 completado en §4c). *Antecedente (2026-10-16):* «17 de 40 PASS, C23 parcial». *Antecedente:* «sólo C01–C04 son PASS; 36 filas siguen NOT_MEASURED» |
 
 ## Por qué `Evidence = Partial`
 
@@ -89,8 +90,7 @@ No se convierten en criterios de este gate. Tampoco dejan de registrarse.
 |---|---|---|
 | ACK perdido, timeout y 500 | C01–C06 | PASS |
 | Conflicto, resolución y GET del dueño | C11, C14, C15, C31 | PASS |
-| Autorización | C22, C24, C38, C40 | PASS |
-| | C23 | **Parcial:** la pausa es PASS; la reanudación con un registro nuevo del mismo titular, NOT_MEASURED |
+| Autorización | C22, C23, C24, C38, C40 | PASS. C23 se completó el 2026-10-17 (§4c); *antecedente:* pausa PASS y reanudación NOT_MEASURED |
 | ACK inválido | C30 | PASS (respuesta inyectada) |
 | Restauración | C34, C35 | PASS |
 | Idempotencia y concurrencia | C07, C08, C09, C10 | NOT_MEASURED |
@@ -101,7 +101,7 @@ No se convierten en criterios de este gate. Tampoco dejan de registrarse.
 
 **Prioridad de las filas restantes, por riesgo y alcance:**
 - **Mayor riesgo para el cliente:**
-  - C23 (reanudación tras revocar el registro);
+  - ~~C23 (reanudación tras revocar el registro)~~: **medido el 2026-10-17, PASS**;
   - C29 (429/Retry-After y backoff, también NOT_MEASURED en Mobile #31);
   - un cierre de Mobile entre el ACK y la retirada.
 - **La app no puede generar estas peticiones:** C07, C08, C21, C25, C26 y C37 (huella, tipos y versión). La reacción del cliente a sus respuestas sólo se mediría inyectándolas.
@@ -124,7 +124,7 @@ No se convierten en criterios de este gate. Tampoco dejan de registrarse.
 
 ## Para decidir (Roderich)
 
-1. Si las 22 filas `NOT_MEASURED` y la reanudación de C23 se miden antes de decidir el gate, o se aceptan como límite con su alcance (Waived parcial).
+1. Si las 22 filas `NOT_MEASURED` se miden antes de decidir el gate o se aceptan como límite con su alcance (Waived parcial). C23 ya está completo.
    - El criterio 1 está evidenciado en CI y en dispositivo.
    - El 2, sólo en CI: C08 no tiene dispositivo.
    - El 3, en CI; en dispositivo le falta «rechazada».

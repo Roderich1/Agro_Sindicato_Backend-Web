@@ -55,7 +55,7 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GA
 | C20 unidad de otra dimensión | A «C20» | PASS | NOT_MEASURED | UNIT_INCOMPATIBLE, también para una unidad central que no es L ni KG. Sin conversión |
 | C21 cantidad mayor que int64 | A «C21» | PASS | NOT_MEASURED | QUANTITY_INVALID; el máximo exacto se acepta sin pérdida |
 | C22 Member, sesión o tenant revocado o inactivo | A «C22/C40 …» | PASS | PASS (dispositivo, §4b: cuenta y Member) | Member inactivo, cuenta inactiva, tenant inactivo y sesión revocada: 403 AUTH_CONTEXT_FORBIDDEN en POST y GET, sin tocar el journal y sin exponer el resultado histórico |
-| C23 ClientRegistration revocado | A «C23»; R «401 … 403» | PASS | Pausa PASS (dispositivo, §4b); reanudar con un registro nuevo NOT_MEASURED | 403 sin journal. El mismo propietario reanuda con un registro nuevo: APPLIED una vez, y después ALREADY_APPLIED. El registro revocado no se reactiva |
+| C23 ClientRegistration revocado | A «C23»; R «401 … 403» | PASS | PASS (dispositivo: pausa en §4b; reanudación con un registro nuevo del mismo titular en §4c, 2026-10-17). *Antecedente:* «reanudar con un registro nuevo NOT_MEASURED» | 403 sin journal. El mismo propietario reanuda con un registro nuevo: APPLIED una vez, y después ALREADY_APPLIED. El registro revocado no se reactiva |
 | C24 access token expirado y refresh | A «C24»; R «end to end … push and refresh» | PASS | PASS (dispositivo, §4b) | Token expirado: 401 AUTH_REQUIRED con `WWW-Authenticate` y sin journal; con un token vigente de la misma sesión, APPLIED una vez. En R, el refresh V2 real rota el refresh token, y con el access nuevo el mismo push da ALREADY_APPLIED con la hora original (un journal). El refresh de Mobile es #31 |
 | C25 contractVersion distinto de 1 | A «C25»; A «the journal only admits contractVersion 1 …» | PASS | NOT_MEASURED | Versiones 2 y 0: 422 CONTRACT_VERSION_MISMATCH, sin almacenar nada. El journal sólo admite la versión 1 |
 | C26 campo privado extra | A «C26» | PASS | NOT_MEASURED | Campo extra en el envelope (`tenantId`), en causal (`clientId`) y en el payload (`notes`, `backup`): 400 FIELD_NOT_ALLOWED, sin journal. El valor no aparece en los logs |
@@ -75,6 +75,8 @@ Ejecución con Claude Code el 2026-10-15 (America/La_Paz). **No es un PASS de GA
 | C40 revocación antes de la aceptación durable | A «C40 revocation committed after the guard …»; A «C22/C40 …» | PASS (desde `6e2aff4`) | PASS (dispositivo, §4b, ventana de decisión con revocación de sesión) | La revocación se confirma después del guard y antes de la decisión: 403, sin journal ni contribución. La decisión revalida con `FOR SHARE` dentro de su transacción |
 
 **Resumen.** Central: 40 de 40 casos con evidencia PASS (C30, C35 y C38 sólo en su parte Central). Mobile: C01–C04 PASS en dispositivo (§4) y 36 de 40 NOT_MEASURED. Ningún FAIL abierto.
+
+**Actualización del 2026-10-17 (§4c).** C23 completo en el dispositivo: Mobile en dispositivo **18 de 40 PASS**, ninguno parcial, **22 de 40 NOT_MEASURED**. Ningún FAIL abierto. #18 sigue abierto.
 
 **Actualización del 2026-10-16 (F10, §4b).** Mobile en dispositivo: PASS en C01–C04 (§4) y en C05, C06, C11, C14, C15, C22, C24, C30, C31, C34, C35, C38 y C40 (§4b), 17 de 40; C23 parcial (pausa PASS, reanudación NOT_MEASURED); **22 de 40 siguen NOT_MEASURED**. Ningún FAIL abierto. #18 sigue abierto.
 
@@ -113,6 +115,21 @@ Ejecutada por la sesión A entre las 20:08Z y las 21:29Z en el mismo POCO X5 Pro
 Las respuestas inyectadas miden la reacción del cliente, no la decisión de Central. Tanda 2 sigue NOT_MEASURED.
 
 **Restauración (2026-10-16, 22:17–22:36Z, MOB `2f4b634`, copia `.f10bkp`):** C35 PASS (la intención restaurada queda `RESTORE_PAUSED`, 0 push al restaurar y en 80 s tras reabrir, y al liberarla con la verificación del titular sale un único push del mismo ID); C34 PASS en el camino de restauración (una copia de otro titular se rechaza antes de sustituir y sus intenciones no se envían bajo la cuenta activa; el cambio de cuenta al reautenticar es C38). Detalle: Mobile `docs/evidence/F10_RESTORE_DEVICE.md` (MOB #95).
+
+## 4c. C23: reanudación con un registro nuevo (2026-10-17, 04:38–04:48Z)
+
+- **Entorno:** el de la evaluación F10 de la sesión A, con este Backend en `ed069a6` (`agro_a_f10eval_pg`, compilado, `NODE_ENV=production`), y dos copias aisladas nuevas de Mobile `dff6802` (`.f10c23x` y `.f10c23y`, profile) en el mismo POCO. Cuenta sintética E2.
+- **Secuencia:**
+  1. X declara una necesidad sin acceso verificado: PENDING, 0 intentos.
+  2. X sube una copia en la nube (201) **antes** de la revocación. No sale ningún push (protegido con `hold-push-request`, que no se consumió).
+  3. La propia cuenta revoca el registro de X por la API (`POST auth/clients/{id}/revoke` 201).
+  4. X: `refresh` 401, «Se requiere volver a autenticar…», 0 push.
+  5. Y se activa con la misma cuenta: `auth/clients` 201, **registro nuevo**.
+  6. Y restaura la copia de X: la intención queda RESTORE_PAUSED y no sale ningún push al restaurar.
+  7. «Liberar» con confirmación: un único `push` 200 del mismo `operationId` (`d05e9468`).
+- **Central:** journal FINAL APPLIED, secuencia 1; contribución ACTIVE de 40 000 ML; registros ACTIVE 1 (Y) y **REVOKED 1 (X, no reactivado)**.
+- **Fuera del dispositivo:** el reenvío posterior que devolvería ALREADY_APPLIED, porque la app no reenvía una intención ACKED. Lo acredita la columna Central.
+- **Evidencia:** Mobile `docs/evidence/F10_C23_REANUDACION_DEVICE.md` (PR MOB #98).
 
 ## 5. Cobertura mínima de #18
 
