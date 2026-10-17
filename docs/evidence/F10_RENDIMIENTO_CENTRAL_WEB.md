@@ -94,11 +94,12 @@ Medición técnica de la sesión B, del 2026-10-17 (UTC), según el protocolo ap
 | R5a en frío | 400,0 · 379,0 · 414,8 · 431,2 · 389,0 · 383,2 · 378,4 · 374,2 · 375,1 · 381,8 | `r5a-chrome-cold.csv` |
 | R5a en caliente | 378,4 · 382,4 · 374,0 · 374,0 · 382,9 · 379,7 · 381,5 · 375,7 · 376,4 · 391,8 | `r5a-chrome-warm.csv` |
 
-**Desglose de R5a** (columnas de los CSV, Navigation y Resource Timing):
-- El documento llega en 3–34 ms (`response_end_ms`) y `DOMContentLoaded` en 16–57 ms.
-- La petición del resumen empieza hacia los 340–380 ms (`api_start_ms`), porque antes la aplicación renueva la sesión (`/auth/refresh`) y carga las campañas.
-- La petición termina 26–56 ms después (`api_end_ms`).
-- El resto hasta las tablas son unos 4–6 ms de renderizado.
+**Desglose de R5a** (columnas de los CSV, Navigation y Resource Timing; mínimo y máximo de las 20 repeticiones medidas en frío y en caliente, sin warmups):
+- El documento llega en 3,1–33,8 ms (`response_end_ms`) y `DOMContentLoaded` en 16,6–56,5 ms.
+- La petición del resumen empieza a los 338,9–380,0 ms (`api_start_ms`), porque antes la aplicación renueva la sesión (`/auth/refresh`) y carga las campañas.
+- La petición dura 27,5–56,2 ms (`api_end_ms − api_start_ms`).
+- El resto hasta las tablas (`ms − api_end_ms`) son 3,8–7,7 ms de renderizado.
+- *Corrección del 2026-10-17 (H-9, revisión de C):* la versión anterior decía «26–56 ms» y «4–6 ms», redondeos inexactos, y daba los otros rangos sin decimales. Los valores medidos no cambian.
 
 **Por qué frío y caliente casi coinciden.** En localhost, descargar los recursos estáticos cuesta pocos milisegundos. El tiempo lo dominan las llamadas encadenadas a la API, que no dependen de la caché. Con una red real, el frío añadiría la transferencia de los recursos; esto no se midió.
 
