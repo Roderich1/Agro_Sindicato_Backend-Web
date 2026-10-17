@@ -214,3 +214,55 @@ Estas decisiones definen alcance e instrucciones de construcción. No convierten
 7. **Revisión externa:** GOV-01 registra la revisión efectiva del tutor cuando ocurra. No es una aprobación automática ni una inspección personal de Roderich atribuida por esta actualización.
 
 F10 global sigue pospuesta. Su punto de partida será una versión candidata con las brechas anteriores resueltas o con excepciones expresamente registradas, las pruebas de fase necesarias y una decisión clara de las gates. No se deduce el cumplimiento por contar PR o tests.
+
+
+## Conciliación y avance (2026-10-17, tarde, sesión A)
+
+**Procedencia.** La sesión A escribió un texto local entre las ~15:55Z y las ~16:10Z, sobre `c5aacc8` y antes de conocer `970cb17`. Se conserva íntegro en la rama `archive/a-matriz-texto-local-20261017` (`ce8ccac`) y **no se integra tal cual**. Aquí sólo entra lo que sigue siendo cierto y no estaba arriba. Las filas antiguas se conservan como antecedente y se leen como dice esta tabla. Las correcciones de las líneas 81, 91, 108 y 127 las señaló la sesión B.
+
+| Fila de arriba | Decía | Estado verificado el 2026-10-17 |
+|---|---|---|
+| REC #38, #41, #42, #52, #54, #57 (l. 81) | «sólo en MOB #70, sin integrar… cierra estas seis» | #70 está integrado (`0eda364`). #38, #41, #42 y #54 están cerradas (Verified); #52 y #57 siguen Partial. #57 se cerró por un enlace antiguo del cuerpo de #70 y se reabrió |
+| BE #19 (l. 91) | «El acta no cita la base nueva… A (nota)» | La nota ya está en `F05_GATE_EVALUATION.md` (§«Nota de base», integrada con #130). Sólo falta la decisión de #18/#19: ver `F03_F05_F06_PROPUESTAS_DECISION.md` |
+| BE #24, #26–#28 (l. 108) | «el merge de #128 lo rechazó… Integrar #128» | #128 está integrado (`cab433d`). Faltan los textos de `F07_PROPUESTAS_ISSUES.md` con `<SHA>` = `cab433d`: ver «F07» abajo. Las cuatro issues siguen abiertas, y #25 también |
+| MOB PR #8 (l. 127) | «se cierra al integrar #99» | #99 está integrado y #8 sigue abierto: falta cerrarlo como sustituido (dry-run B10) |
+| PR antiguos #69 y #70 | Recomendaciones previas | Integrados: #69 → `e92e088`; #70 → `0eda364`, con una nota del 2026-10-17 |
+| BE #40 y #41 (responsable «A») | — | Las dos operaciones son del Project y quedan para Roderich: B9 (#40) y B4 (#41) |
+
+**Mobile después de la sección «Integración revisada» de Codex:**
+- MOB #108 está integrado en `1ac8ea6`: una línea del acta de GATE-F04, con la revisión de C. Su CI de `main` es la 39047491613, SUCCESS.
+- Después, #109 → `8a2c558`, con CI de `main` 39050183529 SUCCESS.
+
+### Criterio 5 de GATE-F04 (MOB #110, revisado; sin integrar)
+
+- **Regla:** MOB `docs/evidence/F04_CAMPANA_FECHA_EFECTIVA.md`. Sus fuentes son RN-15, RN-16, RF-03, RF-07, RF-12, SRS §10.4 y Cap. III §3.11.13.
+  - Una compra o aplicación se registra sólo si la única campaña que contiene el día local de su fecha es la activa.
+  - Ninguna, varias, cerrada o planificada se rechazan dentro de la transacción, sin escrituras parciales.
+  - El calendario no se solapa: las campañas se agregan en orden; la anterior termina el día previo sin dejar fuera compras, aplicaciones ni necesidades; cerrar pide el fin, sin fechas futuras.
+  - No se migra ni se reasigna el histórico.
+- **Pruebas (HOST):** 15 casos de repositorio y 4 de interfaz; 18 mutaciones detectadas.
+  - Ejecución local de la sesión A sobre `f37200d`: 1421 pasan y 2 omitidas.
+  - **CI** 39059483185 sobre el HEAD `0bc6848`: SUCCESS, 1420 pasan y 3 omitidas, más 17 pruebas de fechas en America/La_Paz.
+- **Revisión de B:** la regla, NO LISTO en un punto, que queda declarado. El código, LISTO en `6554be7`. Los deltas `6554be7..d932e61` (CI 39058618715: 1419/3) y `d932e61..0bc6848`, LISTO. **#110 queda LISTO completo.**
+- **Integración:** la sesión A intentó el merge sobre `0bc6848`. El control de permisos lo rechazó («[Merge Without Review]»). No se aplicó nada ni se eludió: queda para Roderich.
+- **Sigue abierto para Roderich:**
+  - **D-F04-C1:** los registros tardíos de un período cerrado se rechazan, así que **RF-03 no se cumple en esa parte**;
+  - **D-F04-C2:** el período local no se compara con el central, lo que también afecta al consumo ya publicado.
+  - GATE-F04 sigue Pending. Sin DEVICE.
+
+### F07: textos de cierre (dry-run preparado, no aplicado)
+
+El dry-run (21 filas, 26 cambios) prepara:
+- cerrar #24–#28;
+- añadir las actualizaciones al final de los cuerpos de #24 y #26;
+- comentar #23, #29 y #107 (#29 y #107 siguen abiertos; GATE-F07, Pending);
+- `Status` / `Evidence` en el Project.
+
+Está listo, con los textos de B y `<SHA>` = `cab433d`. La orden que lo aplicaba **la rechazó el control de permisos** con «[External System Writes]». No se aplicó nada: se comprobó después en #24, #26 y #28. Tampoco se eludió. Queda para Roderich.
+
+### Propuestas de decisión F03/F05/F06
+
+Ver `F03_F05_F06_PROPUESTAS_DECISION.md`:
+- F03 y F05: Passed académico, con residuales declarados;
+- F06: Passed académico (sintético, k = 3), condicionado a ratificar los criterios 3 y 6.
+Ningún gate cambia sin la decisión explícita de Roderich.
