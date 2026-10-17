@@ -22,7 +22,7 @@
 | ☐ | BE #122 | Protocolo de evaluación v1.0 → v1.3 (`72a03be`, `7581af2`, `9292425`, `9bfcad2`) | Sólo documentación; Sonar verde | ¿Se fusiona? Es la versión citada por todas las series |
 | ☐ | BE #124 | Decisión GATE-F08 y actas F05/F07 actualizadas (C23 completado) | Sólo documentación | ¿Se fusiona? Lleva `Closes #41` |
 | ☐ | BE #125 (B) | R5 y B1/B2: herramientas y evidencia | LISTO (`7d30e58`, CI verde) | ¿Se fusiona? |
-| ☐ | BE #126 (B) | Residuos de #45: compras conjuntas, eventos, H1 exacto, cobertura, proveedores, usuarios; **migración aditiva** (journal 10 → 11) | **NO LISTO** en `9f350cf`, aunque el CI está verde. Quedan una fuga entre celdas publicadas en la misma lectura y un coste sin cota, que bloquea la API. Corregido: compras conjuntas, eventos, proveedores, usuarios y cobertura | No integrar hasta corregirlo. Si se integra, cambia el resumen colectivo y hay que repetir R5, W2 y W4 sobre la base nueva, en una serie aparte |
+| ☐ | BE #126 (B) | Residuos de #45: compras conjuntas, eventos, H1 exacto, cobertura, proveedores, usuarios; **migración aditiva** (journal 10 → 11) | **LISTO** en `8069971` (CI verde). La revisión independiente encontró 0 fugas y el coste acotado. Nota no bloqueante: el presupuesto por lectura puede impedir que otras celdas publiquen | Si se integra, cambia el resumen colectivo y añade una migración: hay que repetir R5, W2 y W4 sobre la base nueva, en una serie aparte, y cerrar #25 tras verificarlo |
 | ☐ | BE #123 (C) | Paquete de usabilidad: consentimiento, guion, tarjetas, SEQ, SUS español publicado, cálculo | Corregido tras la revisión (`b7ae14e`) | ¿Se fusiona antes del piloto? |
 | ☐ | MOB #96 (C) | Mensajes de autorización (C38, 403, C23) | LISTO (`b157293`, CI verde) | Cambia la app: sólo se integra fuera de las series medidas, y fija una base nueva |
 | ☐ | MOB #98 (A) | Evaluación Mobile: R1–R4/R6, compatibilidad, C23 | Sólo herramientas y evidencia | ¿Se fusiona? |
@@ -63,7 +63,7 @@ En cada archivo hay que comprobar que tiene commit SHA, comando, salida resumida
 
 ## 5. Pasos concretos para la revisión del autor y el tutor
 
-1. **Revisar y fusionar en serie** los PR del §1 que se acepten: #122 → #124 → #125 → #98 → #123 → (#126 tras su revisión final) → MOB #96. Comprobar el CI de `main` después de cada uno.
+1. **Revisar y fusionar en serie** los PR del §1 que se acepten: #122 → #124 → #125 → #98 → #123 → #126 → MOB #96. Comprobar el CI de `main` después de cada uno.
 2. Si entra #126 o MOB #96, **fijar una base nueva** y repetir sólo lo afectado (R5/W2/W4; los mensajes de C38/403), sin mezclar series.
 3. **Decidir GATE-F05** con `F05_GATE_EVALUATION.md` («Para decidir») y la tabla de criterios frente a ampliaciones.
 4. **Usabilidad:**

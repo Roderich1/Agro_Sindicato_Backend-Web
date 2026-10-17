@@ -95,10 +95,15 @@ Sólo se actualiza el estado; los dictámenes de arriba se conservan como se eva
   - `members_with_contribution` cuenta también a los aportantes de celdas suprimidas: con una sola celda, revela su conteo exacto. Pasa también al CSV y a la cobertura guardada en las propuestas.
   - **Afecta a la cobertura de #25** y a los criterios 1 y 7 de este gate.
 - **Estado de la corrección** (PR #126 de B, revisado por A el 2026-10-17 UTC): la divulgación real sigue cerrada; los datos son sintéticos.
-  - **(a):** se sustituyó por una comprobación exacta de rango (`differencing.ts`, HEAD `9f350cf`), correcta para cada celda decidida por separado. **La revisión final da NO LISTO:**
-    - las celdas que se publican **en una misma lectura** no se comprueban entre sí. Al deshacer una asociación todavía se puede obtener la cantidad de un agricultor (fuzz: 71 de 1 000 corridas);
-    - el coste no tiene cota y bloquea la API (~31 s por lectura con 40 versiones publicadas de una celda).
-  - **(b):** la cobertura «con cifras publicadas» está corregida en la rama.
+  - **(a):** comprobación exacta de rango (`differencing.ts`).
+    - En `9f350cf`, la revisión dio NO LISTO: las celdas publicadas en la misma lectura no se comprobaban entre sí, y el coste no tenía cota.
+    - **En `8069971`, la revisión independiente de A da LISTO:**
+      - las celdas de una lectura se deciden en orden, y cada cifra decidida cuenta como conocida;
+      - la dimensión revelada se calcula por dualidad, con un presupuesto que falla cerrado;
+      - las cifras heredadas sin cantidades fallan cerradas;
+      - fuzz con un oráculo exacto independiente: 0 fugas en 2 000 corridas, sin supresiones innecesarias.
+    - **Pendiente no bloqueante:** el presupuesto es por lectura. Una celda muy pesada puede impedir que otras publiquen en esa lectura (no filtra; hay que declararlo o pasar el presupuesto a cada grupo).
+  - **(b):** cobertura «con cifras publicadas», corregida en la rama.
   - Nada de esto está integrado.
 - **Estado de #25:** hasta que la corrección esté integrada, #25 **no se cierra** aunque su alcance agregado esté construido.
 - **Estado de #108:** sus criterios de reconciliación están evidenciados y la brecha (a) se sigue en #45.
