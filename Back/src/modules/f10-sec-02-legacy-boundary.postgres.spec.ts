@@ -542,6 +542,19 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       expect([updated.body.recentPurchases, updated.text.includes(ids["purchaseA"])]).toEqual([undefined, false]);
     });
 
+    it("the user list serves each role its purpose: the Directiva gets names, not emails or last logins", async () => {
+      const directiva = await call("get", "/users", director);
+      expect(directiva.status).toBe(200);
+      const farmerRow = directiva.body.find((u: any) => u.id === users["farmerA"].id);
+      expect(farmerRow).toMatchObject({ id: users["farmerA"].id, name: users["farmerA"].name, role: "AGRICULTOR" });
+      expect({ email: farmerRow.email, lastLoginAt: farmerRow.lastLoginAt, leaks: directiva.text.includes(users["farmerA"].email) })
+        .toEqual({ email: undefined, lastLoginAt: undefined, leaks: false });
+      // Access administration (ADR-003) keeps the full view.
+      const administrador = await call("get", "/users", admin);
+      expect(administrador.body.find((u: any) => u.id === users["farmerA"].id)).toHaveProperty("email", users["farmerA"].email);
+      expect((await call("get", "/users", farmerA)).status).toBe(403);
+    });
+
     it("the public campaign-closing calendar stays visible to farmers and institutional roles", async () => {
       for (const session of [farmerA, farmerA3, director, admin]) {
         const res = await call("get", "/calendar/events", session);
