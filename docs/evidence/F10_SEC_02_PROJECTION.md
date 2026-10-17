@@ -95,4 +95,20 @@ Resultados de la verificación completa en la §6.
 
 ## 6. Verificación
 
-_(Se completa con la ejecución en serie.)_
+Dos ejecuciones en serie en el PC de desarrollo, con PostgreSQL 16 en bases nuevas de `agro_b_web_pg` y las suites F02 migradas como en el CI.
+
+**1. Sobre `eea07d3`** (2026-10-17 01:27:46–01:31:51Z).
+- **Backend:** build OK; OpenAPI OK.
+- **Unitarias:** 227 pasan, pero la suite `collective-config.spec.ts` **no compilaba** por la forma nueva de la cobertura. Se corrigió en `a0acd2d`.
+- **PostgreSQL:** 12 / 25 / 3 / 30 / 41 / 7 / 15 / 5 / 29 / f07-web-proposal 12 / f10-sec-02-legacy-boundary 27 / f10-sec-02-disclosure-gaps 2.
+- **Web:** ci, lint (0 errores), build y test 52/52.
+
+**2. Sobre el HEAD `a0acd2d`** (01:32:39–01:35:34Z).
+- **Backend:** build OK; unitarias **36 suites, 232 pruebas**; OpenAPI OK.
+- **PostgreSQL:** 12 / 25 / 3 / 30 / 41 / 7 / 15 / 5 / 29 / 12 / **27**.
+- **`f10-sec-02-disclosure-gaps`:** falló al **preparar** su base aislada (`prisma migrate deploy` terminó con estado distinto de 0 y sin mensaje). En ese momento el sistema se quedó sin memoria y Claude Code detuvo el resto de la ejecución, incluidos los pasos Web. No es un resultado de las pruebas, pero se conserva tal cual.
+- **Equivalencia:** entre `eea07d3` y `a0acd2d` sólo cambian `collective-config.spec.ts` y documentos; `Web/src` y el código de `Back/src` son idénticos. Por eso los resultados de esa suite y de la Web de la ejecución 1 valen para el mismo código.
+
+**El CI del PR** ejecuta todas las suites sobre el HEAD exacto. Su resultado queda en `ESTADO_B_WEB.md` y en el PR.
+
+**Rojo** (01:32:03–01:32:23Z): con las pruebas finales sobre el código de `ed069a6`, `f10-sec-02-*` falla **7 de 29** (R1 ×2, R2, H3, H4, H1 y H2) y pasan los 22 controles.
