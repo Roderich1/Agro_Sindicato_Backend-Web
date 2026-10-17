@@ -149,6 +149,19 @@ La revisión por criterio la hizo la sesión B (BE #128, `F07_CIERRE_MATRIZ.md`)
 | #69, renumeración ADR-002 en Mobile | **No**: `docs/adr/` no existe en MOB `main` | Sin conflictos; CI verde (run 38743956671). El cuerpo cita el nombre de archivo anterior al renombrado `BE-ADR-002-…` | Integrar tras corregir el cuerpo y actualizar con `main`. No se fusiona por antigüedad: aporta la referencia que falta en Mobile |
 | #70, línea base REC Mobile | **No**: `REC_MOBILE_BASELINE.md` y `REC_021_CI.md` no están en `main` | Sin conflictos; CI verde (run 38743977319). Registro válido del 2026-10-15 sobre `278cbd3` (690 pruebas, igual que la CI 37231657078; los 56 del banco de voz no los ejecuta la CI). Sus «pendientes» son anteriores a #75, #79 y #90, y queda un marcador `{{ORIGEN}}` | Integrar con una **nota fechada del 2026-10-17**, sin reescribir lo registrado. Al integrarse cierra 6 issues: dry-run previo |
 
+## Avance del bloque (2026-10-17, actualizado por la sesión A)
+
+| Fase | Hecho | `main` / PR | Sigue pendiente |
+|---|---|---|---|
+| F03 | #76 en el POCO: sus 5 criterios PASS (P1, P2, P11–P13). Primera acta versionada de GATE-F03. Añadido a `F03_BUG_01.md` (#83) con la versión medida | MOB **#105** (documentos, en revisión) | Decisión de GATE-F03 y cierre de #76 (Roderich) |
+| F04 | #25/#26 construidos; en propio ya no se revierte actividad de terceros (`db0b10a`). #97 corregido. Sesión física con F04 en los dos modos, sin red. #24–#27 **cerradas** con su mapeo (Done/Verified). #28 en Validation | MOB **#102** → `cf3d510`; MOB **#103** → **`8103766`**; actas en MOB #105 | Decisión de GATE-F04 (#28) |
+| F05 | Nota de base en el acta, sin repetir mediciones | BE #130 | Decisión de #18/#19 |
+| F06 | Contrato §5 y política R9 con la cobertura nueva; acta de GATE-F06 al día | BE **#131** (pendiente de la regresión D4) | Regresión HOST de la reconciliación Mobile→Central (B); decisión de #22 |
+| F07 | La Web deja de ser cliente operativo del agricultor (#23 cerrada) | BE **#127** → **`9df7888`** | Integrar BE #128 y #129 (el control de permisos rechazó su merge: quedan para Roderich). #107 institucional |
+| F08 | Prueba de `restore()` de una copia v7 real (REC-019, requisito b) | MOB **#106** (en CI) | Campos `Evidence` de F08 (dry-run, B3) |
+| F09 | Captura reconciliada (#99), núcleo y compra (#100), planificación (#101), aplicación (#104) | MOB #99–#104 (corregidos tras la revisión; delta en verificación) | Conexión con el shell sobre `8103766`; prueba física con dictado real (#12); D-F09-1…7 |
+| REC | Nota fechada en la línea base | MOB **#70** (`bf9b93d`, en revisión); MOB #69 con el cuerpo corregido | Integrar #70 (cierra 6 REC) y #69 |
+
 ## Versión candidata y paso a F10
 
 Se completa al final del bloque, con el SHA candidato de cada repositorio y la lista cerrada de lo que falta. Ver §«Versión candidata» cuando exista.
