@@ -35,7 +35,7 @@ describe("collective output channels", () => {
       contractVersion: 1,
       campaign: { campaign_ref: "camp", name: "Campaña, 2026", status: "ABIERTA" },
       disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: 3 },
-      coverage: { linked_members: 5, members_with_contribution: 3 },
+      coverage: { linked_members: 5, members_with_contribution: 3, suppressed_cells: true },
       cells: [
         {
           projection_type: "DECLARED_NEED",
@@ -56,6 +56,10 @@ describe("collective output channels", () => {
     expect(csv).toContain('"Campaña, 2026"');
     expect(csv).toContain('"Glifosato ""48"""');
     expect(csv).toContain("SUPPRESSED_UNDER_THRESHOLD,,,,,,false");
+    // F10-SEC-02: the coverage line says that some row has no figure, without a count.
+    const [header, values] = csv.split(/\r?\n/);
+    expect(header!.endsWith("linked_members,members_with_contribution,suppressed_cells")).toBe(true);
+    expect(values!.endsWith(",5,3,true")).toBe(true);
   });
 
   it("a name that starts like a formula is neutralized, not executed (CSV injection)", () => {
@@ -77,7 +81,7 @@ describe("collective output channels", () => {
       contractVersion: 1,
       campaign: { campaign_ref: "camp", name: "=1+1", status: "ABIERTA" },
       disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: 3 },
-      coverage: { linked_members: 5, members_with_contribution: 3 },
+      coverage: { linked_members: 5, members_with_contribution: 3, suppressed_cells: true },
       cells: names.map((product_name) => ({ ...cell, product_name })),
     });
     const fields = csv.split("\n").flatMap((line) => line.split(","));

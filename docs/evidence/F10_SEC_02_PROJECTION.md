@@ -1,0 +1,98 @@
+# F10-SEC-02 — Cotejo de la proyección colectiva y sus canales de salida (#45)
+
+Revisión técnica de la sesión B, del 2026-10-17 (UTC). Es automatizada, con datos sintéticos, y no tiene revisión personal de Roderich ni del tutor. **No aprueba la política de divulgación** F07-POL-01 (#107), que sigue provisional (k = 3) y sólo para datos sintéticos. Producción y cifras reales siguen cerradas: en producción, el resumen responde `POLICY_PENDING` (`collective-config.ts:18-29`).
+
+Complementa `F10_SEC_02_ROUTES.md`, que revisó las rutas heredadas. Esta revisión coteja:
+- el contrato `F06_COLLECTIVE_PROJECTION_CONTRACT.md` y la matriz `F06_COLLECTIVE_PROJECTION_FIELD_MATRIX.md`, que niega todo por defecto;
+- el código de entrada (Sync v1), el almacenamiento, los logs, los conflictos y ACK, y las salidas (resumen JSON/CSV, propuestas JSON/CSV, reconciliación y referencias);
+- también los residuos de la §9 de `F10_SEC_02_ROUTES.md`.
+
+## 1. Identificación
+
+| Campo | Valor |
+|---|---|
+| Rama | `fix/f10-sec-02-residuos` (worktree `_wt/F10-SEC-B2`) |
+| Base | `main` `ed069a695eb9f8bdc318bfd16efc0071fcdced25` (base congelada de la evaluación) |
+| Método | Cotejo fila a fila de la matriz contra el código, con referencias `archivo:línea`. Cuando una prueba existente ya acredita la propiedad, se cita en lugar de duplicarla. Sólo se añaden pruebas nuevas para los hallazgos |
+| Commits | Pruebas en rojo: `f3453c9` (R1, R2), `5c24869` (H1, H2), `1aeca66` (H3) y `69b3a65` (H4). Correcciones: `25d2a8f`, `b02f2b0`, `2ece555` y `eea07d3`. CI: `b0a3aba` |
+
+## 2. Cotejo campo a campo
+
+Rutas relativas a `Back/src/modules/`.
+- **COVERED:** una prueba existente lo acredita; se citan el archivo y la prueba.
+- **SIN PRUEBA:** el código lo impone, pero ninguna prueba lo comprueba directamente.
+
+| # | Campo o candidato (matriz) | Decisión | Dónde se impone | Prueba existente | Veredicto |
+|---|---|---|---|---|---|
+| 1 | `campaign_ref` | ALLOW (A-OWN) | `sync-v1/domain/envelope.ts:39-61,152` (UUID canónico); `sync-v1/application/push-operation.use-case.ts:189-198` (tenant, `REFERENCE_UNAVAILABLE`) y `:212-215` (campaña ABIERTA y activa) | `envelope.spec`; `sync-v1-adversarial` C01, C16–C19, C39 | COVERED |
+| 2 | `product_ref` | ALLOW | `envelope.ts:153`; `push-operation.use-case.ts:193-198` | adversarial C19, C20 | COVERED |
+| 3 | `base_unit` | ALLOW | `envelope.ts:64,154`; `domain/units.ts`; `push-operation.use-case.ts:199-200` | `envelope.spec`; C20 | COVERED |
+| 4 | `quantity_base` | ALLOW | `envelope.ts:42,129-135,167-169` (string decimal, int64); sustituye y no suma (`push-operation.use-case.ts:281`); `CANCEL` no la lleva | `envelope.spec`; C11, C21, C37 | COVERED |
+| 5 | Copias de catálogo (ids locales, nombre, fechas, estado, ingrediente, mínimo, stock, cultivo) | DENY | Lista blanca cerrada en todos los niveles: `envelope.ts:46-61,77-91` (`FIELD_NOT_ALLOWED`, `INVALID_REQUEST`), antes del journal (`sync-v1/api/rest/sync-v1.controller.ts:79-81`) | `envelope.spec` (claves extra); C26 | COVERED (mecanismo genérico) |
+| 6 | Personas, parcelas, aplicaciones, planes, inventario, lotes, movimientos, compras, finanzas, calendario | DENY | Misma lista blanca | C26 (`notes` en el payload); `envelope.spec` | COVERED (genérico) |
+| 7 | `declared_stock`, DemandForecast | DENY | `projectionType` cerrado (`envelope.ts:62,118-121`) | `envelope.spec` (proyección desconocida) | COVERED |
+| 8 | Payload de sync antiguo, snapshots de conflicto, before/after de auditoría | DENY | Las tablas de Sync v1 no tienen columnas Json; la disputa sólo guarda ids y fechas | `sync-v1-journal` (columnas sin payload); adversarial «privacy and individual domain…» | COVERED |
+| 9 | Contexto IAM (`tenantId`, cuenta, `memberId`, propietario, rol, correo) | DENY | Lista blanca; el contexto sale del token y de la base (`sync-v1-auth.guard.ts:56-87`; `push-operation.use-case.ts:140-160`) | C26 (`tenantId`); `sync-v1-references` (aislamiento de tenant); C22, C35, C40 | COVERED |
+| 10 | `clientId`, registro del cliente | DENY | Lista blanca; registro comprobado (`sync-v1-auth.guard.ts:76-79`) | C26 (`causal.clientId`), C23 | COVERED |
+| 11 | Tokens, contraseña, IMEI, Android ID, serie, MAC | DENY | Lista blanca; el token no se registra | C26; adversarial «privacy…» (el token no aparece en los logs) | COVERED |
+| 12 | Archivos, fotos, PDF/CSV, audio, binario o manifiesto de respaldo | DENY | Lista blanca y 16 KiB (`sync-v1-body.ts:8,21,37-39`) | C26 (`backup` en base64), C37 (413) | COVERED |
+| 13 | Claves duplicadas, anidamiento, BOM, juego de caracteres | Contrato §4 | `sync-v1/domain/strict-json.ts:109,125`; `sync-v1-body.ts:41-57` | `strict-json.spec`; C37 | COVERED |
+| 14 | Payload rechazado: ¿se guarda? | R_PRIVATE_LOCAL = 0 | Un rechazo del sobre no llega al journal. Un rechazo de negocio sólo guarda metadatos y la huella HMAC (`push-operation.use-case.ts:107-119,362-381`) | C25, C26, C37 (el journal no cambia); C31, C32 | COVERED (ver M6) |
+| 15 | Logs de Sync v1 | Contrato §7 | `sync-v1-exception.filter.ts:51-56` (estado y código); `push-operation.use-case.ts:80-82` (resultado, código, `operationId`, tipo y acción) | C26 «value never logged»; adversarial «privacy…»; `strict-json` (los errores no incluyen valores) | COVERED |
+| 16 | Cuerpos de ACK, error, conflicto y GET de operación | Conflicto mínimo | `sync-v1/domain/ack.ts:25-102`; `get-operation.use-case.ts:10-17,55-59` | `expectAck` del adversarial (claves exactas); C11, C31, C32 | COVERED |
+| 17 | Resumen JSON y CSV (`total_base` y sus metadatos) | A-AGG, F07-POL-01 | `collective/application/collective-summary.use-case.ts`; `domain/disclosure-policy.ts`; `POLICY_PENDING` por defecto | `f06-coll-05` (sin política no hay cifras; umbral; diferencias; retiradas; mismo JSON/CSV); `disclosure-policy.spec` | COVERED, **salvo H1 y H2** (corregidos) |
+| 18 | Sin detalle por agricultor ni `memberId` en la salida | A-AGG | Forma cerrada de la celda | `f06-coll-05` «JSON and CSV carry the same decisions; no individual data» | COVERED |
+| 19 | Propuesta JSON y CSV | A-AGG, R8 | `joint-purchase-proposal.use-case.ts:195-267,301-311,321-361`; `domain/proposal.ts` | `f07-web-proposal` (oráculo, retiradas y sustituidas, `POLICY_PENDING`, logs) | COVERED (heredaba H1 y H2) |
+| 20 | Asociaciones y catálogo de reconciliación | Sin totales | `inventory/application/use-cases/product-reconciliation.use-case.ts` | `f07-web-proposal` (catálogo sólo con nombre y unidad); `product-reconciliation.postgres` | COVERED (era el vector de H1) |
+| 21 | Referencias de Sync v1 (Central → agricultor) | CENTRAL_REFERENCE | `sync-v1/application/list-references.use-case.ts` | `sync-v1-references` (lista blanca exacta, tenants, logs sin cuerpo) | COVERED |
+| 22 | Respaldos (`/me/backups`) | BACKUP_ONLY, canal aparte | `backups/backups.module.ts`; controlador propio | `backups.postgres` (no toca Sync, colectivo ni auditoría) | Canal separado (no se audita aquí) |
+
+**Lo que sale y no está en la lista ALLOW.** La matriz rige el payload de entrada, no las salidas. Esto sale del servidor y no es un dato del agricultor:
+- **Resumen:** nombre y estado de la campaña, nombre del producto, `contributors`, fechas, `pending_changes`, `disclosure.*` y cobertura. Lo autorizan F07-POL-01 §2 y el contrato §5 (actualidad).
+- **Propuesta:** `generated_by` (nombre de la Directiva o el Administrador).
+- **Asociaciones:** actor, quien cerró y motivo, que es texto libre de la Directiva.
+
+Son identidades del personal institucional, no datos de agricultores.
+
+## 3. Hallazgos y disposición
+
+| Id | Hallazgo | Severidad | Disposición |
+|---|---|---|---|
+| **H1** | Reasociar un producto a un canónico sin historial evitaba la regla de historial: tras publicar 6000, la reasociación publicaba 6100 y aislaba el cambio de un agricultor. Causa: historial por clave de celda (`consolidation.ts:38-40`) | Alta | **Corregido** (`b02f2b0`). El historial sigue a las aportaciones entre claves (`decideCellWithRelated`). Rojo en `5c24869`. Regla aprobada por A |
+| **H2** | `coverage.members_with_contribution` contaba a los aportantes de celdas suprimidas; con una sola celda de 2, revelaba su conteo exacto. Afectaba también al CSV y a la cobertura de las propuestas | Media | **Corregido** (`b02f2b0`). Cuenta sólo a los Members dentro de cifras publicadas, y `suppressed_cells` avisa sin conteo. La Web dice «con cifras publicadas». Las propuestas ya guardadas **no se reescriben**: los borradores sintéticos anteriores conservan el conteo con la semántica antigua |
+| **H3** | `GET /suppliers` devolvía con cada proveedor las 3 compras más recientes de **todo el tenant** (id, total, modo de pago y fecha) a cualquier rol, también a otro agricultor | Alta | **Corregido** (`2ece555`): el catálogo de proveedores conserva su finalidad (nombre y contacto) sin compras. Rojo en `1aeca66`. Hallado en la revisión de proveedores por finalidad |
+| **H4** | `GET /users` entregaba a la DIRECTIVA el correo y el último acceso de cada cuenta | Media | **Corregido** (`eea07d3`): la DIRECTIVA recibe id, nombre, rol y estado; el ADMINISTRADOR conserva la vista completa (ADR-003). Revisión por finalidad, sin bloquear la ruta. Rojo en `69b3a65` |
+| **R1** (§9) | Un participante de una compra conjunta histórica veía los ítems y totales del grupo (`/purchases`, `/reports/purchases/joint`, `/by-campaign`), y `totals.participants` contaba a todos | Media | **Corregido** (`25d2a8f`): ve su parte, calculada con sus propias asignaciones (`share: "OWN"`) y su propia participación. Rojo en `f3453c9` |
+| **R2** (§9) | Los eventos `COMPRA_PROGRAMADA` sin dueño (proveedor, notas y total de grupo) llegaban a todo agricultor del tenant y a D y A | Media | **Corregido** (`25d2a8f`): un evento sin dueño sólo es visible si su tipo es público (cierre de campaña). No se borra, no se reasigna y no se le inventa dueño. La regla va dentro de un `AND`, para que `?type=` no la anule |
+| M3 | `CollectiveReleaseItem.quantityBase` conserva de forma inmutable la cantidad de cada aportación divulgada, incluidas las sustituidas o canceladas: el disparador impide UPDATE y DELETE (`prisma/migrations/20261016043000_f06_collective_consolidation/migration.sql:147-155`). Contradice R_CURRENT del contrato §7 («no guardar historial de cantidades… eliminar o anonimizar»). No sale por ningún canal, y la regla de historial lo necesita | Media (retención) | **Declarado.** Requiere una clase de retención y una purga aprobadas, o enmendar el contrato. No se toca: lo exige la regla de diferencias, y borrar datos o migraciones está fuera de este bloque |
+| M4 | El filtro global `HttpExceptionLoggingFilter` registra, en cada error, el método, `originalUrl` con su query string, la IP y el mensaje (`src/bootstrap/http-exception-logging.filter.ts:22-24`) | Baja | **Declarado.** Ninguna ruta colectiva, de reconciliación ni de Sync v1 lee parámetros de query. Las heredadas reciben identificadores (`ownerUserId`, `campaignId`) y textos de búsqueda, no cantidades, notas ni ubicación. **No hay datos privados en query**, así que no sube a «corregir». La IP es un dato personal en logs: se recomienda minimizarla con la política de logs de F11 |
+| M5 | Un cambio de rol no retira la aportación: `eligible()` filtra el Member y la cuenta activos, pero no el rol (`collective-summary.use-case.ts`). El contrato §5 pide reevaluar ante un cambio de pertenencia | Baja | **Declarado.** Corrección propuesta: filtrar `role: AGRICULTOR` en `eligible()`, con su prueba. Cambia el resumen medido, así que lo coordina A |
+| M6 | La huella HMAC del journal se calcula sobre un vector que incluye `quantity_base`. Quien tenga la clave del servidor podría enumerar cantidades pequeñas | Baja (por diseño) | **Declarado.** La exige F05 §5 para la idempotencia; riesgo residual |
+| M7 | El servidor no prueba la propiedad ni la finalidad del total: los códigos `OWNERSHIP_NOT_PROVEN` y `PURPOSE_NOT_AUTHORIZED` existen, pero no se emiten | Baja (precondición) | **Declarado.** El contrato §4 lo delega a Mobile |
+| M8 | `GET /collective/product-associations` no envía `Cache-Control: no-store`; su catálogo sí | Baja | **Declarado.** Sin datos de agricultores; higiene de caché pendiente |
+
+## 4. Reproducciones y verificación
+
+| Hallazgo | Prueba (rojo antes y verde después) | Rojo observado |
+|---|---|---|
+| H1, H2 | `collective/f10-sec-02-disclosure-gaps.postgres.spec.ts` | Sobre `ed069a6`: `r DISCLOSED total_base "6100"` tras haber publicado 6000; la cobertura mostró 2 en una campaña cuya única celda tenía 2 aportantes |
+| H1 (dominio) | `collective/domain/disclosure-policy.spec.ts`, «the history follows contributions across cell keys»: reasociación con y sin cambio, fusión con un cambio, y k cambios | — (prueba unitaria nueva) |
+| H3, H4, R1, R2 | `f10-sec-02-legacy-boundary.postgres.spec.ts`: compras conjuntas con dos agricultores (A 5/15, A2 3/9) y un agricultor ajeno A3; D y A | A2 veía `8 / 24` en lugar de `3 / 9`; el evento programado con sus notas llegaba a A, A2 y A3; `/suppliers` traía la compra de A; `/users` traía el correo de A a la Directiva |
+
+Resultados de la verificación completa en la §6.
+
+## 5. Contrato y documentación
+
+- **OpenAPI:**
+  - el 403 `LEGACY_ROUTE_CLOSED` de las dos rutas cerradas queda documentado, sin respuesta de éxito, con su aserción en `openapi-contract.cjs`;
+  - la cobertura del resumen describe la semántica nueva y `suppressed_cells`;
+  - la descripción de `GET /users` distingue las dos vistas.
+
+  Los snapshots se regeneran desde la rama, como en entregas anteriores; A los regenera de nuevo sobre `main` integrado.
+- **Pendiente de redactar en `F06_COLLECTIVE_PROJECTION_CONTRACT.md`** (propuesta para A, sin editar aquí):
+  - el significado nuevo de la cobertura (§5);
+  - la regla de historial entre claves (F07-POL-01 §3).
+
+## 6. Verificación
+
+_(Se completa con la ejecución en serie.)_
