@@ -5,7 +5,7 @@
 - **Revisada bajo F10-SEC-02 (#45) el 2026-10-16** (§8). Esa revisión no completa #45: faltan los endpoints heredados (ADR-003).
 - **Issue:** [#107](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/107). **Contrato:** [`F06_COLLECTIVE_PROJECTION_CONTRACT.md`](F06_COLLECTIVE_PROJECTION_CONTRACT.md) §5.
 - **Requisitos:** RF-24, RNF-05; los roles siguen RU-18/RU-19 ([ADR-003](../adr/ADR-003-administrador-presidente-funciones-directiva.md)).
-- **Implementación provisional** (F06 #21, rama `feat/f06-consolidacion`): `Back/src/modules/collective/domain/disclosure-policy.ts`, umbral `k = 3`. Sólo se activa con `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` y `NODE_ENV` distinto de `production`. En producción siempre equivale a `disabled`. Sirve para probar la política con datos sintéticos. No la aprueba.
+- **Implementación provisional** (F06 #21, rama `feat/f06-consolidacion`; *nota del 2026-10-17: integrada en `main`, comprobado sobre `e4b9c29`*): `Back/src/modules/collective/domain/disclosure-policy.ts`, umbral `k = 3`. Sólo se activa con `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` y `NODE_ENV` distinto de `production`. En producción siempre equivale a `disabled`. Sirve para probar la política con datos sintéticos. No la aprueba.
 - **Redactada:** 2026-10-16 por Claude Code. Revisión técnica automatizada: pruebas unitarias y de PostgreSQL citadas abajo. Sin revisión del tutor.
 
 ## 0. Modelo de amenaza
