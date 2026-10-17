@@ -352,7 +352,10 @@ function PurchasesHistory({
                   <p className="mt-1 text-sm text-slate-500">{purchase.campaign?.name ?? 'Sin campaña'} · {fmtDate(purchase.purchasedAt)}</p>
                 </div>
                 <div className="sm:text-right">
-                  <p className="text-xs uppercase text-slate-400">{purchase.paymentMode === 'CREDITO' ? 'Crédito' : 'Contado'}</p>
+                  <p className="text-xs uppercase text-slate-400">
+                    {purchase.paymentMode === 'CREDITO' ? 'Crédito' : 'Contado'}
+                    {purchase.share === 'OWN' && ' · tu parte de la compra conjunta'}
+                  </p>
                   <p className="text-lg font-bold tabular-nums text-slate-900">Bs {fmtNumber(purchase.totalAmount)}</p>
                 </div>
               </div>

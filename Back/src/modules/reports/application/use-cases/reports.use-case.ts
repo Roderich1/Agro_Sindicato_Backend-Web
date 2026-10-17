@@ -11,6 +11,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { ReportQueryDto } from '../dto/report-query.dto';
+import { isOwnShareView, purchaseShare } from '../../../procurement/application/joint-purchase-share';
 
 interface Actor {
   userId: string;
@@ -82,11 +83,11 @@ export class ReportsUseCase {
         campaign: { select: { id: true, name: true, status: true } },
         supplier: { select: { id: true, name: true } },
         createdBy: { select: { id: true, name: true, email: true } },
-        items: { include: { product: { select: { id: true, name: true, unit: true } } } },
+        items: { include: { product: { select: { id: true, name: true, unit: true } }, allocations: { select: { userId: true, quantity: true, subtotal: true } } } },
       },
     });
 
-    const rows = purchases.map((purchase) => this.mapPurchase(purchase));
+    const rows = purchases.map((purchase) => this.mapPurchase(purchase, this.shareViewer(actor)));
     return {
       totals: {
         purchases: rows.length,
@@ -112,20 +113,26 @@ export class ReportsUseCase {
           include: { user: { select: { id: true, name: true, email: true } } },
           orderBy: { createdAt: 'asc' },
         },
-        items: { include: { product: { select: { id: true, name: true, unit: true } } } },
+        items: { include: { product: { select: { id: true, name: true, unit: true } }, allocations: { select: { userId: true, quantity: true, subtotal: true } } } },
       },
     });
 
+    const viewer = this.shareViewer(actor);
+    const visibleParticipants = (purchase: (typeof purchases)[number]) =>
+      purchase.participants.filter((participant) => actor.role !== UserRole.AGRICULTOR || participant.userId === actor.userId);
+    const rows = purchases.map((purchase) => this.mapPurchase(purchase, viewer));
     return {
       totals: {
         purchases: purchases.length,
-        totalAmount: this.decimalSum(purchases.map((purchase) => purchase.totalAmount)).toString(),
-        participants: purchases.reduce((total, purchase) => total + purchase.participants.length, 0),
+        // F10-SEC-02 (#45): a participant's totals cover only their own share
+        // and participation, not the group's.
+        totalAmount: this.sumStrings(rows.map((row) => row.totalAmount)),
+        participants: purchases.reduce((total, purchase) => total + visibleParticipants(purchase).length, 0),
       },
-      rows: purchases.map((purchase) => ({
-        ...this.mapPurchase(purchase),
+      rows: purchases.map((purchase, index) => ({
+        ...rows[index],
         // F10-SEC-02 (#45): a participant sees only their own share.
-        participants: purchase.participants.filter((participant) => actor.role !== UserRole.AGRICULTOR || participant.userId === actor.userId).map((participant) => ({
+        participants: visibleParticipants(purchase).map((participant) => ({
           id: participant.id,
           user: participant.user,
           status: participant.status,
@@ -416,6 +423,11 @@ export class ReportsUseCase {
     };
   }
 
+  /** F10-SEC-02 (#45): the farmer whose own share of a joint purchase is shown. */
+  private shareViewer(actor: Actor): string | null {
+    return actor.role === UserRole.AGRICULTOR ? actor.userId : null;
+  }
+
   private mapPurchase(purchase: {
     id: string;
     campaignId: string | null;
@@ -430,8 +442,16 @@ export class ReportsUseCase {
     campaign?: { id: string; name: string; status: string } | null;
     supplier: { id: string; name: string };
     createdBy?: { id: string; name: string; email: string } | null;
-    items: Array<{ id: string; quantity: Prisma.Decimal; subtotal: Prisma.Decimal; product: { id: string; name: string; unit: string } }>;
-  }) {
+    items: Array<{
+      id: string;
+      quantity: Prisma.Decimal;
+      subtotal: Prisma.Decimal;
+      discountAmount: Prisma.Decimal;
+      product: { id: string; name: string; unit: string };
+      allocations: Array<{ userId: string; quantity: Prisma.Decimal; subtotal: Prisma.Decimal }>;
+    }>;
+  }, viewer: string | null) {
+    const share = isOwnShareView(purchase.type, viewer) ? purchaseShare(purchase.items, viewer) : null;
     return {
       id: purchase.id,
       campaignId: purchase.campaignId,
@@ -441,17 +461,19 @@ export class ReportsUseCase {
       status: purchase.status,
       supplier: purchase.supplier,
       createdBy: purchase.createdBy ?? null,
-      totalAmount: purchase.totalAmount.toString(),
-      discountAmount: purchase.discountAmount.toString(),
+      ...(share ? { share: 'OWN' as const } : {}),
+      totalAmount: (share?.totalAmount ?? purchase.totalAmount).toString(),
+      discountAmount: (share?.discountAmount ?? purchase.discountAmount).toString(),
       purchasedAt: purchase.purchasedAt.toISOString(),
       expectedAt: purchase.expectedAt?.toISOString() ?? null,
       receivedAt: purchase.receivedAt?.toISOString() ?? null,
-      items: purchase.items.map((item) => ({
-        id: item.id,
-        product: item.product,
-        quantity: item.quantity.toString(),
-        subtotal: item.subtotal.toString(),
-      })),
+      items: (share ? share.items : purchase.items.map((item) => ({ item, quantity: item.quantity, subtotal: item.subtotal })))
+        .map(({ item, quantity, subtotal }) => ({
+          id: item.id,
+          product: item.product,
+          quantity: quantity.toString(),
+          subtotal: subtotal.toString(),
+        })),
     };
   }
 

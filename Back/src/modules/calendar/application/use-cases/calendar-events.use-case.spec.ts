@@ -65,7 +65,8 @@ describe('CalendarEventsUseCase', () => {
     expect(prisma.calendarEvent.findMany).toHaveBeenCalledWith({
       where: {
         tenantId,
-        OR: [{ ownerUserId: userId }, { ownerUserId: null }],
+        // F10-SEC-02 (#45): events without owner only when their type is public.
+        AND: [{ OR: [{ ownerUserId: userId }, { ownerUserId: null, type: { in: ['CIERRE_CAMPANA'] } }] }],
       },
       orderBy: [{ eventDate: 'asc' }, { createdAt: 'desc' }],
       take: 300,
@@ -87,7 +88,7 @@ describe('CalendarEventsUseCase', () => {
     await useCase.list(tenantId, { userId: 'directiva-1', role: UserRole.DIRECTIVA }, { ownerUserId: userId });
 
     expect(prisma.calendarEvent.findMany).toHaveBeenCalledWith({
-      where: { tenantId, ownerUserId: null },
+      where: { tenantId, AND: [{ ownerUserId: null, type: { in: ['CIERRE_CAMPANA'] } }] },
       orderBy: [{ eventDate: 'asc' }, { createdAt: 'desc' }],
       take: 300,
     });

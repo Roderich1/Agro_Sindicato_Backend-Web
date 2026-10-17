@@ -1713,8 +1713,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": ""
+          "403": {
+            "description": "Cerrada en F10-SEC-02 (#45): responde siempre 403 con message LEGACY_ROUTE_CLOSED, sin efectos. Se conserva para la transición (#81); el camino vigente es el resumen colectivo (/collective/campaigns/{campaignId}/summary)."
           }
         },
         "security": [
@@ -1722,7 +1722,7 @@
             "bearer": []
           }
         ],
-        "summary": "Consultar inventario global de todos los agricultores",
+        "summary": "Consultar inventario global de todos los agricultores (cerrada)",
         "tags": [
           "inventory"
         ]
@@ -2996,8 +2996,8 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "403": {
+            "description": "Cerrada en F10-SEC-02 (#45): responde siempre 403 con message LEGACY_ROUTE_CLOSED, sin efectos. Se conserva para la transición (#81); el camino vigente es la propuesta en borrador (/collective/campaigns/{campaignId}/proposals)."
           }
         },
         "security": [
@@ -3005,7 +3005,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crear compra conjunta y distribuir productos entre agricultores",
+        "summary": "Crear compra conjunta y distribuir productos entre agricultores (cerrada)",
         "tags": [
           "purchases"
         ]
