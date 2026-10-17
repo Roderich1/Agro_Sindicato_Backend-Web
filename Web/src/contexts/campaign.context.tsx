@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useMemo, useState, type ReactNod
 import { campaignsService } from '../services/campaigns.service';
 import type { Campaign } from '../types/campaigns';
 import { useAuth } from '../hooks/use-auth';
+import { isCollectiveRole, legacyFarmerWebEnabled } from '../lib/navigation';
 
 export interface CampaignContextValue {
   activeCampaign: Campaign | null;
@@ -20,7 +21,9 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const refreshActiveCampaign = useCallback(async () => {
-    if (!user) {
+    // F07-WEB-01 (#23): quien no es Directiva ni Administrador no recibe datos
+    // en la Web, tampoco la campaña activa (salvo con el flag de rollback).
+    if (!user || (!isCollectiveRole(user.role) && !legacyFarmerWebEnabled())) {
       setActiveCampaign(null);
       setError(null);
       return;

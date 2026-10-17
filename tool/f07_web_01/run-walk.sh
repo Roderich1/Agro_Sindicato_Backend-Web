@@ -5,10 +5,15 @@
 # compilados y puppeteer-core instalado en tool/f10_eval_web.
 #   bash tool/f07_web_01/run-walk.sh <salida>
 # Las credenciales se generan en el proceso y no se escriben en ningún archivo.
+# En <salida> sólo quedan env.txt, walk.json y las capturas; la semilla (con
+# UUID) y los logs (con la IP local) van a una carpeta temporal aparte, que no
+# se publica.
 set -euo pipefail
 mkdir -p "${1:?salida}"
 OUT=$(cd "$1" && pwd -W)
 ROOT=$(cd "$(dirname "$0")/../.." && pwd -W)
+PRIV=$(mktemp -d)
+echo "semilla y logs (no publicar): $PRIV"
 clean() { tr -d '\r\n'; }
 export API_URL=http://localhost:3124 WEB_URL=http://localhost:4177
 for port in 3124 4177; do
@@ -29,11 +34,11 @@ export WALK_PASSWORD=$(openssl rand -hex 16 | clean)
   echo "web_flag_VITE_LEGACY_FARMER_WEB=${VITE_LEGACY_FARMER_WEB:-(sin definir: transición aplicada)}"
   echo "node=$(node --version)"
 } > "$OUT/env.txt"
-(cd "$ROOT/Back" && npx prisma migrate deploy > "$OUT/migrate.log" 2>&1)
+(cd "$ROOT/Back" && npx prisma migrate deploy > "$PRIV/migrate.log" 2>&1)
 (cd "$ROOT/Back" && NODE_ENV=development COOKIE_SECURE=false PORT=3124 CORS_ORIGIN=$WEB_URL COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic \
-  exec node dist/main.js > "$OUT/api.log" 2>&1) &
+  exec node dist/main.js > "$PRIV/api.log" 2>&1) &
 API_PID=$!
-(cd "$ROOT/Web" && VITE_API_PROXY_TARGET=$API_URL exec npx vite preview --port 4177 --strictPort > "$OUT/web.log" 2>&1) &
+(cd "$ROOT/Web" && VITE_API_PROXY_TARGET=$API_URL exec npx vite preview --port 4177 --strictPort > "$PRIV/web.log" 2>&1) &
 WEB_PID=$!
 cleanup() {
   kill $API_PID $WEB_PID 2>/dev/null || true
@@ -44,8 +49,8 @@ cleanup() {
 trap cleanup EXIT
 for _ in $(seq 1 60); do curl -sf --max-time 2 "$API_URL/api/v1/health" >/dev/null 2>&1 && break; sleep 1; done
 for _ in $(seq 1 60); do curl -sf --max-time 2 "$WEB_URL" >/dev/null 2>&1 && break; sleep 1; done
-(cd "$ROOT/Back" && F07_SYNTHETIC_SEED=yes node scripts/f07-synthetic-seed.cjs) > "$OUT/seed.json"
-CAMPAIGN_ID=$(node -e "console.log(require(process.argv[1]).campaigns.C1)" "$OUT/seed.json")
+(cd "$ROOT/Back" && F07_SYNTHETIC_SEED=yes node scripts/f07-synthetic-seed.cjs) > "$PRIV/seed.json"
+CAMPAIGN_ID=$(node -e "console.log(require(process.argv[1]).campaigns.C1)" "$PRIV/seed.json")
 export CAMPAIGN_ID
 BROWSER_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" node "$ROOT/tool/f07_web_01/walk.mjs" "$OUT" || true
 echo "end=$(date -u +%FT%TZ)" >> "$OUT/env.txt"

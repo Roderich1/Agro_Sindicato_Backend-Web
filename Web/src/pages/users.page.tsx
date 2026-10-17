@@ -27,6 +27,7 @@ import {
   type AdminUser,
   type UserRole,
 } from '../types/users';
+import { offlineMessage } from '../lib/format';
 
 type DialogState =
   | { kind: 'none' }
@@ -36,6 +37,8 @@ type DialogState =
   | { kind: 'deactivate'; user: AdminUser };
 
 function extractError(err: unknown, fallback: string): string {
+  const offline = offlineMessage(err);
+  if (offline) return offline;
   if (axios.isAxiosError(err) && err.response) {
     const data = err.response.data as { message?: string | string[] } | undefined;
     if (data?.message) {

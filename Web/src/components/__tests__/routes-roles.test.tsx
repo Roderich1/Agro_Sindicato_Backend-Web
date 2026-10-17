@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AxiosError } from 'axios';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,13 +6,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import app from '../../App.tsx?raw';
 import viteConfig from '../../../vite.config.ts?raw';
 import { AuthContext } from '../../contexts/auth.context';
-import { extractError } from '../../lib/format';
+import { CampaignProvider } from '../../contexts/campaign.context';
+import { extractError, offlineMessage } from '../../lib/format';
 import { COLLECTIVE_PATHS, WEB_NOT_FOR_FARMERS_PATH } from '../../lib/navigation';
 import { OFFLINE_QUEUE_KEY } from '../../lib/offline-queue';
+import { UsersPage } from '../../pages/users.page';
 import { WebNotForFarmersPage } from '../../pages/web-not-for-farmers.page';
+import { campaignsService } from '../../services/campaigns.service';
+import { listUsers } from '../../services/users.service';
 import { renderAt, userWith } from '../../test/render';
 import { AppShell } from '../app-shell';
 import { PrivateRoute } from '../private-route';
+
+vi.mock('../../services/users.service', () => ({
+  listUsers: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), resetUserPassword: vi.fn(), deactivateUser: vi.fn(),
+}));
+vi.mock('../../services/campaigns.service', () => ({ campaignsService: { active: vi.fn(), list: vi.fn() } }));
 
 /**
  * F07-WEB-01 (#23): la Web es online-first para DIRECTIVA y ADMINISTRADOR del
@@ -127,3 +136,48 @@ describe('cola offline de negocio: no está en uso', () => {
     expect(viteConfig).not.toMatch(/agricultores\./);
   });
 });
+
+describe('sin conexión en las pantallas institucionales legacy y datos del agricultor', () => {
+  it('usuarios (ADMINISTRADOR): sin red informa la falta de conectividad, no un error genérico', async () => {
+    vi.mocked(listUsers).mockRejectedValue(new AxiosError('Network Error', 'ERR_NETWORK'));
+    renderAt(<UsersPage />, { role: 'ADMINISTRADOR', path: '/users' });
+    await waitFor(() => expect(screen.getByText(/Sin conexión con el servidor/)).toBeTruthy());
+    expect(screen.queryByText('No fue posible cargar los usuarios.')).toBeNull();
+  });
+
+  it('con el flag de rollback no se da el aviso (la cola legacy existe): se usa el texto anterior', () => {
+    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
+    const offline = new AxiosError('Network Error', 'ERR_NETWORK');
+    expect(offlineMessage(offline)).toBeNull();
+    expect(extractError(offline, 'No se pudo guardar')).toBe('No se pudo guardar');
+  });
+
+  function withProvider(role: string) {
+    return render(
+      <AuthContext.Provider value={{ user: userWith(role), isLoading: false, login: async () => undefined, logout: async () => undefined }}>
+        <CampaignProvider><p>contenido</p></CampaignProvider>
+      </AuthContext.Provider>,
+    );
+  }
+
+  it('el AGRICULTOR no pide la campaña activa: no recibe datos en la Web', async () => {
+    vi.mocked(campaignsService.active).mockResolvedValue(null as never);
+    withProvider('AGRICULTOR');
+    await new Promise((done) => setTimeout(done, 20));
+    expect(campaignsService.active).not.toHaveBeenCalled();
+  });
+
+  it.each(['DIRECTIVA', 'ADMINISTRADOR'])('%s sí pide la campaña activa', async (role) => {
+    vi.mocked(campaignsService.active).mockResolvedValue(null as never);
+    withProvider(role);
+    await waitFor(() => expect(campaignsService.active).toHaveBeenCalled());
+  });
+
+  it('con el flag de rollback, el AGRICULTOR vuelve a pedirla (legacy)', async () => {
+    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
+    vi.mocked(campaignsService.active).mockResolvedValue(null as never);
+    withProvider('AGRICULTOR');
+    await waitFor(() => expect(campaignsService.active).toHaveBeenCalled());
+  });
+});
+

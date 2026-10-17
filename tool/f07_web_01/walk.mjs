@@ -53,7 +53,7 @@ try {
   check('AGRICULTOR sin menú ni enlaces', (await visibleNav()).length === 0, (await visibleNav()).join(' | '));
   check('El aviso remite a la app móvil', (await page.content()).includes('se registran en la app móvil'));
   await shot('01-agricultor-aviso');
-  for (const path of ['/dashboard', '/inventory', '/purchases', '/sync', '/plots', '/applications', '/reports', '/campaigns', '/calendar', '/colectivo/resumen', '/directiva']) {
+  for (const path of ['/', '/dashboard', '/inventory', '/purchases', '/sync', '/plots', '/applications', '/reports', '/campaigns', '/calendar', '/users', '/audit-logs', '/colectivo/resumen', '/directiva']) {
     await page.goto(`${WEB_URL}${path}`, { waitUntil: 'networkidle0' });
     await page.waitForFunction(() => location.pathname === '/sin-acceso-web' || location.pathname.startsWith('/colectivo/propuestas'), { timeout: 10000 }).catch(() => undefined);
     const landed = new URL(page.url()).pathname;
