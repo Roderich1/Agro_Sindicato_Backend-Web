@@ -1,349 +1,409 @@
 # F10 — Protocolos de evaluación de Agrocuentas: rendimiento, compatibilidad y usabilidad
 
-- **Fecha:** 2026-10-16 (America/La_Paz).
-- **Borrador preparado por la sesión A de Claude Code; no es un resultado; ningún protocolo se ha ejecutado.**
-- **Estado:** sin aprobar. Ningún umbral de este documento está acordado.
-- **Issues:** rendimiento BE #48 (F10-QA-04); usabilidad móvil MOB #37 (F10-UX-01) y Web BE #47 (F10-UX-02); E2E crítico BE #43 (F10-QA-01); gate BE #49 (GATE-F10). La compatibilidad (RNF-08) no tiene un issue propio.
-  - La SRS exige fijar umbrales, dataset, repeticiones y percentiles **antes de medir** (RNF-06, RNF-07; SRS-AGRO-001 §9.1).
-  - Prohíbe convertir en criterio de aprobación un valor elegido después de ver los resultados.
-- **Registro de aprobación del protocolo (lo completa Roderich; vacío a propósito):**
+- **Versión 1.3** (la 1.0, aprobada técnicamente antes de medir, más precisiones de la 1.1, la 1.2 y la 1.3 sin cambio de umbrales; ver el registro de versiones).
+  - Publicada el 2026-10-16 (America/La_Paz; 2026-10-17 UTC) por la sesión A de Claude Code.
+  - Incorpora las decisiones de `_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §1–§2, tomadas el 2026-10-16 bajo la **delegación técnica de Roderich**.
+  - **No es una ratificación del tutor, ni una aprobación institucional, ni una inspección personal del autor.**
+- **Ninguna medición de aceptación se ha hecho antes de esta versión.** Las corridas previas de herramientas se marcan como «ensayo de herramienta» y no entran en ninguna serie.
+- **Issues:**
+  - rendimiento: BE #48 (F10-QA-04);
+  - usabilidad móvil: MOB #37 (F10-UX-01);
+  - usabilidad Web: BE #47 (F10-UX-02);
+  - E2E crítico: BE #43 (F10-QA-01);
+  - gate: BE #49 (GATE-F10), que sigue **Pending**.
 
-| Versión | Fecha real | Quién aprueba (Roderich / tutor) | Umbrales modificados | Commit donde se publica |
+  La compatibilidad (RNF-08) no tiene un issue propio.
+- **Requisito de la SRS:** fijar umbrales, dataset, repeticiones y percentiles **antes de medir** (RNF-06, RNF-07; SRS-AGRO-001 §9.1). Un valor elegido después de ver los resultados no se convierte en criterio. **Los umbrales de esta versión no se cambian después de obtener resultados.**
+
+**Registro de versiones del protocolo:**
+
+| Versión | Fecha real | Procedencia | Cambios | Commit |
 |---|---|---|---|---|
-| | | | | |
+| Borrador | 2026-10-16 | Sesión A; sin aprobar | Propuesta inicial, sin umbrales acordados | BE `808acda` (merge `af0dbf1`, #120) |
+| **1.0** | 2026-10-16 (La Paz) | Aprobación técnica delegada por Roderich (archivo de decisiones de cierre §2). Sin ratificación del tutor | Umbrales, datasets, configuraciones, participantes e instrumentos fijados. Se corrige M6. Se retiran los pendientes ya resueltos del WAL y del refresco | BE `72a03be` (PR #122) |
+| **1.1** | 2026-10-16 (La Paz) | Sesión A, antes de cualquier medición de R5, a partir de una observación de la sesión B | **Precisión, sin cambiar umbrales ni repeticiones:** el entorno de R5 (§0.4) usa `NODE_ENV=development`, porque `CollectiveConfig` rechaza `provisional-synthetic` en producción y el resumen no tendría tablas | BE `7581af2` (rama del PR #122) |
+| **1.2** | 2026-10-16 (La Paz; 2026-10-17 ~02:00 UTC) | Sesión A, antes de la primera repetición de R6 y antes de cualquier sesión de usabilidad | **Precisiones, sin cambiar umbrales ni repeticiones:** composición exacta de S1/S2/S3 (§1.4); el primer envío de cada tamaño es un calentamiento anotado aparte; criterio por tarea de usabilidad sólo con la muestra planificada completa (§3.6) | BE `9292425` (rama del PR #122) |
+| **1.3** | 2026-10-16 (La Paz; 2026-10-17 ~03:10 UTC) | Sesión A, después de S1 y antes de la primera repetición de S2 | **Precisión de capacidad, sin cambiar umbrales ni repeticiones:** `BACKUP_MAX_ACTIVE_PER_MEMBER=20` en el entorno de A (§0.4), reiniciando sólo la API. El cálculo de la v1.0 (15) no contaba los 3 calentamientos de la v1.2 (5 + 1 por tamaño = 18); con 15, la 16.ª subida recibiría `409 BACKUP_QUOTA_EXCEEDED` | El commit de esta versión en la rama del PR #122 |
+
+Una versión posterior (1.1, …) sólo puede precisar algo que esta versión deja explícitamente para antes de su medición, como los bytes exactos de R6 (§1.4). **No puede tocar umbrales ni repeticiones.** Se publica antes de la primera repetición afectada y se añade a esta tabla.
 
 **Fuentes leídas:**
-- SRS-AGRO-001 v1.0 §5, §6, §7, §9, §9.1, §11 y §12;
-- URS-AGRO-001 v1.0 §9.1–9.3 y §11;
-- Proyecto de Grado v1.5: §1.7.3–1.8.3, §2.9.4, §3.4.3 y §3.12;
-- `_briefs/F10_AGROCUENTAS_DECISIONES_Y_PROMPTS_2026-10-16.md`;
-- Backend `e027938` (`docs/scope`, `docs/evidence/*GATE*`, `docs/testing/F05_SYNC_06_PLAN_FISICO_F10.md`, `F07_WEB.md`, `F08_BACKUP.md`);
-- Mobile `4f203c7` (`docs/evidence`, `tool/f03_res_01`, `tool/f08_bkp`, `android/app/build.gradle.kts`, `.github/workflows/flutter-ci.yml`).
+- SRS-AGRO-001 v1.0: §5, §6, §7, §9, §9.1, §11 y §12.
+- URS-AGRO-001 v1.0: §9.1–9.3 y §11.
+- Proyecto de Grado v1.5: §1.7.3–1.8.3, §2.9.4, §3.4.3 y §3.12.
+- Archivos de decisiones F10 y de cierre (`_briefs/`).
+- Backend `ed069a6`.
+- Mobile `dff6802`: `tool/f03_res_01`, `tool/f08_bkp`, `android/app/build.gradle.kts`, `lib/data/backup_container_reader.dart`.
 
 ---
 
-## 0. Condiciones comunes a los tres protocolos
+## 0. Condiciones comunes
 
-1. **Datos y aplicación.**
+1. **Base evaluada** (verificada el 2026-10-17 UTC):
+
+   | Componente | Commit | CI final |
+   |---|---|---|
+   | Backend + Web (BE `main`) | **`ed069a695eb9f8bdc318bfd16efc0071fcdced25`** (código = `c8cbf67`; `ed069a6` sólo añade documentación) | `ed069a6`: «Backend F02 verification» run 38977769791 SUCCESS. La Web no cambia desde `c8cbf67`: «Web F07 verification» run 38976819643 SUCCESS |
+   | Mobile (MOB `main`) | **`dff6802ac68d647d40887a4ee298c5ff171d4937`** (código = `2f4b634`; `dff6802` sólo añade la herramienta de captura y evidencia) | «Flutter CI» run 38977755502 SUCCESS |
+
+   - Las herramientas de evaluación se versionan en ramas propias y **no cambian el código medido**. Cada serie registra el SHA de la herramienta.
+   - **Cambio de código.** Si se integra una corrección antes de medir, la sesión A fija y publica la base nueva. Si el código cambia durante la evaluación, no se mezclan repeticiones de versiones distintas: se conservan ambas series y se repite sólo lo afectado.
+2. **Datos y aplicación.**
    - Sólo datos sintéticos.
-   - Se usa una **copia aislada nueva** de la app, con un sufijo de paquete propio: `.f10eval` para medir y `.f10ux` para usabilidad (nombres propuestos).
-   - Nunca se usa la app normal, la demo ni las copias de ensayos anteriores (`.f03res01`, `.f06d4`, `.f03e2b`, `.f08bkp`).
-   - Antes y después de cada sesión: `adb shell pm list packages | grep agroquimicos` debe mostrar la app normal intacta.
-2. **Producción cerrada.**
-   - Las admisiones (`SYNC_V1_PRODUCTION_ADMISSION`, `BACKUP_PRODUCTION_ADMISSION`) se abren sólo en el entorno desechable y sintético, como en los arneses F03 y F08.
-   - `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` es necesario para ver cifras en la Web, porque F07-POL-01 (BE #107) no está aprobada. Esto no evalúa ni aprueba esa política.
-3. **Backend de evaluación.**
-   - Contenedor PostgreSQL, volumen y puertos **nuevos**. Propuesta: `agro_a_f10eval_pg`, `agro_a_f10eval_pgdata`, PG 55448, API 3118 y observador 3119. Antes de usarlos, confirmar con `docker ps` y `netstat` que están libres.
-   - Migraciones aplicadas en orden y Backend compilado (`node dist/main.js`, `NODE_ENV=production`), como en `tool/f03_res_01/up.sh`.
-   - No se detiene, borra ni reutiliza ningún entorno conservado (`PARALELO_CONTROL.md` §0).
-4. **Versiones que se registran en cada corrida:**
+   - Copia aislada **nueva** de la app:
+     - `com.comunidad.agro.agroquimicos.f10eval` («Agrocuentas F10-EVAL») para medir y para la compatibilidad;
+     - `.f10ux` para usabilidad.
+   - Nunca se usan la app normal, la demo ni las copias de ensayos anteriores (`.f03res01`, `.f06d4`, `.f03e2b`, `.f08bkp`, `.f10s18a/b/c`, `.f10bkp`).
+   - Antes y después de cada sesión, `pm list packages` debe mostrar la app normal intacta.
+3. **Producción cerrada.**
+   - Las admisiones `SYNC_V1_PRODUCTION_ADMISSION` y `BACKUP_PRODUCTION_ADMISSION` se abren **sólo** en el entorno desechable y sintético.
+   - `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` es necesario para que la Web muestre cifras, porque F07-POL-01 (BE #107) no está aprobada. Esto no evalúa ni aprueba esa política, y la divulgación real sigue cerrada.
+   - Se mantiene k = 3: las celdas suprimidas no muestran ni la cantidad ni el conteo exacto.
+4. **Backend de evaluación.**
+   - Compilado (`node dist/main.js`, `NODE_ENV=production`), con migraciones aplicadas en orden sobre un PostgreSQL propio. Contenedor, volumen y puertos **nuevos** por sesión:
+     - A (Mobile): `agro_a_f10eval_pg`, volumen `agro_a_f10eval_pgdata`, PG 55448, API 3118, observador 3119;
+     - B (central y Web): `agro_b_f10eval_pg`, PG 55450, API 3122, Web 4176.
+     - **R5 (v1.1):** el Backend de B sigue compilado (`node dist/main.js`), pero con `NODE_ENV=development` y `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`. Es una **desviación necesaria y declarada**: `CollectiveConfig` (`collective-config.ts:18-29`) ignora ese modo con `NODE_ENV=production`, y el resumen quedaría en `POLICY_PENDING`, sin cifras.
+       - Lo demás no cambia: límite de 20/min, mismas migraciones, Web de producción.
+       - La evidencia registra las ramas que dependen de `NODE_ENV`: admisión de respaldos (`backups-config.ts:26`), divulgación colectiva (`collective-config.ts:20`), admisión de Sync (`sync-v1-config.ts:23`) y `Secure` de la cookie por defecto (`auth-v2.controller.ts:48`, `auth.controller.ts:41`), con `COOKIE_SECURE` fijado de forma explícita.
+       - El entorno de A (Mobile) sigue con `NODE_ENV=production`: no usa el resumen colectivo.
+   - Ningún entorno conservado se detiene, borra ni reutiliza.
+   - **Se mantienen los límites de peticiones** (`ThrottlerModule`: 20 por minuto). Un 429 cuenta como fallo y se registra con su causa.
+   - **Única configuración de capacidad distinta de la de fábrica:** `BACKUP_MAX_ACTIVE_PER_MEMBER=15` en el entorno de A (de fábrica, 5).
+     - **v1.3:** 20 desde S2 de R6 (reinicio sólo de la API). Los 3 calentamientos de la v1.2 elevan a 18 las copias de R6.
+     - Permite conservar como evidencia las 15 copias de R6 sin borrar ninguna.
+     - Sin ese cambio, la 6.ª subida recibiría `409 BACKUP_QUOTA_EXCEEDED`.
+     - No es un control de seguridad ni afecta al tiempo medido.
+5. **Compilación.**
+   - **Mobile en modo profile** (`flutter build apk --profile`, Flutter 3.47.2 como en CI). El tipo `profile` hereda la firma local de depuración: es una APK sólo para este ensayo, **no distribuible**.
+   - **Web:** compilación de producción (`vite build` + `vite preview`).
+   - **Backend:** compilado.
+   - **El modo debug no sirve para medir tiempos.**
+6. **Se registra en cada corrida:**
    - SHA de Backend, Web y Mobile;
-   - SHA-256 de la APK y modo de compilación (debug, profile o release);
-   - Flutter 3.47.2, la versión de CI (`flutter-ci.yml:28`);
+   - SHA-256 de la APK y su modo;
+   - `minSdk` y `targetSdk` leídos de la APK;
    - imagen y digest de PostgreSQL;
    - versión de `cloudflared`;
    - versión exacta del navegador;
-   - SHA del generador del dataset y su semilla;
-   - versión aprobada de este protocolo.
-5. **Base de evaluación (la decide Roderich).**
-   - Hoy es BE `e027938` y MOB `4f203c7`.
-   - **Ninguna medición de restauración se hace sobre `4f203c7`**: tiene el riesgo de la copia de rollback con SQLite en WAL (archivo de decisiones F10). Se espera la corrección de C ya integrada.
-6. **Resultados.** Se usan los valores de la tesis §3.12.6:
-   - **CUMPLE** (PASS);
-   - **NO CUMPLE** (FAIL);
-   - **BLOQUEADA**;
-   - **NO EJECUTADA**.
-
-   Cada resultado lleva su procedencia: `DEVICE`, `EMULADOR`, `HOST` o `CI`. Las procedencias no se mezclan, y una prueba de host no cuenta como `DEVICE`.
-7. **Percentiles.**
-   - Se calculan por rango más cercano sobre los valores crudos ordenados; con n = 10, el p90 es el 9.º valor.
-   - Siempre se publican todos los valores crudos, la mediana, el p90 y el máximo.
-   - Una repetición fallida (timeout, 429, 5xx o un cierre de la app) **no se descarta**: cuenta como fallo y se informa en la tasa de error.
-8. **Secretos.**
-   - Las credenciales salen de `tool/f03_res_01/credential.sh` y `secrets.sh`, y sólo viven en variables de la shell.
-   - Ningún token, contraseña ni `DATABASE_URL` aparece en evidencias, logs, capturas ni commits.
-9. **Git Bash.** Las rutas de `adb` se pasan con `MSYS_NO_PATHCONV=1`.
+   - SHA y semilla del generador;
+   - versión de este protocolo;
+   - CPU, RAM y sistema operativo del PC.
+7. **Resultados** (tesis §3.12.6):
+   - **CUMPLE**, **NO CUMPLE**, **BLOQUEADA** o **NO EJECUTADA**;
+   - con procedencia `DEVICE`, `EMULADOR`, `HOST` o `CI`, que no se mezclan. Una prueba de host no cuenta como `DEVICE`.
+8. **Estadísticos.**
+   - Se publican todos los valores crudos, la mediana, el **p90 por rango más cercano** (el valor en la posición ⌈0,9·n⌉ de la lista ordenada: con n = 10, el 9.º; con n = 5, el 5.º, es decir, el máximo), el máximo y los errores.
+   - Con muestras pequeñas, el percentil es sólo una descripción muestral.
+   - **Fallos.** Una repetición fallida (timeout, 429, 5xx, cierre de la app, efecto duplicado o error de integridad) no se descarta: cuenta en la tasa de error y **no desaparece porque una repetición posterior funcione**.
+   - **Siembra y calentamientos.** Se registran aparte y no entran en las repeticiones de aceptación.
+9. **Secretos.**
+   - Las credenciales sólo viven en variables de la shell (`tool/f03_res_01/credential.sh`, `secrets.sh`).
+   - Ningún token, contraseña, cabecera `Authorization` ni `DATABASE_URL` aparece en evidencias, CSV, capturas ni commits.
+   - Los CSV crudos se revisan antes de publicarse: sin correos, sin UUID completos, sin URL del túnel.
+10. **Ajustes del equipo.** Se anotan sus valores previos y se restauran al terminar:
+    - `show_touches`, `font_scale`, modo avión y `stay_on`.
 
 ---
 
 ## 1. Protocolo de rendimiento (RNF-06)
 
 ### 1.1 Objetivo
-Medir, con un dataset, entorno y repeticiones fijados de antemano, el tiempo de las operaciones críticas locales (Mobile) y centrales (Backend y Web). Después, compararlo con umbrales aprobados antes de medir.
+Medir el tiempo de las operaciones críticas locales (Mobile) y centrales (Backend y Web), con un dataset, un entorno y unas repeticiones fijados de antemano, y compararlo con los criterios de §1.5.
 
 ### 1.2 Requisitos trazados
-- **RNF-06** (Should): RU-04, RU-13 y RU-17. SRS §9: «Los umbrales numéricos, dataset, repeticiones y percentiles se fijarán antes de la ejecución del plan de pruebas y no podrán declararse cumplidos sin medición».
-- **Operaciones medidas:**
+- **RNF-06** (Should): RU-04, RU-13 y RU-17. SRS §9: los umbrales se fijan antes de la ejecución y no se declaran cumplidos sin medición.
+- **Operaciones:**
   - RF-17 y RNF-02 (operación sin red);
   - RF-07 y CU-06 (compra);
   - RF-09, RF-10 y CU-07 (existencias e historial);
   - RF-18 y CU-11 (sincronización);
-  - RF-22, RF-24, CU-13 y CU-12 (vista agregada);
+  - RF-22, RF-24 y CU-13 (vista agregada);
   - RF-26, RF-27, INT-06, CU-14 y CU-15 (respaldo);
   - RNF-09 (versiones reproducibles).
-- **Escenario de la tesis:** P-16 «Operaciones bajo carga» (Tabla 3.64; RNF-06/08; CU-07/11/12).
+- **Escenario de la tesis:** P-16, Tabla 3.64.
 
 ### 1.3 Alcance y exclusiones
-- **Incluye** R1–R6 (§1.5).
-- **Excluye:**
-  - pruebas de carga concurrente del servidor; F05_GATE_EVALUATION declara «sin prueba de carga»;
-  - voz (F09);
-  - el rendimiento en producción, que no existe;
-  - el consumo de batería y memoria, que no tiene ID en la SRS y puede añadirse si Roderich lo pide.
+- **Incluye** R1–R6.
+- **Excluye la prueba de carga concurrente.** Medir la latencia con un solo usuario **no demuestra capacidad concurrente**, y no se afirma.
+- **Excluye también:**
+  - la voz (F09);
+  - la producción, que no existe;
+  - la batería y la memoria.
+- **No sustituye a los ensayos adversariales** de F05 (#18/#19). Sus criterios y los de este protocolo son distintos.
 
-### 1.4 Condiciones
-- **Dispositivo:** POCO X5 Pro 5G `22101320G`, Android 12 (API 31), MIUI `V14.0.7.0.SMSMIXM`, el único físico disponible. Se registra:
-  - `getprop ro.product.model`, `ro.build.version.release`, `ro.build.version.sdk` y `ro.build.version.incremental`;
-  - `wm size`, `wm density` y la batería (≥ 50 %, se anota si está cargando);
-  - las apps en segundo plano, cerradas.
-- **Compilación:**
-  - APK aislada en modo **profile** o release. El modo debug de Flutter no sirve para medir tiempos.
-  - `build_isolated_apk.sh` hoy sólo añade el sufijo al tipo `debug`; adaptarlo es un pendiente previo.
-- **Redes:**
-  - **N0** sin conexión: `tool/f03_res_01/device.sh net off`.
-  - **N1** Wi-Fi local + túnel HTTPS (Cloudflare quick tunnel), como en los ensayos F03/F05/F08.
-    - Línea base del túnel: 10 × `curl -s -o /dev/null -w '%{time_total}'` al endpoint de salud desde el PC, antes y después de cada bloque.
-  - **N2** red degradada: sólo en emulador (`-netdelay` / `-netspeed`) o con el throttling de DevTools en la Web. En el POCO no hay forma controlada de degradar la red, y se declara como limitación.
-- **Backend:** el de §0.3, en el PC de desarrollo; se registran CPU, RAM y sistema operativo. El limitador global es de **20 peticiones/min** (`ThrottlerModule`, `app.module.ts:30`): las repeticiones se espacian para no superarlo, y un 429 cuenta como fallo.
-- **Web:** compilación de producción (`vite build` + `vite preview`, o la imagen nginx de `Web/Dockerfile`), no el servidor de desarrollo. La Web es una PWA con service worker, así que se mide en frío (datos del sitio borrados y service worker eliminado) y en caliente.
-- **Datasets (propuestos):**
-  - **DS-V Mobile:** la escala que el propio proyecto declara representativa en `test/volume_test.dart`: 100 productos, 300 compras y 1 000 aplicaciones. Se carga en la app aislada con un sembrador derivado de `tool/seed_ui_audit.dart` o `tool/f06_d4/` (por construir).
-  - **DS-V Central:** 74 Members sintéticos (el tamaño de la nómina, tesis §1.8.1), 20 productos y 2 campañas, con necesidades y consumo publicados por Sync v1. Se registran el SHA y la semilla del generador.
-  - **DS-B respaldos:** tres tamaños propuestos, ~1 MB (sin fotos), ~10 MB y ~50 MB (con fotos sintéticas de comprobante). Se registra el tamaño exacto en bytes que mide el servidor.
+### 1.4 Datasets (escenarios técnicos)
 
-### 1.5 Mediciones
+**No son una muestra de usuarios ni una afirmación sobre el volumen real del sindicato.**
 
-| ID | Operación (ref.) | Inicio observable | Fin observable | Instrumento | n | Umbral |
-|---|---|---|---|---|---|---|
-| R1 | Arranque en frío de la app activada, en N0 (RF-17) | `am start` tras `am force-stop` | Dashboard con datos visibles y operable | `adb shell am start -W -n <pkg>/com.comunidad.agro.agroquimicos.MainActivity` (TotalTime), más `flutter run --profile --trace-startup` (`timeToFirstFrameMicros`) y `screenrecord` para el primer contenido utilizable | 10 (más 1 de calentamiento descartado y anotado) | p90 ≤ 4 s — *propuesto, pendiente de decisión de Roderich/tutor* |
-| R2 | Guardar una compra de 2 líneas en N0, con DS-V (CU-06, RF-07) | Toque en «Guardar» | Compra visible en `/compras` | `adb shell screenrecord` y conteo de cuadros (se anota la tasa real del vídeo); `device.sh db counts` confirma 1 compra y 2 entradas por repetición | 10 | p90 ≤ 1 s — *propuesto, pendiente de decisión de Roderich/tutor* |
-| R3 | Abrir el detalle e historial del producto con más movimientos, con DS-V (CU-07, RF-10) | Toque en el producto en `/inventario` | Saldo e historial completos en `/inventario/:id` | `screenrecord` y conteo de cuadros | 10 | p90 ≤ 1,5 s — *propuesto, pendiente de decisión de Roderich/tutor* |
-| R4 | Envío de una necesidad pendiente al reconectar, en N1 (CU-11, RF-18) | Toque en «Sincronizar ahora» con la red ya restablecida | Estado «Sincronizado» visible en `/sincronizacion` | `screenrecord` para la vista del usuario; `check.sh timeline` (refresh y push con hora); `device.sh db outbox` (ACKED, mismo `operationId`); `check.sh sync` (journal 1) | 10 intenciones, ≤ 1 cada 15 s | p90 ≤ 10 s, con la línea base del túnel informada aparte — *propuesto, pendiente de decisión de Roderich/tutor* |
-| R5a | Vista Web `/colectivo/resumen` con DS-V Central (CU-13, RF-22, RF-24) | Navegación a la ruta con campaña seleccionada | Tablas de necesidad declarada y de consumo renderizadas | Script `puppeteer-core` fuera del repo, derivado de `docs/evidence/f07/walkthrough.mjs`: Navigation Timing y `performance.now()` al aparecer la tabla. Una corrida de control con el panel Performance de DevTools | 10 en frío + 10 en caliente | frío p90 ≤ 3 s; caliente p90 ≤ 1,5 s — *propuesto, pendiente de decisión de Roderich/tutor* |
-| R5b | API `GET …/collective/campaigns/:id/summary` (RF-22) | Envío de la petición | Respuesta completa | `curl -w '%{http_code} %{time_total}'`, con la credencial en una variable de entorno | 10, espaciadas | p90 ≤ 1 s en localhost — *propuesto, pendiente de decisión de Roderich/tutor* |
-| R6 | Subida del respaldo privado por tamaño (CU-14, RF-26) y descarga dentro de la restauración (CU-15, RF-27) | Toque en generar y subir en `/respaldo-remoto` / inicio de la recuperación | Confirmación del servidor con el SHA-256 verificado / copia descargada y verificada | `screenrecord` + `check.sh timeline` (`/me/backups`); bytes según el servidor; caudal = bytes ÷ tiempo | Subida: 5 por tamaño. Descarga: 3 por tamaño, **sólo después de la corrección WAL** | Todo tamaño termina sin error dentro de los límites de §1.7; 10 MB: p90 de subida ≤ 60 s en N1 — *propuesto, pendiente de decisión de Roderich/tutor* |
+**DS-V Mobile.** Lo produce `tool/f10_eval/seed_dsv_mobile.dart` (Mobile, rama de evaluación de A), con la semilla **20261016**.
+- **Cómo se carga:**
+  - se ejecuta en el host (`flutter test`, `sqflite_common_ffi`) sobre la base extraída de la copia `.f10eval` ya activada;
+  - usa `AgroRepository` (`confirmPurchase`, `confirmApplication`), con las mismas reglas de saldo, FIFO y titular que la app;
+  - la base resultante se devuelve al paquete con `run-as`, con la app detenida;
+  - es una fixture de base: **no cuenta como publicación por Sync**.
+- **Composición exacta:**
+  - **100 productos**;
+  - **300 compras**: 2 líneas cada una, fechas repartidas en los 365 días anteriores al 2026-10-16;
+  - **1 000 aplicaciones**: 1 línea cada una, cronológicamente posteriores a la compra que les da saldo;
+  - el producto **`DSV-001`** concentra la mayor cantidad de movimientos y es el objetivo de R3.
+- **Invariantes que el generador comprueba y registra:**
+  - los conteos exactos;
+  - que ningún saldo queda negativo;
+  - `PRAGMA integrity_check = ok`;
+  - que `sync_outbox` no cambia: la siembra no crea intenciones;
+  - el tamaño de la base en bytes.
+
+**DS-V Central.** Lo produce un generador versionado por la sesión B, con la semilla **20261016**.
+- **Cómo se carga:** directamente como fixture en las tablas que lee el resumen colectivo, respetando sus invariantes: una contribución vigente por Member, campaña, producto y tipo. No cuenta como Sync.
+- **Composición:**
+  - un sindicato sintético;
+  - **74 Members AGRICULTOR** sintéticos (el tamaño de la nómina, tesis §1.8.1), más cuentas sintéticas de DIRECTIVA y ADMINISTRADOR para leer;
+  - **20 productos** centrales;
+  - **2 campañas**.
+- **Distribución por campaña:**
+  - necesidad declarada por **60 de 74** Members y consumo por **45 de 74**, con 1 a 6 productos por Member;
+  - al menos **3 productos con 1–2 contribuyentes**, para ejercitar la supresión con k = 3;
+  - al menos **2 productos sin datos**, para comprobar que la ausencia no se muestra como 0.
+- **Lo que B registra:** el SHA del generador, la semilla, los conteos reales y su correspondencia con las tablas.
+
+**DS-B respaldos (R6).** Contenedores **válidos**, generados por la propia app desde la base DS-V más fotografías sintéticas de comprobante.
+- **Fotografías:**
+  - JPEG de 1600×1200, producidos de forma determinista por `tool/f10_eval/make_photos.sh` (ffmpeg, ruido con semilla fija);
+  - asociados a compras de DS-V mediante `purchases.invoice_image_path`, con el archivo en `app_flutter/invoices/`;
+  - esa asociación es parte de la fixture, no un flujo medido.
+- **Tamaños objetivo** del contenedor que mide el servidor:
+  - **S1 ≈ 1 MiB**, **S2 ≈ 10 MiB** y **S3 ≈ 50 MiB**, con una tolerancia de ±20 %;
+  - todos dentro de los límites técnicos: `BACKUP_MAX_BYTES` 100 MiB, `maxTotalBytes` 256 MiB, `maxManifestBytes` 4 MiB y 5 000 fotos.
+- **Lo que se fija antes de la primera repetición de R6** (versión 1.2; «versión 1.1» en el texto anterior):
+  - **Fotografías:** `make_photos.sh` en la rama de evaluación Mobile, con JPEG de 1600×1200, ruido 50, calidad 4 y semilla 20261016 + i. Cada foto pesa unos 0,84 MB. Los bytes y el SHA-256 de cada una están en su `SHA256SUMS`: `dsv_photo_001.jpg` pesa 836 200 B, con SHA-256 `9108597c…47bd`.
+  - **Composición:**
+
+    | Tamaño | Fotos | Bytes de las fotos | Contenedor esperado |
+    |---|---|---|---|
+    | **S1** | 1 | 836 200 B | ≈ 1,0 MiB |
+    | **S2** | 12 | 10 032 266 B | ≈ 9,8 MiB |
+    | **S3** | 62 | 51 752 775 B | ≈ 49,6 MiB |
+
+    Cada contenedor lleva además la base DS-V en su estado de ese momento, que comprimida ocupa unos 0,2 MB.
+  - **Asociación:** las fotos se asocian a las primeras compras DS-V por id con `attach_photos.py`, como fixture y con la app detenida.
+  - **Calentamiento:** el **primer envío de cada tamaño** se anota aparte y no entra en las 5 repeticiones. Da los bytes exactos que mide el servidor; los bytes de cada repetición se registran en su fila.
+  - **No se usa un archivo de relleno inválido:** el contenedor lo genera la propia app.
+
+### 1.5 Mediciones y criterios aprobados
+
+Son criterios operativos del estudio piloto, acordados antes de medir. **No son límites universales ni cifras de la SRS.**
+
+| ID | Operación | Inicio observable | Fin observable | Criterio | n |
+|---|---|---|---|---|---|
+| R1 | Arranque local sin red (N0), app activada con DS-V | Orden de arranque tras `am force-stop` (ver §1.6) | **Dashboard con datos utilizables**: tarjetas de resumen con importes y tabla de existencias con filas, sin indicador de carga | p90 ≤ 4 s | 10, más 1 calentamiento anotado aparte |
+| R2 | Guardar una compra de dos líneas sin red, con DS-V | Toque en «Guardar» | Confirmación visible (la compra aparece en la lista) **y** persistencia: +1 compra y +2 entradas en la base, comprobado después | p90 ≤ 1 s | 10 |
+| R3 | Abrir el saldo y el historial de `DSV-001` | Toque en el producto en Inventario | Saldo e historial visibles | p90 ≤ 1,5 s | 10 |
+| R4 | Sincronización iniciada por acción explícita | Toque en «Sincronizar ahora» | ACK recibido (ACKED, mismo `operationId`, journal 1) **y** estado «Sincronizado» visible | p90 ≤ 10 s; la latencia del túnel se informa aparte | 10 intenciones, una cada ≥ 60 s |
+| R5a | Resumen Web `/colectivo/resumen` con DS-V Central | Navegación a la ruta con la campaña elegida | Tablas renderizadas | frío p90 ≤ 3 s; caliente p90 ≤ 1,5 s | 10 en frío y 10 en caliente |
+| R5b | API `GET /api/v1/collective/campaigns/:id/summary` en localhost | Envío de la petición | Respuesta completa | p90 ≤ 1 s | 10, espaciadas |
+| R6 | Respaldos S1/S2/S3: subida (CU-14, RF-26) y descarga dentro de la restauración (CU-15, RF-27) | Toque en subir / toque en recuperar la copia | Confirmación del servidor con el SHA-256 / copia descargada y verificada («verificada con SHA-256») | **S2: p90 de subida ≤ 60 s** en N1. Los tres tamaños deben completarse y verificar su integridad dentro de sus límites técnicos | 5 subidas y 3 descargas por tamaño |
 
 **Notas a las mediciones:**
-- El observador actual (`observer.cjs:20`) escribe una marca ISO por respuesta, pero no la duración. Para la latencia del servidor hace falta añadirle la hora de llegada de la petición (cambio de herramienta pendiente) o usar R5b.
-- Los umbrales propuestos toman como orientación los límites de 0,1, 1 y 10 s de tiempo de respuesta percibido (Nielsen, 1993). La SRS no fija ninguna cifra.
+- **R1.** La métrica principal es la disponibilidad del Dashboard con datos.
+  - `TotalTime` de `am start -W` y el primer cuadro de Flutter se publican como **métricas auxiliares**. **El primer cuadro no se declara «Dashboard utilizable».**
+- **R4.** No se redefine como refresco automático: se conserva el contrato de verificación explícita.
+  - Cada intención se declara sin red. Después se detiene la app, de modo que el proceso no conserve acceso verificado, se restablece N1 y se abre Sincronización.
+  - Si se midiera el ciclo automático del worker, sería otra serie, con otro inicio, informada aparte.
+- **R6.** La descarga termina cuando la app muestra la copia verificada y pide confirmación.
+  - En las 3 repeticiones de medición se cancela en ese punto.
+  - La restauración completa con conteos se comprueba en M7 (§2), no en R6.
 
-### 1.6 Procedimiento
-1. Publicar el protocolo aprobado, con su fecha real, antes de la primera medición.
-2. Levantar el entorno de §0.3, sembrar DS-V Central y anotar los SHA y la semilla.
-3. Compilar e instalar sólo `.f10eval` (profile). Anotar el SHA-256 de la APK. Activar con una cuenta sintética y sembrar DS-V Mobile.
-4. Medir la línea base del túnel (N1).
-5. Ejecutar, en este orden:
+### 1.6 Instrumentos y condiciones
+- **Dispositivo A1:** POCO X5 Pro 5G `22101320G`, Android 12 (API 31), MIUI `V14.0.7.0.SMSMIXM`.
+  - Se registran `getprop` (modelo, versión, SDK, incremental), `wm size`, `wm density`, la batería (≥ 50 %, anotando si carga) y la temperatura.
+  - Las apps en segundo plano se cierran.
+- **Vídeo (R1–R4 y R6).** `adb shell screenrecord`, con `show_touches=1` durante la medición (restaurado al terminar).
+  - **Inicio:** el primer cuadro con el indicador del toque. En R1, el primer cuadro en que la pantalla cambia respecto de la de inicio del sistema tras la orden `am start`.
+  - **Fin:** el primer cuadro a partir del cual la región de la pantalla que contiene el estado final coincide con ese estado de forma estable.
+  - **Herramienta:** `tool/f10_eval/frames.py` sobre `ffprobe`/`ffmpeg`, con los tiempos de presentación reales del vídeo. Cada cuadro de inicio y de fin se comprueba visualmente y su resultado se anota.
+  - La grabación añade carga al teléfono; se declara.
+  - **R1, limitación:** el inicio en el vídeo no incluye el tiempo entre la orden y el primer cuadro de la animación de apertura. `TotalTime` se publica junto a él.
+- **Servidor y red.**
+  - **Observador** (`tool/f03_res_01/observer.cjs`): método, ruta, estado y hora de cada respuesta, sin cuerpos ni cabeceras.
+  - **Línea base del túnel:** 10 × `curl -w '%{time_total}'` desde el PC al endpoint de salud, antes y después de cada bloque N1.
+  - **Separación de tiempos.** Se separan el tiempo percibido (vídeo), la latencia local de la API y el tiempo de red. **No se resta al tiempo del teléfono la latencia medida en el PC.**
+- **Redes.**
+  - **N0:** modo avión (`device.sh net off`).
+  - **N1:** Wi-Fi local + túnel HTTPS (Cloudflare quick tunnel).
+  - En el POCO no hay forma controlada de degradar la red; se declara.
+- **Ritmo.** Las repeticiones que llaman al servidor se espacian para respetar el límite de 20 por minuto.
+- **Web (R5).** Lo hace la sesión B.
+  - Compilación de producción.
+  - **En frío:** perfil limpio, sin caché y sin service worker.
+  - **En caliente:** la misma sesión, tras una carga previa.
+  - Se registran el navegador exacto y la resolución.
+- **CSV crudos sanitizados.**
+  - Uno por medición y repetición, con: versión del protocolo, SHA de la base, SHA-256 de la APK, red, inicio y fin (s), duración (ms), cuadros de inicio y fin, resultado funcional y error.
+
+### 1.7 Procedimiento (Mobile, sesión A)
+1. Levantar el entorno de §0.4 y el túnel. Compilar la APK profile con el origen HTTPS del túnel. Anotar el SHA-256 y el `minSdk`/`targetSdk` leídos con `aapt2`.
+2. Instalar sólo `.f10eval`. Activarlo con una cuenta sintética de agricultor (flujo M1).
+3. Detener la app y extraer la base. Ejecutar el generador DS-V y devolver la base. Comprobar los conteos en el dispositivo.
+4. Hacer un ensayo de herramienta, fuera de las series. Después, en este orden:
    - R1, R2 y R3 en N0;
+   - línea base del túnel;
    - R4 en N1;
-   - R5a y R5b;
-   - las subidas de R6.
+   - R6, primero S1 (5 subidas y 3 descargas), después S2 y después S3;
+   - línea base del túnel al cerrar.
+5. Entre bloques, comprobar los conteos para detectar efectos duplicados.
+6. Al terminar: restaurar los ajustes del equipo y `stay_on` a 0; borrar las fotos sintéticas fuera del paquete; detener los servicios **conservando** el volumen. Sin `down.sh`.
 
-   Entre bloques se repite `device.sh db counts` para detectar efectos duplicados.
-6. Ejecutar las descargas de R6 sólo con la corrección del rollback WAL integrada y comprobada. Si no lo está, quedan NO EJECUTADAS.
-7. Medir la línea base del túnel al cerrar.
-8. Volver `stay_on` a 0, borrar las fotos sintéticas del teléfono y detener los servicios conservando el volumen.
+### 1.8 Criterio de resultado
+- **CUMPLE:** el p90 cumple su criterio de §1.5 **y** hubo 0 errores funcionales o de integridad en las n repeticiones.
+- **NO CUMPLE:** en cualquier otro caso. Se informa y se analiza. **No se sube el umbral para convertirlo en PASS.**
+- **R6 en S1 y S3:** CUMPLE si las 5 subidas y las 3 descargas completan y verifican su integridad dentro de los límites técnicos:
+  - en el servidor, 300 s por petición;
+  - en el cliente, 5 min por subida; para la descarga, 1 min de inactividad y un tope de 5 min más el tamaño a 16 KiB/s.
+- **100 MiB:** no es criterio. Sólo se calcula si el caudal medido lo permitiría.
 
-### 1.7 Criterio de resultado
-- **Por medición:** CUMPLE si el p90 cumple el umbral **aprobado** y no hubo errores en las n repeticiones (0 errores, propuesto). NO CUMPLE si no.
-- **Sin umbral aprobado:** la medición se informa como valor descriptivo, sin PASS.
-- **Límites técnicos del código** (no son umbrales de la SRS):
-  - el servidor corta cada petición a los 300 s (`F08_BACKUP.md`, «Limitaciones declaradas»);
-  - `BACKUP_MAX_BYTES` vale 100 MiB por defecto (`backups-config.ts:4`);
-  - en el cliente, la subida tiene 5 min en total; la descarga, 1 min de inactividad y un tope de 5 min más el tamaño a 16 KiB/s (Mobile `F08_MOBILE_RESTORE.md`).
-- **100 MB:** no se propone como criterio. Se calcula si el caudal medido alcanza los ~2,7 Mbit/s que exige.
+### 1.9 Riesgos y limitaciones
+- **Un solo modelo de teléfono, con MIUI.** No se generaliza a la gama baja.
+- **El túnel público** añade una latencia variable que no es de Agrocuentas.
+- **El Backend corre en un PC de desarrollo.**
+- **El dataset es sintético.**
+- **La APK profile** es depurable y está firmada con la clave local; el código Dart está compilado AOT, como en release.
 
-### 1.8 Riesgos y limitaciones
-- **Un solo modelo de teléfono**, con MIUI. No se generaliza a la gama baja.
-- **El túnel público** añade una latencia variable que no es de Agrocuentas. Por eso R4 y R6 se informan junto a la línea base.
-- **El Backend corre en un PC de desarrollo**, no en un servidor real. El límite de 20/min condiciona el ritmo de las repeticiones.
-- **La red degradada no es reproducible en el POCO.** El diagnóstico (CUE, tesis §3.4.3: 23 de 38 con Internet en el campo «rara vez o nunca») justifica priorizar N0, y es un dato del diagnóstico, no una medición del producto.
-- **El dataset es sintético** y su volumen es una hipótesis.
-- **Defecto conocido:** la lista de Sincronización tardaba en refrescarse tras liberar una intención (observación del E2E de F08); lo corrige MOB #93. Si se mide sin esa corrección integrada, puede inflar R4 y se anota.
-
-### 1.9 Evidencia a producir
+### 1.10 Evidencia
 - **Archivos:**
-  - Mobile `docs/evidence/F10_RENDIMIENTO_MOBILE.md` (R1–R4 y R6);
-  - Backend `docs/evidence/F10_RENDIMIENTO_CENTRAL_WEB.md` (R5).
-
-  Cada uno lleva sus CSV crudos sin datos personales.
+  - Mobile `docs/evidence/F10_RENDIMIENTO_MOBILE.md` (R1–R4 y R6), con sus CSV;
+  - Backend `docs/evidence/F10_RENDIMIENTO_CENTRAL_WEB.md` (R5), de la sesión B.
 - **Contenido:**
-  - commit SHA de cada componente, SHA-256 de la APK y modo de compilación;
-  - comandos exactos y salida resumida;
+  - SHA de cada componente y SHA-256 de la APK;
+  - comandos y salida resumida;
   - fecha y hora reales;
-  - modelo del dispositivo y versión de Android, PC y navegador;
-  - dataset y semilla, red y línea base del túnel;
-  - tabla de valores crudos, mediana, p90, máximo y errores;
-  - umbral aprobado y resultado;
+  - dispositivo, PC y navegador;
+  - dataset, semilla y red, con la línea base;
+  - valores crudos, mediana, p90, máximo y errores;
+  - criterio y resultado;
   - desviaciones del protocolo.
 
 ---
 
 ## 2. Protocolo de compatibilidad (RNF-08)
 
-### 2.1 Objetivo
-Construir la matriz que exige RNF-08: configuraciones Android y navegadores evaluados, frente al resultado de cada flujo crítico aplicable, con las versiones probadas, las limitaciones y los fallos.
-
-### 2.2 Requisitos trazados
-- **RNF-08** (Must): RU-09 y RU-13. Criterio de la SRS: «La matriz de compatibilidad identifica dispositivos/versiones/navegadores evaluados y el resultado de cada flujo crítico aplicable».
+### 2.1 Objetivo y requisitos
+- **Objetivo:** la matriz de configuraciones evaluadas frente al resultado de cada flujo crítico aplicable.
+- **RNF-08** (Must): RU-09 y RU-13.
 - **Flujos:**
   - INT-01 e INT-02;
   - RF-01, RF-07, RF-12, RF-14, RF-17, RF-18, RF-22, RF-23, RF-24, RF-26, RF-27, RF-30, RF-33 y RF-34;
   - CU-01, CU-02, CU-06, CU-07, CU-09, CU-10, CU-11, CU-12, CU-13, CU-14, CU-15 y CU-18;
   - RN-03.
-- **Escenario de la tesis:** «Extremo a extremo», «Dispositivo físico y navegador» (Tabla 3.63, §3.12.3).
 
-### 2.3 Lo que declaran las fuentes
-- **SRS.** No fija versiones de Android ni navegadores: habla de las «configuraciones Android y navegadores seleccionados para el piloto». **La selección del piloto no tiene ID en la SRS y está pendiente de decisión.**
-- **Tesis §3.4.3.**
-  - Los 38 participantes del cuestionario usan Android. Es un dato del diagnóstico que «no determina versiones mínimas de Android».
-  - «No se dispone de un inventario verificado de los equipos y navegadores que utiliza la directiva».
-- **App.** `minSdk`, `targetSdk` y `compileSdk` se delegan a `flutter.*` (`android/app/build.gradle.kts:41-54`). Con Flutter 3.47.2 (CI) valen:
-  - **minSdk 24 (Android 7.0)**;
-  - **targetSdk 36 (Android 16)**;
-  - compileSdk 36.
+### 2.2 Configuraciones seleccionadas (matriz académica con el equipo disponible)
 
-  Fuente: `C:\flutter\packages\flutter_tools\gradle\src\main\kotlin\FlutterExtension.kt:23,26,34`, en la SDK local de la misma versión. **Debe confirmarse en la APK evaluada** con `apkanalyzer manifest min-sdk`/`target-sdk` o `aapt2 dump badging`.
-- **Web.** Vite 8.0.10 sin `build.target` propio (`Web/vite.config.ts`). El objetivo por defecto es «baseline-widely-available»: Chrome 111+, Edge 111+, Firefox 114+ y Safari 16.4+ (comentario de `vite/dist/node/index.d.ts`, línea ~1993).
-
-### 2.4 Configuraciones
-
-| ID | Configuración | Tipo | Disponible hoy |
+| ID | Configuración | Procedencia | Ejecuta |
 |---|---|---|---|
-| A1 | POCO X5 Pro 5G `22101320G`, Android 12 / API 31, MIUI V14 | DEVICE | **Sí**, el único |
-| A2 | AVD `Pixel_8`, Android 16 / API 36, 1080×2400, 420 dpi (usado en la auditoría UI, Mobile `docs/46_BASELINE_FINAL_FREEZE.md`) | EMULADOR | Sí |
-| A3 | AVD con API 24 (el `minSdk`), pantalla pequeña de 360 dp de ancho | EMULADOR | Por crear |
-| A4 | Teléfono físico de gama baja o media con Android 10 u 11 y 2–3 GB de RAM (propuesto; a confirmar con los equipos reales de los participantes) | DEVICE | **No** |
-| A5 | Teléfono físico con Android 14 o posterior y una capa distinta de MIUI (p. ej., One UI o Android casi puro) | DEVICE | **No** |
-| A1-F | A1 con `font_scale` 1,3 (`adb shell settings put system font_scale 1.3`, revertido al terminar y anotado) | DEVICE | Sí |
-| B1 | Chrome estable, Windows 11, 1366×768 y 1920×1080 | Navegador | Sí |
-| B2 | Edge estable, Windows 11, mismas resoluciones | Navegador | Sí |
-| B3 | Firefox estable, Windows | Navegador | Por instalar |
-| B4 | Chrome Android, 360×800 (sólo si la Directiva consultará desde el teléfono; está por decidir) | Navegador | Opcional |
+| A1 | POCO X5 Pro 5G, Android 12 / API 31, MIUI V14 | DEVICE | A |
+| A1-F | A1 con `font_scale` 1,3 (se anota el valor previo y se restaura) | DEVICE | A |
+| A2 | AVD `Pixel_8`, Android 16 / API 36 (imagen `android-36.1;google_apis_playstore_ps16k`), ya disponible | EMULADOR | A, según la capacidad de la máquina |
+| A3 | AVD con la API del **`minSdk` real de la APK**, leído con `aapt2 dump badging` sobre la APK evaluada, y pantalla pequeña (≈ 360 dp de ancho) | EMULADOR | A. **Si no se dispone de la imagen de sistema de esa API, queda NO EJECUTADA con su causa.** No se sustituye por otra API |
+| B1 | Chrome instalado (versión exacta registrada), Windows 11, a 1366×768 y a 1920×1080 | Navegador | B |
+| B2 | Edge instalado (versión exacta registrada), mismas resoluciones | Navegador | B |
+| A4, A5 | Teléfono físico adicional | — | **NO EJECUTADAS:** no hay equipo real disponible. No se afirma compatibilidad con ellas |
 
-**Selección mínima propuesta para el piloto** (*propuesto, pendiente de decisión de Roderich/tutor*):
-- Android: A1, A2 y A3 más **un** equipo físico adicional (A4 o A5);
-- Web: B1 y B2.
+- **Un segundo teléfono físico es una ampliación deseable**, no una condición para empezar ni terminar esta matriz.
+- **No se instalan navegadores adicionales** para ampliar la tabla (B3 y B4 quedan fuera).
+- **Esta selección no afirma que estos sean los equipos de la Directiva**: ese inventario sigue sin comprobarse.
 
-### 2.5 Flujos críticos
-Cada flujo tiene un inicio y un fin observables. Es CUMPLE si se cumple la condición indicada.
+### 2.3 Flujos críticos
 
 | ID | Flujo (ref.) | Inicio → fin | CUMPLE si |
 |---|---|---|---|
-| M1 | Instalación y activación (CU-01, RF-01) | `adb install` del paquete aislado → Dashboard | Activada; `check.sh state` muestra la sesión y el registro ACTIVE = 1; la app normal sigue intacta |
-| M2 | Reapertura sin red (CU-07, RF-17, RNF-02) | `net off` + `force-stop` → existencias visibles | `device.sh db counts` igual antes y después; sin credenciales remotas |
-| M3 | Compra de 2 líneas sin red (CU-06, RF-07) | Formulario `/compras/nueva` → compra listada | 1 compra y 2 entradas; campaña según la fecha efectiva |
-| M4 | Aplicación multiproducto y rechazo por saldo (CU-09, RF-12, RN-03) | `/aplicaciones/nueva` → confirmación o rechazo | Se aplica entera, o se rechaza sin efectos parciales y con un mensaje comprensible |
-| M5 | Adjuntar una foto sintética de comprobante (RF-30) | Selector de imagen → foto asociada | Los permisos y el selector funcionan en esa versión de Android, que difiere desde Android 13 |
-| M6 | Necesidad y sincronización al reconectar (CU-10, CU-11, RF-14, RF-18) | Declarar sin red → «Sincronizado» | Pendiente → Sincronizado; journal 1 para el ID (`check.sh sync`) |
-| M7 | Respaldo: subir (CU-14, RF-26) y restaurar en el mismo paquete aislado (CU-15, RF-27) | `/respaldo-remoto` → confirmación / app restaurada | Conteos iguales y 0 push al restaurar. La restauración, sólo después de la corrección WAL |
-| M8 | Presentación (INT-01) | Pantallas de M3, M4 y M6 | Sin controles tapados por las barras del sistema (con targetSdk 36, Android 15+ impone edge-to-edge) ni textos cortados con `font_scale` 1,3 |
-| W1 | Acceso por rol (CU-02) | Login → menú | Directiva/Administrador ven el menú F07; un agricultor es redirigido (la API responde 403) |
-| W2 | Resumen por campaña (CU-13, RF-22, RF-24) | `/colectivo/resumen` → tablas | Cifras iguales al oráculo D4 (`tool/f06_d4/oracle_check.py`); cobertura «N de M»; la ausencia no se muestra como 0 |
-| W3 | Propuesta y CSV (CU-12, RF-23) | `/colectivo/propuestas` → borrador y CSV | Borrador en el historial con su huella; el CSV se descarga y abre; cantidades exactas, sin «NaN» |
-| W4 | Reconciliación (CU-18, RF-33, RF-34) | `/colectivo/reconciliacion` → historial | Asociación con motivo y confirmación; historial «anterior → nuevo» |
-| W5 | Sin conexión en la Web (INT-08; Web online-first, SRS §5.2) | Cortar la red → acción | Mensaje claro; nada se encola |
+| M1 | Instalación y activación (CU-01, RF-01) | Instalar el paquete aislado → Dashboard | Activada; sesión y registro ACTIVE en el servidor; la app normal, intacta |
+| M2 | Reapertura sin red (CU-07, RF-17, RNF-02) | N0 + `force-stop` → existencias visibles | Conteos iguales antes y después; ninguna petición |
+| M3 | Compra de 2 líneas sin red (CU-06, RF-07) | `/compras/nueva` → compra listada | 1 compra y 2 entradas; la campaña, según la fecha efectiva |
+| M4 | Aplicación y rechazo por saldo (CU-09, RF-12, RN-03) | `/aplicaciones/nueva` → confirmación o rechazo | Se aplica entera, o se rechaza sin efectos parciales y con un mensaje comprensible |
+| M5 | Foto sintética de comprobante (RF-30) | Selector → foto asociada | El permiso y el selector funcionan en esa versión de Android |
+| M6 | Necesidad y sincronización (CU-10, CU-11, RF-14, RF-18) | Declarar sin red → «Sincronizado» | **(Corregido en v1.0.)** Sin red, la intención puede quedar PENDING u OUTCOME_UNKNOWN según el acceso verificado. Lo válido es conservar la operación y su causalidad, terminar en **ACKED bajo autorización**, con journal 1 para su ID y **sin duplicar efectos**. No se exige un estado intermedio concreto |
+| M7 | Respaldo: subir (CU-14, RF-26) y restaurar en el mismo paquete (CU-15, RF-27) | `/respaldo-remoto` → app restaurada | Conteos iguales y ningún push al restaurar |
+| M8 | Presentación (INT-01) | Pantallas de M3, M4 y M6 | Sin controles tapados por las barras del sistema ni textos cortados (A1-F: `font_scale` 1,3) |
+| W1 | Acceso por rol (CU-02) | Login → menú | Directiva y Administrador ven el menú F07; un agricultor es redirigido (la API responde 403) |
+| W2 | Resumen por campaña (CU-13, RF-22, RF-24) | `/colectivo/resumen` → tablas | Cifras iguales al oráculo; cobertura «N de M»; la ausencia no se muestra como 0; supresión con k = 3 |
+| W3 | Propuesta y CSV (CU-12, RF-23) | `/colectivo/propuestas` → borrador y CSV | Borrador en el historial; CSV descargado con cantidades exactas |
+| W4 | Reconciliación (CU-18, RF-33, RF-34) | `/colectivo/reconciliacion` → historial | Asociación con motivo; historial «anterior → nuevo» |
+| W5 | Sin conexión en la Web (INT-08) | Cortar la red → acción | Mensaje claro; nada se encola |
 
-### 2.6 Procedimiento
-1. Por configuración, registrar: modelo, versión, API o nivel, capa del fabricante, `wm size`/`density`, `font_scale`, la versión exacta del navegador y la resolución.
-2. Instalar sólo el paquete aislado. Ejecutar M1–M8, o W1–W5, con el dataset D4 sintético (`tool/f06_d4/`).
-3. Con cada fallo: una captura sin barra de estado (`device.sh shot`), logcat filtrado (`logcat_scan.sh`, sin secretos) y un issue con su reproducción.
-4. En el emulador, la procedencia es `EMULADOR`. Nunca se presenta como `DEVICE`.
+### 2.4 Procedimiento
+- **Registro por configuración:** modelo, versión y API, capa, `wm size`/`density`, `font_scale`, navegador exacto y resolución.
+- **Instalación:** sólo el paquete aislado.
+- **Fallos:** captura sin barra de estado, logcat filtrado (`logcat_scan.sh`) y un issue con su reproducción.
+- **Procedencia:** en el emulador es `EMULADOR`, nunca `DEVICE`.
+- **Ejecución:** A ejecuta M1–M8 en A1 y A1-F. En A2/A3, según la capacidad de la máquina, sin ocupar el teléfono.
 
-### 2.7 Criterio de resultado
-- **Por celda** (configuración × flujo): CUMPLE, NO CUMPLE, BLOQUEADA o NO EJECUTADA.
-- **Por configuración:** «compatible» sólo si todas sus celdas aplicables CUMPLEN.
-- **Global:** RNF-08 se da por cumplido sólo para las configuraciones **seleccionadas y aprobadas** para el piloto que estén todas en CUMPLE.
-- Una configuración no evaluada no se da por compatible.
+### 2.5 Criterio de resultado
+- **Por celda:** CUMPLE, NO CUMPLE, BLOQUEADA o NO EJECUTADA.
+- **Por configuración:** compatible **sólo si pasan todos sus flujos aplicables**.
+- **RNF-08:** se informa con su alcance exacto, configuración por configuración. Si una configuración seleccionada queda sin ejecutar o falla, **no se declara cumplido globalmente** para toda la selección.
 
-### 2.8 Riesgos y limitaciones
-- **Hoy sólo existe A1 como dispositivo físico.** El PASS de F08 en una reinstalación limpia del mismo POCO no prueba otro modelo (F08_GATE, «Limitaciones»).
-- **MIUI tiene particularidades:** instalación por USB con diálogo y ahorro de batería. No se pueden atribuir a Android en general.
-- **Para cerrar la matriz faltan al menos A4 o A5 y la confirmación de los navegadores de la Directiva.** Hay que conseguirlos: con préstamo, o con los teléfonos de los participantes, sólo con su consentimiento, en un paquete aislado y desinstalándolo al terminar.
-
-### 2.9 Evidencia a producir
-- **Archivos:**
-  - Mobile `docs/evidence/F10_COMPATIBILIDAD_MOBILE.md`;
-  - Backend `docs/evidence/F10_COMPATIBILIDAD_WEB.md`.
+### 2.6 Evidencia
+- **Archivos:** Mobile `docs/evidence/F10_COMPATIBILIDAD_MOBILE.md`; Backend `docs/evidence/F10_COMPATIBILIDAD_WEB.md`.
 - **Contenido:**
-  - la matriz completa, con su procedencia;
-  - SHA, SHA-256 de la APK, `minSdk`/`targetSdk` leídos de la APK;
-  - comandos y salida resumida;
-  - fecha real;
-  - modelo de cada dispositivo y versión de cada navegador;
-  - fallos con su issue y limitaciones.
+  - la matriz y su procedencia;
+  - el SHA y el SHA-256 de la APK;
+  - `minSdk`/`targetSdk` leídos de la APK;
+  - la fecha real;
+  - los fallos con su issue;
+  - las limitaciones.
 
 ---
 
 ## 3. Protocolo de usabilidad (RNF-07)
 
-### 3.1 Objetivo
-Observar a usuarios del contexto mientras realizan tareas críticas definidas de antemano, y registrar:
-- la finalización;
-- los errores;
-- las ayudas;
-- el tiempo;
-- la percepción, con el SUS.
-
-Todo con denominadores explícitos.
-
-### 3.2 Requisitos trazados
-- **RNF-07** (Must): RU-13. Criterio de la SRS: «ejecuta tareas definidas previamente y reporta denominadores, éxito, errores/ayudas y resultados del instrumento sin convertir objetivos no medidos en PASS».
-- **Interfaces:** INT-01, INT-02 e INT-08.
-- **Tareas:**
-  - CU-06, CU-07, CU-09 y CU-10;
-  - CU-11 (RF-18; RU-16);
-  - CU-12 (RF-23), CU-13 (RF-24) y CU-18 (RF-33);
+### 3.1 Objetivo y requisitos
+- **Objetivo:** observar a usuarios del contexto mientras realizan tareas fijadas de antemano.
+- **Qué se registra:** finalización, errores, ayudas, tiempo, SEQ y SUS, con denominadores explícitos.
+- **Trazabilidad:**
+  - RNF-07 (Must), RU-13;
+  - INT-01, INT-02 e INT-08;
+  - CU-06, CU-07, CU-09, CU-10, CU-11, CU-12, CU-13 y CU-18;
+  - RF-18, RF-23, RF-24 y RF-33;
   - RN-03 y RN-18.
-- **Escenario de la tesis:** P-15 (Tabla 3.64) y §1.7.3 Tabla 1.5: tareas representativas, registro de la observación y SUS.
 
-### 3.3 Lo que no es esta evaluación
-- **Las sesiones automatizadas no son usabilidad:** pruebas de widget, `walkthrough.mjs` con Edge sin interfaz o recorridos de Claude Code.
-- **El cuestionario de caracterización** (Anexo B, CUE; 38 registros entre el 17/09 y el 04/10/2026, tesis Tabla 3.1) pertenece al **diagnóstico** (DSR, actividad 1). No se usa como medida de usabilidad ni de satisfacción con Agrocuentas.
-- **Fuera de alcance:**
-  - la voz (F09), opcional y no evaluada ahora;
-  - la activación, que la hace el facilitador para que el participante no teclee contraseñas;
-  - la restauración de respaldos.
+### 3.2 Lo que no es esta evaluación
+- **Las sesiones automatizadas no son usabilidad:** pruebas de widget, `walkthrough.mjs` o recorridos de Claude Code.
+- **El cuestionario de caracterización** (Anexo B; 38 registros, tesis Tabla 3.1) es del **diagnóstico**. No mide la usabilidad ni la satisfacción con Agrocuentas.
+- **Claude no sustituye a los participantes ni produce observaciones humanas simuladas.** Puede preparar materiales y, después, analizar datos reales anonimizados.
+- **Fuera de alcance:** la voz, la activación (la hace el facilitador) y la restauración de respaldos.
 
-### 3.4 Condiciones
-- **Móvil:**
-  - POCO A1 con el paquete aislado `.f10ux`;
-  - por cada participante: desinstalar **sólo** `.f10ux`, reinstalarlo, sembrar el dataset y activarlo con una cuenta sintética nueva (código P01, P02…).
-- **Web:** B1 o B2 en un PC del investigador, con una cuenta sintética de Directiva/Administrador (ADR-003).
-- **Datos:** el dataset D4 sintético, con nombres de producto ficticios. Incluye «Bellator» y «Belator» para la reconciliación.
-- **Red:** el facilitador controla el modo sin red con `device.sh net off|on`.
-- **Lugar:** el que acuerde el Sindicato, sin otras personas mirando la pantalla.
-- **Prueba piloto:** una sesión previa con una persona ajena al desarrollo. Sus datos se excluyen.
+### 3.3 Diseño aceptado
+- **Muestra objetivo fija:**
+  - **5 agricultores** para Móvil;
+  - **2 miembros de la Directiva** para Web, incluido el presidente con la cuenta ADMINISTRADOR con funciones de Directiva (ADR-003).
+  - **Perfiles:**
+    - experiencia digital diversa, con al menos 2 agricultores de comodidad autodeclarada 1–2 sobre 5;
+    - al menos 1 con modalidad compartida.
+  - **No se seleccionan participantes después** según si sus resultados favorecen la aplicación.
+  - Móvil y Web se analizan por separado.
+- **Piloto:** una sesión con una persona ajena al desarrollo, **fuera de la muestra final**.
+  - Si obliga a cambiar tareas o instrumento, se versiona este protocolo y se fija la versión definitiva antes de la primera sesión de la muestra.
+  - En el piloto se comprueba la comprensión del SUS en español.
+- **Facilitación:** la hace Roderich con el guion fijo.
+  - Un observador independiente es recomendable. Si no se consigue, **no se inventa**: se declaran el sesgo y que la recogida la hizo el desarrollador.
+- **Consentimiento y datos:**
+  - consentimiento informado (escrito, o verbal y anotado), con participación voluntaria y abandono libre;
+  - sólo adultos; código de participante (P01, …); sin contraseñas ni datos sensibles;
+  - los consentimientos se guardan fuera de los repositorios;
+  - sin audio ni rostros;
+  - confirmar con el tutor si Univalle exige algún trámite.
+  - **No se envían invitaciones ni mensajes en nombre de Roderich. No se fijan fechas de personas que no confirmaron.**
+- **Condiciones:**
+  - Móvil: A1 con `.f10ux`, reinstalado por participante y sembrado con el dataset sintético D4;
+  - Web: B1 o B2 con una cuenta sintética de Directiva/Administrador;
+  - la red la controla el facilitador.
 
-### 3.5 Participantes (reclutamiento **no realizado**; sin fechas)
-- **Móvil:** 5 a 8 agricultores socios (tesis §1.8.2 y Tabla 1.6), elegidos de forma intencional para cubrir:
-  - experiencia digital diversa: al menos 2 con comodidad autodeclarada de 1–2 sobre 5 (*propuesto*);
-  - al menos 1 con modalidad compartida.
-- **Web:** miembros de la Directiva. Se proponen 2–3, incluido el presidente con la cuenta ADMINISTRADOR con funciones de Directiva (ADR-003; RU-18, validado por Roderich el 15/10/2026). El número queda *pendiente de decisión de Roderich/tutor*.
-- **Perfil:** se pregunta al inicio de la sesión (comodidad 1–5 y modalidad). No se cruza con las respuestas del cuestionario de diagnóstico.
-- **Facilitador:** Roderich.
-  - **Riesgo de sesgo:** es el desarrollador. Se mitiga con un guion fijo y frases neutras.
-  - **Observador y anotador:** una persona sin rol de desarrollo, por definir.
-  - Claude Code no facilita ni observa sesiones con personas.
+### 3.4 Tareas
+**Tiempo máximo:** 5 min por tarea móvil y 4 min por tarea Web.
+- **Inicio:** cuando el facilitador termina de leer la tarjeta.
+- **Fin:** el estado observable, o cuando la persona declara que terminó o abandona.
 
-### 3.6 Ética, consentimiento y datos (tesis §1.8.3)
-1. Antes de empezar, se lee una explicación de la finalidad académica y se pide el consentimiento por escrito, o verbal y anotado.
-   - La participación es voluntaria y se puede abandonar en cualquier momento.
-   - Se evalúa la aplicación, no a la persona.
-   - Confirmar con el tutor si Univalle exige algún trámite adicional.
-2. Sólo participan adultos. No se piden contraseñas ni datos personales sensibles. Los participantes se identifican por un código.
-3. **Se conserva sólo:**
-   - el código y la categoría de perfil;
-   - los resultados por tarea (éxito, tiempo, ayudas, errores y SEQ);
-   - las respuestas SUS;
-   - los comentarios, sin datos identificativos.
-
-   Los formularios de consentimiento se guardan aparte, fuera de los repositorios.
-4. No se graban audio ni rostros. La grabación de la pantalla del teléfono, opcional, requiere un consentimiento separado y se borra al extraer las mediciones (*propuesto*).
-
-### 3.7 Tareas
-Se leen desde tarjetas. El **inicio** es cuando el facilitador termina de leer y dice «puede comenzar». El **fin** es el estado observable indicado, o cuando el participante declara que terminó o abandona. Tiempo máximo por tarea: 5 min en Móvil y 4 min en Web (*propuesto*).
-
-| ID | Tarea (ref.) | Fin observable / éxito |
+| ID | Tarea (ref.) | Éxito |
 |---|---|---|
 | T1 | «Sin Internet, registre la compra de hoy: 2 L de Glifosato Demo y 500 mL de Bellator» (CU-06) | La compra aparece con las 2 líneas, las cantidades y las unidades correctas |
 | T2 | «Registre que hoy aplicó 1 L de Glifosato Demo y 200 mL de Bellator en la parcela Norte» (CU-09) | Aplicación con las 2 líneas en la parcela correcta |
@@ -351,86 +411,73 @@ Se leen desde tarjetas. El **inicio** es cuando el facilitador termina de leer y
 | T4 | «Declare que necesitará 20 L de Glifosato Demo para esta campaña» (CU-10) | Necesidad vigente con la cantidad y la unidad correctas |
 | T5 | (El facilitador reconecta.) «¿Ya llegó su necesidad al sindicato?» (CU-11, RF-18) | Encuentra Sincronización y responde según el estado real |
 | T6 | «Registre una aplicación de 5 L de Bellator» (sólo hay menos; RN-03, INT-08) | Explica que no hay saldo suficiente y cómo continuar; nada se guarda a medias |
-| W1 | «Abra el resumen de la campaña Verano Demo y diga la necesidad declarada total de Glifosato Demo» (CU-13) | Valor correcto leído |
+| W1 | «Abra el resumen de la campaña Verano Demo y diga la necesidad declarada total de Glifosato Demo» (CU-13) | Valor correcto |
 | W2 | «¿Esa cifra incluye a todos los socios?» (RF-24, RN-18) | Identifica la cobertura «N de M» y que la ausencia no es cero |
-| W3 | «Indique que Belator es el mismo producto que Bellator» (CU-18, RF-33) | Asociación confirmada con motivo y visible en el historial |
+| W3 | «Indique que Belator es el mismo producto que Bellator» (CU-18, RF-33) | Asociación confirmada con motivo, visible en el historial |
 | W4 | «Prepare un borrador de propuesta de compra conjunta y descárguelo» (CU-12) | Borrador en el historial y CSV descargado |
-| W5 | «¿Generar ese borrador compra los productos?» (RF-23) | Responde que no, que es un borrador para decidir |
+| W5 | «¿Generar ese borrador compra los productos?» (RF-23) | Responde que no: es un borrador para decidir |
 
-### 3.8 Mediciones
-- **Éxito por tarea** (binario), con niveles de ayuda:
+### 3.5 Mediciones
+- **Ayuda predefinida por tarea:**
   - 0: sin ayuda;
   - 1: pista general («¿dónde cree que podría estar?»);
-  - 2: pista específica;
+  - 2: ayuda específica;
   - 3: el facilitador realiza el paso.
+- **Se informan por separado:**
+  - el éxito **sin ayuda** (nivel 0);
+  - el éxito con pista general (nivel 1);
+  - la ayuda específica (nivel 2);
+  - la intervención del facilitador (nivel 3);
+  - los fallos (abandono o tiempo agotado).
 
-  Se cuenta como **éxito** con nivel 0–1, como **éxito con ayuda** con nivel 2 (informado aparte) y como **fallo** con nivel 3, abandono o tiempo agotado.
-- **Tiempo en la tarea:** segundos entre el inicio y el fin, tomados con un cronómetro en la hoja de registro o con la grabación de pantalla consentida. Se informan la mediana y el rango.
-- **Errores:**
-  - acción que se aparta del camino y requiere corregirse;
-  - **error crítico:** dato guardado incorrecto sin que el participante lo note.
-- **SEQ tras cada tarea:** «En general, esta tarea fue…», de 1 (muy difícil) a 7 (muy fácil) (Sauro y Dumas, 2009).
-- **SUS al final,** sobre la app Móvil o sobre la Web según el participante. Sus 10 ítems, del 1 (totalmente en desacuerdo) al 5 (totalmente de acuerdo), en una traducción de trabajo. Antes de aplicarla, usar o contrastar una versión en español validada y publicada, y verificar esa referencia antes de citarla.
+  **El conjunto 0–1 no se llama «sin ayuda».**
+- **Errores:** desvíos que requieren corregirse. Un **error crítico** es un dato guardado incorrecto sin que la persona lo note.
+- **Tiempo por tarea y SEQ (1–7):** sólo descriptivos (mediana y rango). **No se añade** el criterio de tres veces el tiempo del desarrollador.
+- **SUS al final**, por interfaz:
+  - **Versión:** la española publicada de Sevilla-Gonzalez et al. (2020), *Spanish Version of the System Usability Scale for the Assessment of Electronic Tools: Development and Validation*, JMIR Human Factors 7(4):e21161, doi:10.2196/21161 (<https://humanfactors.jmir.org/2020/4/e21161/>).
+  - **Antes de aplicarla:** verificar los ítems y las instrucciones contra la publicación, y registrar cualquier adaptación.
+  - Su validación **no equivale** a una validación con agricultores bolivianos: la comprensión se comprueba en el piloto.
+  - **Ya no vale la traducción de trabajo del borrador.**
+- **Respuestas ausentes:**
+  - **No se ordena marcar 3** si la persona no sabe o no quiere responder. Se ofrece una aclaración neutral de la escala, sin sugerir una respuesta.
+  - Se conserva la ausencia. **Regla publicada:** un cuestionario con algún ítem sin respuesta es **incompleto**, se informa con su denominador y no entra en la media.
+  - **No se imputan puntuaciones.**
+- **Puntuación** (Brooke, 1996):
+  - a los ítems impares se les resta 1;
+  - los pares se restan de 5;
+  - la suma se multiplica por 2,5, lo que da 0–100. **No es un porcentaje.**
 
-| # | Ítem SUS |
-|---|---|
-| 1 | Creo que me gustaría usar esta aplicación con frecuencia. |
-| 2 | Encontré la aplicación innecesariamente complicada. |
-| 3 | Pensé que la aplicación era fácil de usar. |
-| 4 | Creo que necesitaría el apoyo de una persona con conocimientos técnicos para poder usar esta aplicación. |
-| 5 | Encontré que las distintas funciones de la aplicación estaban bien integradas. |
-| 6 | Pensé que había demasiada inconsistencia en la aplicación. |
-| 7 | Imagino que la mayoría de las personas aprendería a usar esta aplicación muy rápidamente. |
-| 8 | Encontré la aplicación muy engorrosa de usar. |
-| 9 | Me sentí muy seguro/a usando la aplicación. |
-| 10 | Necesité aprender muchas cosas antes de poder empezar a usar esta aplicación. |
+### 3.6 Criterios de resultado
+- **Por tarea:** CUMPLE si el éxito con ayuda de nivel 0–1 es **≥ 80 %** de quienes la intentaron (con 5 agricultores, ≥ 4 de 5; **con 2 de la Directiva, 2 de 2**) y hubo **cero errores críticos**.
+  - **Precisión v1.2 (antes de cualquier sesión):** el criterio sólo se evalúa si intentaron la tarea **todos** los participantes de la muestra planificada de esa interfaz (5 en Móvil, 2 en Web). Si no, el resultado es «NO EJECUTADA (muestra incompleta: k de N)», con los conteos visibles. **Nunca da CUMPLE con menos participantes.**
+- **SUS:** CUMPLE si la **media es ≥ 68**, como criterio operativo del estudio. No es un porcentaje de usabilidad ni una aceptación institucional.
+  - Se publican los puntajes individuales anonimizados, el n válido, la media, la mediana y el rango, por interfaz.
+- **Alcance de la muestra:** permite una evaluación **exploratoria**, no una inferencia poblacional.
+- Una tarea no ejecutada queda NO EJECUTADA.
 
-**Puntuación** (Brooke, 1996; tesis §2.9.4):
-- a cada ítem impar se le resta 1;
-- cada ítem par se resta de 5;
-- la suma se multiplica por 2,5, lo que da un valor de 0 a 100. No es un porcentaje.
-
-Si el participante no sabe qué responder, se le indica que marque 3. Un cuestionario con ítems vacíos se informa como incompleto y no entra en la media, con su denominador. Los ítems pueden leerse en voz alta si el participante lo prefiere, sin explicarlos.
-
-### 3.9 Criterio de resultado
-Todos los criterios son *propuestos, pendientes de decisión de Roderich/tutor*, y deben aprobarse antes de la primera sesión.
-- **Por tarea:** CUMPLE si la tasa de éxito con ayuda de nivel 0–1 es ≥ 80 % de los participantes que la intentaron (p. ej., 4 de 5) y no hubo **ningún** error crítico.
-- **SUS:** CUMPLE si la media es ≥ 68. Ese valor es la referencia de promedio citada en la tesis (Lewis y Sauro, 2018), no un umbral de la SRS. Con n de 5 a 8 se informan la media, la mediana y el rango, sin inferencias.
-- **Tiempo:** sólo descriptivo. Opcionalmente, ≤ 3 veces la mediana de un usuario experto (Roderich, 3 corridas por tarea).
-- Una tarea no ejecutada queda NO EJECUTADA. Los hallazgos se clasifican por gravedad y alimentan las mejoras, como dice la tesis §3.12.5.
-
-### 3.10 Riesgos y limitaciones
-- Muestra pequeña e intencional: evidencia contextual del Sindicato 19 de Agosto, no generalizable (tesis §1.8.2).
-- El participante usa un teléfono que no es suyo (POCO con MIUI).
-- El facilitador es el desarrollador.
-- Los datos sintéticos pueden resultar poco familiares.
-- La política de divulgación no está aprobada: la Web muestra cifras sólo en modo sintético provisional.
-- **Defectos conocidos que pueden afectar a T5:**
-  - el refresco tardío de la lista de Sincronización;
-  - el texto crudo `SyncQueryException(404, …)` en una resolución de conflicto (plan F05-SYNC-06, observaciones).
-
-### 3.11 Evidencia a producir
-- **Archivos:**
-  - `docs/evidence/F10_USABILIDAD.md` en Mobile (UX-01, MOB #37) y en Backend/Web (UX-02, BE #47);
-  - un CSV anonimizado.
+### 3.7 Evidencia
+- **Archivos:** `docs/evidence/F10_USABILIDAD.md` en Mobile (MOB #37) y en Backend/Web (BE #47), más un CSV anonimizado.
 - **Contenido:**
-  - la versión aprobada del protocolo y su commit;
-  - los SHA, el SHA-256 de la APK, el modelo del dispositivo y el navegador;
+  - la versión del protocolo y su commit;
+  - los SHA;
   - las fechas reales de las sesiones;
-  - n por perfil, sin nombres;
-  - tabla por tarea: denominador, éxitos, éxitos con ayuda, fallos, errores, errores críticos, tiempo y SEQ;
-  - SUS por código, con su media, mediana y rango;
-  - hallazgos por gravedad;
-  - desviaciones del protocolo.
+  - n por perfil;
+  - la tabla por tarea con sus denominadores;
+  - el SUS por código;
+  - los hallazgos por gravedad;
+  - las desviaciones.
 
 ---
 
-## 4. Pendientes antes de ejecutar
+## 4. Estado de los requisitos previos
 
-- [ ] Roderich, con el tutor si lo considera: aprobar los umbrales, los datasets, n, la selección de configuraciones del piloto y el número de participantes Web. Registrarlo en la tabla de aprobación.
-- [ ] Adaptar `build_isolated_apk.sh` al modo profile y construir el sembrador DS-V Mobile y el generador DS-V Central.
-- [ ] Añadir al observador la hora de llegada de cada petición, o aceptar R5b como la única latencia de servidor.
-- [ ] Corrección del rollback WAL integrada y comprobada, antes de R6 (descarga) y de M7 (restaurar).
-- [ ] Conseguir al menos un dispositivo físico adicional (A4 o A5) y confirmar los navegadores de la Directiva.
-- [ ] Reclutar a los participantes, preparar el consentimiento y las tarjetas de tareas y hacer la sesión piloto.
-- [ ] Issues: rendimiento BE #48, usabilidad MOB #37 y BE #47 ya existen. Decidir si se crea uno para compatibilidad (RNF-08); en este bloque no se crea.
+| Requisito previo | Estado al publicar la versión 1.0 |
+|---|---|
+| Umbrales, datasets, n, configuraciones y participantes | **Fijados** en esta versión (aprobación técnica delegada, sin ratificación del tutor) |
+| Copia de rollback con WAL | **Resuelto:** MOB #91 (`8805ae6`), con discriminación en host; la ruta modificada se comprobó en el POCO con su diario real (MOB `F10_RESTORE_DEVICE.md`). R6 y M7 (restaurar) quedan habilitados |
+| Refresco tardío de la lista de Sincronización | **Resuelto:** MOB #93 (`2f4b634`), comprobado en el POCO (caso D) |
+| Compilación profile aislada, generador DS-V Mobile, fotos y análisis de cuadros | En preparación por la sesión A (rama de evaluación Mobile). Se registran sus SHA antes de medir |
+| Generador DS-V Central y medición Web | Sesión B, rama de evaluación propia |
+| Bytes exactos de S1/S2/S3 | Versión 1.1, antes de la primera repetición de R6 |
+| Dispositivo físico adicional (A4/A5) | **No es condición.** Quedan NO EJECUTADAS |
+| Reclutamiento, consentimiento, tarjetas y piloto | Los prepara la sesión C. Los participantes los consigue Roderich; sin fechas fijadas |
