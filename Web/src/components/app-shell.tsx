@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { fmtDate } from '../lib/format';
-import { COLLECTIVE_PATHS, menuPathsFor } from '../lib/navigation';
+import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor } from '../lib/navigation';
 import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
 
 /* ══════════════════════════════════════════
@@ -330,7 +330,8 @@ export function AppShell({ title, section, actions, children }: { title: string;
   const collapsed = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [offlineQueueCount, setOfflineQueueCount] = useState(() => readOfflineQueue().length);
+  // La cola offline legacy sólo se lee con el flag de rollback (#23).
+  const [offlineQueueCount, setOfflineQueueCount] = useState(() => (legacyFarmerWebEnabled() ? readOfflineQueue().length : 0));
   const availableNav = navItemsFor(user?.role);
   const preferredMobilePaths = user?.role === 'AGRICULTOR'
     ? ['/dashboard', '/plots', '/inventory', '/applications']
@@ -349,7 +350,7 @@ export function AppShell({ title, section, actions, children }: { title: string;
     };
   }, []);
 
-  useEffect(() => subscribeOfflineQueue(setOfflineQueueCount), []);
+  useEffect(() => (legacyFarmerWebEnabled() ? subscribeOfflineQueue(setOfflineQueueCount) : undefined), []);
 
   return (
     <div className="min-h-screen bg-slate-50">

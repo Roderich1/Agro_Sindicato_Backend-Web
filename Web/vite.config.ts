@@ -11,9 +11,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Agro PWA',
-        short_name: 'AgroPWA',
-        description: 'Interfaz PWA para apoyar el trabajo diario de agricultores.',
+        name: 'Agrocuentas Directiva',
+        short_name: 'Agrocuentas',
+        // F07-WEB-01 (#23): Web online-first de Directiva/Administrador; el
+        // service worker sólo cachea el app-shell, nunca respuestas del API.
+        description: 'Vistas colectivas de la Directiva y el Administrador del sindicato (en línea).',
         theme_color: '#166534',
         background_color: '#f8faf4',
         display: 'standalone',

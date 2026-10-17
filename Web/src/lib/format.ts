@@ -1,6 +1,10 @@
 import axios from 'axios';
 
 export function extractError(err: unknown, fallback: string): string {
+  // F07-WEB-01 (#23): sin conexión no se ejecuta ni se encola nada.
+  if (axios.isAxiosError(err) && !err.response) {
+    return 'Sin conexión con el servidor. La Web no guarda operaciones para después: vuelva a intentarlo en línea.';
+  }
   if (axios.isAxiosError(err) && err.response) {
     const data = err.response.data as { message?: string | string[] } | undefined;
     if (data?.message) return Array.isArray(data.message) ? data.message.join(', ') : data.message;
