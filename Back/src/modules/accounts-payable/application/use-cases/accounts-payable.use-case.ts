@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CalendarEventStatus, PayableStatus, Prisma, PurchaseType, UserRole } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { ListPayablesQueryDto } from '../dto/list-payables-query.dto';
+import { isOwnShareView, purchaseShare } from '../../../procurement/application/joint-purchase-share';
 import { RegisterPaymentDto } from '../dto/register-payment.dto';
 
 @Injectable()
@@ -16,7 +17,7 @@ export class AccountsPayableUseCase {
       where,
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
       include: {
-        purchase: { include: { supplier: true, items: { include: { product: true } } } },
+        purchase: { include: { supplier: true, items: { include: { product: true, allocations: { select: { userId: true, quantity: true, subtotal: true } } } } } },
         responsibleUser: { select: { id: true, name: true, email: true } },
         payments: { orderBy: { paidAt: 'desc' } },
       },
@@ -101,7 +102,7 @@ export class AccountsPayableUseCase {
           status,
         },
         include: {
-          purchase: { include: { supplier: true, items: { include: { product: true } } } },
+          purchase: { include: { supplier: true, items: { include: { product: true, allocations: { select: { userId: true, quantity: true, subtotal: true } } } } } },
           responsibleUser: { select: { id: true, name: true, email: true } },
           payments: { orderBy: { paidAt: 'desc' } },
         },
@@ -223,13 +224,16 @@ export class AccountsPayableUseCase {
     updatedAt: Date;
     purchase: {
       id: string;
+      type?: PurchaseType;
       supplier: { id: string; name: string; phone: string | null };
       items?: {
         id: string;
         quantity: Prisma.Decimal;
         unitCost: Prisma.Decimal;
         subtotal: Prisma.Decimal;
+        discountAmount: Prisma.Decimal;
         product: { id: string; name: string; unit: string };
+        allocations: { userId: string; quantity: Prisma.Decimal; subtotal: Prisma.Decimal }[];
       }[];
     };
     responsibleUser?: { id: string; name: string; email: string } | null;
@@ -242,6 +246,12 @@ export class AccountsPayableUseCase {
     }[];
   }) {
     const balance = payable.totalAmount.minus(payable.paidAmount);
+    // F10-SEC-02 (#45): the debt of a legacy joint purchase shows only the
+    // responsible farmer's own share of its items, not the group's.
+    const viewer = payable.responsibleUserId;
+    const items = payable.purchase.items ?? [];
+    const share =
+      payable.purchase.type !== undefined && isOwnShareView(payable.purchase.type, viewer) ? purchaseShare(items, viewer) : null;
     return {
       id: payable.id,
       campaignId: payable.campaignId,
@@ -256,14 +266,15 @@ export class AccountsPayableUseCase {
       status: payable.status,
       createdAt: payable.createdAt.toISOString(),
       updatedAt: payable.updatedAt.toISOString(),
-      items:
-        payable.purchase.items?.map((item) => ({
+      items: (share ? share.items : items.map((item) => ({ item, quantity: item.quantity, subtotal: item.subtotal })))
+        .map(({ item, quantity, subtotal }) => ({
           id: item.id,
           product: item.product,
-          quantity: item.quantity.toString(),
+          quantity: quantity.toString(),
           unitCost: item.unitCost.toString(),
-          subtotal: item.subtotal.toString(),
-        })) ?? [],
+          subtotal: subtotal.toString(),
+        })),
+      ...(share ? { share: 'OWN' as const } : {}),
       payments:
         payable.payments?.map((payment) => ({
           id: payment.id,

@@ -6,7 +6,9 @@ import { Prisma, PurchaseType } from '@prisma/client';
  * participant subtract their own part and learn the others' (two
  * participants are enough). The share comes from the farmer's own
  * `PurchaseItemAllocation` rows, as the purchase created them; the item
- * discount is prorated with the same rule as the allocation subtotal.
+ * discount is prorated with the same rule as the allocation subtotal and
+ * rounded to 4 decimals, so the shares may differ from the group discount in
+ * the last decimal.
  */
 export interface ShareableItem {
   quantity: Prisma.Decimal;
@@ -25,9 +27,11 @@ export function itemShare<T extends ShareableItem>(item: T, viewerId: string) {
   if (own.length === 0) return null;
   const quantity = own.reduce((total, allocation) => total.plus(allocation.quantity), new Prisma.Decimal(0));
   const subtotal = own.reduce((total, allocation) => total.plus(allocation.subtotal), new Prisma.Decimal(0));
+  // The prorated discount is shown with 4 decimals (the precision of the
+  // amounts this API accepts); an exact division can be periodic.
   const discountAmount = item.quantity.isZero()
     ? new Prisma.Decimal(0)
-    : item.discountAmount.mul(quantity).div(item.quantity);
+    : item.discountAmount.mul(quantity).div(item.quantity).toDecimalPlaces(4, Prisma.Decimal.ROUND_HALF_UP);
   return { item, quantity, subtotal, discountAmount };
 }
 
