@@ -149,3 +149,29 @@ Esas bases quedan en el volumen y no son evidencia.
 - **Transporte.** El origen HTTPS se reescribe al Backend local en el transporte de prueba: aquí no se ejercita TLS. La ruta física sí usó HTTPS.
 - **Fork entre instalaciones.** No se reproduce en este dataset. Lo cubren la suite adversarial F05 (D2) y `f06-coll-05-collective-aggregate.postgres.spec.ts`.
 - **Política.** La divulgación usa la política provisional k = 3 (F07-POL-01 pendiente). Sin `provisional-synthetic`, el Backend no devuelve cifras.
+
+## Regresión sobre e2263b0 + ce5678f (2026-10-17)
+
+Pedida por la sesión A para GATE-F06 (#22). No es una prueba de F10. **La corrida de 2026-10-16 de arriba se conserva tal cual**, sobre BE `3c01a16` y MOB `5e7ed78`.
+
+**Estado: NO COMPLETADA.** No hay resultado que informar.
+
+**Entorno:**
+- Backend `e2263b04d96dd9f049a92046a45232af847ce0da`: `dist` y seed compilados en un worktree limpio.
+- Mobile `ce5678f89449453c60c3f1889cd6e973f09f6548`, worktree limpio.
+- Contenedor nuevo y aislado `agro_b_f06reg_pg` (`postgres:16-alpine`, `127.0.0.1:55460`, volumen `agro_b_f06reg_pgdata`), con bases nuevas `agro_f06reg_e1` (host) y `agro_f06reg_poco`, y API en 3210/3211.
+- No se tocaron `agro_f06d4_pg`, `agro_a_f10eval_pg`, `agro_a_f10int_pg` ni ninguna base conservada.
+
+**Comando:** `tool/f06_d4/up.sh && tool/f06_d4/reconcile.sh` del worktree Mobile, ejecutados desde una copia en la que sólo cambian, en `config.sh`, el contenedor, el volumen, la base y los puertos.
+
+**Lo que ocurrió:**
+- **13:47:44–13:49:29Z:** `up.sh` OK. 11 migraciones por base; seed de 12 agricultores; catálogo F06; las dos API respondieron `health` 200.
+- **13:49:31Z:** `reconcile.sh` rotó las contraseñas y empezó la ejecución 1 de `test/f06_reconciliation_integration_test.dart` (impresa «E2E F06: ejecución 1»).
+- Poco después, **Claude Code detuvo el proceso porque el sistema se quedó sin memoria**. No es un fallo de la prueba ni del código.
+- **Después:** se detuvieron las API y el contenedor, conservando el volumen.
+
+**Pendiente:**
+- volver a ejecutar en una base nueva (`F06_DB_HOST` distinto) cuando haya memoria y sin otra carga pesada;
+- registrar aquí el comando, los SHA y el resultado por celda;
+- registrar las diferencias de cobertura que cabe esperar por #126 (H2: `members_with_contribution` cuenta sólo los Members en cifras publicadas).
+

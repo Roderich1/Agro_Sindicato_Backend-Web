@@ -36,7 +36,7 @@
   - el número de Members distintos que aportan;
   - `data_as_of` (última aceptación central de las aportaciones de esa cifra);
   - `released_at` y `pending_changes`.
-- **Por campaña:** la cobertura `linked_members` (agricultores activos del tenant) y `members_with_contribution`.
+- **Por campaña:** la cobertura `linked_members` (agricultores activos del tenant) y `members_with_contribution`. *Cambio del 2026-10-17 (PR #126):* `members_with_contribution` cuenta sólo los Members dentro de cifras publicadas, y se añade `suppressed_cells` (booleano, sin conteo). Cada borrador guarda `coverage.basis` (`PUBLISHED_FIGURES` o, en los anteriores, `ALL_CONTRIBUTORS`).
 - **Nunca se publica:**
   - el aporte de un agricultor ni una lista de quién aportó;
   - identidades de Member, Account o clientId;
@@ -68,7 +68,7 @@ Propuesta: **k = 3 Members distintos** por celda.
 | R6 | **Asociaciones** | Una asociación nueva o corregida cambia la composición de las celdas canónicas. Se trata con R3 y R4: entra o sale una aportación, no hay atajo. Un Member que mueve su valor entre alias de la misma celda no cambia su suma. Las celdas que desaparecen al agrupar retiran su cifra. |
 | R7 | **Desbordamiento** | Un total por encima de int64 nunca se trunca: la celda muestra `OVERFLOW` y retira la cifra anterior. |
 | R8 | **Todos los canales** | JSON y CSV salen de la misma decisión. Toda salida futura (Web F07, reportes, **propuesta de compra conjunta**) consume estas respuestas: no recalcula, no guarda ni sirve cifras por otro camino, y no incluye cantidades de celdas suprimidas. |
-| R9 | **Presentación** | Toda cifra se muestra con la campaña (filtro aplicado), `data_as_of` y la cobertura («N de M agricultores aportaron»). Nunca se presenta como el total del sindicato. |
+| R9 | **Presentación** | Toda cifra se muestra con la campaña (filtro aplicado), `data_as_of` y la cobertura («N de M agricultores aportaron»). Nunca se presenta como el total del sindicato. *Cambio del 2026-10-17 (PR #126):* la cobertura dice «N de M agricultores vinculados **con cifras publicadas**» y, si alguna celda no tiene cifra, lo avisa sin conteo (`suppressed_cells`). En un borrador anterior (`coverage.basis = ALL_CONTRIBUTORS`) se rotula «habían aportado datos en esa fecha (regla anterior a F10-SEC-02)». |
 
 ## 5. Casos resueltos
 
@@ -94,7 +94,7 @@ Propuesta: **k = 3 Members distintos** por celda.
 ## 6. Señales que quedan y se aceptan
 
 - Un `pending_changes` o una retirada revela que *algo* cambió en la celda, no cuánto.
-- `members_with_contribution` revela cuántos agricultores aportaron en la campaña, no qué ni cuánto.
+- `members_with_contribution` revela cuántos agricultores aportaron en la campaña, no qué ni cuánto. *Desde el 2026-10-17 (PR #126):* revela sólo cuántos están dentro de cifras publicadas; `suppressed_cells` revela que hay alguna celda sin cifra, no cuántas ni cuántos aportantes.
 - `data_as_of` revela la hora de la última aceptación de las aportaciones de la cifra.
 
 ## 7. Decisiones técnicas delegadas (2026-10-16)

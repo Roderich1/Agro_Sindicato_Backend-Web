@@ -70,3 +70,23 @@ La adoptó la sesión de Claude Code, bajo la delegación de Roderich Rendón (`
 
 - Web de F07 (#23–#25).
 - Revisión de privacidad de F10-SEC-02 (#45).
+
+## Actualización 2026-10-17 (sesión B, para la decisión de Roderich)
+
+**Sólo actualiza el estado.** Los dictámenes de arriba se conservan como se evaluaron sobre `3c01a16` / `5e7ed78`, y el gate sigue **Pending**. Las frases afectadas de arriba se leen así:
+
+| Texto de arriba | Estado al 2026-10-17 |
+|---|---|
+| «Base evaluada (aún sin fusionar)» | Backend #110 y Mobile #86 están fusionados. `main` actual: BE `e2263b0`, MOB `ce5678f` |
+| «La revisión de la política (F10-SEC-02) está en un PR aparte, sin fusionar» | Fusionada: #118 (rutas heredadas), #126 (proyección, salidas y regla de combinaciones; `e2263b0`). Revisión independiente de A: LISTO en `8069971` |
+| «Pendiente (ADR-003): los endpoints heredados… no se revisaron» | Revisados y corregidos en #118 y #126 (`F10_SEC_02_ROUTES.md` y `F10_SEC_02_PROJECTION.md`). Siguen las PHASE 6–9 de #81 (bloqueo y retirada de escrituras legacy) |
+| Criterio 5: «cobertura 3 de 12» | Era la semántica anterior. Desde #126, `members_with_contribution` cuenta **sólo los Members dentro de cifras publicadas**, y `suppressed_cells` avisa sin conteo (contrato F06 §5 y política R9, notas del 2026-10-17). En la D4, un agricultor que sólo aportara a celdas suprimidas ya no se contaría. La regresión que lo comprueba sobre `e2263b0` + `ce5678f` está en `F06_RECONCILIATION.md` («Regresión sobre e2263b0 + ce5678f») |
+| Criterio 6: «La Web de F07 no existe todavía» | Existe: F07 #116 (`71460bf`). Consume sólo `/summary` y la propuesta, sin cantidades individuales (`F07_WEB.md`). Desde #127 (pendiente de integrar), un AGRICULTOR no recibe menú ni datos en la Web |
+| Criterio 4: restaurar no publica (sólo pruebas de host) | **También en dispositivo:** caso C35 de Mobile `F10_RESTORE_DEVICE.md` (2026-10-16, POCO X5 Pro 5G, APK de MOB `2f4b634`). La intención restaurada quedó `RESTORE_PAUSED`, sin ningún push al restaurar y con 0 peticiones en 80 s tras reabrir. Lo ejecutó la sesión A; un solo modelo de teléfono |
+
+**Lo que sigue sin cambiar el gate:**
+- **Política F07-POL-01 (#107):** sin decisión para datos reales; ver `F07_POL_01_PAQUETE_DECISION.md` (PR #128).
+- **Divulgación real:** sigue cerrada (`POLICY_PENDING` en producción).
+- **Datos:** la evidencia es sintética.
+- **Revisiones:** no hay revisión personal de Roderich ni del tutor.
+
