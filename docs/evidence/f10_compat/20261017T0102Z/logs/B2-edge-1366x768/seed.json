@@ -1,16 +1,16 @@
 {
-  "tenantA": "61af143d-62af-461d-a7db-1d79f622296e",
-  "tenantB": "587330ca-804e-46f0-a5ac-2f3ece0c9bc3",
+  "tenantA": "61af143d",
+  "tenantB": "587330ca",
   "campaigns": {
-    "C1": "9185529e-4c10-4eea-80f4-a819fafb08b5",
-    "C2": "f68a46fa-6b51-4931-827f-b6e8415e24ea"
+    "C1": "9185529e",
+    "C2": "f68a46fa"
   },
   "products": {
-    "Belator": "b0df4fae-ade7-4c23-8070-d08d55a9d46d",
-    "Bellator": "4c0940f5-b0b9-40a6-924a-4a34010e98d3",
-    "Glifosato F06": "7c83143d-456b-4a4e-acef-57bafca0044f",
-    "Urea F06": "cb347ba0-bed5-4a86-97cc-575f3db7b5bb",
-    "Mancozeb F06": "38b39c44-6a13-4cc2-9b5e-bb1fd8da3bf5"
+    "Belator": "b0df4fae",
+    "Bellator": "4c0940f5",
+    "Glifosato F06": "7c83143d",
+    "Urea F06": "cb347ba0",
+    "Mancozeb F06": "38b39c44"
   },
   "pushes": 27
 }

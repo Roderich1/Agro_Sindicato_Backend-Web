@@ -22,9 +22,9 @@ Medición técnica de la sesión B, del 2026-10-17 (UTC), según el protocolo ap
 |---|---|
 | Código medido | Backend y Web **`ed069a695eb9f8bdc318bfd16efc0071fcdced25`** (base congelada por A). La rama de evaluación no cambia `Back/src`, `Web/src` ni `Back/prisma` (diff vacío, registrado en `env.txt`) |
 | Herramientas | `21e41e0` en la rama `feat/f10-eval-central-web`: `tool/f10_eval_web/run-r5.sh`, `r5.mjs` y `Back/scripts/f10-dsv-central-seed.cjs` |
-| Backend | Compilado (`node Back/dist/main.js`), con las 10 migraciones aplicadas sobre una base nueva |
+| Backend | Compilado (`node Back/dist/main.js`), con las 10 migraciones aplicadas sobre una base nueva. **Procedencia de `Back/dist`:** `npm ci && npx prisma generate && rm -f tsconfig.build.tsbuildinfo && npm run build` en `_wt/F10-EVAL-B`, con el código de `ed069a6`; 495 archivos escritos entre 2026-10-17 00:35:37 y 00:35:40Z; huella del árbol (SHA-256 de la lista ordenada de `sha256sum` de sus archivos) `60e52e33af77ed7c343d5ac0dfac0480994ab450b43f5bda5455f8d186536b1e`. No se recompiló antes de las series |
 | PostgreSQL | 16.13 en el contenedor propio `agro_b_f10eval_pg` (127.0.0.1:55450), imagen `postgres:16-alpine` `sha256:4e6e670bb069649261c9c18031f0aded7bb249a5b6664ddec29c013a89310d50` |
-| Web | Compilación de producción (`tsc -b && vite build`), servida con `vite preview` 8.0.10 en 4176; el proxy `/api` apunta a la API en 3122 |
+| Web | Compilación de producción (`tsc -b && vite build`), servida con `vite preview` 8.0.10 en 4176; el proxy `/api` apunta a la API en 3122. **Procedencia de `Web/dist`:** `npm ci && npm run build` en `_wt/F10-EVAL-B` (código de `ed069a6`), terminado a las 00:36:01Z; 20 archivos (los de `public/` conservan la fecha de origen, 00:26:08Z); huella del árbol `8a61f5f448191207a36855102c5ac924b076d973fab809025fd84e9fc50244a0` |
 | Navegador de R5a | Chrome 155.0.8059.82, headless, a través de puppeteer-core 25.12.0 |
 | Node | v25.9.0 |
 | PC | Intel i7-13700HX (16 núcleos, 24 hilos), 23,7 GB de RAM, Windows 11 Home 10.0.26200 |
@@ -72,7 +72,10 @@ Medición técnica de la sesión B, del 2026-10-17 (UTC), según el protocolo ap
 - **Navegador:** Chrome headless con un perfil nuevo. El inicio de sesión por la interfaz no se mide.
 - **Inicio:** la navegación a `/colectivo/resumen?campaign=<C1>`.
 - **Fin:** el primer `requestAnimationFrame` en que las regiones «Necesidad declarada» y «Consumo» tienen filas, medido con `performance.now()` relativo al inicio de la navegación.
-- **Frío:** antes de cada repetición se borran la caché HTTP (`Network.clearBrowserCache`), el service worker y Cache Storage (`Storage.clearDataForOrigin`). La cookie de sesión se conserva.
+- **Frío:** antes de cada repetición se borran la caché HTTP (`Network.clearBrowserCache`), el service worker y Cache Storage (`Storage.clearDataForOrigin`).
+  - **Desviación declarada:** se usa un único perfil de navegador por corrida, no uno por repetición. Se limpian por repetición la caché HTTP, el service worker y Cache Storage; **se conservan la cookie de sesión, localStorage e IndexedDB**. El inicio de sesión no forma parte de lo medido.
+  - **`sw_controlled = true` en las 10 repeticiones en frío.** La Web registra su service worker con `vite-plugin-pwa` (`registerType: 'autoUpdate'`). Workbox lo genera con `skipWaiting` y `clients.claim`, de modo que el service worker recién instalado durante la carga toma el control de la página antes del final medido (≈ 380 ms). La columna se lee al final de la repetición, no al inicio de la navegación.
+  - **Límite:** no se registró `workerStart` ni el origen de la respuesta de navegación. **No hay prueba directa** de que la navegación no la sirviera un service worker. Lo respaldan el borrado previo del service worker por CDP y que `response_end_ms` en frío (3–34 ms) no difiere del caliente de forma interpretable en localhost. El veredicto no cambia, porque el umbral en frío es de 3 s.
 - **Caliente:** sin borrar nada.
 - **Calentamientos:** 1 por fase, aparte (frío 425,5 ms; caliente 381,1 ms).
 - **Ritmo:** repeticiones espaciadas 5 s, y 61 s entre fases para respetar el limitador.
@@ -109,9 +112,10 @@ Medición técnica de la sesión B, del 2026-10-17 (UTC), según el protocolo ap
 | `r5b.json` | `a4901cc6868ac87370e857acfae96055b1cfefcd4c15398c66aa692453fa05ec` |
 | `r5a-chrome-cold.json` | `d513610a647a4e0c011446a3a04924cfe6c310d0c2361ae38c613b78fc8e66c6` |
 | `r5a-chrome-warm.json` | `35d3171aaf71cb4dd621a3f737f583fb83fa8217dc91646bf788ea96c1e55a75` |
-| `dataset.json` | `d9b869116998a16bd00a34a71057a8093460783563f80991aa659e8a632976ea` |
+| `dataset.json` (UUID enmascarados a 8 hex, sin correos; ver §7) | `f3a5d949307c1f80b6c4244c59c4fbb40d4b055764aecf1a703eb3c45e6fa50c` |
+| `api-errors-summary.txt` | `1121ac00d05ff43584379522f47aae6b1b44083625e17fc32c022f644d782951` |
 
-**Logs de la API** (`logs/api.log`):
+**Logs de la API.** `logs/api.log` **no se publica** (`*.log` está en `.gitignore`; contiene la IP local). Su resumen sin identificadores está en `f10_r5/20261017T0052Z/api-errors-summary.txt`:
 - 1 respuesta 401 de `/auth/refresh`, al cargar la página de login sin cookie, como se espera;
 - 0 respuestas 429;
 - ninguna petición con error en las series.
@@ -123,7 +127,7 @@ Se conservan como antecedente y no se mezclan con la aceptación:
 | Hora (UTC) | Qué | Motivo y resultado |
 |---|---|---|
 | 2026-10-17 00:36 y 00:45 | Ensayos del generador: dos siembras v1 (semilla de prueba, 00:36) y dos v1.1 (semilla 20261016, 00:45), en bases `dsv_ensayo_*` | **Ensayo de herramienta:** reproducibilidad de la huella, igual en las dos siembras de cada versión; sin mediciones |
-| 00:38 y 00:46 | `run-r5.sh … ensayo` (2 repeticiones por serie) | **Ensayo de herramienta,** antes de la versión aprobada del protocolo y del commit de las herramientas; resultados en el scratchpad, sin usar |
+| 00:38 y 00:46 | `run-r5.sh … ensayo` (2 repeticiones por serie) | **Ensayo de herramienta,** antes del commit de las herramientas (`b55d310`, 00:51:39Z). El de 00:38 fue anterior al protocolo v1.1 (00:44:18Z); el de 00:46, posterior. Resultados en el scratchpad, sin usar |
 | **00:51:49** | Primer intento de aceptación | **Abortado antes de medir:** con una ruta de salida relativa, la migración falló (`No such file or directory`). No se ejecutó ninguna repetición. Se corrigió en `21e41e0` (ruta absoluta) y se relanzó a las 00:52 |
 
 ## 6. Limitaciones
@@ -138,3 +142,12 @@ Se conservan como antecedente y no se mezclan con la aceptación:
   - la cobertura con celdas suprimidas.
 
   Su arreglo cambia el cálculo del resumen. **Esta serie se conserva tal cual, sobre `ed069a6`.** A decidirá si hay una base nueva y si se repite R5; esa serie se etiquetará aparte.
+
+## 7. Saneado de lo publicado (§0.9)
+
+Corrección del 2026-10-17, tras la revisión de A.
+- Los UUID completos de los archivos publicados (`dataset.json` y, en la compatibilidad, `compat.json`, `seed.json` y los CSV descargados, nombre y contenido) se enmascaran a sus 8 primeros hex.
+- Se retiraron los correos de las cuentas sintéticas de `dataset.json`.
+- Las huellas del dataset (`dataset_sha256`) y del generador no cambian; sólo cambia la huella del archivo `dataset.json`, actualizada en la §4.
+- Los valores medidos y los CSV de las series no contenían identificadores y no se tocaron.
+

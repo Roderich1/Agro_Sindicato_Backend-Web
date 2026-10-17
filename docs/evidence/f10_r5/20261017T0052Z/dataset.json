@@ -35,10 +35,10 @@
     "quantityMaxSteps": 80,
     "threshold": 3
   },
-  "tenant": "b40f1284-bea6-4d80-ac8b-0c2ef2a4a2a3",
+  "tenant": "b40f1284",
   "campaigns": {
-    "C1": "a7479864-8fd2-4642-90f6-7c3342aafc55",
-    "C2": "b8be3abf-88cd-4067-bf11-a35a05a1cdd3"
+    "C1": "a7479864",
+    "C2": "b8be3abf"
   },
   "counts": {
     "farmers": 74,
@@ -131,8 +131,5 @@
       ]
     }
   ],
-  "accounts": {
-    "directiva": "directiva@dsv.example.test",
-    "administrador": "presidente@dsv.example.test"
-  }
+  "masking": "UUID enmascarados a sus 8 primeros hex; correos de las cuentas sintéticas retirados (F10, §0.9)"
 }

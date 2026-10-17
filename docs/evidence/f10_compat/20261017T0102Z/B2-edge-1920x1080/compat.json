@@ -119,7 +119,7 @@
       "flow": "W3",
       "name": "CSV: Urea 25000 G exactos y sin NaN",
       "ok": true,
-      "detail": "2,811ffc50-8274-4661-9613-c112bee77f7a,Urea F06,G,KG,DISCLOSED,25000,25,3,2026-10-17T01:10:08.084Z,2026-10-17T01:10:22.905Z,false"
+      "detail": "2,811ffc50,Urea F06,G,KG,DISCLOSED,25000,25,3,2026-10-17T01:10:08.084Z,2026-10-17T01:10:22.905Z,false"
     },
     {
       "flow": "W5",

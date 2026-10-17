@@ -14,7 +14,12 @@ Evaluación técnica de la sesión B, del 2026-10-17 (UTC), según el protocolo 
 - **Comprobaciones:** 30 por configuración, todas cumplen (W1 5, W2 10, W3 3, W4 9, W5 3); el detalle está en `compat.json`.
 - **Navegadores:** sólo los instalados; no se añadieron otros (B3 y B4 quedan fuera del protocolo).
 - **Equipos de la Directiva:** esta selección no afirma que sean los suyos; ese inventario sigue sin comprobarse.
-- **Alcance de RNF-08:** cumplido en lo Web sólo para estas cuatro configuraciones. La matriz Mobile (A1, A1-F, A2, A3) la ejecuta A, y lo no ejecutado no se declara compatible.
+- **Resultado por configuración** (§2.5: compatible sólo si pasan todos sus flujos aplicables):
+  - B1 Chrome 155.0.8059.82 a 1366×768: compatible;
+  - B1 Chrome 155.0.8059.82 a 1920×1080: compatible;
+  - B2 Edge 155.0.4283.45 a 1366×768: compatible;
+  - B2 Edge 155.0.4283.45 a 1920×1080: compatible.
+- **RNF-08** se informa así, configuración por configuración, y no se declara cumplido globalmente desde este documento. La matriz Mobile (A1, A1-F, A2, A3) la ejecuta A, y una configuración no ejecutada o fallida no es compatible.
 
 ## 2. Flujos y lo que comprueba cada uno
 
@@ -38,10 +43,11 @@ Evaluación técnica de la sesión B, del 2026-10-17 (UTC), según el protocolo 
 
 **Versiones:**
 - **Código evaluado:** Backend y Web `ed069a695eb9f8bdc318bfd16efc0071fcdced25`. La rama de evaluación no cambia `Back/src`, `Web/src` ni `Back/prisma`.
+- **Compilados:** los mismos `Back/dist` y `Web/dist` que R5 (procedencia y huellas del árbol en `F10_RENDIMIENTO_CENTRAL_WEB.md` §2).
 - **Configuración:** igual que R5. `NODE_ENV=development` y `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`, porque F07-POL-01 no está aprobada; es la desviación declarada en el protocolo v1.1 §0.4. `COOKIE_SECURE=false`. El limitador sigue a 20/min.
 - **Sistema:** Windows 11 Home 10.0.26200.
 
-**Logs de la API** (`logs/<configuración>/api.log`), sólo respuestas esperadas:
+**Logs de la API.** `logs/<configuración>/api.log` **no se publica** (`*.log`; contiene la IP local). Su resumen sin identificadores está en `logs/<configuración>/api-errors-summary.txt`. Sólo hay respuestas esperadas:
 - 401 de `/auth/refresh` al abrir el login sin cookie;
 - un 403 por configuración: el del agricultor en W1;
 - 0 respuestas 429.
@@ -55,16 +61,18 @@ Evaluación técnica de la sesión B, del 2026-10-17 (UTC), según el protocolo 
 **Por configuración** (`docs/evidence/f10_compat/20261017T0102Z/<configuración>/`):
 - `compat.json`, con cada comprobación y su detalle;
 - 5 capturas: `W1-agricultor`, `W2-resumen`, `W3-propuesta`, `W4-reconciliacion` y `W5-sin-conexion`;
-- el CSV descargado (`downloads/`).
+- el CSV descargado (`downloads/propuesta-<8 hex>.csv`).
+
+**Saneado (§0.9, corrección del 2026-10-17):** los UUID completos de `compat.json`, `logs/*/seed.json` y los CSV descargados (nombre y contenido) se enmascararon a sus 8 primeros hex, por eso las huellas de `compat.json` son nuevas. Los resultados no cambian.
 
 Las capturas se revisaron: sólo hay datos sintéticos.
 
 | `compat.json` | SHA-256 |
 |---|---|
-| `B1-chrome-1366x768` | `7bb84b10dd145f8a3344d9279d3339ac34f7c9e4ff712ef0c9d5c457cb8a557d` |
-| `B1-chrome-1920x1080` | `3eb37b270bc843b13010f3a989c1b1ca196694bf47d70ac18e9a9f2190e32a81` |
-| `B2-edge-1366x768` | `aeb7c473c0c427a968d080b48fdec8c2a70ddb4039758b4cba6c4d5469087760` |
-| `B2-edge-1920x1080` | `e518944a2e89ec0eb4435d235829aa3005310fd92737de1a9d22645e6868de9c` |
+| `B1-chrome-1366x768` | `6c42c7777306f081e0dd625d213961bf665b4eb18456843ec90c84ccf2a3cfe0` |
+| `B1-chrome-1920x1080` | `c2fbc65b8138a5c63f2573e5c30461ff30b7ccca9c479c788a6e5a3d27c3381f` |
+| `B2-edge-1366x768` | `25d3be248d0765a2033ec88a82c70a9687d65139e8fb92a5dee4f4c55b18c95f` |
+| `B2-edge-1920x1080` | `c07cf81cb2467eb2eaf3c54d391a1db395066ed1693baa6eb6820971f61966ac` |
 
 ## 5. Limitaciones y observaciones
 

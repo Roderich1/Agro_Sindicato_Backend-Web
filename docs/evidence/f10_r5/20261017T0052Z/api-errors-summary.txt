@@ -1,0 +1,4 @@
+# Respuestas de error registradas por la API (HttpExceptionLoggingFilter).
+# Resumen sin identificadores ni IP; el log completo no se publica (*.log).
+1 401 POST /api/v1/auth/refresh
+429_total=0
