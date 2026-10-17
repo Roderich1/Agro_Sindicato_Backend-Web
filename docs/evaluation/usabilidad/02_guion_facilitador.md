@@ -4,7 +4,7 @@
 
 **Claude Code no facilita ni observa sesiones** ni produce observaciones humanas.
 
-**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.1** (BE PR #122, commit `7581af2`, pendiente de integrar). En cada sesión se anota el SHA de `main` donde quede integrado. Las reglas que este guion añade al protocolo (ayuda a los 60 s, `INCORRECTA` = fallo, doble marca en el SUS = vacía, pregunta «¿Dejó alguna sin marcar a propósito?») son **precisiones propuestas**: se confirman en el piloto y se registran en el protocolo (`README.md`, «Precisiones»). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
+**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.2** (BE PR #122, commit `9292425`, pendiente de integrar). En cada sesión se anota el SHA de `main` donde quede integrado. Las reglas que este guion añade al protocolo (salvo P-5, ya incorporada en v1.2 §3.6) (ayuda a los 60 s, `INCORRECTA` = fallo, doble marca en el SUS = vacía, pregunta «¿Dejó alguna sin marcar a propósito?») son **precisiones propuestas**: se confirman en el piloto y se registran en el protocolo (`README.md`, «Precisiones»). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
 
 Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo tono para todas las personas.
 
@@ -71,7 +71,7 @@ Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo
 4. **Ayudas.** Sólo si la persona la pide o lleva **60 s** sin avanzar. Siempre en este orden, y anotando la ayuda **más alta** usada:
    - **Nivel 1 — pista general:** «¿Dónde cree que podría estar?»
    - **Nivel 2 — pista específica:** la frase predefinida de la tarea (§6), sin cambiarla.
-   - **Nivel 3 — el facilitador hace el paso.** Se registra como **intervención del facilitador**: no es éxito y se informa aparte de los fallos (protocolo v1.1 §3.5). **Prevalece** sobre el resultado: aunque después se termine o se abandone, cuenta como intervención.
+   - **Nivel 3 — el facilitador hace el paso.** Se registra como **intervención del facilitador**: no es éxito y se informa aparte de los fallos (protocolo v1.2 §3.5). **Prevalece** sobre el resultado: aunque después se termine o se abandone, cuenta como intervención.
 5. Si la persona dice «terminé», no se le confirma si está bien ni mal. El resultado se anota en la hoja.
 6. Inmediatamente, la pregunta SEQ (`05_cuestionario_SEQ.md`). Si no quiere responder, se deja en blanco.
 7. Anotar los **errores**:

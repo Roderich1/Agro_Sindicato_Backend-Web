@@ -11,7 +11,7 @@ de calcular y no descarta fallos. Ante datos inválidos se detiene sin informe
 parcial: cabeceras incompletas, valores fuera de rango, combinaciones
 imposibles o filas que faltan.
 
-Reglas (protocolo F10 v1.1 §3.3–§3.6; precisiones de `../README.md`):
+Reglas (protocolo F10 v1.2 §3.3–§3.6; precisiones de `../README.md`):
 
 - El piloto (`es_piloto=si`) no es un resultado: se excluye y sólo se cuenta.
 - Móvil (T1–T6) y Web (W1–W5) se informan por separado.
@@ -49,7 +49,7 @@ TASKS = {
     'MOVIL': ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'],
     'WEB': ['W1', 'W2', 'W3', 'W4', 'W5'],
 }
-#: Muestra planificada (decisiones de cierre §2; protocolo v1.1 §3.3).
+#: Muestra planificada (decisiones de cierre §2; protocolo v1.2 §3.3).
 PLANNED = {'MOVIL': 5, 'WEB': 2}
 PROFILE_FOR = {'MOVIL': 'AGRICULTOR', 'WEB': 'DIRECTIVA'}
 MODALITIES = {'INDIVIDUAL', 'COMPARTIDA'}
@@ -299,7 +299,7 @@ def describe(values: list) -> str:
 
 
 def profile_line(people: list[Participant], interface: str) -> str:
-    """n por perfil (protocolo v1.1 §3.3 y §3.7)."""
+    """n por perfil (protocolo v1.2 §3.3 y §3.7)."""
     low = sum(p.comfort <= 2 for p in people)
     mid = sum(p.comfort == 3 for p in people)
     high = sum(p.comfort >= 4 for p in people)

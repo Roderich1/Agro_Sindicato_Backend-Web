@@ -15,7 +15,7 @@
 Gate relacionado: GATE-F10 (#49), **Pending**.
 
 **Fuentes que manda seguir:**
-- `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.1** (BE PR #122, commit `7581af2`, pendiente de integrar): diseño y consentimiento en §3.3, tareas en §3.4, mediciones (SEQ y SUS) en §3.5, criterios en §3.6 y evidencia en §3.7. En cada sesión se anota el SHA de `main` donde quede integrada;
+- `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.2** (BE PR #122, commit `9292425`, pendiente de integrar): diseño y consentimiento en §3.3, tareas en §3.4, mediciones (SEQ y SUS) en §3.5, criterios en §3.6 y evidencia en §3.7. En cada sesión se anota el SHA de `main` donde quede integrada;
 - las decisiones de cierre del 2026-10-16 (`_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §2, «Usabilidad: diseño aceptado»). Donde difieren del borrador del protocolo, **mandan las decisiones**.
 
 ## Contenido
@@ -47,7 +47,7 @@ Gate relacionado: GATE-F10 (#49), **Pending**.
 - **Éxito por tarea:**
   - criterio: éxito con ayuda de nivel 0–1 ≥ 80 % de los intentos y **cero errores críticos**;
   - se informan por separado: sin ayuda (0), pista general (1), ayuda específica (2, no cuenta como éxito para el criterio), intervención del facilitador (3, aparte: ni éxito ni fallo; **prevalece** sobre el resultado) y fallo (abandono, tiempo agotado o `INCORRECTA`);
-  - **el criterio sólo se evalúa si intentó la tarea toda la muestra planificada** (5 en Móvil, 2 en Web). Con menos, el resultado es «NO EJECUTADA (muestra incompleta: k de N)», con los conteos visibles; **nunca CUMPLE con menos** (decisión de A antes de cualquier sesión, que se publicará como precisión v1.2 del protocolo sin tocar umbrales);
+  - **el criterio sólo se evalúa si intentó la tarea toda la muestra planificada** (5 en Móvil, 2 en Web). Con menos, el resultado es «NO EJECUTADA (muestra incompleta: k de N)», con los conteos visibles; **nunca CUMPLE con menos** (protocolo v1.2 §3.6, precisión incorporada antes de cualquier sesión sin tocar umbrales);
   - «0–1» **no** es «sin ayuda»;
   - **en Web, con 2 participantes, el 80 % exige 2/2.**
 - **Tiempo máximo:** 5 min por tarea en Móvil y 4 min en Web. El tiempo y el SEQ son descriptivos.
@@ -69,8 +69,8 @@ Este paquete añade reglas operativas que el protocolo no fija. **No cambian nin
 | P-2 | Un resultado `INCORRECTA` (dijo «terminé» sin alcanzar el fin observable) cuenta como **fallo** | Guion §4, cálculo |
 | P-3 | Un ítem del SUS con **doble marca** se registra **vacío**, lo que deja el cuestionario incompleto | SUS §4.5–4.6 |
 | P-4 | Al recibir el SUS, una sola pregunta: «¿Dejó alguna sin marcar a propósito?» | SUS §4.5 |
-| P-5 | Criterio por tarea sólo con toda la muestra planificada; si no, «NO EJECUTADA (muestra incompleta)» | Decisión de A; v1.2 del protocolo |
-| P-6 | El nivel 3 prevalece sobre el resultado y se informa aparte | Protocolo v1.1 §3.5; guion §4; cálculo |
+| P-5 | Criterio por tarea sólo con toda la muestra planificada; si no, «NO EJECUTADA (muestra incompleta)» | **Incorporada** en el protocolo v1.2 §3.6 |
+| P-6 | El nivel 3 prevalece sobre el resultado y se informa aparte | Protocolo v1.2 §3.5; guion §4; cálculo |
 
 ## Versiones de los instrumentos
 
@@ -128,7 +128,7 @@ No corrige ni completa datos. Mostrar un decimal es sólo presentación (redonde
 
 ## Lo que Roderich tiene que hacer
 
-1. Confirmar con el tutor si Univalle exige algún trámite para la participación (protocolo v1.1 §3.3).
+1. Confirmar con el tutor si Univalle exige algún trámite para la participación (protocolo v1.2 §3.3).
 2. Invitar personalmente a los participantes. Nadie envía mensajes en su nombre.
 3. Completar los datos de contacto de la hoja de consentimiento.
 4. Hacer el piloto (X01), fijar las versiones y anotarlas en la tabla de arriba.

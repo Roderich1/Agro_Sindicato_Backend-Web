@@ -5,7 +5,7 @@
 La construyen y siembran quienes preparan el entorno de evaluación: la sesión A para el Móvil (paquete `.f10ux`) y la sesión A o B para el Backend y la Web. Los valores esperados **se registran antes de la primera sesión**, consultando el entorno ya sembrado. No se suponen.
 
 **Por qué hace falta:**
-- las tarjetas (protocolo v1.1 §3.4) usan «Glifosato Demo», «Bellator»/«Belator», «parcela Norte» y «Verano Demo»;
+- las tarjetas (protocolo v1.2 §3.4) usan «Glifosato Demo», «Bellator»/«Belator», «parcela Norte» y «Verano Demo»;
 - el dataset D4 (`docs/evidence/F06_DATASET.csv` en Mobile) tiene «Belator», «Bellator», «Glifosato F06», «Urea F06» y «Mancozeb F06», con campañas C1/C2;
 - **en D4 no existen** «Glifosato Demo», «Verano Demo» ni la parcela «Norte».
 
@@ -52,7 +52,7 @@ Si las sesiones Móvil sincronizan con el mismo Central, las necesidades de T4/T
 | Miembros AGRICULTOR | **M = 6** sintéticos | W2 |
 | Necesidades declaradas de Glifosato Demo en Verano Demo | **4 miembros**: 20 L, 35 L, 45 L y 50 L | W1, W2, W4 |
 | Otras necesidades | Bellator 3 miembros y Belator 3 miembros, para que exista algo que reconciliar y el resultado de W3 sea visible | W3, W4 |
-| Divulgación | Modo `provisional-synthetic`, con el entorno de la v1.1 §0.4 (`NODE_ENV=development`) porque F07-POL-01 (#107) no está aprobada; k = 3 | W1–W4 |
+| Divulgación | Modo `provisional-synthetic`, con el entorno de la v1.2 §0.4 (`NODE_ENV=development`) porque F07-POL-01 (#107) no está aprobada; k = 3 | W1–W4 |
 
 **Por qué 4 de 6:** con k = 3, una celda con menos de 3 miembros se suprime y W1 no tendría un número que leer. Con 4 declarantes, la cifra se publica. Con M = 6, «4 de 6» deja dos miembros sin declarar, que es lo que W2 pide distinguir de cero.
 
@@ -71,4 +71,4 @@ El valor que se registra en la hoja es **el que muestra la Web sembrada antes de
 - [ ] Comprobar en la versión fijada que los nombres de §1 y §3 aparecen tal cual en la interfaz.
 - [ ] Registrar, antes de la primera sesión, los valores esperados reales de T3 (tabla de §2) y de W1/W2 (§4).
 - [ ] Confirmar que W3 parte de «Belator» sin asociar y que W4 puede generar un borrador con esos datos.
-- [ ] Que la siembra no reutilice ni borre ningún entorno conservado (protocolo v1.1 §0).
+- [ ] Que la siembra no reutilice ni borre ningún entorno conservado (protocolo v1.2 §0).

@@ -3,7 +3,7 @@
 **Para imprimir:**
 - una tarjeta por hoja o media hoja, con letra grande (≥ 18 pt);
 - el código va **detrás**;
-- el enunciado es el del protocolo (v1.1 §3.4) y no se cambia sin subir la versión de las tarjetas (`README.md`).
+- el enunciado es el del protocolo (v1.2 §3.4) y no se cambia sin subir la versión de las tarjetas (`README.md`).
 
 Versión de las tarjetas: **TAR-1**
 
