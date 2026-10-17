@@ -34,7 +34,7 @@ export class CalendarEventsUseCase {
   }
 
   async complete(tenantId: string, actor: Actor, eventId: string) {
-    const event = await this.findVisibleEvent(tenantId, actor, eventId);
+    const event = await this.findMutableEvent(tenantId, actor, eventId);
     const updated = await this.prisma.calendarEvent.update({
       where: { id: event.id },
       data: { status: CalendarEventStatus.COMPLETADO },
@@ -44,7 +44,7 @@ export class CalendarEventsUseCase {
   }
 
   async cancel(tenantId: string, actor: Actor, eventId: string) {
-    const event = await this.findVisibleEvent(tenantId, actor, eventId);
+    const event = await this.findMutableEvent(tenantId, actor, eventId);
     const updated = await this.prisma.calendarEvent.update({
       where: { id: event.id },
       data: { status: CalendarEventStatus.CANCELADO },
@@ -230,6 +230,22 @@ export class CalendarEventsUseCase {
         metadata: data.metadata,
       },
     });
+  }
+
+  /**
+   * F10-SEC-02 (#45): an AGRICULTOR changes only their own events. A public
+   * event of the tenant (campaign closing) is visible to everyone but is
+   * changed only by the Directiva or the Administrador.
+   */
+  private async findMutableEvent(tenantId: string, actor: Actor, eventId: string) {
+    if (actor.role !== UserRole.AGRICULTOR) return this.findVisibleEvent(tenantId, actor, eventId);
+    const event = await this.prisma.calendarEvent.findFirst({
+      where: { id: eventId, tenantId, ownerUserId: actor.userId },
+    });
+    if (!event) {
+      throw new NotFoundException('El evento no existe o no es visible para el usuario.');
+    }
+    return event;
   }
 
   private async findVisibleEvent(tenantId: string, actor: Actor, eventId: string) {
