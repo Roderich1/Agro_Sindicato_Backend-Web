@@ -233,15 +233,18 @@ F10 global sigue pospuesta. Su punto de partida será una versión candidata con
 - MOB #108 está integrado en `1ac8ea6`: una línea del acta de GATE-F04, con la revisión de C. Su CI de `main` es la 39047491613, SUCCESS.
 - Después, #109 → `8a2c558`, con CI de `main` 39050183529 SUCCESS.
 
-### Criterio 5 de GATE-F04 (MOB #110, borrador)
+### Criterio 5 de GATE-F04 (MOB #110, revisado; sin integrar)
 
 - **Regla:** MOB `docs/evidence/F04_CAMPANA_FECHA_EFECTIVA.md`. Sus fuentes son RN-15, RN-16, RF-03, RF-07, RF-12, SRS §10.4 y Cap. III §3.11.13.
   - Una compra o aplicación se registra sólo si la única campaña que contiene el día local de su fecha es la activa.
   - Ninguna, varias, cerrada o planificada se rechazan dentro de la transacción, sin escrituras parciales.
   - El calendario no se solapa: las campañas se agregan en orden; la anterior termina el día previo sin dejar fuera compras, aplicaciones ni necesidades; cerrar pide el fin, sin fechas futuras.
   - No se migra ni se reasigna el histórico.
-- **Pruebas (HOST):** 15 casos de repositorio y 3 de interfaz; 18 mutaciones detectadas; suite local sobre `85929c2`: 1420 pasan y 2 omitidas.
-- **Revisión de B:** la regla, NO LISTO en un punto, que queda declarado. El código, LISTO con hallazgos corregidos. El delta `6554be7..d932e61` está pendiente de verificar.
+- **Pruebas (HOST):** 15 casos de repositorio y 4 de interfaz; 18 mutaciones detectadas.
+  - Ejecución local de la sesión A sobre `f37200d`: 1421 pasan y 2 omitidas.
+  - **CI** 39059483185 sobre el HEAD `0bc6848`: SUCCESS, 1420 pasan y 3 omitidas, más 17 pruebas de fechas en America/La_Paz.
+- **Revisión de B:** la regla, NO LISTO en un punto, que queda declarado. El código, LISTO en `6554be7`. Los deltas `6554be7..d932e61` (CI 39058618715: 1419/3) y `d932e61..0bc6848`, LISTO. **#110 queda LISTO completo.**
+- **Integración:** la sesión A intentó el merge sobre `0bc6848`. El control de permisos lo rechazó («[Merge Without Review]»). No se aplicó nada ni se eludió: queda para Roderich.
 - **Sigue abierto para Roderich:**
   - **D-F04-C1:** los registros tardíos de un período cerrado se rechazan, así que **RF-03 no se cumple en esa parte**;
   - **D-F04-C2:** el período local no se compara con el central, lo que también afecta al consumo ya publicado.
