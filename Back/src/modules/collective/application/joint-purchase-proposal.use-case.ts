@@ -37,6 +37,8 @@ export interface ProposalLineView {
   pending_changes: boolean;
 }
 
+export type CoverageBasis = "PUBLISHED_FIGURES" | "ALL_CONTRIBUTORS";
+
 export interface ProposalView {
   contractVersion: 1;
   proposal_ref: string;
@@ -48,7 +50,13 @@ export interface ProposalView {
   /** Null whenever a figure of the draft is not served (it would cover it). */
   inputs_fingerprint: string | null;
   disclosure: { mode: DisclosureMode; policy: "F07-POL-01"; approved: false };
-  coverage: { linked_members: number; members_with_contribution: number } | null;
+  /**
+   * Stored at generation. `basis` (F10-SEC-02): PUBLISHED_FIGURES counts the
+   * Members inside a published figure; ALL_CONTRIBUTORS is the earlier rule of
+   * drafts generated before the change (suppressed cells included). Stored
+   * drafts are never rewritten.
+   */
+  coverage: { linked_members: number; members_with_contribution: number; basis: CoverageBasis } | null;
   lines: ProposalLineView[];
   notice: string;
 }
@@ -172,6 +180,7 @@ export class JointPurchaseProposalUseCase {
         inputsFingerprint: fingerprint,
         linkedMembers: coverage.linked_members,
         membersWithContribution: coverage.members_with_contribution,
+        coverageBasis: "PUBLISHED_FIGURES",
         generatedByUserId: actorUserId,
         lines: {
           create: cells.map((cell, position) => ({
@@ -227,7 +236,11 @@ export class JointPurchaseProposalUseCase {
       inputs_fingerprint: fingerprintVisible(row.lines, current) ? row.inputsFingerprint : null,
       disclosure: { mode: authorized ? "PROVISIONAL_SYNTHETIC" : "POLICY_PENDING", policy: "F07-POL-01", approved: false },
       coverage: authorized
-        ? { linked_members: row.linkedMembers, members_with_contribution: row.membersWithContribution }
+        ? {
+            linked_members: row.linkedMembers,
+            members_with_contribution: row.membersWithContribution,
+            basis: row.coverageBasis === "PUBLISHED_FIGURES" ? "PUBLISHED_FIGURES" : "ALL_CONTRIBUTORS",
+          }
         : null,
       lines: row.lines.map((line) => {
         const base = {
@@ -321,7 +334,7 @@ function requireRelease(releaseOf: ReadonlyMap<string, string>, productRef: stri
 export function proposalCsv(view: ProposalView): string {
   const row = (values: (string | number | boolean | null)[]) => values.map(csvField).join(",");
   const lines = [
-    row(["proposal_ref", "status", "basis", "campaign_ref", "campaign", "generated_at", "generated_by", "inputs_fingerprint", "disclosure", "policy", "approved", "linked_members", "members_with_contribution"]),
+    row(["proposal_ref", "status", "basis", "campaign_ref", "campaign", "generated_at", "generated_by", "inputs_fingerprint", "disclosure", "policy", "approved", "linked_members", "members_with_contribution", "coverage_basis"]),
     row([
       view.proposal_ref,
       view.status,
@@ -336,6 +349,7 @@ export function proposalCsv(view: ProposalView): string {
       view.disclosure.approved,
       view.coverage?.linked_members ?? null,
       view.coverage?.members_with_contribution ?? null,
+      view.coverage?.basis ?? null,
     ]),
     row(["notice", view.notice]),
     "",

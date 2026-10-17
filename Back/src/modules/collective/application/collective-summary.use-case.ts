@@ -15,7 +15,7 @@ import {
 } from "../domain/consolidation";
 import {
   CellDecision,
-  decideCell,
+  decideCells,
   PriorRelease,
   PROVISIONAL_THRESHOLD,
 } from "../domain/disclosure-policy";
@@ -52,7 +52,13 @@ export interface CollectiveSummary {
     approved: false;
     threshold: number | null;
   };
-  coverage: { linked_members: number; members_with_contribution: number } | null;
+  /**
+   * F10-SEC-02 (#45): `members_with_contribution` counts only the Members
+   * inside a published figure («N de M con cifras publicadas»); counting the
+   * contributors of suppressed cells revealed their exact count.
+   * `suppressed_cells` says that some row has no figure, without a count.
+   */
+  coverage: { linked_members: number; members_with_contribution: number; suppressed_cells: boolean } | null;
   cells: SummaryCell[];
 }
 
@@ -141,12 +147,17 @@ export class CollectiveSummaryUseCase {
     const canonicalOf = await this.canonicalMap(tx, tenantId);
     const cells = consolidate(contributions, canonicalOf);
     const histories = await this.releaseHistories(tx, tenantId, campaignId);
+    // F10-SEC-02 (#45): every cell is checked against the figures of the keys
+    // its contributions came from and against those decided before it in this
+    // read (key order), within one work budget for the read.
+    const decisions = decideCells(cells, new Map([...histories].map(([id, { history }]) => [id, history])));
     const now = new Date();
     const output: { key: CellKey; decision: CellDecision; cell: Cell | null; prior: PriorRelease | null }[] = [];
     for (const cell of cells) {
-      const history = histories.get(cellId(cell))?.history ?? [];
-      output.push({ key: cell, decision: decideCell(cell, history), cell, prior: history[0] ?? null });
-      histories.delete(cellId(cell));
+      const id = cellId(cell);
+      const history = histories.get(id)?.history ?? [];
+      output.push({ key: cell, decision: decisions.get(id)!, cell, prior: history[0] ?? null });
+      histories.delete(id);
     }
     // Cells whose contributions all left (cancelled, disputed, regrouped,
     // inactive): the latest figure is withdrawn, not kept.
@@ -247,7 +258,8 @@ export class CollectiveSummaryUseCase {
       },
       coverage: {
         linked_members: await this.linkedMembers(tx, tenantId),
-        members_with_contribution: new Set(contributions.map((c) => c.memberId)).size,
+        members_with_contribution: publishedMembers(output).size,
+        suppressed_cells: output.some(({ decision }) => decision.kind !== "RELEASE" && decision.kind !== "SHOW_PRIOR"),
       },
       cells: result,
       releaseOf,
@@ -371,6 +383,22 @@ export function presentation(totalBase: bigint): string {
 }
 
 /**
+ * F10-SEC-02 (#45): Members inside a published figure. A new figure counts
+ * the cell's current Members; a figure kept from before counts the Members of
+ * that disclosure. Contributors of cells without a figure are not counted.
+ */
+function publishedMembers(
+  output: readonly { decision: CellDecision; cell: Cell | null; prior: PriorRelease | null }[],
+): Set<string> {
+  const members = new Set<string>();
+  for (const { decision, cell, prior } of output) {
+    if (decision.kind === "RELEASE") cell!.members.forEach((member) => members.add(member));
+    if (decision.kind === "SHOW_PRIOR") prior!.memberOf.forEach((member) => members.add(member));
+  }
+  return members;
+}
+
+/**
  * Same disclosure decisions as JSON, as CSV (F07-POL-01: every channel). A
  * text that a spreadsheet would read as a formula (=, +, -, @, tab or CR at
  * the start, e.g. a product or campaign name) is prefixed with ' and quoted,
@@ -385,7 +413,7 @@ export function summaryCsv(summary: CollectiveSummary): string {
     return formula || /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
   };
   const lines = [
-    ["campaign_ref", "campaign", "disclosure", "policy", "approved", "threshold", "linked_members", "members_with_contribution"].join(","),
+    ["campaign_ref", "campaign", "disclosure", "policy", "approved", "threshold", "linked_members", "members_with_contribution", "suppressed_cells"].join(","),
     [
       summary.campaign.campaign_ref,
       summary.campaign.name,
@@ -395,6 +423,7 @@ export function summaryCsv(summary: CollectiveSummary): string {
       summary.disclosure.threshold,
       summary.coverage?.linked_members ?? null,
       summary.coverage?.members_with_contribution ?? null,
+      summary.coverage?.suppressed_cells ?? null,
     ].map(quote).join(","),
     "",
     ["projection_type", "product_ref", "product_name", "base_unit", "presentation_unit", "status", "total_base", "total_presentation", "contributors", "data_as_of", "released_at", "pending_changes"].join(","),

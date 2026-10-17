@@ -16,13 +16,6 @@ export class SuppliersUseCase {
           : {}),
       },
       orderBy: { name: 'asc' },
-      include: {
-        purchases: {
-          select: { id: true, totalAmount: true, paymentMode: true, purchasedAt: true },
-          orderBy: { purchasedAt: 'desc' },
-          take: 3,
-        },
-      },
     });
 
     return suppliers.map((supplier) => this.map(supplier));
@@ -43,7 +36,6 @@ export class SuppliersUseCase {
         address: dto.address?.trim(),
         notes: dto.notes?.trim(),
       },
-      include: { purchases: true },
     });
 
     return this.map(supplier);
@@ -68,13 +60,6 @@ export class SuppliersUseCase {
         ...(dto.address !== undefined ? { address: dto.address?.trim() || null } : {}),
         ...(dto.notes !== undefined ? { notes: dto.notes?.trim() || null } : {}),
       },
-      include: {
-        purchases: {
-          select: { id: true, totalAmount: true, paymentMode: true, purchasedAt: true },
-          orderBy: { purchasedAt: 'desc' },
-          take: 3,
-        },
-      },
     });
 
     return this.map(updated);
@@ -89,7 +74,6 @@ export class SuppliersUseCase {
     notes: string | null;
     createdAt: Date;
     updatedAt: Date;
-    purchases?: { id: string; totalAmount: Prisma.Decimal; paymentMode: string; purchasedAt: Date }[];
   }) {
     return {
       id: supplier.id,
@@ -100,12 +84,9 @@ export class SuppliersUseCase {
       notes: supplier.notes,
       createdAt: supplier.createdAt.toISOString(),
       updatedAt: supplier.updatedAt.toISOString(),
-      recentPurchases: supplier.purchases?.map((purchase) => ({
-        id: purchase.id,
-        totalAmount: purchase.totalAmount.toString(),
-        paymentMode: purchase.paymentMode,
-        purchasedAt: purchase.purchasedAt.toISOString(),
-      })) ?? [],
+      // F10-SEC-02 (#45): the supplier catalog serves its purpose (name and
+      // contact) without the tenant's purchases, which are private to each
+      // farmer (id, total, payment mode and date of anyone's purchase).
     };
   }
 }

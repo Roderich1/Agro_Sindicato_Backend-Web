@@ -50,9 +50,17 @@ export class UsersController {
 
   @Get()
   @Roles(UserRole.ADMINISTRADOR, UserRole.DIRECTIVA)
-  @ApiOperation({ summary: 'Listar usuarios del tenant actual' })
+  @ApiOperation({
+    summary: 'Listar usuarios del tenant actual',
+    description:
+      'ADMINISTRADOR: vista completa para administrar accesos (ADR-003). DIRECTIVA: sólo id, nombre, rol y estado, para nombrar actores (F10-SEC-02).',
+  })
   async list(@CurrentUser() user: AuthenticatedPrincipal) {
-    return this.listUsersUseCase.execute(user.tenantId);
+    const users = await this.listUsersUseCase.execute(user.tenantId);
+    if (user.role === UserRole.ADMINISTRADOR) return users;
+    // F10-SEC-02 (#45): la Directiva no administra accesos; no necesita correos
+    // ni últimos accesos de las cuentas del tenant.
+    return users.map(({ id, name, role, isActive }) => ({ id, name, role, isActive }));
   }
 
   @Get(':id')

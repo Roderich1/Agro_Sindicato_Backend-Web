@@ -58,7 +58,8 @@ export class PurchasesController {
   // debts and events for farmers. The valid path is the draft proposal
   // (/collective/.../proposals), with no automatic effects. Closed.
   @UseGuards(LegacyRouteClosedGuard)
-  @ApiOperation({ summary: 'Crear compra conjunta y distribuir productos entre agricultores' })
+  @ApiForbiddenResponse({ description: 'Cerrada en F10-SEC-02 (#45): responde siempre 403 con message LEGACY_ROUTE_CLOSED, sin efectos. Se conserva para la transición (#81); el camino vigente es la propuesta en borrador (/collective/campaigns/{campaignId}/proposals).' })
+  @ApiOperation({ summary: 'Crear compra conjunta y distribuir productos entre agricultores (cerrada)' })
   async createJoint(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateJointPurchaseDto) {
     this.logger.log(`[PURCHASE JOINT_CREATE] userId=${user.sub} tenantId=${user.tenantId} mode=${dto.paymentMode}`);
     return this.createJointPurchaseUseCase.execute(user.tenantId, user.sub, dto);

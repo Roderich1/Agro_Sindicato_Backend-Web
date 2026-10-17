@@ -25,7 +25,7 @@ export function summaryWith(cells: SummaryCell[], mode: 'PROVISIONAL_SYNTHETIC' 
     contractVersion: 1,
     campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name, status: 'ABIERTA' },
     disclosure: { mode, policy: 'F07-POL-01', approved: false, threshold: mode === 'POLICY_PENDING' ? null : 3 },
-    coverage: mode === 'POLICY_PENDING' ? null : { linked_members: 4, members_with_contribution: 3 },
+    coverage: mode === 'POLICY_PENDING' ? null : { linked_members: 4, members_with_contribution: 3, suppressed_cells: true },
     cells: mode === 'POLICY_PENDING' ? [] : cells,
   };
 }
@@ -59,7 +59,7 @@ export function proposalWith(lines: ProposalLine[], overrides: Partial<Proposal>
     generated_by: { user_ref: 'u-1', name: 'Directiva sintética' },
     inputs_fingerprint: 'f'.repeat(64),
     disclosure: { mode: 'PROVISIONAL_SYNTHETIC', policy: 'F07-POL-01', approved: false },
-    coverage: { linked_members: 4, members_with_contribution: 3 },
+    coverage: { linked_members: 4, members_with_contribution: 3, basis: 'PUBLISHED_FIGURES' },
     lines,
     notice: 'Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos.',
     ...overrides,

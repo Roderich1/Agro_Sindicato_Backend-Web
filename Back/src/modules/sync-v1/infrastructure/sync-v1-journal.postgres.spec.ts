@@ -142,8 +142,9 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     // F05-SYNC-05 adds the contribution migration after the journal one,
     // F06 #21 the collective consolidation after both, the F10-SEC-02
     // review the quantity of each released item, F07 #27 the joint purchase
-    // proposal draft, and F08 #37 the backup metadata last.
-    expect(migrations).toHaveLength(10);
+    // proposal draft, F08 #37 the backup metadata, and F10-SEC-02 the
+    // coverage basis of each draft last.
+    expect(migrations).toHaveLength(11);
     expect(migrations.every((m) => m.finished_at !== null)).toBe(true);
     expect(migrations[4].migration_name).toMatch(
       /_f05_sync_v1_journal_expand$/,
@@ -161,6 +162,7 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
       /_f07_joint_purchase_proposal$/,
     );
     expect(migrations[9].migration_name).toMatch(/_f08_backup_metadata$/);
+    expect(migrations[10].migration_name).toMatch(/_f10_proposal_coverage_basis$/);
   });
 
   it("creates a nominal PROCESSING journal without final ACK fields", async () => {

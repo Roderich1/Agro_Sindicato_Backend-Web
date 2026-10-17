@@ -248,12 +248,20 @@ Lo que sigue son discrepancias registradas, no decisiones nuevas. La aprobación
 
 ## 9. Lo que queda pendiente en #45 y #81
 
-- **#45, auditoría de la proyección colectiva**, que es el objeto del issue. Esta entrega cubre las rutas heredadas. No repite la auditoría campo a campo de `F06_COLLECTIVE_PROJECTION_FIELD_MATRIX.md` (campos DENY en proyección, logs y conflictos) ni la política de divulgación, que siguen en #45 y #107.
+- **#45, auditoría de la proyección colectiva**, que es el objeto del issue. Esta entrega cubre las rutas heredadas. No repite la auditoría campo a campo de `F06_COLLECTIVE_PROJECTION_FIELD_MATRIX.md` (campos DENY en proyección, logs y conflictos) ni la política de divulgación, que siguen en #45 y #107. **El cotejo campo a campo se hizo el 2026-10-17 en `F10_SEC_02_PROJECTION.md`**; la política sigue en #107.
 - **Escrituras legacy del agricultor.** `POST /purchases`, el inventario, las parcelas, las aplicaciones, los pagos propios y `/sync/operations` siguen activos para el AGRICULTOR, sobre lo propio. Su bloqueo es la PHASE 6 del plan de transición: requiere telemetría sin consumidores y un runbook, y no se hace aquí, porque no es una retirada destructiva. La Web sigue teniendo pantallas operativas para el agricultor y la cola `offline-queue.ts` (#23/#81).
-- **Totales de una compra conjunta heredada.** Un participante sigue viendo los ítems y el total de la compra en `/purchases`. En `/reports/purchases/joint` ve además `totals.participants` (`reports.use-case.ts:123`), que cuenta a **todos** los participantes, no sólo a quien consulta. Con pocos participantes, por diferencia, se puede deducir la cantidad del resto. Es un riesgo residual del registro heredado: no hay compras conjuntas nuevas, porque la ruta está cerrada.
-- **Eventos `COMPRA_PROGRAMADA` heredados sin dueño.** `create-joint-purchase.use-case.ts:315-327` creaba, para una compra conjunta programada, un evento sin `ownerUserId` con proveedor, notas y total. El calendario muestra los eventos sin dueño a todo agricultor del tenant (y a D y A), así que los ya existentes siguen visibles para todos. No se crean nuevos, porque la ruta está cerrada; no se borran ni se migran aquí.
-- **OpenAPI.** No documenta el 403 `LEGACY_ROUTE_CLOSED` de `POST /purchases/joint` ni de `GET /inventory/global-stock`. Los snapshots no se regeneraron porque ninguna forma documentada cambió. Documentarlo es opcional.
-- **Proveedores (`/suppliers`).** Es un catálogo del tenant, sin compras ni precios: nombre, teléfono y dirección. Sigue legible para todos los roles y editable por D y A. No se cambia; se registra.
-- **`GET /users` para DIRECTIVA.** Devuelve nombre, correo y rol de las cuentas del tenant: es administración de accesos. No se cambia.
+- **Totales de una compra conjunta heredada.** Un participante veía los ítems y el total del grupo. **Corregido en la rama el 2026-10-17**, pendiente de integrar (`fix/f10-sec-02-residuos`): ve su parte y su propia participación.
+  - `25d2a8f`: `/purchases` y los reportes.
+  - `acb07af`: `/accounts-payable`, que la revisión de A halló todavía abierta.
+
+  Ver `F10_SEC_02_PROJECTION.md` R1.
+- **Eventos `COMPRA_PROGRAMADA` heredados sin dueño.** **Corregido en la rama el 2026-10-17**, pendiente de integrar.
+  - `25d2a8f`: un evento sin dueño sólo es visible si su tipo es público (cierre de campaña). No se borra ni se reasigna.
+  - `9047b2a`: el AGRICULTOR no completa ni cancela el evento público.
+
+  Ver `F10_SEC_02_PROJECTION.md` R2.
+- **OpenAPI.** **Corregido en la rama el 2026-10-17**, pendiente de integrar (`25d2a8f`): las dos rutas cerradas documentan el 403 `LEGACY_ROUTE_CLOSED`, sin respuesta de éxito.
+- **Proveedores (`/suppliers`).** ~~«Sin compras ni precios»~~: la revisión por finalidad del 2026-10-17 halló que **sí** servía las 3 compras más recientes del tenant con cada proveedor. **Corregido** (`2ece555`); el catálogo conserva nombre y contacto. Ver `F10_SEC_02_PROJECTION.md` H3.
+- **`GET /users` para DIRECTIVA.** **Minimizado el 2026-10-17** (`eea07d3`): la DIRECTIVA recibe id, nombre, rol y estado; el ADMINISTRADOR conserva la vista completa para administrar accesos. Ver `F10_SEC_02_PROJECTION.md` H4.
 - **Código heredado conservado.** `directiva.page.tsx`, `CreateJointPurchaseUseCase`, `listGlobalStock` y sus servicios Web. Su eliminación sigue la PHASE 9 (cero consumidores, respaldo y migración reversible).
 - **Consumidores externos o desplegados** fuera de estos repositorios: `INSUFFICIENT_EVIDENCE`, como en `LEGACY_CONTRACT_CONSUMERS.md`.

@@ -260,7 +260,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
       const s = await summary(ref);
       expectSummaryMatches(s, "RAW", key);
       // Absence is unknown: F4 counts in linked_members only.
-      expect(s.body.coverage).toEqual({ linked_members: 4, members_with_contribution: 3 });
+      expect(s.body.coverage).toEqual({ linked_members: 4, members_with_contribution: 3, suppressed_cells: true });
     }
     rawC1 = await generate(campaigns.C1);
     rawC2 = await generate(campaigns.C2);
@@ -271,7 +271,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
       status: "DRAFT",
       basis: "DECLARED_NEED",
       disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false },
-      coverage: { linked_members: 4, members_with_contribution: 3 },
+      coverage: { linked_members: 4, members_with_contribution: 3, basis: "PUBLISHED_FIGURES" },
     });
     expect(rawC1.body.notice).toMatch(/no es necesidad neta/);
     expect(rawC1.body.inputs_fingerprint).toMatch(/^[0-9a-f]{64}$/);

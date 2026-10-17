@@ -77,6 +77,9 @@ export function PendingChangesNote() {
 /**
  * Cobertura agregada. Sin `asOf` es la cobertura actual (resumen); con `asOf`
  * es la que quedó guardada al generar un borrador y no se actualiza después.
+ * F10-SEC-02: cuenta sólo a los agricultores que están dentro de una cifra
+ * publicada; los aportes de celdas sin cifra no se cuentan (revelarían su
+ * número exacto) y sólo se avisa de que existen.
  */
 export function CoverageBanner({ coverage, campaignName, asOf }: { coverage: Coverage; campaignName: string; asOf?: string }) {
   return (
@@ -85,12 +88,20 @@ export function CoverageBanner({ coverage, campaignName, asOf }: { coverage: Cov
         {asOf ? `Cobertura al generar el borrador (${fmtDateTime(asOf)})` : 'Cobertura'} · {campaignName}
       </p>
       <p className="mt-1.5 text-lg font-bold text-slate-900">
-        {coverage.members_with_contribution} de {coverage.linked_members} agricultores vinculados{' '}
-        {asOf ? 'habían aportado datos en esa fecha' : 'aportaron datos'}
+        {coverage.basis === 'ALL_CONTRIBUTORS'
+          ? `${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados habían aportado datos en esa fecha`
+          : `${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados con cifras publicadas${asOf ? ' en esa fecha' : ''}`}
       </p>
+      {coverage.basis === 'ALL_CONTRIBUTORS' && (
+        <p className="mt-1 text-xs text-slate-500">
+          Borrador guardado con la regla anterior a F10-SEC-02: el conteo incluye a quienes aportaron a filas sin cifra.
+        </p>
+      )}
       <p className="mt-1 text-xs text-slate-500">
         {asOf && 'No es la cobertura actual: consulte el resumen de la campaña para la de hoy. '}
-        Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes aportaron.
+        {coverage.suppressed_cells &&
+          'Hay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí. '}
+        Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes están en ellas.
       </p>
     </div>
   );

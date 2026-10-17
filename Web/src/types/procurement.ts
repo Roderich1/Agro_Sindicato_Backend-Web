@@ -93,6 +93,8 @@ export interface Purchase {
   createdBy: UserSummary | null;
   paymentMode: PurchasePaymentMode;
   status: PurchaseStatus;
+  /** F10-SEC-02: en una compra conjunta, el agricultor recibe sólo su parte. */
+  share?: 'OWN';
   totalAmount: DecimalString;
   discountAmount: DecimalString;
   purchasedAt: ApiDateString;

@@ -1,4 +1,5 @@
-import type { Cell } from "./consolidation";
+import { Cell, cellId } from "./consolidation";
+import { amountColumn, DisclosedFigure, newlyRevealing, WorkBudget } from "./differencing";
 
 /**
  * Provisional threshold of F07-POL-01 (#107): distinct Members per cell. The
@@ -159,4 +160,139 @@ export function decideCell(
     };
   }
   return { kind: "SHOW_PRIOR", pendingChanges: true };
+}
+
+/**
+ * Rule 2 against **any combination** of known figures (F10-SEC-02 #45).
+ *
+ * `history` holds the cell's own disclosures and `related` those of every
+ * other key that shares contributions with it (directly or through other
+ * disclosures, e.g. after the Directiva re-keys a product), including the
+ * figures already decided earlier in the same read. The reader may add and
+ * subtract all of them. A new figure is only allowed if it does not make
+ * computable, together with all those figures, anything about a group of
+ * fewer than k Members that was not computable before (see
+ * `differencing.ts`). This covers re-keying (p → r), the difference of two own
+ * figures (R2 − R1), cells split in one read, and their combinations.
+ *
+ * Fail-closed: if any known figure has an amount the server did not record
+ * (rows written before 20261016150500), the combinations cannot be checked
+ * exactly, so no new figure is published in that group of keys; and the same
+ * when the read's work budget runs out.
+ *
+ * Otherwise the cell keeps its own earlier figure with pending changes, if it
+ * still describes it, or shows no figure (REVISION). A figure of another key
+ * is never shown under this one.
+ */
+export function decideCellWithRelated(
+  cell: Cell,
+  history: readonly PriorRelease[],
+  related: readonly (readonly PriorRelease[])[],
+  threshold = PROVISIONAL_THRESHOLD,
+  budget: WorkBudget = new WorkBudget(),
+): CellDecision {
+  const own = decideCell(cell, history, threshold);
+  const known = [...history, ...related.flat()];
+  if (own.kind !== "RELEASE" || known.length === 0) return own;
+  const inexact = known.some((release) => [...release.items.values()].some((quantity) => quantity === null));
+  if (!inexact && !newlyRevealing(known.map(figureOf), currentFigure(cell), threshold, budget)) return own;
+  const now = currentAmounts(cell);
+  const ownLatest = history[0] ?? null;
+  const ownShown = ownLatest !== null && ownLatest.withdrawnAt === null;
+  const removedFromOwn =
+    ownLatest !== null && [...releasedAmounts(ownLatest).keys()].some((member) => !now.has(member));
+  if (ownShown && !removedFromOwn) return { kind: "SHOW_PRIOR", pendingChanges: true };
+  return { kind: "SUPPRESS", reason: "REVISION", withdrawPrior: ownShown };
+}
+
+/**
+ * Decides every cell of one summary read (F10-SEC-02 #45). `histories` maps a
+ * cell key to its disclosures, newest first. Cells are decided in key order,
+ * and each figure decided here is known to the cells decided after it, so two
+ * cells published in the same read are checked against each other too (a
+ * split P1 + P2 − earlier P1∪P2 isolates whoever joined). One budget bounds
+ * the work of the whole read.
+ */
+export function decideCells(
+  cells: readonly Cell[],
+  histories: ReadonlyMap<string, readonly PriorRelease[]>,
+  threshold = PROVISIONAL_THRESHOLD,
+  budget: WorkBudget = new WorkBudget(),
+): Map<string, CellDecision> {
+  const known = new Map<string, readonly PriorRelease[]>(histories);
+  const keysOf = new Map<string, Set<string>>();
+  const contributionsOf = new Map<string, Set<string>>();
+  const register = (key: string, release: PriorRelease) => {
+    const own = contributionsOf.get(key) ?? new Set<string>();
+    for (const contributionId of release.items.keys()) {
+      keysOf.set(contributionId, (keysOf.get(contributionId) ?? new Set()).add(key));
+      own.add(contributionId);
+    }
+    contributionsOf.set(key, own);
+  };
+  for (const [key, history] of histories) for (const release of history) register(key, release);
+  // Every key connected to the cell through shared contributions, directly or
+  // through other disclosures: their figures can be combined.
+  const connectedKeys = (id: string, seed: Iterable<string>): string[] => {
+    const keys = new Set([id]);
+    const seen = new Set([...seed, ...(contributionsOf.get(id) ?? [])]);
+    const queue = [...seen];
+    while (queue.length > 0) {
+      for (const key of keysOf.get(queue.pop()!) ?? []) {
+        if (keys.has(key)) continue;
+        keys.add(key);
+        for (const contributionId of contributionsOf.get(key) ?? []) {
+          if (!seen.has(contributionId)) {
+            seen.add(contributionId);
+            queue.push(contributionId);
+          }
+        }
+      }
+    }
+    keys.delete(id);
+    return [...keys].sort((a, b) => a.localeCompare(b));
+  };
+  const decisions = new Map<string, CellDecision>();
+  const ordered = [...cells].sort((a, b) => cellId(a).localeCompare(cellId(b)));
+  for (const cell of ordered) {
+    const id = cellId(cell);
+    const history = histories.get(id) ?? [];
+    const related = connectedKeys(id, cell.contributions.map((c) => c.contributionId)).map((key) => known.get(key) ?? []);
+    const decision = decideCellWithRelated(cell, history, related, threshold, budget);
+    decisions.set(id, decision);
+    if (decision.kind === "RELEASE") {
+      // Known from now on, under a key of its own so it is never shown as
+      // this cell's prior figure.
+      const decided: PriorRelease = {
+        id: `decided-in-read:${id}`,
+        totalBase: cell.total,
+        contributorCount: cell.members.size,
+        dataAsOf: cell.dataAsOf,
+        releasedAt: new Date(0),
+        withdrawnAt: null,
+        items: new Map(cell.contributions.map((c) => [c.contributionId, c.quantityBase])),
+        memberOf: new Map(cell.contributions.map((c) => [c.contributionId, c.memberId])),
+      };
+      const key = `decided-in-read:${id}`;
+      known.set(key, [decided]);
+      register(key, decided);
+    }
+  }
+  return decisions;
+}
+
+function figureOf(release: PriorRelease): DisclosedFigure {
+  const columns = new Map<string, string>();
+  for (const [contributionId, quantity] of release.items) {
+    const member = release.memberOf.get(contributionId);
+    // Callers exclude figures with unknown amounts (fail-closed above).
+    if (member !== undefined && quantity !== null) columns.set(amountColumn(contributionId, quantity), member);
+  }
+  return { columns };
+}
+
+function currentFigure(cell: Cell): DisclosedFigure {
+  return {
+    columns: new Map(cell.contributions.map((c) => [amountColumn(c.contributionId, c.quantityBase), c.memberId])),
+  };
 }

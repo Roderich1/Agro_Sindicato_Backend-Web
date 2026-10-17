@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { ListPurchasesQueryDto } from '../dto/list-purchases-query.dto';
+import { isOwnShareView, purchaseShare } from '../joint-purchase-share';
 
 @Injectable()
 export class ListPurchasesUseCase {
@@ -77,7 +78,7 @@ export class ListPurchasesUseCase {
         select: { id: true, name: true, email: true, role: true },
       },
       items: {
-        include: { product: true },
+        include: { product: true, allocations: { select: { userId: true, quantity: true, subtotal: true } } },
         orderBy: { id: 'asc' as const },
       },
       participants: {
@@ -107,6 +108,8 @@ export class ListPurchasesUseCase {
     purchase: Prisma.PurchaseGetPayload<{ include: ReturnType<ListPurchasesUseCase['includeSummary']> }>,
     viewer: string | null,
   ) {
+    // F10-SEC-02 (#45): a participant sees their own share of a joint purchase.
+    const share = isOwnShareView(purchase.type, viewer) ? purchaseShare(purchase.items, viewer) : null;
     return {
       id: purchase.id,
       campaignId: purchase.campaignId,
@@ -120,24 +123,26 @@ export class ListPurchasesUseCase {
         phone: purchase.supplier.phone,
       },
       createdBy: purchase.createdBy,
-      totalAmount: purchase.totalAmount.toString(),
-      discountAmount: purchase.discountAmount.toString(),
+      ...(share ? { share: 'OWN' as const } : {}),
+      totalAmount: (share?.totalAmount ?? purchase.totalAmount).toString(),
+      discountAmount: (share?.discountAmount ?? purchase.discountAmount).toString(),
       purchasedAt: purchase.purchasedAt.toISOString(),
       expectedAt: purchase.expectedAt?.toISOString() ?? null,
       receivedAt: purchase.receivedAt?.toISOString() ?? null,
       notes: purchase.notes,
-      items: purchase.items.map((item) => ({
-        id: item.id,
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          unit: item.product.unit,
-        },
-        quantity: item.quantity.toString(),
-        unitCost: item.unitCost.toString(),
-        discountAmount: item.discountAmount.toString(),
-        subtotal: item.subtotal.toString(),
-      })),
+      items: (share ? share.items : purchase.items.map((item) => ({ item, quantity: item.quantity, subtotal: item.subtotal, discountAmount: item.discountAmount })))
+        .map(({ item, quantity, subtotal, discountAmount }) => ({
+          id: item.id,
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            unit: item.product.unit,
+          },
+          quantity: quantity.toString(),
+          unitCost: item.unitCost.toString(),
+          discountAmount: discountAmount.toString(),
+          subtotal: subtotal.toString(),
+        })),
       participants: purchase.participants.filter((participant) => viewer === null || participant.userId === viewer).map((participant) => ({
         id: participant.id,
         user: participant.user,

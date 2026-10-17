@@ -75,6 +75,13 @@ for (const response of [v1Response, v2Response, v2MeResponse, bindResponse, clie
   }
 }
 assert.ok(spec.info.description.includes("legacy"));
+// F10-SEC-02 (#45): legacy routes closed with 403 LEGACY_ROUTE_CLOSED are
+// documented as such, with no success response (they never succeed).
+for (const [path, method] of [["/api/v1/purchases/joint", "post"], ["/api/v1/inventory/global-stock", "get"]]) {
+  const responses = spec.paths[path]?.[method]?.responses ?? {};
+  assert.ok(responses["403"]?.description.includes("LEGACY_ROUTE_CLOSED"), `Missing 403 LEGACY_ROUTE_CLOSED on ${method.toUpperCase()} ${path}`);
+  assert.ok(!Object.keys(responses).some((status) => status.startsWith("2")), `${path} is closed: no success response`);
+}
 process.stdout.write("F02 OpenAPI contract assertions passed.\n");
 
 // F05 Sync Contract v1 (#17, #106): routes, statuses, bearer and closed shapes.

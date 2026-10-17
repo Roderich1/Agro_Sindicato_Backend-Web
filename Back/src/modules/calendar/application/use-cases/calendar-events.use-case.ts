@@ -9,6 +9,9 @@ import {
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { ListCalendarEventsQueryDto } from '../dto/calendar-event.dto';
 
+/** Event types without an owner that are public within the tenant (F10-SEC-02). */
+const PUBLIC_EVENT_TYPES: CalendarEventType[] = [CalendarEventType.CIERRE_CAMPANA];
+
 interface Actor {
   userId: string;
   role: UserRole;
@@ -31,7 +34,7 @@ export class CalendarEventsUseCase {
   }
 
   async complete(tenantId: string, actor: Actor, eventId: string) {
-    const event = await this.findVisibleEvent(tenantId, actor, eventId);
+    const event = await this.findMutableEvent(tenantId, actor, eventId);
     const updated = await this.prisma.calendarEvent.update({
       where: { id: event.id },
       data: { status: CalendarEventStatus.COMPLETADO },
@@ -41,7 +44,7 @@ export class CalendarEventsUseCase {
   }
 
   async cancel(tenantId: string, actor: Actor, eventId: string) {
-    const event = await this.findVisibleEvent(tenantId, actor, eventId);
+    const event = await this.findMutableEvent(tenantId, actor, eventId);
     const updated = await this.prisma.calendarEvent.update({
       where: { id: event.id },
       data: { status: CalendarEventStatus.CANCELADO },
@@ -229,6 +232,22 @@ export class CalendarEventsUseCase {
     });
   }
 
+  /**
+   * F10-SEC-02 (#45): an AGRICULTOR changes only their own events. A public
+   * event of the tenant (campaign closing) is visible to everyone but is
+   * changed only by the Directiva or the Administrador.
+   */
+  private async findMutableEvent(tenantId: string, actor: Actor, eventId: string) {
+    if (actor.role !== UserRole.AGRICULTOR) return this.findVisibleEvent(tenantId, actor, eventId);
+    const event = await this.prisma.calendarEvent.findFirst({
+      where: { id: eventId, tenantId, ownerUserId: actor.userId },
+    });
+    if (!event) {
+      throw new NotFoundException('El evento no existe o no es visible para el usuario.');
+    }
+    return event;
+  }
+
   private async findVisibleEvent(tenantId: string, actor: Actor, eventId: string) {
     const event = await this.prisma.calendarEvent.findFirst({
       where: {
@@ -251,10 +270,17 @@ export class CalendarEventsUseCase {
     return {
       tenantId,
       // F10-SEC-02 (#45): institutional roles see and change only institutional
-      // events (no owner), never a farmer's private ones.
-      ...(actor.role === UserRole.AGRICULTOR
-        ? { OR: [{ ownerUserId: actor.userId }, { ownerUserId: null }] }
-        : { ownerUserId: null }),
+      // events (no owner), never a farmer's private ones. An event without an
+      // owner is public only when its type is (campaign closing); a legacy
+      // COMPRA_PROGRAMADA of a joint purchase has no owner but carries the
+      // supplier, notes and group total, so it reaches nobody. It is not
+      // deleted, reassigned or given an owner by name.
+      // Inside AND so that no client filter (type, owner) can override it.
+      AND: [
+        actor.role === UserRole.AGRICULTOR
+          ? { OR: [{ ownerUserId: actor.userId }, { ownerUserId: null, type: { in: PUBLIC_EVENT_TYPES } }] }
+          : { ownerUserId: null, type: { in: PUBLIC_EVENT_TYPES } },
+      ],
       ...(query.campaignId ? { campaignId: query.campaignId } : {}),
       ...(query.type ? { type: query.type } : {}),
       ...(query.status ? { status: query.status } : {}),

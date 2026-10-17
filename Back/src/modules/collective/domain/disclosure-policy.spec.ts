@@ -1,5 +1,6 @@
-import { consolidate, EligibleContribution, MAX_TOTAL_BASE } from "./consolidation";
-import { decideCell, PriorRelease } from "./disclosure-policy";
+import { Cell, cellId, consolidate, EligibleContribution, MAX_TOTAL_BASE } from "./consolidation";
+import { decideCell, decideCells, decideCellWithRelated, PriorRelease } from "./disclosure-policy";
+import { amountColumn, newlyRevealing, WorkBudget } from "./differencing";
 
 /**
  * F06 #21 with the provisional F07-POL-01 (#107): one cell at a time. Members
@@ -195,5 +196,239 @@ describe("provisional disclosure policy (F07-POL-01, k = 3)", () => {
     const exact = cellOf(contribution(1, MAX_TOTAL_BASE - 1n), contribution(2, 1n), contribution(3, 0n));
     expect(exact.overflow).toBe(false);
     expect(decideCell(exact, [])).toEqual({ kind: "RELEASE" });
+  });
+});
+
+describe("F10-SEC-02: the history follows contributions across cell keys", () => {
+  // Product p (c1–c3) was disclosed as 6000; then it is associated with another
+  // canonical product, so its contributions now form a cell of a different key.
+  const p = [contribution(1, 1000n), contribution(2, 2000n), contribution(3, 3000n)];
+  const released = releaseOf(p);
+
+  it("re-keying with one change does not publish a figure that isolates it (6100 − 6000)", () => {
+    const now = cellOf(contribution(1, 1100n, 2), contribution(2, 2000n), contribution(3, 3000n));
+    expect(decideCell(now, [])).toEqual({ kind: "RELEASE" });
+    expect(decideCellWithRelated(now, [], [[released]])).toEqual({ kind: "SUPPRESS", reason: "REVISION", withdrawPrior: false });
+  });
+
+  it("re-keying without changes may show the same figure again", () => {
+    expect(decideCellWithRelated(cellOf(...p), [], [[released]])).toEqual({ kind: "RELEASE" });
+  });
+
+  it("merging into a disclosed cell with one change keeps the earlier figure pending", () => {
+    const r = [contribution(4, 4000n), contribution(5, 5000n), contribution(6, 6000n)];
+    const now = cellOf(contribution(1, 1100n, 2), contribution(2, 2000n), contribution(3, 3000n), ...r);
+    // Each disclosure alone sees ≥ 3 Members changed, but R + P + 100 isolates the change.
+    expect(decideCell(now, [releaseOf(r)])).toEqual({ kind: "RELEASE" });
+    expect(decideCellWithRelated(now, [releaseOf(r)], [[released]])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+  });
+
+  it("after k Members changed, a new figure is allowed", () => {
+    const now = cellOf(contribution(1, 1100n, 2), contribution(2, 2100n, 2), contribution(3, 3100n, 2));
+    expect(decideCellWithRelated(now, [], [[released]])).toEqual({ kind: "RELEASE" });
+  });
+
+  it("without related disclosures the rule is the same as before", () => {
+    expect(decideCellWithRelated(cellOf(...p), [], [])).toEqual(decideCell(cellOf(...p), []));
+  });
+});
+
+describe("F10-SEC-02: no combination of earlier figures isolates fewer than k Members", () => {
+  // Reproductions from the session A review (scratchpad review_b/policy):
+  // every read is simulated; a RELEASE joins the history of its key.
+  const [a, b, c] = [contribution(1, 10n), contribution(2, 20n), contribution(3, 30n)];
+  const [d, e, f] = [contribution(4, 100n), contribution(5, 200n), contribution(6, 300n)];
+  const g = contribution(7, 5n);
+  const [x, y, z] = [contribution(8, 1n), contribution(9, 2n), contribution(10, 3n)];
+
+  function simulator() {
+    const histories: Record<string, PriorRelease[]> = {};
+    const shown: Record<string, bigint | null> = {};
+    const read = (key: string, items: EligibleContribution[], relatedKeys: string[] = []) => {
+      const history = (histories[key] ??= []);
+      const cell = cellOf(...items);
+      const decision = decideCellWithRelated(cell, history, relatedKeys.map((k) => histories[k] ?? []));
+      if ("withdrawPrior" in decision && decision.withdrawPrior && history[0]) history[0].withdrawnAt = new Date();
+      if (decision.kind === "RELEASE") history.unshift({ ...releaseOf(items), id: `${key}${history.length + 1}` });
+      shown[key] = decision.kind === "RELEASE" || decision.kind === "SHOW_PRIOR" ? history[0]!.totalBase : null;
+      return { decision, shown: shown[key] };
+    };
+    return { read };
+  }
+
+  it("re-keying after a withdrawal cannot publish N with N − R1 − P = g (bypass3)", () => {
+    const { read } = simulator();
+    expect(read("p", [a, b, c]).shown).toBe(60n);
+    expect(read("r", [d, e, f]).shown).toBe(600n);
+    expect(read("r", [d, e, f, x, y, z]).shown).toBe(606n);
+    expect(read("r", [d, e, f, x, y, z, g]).decision).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+    expect(read("r", [d, e, f, g]).shown).toBeNull();
+    // The Directiva associates p → r.
+    const after = read("r", [a, b, c, d, e, f, g], ["p"]);
+    expect(after.shown).not.toBe(665n);
+    expect(after.decision.kind).not.toBe("RELEASE");
+  });
+
+  it("one key: N − (R2 − R1) = g is not published either (base3, before this change it was)", () => {
+    const { read } = simulator();
+    expect(read("q", [a, b, c]).shown).toBe(60n);
+    expect(read("q", [a, b, c, d, e, f]).shown).toBe(660n);
+    expect(read("q", [a, b, c, d, e, f, g]).decision).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+    // decideCell alone (pairwise) would release 605 here.
+    expect(decideCell(cellOf(d, e, f, g), [releaseOf([a, b, c, d, e, f]), releaseOf([a, b, c])]).kind).toBe("RELEASE");
+    const after = read("q", [d, e, f, g]);
+    expect(after.shown).not.toBe(605n);
+    expect(after.decision.kind).not.toBe("RELEASE");
+  });
+
+  it("with an intermediate withdrawal, N − (R2 − R1) = g is still not published", () => {
+    const { read } = simulator();
+    expect(read("q", [a, b, c]).shown).toBe(60n);
+    expect(read("q", [a, b, c, d, e, f]).shown).toBe(660n);
+    // c cancels: one Member left, the figure is withdrawn.
+    expect(read("q", [a, b, d, e, f]).decision).toEqual({ kind: "SUPPRESS", reason: "REVISION", withdrawPrior: true });
+    // c publishes the same value again: the same figure may be shown again.
+    expect(read("q", [a, b, c, d, e, f]).shown).toBe(660n);
+    expect(read("q", [a, b, c, d, e, f, g]).decision).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+    const after = read("q", [d, e, f, g]);
+    expect(after.shown).not.toBe(605n);
+    expect(after.decision.kind).not.toBe("RELEASE");
+  });
+
+  it("does not suppress what reveals nothing: merging two published cells without changes", () => {
+    const { read } = simulator();
+    expect(read("p", [a, b, c]).shown).toBe(60n);
+    expect(read("r", [d, e, f]).shown).toBe(600n);
+    // p → r without changes: 660 = 600 + 60, nothing new about anyone.
+    expect(read("r", [a, b, c, d, e, f], ["p"])).toEqual({ decision: { kind: "RELEASE" }, shown: 660n });
+  });
+
+  it("does not suppress k Members changing after earlier figures of two keys", () => {
+    const { read } = simulator();
+    read("p", [a, b, c]);
+    read("r", [d, e, f]);
+    const changed = [contribution(1, 11n, 2), contribution(2, 21n, 2), contribution(3, 31n, 2)];
+    expect(read("r", [...changed, d, e, f], ["p"]).decision).toEqual({ kind: "RELEASE" });
+  });
+
+  it("k Members joining at once is still a new figure", () => {
+    const { read } = simulator();
+    expect(read("q", [a, b, c]).shown).toBe(60n);
+    expect(read("q", [a, b, c, d, e, f]).shown).toBe(660n);
+  });
+});
+
+describe("F10-SEC-02: the cells of one read are checked against each other", () => {
+  // Reproductions S1 and S7 from the session A review (scratchpad
+  // review_b/policy2/scenarios.mts): P2 was associated with P1 and 660 was
+  // published; then the association is undone and both cells are decided in
+  // the SAME read.
+  const of = (n: number, quantity: bigint, product: string) => ({ ...contribution(n, quantity), productId: product });
+  const p1 = [of(1, 10n, "P1"), of(2, 20n, "P1"), of(3, 30n, "P1")];
+  const p2 = [of(4, 100n, "P2"), of(5, 200n, "P2"), of(6, 300n, "P2")];
+
+  function world() {
+    const histories = new Map<string, PriorRelease[]>();
+    const read = (contributions: EligibleContribution[], canonicalOf = new Map<string, string>()) => {
+      const cells = consolidate(contributions, canonicalOf);
+      const decisions = decideCells(cells, histories);
+      const shown: Record<string, string> = {};
+      for (const cell of cells) {
+        const id = cellId(cell);
+        const history = histories.get(id) ?? [];
+        const decision = decisions.get(id)!;
+        if ("withdrawPrior" in decision && decision.withdrawPrior && history[0]) history[0].withdrawnAt = new Date();
+        if (decision.kind === "RELEASE") histories.set(id, [{ ...releaseOf(cell.contributions), id: `${id}#${history.length + 1}` }, ...history]);
+        shown[cell.canonicalProductId] = decision.kind === "RELEASE" ? `${cell.total}` : decision.kind;
+      }
+      return shown;
+    };
+    return { read };
+  }
+  const merged = new Map([["P2", "P1"]]);
+
+  it("S1: a split while g joins P1 never publishes P1 = 65 and P2 = 600 together (65 + 600 − 660 = g)", () => {
+    const { read } = world();
+    expect(read([...p1, ...p2], merged)).toEqual({ P1: "660" });
+    const g = of(7, 5n, "P1");
+    // Each cell alone would be allowed against the earlier 660:
+    const [cellP1, cellP2] = consolidate([...p1, g, ...p2], new Map()) as [Cell, Cell];
+    const r660 = { ...releaseOf([...p1, ...p2]), id: "660" };
+    expect(decideCellWithRelated(cellP1, [r660], []).kind).toBe("RELEASE");
+    expect(decideCellWithRelated(cellP2, [], [[r660]]).kind).toBe("RELEASE");
+    // Decided in one read, the second one sees the first.
+    expect(read([...p1, g, ...p2])).toEqual({ P1: "65", P2: "SUPPRESS" });
+  });
+
+  it("S7: one Member joins each cell in the same read: g + h is not revealed", () => {
+    const { read } = world();
+    read([...p1, ...p2], merged);
+    expect(read([...p1, of(7, 5n, "P1"), ...p2, of(8, 7n, "P2")])).toEqual({ P1: "65", P2: "SUPPRESS" });
+  });
+
+  it("does not suppress a split that reveals nothing: 60 and 600 after 660", () => {
+    const { read } = world();
+    read([...p1, ...p2], merged);
+    expect(read([...p1, ...p2])).toEqual({ P1: "60", P2: "600" });
+  });
+});
+
+describe("F10-SEC-02: what is revealed is compared, not only which groups", () => {
+  const figure = (entries: [string, bigint, string][]) => ({
+    columns: new Map(entries.map(([id, amount, member]) => [amountColumn(id, amount), member])),
+  });
+  const abc: [string, bigint, string][] = [["ca", 10n, "a"], ["cb", 20n, "b"], ["cc", 30n, "c"]];
+
+  it("a group already exposed (published before this rule) does not get its new value revealed", () => {
+    // 60 and 65 were published under an earlier rule: g = 5 is exposed.
+    const known = [figure(abc), figure([...abc, ["cg", 5n, "g"]])];
+    expect(newlyRevealing(known, figure([...abc, ["cg", 7n, "g"]]), 3)).toBe(true);
+    expect(newlyRevealing(known, figure([...abc, ["cg", 5n, "g"]]), 3)).toBe(false);
+  });
+});
+
+describe("F10-SEC-02: unknown amounts and the work limit fail closed", () => {
+  it("a figure with amounts the server did not record allows no new figure in its keys (base3 over a legacy row)", () => {
+    const [a, b, c] = [contribution(1, 10n), contribution(2, 20n), contribution(3, 30n)];
+    const [d, e, f, g] = [contribution(4, 100n), contribution(5, 200n), contribution(6, 300n), contribution(7, 5n)];
+    const legacy: PriorRelease = { ...releaseOf([a, b, c]), id: "L", items: new Map([a, b, c].map((x) => [x.contributionId, null])) };
+    const r2 = { ...releaseOf([a, b, c, d, e, f]), id: "R2" };
+    const now = cellOf(d, e, f, g);
+    // 605 − (660 − L) = g if a, b, c did not change since L.
+    expect(decideCell(now, [r2, legacy]).kind).toBe("RELEASE");
+    expect(decideCellWithRelated(now, [r2, legacy], [])).toEqual({ kind: "SUPPRESS", reason: "REVISION", withdrawPrior: true });
+  });
+
+  it("when the budget runs out the answer is «reveals», so no new figure is published", () => {
+    const p = [contribution(1, 10n), contribution(2, 20n), contribution(3, 30n)];
+    const r = [contribution(4, 100n), contribution(5, 200n), contribution(6, 300n)];
+    const now = cellOf(...p, ...r);
+    const related = [[{ ...releaseOf(p), id: "p" }]];
+    expect(decideCellWithRelated(now, [releaseOf(r)], related).kind).toBe("RELEASE");
+    expect(decideCellWithRelated(now, [releaseOf(r)], related, 3, new WorkBudget(1))).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+  });
+
+  it("a long history (74 Members, 3 changes per read, 60 figures) stays well within the work limit", () => {
+    let seed = 7;
+    const random = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff);
+    const amounts = [...Array(74).keys()].map((i) => BigInt(100 + i));
+    let history: PriorRelease[] = [];
+    let released = 0;
+    for (let round = 0; round <= 60; round++) {
+      if (round > 0) {
+        const changed = new Set<number>();
+        while (changed.size < 3) changed.add(random() % 74);
+        for (const i of changed) amounts[i] = BigInt(1000 + (random() % 100000));
+      }
+      const cell = cellOf(...amounts.map((amount, i) => contribution(i + 1, amount, round + 1, `m${i + 1}`)));
+      const budget = new WorkBudget();
+      const decision = decideCells([cell], new Map([[cellId(cell), history]]), 3, budget).get(cellId(cell))!;
+      expect(budget.exhausted).toBe(false);
+      if (decision.kind === "RELEASE") {
+        released++;
+        history = [{ ...releaseOf(cell.contributions), id: `r${round}` }, ...history];
+      }
+    }
+    expect(released).toBeGreaterThan(50);
   });
 });

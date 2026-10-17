@@ -159,7 +159,8 @@ export class InventoryController {
   // F10-SEC-02 (#45): every farmer's lots with owner, supplier and quantities;
   // not an authorised aggregate (F06/F07-POL-01). Closed; use /collective.
   @UseGuards(LegacyRouteClosedGuard)
-  @ApiOperation({ summary: 'Consultar inventario global de todos los agricultores' })
+  @ApiForbiddenResponse({ description: 'Cerrada en F10-SEC-02 (#45): responde siempre 403 con message LEGACY_ROUTE_CLOSED, sin efectos. Se conserva para la transición (#81); el camino vigente es el resumen colectivo (/collective/campaigns/{campaignId}/summary).' })
+  @ApiOperation({ summary: 'Consultar inventario global de todos los agricultores (cerrada)' })
   async listGlobalStock(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ListGlobalStockQueryDto) {
     return this.inventoryStockUseCase.listGlobalStock(user.tenantId, query);
   }

@@ -33,6 +33,7 @@ const APPLICATION_NOTE = "MARCA-NOTA-APLICACION-F10";
 const AUDIT_PRIVATE = "MARCA-AUDITORIA-PRIVADA-F10";
 const EVENT_PRIVATE = "MARCA-EVENTO-PRIVADO-F10";
 const PURCHASE_NOTE = "MARCA-COMPRA-PRIVADA-F10";
+const SCHEDULED_NOTE = "MARCA-COMPRA-CONJUNTA-PROGRAMADA-F10";
 
 type Method = "get" | "post" | "patch";
 
@@ -53,6 +54,8 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
   let director: TestSession;
   let admin: TestSession;
   let otherTenantDirector: TestSession;
+  /** A farmer of tenant A who takes part in no joint purchase. */
+  let farmerA3: TestSession;
   const users: Record<string, { id: string; email: string; name: string }> = {};
   const ids: Record<string, string> = {};
 
@@ -73,6 +76,14 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       },
     });
     otherTenantDirector = await createSession(prisma, jwt, otherMember);
+    const thirdFarmer = randomUUID();
+    await prisma.user.create({
+      data: {
+        tenantId: f.tenantA, name: "Agricultor sintético A3", email: `f10-a3-${thirdFarmer}@example.test`,
+        passwordHash: "x", role: "AGRICULTOR", members: { create: { id: thirdFarmer, tenantId: f.tenantA, role: "AGRICULTOR" } },
+      },
+    });
+    farmerA3 = await createSession(prisma, jwt, thirdFarmer);
     for (const [key, memberId] of Object.entries(f.members)) {
       const member = await prisma.member.findUniqueOrThrow({ where: { id: memberId }, include: { user: true } });
       users[key] = { id: member.user.id, email: member.user.email, name: member.user.name };
@@ -101,6 +112,19 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
       where: { purchaseId: ids["jointPurchase"], responsibleUserId: users["farmerA"].id },
     });
     ids["jointPayableA"] = jointPayableA.id;
+    // A legacy SCHEDULED joint purchase: its COMPRA_PROGRAMADA event has no
+    // owner and carries the supplier, the notes and the group total.
+    const scheduled = await app.get(CreateJointPurchaseUseCase).execute(f.tenantA, users["directorA"].id, {
+      ...jointPurchaseBody(),
+      paymentMode: "CONTADO" as const,
+      status: "PROGRAMADA" as const,
+      expectedAt: "2026-11-20T00:00:00.000Z",
+      notes: SCHEDULED_NOTE,
+    } as never);
+    ids["scheduledPurchase"] = (scheduled as any).purchase?.id ?? (scheduled as any).id;
+    ids["scheduledEvent"] = (await prisma.calendarEvent.findFirstOrThrow({
+      where: { sourceEntity: "Purchase", sourceEntityId: ids["scheduledPurchase"], type: "COMPRA_PROGRAMADA" },
+    })).id;
 
     // Private plot, assignment, application, calendar event and audit entry.
     const crop = await prisma.crop.create({ data: { tenantId: f.tenantA, name: "Papa sintética F10" } });
@@ -455,6 +479,110 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
         }
       }
       expect(await effects()).toEqual(before);
+    });
+  });
+  describe("residuos de F10_SEC_02_ROUTES §9: compras conjuntas históricas y eventos sin dueño", () => {
+    // Joint purchase: 8 units at 3 = 24; farmer A 5 units (15), farmer A2 3 units (9).
+    it("a participant sees only their own share of a historical joint purchase, never the group totals", async () => {
+      for (const [session, units, amount] of [[farmerA2, "3", "9"], [farmerA, "5", "15"]] as const) {
+        for (const path of ["/purchases", `/purchases/${ids["jointPurchase"]}`]) {
+          const res = await call("get", path, session);
+          expect({ path, status: res.status }).toEqual({ path, status: 200 });
+          const joint = Array.isArray(res.body) ? res.body.find((p: any) => p.id === ids["jointPurchase"]) : res.body;
+          expect({ path, share: joint.share, total: joint.totalAmount, items: joint.items.map((i: any) => [i.quantity, i.subtotal]) })
+            .toEqual({ path, share: "OWN", total: amount, items: [[units, amount]] });
+        }
+      }
+    });
+
+    it("joint purchase reports give a participant their own share and count only their own participation", async () => {
+      const joint = await call("get", "/reports/purchases/joint", farmerA2);
+      expect(joint.status).toBe(200);
+      const row = joint.body.rows.find((r: any) => r.id === ids["jointPurchase"]);
+      expect({ total: row.totalAmount, items: row.items.map((i: any) => [i.quantity, i.subtotal]), participants: row.participants.length })
+        .toEqual({ total: "9", items: [["3", "9"]], participants: 1 });
+      // Two joint purchases (received and scheduled), one participation each.
+      expect(joint.body.totals.participants).toBe(joint.body.rows.length);
+      expect(joint.body.totals.totalAmount).toBe("18");
+      const byCampaign = await call("get", "/reports/purchases/by-campaign", farmerA2);
+      expect(byCampaign.status).toBe(200);
+      expect(byCampaign.body.totals.totalAmount).toBe("18");
+      expect(byCampaign.text).not.toContain('"24"');
+    });
+
+    it("a scheduled joint purchase event without owner reaches neither farmers nor institutional roles", async () => {
+      const sessions = [["A (participante)", farmerA], ["A2 (participante)", farmerA2], ["A3 (ajeno)", farmerA3], ["DIRECTIVA", director], ["ADMINISTRADOR", admin]] as const;
+      for (const [who, session] of sessions) {
+        for (const path of ["/calendar/events", "/calendar/events?type=COMPRA_PROGRAMADA"]) {
+          const res = await call("get", path, session);
+          expect({ who, path, status: res.status }).toEqual({ who, path, status: 200 });
+          expect({ who, path, leaked: res.text.includes(SCHEDULED_NOTE) || res.text.includes(ids["scheduledEvent"]) })
+            .toEqual({ who, path, leaked: false });
+        }
+        const complete = await call("post", `/calendar/events/${ids["scheduledEvent"]}/complete`, session);
+        expect({ who, status: complete.status }).toEqual({ who, status: 404 });
+      }
+      const event = await prisma.calendarEvent.findUniqueOrThrow({ where: { id: ids["scheduledEvent"] } });
+      expect([event.status, event.ownerUserId, event.description]).toEqual(["PENDIENTE", null, SCHEDULED_NOTE]);
+    });
+
+    it("the supplier catalog carries no purchases of any farmer (catalog purpose only)", async () => {
+      // Farmer A's individual purchase (10 × 5 = 50) and the joint purchases
+      // were bought from this supplier.
+      for (const [who, session] of [["A2", farmerA2], ["A3", farmerA3], ["DIRECTIVA", director], ["ADMINISTRADOR", admin]] as const) {
+        const res = await call("get", "/suppliers", session);
+        expect({ who, status: res.status }).toEqual({ who, status: 200 });
+        const supplier = res.body.find((s: any) => s.id === ids["supplier"]);
+        expect({ who, name: supplier?.name }).toEqual({ who, name: "Proveedor sintético F10" });
+        expect({ who, recentPurchases: supplier.recentPurchases, leaksPurchase: res.text.includes(ids["purchaseA"]) })
+          .toEqual({ who, recentPurchases: undefined, leaksPurchase: false });
+      }
+      const updated = await call("patch", `/suppliers/${ids["supplier"]}`, director, { phone: "70000000" });
+      expect(updated.status).toBe(200);
+      expect([updated.body.recentPurchases, updated.text.includes(ids["purchaseA"])]).toEqual([undefined, false]);
+    });
+
+    it("the user list serves each role its purpose: the Directiva gets names, not emails or last logins", async () => {
+      const directiva = await call("get", "/users", director);
+      expect(directiva.status).toBe(200);
+      const farmerRow = directiva.body.find((u: any) => u.id === users["farmerA"].id);
+      expect(farmerRow).toMatchObject({ id: users["farmerA"].id, name: users["farmerA"].name, role: "AGRICULTOR" });
+      expect({ email: farmerRow.email, lastLoginAt: farmerRow.lastLoginAt, leaks: directiva.text.includes(users["farmerA"].email) })
+        .toEqual({ email: undefined, lastLoginAt: undefined, leaks: false });
+      // Access administration (ADR-003) keeps the full view.
+      const administrador = await call("get", "/users", admin);
+      expect(administrador.body.find((u: any) => u.id === users["farmerA"].id)).toHaveProperty("email", users["farmerA"].email);
+      expect((await call("get", "/users", farmerA)).status).toBe(403);
+    });
+
+    it("the debt of a historical joint purchase shows the farmer's own share of its items", async () => {
+      for (const [session, owner, units, amount] of [[farmerA, "farmerA", "5", "15"], [farmerA2, "farmerA2", "3", "9"]] as const) {
+        const res = await call("get", "/accounts-payable", session);
+        expect(res.status).toBe(200);
+        const debt = res.body.find((p: any) => p.purchaseId === ids["jointPurchase"]);
+        expect({ owner, share: debt.share, total: debt.totalAmount, items: debt.items.map((i: any) => [i.quantity, i.subtotal]) })
+          .toEqual({ owner, share: "OWN", total: amount, items: [[units, amount]] });
+      }
+    });
+
+    it("a farmer cannot complete or cancel a public event of the tenant", async () => {
+      const before = (await prisma.calendarEvent.findUniqueOrThrow({ where: { id: ids["eventInstitutional"] } })).status;
+      for (const session of [farmerA, farmerA3]) {
+        expect((await call("post", `/calendar/events/${ids["eventInstitutional"]}/complete`, session)).status).toBe(404);
+        expect((await call("post", `/calendar/events/${ids["eventInstitutional"]}/cancel`, session)).status).toBe(404);
+      }
+      expect((await prisma.calendarEvent.findUniqueOrThrow({ where: { id: ids["eventInstitutional"] } })).status).toBe(before);
+      // The farmer still sees it and still changes their own events.
+      expect((await call("get", "/calendar/events", farmerA)).body.some((e: any) => e.id === ids["eventInstitutional"])).toBe(true);
+      expect((await call("post", `/calendar/events/${ids["eventA"]}/cancel`, farmerA)).status).toBe(200);
+    });
+
+    it("the public campaign-closing calendar stays visible to farmers and institutional roles", async () => {
+      for (const session of [farmerA, farmerA3, director, admin]) {
+        const res = await call("get", "/calendar/events", session);
+        expect(res.status).toBe(200);
+        expect(res.body.some((event: any) => event.id === ids["eventInstitutional"])).toBe(true);
+      }
     });
   });
 });

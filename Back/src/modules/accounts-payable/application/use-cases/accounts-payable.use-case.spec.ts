@@ -210,6 +210,36 @@ describe('AccountsPayableUseCase', () => {
     expect(tx.payment.create).not.toHaveBeenCalled();
   });
 
+  it('F10-SEC-02: only an INDIVIDUAL purchase shows its items whole; a joint one, only the own share (fail-closed)', async () => {
+    const d = (value: number) => new Prisma.Decimal(value);
+    const item = {
+      id: 'item-1',
+      quantity: d(8),
+      unitCost: d(3),
+      subtotal: d(24),
+      discountAmount: d(0),
+      product: { id: 'product-1', name: 'Urea', unit: 'KG' },
+      allocations: [
+        { userId, quantity: d(5), subtotal: d(15) },
+        { userId: 'user-2', quantity: d(3), subtotal: d(9) },
+      ],
+    };
+    const joint = { id: 'purchase-1', type: PurchaseType.CONJUNTA, supplier: { id: 'supplier-1', name: 'Proveedor', phone: null }, items: [item] };
+    const findMany = jest.fn().mockResolvedValue([
+      payable({ id: 'own', purchase: joint }),
+      payable({ id: 'nobody', responsibleUserId: null, purchase: joint }),
+      payable({ id: 'individual', purchase: { ...joint, type: PurchaseType.INDIVIDUAL } }),
+    ]);
+    const useCase = createUseCase({}, { payableAccount: { findMany, updateMany: jest.fn().mockResolvedValue({ count: 0 }) } });
+    const result = await useCase.list(tenantId, 'directiva-1', UserRole.DIRECTIVA, {});
+    const lines = Object.fromEntries(result.map((p: any) => [p.id, { share: p.share, items: p.items.map((i: any) => [i.quantity, i.subtotal]) }]));
+    expect(lines).toEqual({
+      own: { share: 'OWN', items: [['5', '15']] },
+      nobody: { share: 'OWN', items: [] },
+      individual: { share: undefined, items: [['8', '24']] },
+    });
+  });
+
   it('reports debts by farmer and campaign for directiva', async () => {
     const prismaOverrides = {
       payableAccount: {

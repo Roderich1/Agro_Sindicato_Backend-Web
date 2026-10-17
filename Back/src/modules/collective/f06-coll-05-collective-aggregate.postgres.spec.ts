@@ -610,14 +610,20 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     // Two Members join: two provable changes, still fewer than k.
     for (const i of [3, 4]) await push(farmers[i]!, p, "500");
     expect(await cell(p)).toMatchObject({ total_base: "6000", pending_changes: true });
-    // A third joins: k Members provably changed against the old disclosure.
+    // A third joins: k Members provably changed against the old disclosure,
+    // but its amounts are unknown, so combinations with it cannot be checked
+    // exactly. F10-SEC-02 (#45, A's final review): fail-closed, the cell keeps
+    // 6000 with pending changes and no new figure is written.
     await push(farmers[5]!, p, "500");
-    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "7600", contributors: 6, pending_changes: false });
-    const latest = await prisma.collectiveReleaseItem.findMany({
-      where: { release: { canonicalProductId: p, totalBase: 7600n } },
-    });
-    expect(latest.map((item) => item.quantityBase?.toString()).sort()).toEqual(
-      ["1100", "2000", "3000", "500", "500", "500"],
-    );
+    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", contributors: 3, pending_changes: true });
+    expect(await prisma.collectiveRelease.count({ where: { canonicalProductId: p } })).toBe(1);
+    // After the migration a new figure records the amount of each contribution.
+    const fresh = (await prisma.product.create({
+      data: { tenantId: f.tenantA, name: `Migración ${randomUUID().slice(0, 8)}`, unit: "L" },
+    })).id;
+    for (const [i, value] of ["10", "20", "30"].entries()) await push(farmers[i]!, fresh, value);
+    expect(await cell(fresh)).toMatchObject({ status: "DISCLOSED", total_base: "60", contributors: 3 });
+    const latest = await prisma.collectiveReleaseItem.findMany({ where: { release: { canonicalProductId: fresh } } });
+    expect(latest.map((item) => item.quantityBase?.toString()).sort()).toEqual(["10", "20", "30"]);
   });
 });
