@@ -83,3 +83,4 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: F07_WEB_PG_TEST_URL="$DATABASE_URL" npx jest f07-web-proposal.postgres.spec.ts --runInBand
+      - run: F07_WEB_PG_TEST_URL="$DATABASE_URL" npx jest f07-acceptance.postgres.spec.ts --runInBand
