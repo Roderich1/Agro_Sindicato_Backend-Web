@@ -1,6 +1,6 @@
 # F10 — Protocolos de evaluación de Agrocuentas: rendimiento, compatibilidad y usabilidad
 
-- **Versión 1.1** (la 1.0, aprobada técnicamente antes de medir, más una precisión del entorno de R5 sin cambio de umbrales; ver el registro de versiones).
+- **Versión 1.2** (la 1.0, aprobada técnicamente antes de medir, más precisiones de la 1.1 y la 1.2 sin cambio de umbrales; ver el registro de versiones).
   - Publicada el 2026-10-16 (America/La_Paz; 2026-10-17 UTC) por la sesión A de Claude Code.
   - Incorpora las decisiones de `_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §1–§2, tomadas el 2026-10-16 bajo la **delegación técnica de Roderich**.
   - **No es una ratificación del tutor, ni una aprobación institucional, ni una inspección personal del autor.**
@@ -21,7 +21,8 @@
 |---|---|---|---|---|
 | Borrador | 2026-10-16 | Sesión A; sin aprobar | Propuesta inicial, sin umbrales acordados | BE `808acda` (merge `af0dbf1`, #120) |
 | **1.0** | 2026-10-16 (La Paz) | Aprobación técnica delegada por Roderich (archivo de decisiones de cierre §2). Sin ratificación del tutor | Umbrales, datasets, configuraciones, participantes e instrumentos fijados. Se corrige M6. Se retiran los pendientes ya resueltos del WAL y del refresco | BE `72a03be` (PR #122) |
-| **1.1** | 2026-10-16 (La Paz) | Sesión A, antes de cualquier medición de R5, a partir de una observación de la sesión B | **Precisión, sin cambiar umbrales ni repeticiones:** el entorno de R5 (§0.4) usa `NODE_ENV=development`, porque `CollectiveConfig` rechaza `provisional-synthetic` en producción y el resumen no tendría tablas | El commit de esta versión en la rama del PR #122; su SHA se cita en cada evidencia |
+| **1.1** | 2026-10-16 (La Paz) | Sesión A, antes de cualquier medición de R5, a partir de una observación de la sesión B | **Precisión, sin cambiar umbrales ni repeticiones:** el entorno de R5 (§0.4) usa `NODE_ENV=development`, porque `CollectiveConfig` rechaza `provisional-synthetic` en producción y el resumen no tendría tablas | BE `7581af2` (rama del PR #122) |
+| **1.2** | 2026-10-16 (La Paz; 2026-10-17 ~02:00 UTC) | Sesión A, antes de la primera repetición de R6 y antes de cualquier sesión de usabilidad | **Precisiones, sin cambiar umbrales ni repeticiones:** composición exacta de S1/S2/S3 (§1.4); el primer envío de cada tamaño es un calentamiento anotado aparte; criterio por tarea de usabilidad sólo con la muestra planificada completa (§3.6) | El commit de esta versión en la rama del PR #122; su SHA se cita en cada evidencia |
 
 Una versión posterior (1.1, …) sólo puede precisar algo que esta versión deja explícitamente para antes de su medición, como los bytes exactos de R6 (§1.4). **No puede tocar umbrales ni repeticiones.** Se publica antes de la primera repetición afectada y se añade a esta tabla.
 
@@ -172,7 +173,20 @@ Medir el tiempo de las operaciones críticas locales (Mobile) y centrales (Backe
 - **Tamaños objetivo** del contenedor que mide el servidor:
   - **S1 ≈ 1 MiB**, **S2 ≈ 10 MiB** y **S3 ≈ 50 MiB**, con una tolerancia de ±20 %;
   - todos dentro de los límites técnicos: `BACKUP_MAX_BYTES` 100 MiB, `maxTotalBytes` 256 MiB, `maxManifestBytes` 4 MiB y 5 000 fotos.
-- **Lo que se fija antes de la primera repetición de R6, en la versión 1.1:** el número de fotos de cada tamaño y los bytes exactos del contenedor. **No se usa un archivo de relleno inválido.**
+- **Lo que se fija antes de la primera repetición de R6** (versión 1.2; «versión 1.1» en el texto anterior):
+  - **Fotografías:** `make_photos.sh` en la rama de evaluación Mobile, con JPEG de 1600×1200, ruido 50, calidad 4 y semilla 20261016 + i. Cada foto pesa unos 0,84 MB. Los bytes y el SHA-256 de cada una están en su `SHA256SUMS`: `dsv_photo_001.jpg` pesa 836 200 B, con SHA-256 `9108597c…47bd`.
+  - **Composición:**
+
+    | Tamaño | Fotos | Bytes de las fotos | Contenedor esperado |
+    |---|---|---|---|
+    | **S1** | 1 | 836 200 B | ≈ 1,0 MiB |
+    | **S2** | 12 | 10 032 266 B | ≈ 9,8 MiB |
+    | **S3** | 62 | 51 752 775 B | ≈ 49,6 MiB |
+
+    Cada contenedor lleva además la base DS-V en su estado de ese momento, que comprimida ocupa unos 0,2 MB.
+  - **Asociación:** las fotos se asocian a las primeras compras DS-V por id con `attach_photos.py`, como fixture y con la app detenida.
+  - **Calentamiento:** el **primer envío de cada tamaño** se anota aparte y no entra en las 5 repeticiones. Da los bytes exactos que mide el servidor; los bytes de cada repetición se registran en su fila.
+  - **No se usa un archivo de relleno inválido:** el contenedor lo genera la propia app.
 
 ### 1.5 Mediciones y criterios aprobados
 
@@ -433,6 +447,7 @@ Son criterios operativos del estudio piloto, acordados antes de medir. **No son 
 
 ### 3.6 Criterios de resultado
 - **Por tarea:** CUMPLE si el éxito con ayuda de nivel 0–1 es **≥ 80 %** de quienes la intentaron (con 5 agricultores, ≥ 4 de 5; **con 2 de la Directiva, 2 de 2**) y hubo **cero errores críticos**.
+  - **Precisión v1.2 (antes de cualquier sesión):** el criterio sólo se evalúa si intentaron la tarea **todos** los participantes de la muestra planificada de esa interfaz (5 en Móvil, 2 en Web). Si no, el resultado es «NO EJECUTADA (muestra incompleta: k de N)», con los conteos visibles. **Nunca da CUMPLE con menos participantes.**
 - **SUS:** CUMPLE si la **media es ≥ 68**, como criterio operativo del estudio. No es un porcentaje de usabilidad ni una aceptación institucional.
   - Se publican los puntajes individuales anonimizados, el n válido, la media, la mediana y el rango, por interfaz.
 - **Alcance de la muestra:** permite una evaluación **exploratoria**, no una inferencia poblacional.
