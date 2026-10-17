@@ -1,5 +1,5 @@
 import { consolidate, EligibleContribution, MAX_TOTAL_BASE } from "./consolidation";
-import { decideCell, PriorRelease } from "./disclosure-policy";
+import { decideCell, decideCellWithRelated, PriorRelease } from "./disclosure-policy";
 
 /**
  * F06 #21 with the provisional F07-POL-01 (#107): one cell at a time. Members
@@ -195,5 +195,39 @@ describe("provisional disclosure policy (F07-POL-01, k = 3)", () => {
     const exact = cellOf(contribution(1, MAX_TOTAL_BASE - 1n), contribution(2, 1n), contribution(3, 0n));
     expect(exact.overflow).toBe(false);
     expect(decideCell(exact, [])).toEqual({ kind: "RELEASE" });
+  });
+});
+
+describe("F10-SEC-02: the history follows contributions across cell keys", () => {
+  // Product p (c1–c3) was disclosed as 6000; then it is associated with another
+  // canonical product, so its contributions now form a cell of a different key.
+  const p = [contribution(1, 1000n), contribution(2, 2000n), contribution(3, 3000n)];
+  const released = releaseOf(p);
+
+  it("re-keying with one change does not publish a figure that isolates it (6100 − 6000)", () => {
+    const now = cellOf(contribution(1, 1100n, 2), contribution(2, 2000n), contribution(3, 3000n));
+    expect(decideCell(now, [])).toEqual({ kind: "RELEASE" });
+    expect(decideCellWithRelated(now, [], [[released]])).toEqual({ kind: "SUPPRESS", reason: "REVISION", withdrawPrior: false });
+  });
+
+  it("re-keying without changes may show the same figure again", () => {
+    expect(decideCellWithRelated(cellOf(...p), [], [[released]])).toEqual({ kind: "RELEASE" });
+  });
+
+  it("merging into a disclosed cell with one change keeps the earlier figure pending", () => {
+    const r = [contribution(4, 4000n), contribution(5, 5000n), contribution(6, 6000n)];
+    const now = cellOf(contribution(1, 1100n, 2), contribution(2, 2000n), contribution(3, 3000n), ...r);
+    // Each disclosure alone sees ≥ 3 Members changed, but R + P + 100 isolates the change.
+    expect(decideCell(now, [releaseOf(r)])).toEqual({ kind: "RELEASE" });
+    expect(decideCellWithRelated(now, [releaseOf(r)], [[released]])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+  });
+
+  it("after k Members changed, a new figure is allowed", () => {
+    const now = cellOf(contribution(1, 1100n, 2), contribution(2, 2100n, 2), contribution(3, 3100n, 2));
+    expect(decideCellWithRelated(now, [], [[released]])).toEqual({ kind: "RELEASE" });
+  });
+
+  it("without related disclosures the rule is the same as before", () => {
+    expect(decideCellWithRelated(cellOf(...p), [], [])).toEqual(decideCell(cellOf(...p), []));
   });
 });

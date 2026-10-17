@@ -8,7 +8,10 @@ export type ProposalLineStatus = CellStatus | 'WITHDRAWN' | 'SUPERSEDED' | 'POLI
 
 export interface Coverage {
   linked_members: number;
+  /** F10-SEC-02: Members dentro de una cifra publicada (no cuenta celdas suprimidas). */
   members_with_contribution: number;
+  /** Sólo en el resumen: alguna fila no tiene cifra; sin conteo. */
+  suppressed_cells?: boolean;
 }
 
 export interface CampaignRef {

@@ -119,8 +119,10 @@ describePostgres("F10-SEC-02: disclosure gaps in the collective outputs on Postg
     await push(await farmer(), c, x, "700");
     const res = await summary(c);
     expect(res.body.cells).toEqual([expect.objectContaining({ product_ref: x, status: "SUPPRESSED_UNDER_THRESHOLD", total_base: null, contributors: null })]);
-    const shown = res.body.coverage?.members_with_contribution;
-    // An exact count under k here equals the hidden count of the only cell.
-    expect({ shown, reveals: typeof shown === "number" && shown < 3 }).toEqual({ shown, reveals: false });
+    // Before the fix the coverage said 2: exactly the hidden count of the only
+    // cell. Now it counts only Members inside a published figure (none here)
+    // and says, without a count, that some cell has no figure.
+    expect(res.body.coverage).toEqual({ linked_members: expect.any(Number), members_with_contribution: 0, suppressed_cells: true });
+    expect(res.text).not.toMatch(/"members_with_contribution":2/);
   });
 });

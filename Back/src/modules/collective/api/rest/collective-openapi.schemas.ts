@@ -70,10 +70,14 @@ export const collectiveSummarySchema: SchemaObject = {
       type: "object",
       nullable: true,
       additionalProperties: false,
-      required: ["linked_members", "members_with_contribution"],
+      required: ["linked_members", "members_with_contribution", "suppressed_cells"],
       properties: {
         linked_members: { type: "integer" },
-        members_with_contribution: { type: "integer" },
+        members_with_contribution: {
+          type: "integer",
+          description: "Members inside a published figure (F10-SEC-02): contributors of suppressed cells are not counted.",
+        },
+        suppressed_cells: { type: "boolean", description: "Some row has no figure; no count is given." },
       },
     },
     cells: { type: "array", items: collectiveCellSchema },

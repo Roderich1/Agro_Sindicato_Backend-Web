@@ -25,7 +25,7 @@ export function summaryWith(cells: SummaryCell[], mode: 'PROVISIONAL_SYNTHETIC' 
     contractVersion: 1,
     campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name, status: 'ABIERTA' },
     disclosure: { mode, policy: 'F07-POL-01', approved: false, threshold: mode === 'POLICY_PENDING' ? null : 3 },
-    coverage: mode === 'POLICY_PENDING' ? null : { linked_members: 4, members_with_contribution: 3 },
+    coverage: mode === 'POLICY_PENDING' ? null : { linked_members: 4, members_with_contribution: 3, suppressed_cells: true },
     cells: mode === 'POLICY_PENDING' ? [] : cells,
   };
 }

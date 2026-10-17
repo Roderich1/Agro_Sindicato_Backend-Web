@@ -160,3 +160,50 @@ export function decideCell(
   }
   return { kind: "SHOW_PRIOR", pendingChanges: true };
 }
+
+/**
+ * Rule 2 across cell keys (F10-SEC-02 #45). A contribution can move to another
+ * cell when the Directiva associates its product with a different canonical
+ * product. The disclosures of the cell it came from stay known to the reader,
+ * so the history of a cell also includes **every earlier disclosure of other
+ * keys that shares a contribution with it** (`related`, newest first per key).
+ *
+ * A new figure is only allowed if, besides the cell's own history, it is
+ * provably safe against each related disclosure and against the combination
+ * of the latest disclosure of every key involved (a reader can add them up).
+ * Otherwise the cell keeps its own earlier figure with pending changes, if it
+ * still describes it, or shows no figure (REVISION). A figure of another key
+ * is never shown under this one.
+ */
+export function decideCellWithRelated(
+  cell: Cell,
+  history: readonly PriorRelease[],
+  related: readonly (readonly PriorRelease[])[],
+  threshold = PROVISIONAL_THRESHOLD,
+): CellDecision {
+  const own = decideCell(cell, history, threshold);
+  const foreign = related.filter((releases) => releases.length > 0);
+  if (own.kind !== "RELEASE" || foreign.length === 0) return own;
+  const now = currentAmounts(cell);
+  // Latest disclosure of each key; a contribution in two of them counts once,
+  // with the newest known amount.
+  const latest = [history[0], ...foreign.map((releases) => releases[0])]
+    .filter((release): release is PriorRelease => release !== undefined)
+    .sort((a, b) => b.releasedAt.getTime() - a.releasedAt.getTime());
+  const combined: PriorRelease = {
+    ...latest[0]!,
+    items: new Map(latest.flatMap((release) => [...release.items]).reverse()),
+    memberOf: new Map(latest.flatMap((release) => [...release.memberOf]).reverse()),
+  };
+  const safe =
+    foreign.every((releases) =>
+      releases.every((release) => provablySafe(compare(now, releasedAmounts(release)), threshold)),
+    ) && provablySafe(compare(now, releasedAmounts(combined)), threshold);
+  if (safe) return own;
+  const ownLatest = history[0] ?? null;
+  const ownShown = ownLatest !== null && ownLatest.withdrawnAt === null;
+  const removedFromOwn =
+    ownLatest !== null && [...releasedAmounts(ownLatest).keys()].some((member) => !now.has(member));
+  if (ownShown && !removedFromOwn) return { kind: "SHOW_PRIOR", pendingChanges: true };
+  return { kind: "SUPPRESS", reason: "REVISION", withdrawPrior: ownShown };
+}

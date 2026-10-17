@@ -260,7 +260,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
       const s = await summary(ref);
       expectSummaryMatches(s, "RAW", key);
       // Absence is unknown: F4 counts in linked_members only.
-      expect(s.body.coverage).toEqual({ linked_members: 4, members_with_contribution: 3 });
+      expect(s.body.coverage).toEqual({ linked_members: 4, members_with_contribution: 3, suppressed_cells: true });
     }
     rawC1 = await generate(campaigns.C1);
     rawC2 = await generate(campaigns.C2);

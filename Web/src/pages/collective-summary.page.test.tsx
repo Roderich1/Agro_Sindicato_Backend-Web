@@ -64,7 +64,9 @@ describe('Resumen colectivo', () => {
     expect(screen.getByRole('region', { name: 'Necesidad declarada' }).textContent).not.toContain('20 KG');
     expect(document.body.textContent).not.toMatch(/45 KG|31 L|Total general/);
 
-    expect(screen.getByTestId('coverage').textContent).toMatch(/3 de 4 agricultores vinculados/);
+    expect(screen.getByTestId('coverage').textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas/);
+    // F10-SEC-02: existen filas sin cifra; se avisa sin conteo.
+    expect(screen.getByTestId('coverage').textContent).toMatch(/Hay filas sin cifra/);
     expect(screen.getByTestId('coverage').textContent).toMatch(/desconocido, no cero/);
     // El resumen muestra la cobertura actual: sin rótulo de fecha histórica.
     expect(screen.getByTestId('coverage').textContent).not.toMatch(/al generar el borrador|No es la cobertura actual/);

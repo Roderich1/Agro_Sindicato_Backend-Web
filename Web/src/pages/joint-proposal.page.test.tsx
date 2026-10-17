@@ -62,7 +62,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
     const coverage = await screen.findByTestId('coverage');
     expect(coverage.textContent).toContain(`Cobertura al generar el borrador (${fmtDateTime(DRAFT.generated_at)})`);
-    expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados habían aportado datos en esa fecha/);
+    expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas en esa fecha/);
     expect(coverage.textContent).toMatch(/No es la cobertura actual/);
   });
 

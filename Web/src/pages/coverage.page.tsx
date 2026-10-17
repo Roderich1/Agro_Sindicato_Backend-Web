@@ -12,7 +12,8 @@ import type { CollectiveSummary } from '../types/collective';
 
 /**
  * F07-WEB-03 (#25), alcance reducido: cobertura sólo agregada (cuántos
- * agricultores vinculados aportaron), con la misma política que el resumen.
+ * agricultores vinculados están dentro de cifras publicadas; F10-SEC-02), con
+ * la misma política que el resumen.
  * No hay listado de quién aportó ni estado por agricultor.
  */
 export function CoveragePage() {
@@ -58,7 +59,7 @@ export function CoveragePage() {
         )}
         <Notice kind="info">
           Por decisión de alcance de F07 no se muestra qué agricultores aportaron ni su última sincronización: sólo el
-          conteo agregado de la campaña.
+          conteo agregado de quienes están en cifras publicadas.
         </Notice>
       </div>
     </AppShell>
