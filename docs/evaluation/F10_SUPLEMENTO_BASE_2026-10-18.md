@@ -10,9 +10,9 @@
 | Componente | Base medida en la serie 1 (2026-10-17) | **Base de la serie 2** | Comprobación |
 |---|---|---|---|
 | Mobile | `dff6802` (código `2f4b634`) | **`ad5b43d97b15e55c2b8a86bd7e0fcfa5602b68dd`** (= merge de MOB #126). `main` es `1a29869`, que sólo añade `docs/evidence/` (`git log ad5b43d..origin/main -- lib/ android/ pubspec.yaml`: vacío) | CI del runtime 39124111274 SUCCESS (1521 pasan, 4 omitidas, 78 regionales, build release); CI documental 39134406174 SUCCESS |
-| Backend + Web | `ed069a6` (código `c8cbf67`) | **`6c54c0072d2140db4be448d5f81d4e5ed498a260`** (código = `cab433d`, merge de PR #128; `git log cab433d..origin/main -- Back/src Back/prisma Web/src`: vacío) | «Backend F02 verification» y «Web F07 verification» en verde sobre `cab433d`; #136, #137 y #138 sólo docs |
+| Backend + Web | `ed069a6` (código `c8cbf67`) | **`6c54c0072d2140db4be448d5f81d4e5ed498a260`** (código = `cab433d`, merge de PR #128; `git log cab433d..origin/main -- Back/src Back/prisma Web/src`: vacío) | «Backend F02 verification» 39069713881 SUCCESS sobre `6e4a0e2` y 39050197493 sobre `cab433d`; «Web F07 verification» 39050197509 SUCCESS sobre `cab433d` (último run en `main`; `Web/src` sin cambios desde `9df7888`, run 39041936690 SUCCESS); #136, #137 y #138 sólo docs |
 | Protocolo | v1.3 `9bfcad2` | **la misma v1.3**, sin cambios | — |
-| Herramientas | Mobile `tool/f10_eval/` (`24ded8e`, `4a9c396`, `2be7789`); Backend `feat/f10-eval-central-web` (`21e41e0`) | Las mismas, integradas en `main` Mobile (`tool/f10_eval/` en `ad5b43d`) y la rama de B. Cualquier ajuste (resolución del HONOR, coordenadas) se versiona en una rama de herramientas y **no cambia el código medido**; cada serie registra el SHA de la herramienta | — |
+| Herramientas | Mobile `tool/f10_eval/` (`24ded8e`, `4a9c396`, `2be7789`); Backend `tool/f10_eval_web/` y `Back/scripts/f10-dsv-central-seed.cjs` (`21e41e0` para R5; `0b332da` para B1/B2) | Las mismas, ya integradas en `main` de ambos repos (`tool/f10_eval/` en `ad5b43d`; `tool/f10_eval_web/` y el generador en `6c54c00`). Los ajustes necesarios (resolución y coordenadas del HONOR en A; contenedor, puertos y etiqueta por variables de entorno en B, rama `eval/f10-serie2-central-web`) se versionan en ramas de herramientas y **no cambian el código medido** (`lib/`, `Back/src`, `Web/src`, `Back/prisma`); cada serie registra el SHA de la herramienta | — |
 
 **Cambios de código entre las dos bases** (resumen; el detalle con SHA está en `_briefs` de A y en los PR):
 
@@ -56,7 +56,7 @@
 | Sesión | Contenedor / volumen | Puertos | Backend | Notas |
 |---|---|---|---|---|
 | **A** (Mobile) | `agro_a_f10eval2_pg` / `agro_a_f10eval2_pgdata` | PG 55455, API 3130, observador 3131 | `6c54c00` compilado (código = `cab433d`; el `dist` se compiló sobre el checkout `6e4a0e2`, de código idéntico), `NODE_ENV=production`, 11 migraciones, túnel HTTPS temporal | `BACKUP_PRODUCTION_ADMISSION=enabled` y `SYNC_V1_PRODUCTION_ADMISSION=enabled` sólo aquí (sintético); `BACKUP_MAX_ACTIVE_PER_MEMBER=20` como la v1.3 (M7 sube pocas copias; no se mide R6) |
-| **B** (central y Web) | `agro_b_f10eval2_pg` / `agro_b_f10eval2_pgdata` | PG 55456, API 3132, Web 4178 | `6c54c00` compilado; **R5 con `NODE_ENV=development` y `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`** (desviación declarada de la v1.1 §0.4, sin cambio) | DS-V Central con el generador de B (`f10-dsv-central-seed.cjs`), semilla 20261016; registrar la migración 11 (`coverage_basis`) en la cuenta de migraciones |
+| **B** (central y Web) | `agro_b_f10eval2_pg` / `agro_b_f10eval2_pgdata` | PG 55456, API 3132, Web 4178 | `6c54c00` compilado (código = `cab433d`); **R5 y W1–W5 con `NODE_ENV=development` y `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`** (desviación declarada de la v1.1 §0.4, como en la serie 1, sin cambio) | DS-V Central con el generador de B (`f10-dsv-central-seed.cjs`), semilla 20261016; registrar la migración 11 (`coverage_basis`) en la cuenta de migraciones |
 
 Los entornos de la serie 1 (`agro_a_f10eval_pg`, `agro_b_f10eval_pg`) no se tocan.
 
@@ -90,5 +90,5 @@ Cada ventana se anuncia por mensaje entre sesiones con hora UTC de inicio y fin;
 
 | Sesión | Fecha (UTC) | Resultado | Observaciones atendidas |
 |---|---|---|---|
-| B | | | |
+| B | 2026-10-18 ~15:45Z | LISTO con tres correcciones y dos precisiones; todas aplicadas en este HEAD | §3: serial fuera (ya atendido con C); §1: runs de CI exactos (Backend F02 39069713881 sobre `6e4a0e2`; Web F07 39050197509 sobre `cab433d`); §1: herramientas de B integradas en `main` y SHA de la serie 1 (`21e41e0` R5, `0b332da` B1/B2), parametrización en rama de herramientas; §4: la desviación de `NODE_ENV` aplica también a W1–W5 |
 | C | 2026-10-18 ~15:20Z | LISTO condicionado a dos correcciones de texto y una precisión; todas aplicadas en este HEAD | §1 y §4: código Backend = `cab433d`, no `6e4a0e2`, y CI Web sólo sobre `cab433d`; §3: serial retirado del documento; §3 y §5: M1 de A4-F con una segunda copia `.f10eval2f` del mismo código; menores: recuentos con y sin merges, 25 commits de voz |
