@@ -90,3 +90,22 @@ La adoptó la sesión de Claude Code, bajo la delegación de Roderich Rendón (`
 - **Datos:** la evidencia es sintética.
 - **Revisiones:** no hay revisión personal de Roderich ni del tutor.
 
+
+## Actualización 2026-10-18 (sesión B): reconciliación D4 bajo el control temporal de #116
+
+**Sólo actualiza el estado; no aprueba el gate.** `CONTINUACION_F09_ENS_01_TRIAGE_2026-10-17.md` §4 pidió repetir la D4 **con el control temporal de MOB #116 activo** (D-F04-C2: período local contenido en el central, retención y conciliación en el worker), porque la corrida anterior era previa a ese cambio y la prueba de integración no corre en la CI normal.
+
+- **Resultado: PASS** (2026-10-18, 03:14–03:24Z) sobre Backend `6e4a0e2` y Mobile `0cc2ee3` (código `65f7cfc`), en un entorno nuevo y aislado: 27/27 celdas con diferencia 0 en las dos ejecuciones, Central 26/26 frente al oráculo, 27 respuestas perdidas y reenviadas, segunda ejecución idéntica, journal en 27, 6 liberaciones, 1 asociación. CSV de resultados idénticos byte a byte a los del 16 y el 17. Detalle en `F06_RECONCILIATION.md`, «Reconciliación bajo el control temporal de #116».
+- **Fixture:** sólo cambiaron fechas de preparación (C1 hasta el 30/06/2026 y C2 hasta el 30/11/2026, contenidas en las centrales del seed), versionadas con justificación en MOB #123; ningún evento, cantidad, CSV esperado ni artefacto anterior cambió.
+- **D-F04-C2 ya no es un límite abierto de este gate:** quedó corregida e integrada en MOB #116 (`65f7cfc`), con sus límites declarados por C (la carrera se cierra en el marcado; un 404 queda retenido sin plazo; un CANCEL detrás de una sustitución nunca recibida espera; el envío espera a `next_attempt_at` si el período vuelve a caber dentro del intervalo; todo HOST, salvo G1–G3 físicos en `F04_C2_DEVICE.md`).
+- **Decisión:** con este resultado, §4 autoriza preparar la decisión Passed académico / Evidence Partial de F06. El registro propuesto está en [`F06_GATE_DECISION.md`](F06_GATE_DECISION.md); **se versiona y revisa antes de cerrar BE #22**. Hasta entonces, el gate sigue **Pending** en GitHub y en el Project.
+- Sin cambios en #107/F07 (k = 3 provisional, producción sin cifras) ni revisión personal de Roderich o del tutor.
+- **Límite:** la prueba de integración de la D4 (`test/f06_reconciliation_integration_test.dart`) **no corre en la CI normal** (se omite sin `AGRO_E2E_BASE_URL`); cada repetición es una corrida manual con los SHA de Backend y Mobile registrados en `F06_RECONCILIATION.md`.
+
+## Resolución vigente — 2026-10-18, America/La_Paz
+
+**Decisión técnica por delegación de Roderich: Passed académico / Evidence Partial.** El fundamento, la autoridad delegada y los límites están en [`F06_GATE_DECISION.md`](F06_GATE_DECISION.md), apartado «Ratificación técnica por delegación». El cierre de BE #22 se registra después de integrar este documento; los campos del Project no se han cambiado desde esta sesión.
+
+El resultado bajo #116 es suficiente para el alcance académico aprobado, con este recuento preciso: ejecución 1, 27 filas (15 RAW y 12 CANONICAL) con diferencia cero; ejecución 2, 12 CANONICAL idénticas tras 27 reenvíos literales. Central conserva 26 aportaciones. Los CSV no cambiaron. Las horas 03:14–03:24Z del 18 son 23:14–23:24 del 17 en La Paz.
+
+Las menciones anteriores de Pending y propuestas son antecedentes fechados. No se reatribuyen mediciones a los merges posteriores, no se elevan a Verified y no se atribuyen revisiones personales o institucionales. F04, F07/#107 y F09 no se aprueban mediante esta resolución. Producción continúa sin divulgar cifras reales.

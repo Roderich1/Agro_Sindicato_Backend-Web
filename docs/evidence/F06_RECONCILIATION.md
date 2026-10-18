@@ -209,3 +209,81 @@ Pedida por la sesión A para GATE-F06 (#22). No es una prueba de F10. **La corri
 - Es la ruta de host: el código Mobile corre en `flutter test` contra la API real.
 - No se repitió la ruta física (el POCO es de A).
 - La política es la provisional k = 3 con datos sintéticos.
+
+## Reconciliación bajo el control temporal de #116 (2026-10-18)
+
+Pedida en `CONTINUACION_F09_ENS_01_TRIAGE_2026-10-17.md` §4 y §5 (sesión B). Motivo: la D4 de arriba se ejecutó **antes** de MOB #116 (D-F04-C2), que cambia la elegibilidad de publicación (el período local tiene que caber en el central) y el despacho del worker; y su prueba de integración no corre en la CI normal sin `AGRO_E2E_BASE_URL`. **Las corridas del 2026-10-16 y del 2026-10-17 se conservan tal cual.**
+
+**Estado:** `up.sh` falló en el primer intento (conservado abajo); **reconciliación completa: PASS** (2026-10-18, 03:14:01–03:24:37Z).
+
+**Entorno (nuevo y aislado, sin teléfono):**
+- Backend `main` **`6e4a0e2ce8fb33ac3d6bf70e88cb6e60641456f0`**, worktree limpio `_wt/B-F06-D4-BE`: `npm ci`, `prisma generate`, `nest build` y `npm run build:seed` (el seed se compila aparte, ver intento 1).
+- Mobile `main` **`0cc2ee3f518f715bb008fc6cf50a891068b0d649`** (merge documental de #118; `lib`, `test`, `android` y `pubspec` iguales a `65f7cfc`, que incluye #116), worktree `_wt/B-F06-D4-MOB`, con el ajuste del fixture descrito abajo (MOB #123).
+- Contenedor nuevo `agro_b_f06d4b_pg` (`postgres:16-alpine`, `127.0.0.1:55436`, volumen `agro_b_f06d4b_pgdata`), bases nuevas `agro_f06d4b_e1` (host) y `agro_f06d4b_poco` (creada por `up.sh`, no usada), API `NODE_ENV=development` en 3220/3221 con `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` (k = 3).
+- No se tocaron `agro_a_pg`, `agro_f05_pg`, `agro_a_f09dev_pg` (detenido) ni los contenedores anteriores de la D4.
+- **Seed exacto:** `dist/prisma/seed.js` del Backend (12 agricultores, 14 productos, 72 lotes) y `tool/f06_d4/seed_d4.cjs` (5 productos F06; abre «Campana Invierno 2026»). Ninguno modifica fechas de campaña.
+
+**Comando:** `tool/f06_d4/up.sh && tool/f06_d4/reconcile.sh` del worktree Mobile, desde una copia en la que sólo cambian, en `config.sh`, el contenedor, el volumen, la base, el puerto de PostgreSQL y los puertos de las API. `reconcile.sh` rota las contraseñas de las cuentas sintéticas, ejecuta dos veces `test/f06_reconciliation_integration_test.dart`, vuelca Central en sólo lectura y lo contrasta con el oráculo (`oracle_check.py`), **sin modificar el oráculo**.
+
+### Contraste de períodos (antes de ejecutar)
+
+Campañas centrales reales de la base nueva, leídas con `psql` en sólo lectura tras el seed (`startDate`/`estimatedEndDate`, medianoche UTC = día civil del contrato de referencias):
+
+| Campaña central | Estado tras el seed | Período |
+|---|---|---|
+| Campana Verano 2026 (C1) | ABIERTA, activa | 2026-01-01 → 2026-06-30 |
+| Campana Invierno 2026 (C2) | ABIERTA, activa (la abre `seed_d4.cjs`) | 2026-07-01 → 2026-11-30 |
+| Campana Invierno 2025 | CERRADA | 2025-05-01 → 2025-09-30 (no interviene) |
+
+Fixture local `test/support/f06_dataset.dart`, **antes** del ajuste: C1 del 01/03/2026 al **31/08/2026** (termina después que la central: `PERIOD_INCOMPATIBLE`, «termina después que la del sindicato») y C2 desde el 01/09/2026 **sin fin** (fin abierto frente a una central con fin: «fije un fin previsto»). Con #116, `bindCampaign` habría rechazado los dos vínculos y la siembra no habría llegado a publicar.
+
+**Ajuste, sólo de fechas de preparación** (MOB #123, `test/support/f06_dataset.dart`, con la justificación en el propio archivo):
+
+| Campaña local | Antes | Ahora | Eventos que contiene (sin cambios) |
+|---|---|---|---|
+| C1 «Campaña verano F06» | 01/03/2026 – 31/08/2026 | 01/03/2026 – **30/06/2026** | necesidades 15/05, compras 01/04, aplicaciones 10/05 |
+| C2 «Campaña invierno F06» | 01/09/2026 – sin fin | 01/09/2026 – **30/11/2026** | necesidades 05/10, compras 15/09, aplicaciones 05/10 |
+
+No cambian eventos, cantidades, campañas semánticas, `F06_DATASET.csv`, los CSV esperados ni los artefactos anteriores. Verificación tras la corrida, en las bases SQLite de F1–F3 (sólo lectura, esquema v10): C1 `CLOSED` 2026-03-01 → 2026-06-30 con vínculo `VALID` y período central guardado 2026-01-01 → 2026-06-30; C2 `ACTIVE` 2026-09-01 → 2026-11-30 con vínculo `VALID` y período central 2026-07-01 → 2026-11-30; outbox 9/10/8 filas, todas `ACKED`. Ninguna intención quedó retenida por período: el control de #116 no bloqueó nada porque los períodos caben, que es exactamente lo que se quería comprobar.
+
+### Intento 1 (fallido, conservado)
+
+- **03:12:26Z:** `up.sh` creó el contenedor y la base `agro_f06d4b_e1`, aplicó las 11 migraciones y **el seed falló**: `nest build` no compila `prisma/seed.ts`, así que `dist/prisma/seed.js` no existía (en la regresión del 17 el worktree ya lo tenía compilado). No es un fallo de la prueba ni del código.
+- **03:12:58Z:** se ejecutó `npm run build:seed`, se eliminó la base vacía (sin aportaciones) y se repitió `up.sh`.
+
+### Repetición (PASS)
+
+- **03:12:58–03:13:18Z:** `up.sh` OK. 11 migraciones y seed en las dos bases; catálogo F06 «5 productos; campañas abiertas: 2»; las API respondieron `health` 200.
+- **Ejecución 1** (03:14:02–03:20:23Z, 6:13): `All tests passed!`.
+  - Por agricultor (F1/F2/F3): 6/5/4 consumos encolados, 0/1/0 cancelaciones, 9/10/8 operaciones ACKED y 26/26 cabezas en Central.
+  - 27 respuestas perdidas a propósito y reenviadas, en 102 peticiones HTTP.
+  - Las **27 celdas** de las etapas RAW y CANONICAL tienen **diferencia 0** frente al oráculo.
+  - La asociación Bellator → Belator devolvió `changed: true`.
+- **Ejecución 2** (03:20:27–03:24:35Z, 4:08): `All tests passed!`. 27 reenvíos literales en 71 peticiones; la asociación devolvió `changed: false`; `identicalToExecution1: true`.
+- **Oráculo:** `aportaciones: calculadas=26 a mano=26 faltan=0 sobran=0`; `celdas: calculadas=27 a mano=27`; `ORÁCULO COINCIDE`; `Central: obtenidas=26 esperadas=26 faltan=0 sobran=0`; `CENTRAL COINCIDE CON EL ORÁCULO`.
+- **Journal:** 27 operaciones; 6 liberaciones del agregado; 1 asociación vigente. Igual que el 16 y el 17.
+- **Cobertura:** C1 y C2 con `linked_members = 12`, `members_with_contribution = 3` y `suppressed_cells: true` (semántica de #126), igual que el 17.
+- **03:25:52Z:** API y contenedor detenidos con `stop.sh`; volumen conservado.
+
+**Frente a las corridas anteriores:** `execution1.csv`, `execution2.csv` y `central_contributions.csv` son **idénticos byte a byte** a los del 2026-10-17 y del 2026-10-16 (mismos blobs de git: `87f1463`, `0175e1e` y `1506bd3`). Los JSON sólo difieren en las horas y en los identificadores cortos de los Members (semilla nueva).
+
+**Artefactos** ([`f06_d4_20261018/`](f06_d4_20261018/)): sin las bases SQLite de los agricultores ni el volcado canónico con UUID; no contienen correos ni UUID.
+
+| Archivo | SHA-256 (contenido con fin de línea LF) |
+|---|---|
+| `execution1.csv` | `11bf1a1a924bb639597ba24567f4b745f6fe456ba3b3ec7365c24aad1415912b` (= 2026-10-16 y 17) |
+| `execution1.json` | `af1c1ff406544dd5efb05a8f1d949346946ff65173eb354530631d3c8767bb9d` |
+| `execution2.csv` | `5715bfbe2d68ea9db44d39303f085e61e922106b08e4400f3aab7a872ce3fa15` (= 2026-10-16 y 17) |
+| `execution2.json` | `0fb5e43747540b24f4132639efa8710770f69704cba915291bafc68fdf1e8428` |
+| `central_contributions.csv` | `66b41b8c224600414edf20ba62e7cb4747bd62209c9970863189db6b4646bca6` (= 2026-10-16 y 17) |
+
+**Límites:**
+- Ruta de host (`flutter test` contra la API real); la ruta física no se repitió y el teléfono no se usó. Los pasos físicos G1–G3 de D-F04-C2 (MOB #118, `F04_C2_DEVICE.md`) usan una necesidad declarada y no sustituyen esta reconciliación.
+- Esta corrida demuestra que la D4 **pasa con el control temporal activo y períodos compatibles**; los caminos de retención y conciliación de #116 (período incompatible, 404, carrera) están cubiertos por sus regresiones HOST (`f04_c2_*_test.dart`), no por esta prueba, cuyo dataset es compatible por diseño tras el ajuste.
+- Política provisional k = 3 con datos sintéticos; sin cifras reales.
+
+### Precisión editorial del 2026-10-18 (revisión para integración)
+
+- La fecha de carpeta y de las horas anteriores es UTC. 03:14–03:24Z del 18 equivale a **23:14–23:24 del 17 en America/La_Paz**. Se conservan los timestamps y los SHA originales.
+- La primera ejecución produjo **27 filas (15 RAW y 12 CANONICAL)**. La segunda produjo **12 filas CANONICAL**, después del reenvío literal de **27 operaciones**. Sus 12 filas coinciden exactamente con las CANONICAL de la primera. En ambos CSV todas las diferencias son cero y coinciden estado, cantidad y conteo esperados/obtenidos. No son 27 celdas independientes medidas dos veces; las expresiones resumidas anteriores se precisan con este desglose.
+- La revisión verificó las cinco huellas SHA-256 publicadas, 26 filas en `central_contributions.csv` y el desglose anterior contra los archivos versionados. No repitió el ensayo ni modificó los CSV, JSON, oráculo o resultados históricos. La decisión académica ratificada está en `F06_GATE_DECISION.md`.
