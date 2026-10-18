@@ -89,7 +89,7 @@ Cada ventana se anuncia por mensaje entre sesiones con hora UTC de inicio y fin;
 
 ## 8. Revisión previa, por versión y por bloque medido (fechas reales, UTC del 2026-10-18)
 
-Precisado el 2026-10-18 (~20:15Z) por la revisión de Roderich Rendón: la tabla anterior daba horas aproximadas (B «~15:45Z», C «~15:20Z») escritas antes de que ocurrieran y sin distinguir versiones; se sustituye por los hechos registrados en los commits (`git log`) y en las marcas temporales de los mensajes entre sesiones. Donde no hay registro se dice.
+Precisado el 2026-10-18 (~20:15Z) por la revisión de Roderich Rendón: la tabla anterior daba horas aproximadas sin distinguir versiones: el «~15:45Z» de B procedía del propio mensaje de B de las 15:11:25Z, que daba una hora estimada incorrecta («Fecha de la revisión: ~15:45Z») copiada aquí, cuando la hora real de ese envío es 15:11:25Z; el «~15:20Z» de C era una aproximación de A; se sustituye por los hechos registrados en los commits (`git log`) y en las marcas temporales de los mensajes entre sesiones. Donde no hay registro se dice.
 
 **Versiones del documento (hora del commit):**
 
@@ -106,8 +106,8 @@ Precisado el 2026-10-18 (~20:15Z) por la revisión de Roderich Rendón: la tabla
 
 | Sesión | Versión | Hora | Resultado | Observaciones atendidas |
 |---|---|---|---|---|
-| C | `2940a66` → `ad4aa84` | **15:12:33Z** (envío de C a A; a B, 15:12:45Z) | LISTO sobre `ad4aa84`, condicionado a dos correcciones y una precisión, aplicadas en `ad4aa84` | §1 y §4: código Backend = `cab433d`, no `6e4a0e2`, y CI Web sólo sobre `cab433d`; §3: serial retirado; §3 y §5: M1 de A4-F con una segunda copia `.f10eval2f`; menores: recuentos con y sin merges, 25 commits de voz |
-| B | `2940a66` → `93c90c1` | **15:15:08Z** (envío de B) | LISTO sobre `93c90c1` con tres correcciones y dos precisiones, aplicadas en `93c90c1` | §3: serial fuera; §1: runs de CI exactos (Backend F02 39069713881 sobre `6e4a0e2`; Web F07 39050197509 sobre `cab433d`); §1: herramientas de B integradas en `main` y SHA de la serie 1 (`21e41e0` R5, `0b332da` B1/B2); §4: `NODE_ENV` también en W1–W5 |
+| C | `2940a66` → `ad4aa84` | **15:12:33Z** (envío del LISTO de C a A; su dictamen previo a B se encoló a las 15:10:01Z según el registro de B, y el aviso a B de ese LISTO, a las 15:12:45Z) | LISTO sobre `ad4aa84`, condicionado a dos correcciones y una precisión, aplicadas en `ad4aa84` | §1 y §4: código Backend = `cab433d`, no `6e4a0e2`, y CI Web sólo sobre `cab433d`; §3: serial retirado; §3 y §5: M1 de A4-F con una segunda copia `.f10eval2f`; menores: recuentos con y sin merges, 25 commits de voz |
+| B | `2940a66` → `93c90c1` | dictamen **15:11:25Z** (tres correcciones y dos precisiones sobre `2940a66`); LISTO sobre `93c90c1` **15:15:08Z** (envíos de B) | LISTO sobre `93c90c1`; correcciones aplicadas en `93c90c1` | §3: serial fuera; §1: runs de CI exactos (Backend F02 39069713881 sobre `6e4a0e2`; Web F07 39050197509 sobre `cab433d`); §1: herramientas de B integradas en `main` y SHA de la serie 1 (`21e41e0` R5, `0b332da` B1/B2); §4: `NODE_ENV` también en W1–W5 |
 | C | `93c90c1` | **15:14:57Z** (envío de C) | LISTO sobre `93c90c1` | — |
 | C | `731e548` | **17:10:22Z** (envío de C): **después de R1 (17:03–17:05Z) y de R3 (17:06–17:08Z), 27 s antes de la preparación (17:10:49Z)** | LISTO sobre `731e548` (orden corregido, transición central por API, cierre DS-V 17/10, «Campaña DSV S2», desviación de estado) | — |
 | B | `731e548` | — | **No revisó `731e548` ni `f3f7b18`.** A las 18:27:34Z, al aplicar una nota de C en BE #140, comprobó que `git diff 93c90c1..731e548` añade una sola línea (el párrafo de §3): verificación de alcance, no un LISTO | — |
