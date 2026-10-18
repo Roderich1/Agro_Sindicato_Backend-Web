@@ -16,7 +16,7 @@
   - una revisión ni una aprobación del tutor (GOV-01, BE #105);
   - una aprobación institucional ni una autorización de cifras reales (#107/F07).
 
-  Se registra como revisión técnica automatizada y decisión por delegación, **pendiente de revisión** (sesiones A y C) y del cierre de #22 por Roderich. Hasta ese cierre, `Gate = Pending` en GitHub y en el Project.
+  Se registra como revisión técnica de la sesión B y decisión por delegación de Roderich, **pendiente de revisión** (sesiones A y C) y del cierre de #22 por Roderich. Hasta ese cierre, `Gate = Pending` en GitHub y en el Project.
 
 ## Decisión propuesta
 
