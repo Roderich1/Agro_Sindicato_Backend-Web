@@ -79,7 +79,7 @@ Los umbrales son los de la v1.3 (§1.5), fijados antes de medir y sin cambios. P
 - El resto hasta las tablas (`ms − api_end_ms`) son 3,8–7,9 ms de renderizado en ambas fases.
 - Frío y caliente casi coinciden porque en localhost los recursos estáticos cuestan pocos milisegundos y el tiempo lo dominan las llamadas encadenadas a la API; con una red real el frío añadiría la transferencia, que no se midió.
 
-**SHA-256 de los archivos de resultados** (`docs/evidence/f10_r5/20261018T152739Z/`):
+**SHA-256 de los archivos de resultados** (`docs/evidence/f10_r5/20261018T152739Z/`; calculados sobre el contenido con finales de línea LF, que es el que guarda git; una copia de trabajo en Windows con CRLF da otro valor):
 
 | Archivo | SHA-256 |
 |---|---|
