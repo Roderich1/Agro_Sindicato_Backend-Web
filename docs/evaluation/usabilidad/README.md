@@ -15,8 +15,39 @@
 Gate relacionado: GATE-F10 (#49), **Pending**.
 
 **Fuentes que manda seguir:**
-- `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.2** (BE PR #122, commit `9292425`, pendiente de integrar): diseño y consentimiento en §3.3, tareas en §3.4, mediciones (SEQ y SUS) en §3.5, criterios en §3.6 y evidencia en §3.7. En cada sesión se anota el SHA de `main` donde quede integrada;
+- `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.3** (`9bfcad2`, integrado en `main`; la v1.2 `9292425` que citaba este paquete tiene el **§3 idéntico**, comprobado con `diff` el 2026-10-18, así que las citas «v1.2 §3.x» de estos archivos equivalen a «v1.3 §3.x» sin cambio de texto): diseño y consentimiento en §3.3, tareas en §3.4, mediciones (SEQ y SUS) en §3.5, criterios en §3.6 y evidencia en §3.7. En cada sesión se anota el SHA de `main` vigente;
 - las decisiones de cierre del 2026-10-16 (`_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §2, «Usabilidad: diseño aceptado»). Donde difieren del borrador del protocolo, **mandan las decisiones**.
+
+## Estado de la preparación (revisión del 2026-10-18)
+
+Revisión de la sesión C de Claude Code del 2026-10-18 por el encargo de Roderich Rendón (sección C, «Preparación de la evaluación humana»). **Sigue sin ejecutarse ninguna sesión.** Esta sección sólo registra lo que ya existe, lo que falta y quién puede hacerlo; no añade un segundo paquete.
+
+- **Protocolo:** v1.3 `9bfcad2`, integrado. Su §3 es idéntico al de la v1.2 `9292425` que citan estos archivos (ver «Fuentes»).
+- **Base candidata para las sesiones:** Mobile `main` `196372a` (código `lib/` = `27c4654`, con la corrección de legibilidad con fuente grande de MOB #129, PR #131); Backend/Web `main` `fd6e957` (código = `cab433d`, sin cambios en `Back/src`, `Back/prisma` ni `Web/src` desde entonces). **La copia `.f10ux` del protocolo (§0.5 y §3.3) no se ha compilado**; se compila desde esa base con `tool/f10_eval/build_profile_apk.sh` y su SHA-256 se anota en cada sesión (guion §1).
+- **Equipo disponible:** POCO X5 Pro 5G, el **A1** del protocolo §2.3 (Android 12 / API 31, MIUI V14, 1080×2400, 440 dpi). Es el equipo que §3.3 prevé para Móvil («A1 con `.f10ux`»): **no hay cambio de protocolo.** El HONOR JDY-LX3P (A4/A4-F de la serie 2 de compatibilidad) no está conectado y §3.3 no lo prevé para usabilidad; si se decidiera usarlo, sería un cambio de protocolo que debe registrarse y revisarse **antes del piloto y de la muestra**, y lo decide Roderich, no este paquete. Web: B1 o B2 (Chrome o Edge en Windows 11, versión exacta registrada), según §3.3.
+- **Datos:** §3.3 dice «sembrado con el dataset sintético D4», pero las tarjetas de §3.4 usan nombres que D4 no tiene («Glifosato Demo», «Verano Demo», parcela «Norte»; `09_fixture_y_valores_esperados.md`). La fixture DS-UX de `09_…` **sigue siendo una propuesta sin construir**; no existe ningún generador ni ningún entorno sembrado con esos nombres (comprobado el 2026-10-18 en `lib/`, `tool/` y `Back/scripts/` de ambos repositorios). Resolverlo requiere una precisión del protocolo (dataset de usabilidad DS-UX en §3.3, sin tocar tareas, umbrales ni criterios) **antes del piloto**, y después construir y sembrar la fixture.
+- **Cálculo:** `calculo/test_calcular_usabilidad.py` ejecutado el 2026-10-18 sobre `fd6e957`: 25 pruebas, OK.
+
+### Lo que falta y quién puede hacerlo (equipo técnico)
+
+| Qué | Quién | Estado al 2026-10-18 |
+|---|---|---|
+| Precisión del protocolo: dataset de usabilidad (DS-UX de `09_…`) en §3.3, versionada antes del piloto | Decide Roderich; redacta A (como las precisiones v1.1–v1.3) | Pendiente |
+| Generador DS-UX reproducible con semilla: Móvil (patrón `tool/f10_eval/seed_dsv_mobile.dart`, por `AgroRepository`) y Central (patrón `Back/scripts/f07-synthetic-seed.cjs`, por la API real) con los valores de `09_…` §1 y §3 | A (Móvil); A o B (Central), según `09_…` | Sin construir |
+| Copia `.f10ux` en modo profile desde `196372a`, SHA-256 y `aapt2` registrados; reinstalación por participante | A | Pendiente |
+| Entorno Central propio para la Web (contenedor, volumen y puertos nuevos, §0.4), `provisional-synthetic` con `NODE_ENV=development` declarado como desviación; se vuelve a sembrar antes de cada participante Web | A o B | Pendiente |
+| Comprobar en la interfaz que los nombres de `09_…` aparecen tal cual; registrar los valores esperados reales de T3 y W1/W2 | Facilitador, antes de la primera sesión | Pendiente |
+| Plantilla de la evidencia final (§3.7) | C | **Añadida** (`plantillas/F10_USABILIDAD_plantilla.md`) |
+
+### Lo que sólo pueden hacer personas reales
+
+- Confirmar con el tutor si Univalle exige algún trámite (§3.3).
+- Invitar personalmente a 5 agricultores, 2 miembros de la Directiva y 1 persona ajena para el piloto (X01). Nadie envía mensajes ni fija fechas en nombre de Roderich.
+- Recoger los consentimientos (escritos, o verbales y anotados) y guardarlos fuera de los repositorios.
+- Hacer el piloto, decidir las versiones TAR/SEQ/SUS y anotarlas en la tabla de versiones de este README antes de la primera sesión de la muestra.
+- Facilitar las 7 sesiones con el guion fijo; conseguir un observador independiente o declarar que no lo hubo.
+- Transcribir los CSV el mismo día, ejecutar el cálculo y redactar `docs/evidence/F10_USABILIDAD.md` con la plantilla.
+- **Nada de esto se simula.** Ninguna operación de Claude Code, prueba de widgets ni recorrido automatizado cuenta como participante ni como sesión (protocolo §3.2).
 
 ## Contenido
 
@@ -34,6 +65,7 @@ Gate relacionado: GATE-F10 (#49), **Pending**.
 | `09_fixture_y_valores_esperados.md` | **Propuesta** de fixture DS-UX para las tareas (no ejecutada) y hoja de valores esperados de T3 y W1 |
 | `calculo/test_calcular_usabilidad.py` y `calculo/ejemplo_ficticio/` | Prueba de la aritmética con datos **ficticios** marcados como ejemplo, fuera de `resultados/` |
 | `resultados/` | Vacía. Sólo para datos reales anonimizados de la muestra final |
+| `plantillas/F10_USABILIDAD_plantilla.md` | Plantilla **vacía** de la evidencia final (§3.7), con los denominadores y las reglas de resultado ya escritos; se copia a `docs/evidence/F10_USABILIDAD.md` sólo con datos reales |
 
 ## Diseño (decisiones de cierre)
 
