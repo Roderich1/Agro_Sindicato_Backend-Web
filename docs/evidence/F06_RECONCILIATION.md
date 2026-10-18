@@ -281,3 +281,9 @@ No cambian eventos, cantidades, campañas semánticas, `F06_DATASET.csv`, los CS
 - Ruta de host (`flutter test` contra la API real); la ruta física no se repitió y el teléfono no se usó. Los pasos físicos G1–G3 de D-F04-C2 (MOB #118, `F04_C2_DEVICE.md`) usan una necesidad declarada y no sustituyen esta reconciliación.
 - Esta corrida demuestra que la D4 **pasa con el control temporal activo y períodos compatibles**; los caminos de retención y conciliación de #116 (período incompatible, 404, carrera) están cubiertos por sus regresiones HOST (`f04_c2_*_test.dart`), no por esta prueba, cuyo dataset es compatible por diseño tras el ajuste.
 - Política provisional k = 3 con datos sintéticos; sin cifras reales.
+
+### Precisión editorial del 2026-10-18 (revisión para integración)
+
+- La fecha de carpeta y de las horas anteriores es UTC. 03:14–03:24Z del 18 equivale a **23:14–23:24 del 17 en America/La_Paz**. Se conservan los timestamps y los SHA originales.
+- La primera ejecución produjo **27 filas (15 RAW y 12 CANONICAL)**. La segunda produjo **12 filas CANONICAL**, después del reenvío literal de **27 operaciones**. Sus 12 filas coinciden exactamente con las CANONICAL de la primera. En ambos CSV todas las diferencias son cero y coinciden estado, cantidad y conteo esperados/obtenidos. No son 27 celdas independientes medidas dos veces; las expresiones resumidas anteriores se precisan con este desglose.
+- La revisión verificó las cinco huellas SHA-256 publicadas, 26 filas en `central_contributions.csv` y el desglose anterior contra los archivos versionados. No repitió el ensayo ni modificó los CSV, JSON, oráculo o resultados históricos. La decisión académica ratificada está en `F06_GATE_DECISION.md`.

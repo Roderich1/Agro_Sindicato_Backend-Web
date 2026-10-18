@@ -1,10 +1,10 @@
-# GATE-F06 (#22) — Registro de decisión propuesto para el alcance académico
+# GATE-F06 (#22) — Registro de decisión para el alcance académico
 
 ## Identificación y autoridad
 
 - **Proyecto:** Agrocuentas, Proyecto de Grado 2026.
 - **Fase:** F06, proyección colectiva mínima. **Gate:** [#22](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/22). **Consolidación:** [#21](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/21).
-- **Fecha de preparación:** 2026-10-18 (`America/La_Paz`, madrugada; UTC 03:14–03:26 de la reconciliación). Lo prepara la sesión B de Claude Code.
+- **Fecha de la corrida:** 2026-10-17, 23:14–23:26 en `America/La_Paz` (2026-10-18, 03:14–03:26Z). La carpeta `f06_d4_20261018` usa la fecha UTC. Lo prepara la sesión B de Claude Code.
 - **Procedencia.** Es un registro de decisión técnica **por delegación de Roderich1**, propietario del proyecto, autorizado en `CONTINUACION_F09_ENS_01_TRIAGE_2026-10-17.md` §4 **condicionado** a un resultado que ahora consta:
 
   > «Después de la nueva D4 con diferencia 0 en las 27 celdas y 26 aportaciones coincidentes, incluidos los dos recorridos de reenvío previstos, queda autorizada la preparación de la decisión **Passed académico / Evidence Partial** de F06. Se ratifican las decisiones ya delegadas de criterios 3 y 6 y la primacía del contrato en #32/#33. La decisión se versiona y revisa antes del cierre de BE #22. Si falla o queda sin ejecutar, Pending, sin maquillar el oráculo.»
@@ -18,7 +18,7 @@
 
   Se registra como revisión técnica de la sesión B y decisión por delegación de Roderich, **pendiente de revisión** (sesiones A y C) y del cierre de #22 por Roderich. Hasta ese cierre, `Gate = Pending` en GitHub y en el Project.
 
-## Decisión propuesta
+## Propuesta de B (antecedente; resolución vigente al final)
 
 - `GATE_F06 = PASSED`
 - `SCOPE = ACADEMIC`
@@ -59,3 +59,15 @@
 - **Revisión técnica de A y C:** pendiente sobre este PR.
 - **Revisión personal de Roderich Rendón:** no consta. El cierre de #22 y el cambio de `Gate` son suyos.
 - **Revisión del tutor:** se registra aparte en GOV-01.
+
+## Ratificación técnica por delegación — 2026-10-18, America/La_Paz
+
+**Dictamen vigente:** `GATE_F06 = PASSED`, alcance **académico**, `Evidence = Partial`. Se autoriza cerrar BE #22 después de integrar este registro. Esta resolución sustituye las menciones de decisión propuesta o revisión pendiente anteriores; las conserva como procedencia. Los campos del Project deben comprobarse y actualizarse por separado: esta revisión no los modifica.
+
+La revisión de esta sesión de Codex comprobó el cambio de preparación de MOB #123, los artefactos de BE #137 y sus huellas, la igualdad entre columnas esperadas y obtenidas y la CI de los HEAD revisados. No ejecutó Flutter, no operó el teléfono ni repitió la D4. El informe de coordinación aportado por Roderich registra LISTO de A para las dos entregas; no se inventa otra revisión de C. No consta inspección personal de Roderich ni revisión del tutor.
+
+**Precisión de recuento:** `execution1.csv` tiene **27 filas: 15 RAW y 12 CANONICAL**, todas con diferencia cero; `execution2.csv` tiene **12 filas CANONICAL**, todas con diferencia cero e idénticas a las 12 CANONICAL de la primera ejecución. La segunda ejecución reenvía las **27 operaciones**, no vuelve a medir 27 celdas independientes ni restaura la fase RAW anterior a la asociación. Sus JSON registran `identicalToExecution1: true`, 26 aportaciones y las mismas cabezas por agricultor. Éste es el alcance comprobado para la idempotencia. La expresión previa «27/27 en las dos ejecuciones» se interpreta y corrige con este desglose; no se modificó ningún CSV ni medición.
+
+**Fecha:** el tramo 2026-10-18 03:14–03:24Z corresponde al **2026-10-17 23:14–23:24 en La Paz**. No es la madrugada local del 18. Se mantiene el nombre UTC de los artefactos y sus marcas originales.
+
+Se ratifican los criterios 3 (retiro de cifra ante disputa) y 6 (metadatos agregados sujetos a la política) y la primacía del contrato en MOB #32/#33. Se conservan todos los límites descritos: datos sintéticos, procedencia HOST/DEVICE y SHA respectivos, D4 fuera de la CI normal, límites temporales de #116 y ausencia de validación institucional. **#107/F07 siguen pendientes y la divulgación real permanece cerrada (`POLICY_PENDING`).** Esta decisión no cierra F04 ni F07, no autoriza producción y no incluye F09, que Roderich dejó como último frente.

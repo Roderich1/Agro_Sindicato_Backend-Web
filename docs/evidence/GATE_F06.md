@@ -101,3 +101,11 @@ La adoptó la sesión de Claude Code, bajo la delegación de Roderich Rendón (`
 - **Decisión:** con este resultado, §4 autoriza preparar la decisión Passed académico / Evidence Partial de F06. El registro propuesto está en [`F06_GATE_DECISION.md`](F06_GATE_DECISION.md); **se versiona y revisa antes de cerrar BE #22**. Hasta entonces, el gate sigue **Pending** en GitHub y en el Project.
 - Sin cambios en #107/F07 (k = 3 provisional, producción sin cifras) ni revisión personal de Roderich o del tutor.
 - **Límite:** la prueba de integración de la D4 (`test/f06_reconciliation_integration_test.dart`) **no corre en la CI normal** (se omite sin `AGRO_E2E_BASE_URL`); cada repetición es una corrida manual con los SHA de Backend y Mobile registrados en `F06_RECONCILIATION.md`.
+
+## Resolución vigente — 2026-10-18, America/La_Paz
+
+**Decisión técnica por delegación de Roderich: Passed académico / Evidence Partial.** El fundamento, la autoridad delegada y los límites están en [`F06_GATE_DECISION.md`](F06_GATE_DECISION.md), apartado «Ratificación técnica por delegación». El cierre de BE #22 se registra después de integrar este documento; los campos del Project no se han cambiado desde esta sesión.
+
+El resultado bajo #116 es suficiente para el alcance académico aprobado, con este recuento preciso: ejecución 1, 27 filas (15 RAW y 12 CANONICAL) con diferencia cero; ejecución 2, 12 CANONICAL idénticas tras 27 reenvíos literales. Central conserva 26 aportaciones. Los CSV no cambiaron. Las horas 03:14–03:24Z del 18 son 23:14–23:24 del 17 en La Paz.
+
+Las menciones anteriores de Pending y propuestas son antecedentes fechados. No se reatribuyen mediciones a los merges posteriores, no se elevan a Verified y no se atribuyen revisiones personales o institucionales. F04, F07/#107 y F09 no se aprueban mediante esta resolución. Producción continúa sin divulgar cifras reales.
