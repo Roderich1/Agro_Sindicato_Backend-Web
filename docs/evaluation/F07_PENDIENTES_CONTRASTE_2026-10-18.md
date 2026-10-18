@@ -14,13 +14,13 @@ La matriz por criterio es `docs/evidence/F07_CIERRE_MATRIZ.md` (sesión B, 2026-
 | Cambio | Efecto sobre F07 |
 |---|---|
 | **BE #127** (`9df7888`), PHASE 5 de la Web | #23 cerrado el 2026-10-17 14:43:05Z; recorrido 25/25 en #132 (`81fae93`) |
-| **BE #128** (`cab433d`) | Añade `f07-acceptance.postgres.spec.ts` (6 casos por la API real), la §9 de la política (regla de combinaciones de #126), la matriz y las propuestas de texto. Es el único cambio de `Back/src` desde `e2263b0`: **el código del módulo colectivo y la Web colectiva son los mismos que evaluó la matriz**, así que sus dictámenes siguen vigentes |
+| **BE #128** (`cab433d`) | Añade `f07-acceptance.postgres.spec.ts` (6 casos por la API real), la §9 de la política (regla de combinaciones de #126), la matriz y las propuestas de texto. Es el único cambio de `Back/src` desde `e2263b0`: **el código productivo del módulo colectivo y las páginas de resumen/propuesta no cambian**. La autorización, navegación y contexto de la Web sí cambiaron en #127; su verificación se documenta por separado en #132 |
 | **BE #131** (`30fbb56`) | Notas de cobertura «con cifras publicadas» en el contrato F06 §5 y en la política; acta de GATE-F06 al día; regresión D4 |
 | **BE #135** (`2825de5`) | `F07_POL_01_REVISION_INSTITUCIONAL.md`: hoja única para la revisión real de #107, con el registro **en blanco** (sustituye a #133) |
 | **BE #137** (`f77c030`) | D4 bajo #116 PASS; **BE #22 (GATE-F06) cerrado por Roderich como Passed académico / Evidence Partial**. F06 ya no es un límite abierto para F07 |
 | **MOB #116, #123, #124** | D-F04-C2, fixture D4 y fecha efectiva/cierre; no tocan la Web ni el API colectivo |
 
-**CI de código vigente:** `cab433d` (Backend 39050197493 y Web 39050197509, SUCCESS). Los merges posteriores a `cab433d` son documentales (`git diff --stat e2263b0..f77c030 -- Back/src Back/prisma`: sólo la suite de aceptación).
+**CI de código vigente:** `cab433d` (Backend 39050197493 y Web 39050197509, SUCCESS). La comparación `git diff --stat cab433d f77c030 -- Back/src Back/prisma Web/src` no devuelve diferencias. La comparación más amplia `e2263b0..f77c030` sí incluye la suite de aceptación y los cambios de autorización/navegación Web de #127: no se usa para afirmar que toda la Web quedó idéntica.
 
 ## 2. Tabla por criterio: implementado, evidencia, corrección, Directiva
 
@@ -161,7 +161,7 @@ Texto adicional sugerido para el comentario de #29, que sustituye al de la propu
 
 ```text
 **Estado (2026-10-18 UTC, contraste de la sesión B sobre `main` `f77c030`):**
-- Criterios 1–8 evidenciados en lo técnico (`docs/evidence/F07_CIERRE_MATRIZ.md`, `docs/evaluation/F07_PENDIENTES_CONTRASTE_2026-10-18.md`). El código del módulo colectivo y de la Web colectiva no cambió desde `e2263b0`, salvo la suite de aceptación de #128.
+- Criterios 1–8 evidenciados en lo técnico (`docs/evidence/F07_CIERRE_MATRIZ.md`, `docs/evaluation/F07_PENDIENTES_CONTRASTE_2026-10-18.md`). El código productivo del módulo colectivo y las páginas de resumen/propuesta no cambiaron desde `e2263b0`; la suite de aceptación llegó en #128. Las guardas, navegación y contexto Web sí cambiaron en #127, con recorrido registrado en #132. Desde `cab433d` hasta `f77c030` no hay diferencias en `Back/src`, `Back/prisma` ni `Web/src`.
 - Criterio 9: #108 cerrado; **#107 sigue abierto** a falta de la validación institucional, que no consta (hoja `F07_POL_01_REVISION_INSTITUCIONAL.md`, registro en blanco).
 - GATE-F06 (BE #22) quedó Passed académico / Evidence Partial el 2026-10-18; F06 ya no condiciona este gate.
 - El gate sigue **Pending**. La divulgación real sigue cerrada (`POLICY_PENDING` en producción).
@@ -190,3 +190,7 @@ Regla para `Evidence = Verified` (regla 1 de `CLAUDE.md`): sólo con un archivo 
 3. **Cierres administrativos** de #24, #25, #26, #27 y #28 con los textos del §5 (A, con dry-run; sin construcción).
 4. **Límites que se conservan** y deben aparecer en la memoria: RF-22 parcial (agregado) y RF-32 no implementado; presupuesto de lectura por lectura (`READ_WORK_LIMIT`); k = 3 provisional con datos sintéticos; escrituras legacy del agricultor en el API hasta #81.
 5. **Nada de esto habilita cifras reales.**
+
+## Precisión de procedencia — 2026-10-18, America/La_Paz
+
+La revisión de integración de esta sesión de Codex contrastó los intervalos de git anteriores y precisó la atribución de la Web: se conservan el núcleo colectivo y las páginas de resumen/propuesta; las guardas y navegación posteriores sí cambiaron y tienen su propia evidencia. No se ejecutaron de nuevo pruebas de Flutter, API o Web en esta revisión. No se modifican mediciones, dictámenes de gates, issues ni campos del Project.
