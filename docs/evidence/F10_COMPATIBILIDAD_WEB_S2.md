@@ -1,6 +1,6 @@
 # F10 — Compatibilidad Web, serie 2: B1 y B2 (RNF-08) sobre `6c54c00`
 
-Evaluación técnica de la sesión B de Claude Code, del 2026-10-18 (UTC), según el protocolo `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.3** (`9bfcad22731e7352f494e85e79aa56da25a28dbe`, §2: configuraciones B1 y B2, flujos W1–W5) y el suplemento de base `docs/evaluation/F10_SUPLEMENTO_BASE_2026-10-18.md` (PR BE #139; HEAD revisado por B y C: `93c90c1`). Es la **serie 2**: repite la matriz completa porque BE #126, #127 y #128 tocaron los cinco flujos. La serie 1 (`F10_COMPATIBILIDAD_WEB.md`, `ed069a6`, 2026-10-17) se conserva tal cual. Procedencia **HOST** (navegadores de escritorio en el PC de desarrollo), no `DEVICE`. Sin inspección personal de Roderich ni revisión del tutor.
+Evaluación técnica de la sesión B de Claude Code, del 2026-10-18 (UTC), según el protocolo `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.3** (`9bfcad22731e7352f494e85e79aa56da25a28dbe`, §2: configuraciones B1 y B2, flujos W1–W5) y el suplemento de base `docs/evaluation/F10_SUPLEMENTO_BASE_2026-10-18.md` (PR BE #139; HEAD revisado por B: `93c90c1`, y por C: `731e548`; el SHA definitivo es el de su integración). Es la **serie 2**: repite la matriz completa porque BE #126, #127 y #128 tocaron los cinco flujos. La serie 1 (`F10_COMPATIBILIDAD_WEB.md`, `ed069a6`, 2026-10-17) se conserva tal cual. Procedencia **HOST** (navegadores de escritorio en el PC de desarrollo), no `DEVICE`. Sin inspección personal de Roderich ni revisión del tutor.
 
 ## 1. Matriz
 
@@ -75,7 +75,7 @@ Evaluación técnica de la sesión B de Claude Code, del 2026-10-18 (UTC), segú
 | `B2-edge-1366x768/downloads/propuesta-9301db5f.csv` | `1a1915c361d38e435f729cf86c94d722e0a5cdbd0f6709551f19d4009bed5600` |
 | `B2-edge-1920x1080/downloads/propuesta-de36ae02.csv` | `d53ebe28fbd080e950e99c71bc5e4d389cdb0cabd26d2542e90810484f51d417` |
 
-Las huellas se calculan sobre el contenido con finales de línea LF (el que guarda git). Ningún archivo publicado contiene UUID completos, correos, tokens ni `DATABASE_URL` (comprobado con una búsqueda sobre `.json`, `.csv` y `.txt`).
+Las huellas se calculan sobre el contenido con finales de línea LF (el que guarda git). Ningún archivo publicado contiene UUID completos, correos, tokens ni `DATABASE_URL` (comprobado con una búsqueda sobre `.json`, `.csv` y `.txt`). **Observación (revisión de C):** la última línea de `env.txt` («saneado: 12 archivos en C:/Users/…») es la salida de `sanitize.mjs` y lleva la ruta local del worktree con el nombre de usuario de Windows; no es un secreto ni una URL y no se edita a mano por ser salida de la corrida. Desde el commit siguiente la herramienta imprime sólo el nombre del directorio.
 
 ## 5. Corridas que no forman parte de la matriz
 
@@ -88,6 +88,6 @@ Las huellas se calculan sobre el contenido con finales de línea LF (el que guar
 - **Headless.** El motor es el mismo que con ventana, pero no se prueba la integración con el escritorio (ventanas, ampliación del sistema, extensiones).
 - **Artefacto de captura:** en las capturas de página completa a 1366×768, el fondo oscuro de la barra lateral termina a la altura de la ventana (768 px). Es un efecto de capturar más allá de la ventana; en el uso real la barra es fija. No es un fallo de ningún flujo.
 - **Datos sintéticos D4, modo provisional.** Las cifras no se presentan como reales ni como divulgación aprobada; F07-POL-01 (#107) sigue Pending.
-- **Cobertura:** la regla «N de M con cifras publicadas» (BE #126) se comprueba contra la API y contra el seed; una regla alternativa no se evalúa aquí.
+- **Cobertura:** la herramienta sólo compara el texto de la Web con `coverage` de la API (regla «N de M con cifras publicadas», BE #126). La coincidencia con el seed («3 de 4» porque F4 es «sin aportes», `f07-synthetic-seed.cjs:103`) es un razonamiento del §2, no una comprobación automatizada; una regla alternativa no se evalúa aquí.
 - **Mobile:** la Web no es cliente del agricultor desde BE #127; W1 sólo comprueba que el agricultor no llega a `/colectivo` y que la API responde 403.
 - GATE-F10 (BE #49) sigue **Pending**; lo decide Roderich. Este documento no cierra ningún gate.
