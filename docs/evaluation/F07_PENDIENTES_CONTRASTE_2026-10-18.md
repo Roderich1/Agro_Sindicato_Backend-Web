@@ -130,7 +130,7 @@ Leyenda: **I** implementado y evidenciado en `main`; **D** decidido y documentad
 
 **Qué dicen las fuentes vigentes.**
 - **ADR-003** (aceptada el 2026-10-15): el presidente usa una sola cuenta `ADMINISTRADOR` que ejerce las funciones de `DIRECTIVA` en su tenant; no se crea un rol nuevo ni un «permiso independiente»; ese rol **no** da acceso a operaciones individuales de los agricultores (RU-18).
-- **Contrato F06 §5**: Central consolida sólo por campaña, producto y unidad; «no exponer Member/Account/clientId, cantidades por agricultor, nombre/familia, finca… ni filtros por persona/dispositivo»; «el listado de agricultores vinculados de URS-WEB-01 se resuelve desde IAM con autorización propia; **no autoriza unirlo a cantidades individuales**». La frescura es la hora de aceptación central agregada, no un dato por agricultor.
+- **Contrato F06 §5**: Central consolida sólo por campaña, producto y unidad; «no exponer Member/Account/clientId, cantidades por agricultor, nombre/familia, finca… ni filtros por persona/dispositivo»; y, **cita literal del contrato** (el identificador que contiene es del texto citado y no se copia a `Requirement refs`, regla 7 de `CLAUDE.md`): «el listado de agricultores vinculados de URS-WEB-01 se resuelve desde IAM con autorización propia; **no autoriza unirlo a cantidades individuales**». La frescura es la hora de aceptación central agregada, no un dato por agricultor.
 - **Política F07-POL-01**: R5, el único filtro permitido es la campaña; filtros por agricultor, dispositivo, parcela o persona están prohibidos; un subconjunto elegido de agricultores es exactamente la diferencia entre consultas que la supresión complementaria evita.
 - **Decisión versionada** (`F07_GATE.md`, «Decisiones del 2026-10-16», por delegación): RF-22 «construido y verificado en su parte agregada; su variante de detalle individual depende de una autorización funcional que no existe y no se implementa»; «estado por agricultor y última sincronización de cada uno: alcance condicionado y no habilitado; no se crea un permiso para cumplir la tarjeta antigua; no se traslada como un Must nuevo».
 
@@ -167,7 +167,21 @@ Texto adicional sugerido para el comentario de #29, que sustituye al de la propu
 - El gate sigue **Pending**. La divulgación real sigue cerrada (`POLICY_PENDING` en producción).
 ```
 
-**Campos del Project** (sólo propuesta; los valores actuales los consulta A antes del dry-run): #24, #25, #26, #27 y #28 → `Status = Done`, `Evidence = Verified` sólo si A confirma que cada archivo de evidencia citado tiene SHA, comando y salida (los de `F07_CIERRE_MATRIZ.md` §6 los tienen); si no, `Partial`. #107 y #29 sin cambio de `Status` ni de `Gate`.
+**Campos del Project** (sólo propuesta; A la cruza con el dry-run del lote F, de 26 cambios, para la autorización de Roderich). Valores actuales según el export del Project que leyó la sesión A el 2026-10-18 ~05:00Z (ítems con sus `item_id`; sólo lectura):
+
+| Issue | `item_id` | Actual: Status / Gate / Evidence | Propuesto | Condición para `Verified` |
+|---|---|---|---|---|
+| #23 (cerrada) | `PVTI_lAHOCqRNPM4BjfE1zg69R7I` | Done / N/A / **Pending** | Done / N/A / **Verified** o **Partial** | `F07_WEB_01.md` §4–§6 y el recorrido 25/25 de #132 (`81fae93`) tienen SHA, comandos, salida y fecha; si A lo confirma, Verified; si no, Partial. Hoy «Pending» es inexacto para una issue cerrada con evidencia versionada |
+| #24 | `PVTI_lAHOCqRNPM4BjfE1zg69R7M` | Backlog / N/A / Pending | **Done** / N/A / Verified o Partial | `F07_CIERRE_MATRIZ.md` §6 (fechas, comandos y salidas de `f07-acceptance` y `f07-web-proposal` sobre `e2263b0`/`cab433d`) |
+| #25 | `PVTI_lAHOCqRNPM4BjfE1zg69R7Q` | Backlog / N/A / Pending | **Done** / N/A / Verified o Partial | Ídem; el alcance no habilitado queda en el comentario de cierre |
+| #26 | `PVTI_lAHOCqRNPM4BjfE1zg69R7U` | Backlog / N/A / Pending | **Done** / N/A / Verified o Partial | Ídem, más la «Actualización» que corrige `NOT_STARTED` |
+| #27 | `PVTI_lAHOCqRNPM4BjfE1zg69R7c` | Backlog / N/A / Pending | **Done** / N/A / Verified o Partial | Ídem |
+| #28 | `PVTI_lAHOCqRNPM4BjfE1zg69R7k` | Backlog / N/A / Pending | **Done** / N/A / Verified o Partial | Ídem |
+| #29 (gate) | `PVTI_lAHOCqRNPM4BjfE1zg69R7o` | Backlog / **Pending** / Pending | **Sin cambio** de Gate; Status `Validation` y Evidence `Partial` si A lo considera coherente con los otros gates (criterios 1–8 evidenciados, 9 no) | Sólo Roderich cambia `Gate` |
+| #107 | `PVTI_lAHOCqRNPM4BjfE1zhA9-Zw` | In Review / N/A / Partial | **Sin cambio** | La validación institucional no consta |
+| #108 (cerrada) | `PVTI_lAHOCqRNPM4BjfE1zhA9-r8` | Done / N/A / Verified | Sin cambio | — |
+
+Regla para `Evidence = Verified` (regla 1 de `CLAUDE.md`): sólo con un archivo en `docs/evidence/` con commit SHA, comando, salida resumida y fecha real. Si alguna fila no lo tiene, `Partial`. El cambio de `Backlog` a `Done` sin pasar por `In Progress` es administrativo: el trabajo ya está integrado; el comentario de cierre lo explica.
 
 ## 6. Pendientes reales de F07, en una lista
 
