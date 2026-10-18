@@ -1,6 +1,7 @@
 /**
  * F10 (RNF-08): matriz de compatibilidad Web B1/B2, flujos W1–W5 del protocolo
- * v1.1 §2.3, con el dataset sintético D4 (Back/scripts/f07-synthetic-seed.cjs)
+ * (§2.3; v1.1 en la serie 1, v1.3 en la serie 2; la versión exacta la registra
+ * env.txt), con el dataset sintético D4 (Back/scripts/f07-synthetic-seed.cjs)
  * y la Web compilada.
  *
  *   node compat.mjs <salida>
@@ -93,6 +94,7 @@ async function pick(name) {
 }
 async function apiLogin(email) {
   const res = await fetch(`${API_URL}/api/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: WALK_PASSWORD }) });
+  if (res.status !== 200 && res.status !== 201) throw new Error(`login por la API: HTTP ${res.status}`);
   return (await res.json()).accessToken;
 }
 async function api(path, token) {
@@ -126,8 +128,18 @@ try {
   const c1 = await pick(C1);
   await page.waitForSelector('[data-testid="cell-DECLARED_NEED-Urea F06-G"]');
   await compareOracle('W2', 'RAW');
+  // Cobertura «N de M»: desde BE #126 (F10-SEC-02) N cuenta sólo a quienes
+  // están dentro de una cifra publicada; la Web debe mostrar los mismos N y M
+  // que la API y, si hay celdas suprimidas, decir que la ausencia no es cero.
+  // Un solo inicio de sesión de la Directiva por la API para W2 y W5: el
+  // limitador de /auth/login es estricto y un 429 dejaría sin token a W1.
+  const director = await apiLogin('directiva@f07.example.test');
   const coverage = await text('[data-testid="coverage"]');
-  check('W2', 'Cobertura «3 de 4» y ausencia ≠ 0', /3 de 4/.test(coverage) && /desconocido, no cero/.test(coverage), coverage);
+  const apiSummary = JSON.parse((await api(`/collective/campaigns/${c1}/summary`, director)).body);
+  const cov = apiSummary.coverage ?? {};
+  const covText = `${cov.members_with_contribution} de ${cov.linked_members} agricultores vinculados con cifras publicadas`;
+  check('W2', `Cobertura «${covText}» igual que la API`, Number.isInteger(cov.linked_members) && coverage?.includes(covText), coverage);
+  check('W2', 'Cobertura: con celdas suprimidas, ausencia ≠ 0', cov.suppressed_cells === true && /desconocido, no cero/.test(coverage), `suppressed_cells=${cov.suppressed_cells}`);
   await shot('W2-resumen');
 
   // W3. Propuesta y CSV.
@@ -149,7 +161,6 @@ try {
   await shot('W3-propuesta');
 
   // W5. Sin conexión: mensaje claro y nada se encola.
-  const director = await apiLogin('directiva@f07.example.test');
   const before = JSON.parse((await api(`/collective/campaigns/${c1}/proposals`, director)).body).length;
   await page.setOfflineMode(true);
   await clickText('Generar propuesta (borrador)');
@@ -195,7 +206,8 @@ try {
   await page.goto(`${WEB_URL}/colectivo/resumen`, { waitUntil: 'networkidle0' });
   check('W1', 'Agricultor redirigido fuera de /colectivo', !page.url().includes('/colectivo'), page.url());
   const farmer = await apiLogin('f1@f07.example.test');
-  check('W1', 'API del resumen: agricultor 403', (await api(`/collective/campaigns/${c1}/summary`, farmer)).status === 403);
+  const farmerSummary = await api(`/collective/campaigns/${c1}/summary`, farmer);
+  check('W1', 'API del resumen: agricultor 403', farmerSummary.status === 403, `HTTP ${farmerSummary.status}`);
   await shot('W1-agricultor');
   await logout();
 } catch (error) {

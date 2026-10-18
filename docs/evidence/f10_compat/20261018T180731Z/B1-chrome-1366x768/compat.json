@@ -1,0 +1,221 @@
+{
+  "config": "B1-chrome-1366x768",
+  "browser": "Chrome/155.0.8059.82",
+  "viewport": "1366x768",
+  "date": "2026-10-18T18:11:38.176Z",
+  "flows": [
+    {
+      "flow": "W1",
+      "result": "CUMPLE",
+      "checks": 5
+    },
+    {
+      "flow": "W2",
+      "result": "CUMPLE",
+      "checks": 11
+    },
+    {
+      "flow": "W3",
+      "result": "CUMPLE",
+      "checks": 3
+    },
+    {
+      "flow": "W4",
+      "result": "CUMPLE",
+      "checks": 9
+    },
+    {
+      "flow": "W5",
+      "result": "CUMPLE",
+      "checks": 3
+    }
+  ],
+  "checks": [
+    {
+      "flow": "W1",
+      "name": "Directiva aterriza en /colectivo/resumen",
+      "ok": true,
+      "detail": "http://localhost:4178/colectivo/resumen"
+    },
+    {
+      "flow": "W1",
+      "name": "Menú F07 de Directiva",
+      "ok": true,
+      "detail": "Resumen colectivo | Necesidades y propuesta | Cobertura | Reconciliación | Campanas"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW CONSUMPTION_TOTAL Belator: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Belator(L) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW CONSUMPTION_TOTAL Bellator: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Bellator(L) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW CONSUMPTION_TOTAL Glifosato F06: DISCLOSED = | 8,25 L | 3 |",
+      "ok": true,
+      "detail": "Glifosato F06(L) | Publicado | 8,25 L | 3 | 18 oct de 2026, 2:10 p. m."
+    },
+    {
+      "flow": "W2",
+      "name": "RAW CONSUMPTION_TOTAL Mancozeb F06: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Mancozeb F06(KG) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW CONSUMPTION_TOTAL Urea F06: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Urea F06(KG) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW DECLARED_NEED Belator: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Belator(L) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW DECLARED_NEED Bellator: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Bellator(L) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW DECLARED_NEED Glifosato F06: ABSENT (sin fila, no 0)",
+      "ok": true,
+      "detail": "sin fila"
+    },
+    {
+      "flow": "W2",
+      "name": "RAW DECLARED_NEED Urea F06: DISCLOSED = | 25 KG | 3 |",
+      "ok": true,
+      "detail": "Urea F06(KG) | Publicado | 25 KG | 3 | 18 oct de 2026, 2:10 p. m."
+    },
+    {
+      "flow": "W2",
+      "name": "Cobertura «3 de 4 agricultores vinculados con cifras publicadas» igual que la API",
+      "ok": true,
+      "detail": "Cobertura · Campaña Verano 2026 (sintética)3 de 4 agricultores vinculados con cifras publicadasHay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí. Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes están en ellas."
+    },
+    {
+      "flow": "W2",
+      "name": "Cobertura: con celdas suprimidas, ausencia ≠ 0",
+      "ok": true,
+      "detail": "suppressed_cells=true"
+    },
+    {
+      "flow": "W3",
+      "name": "Borrador en el historial con su huella",
+      "ok": true,
+      "detail": "2df841a2fac7a28cd608ad76036ad06e5616eda7641d72c88ccacd96622ddb41"
+    },
+    {
+      "flow": "W3",
+      "name": "CSV descargado",
+      "ok": true,
+      "detail": "9 líneas"
+    },
+    {
+      "flow": "W3",
+      "name": "CSV: Urea 25000 G exactos y sin NaN",
+      "ok": true,
+      "detail": "2,f226edb8,Urea F06,G,KG,DISCLOSED,25000,25,3,2026-10-18T18:10:56.159Z,2026-10-18T18:11:19.341Z,false"
+    },
+    {
+      "flow": "W5",
+      "name": "Mensaje claro sin conexión",
+      "ok": true,
+      "detail": "Sin conexión con el servidor."
+    },
+    {
+      "flow": "W5",
+      "name": "Al reconectar no se envía nada encolado",
+      "ok": true,
+      "detail": "1 → 1"
+    },
+    {
+      "flow": "W5",
+      "name": "Sin cola local de operaciones",
+      "ok": true,
+      "detail": "sin claves"
+    },
+    {
+      "flow": "W4",
+      "name": "Sin confirmación no se puede asociar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "flow": "W4",
+      "name": "Historial «Bellator → Belator» con motivo",
+      "ok": true,
+      "detail": "Bellator → Belator18 oct de 2026, 2:11 p. m. – vigenteDirectiva sintética: Misma formulación (dataset sintético D4)—"
+    },
+    {
+      "flow": "W4",
+      "name": "CANONICAL CONSUMPTION_TOTAL Belator: DISCLOSED = | 8 L | 3 |",
+      "ok": true,
+      "detail": "Belator(L) | Publicado | 8 L | 3 | 18 oct de 2026, 2:10 p. m."
+    },
+    {
+      "flow": "W4",
+      "name": "CANONICAL CONSUMPTION_TOTAL Glifosato F06: DISCLOSED = | 8,25 L | 3 |",
+      "ok": true,
+      "detail": "Glifosato F06(L) | Publicado | 8,25 L | 3 | 18 oct de 2026, 2:10 p. m."
+    },
+    {
+      "flow": "W4",
+      "name": "CANONICAL CONSUMPTION_TOTAL Mancozeb F06: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Mancozeb F06(KG) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W4",
+      "name": "CANONICAL CONSUMPTION_TOTAL Urea F06: SUPPRESSED_UNDER_THRESHOLD (sin cifra ni conteo)",
+      "ok": true,
+      "detail": "Urea F06(KG) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "flow": "W4",
+      "name": "CANONICAL DECLARED_NEED Belator: DISCLOSED = | 11 L | 3 |",
+      "ok": true,
+      "detail": "Belator(L) | Publicado | 11 L | 3 | 18 oct de 2026, 2:10 p. m."
+    },
+    {
+      "flow": "W4",
+      "name": "CANONICAL DECLARED_NEED Glifosato F06: ABSENT (sin fila, no 0)",
+      "ok": true,
+      "detail": "sin fila"
+    },
+    {
+      "flow": "W4",
+      "name": "CANONICAL DECLARED_NEED Urea F06: DISCLOSED = | 25 KG | 3 |",
+      "ok": true,
+      "detail": "Urea F06(KG) | Publicado | 25 KG | 3 | 18 oct de 2026, 2:10 p. m."
+    },
+    {
+      "flow": "W1",
+      "name": "Menú de Administrador = Directiva + Usuarios",
+      "ok": true,
+      "detail": "Resumen colectivo | Necesidades y propuesta | Cobertura | Reconciliación | Campanas | Usuarios"
+    },
+    {
+      "flow": "W1",
+      "name": "Agricultor redirigido fuera de /colectivo",
+      "ok": true,
+      "detail": "http://localhost:4178/sin-acceso-web"
+    },
+    {
+      "flow": "W1",
+      "name": "API del resumen: agricultor 403",
+      "ok": true,
+      "detail": "HTTP 403"
+    }
+  ]
+}

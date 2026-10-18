@@ -1,0 +1,6 @@
+# Resumen de logs/B1-chrome-1920x1080//api.log (no publicado: contiene la IP local). Código, método y ruta; UUID enmascarados.
+total_lineas=212
+http_429=0
+errores_http_por_ruta:
+        3 [HTTP 401] POST /api/v1/auth/refresh
+        1 [HTTP 403] GET /api/v1/collective/campaigns/<uuid>/summary

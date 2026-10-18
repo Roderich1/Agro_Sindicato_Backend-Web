@@ -1,0 +1,16 @@
+{
+  "tenantA": "3d022153",
+  "tenantB": "77961037",
+  "campaigns": {
+    "C1": "0445d20b",
+    "C2": "bf3a8549"
+  },
+  "products": {
+    "Belator": "a92b4a14",
+    "Bellator": "ea2efd79",
+    "Glifosato F06": "fc66a0c6",
+    "Urea F06": "2b841657",
+    "Mancozeb F06": "ee0b7f07"
+  },
+  "pushes": 27
+}
