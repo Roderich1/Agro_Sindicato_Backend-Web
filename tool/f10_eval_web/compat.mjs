@@ -126,8 +126,15 @@ try {
   const c1 = await pick(C1);
   await page.waitForSelector('[data-testid="cell-DECLARED_NEED-Urea F06-G"]');
   await compareOracle('W2', 'RAW');
+  // Cobertura «N de M»: desde BE #126 (F10-SEC-02) N cuenta sólo a quienes
+  // están dentro de una cifra publicada; la Web debe mostrar los mismos N y M
+  // que la API y, si hay celdas suprimidas, decir que la ausencia no es cero.
   const coverage = await text('[data-testid="coverage"]');
-  check('W2', 'Cobertura «3 de 4» y ausencia ≠ 0', /3 de 4/.test(coverage) && /desconocido, no cero/.test(coverage), coverage);
+  const apiSummary = JSON.parse((await api(`/collective/campaigns/${c1}/summary`, await apiLogin('directiva@f07.example.test'))).body);
+  const cov = apiSummary.coverage ?? {};
+  const covText = `${cov.members_with_contribution} de ${cov.linked_members} agricultores vinculados con cifras publicadas`;
+  check('W2', `Cobertura «${covText}» igual que la API`, Number.isInteger(cov.linked_members) && coverage?.includes(covText), coverage);
+  check('W2', 'Cobertura: con celdas suprimidas, ausencia ≠ 0', cov.suppressed_cells === true && /desconocido, no cero/.test(coverage), `suppressed_cells=${cov.suppressed_cells}`);
   await shot('W2-resumen');
 
   // W3. Propuesta y CSV.
