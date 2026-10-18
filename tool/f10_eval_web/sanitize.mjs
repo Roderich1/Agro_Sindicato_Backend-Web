@@ -10,7 +10,7 @@
  * identificadores. Idempotente.
  */
 import { readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 const [root = '.'] = process.argv.slice(2);
 const UUID = /\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
@@ -47,4 +47,6 @@ function walk(dir) {
 }
 
 walk(root);
-process.stdout.write(`saneado: ${files} archivos en ${root}\n`);
+// Sólo el nombre del directorio: la salida se anexa a env.txt, que se publica,
+// y una ruta absoluta llevaría el nombre de usuario del PC.
+process.stdout.write(`saneado: ${files} archivos en ${basename(root)}\n`);

@@ -1,6 +1,7 @@
 /**
  * F10 (RNF-08): matriz de compatibilidad Web B1/B2, flujos W1–W5 del protocolo
- * v1.1 §2.3, con el dataset sintético D4 (Back/scripts/f07-synthetic-seed.cjs)
+ * (§2.3; v1.1 en la serie 1, v1.3 en la serie 2; la versión exacta la registra
+ * env.txt), con el dataset sintético D4 (Back/scripts/f07-synthetic-seed.cjs)
  * y la Web compilada.
  *
  *   node compat.mjs <salida>
