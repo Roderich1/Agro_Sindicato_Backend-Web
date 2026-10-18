@@ -1,0 +1,32 @@
+{
+  "series": "r5a-chrome",
+  "mode": "r5a",
+  "browser": "Chrome/155.0.8059.82",
+  "browser_label": "chrome",
+  "viewport": "1920x1080",
+  "reps": 10,
+  "warmups": 1,
+  "spacing_ms": 5000,
+  "phase": "cold",
+  "start": "2026-10-18T15:29:55.333Z",
+  "end": "2026-10-18T15:30:49.897Z",
+  "errors": 0,
+  "stats_ms": {
+    "n": 10,
+    "median": 388.75,
+    "p90": 402.4,
+    "max": 404
+  },
+  "all_ms": [
+    396.5,
+    395,
+    384.1,
+    383.5,
+    402.4,
+    404,
+    384.9,
+    383.7,
+    385.9,
+    391.6
+  ]
+}
