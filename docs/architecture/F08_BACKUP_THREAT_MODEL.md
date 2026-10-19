@@ -55,6 +55,8 @@ Por decisión de Roderich Rendón (opción 2), este documento **completa la docu
 > - **Qué está probado:** sólo en host, contra un **doble S3 en memoria**, que **no es B2**.
 > - **Pendiente:** el ensayo contra B2 real, a la espera de una clave restringida al prefijo `ensayo-f08/`.
 > - **SSE-B2** (cifrado del proveedor) se solicita en cada escritura, pero **no cumple la condición 2 del §5**: B2 descifra para quien tenga la clave, y no protege de T3.
+
+> **Actualización del 2026-10-19, ensayo real (18:03–18:37Z, `docs/evidence/F08_BKP_07_B2_ENSAYO_REAL.md`).** Sobre `main` `f0b55ee` y Mobile `463d3ec`, con datos sintéticos bajo `ensayo-f08/`: subida simple y multipart, descarga por la API y por S3 con el mismo SHA-256, aislamiento (404/403/404/401), 422, subida cortada sin pérdida, 409 por concurrencia, rotación 5 + 1 y borrado del propietario con 0 versiones físicas restantes, restauración en instalación limpia sin publicar y liberación sin duplicados. Los objetos comprobados devolvieron `ServerSideEncryption: AES256`. **La condición 2 del §5 sigue sin cumplirse**, y la clave usada no es de mínimo privilegio (desviación aceptada por Roderich para el ensayo). La admisión de datos reales sigue cerrada.
 > - **La admisión productiva sigue cerrada.** Las condiciones 2 a 8 del §5 no cambian.
 
 ## 5. Condiciones antes de admitir datos reales

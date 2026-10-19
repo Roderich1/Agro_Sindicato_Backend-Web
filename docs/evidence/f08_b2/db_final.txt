@@ -1,0 +1,4 @@
+AVAILABLE |  | f | 5
+FAILED |  | f | 2
+DELETED | OWNER | f | 1
+DELETED | RETENTION | f | 1
