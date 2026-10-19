@@ -42,6 +42,13 @@ Documento: [`F07_AGGREGATE_DISCLOSURE_POLICY.md`](../architecture/F07_AGGREGATE_
 
 La decisión de k para datos reales debería tomarse con el número real de agricultores vinculados.
 
+**Nota del 2026-10-19 (sesión A).** «El piloto tiene del orden de una docena de agricultores» confunde números distintos:
+- los 12 vinculados del conjunto sintético D4;
+- las personas del piloto de usabilidad, sin ninguna confirmada;
+- el número real de vinculados, no confirmado.
+
+La comparación reproducible de k = 3 y k = 5, con escenarios sintéticos de participación baja y mayor, está en la hoja de revisión §2.2. k = 3 sigue provisional y sólo para datos sintéticos.
+
 ## 3. Límites que se aceptan y se declaran
 
 - **No anonimiza.** No protege ante:
@@ -79,6 +86,9 @@ Pruebas en `main`; abreviaturas como en [`F07_CIERRE_MATRIZ.md`](F07_CIERRE_MATR
 | 3 | Revisión del tutor del entregable | Tutor (GOV-01/#105) | Registro de la revisión efectiva; no equivale a una aprobación automática | **Pendiente** |
 | 4 | Revaluar k con el volumen real del tenant | Roderich, en F10-SEC-02 (#45) | Nota en la política | Pendiente; depende de 1 |
 | 5 | Habilitar cifras reales | PR propio con revisión | Un modo nuevo y explícito para producción (hoy no existe: `NODE_ENV=production` siempre equivale a `POLICY_PENDING`), con su prueba y su rollback | **No se hace** sin 1–3 |
+| 6 | Retención de la memoria de divulgación (`R_DISCLOSURE_MEMORY`) para datos reales | Autor y Directiva (filas 1 y 2) | Criterio aceptado o cambiado de [`F07_DISCLOSURE_MEMORY_RETENTION_PROPOSAL.md`](../architecture/F07_DISCLOSURE_MEMORY_RETENTION_PROPOSAL.md) (2026-10-19); el sellado y la eliminación conjunta, si se aceptan, son código nuevo antes de la fila 5 | **Pendiente**; es una propuesta |
+
+El diseño del modo de la fila 5 (configuración, pruebas y rollback) está descrito en la hoja de revisión §6.1 (2026-10-19). No está implementado.
 
 **Mientras falten 1–3:**
 - #107 sigue abierto;
