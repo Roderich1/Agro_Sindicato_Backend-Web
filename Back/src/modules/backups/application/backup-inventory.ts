@@ -27,6 +27,15 @@ export const MIN_CLEANUP_AGE_MINUTES = BACKUP_UPLOAD_ABANDON_MS / 60_000;
  *   FAILED, objetos sin fila y parciales de staging;
  * - cada candidato se vuelve a comprobar justo antes de borrarlo, y repetir la
  *   limpieza no hace nada más (idempotente).
+ *
+ * Con un almacén versionado (B2, F08-BKP-07) se clasifican además, aparte:
+ * - `hiddenVersion`: versiones no vigentes y marcadores de borrado. Sólo se
+ *   informan: los de nuestras filas los purga la reconciliación de la
+ *   retención (#40), que borra todas las versiones; los de un tercero
+ *   requieren decisión humana;
+ * - `incompleteUpload`: multiparte sin completar en staging, que la limpieza
+ *   puede abortar con el mismo umbral de antigüedad.
+ * Con el disco no aparecen nunca.
  */
 export type InventoryCategory =
   | "availableOk"
@@ -41,7 +50,9 @@ export type InventoryCategory =
   | "unreferencedObject"
   | "unexpectedObjectFile"
   | "stagingPart"
-  | "unexpectedStagingFile";
+  | "unexpectedStagingFile"
+  | "hiddenVersion"
+  | "incompleteUpload";
 
 export const INVENTORY_CATEGORIES: readonly InventoryCategory[] = [
   "availableOk",
@@ -57,6 +68,8 @@ export const INVENTORY_CATEGORIES: readonly InventoryCategory[] = [
   "unexpectedObjectFile",
   "stagingPart",
   "unexpectedStagingFile",
+  "hiddenVersion",
+  "incompleteUpload",
 ];
 
 /** Lo único que la limpieza puede eliminar: bytes que ninguna copia ofrece. */
@@ -65,6 +78,7 @@ export const CLEANUP_CATEGORIES: readonly InventoryCategory[] = [
   "failedWithObject",
   "unreferencedObject",
   "stagingPart",
+  "incompleteUpload",
 ];
 
 /** Requieren atención humana; la herramienta nunca los corrige. */
@@ -132,10 +146,17 @@ export async function inventoryBackups(
   const objects = new Map<string, StoredBackupFile>();
   const findings: InventoryFinding[] = [];
   for (const file of files) {
-    // Versioned stores (F08-BKP-07) also list hidden versions, markers and
-    // unfinished uploads; they are classified by the retention work (#148).
-    // Here only current versions count, as with the disk adapter.
-    if (file.hidden || file.incompleteUpload) continue;
+    // Versioned stores (F08-BKP-07): hidden versions, markers and unfinished
+    // uploads are bytes no copy offers; only current versions are matched
+    // against the rows, as with the disk adapter.
+    if (file.incompleteUpload) {
+      findings.push({ category: "incompleteUpload", file, storageKey: file.key });
+      continue;
+    }
+    if (file.hidden) {
+      findings.push({ category: "hiddenVersion", file, storageKey: file.key });
+      continue;
+    }
     if (file.area === "staging") {
       findings.push({
         category: file.key ? "stagingPart" : "unexpectedStagingFile",
@@ -228,15 +249,16 @@ async function stillCandidate(
   finding: InventoryFinding,
   cutoff: number,
 ): Promise<boolean> {
+  const wantsUpload = finding.category === "incompleteUpload";
   const file = (await storage.list()).find(
     (f) =>
       !f.hidden &&
-      !f.incompleteUpload &&
+      Boolean(f.incompleteUpload) === wantsUpload &&
       f.area === finding.file!.area &&
       f.name === finding.file!.name,
   );
   if (!file || file.modifiedAt.getTime() > cutoff) return false;
-  if (finding.category === "stagingPart") return true;
+  if (finding.category === "stagingPart" || wantsUpload) return true;
   const row = await prisma.backupMetadata.findUnique({
     where: { storageKey: finding.storageKey! },
     select: { storageKey: true, status: true, sizeBytes: true },

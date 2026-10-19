@@ -174,3 +174,11 @@ La admisión `enabled` se usó **sólo** en ese entorno desechable y sintético,
 | `sync-v1-journal.postgres.spec.ts` | Número de migraciones. |
 | `f06-coll-05-collective-aggregate.postgres.spec.ts` | `databaseBefore` y precondición de orden; revisado por A. |
 | Dependencias | **Ninguna nueva**; los lockfiles no cambian. |
+
+## Actualización 2026-10-19: retención (BKP-06, #40)
+
+Las filas «Cupo» y «Fallo al marcar AVAILABLE…» de la tabla de pruebas, y el punto «BKP-06 (#40) diferido a F10» de las limitaciones, describen el estado de `15c8cf4`. Se conservan como registro.
+
+Desde BE #148, el contrato del cupo cambia: con N copias, una subida da 201 y retira la más antigua. El fallo al marcar `AVAILABLE` deja la fila `FAILED` y purga sus bytes, como antes, ahora con `purgePending`.
+
+La prueba «limits the copies in use per Member (409) and frees a slot on deletion» se sustituyó porque probaba el contrato anterior. Las pruebas nuevas, y la evidencia con su SHA y su fecha, están en `retention.backups.postgres.spec.ts` y en `docs/evidence/F08_BKP_06_RETENCION.md`.

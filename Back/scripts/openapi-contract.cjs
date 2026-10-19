@@ -205,6 +205,15 @@ for (const forbidden of ["storageKey", "memberId", "tenantId", "fileName", "stat
   assert.ok(!(forbidden in backupView.properties), `Backup view must not expose ${forbidden}`);
 }
 assert.ok(f08.paths["/api/v1/me/backups"].post.requestBody.content["application/octet-stream"]);
+// F08-BKP-06 (#40): with N copies the upload rotates (201) instead of 409;
+// 409 now means another upload of the Member is in progress. The old code
+// stays in the closed enum so clients that know it do not break.
+const uploadConflict = f08.paths["/api/v1/me/backups"].post.responses["409"];
+const uploadErrors = uploadConflict.content["application/json"].schema.properties.errorCode.enum;
+assert.ok(uploadErrors.includes("BACKUP_UPLOAD_IN_PROGRESS"));
+assert.ok(uploadErrors.includes("BACKUP_QUOTA_EXCEEDED"));
+assert.match(uploadConflict.description, /BACKUP_UPLOAD_IN_PROGRESS/);
+assert.match(f08.paths["/api/v1/me/backups"].post.responses["201"].description, /retiran las más antiguas/);
 assert.ok(
   f08.paths["/api/v1/me/backups/{id}/content"].get.responses["200"].content["application/octet-stream"],
 );

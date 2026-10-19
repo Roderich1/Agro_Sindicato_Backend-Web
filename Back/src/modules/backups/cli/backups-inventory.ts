@@ -8,6 +8,7 @@ import {
   inventoryBackups,
   MIN_CLEANUP_AGE_MINUTES,
 } from "../application/backup-inventory";
+import { purgePending } from "../application/backup-retention";
 import { BackupsConfig } from "../application/backups-config";
 import type { BackupStorage, BackupStorageInventory } from "../domain/backup-storage.port";
 import { LocalDiskBackupStorage } from "../infrastructure/local-disk-backup-storage";
@@ -26,6 +27,11 @@ import { createS3Client, S3BackupStorage } from "../infrastructure/s3-backup-sto
  *       Plan de limpieza de restos (dry-run). N >= 60.
  *   npm run backups:inventory -- --cleanup --older-than-minutes <N> --apply
  *       Ejecuta ese plan.
+ *   npm run backups:inventory -- --reconcile [--apply]
+ *       Purgas pendientes de la retención (#40): copias retiradas, borradas o
+ *       fallidas cuyos bytes el almacenamiento aún no confirmó como borrados.
+ *       Sin --apply sólo las cuenta; con --apply reintenta la purga. Nunca
+ *       toca una copia AVAILABLE (lo impide un CHECK de la base).
  *
  * Imprime sólo conteos y bytes por categoría: ni claves, ni identificadores de
  * personas, ni contenido. Código de salida 3 si hay copias AVAILABLE sin
@@ -33,20 +39,22 @@ import { createS3Client, S3BackupStorage } from "../infrastructure/s3-backup-sto
  * aquí), 2 si los argumentos no son válidos.
  */
 const USAGE =
-  "uso: backups-inventory [--cleanup --older-than-minutes <N> [--apply]] " +
+  "uso: backups-inventory [--cleanup --older-than-minutes <N> [--apply] | --reconcile [--apply]] " +
   `(N entero >= ${MIN_CLEANUP_AGE_MINUTES})`;
 
 export interface InventoryArgs {
   cleanup: boolean;
   olderThanMinutes: number | null;
+  reconcile: boolean;
   apply: boolean;
 }
 
 export function parseArgs(argv: string[]): InventoryArgs {
-  const args: InventoryArgs = { cleanup: false, olderThanMinutes: null, apply: false };
+  const args: InventoryArgs = { cleanup: false, olderThanMinutes: null, reconcile: false, apply: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--cleanup") args.cleanup = true;
+    else if (arg === "--reconcile") args.reconcile = true;
     else if (arg === "--apply") args.apply = true;
     else if (arg === "--older-than-minutes") {
       const value = argv[++i];
@@ -54,7 +62,8 @@ export function parseArgs(argv: string[]): InventoryArgs {
       args.olderThanMinutes = Number(value);
     } else throw new Error(USAGE);
   }
-  if (args.apply && !args.cleanup) throw new Error(USAGE);
+  if (args.cleanup && args.reconcile) throw new Error(USAGE);
+  if (args.apply && !args.cleanup && !args.reconcile) throw new Error(USAGE);
   if (args.cleanup && (args.olderThanMinutes === null || args.olderThanMinutes < MIN_CLEANUP_AGE_MINUTES))
     throw new Error(USAGE);
   if (!args.cleanup && args.olderThanMinutes !== null) throw new Error(USAGE);
@@ -118,7 +127,22 @@ export async function main(argv: string[], out: (line: string) => void): Promise
   const prisma = new PrismaClient();
   try {
     const inventory = await inventoryBackups(prisma, storage);
-    out(JSON.stringify({ inventario: nonZero(inventory.summary) }, null, 2));
+    const pending = await purgePending(prisma, storage, {}, false);
+    out(JSON.stringify({ inventario: nonZero(inventory.summary), purgasPendientes: pending.pending }, null, 2));
+    if (args.reconcile) {
+      const report = await purgePending(prisma, storage, {}, args.apply);
+      out(
+        JSON.stringify(
+          {
+            reconciliacion: args.apply ? "aplicada" : "dry-run (sin --apply no se purga nada)",
+            confirmadas: report.confirmed,
+            siguenPendientes: args.apply ? report.failed : Object.values(report.pending).reduce((a, b) => a + b, 0),
+          },
+          null,
+          2,
+        ),
+      );
+    }
     if (args.cleanup) {
       const report = await cleanupBackupLeftovers(prisma, storage, {
         olderThanMinutes: args.olderThanMinutes!,

@@ -83,16 +83,16 @@ export class BackupsController {
   @ApiHeader({ name: "X-Backup-Schema-Version", required: true, description: "Versión del esquema SQLite (entero >= 0)." })
   @ApiConsumes(BACKUP_CONTENT_TYPE)
   @ApiBody({ required: true, schema: { type: "string", format: "binary" } })
-  @ApiResponse({ status: 201, description: "Copia verificada y disponible.", schema: backupViewSchema })
+  @ApiResponse({ status: 201, description: "Copia verificada y disponible. Si el Member ya tenía BACKUP_MAX_ACTIVE_PER_MEMBER copias, en la misma transacción se retiran las más antiguas que sobran (dejan de listarse y de servirse); nunca antes de que esta quede verificada. BACKUP_QUOTA_EXCEEDED ya no se emite.", schema: backupViewSchema })
   @error(400, "Cabeceras inválidas, cuerpo vacío o transferencia incompleta.")
   @error(401, "Credencial ausente, inválida o expirada.")
   @error(403, "Contexto no permitido.")
-  @error(409, "Cupo de copias del Member agotado.")
+  @error(409, "BACKUP_UPLOAD_IN_PROGRESS: otra subida del mismo Member sigue en curso.")
   @error(413, "Mayor que BACKUP_MAX_BYTES.")
   @error(415, "Content-Type distinto de application/octet-stream.")
   @error(422, "El SHA-256 recalculado no coincide con X-Content-SHA256.")
   @error(429, "Límite de solicitudes.")
-  @error(503, "Almacenamiento privado no disponible.")
+  @error(503, "Almacenamiento privado no disponible, o purgas de copias anteriores aún pendientes por encima del cupo del Member.")
   upload(@Req() request: BackupsRequest) {
     return this.backups.upload(ownerOf(request), uploadHeadersOf(request), request);
   }
