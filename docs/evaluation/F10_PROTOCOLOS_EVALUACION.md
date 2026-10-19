@@ -1,7 +1,8 @@
 # F10 — Protocolos de evaluación de Agrocuentas: rendimiento, compatibilidad y usabilidad
 
-- **Versión 1.3** (la 1.0, aprobada técnicamente antes de medir, más precisiones de la 1.1, la 1.2 y la 1.3 sin cambio de umbrales; ver el registro de versiones).
-  - Publicada el 2026-10-16 (America/La_Paz; 2026-10-17 UTC) por la sesión A de Claude Code.
+- **Versión 1.4** (la 1.0, aprobada técnicamente antes de medir, más precisiones de la 1.1, la 1.2, la 1.3 y la 1.4 sin cambio de umbrales; ver el registro de versiones).
+  - La 1.3 se publicó el 2026-10-16 (America/La_Paz; 2026-10-17 UTC) por la sesión A de Claude Code. **La 1.4 (2026-10-18, La Paz) sólo precisa el dataset de usabilidad DS-UX y su procedencia (§3.3)**, antes del piloto y de cualquier sesión de usabilidad.
+  - **Las mediciones históricas siguen atribuidas a la v1.3:** series 1, 2 y 3 de rendimiento y compatibilidad (R1–R6, M1–M8, W1–W5 de compatibilidad), con sus suplementos. La v1.4 no cambia §0, §1 ni §2.
   - Incorpora las decisiones de `_briefs/CIERRE_TECNICO_Y_EVALUACION_AGROCUENTAS_2026-10-16.md` §1–§2, tomadas el 2026-10-16 bajo la **delegación técnica de Roderich**.
   - **No es una ratificación del tutor, ni una aprobación institucional, ni una inspección personal del autor.**
 - **Ninguna medición de aceptación se ha hecho antes de esta versión.** Las corridas previas de herramientas se marcan como «ensayo de herramienta» y no entran en ninguna serie.
@@ -23,7 +24,8 @@
 | **1.0** | 2026-10-16 (La Paz) | Aprobación técnica delegada por Roderich (archivo de decisiones de cierre §2). Sin ratificación del tutor | Umbrales, datasets, configuraciones, participantes e instrumentos fijados. Se corrige M6. Se retiran los pendientes ya resueltos del WAL y del refresco | BE `72a03be` (PR #122) |
 | **1.1** | 2026-10-16 (La Paz) | Sesión A, antes de cualquier medición de R5, a partir de una observación de la sesión B | **Precisión, sin cambiar umbrales ni repeticiones:** el entorno de R5 (§0.4) usa `NODE_ENV=development`, porque `CollectiveConfig` rechaza `provisional-synthetic` en producción y el resumen no tendría tablas | BE `7581af2` (rama del PR #122) |
 | **1.2** | 2026-10-16 (La Paz; 2026-10-17 ~02:00 UTC) | Sesión A, antes de la primera repetición de R6 y antes de cualquier sesión de usabilidad | **Precisiones, sin cambiar umbrales ni repeticiones:** composición exacta de S1/S2/S3 (§1.4); el primer envío de cada tamaño es un calentamiento anotado aparte; criterio por tarea de usabilidad sólo con la muestra planificada completa (§3.6) | BE `9292425` (rama del PR #122) |
-| **1.3** | 2026-10-16 (La Paz; 2026-10-17 ~03:10 UTC) | Sesión A, después de S1 y antes de la primera repetición de S2 | **Precisión de capacidad, sin cambiar umbrales ni repeticiones:** `BACKUP_MAX_ACTIVE_PER_MEMBER=20` en el entorno de A (§0.4), reiniciando sólo la API. El cálculo de la v1.0 (15) no contaba los 3 calentamientos de la v1.2 (5 + 1 por tamaño = 18); con 15, la 16.ª subida recibiría `409 BACKUP_QUOTA_EXCEEDED` | El commit de esta versión en la rama del PR #122 |
+| **1.3** | 2026-10-16 (La Paz; 2026-10-17 ~03:10 UTC) | Sesión A, después de S1 y antes de la primera repetición de S2 | **Precisión de capacidad, sin cambiar umbrales ni repeticiones:** `BACKUP_MAX_ACTIVE_PER_MEMBER=20` en el entorno de A (§0.4), reiniciando sólo la API. El cálculo de la v1.0 (15) no contaba los 3 calentamientos de la v1.2 (5 + 1 por tamaño = 18); con 15, la 16.ª subida recibiría `409 BACKUP_QUOTA_EXCEEDED` | `9bfcad2` |
+| **1.4** | 2026-10-18 (La Paz; 2026-10-19 UTC) | Sesión A, por la aprobación técnica delegada de Roderich del 2026-10-18 («Autorización del Project y preparación final de la usabilidad», §4), **antes del piloto y de cualquier sesión de usabilidad**. Sin ratificación del tutor | **Precisión del dataset de usabilidad, sin cambiar tareas (T1–T6, W1–W5), umbrales, muestra, escala de ayuda ni reglas del SUS:** §3.3 sustituye «dataset sintético D4» por **DS-UX** (composición, procedencia, generadores versionados con semilla y fecha de sesión, oráculos), porque las tarjetas de §3.4 usan nombres que D4 no tiene. Las mediciones de rendimiento y compatibilidad siguen atribuidas a la v1.3 | El commit de esta versión (PR de la rama `docs/f10-protocolo-v1.4-dsux`) |
 
 Una versión posterior (1.1, …) sólo puede precisar algo que esta versión deja explícitamente para antes de su medición, como los bytes exactos de R6 (§1.4). **No puede tocar umbrales ni repeticiones.** Se publica antes de la primera repetición afectada y se añade a esta tabla.
 
@@ -394,9 +396,32 @@ Son criterios operativos del estudio piloto, acordados antes de medir. **No son 
   - confirmar con el tutor si Univalle exige algún trámite.
   - **No se envían invitaciones ni mensajes en nombre de Roderich. No se fijan fechas de personas que no confirmaron.**
 - **Condiciones:**
-  - Móvil: A1 con `.f10ux`, reinstalado por participante y sembrado con el dataset sintético D4;
-  - Web: B1 o B2 con una cuenta sintética de Directiva/Administrador;
+  - Móvil: A1 con `.f10ux`, reinstalado por participante y sembrado con el dataset sintético **DS-UX** (precisión v1.4; hasta la v1.3 decía «D4»);
+  - Web: B1 o B2 con una cuenta sintética de Directiva/Administrador, sobre el tenant DS-UX Web;
   - la red la controla el facilitador.
+
+#### 3.3.1 Dataset DS-UX (precisión v1.4)
+
+- **Motivo:** las tarjetas de §3.4 usan «Glifosato Demo», «Bellator»/«Belator», «parcela Norte» y «Verano Demo», que el dataset D4 de F06 no tiene. DS-UX los proporciona **sin cambiar ninguna tarea ni criterio**. El detalle operativo y las hojas de valores esperados están en `docs/evaluation/usabilidad/09_fixture_y_valores_esperados.md`.
+- **Procedencia:** generadores **versionados antes del piloto**, con **semilla 20261018** y **fecha de sesión como parámetro** (día civil en America/La_Paz). Cada sesión registra el SHA del generador, la semilla, la fecha de sesión y la huella del estado sembrado. Los datos son sintéticos; no se usan datos reales ni se habilita la divulgación real (#107 y GATE-F07 siguen pendientes).
+  - **Móvil** (sesión C): `tool/f10_ux/` del repositorio Mobile (`dsux_fixture.dart`, `seed_dsux_mobile.dart`, `oracle_dsux_mobile.dart`), que escribe por el repositorio de la aplicación y vincula con el mismo código que la pantalla «Vincular con el sindicato».
+  - **Central/Web** (sesión B): generador versionado en el repositorio Backend, con su oráculo independiente.
+- **Móvil, por participante** (instalación nueva de `.f10ux`):
+  - campaña local «Verano Demo» **contenida en la campaña central** «Verano Demo» (regla D-F04-C2), con fechas que incluyen las operaciones iniciales y el día de la sesión;
+  - chacos «Norte» y «Sur»; «Proveedor Demo»; productos «Glifosato Demo» y «Bellator»;
+  - stock inicial **5 L** de Glifosato Demo y **1 L** de Bellator, obtenido con **operaciones válidas** (compras por el repositorio, no inserciones directas);
+  - campaña y productos **vinculados explícitamente** a sus equivalentes centrales;
+  - **dos variantes de modalidad: propia y compartida.** La del participante sigue el diseño de la muestra (al menos 1 en modalidad compartida, §3.3); no se cambia a modalidad propia por comodidad del arnés. La variante compartida añade una persona familiar sintética («Familiar Demo») para que la elección de persona y las asignaciones sean reales;
+  - **Ejecución nominal:** tras T1 y T2, Glifosato Demo 6 L y Bellator 1,3 L. **T3 se juzga contra el oráculo condicionado** a lo que el participante haya guardado realmente (tabla de `09_…` §2); sus errores no se corrigen en secreto.
+- **Web, tenant aislado de las sesiones Móvil, nuevo por participante Web:** «restablecido» significa **un tenant nuevo sembrado con la misma composición para cada participante Web** (D01, D02 y el piloto X01); los anteriores se conservan intactos. No se borra nada: las asociaciones de productos y las divulgaciones colectivas están protegidas contra el borrado por disparadores, y la primera lectura del resumen ya registra divulgaciones.
+  - campaña «Verano Demo»; productos centrales «Glifosato Demo», «Bellator» y «Belator» (este último **sin asociar**);
+  - **seis** miembros AGRICULTOR sintéticos (M1–M6) **y ningún otro AGRICULTOR activo en el tenant** (el denominador de la cobertura cuenta todos los AGRICULTOR activos con cuenta activa; la Directiva y el Administrador no cuentan);
+  - necesidades declaradas: **Glifosato Demo** M1 20 L, M2 35 L, M3 45 L, M4 50 L (total **150 L**); **Bellator** M1 3 L, M2 4 L, M3 5 L (12 L); **Belator** M1 1 L, M2 2 L, M3 3 L (6 L); tras reconciliar en W3, **18 L con 3 aportantes bajo el nombre canónico que elija el participante** (la pantalla permite asociar en los dos sentidos y ambos cumplen la tarjeta); **M5 y M6 no aportan a ninguna celda**;
+  - **cobertura esperada «4 de 6» antes y después de W3.** Precisión: el código calcula los miembros con aportación como la **unión** de los miembros presentes en las cifras publicadas, no sólo los de Glifosato; con esta composición la unión es M1–M4;
+  - W3 parte **sin asociación** y W4 **sin borradores previos**;
+  - **comprobado por la sesión B el 2026-10-19 (03:22–03:25Z, verificación del generador Central sobre `df0df1d`):** W1 = 150 L con 4 aportantes; W2 = «4 de 6 agricultores vinculados con cifras publicadas» con «Ausencia de aporte = desconocido, no cero»; tras W3, 18 L con 3 aportantes bajo el canónico elegido y Glifosato 150 L, cobertura 4 de 6; la denominación asociada **no desaparece**: queda como fila «Oculto (revisión)» sin cifra, `suppressed_cells` pasa a verdadero y la línea de cobertura añade «Hay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí.»; W4 = un borrador con CSV de 150 L y 18 L (que conserva esa fila sin cifra). Ningún valor esperado cambia;
+  - divulgación en modo `provisional-synthetic` con el entorno de §0.4 (`NODE_ENV=development`), k = 3, **sin desactivar ninguna protección de la política**.
+  - **Oráculo independiente** (cantidades, unidades, cobertura) contrastado con la API y con la Web **antes de la primera sesión**. Si la Web muestra otra cosa, se corrige la siembra, no el valor esperado.
 
 ### 3.4 Tareas
 **Tiempo máximo:** 5 min por tarea móvil y 4 min por tarea Web.
