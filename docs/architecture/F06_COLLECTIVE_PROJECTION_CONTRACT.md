@@ -157,7 +157,7 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
 
 | Clase | Inicio / contenido permitido | Criterio de salida y minimización | Responsable / issue / plazo |
 | --- | --- | --- | --- |
-| `R_DISCLOSURE_MEMORY` | Cada divulgación decidida por la política (`RELEASE`), con las aportaciones que la componían y la cantidad de cada una en ese momento. Detalle en la tabla siguiente | Sólo la usan la decisión de divulgación y la cobertura; la lectura de una propuesta sólo toma la cifra ya publicada, y su creación pasa por la misma decisión. Se conserva mientras el sistema siga tomando decisiones de divulgación sobre esa campaña. No se olvidan divulgaciones de forma selectiva. Su eliminación se trata de forma conjunta y autorizada (ver abajo) | Roderich1: F10 #45 verificación; F07 #107 política para datos reales. Datos sintéticos: durante el ensayo y la evaluación del entorno correspondiente. Datos reales: **sin plazo hasta que haya una política aprobada** |
+| `R_DISCLOSURE_MEMORY` | Cada divulgación decidida por la política (`RELEASE`), con las aportaciones que la componían y la cantidad de cada una en ese momento. Detalle en la tabla siguiente | Sólo la usan la decisión de divulgación y la cobertura; la lectura de una propuesta sólo toma la cifra ya publicada, y su creación pasa por la misma decisión. Se conserva mientras el sistema siga tomando decisiones de divulgación sobre esa campaña. No se olvidan divulgaciones de forma selectiva. Su eliminación se trata de forma conjunta y autorizada (ver abajo) | Roderich1: F10 #45 verificación; F07 #107 política para datos reales. Datos sintéticos: durante el ensayo y la evaluación del entorno correspondiente. Datos reales: **ningún plazo aprobado; pendiente de #107; no hay datos reales admitidos** |
 
 **Qué se conserva exactamente** (`Back/prisma/schema.prisma`, comprobado sobre el código de `f0b55ee`):
 
@@ -181,7 +181,7 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
   Comprobado con búsquedas sobre `Back/src` y `Web/src` en `f0b55ee`. Es una lectura estática del código, no una prueba nueva.
 - **No se amplía la entrada.** La whitelist del §2 (las ocho filas ALLOW de la matriz de campos) no cambia, y no se admiten nuevas operaciones privadas. La memoria se deriva de aportes ya admitidos; no es un canal de entrada.
 
-**Cobertura: semántica actual** (sin cambios en los cálculos; la describen el §5 de este contrato y F07-POL-01 R9 y §9):
+**Cobertura: semántica vigente una vez integrado BE #157 (M5)**, que se integra antes que esta enmienda. No cambia los cálculos; la describen el §5 de este contrato y F07-POL-01 R9 y §9:
 - `linked_members` cuenta los Members AGRICULTOR activos del tenant, con su cuenta activa.
 - `members_with_contribution` es la unión de los Members que están dentro de las cifras que el resumen muestra en esa lectura:
   - los de una cifra nueva (`RELEASE`), según las aportaciones vigentes de esos mismos Members (BE #157, M5);
