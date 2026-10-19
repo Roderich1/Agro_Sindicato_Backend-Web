@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { finished } from "node:stream";
 import type { Readable } from "node:stream";
+import { clearTimeout, setTimeout } from "node:timers";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import {
   BACKUP_STORAGE,
@@ -50,6 +51,13 @@ export interface BackupDownload {
 }
 
 const NOT_FOUND = () => new BackupHttpError(404, "BACKUP_NOT_FOUND");
+
+/** The upload outlived BACKUP_UPLOAD_DEADLINE_MS: its transfer is cut. */
+class BackupUploadDeadlineError extends Error {
+  constructor() {
+    super("BACKUP_UPLOAD_DEADLINE");
+  }
+}
 
 /** Serialises reservation, completion and deletion of one Member's copies. */
 async function lockOwner(tx: Prisma.TransactionClient, owner: BackupOwnerContext) {
@@ -148,11 +156,24 @@ export class BackupsService {
       if (error) meter.destroy(new BackupTransferIncompleteError());
     });
     body.pipe(meter);
+    // Own deadline of the transfer, below BACKUP_UPLOAD_ABANDON_MS: once a
+    // row is old enough to be closed as abandoned, nothing writes for it
+    // (the adapters' own budgets bound the commit that follows).
+    const deadline = setTimeout(
+      () => meter.destroy(new BackupUploadDeadlineError()),
+      this.config.uploadDeadlineMs,
+    );
+    deadline.unref?.();
     let staged;
     try {
       staged = await storage.stage(row.storageKey, meter);
     } catch (error) {
       body.unpipe(meter);
+      if (error instanceof BackupUploadDeadlineError) {
+        await this.fail(row.id, "UPLOAD_DEADLINE");
+        this.logger.warn("Backup upload cut at its deadline");
+        throw new BackupHttpError(503, "BACKUP_STORAGE_UNAVAILABLE", { Connection: "close" });
+      }
       if (error instanceof BackupTooLargeError) {
         await this.fail(row.id, "TOO_LARGE");
         throw new BackupHttpError(413, "BACKUP_TOO_LARGE", { Connection: "close" });
@@ -164,6 +185,8 @@ export class BackupsService {
       await this.fail(row.id, "STORAGE_WRITE_FAILED");
       this.logger.error(`Backup storage write failed (${(error as Error).name})`);
       throw new BackupHttpError(503, "BACKUP_STORAGE_UNAVAILABLE");
+    } finally {
+      clearTimeout(deadline);
     }
 
     if (meter.bytes === 0) {
