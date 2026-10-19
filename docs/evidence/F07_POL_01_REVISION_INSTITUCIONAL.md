@@ -45,6 +45,13 @@ Sirve para planificar compras conjuntas. Se pide decidir si se acepta mostrar es
 
 **k = 3 no hace anónimos los datos.**
 
+**Nota del 2026-10-19 (sesión A).** La frase «un piloto de una docena de agricultores» viene del paquete §2 y mezcla tres números distintos, que no son equivalentes:
+- los **12 vinculados del conjunto sintético D4** (§2.1);
+- las **personas del piloto de usabilidad** (protocolo v1.5), de las que hoy **no hay ninguna confirmada**;
+- el **número real de agricultores vinculados** al sindicato, que **no está confirmado** y sigue pendiente.
+
+La comparación reproducible de k = 3 y k = 5 queda en el §2.2. El texto anterior no se reescribe.
+
 ## 2.1 Ejemplos con datos sintéticos de D4
 
 Son ejemplos del conjunto controlado de [`F06_RECONCILIATION.md`](F06_RECONCILIATION.md), no datos de agricultores reales. En ese conjunto aportan tres agricultores sintéticos y hay doce vinculados. Necesidad declarada y consumo son conceptos distintos; no se suman entre sí, entre productos ni entre unidades. Un cero declarado cuenta como aporte; una declaración ausente no se interpreta como cero.
@@ -89,6 +96,20 @@ Es el orden del paquete §5, sin cambios.
 
 **Nota del 2026-10-19.** La política tiene una memoria técnica de divulgación, `R_DISCLOSURE_MEMORY` (`docs/architecture/F06_COLLECTIVE_PROJECTION_CONTRACT.md` §7.1). Guarda cada cifra publicada con la cantidad de cada aportación, vinculada al agricultor por su aportación, para impedir que se calcule un aporte por diferencias. Antes de admitir datos reales, la decisión del autor (fila 1) tiene que fijar también su finalidad, minimización, duración y salida. Hoy no hay ningún plazo aprobado.
 
+### 4.1 Respuestas pendientes, por tema (2026-10-19)
+
+Resume lo que falta. Las respuestas se anotan en el §5; aquí no se responde nada.
+
+| Tema | Quién responde | Material | Campo del §5 |
+|---|---|---|---|
+| **Umbral para datos reales** y su fundamento, con el número real de vinculados | Autor (fila 1); Directiva, si pide otro | §2.2 (comparación de k) y paquete §2 | 5.1, k y fundamento |
+| **Memoria de divulgación** (`R_DISCLOSURE_MEMORY`): finalidad, minimización, criterio de duración (sellado), eliminación conjunta, agregados históricos | Autor (criterio); Directiva (quién sella y si se conservan agregados) | [`F07_DISCLOSURE_MEMORY_RETENTION_PROPOSAL.md`](../architecture/F07_DISCLOSURE_MEMORY_RETENTION_PROPOSAL.md) y contrato F06 §7.1 | 5.1 y 5.2, memoria |
+| **Finalidad y lectores autorizados** | Directiva | §1 | 5.2, 2(a) y 2(b) |
+| **Información a los agricultores** | Directiva | §1 y §2 | 5.2, 2(d) |
+| **Solicitudes de exclusión** | Directiva | §2 | 5.2, 2(f) |
+| **Responsable y periodicidad de revisión** | Autor y Directiva | paquete §5 | 5.1 y 5.2, 2(e) |
+| Revisión del entregable | Tutor | GOV-01 (#105) | 5.3 |
+
 **Ninguna respuesta sustituye a otra:**
 - la decisión técnica delegada del 2026-10-16 no es la de la Directiva;
 - un mensaje informal no es un acta;
@@ -105,6 +126,10 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - Decisión sobre el texto (aprueba / pide cambios / rechaza):
 - k para datos reales y número de agricultores vinculados en que se basa:
 - Memoria de divulgación (`R_DISCLOSURE_MEMORY`) para datos reales: finalidad, minimización, duración y salida:
+- Fundamento del k (comparación del §2.2 y número real de vinculados):
+- Criterio de retención de la memoria (propuesta M-2, sellar y eliminar de forma conjunta; M-3, agregados seudonimizados): acepta / pide cambios / rechaza:
+- Ventana de correcciones antes de sellar una campaña:
+- Responsable técnico del sellado y la eliminación:
 - Responsable y fecha de la próxima revisión:
 - Fórmula: «Verificado por Roderich Rendón (autor) el <fecha real>»:
 
@@ -119,6 +144,7 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - Respuesta a 2(d) cómo se informa a los agricultores:
 - Respuesta a 2(e) responsable y periodicidad de revisión:
 - Respuesta a 2(f) tratamiento de una solicitud de exclusión:
+- Memoria de divulgación: quién decide el sellado de cada campaña y si se conservan cifras agregadas como registro histórico (y por cuánto tiempo):
 - Observaciones o condiciones:
 
 ### 5.3 Tutor
@@ -129,6 +155,30 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - Registro en GOV-01 (#105):
 
 ## 6. Pase lo que pase en el §5
+
+### 6.1 Cambio de código que hará falta para un modo de divulgación real (2026-10-19; no implementado)
+
+Hoy sólo existen `POLICY_PENDING` (por defecto) y `PROVISIONAL_SYNTHETIC`, que se ignora con `NODE_ENV=production` (`collective-config.ts`). **No se habilita nada usando el modo sintético fuera de su alcance.** Sólo después de las validaciones 1–3 del paquete §5, un PR propio, con revisión cruzada, haría esto:
+- **Configuración:**
+  - un valor nuevo y explícito, por ejemplo `COLLECTIVE_DISCLOSURE_MODE=approved`;
+  - exige, validados en `env.schema.ts`, el identificador de la política aprobada (archivo y SHA del texto decidido) y el k aprobado (entero, mínimo 3);
+  - si falta algo o no es válido, el arranque se niega;
+  - el modo sintético sigue ignorándose en producción.
+- **Código:**
+  - el caso de uso pasa el k configurado a `decideCells()`, que hoy usa la constante `PROVISIONAL_THRESHOLD`;
+  - la respuesta dice `mode: APPROVED`, `approved: true`, la versión de la política y el k;
+  - si se aprueba la retención propuesta, antes hacen falta el sellado y la eliminación conjunta (propuesta de retención, §6).
+- **Pruebas:**
+  - de unidad de la configuración: cada combinación de modo, entorno, versión y k, incluido el rechazo de k < 3 y la negativa a arrancar;
+  - de PostgreSQL: el modo aprobado publica con el k configurado, y el mismo escenario con otro k da otro resultado (comparación del §2.2);
+  - JSON, CSV y propuesta coinciden;
+  - la falta de configuración sigue siendo `POLICY_PENDING`;
+  - una mutación que ignore el k configurado debe hacer fallar una prueba;
+  - OpenAPI actualizado.
+- **Rollback:** quitar el modo, que vuelve a `POLICY_PENDING`.
+  - La Web y los CSV dejan de mostrar cifras de inmediato.
+  - Las propuestas guardadas sólo muestran una cifra mientras el resumen muestra esa misma divulgación (regla R8).
+  - La memoria **no se borra** con el rollback: sigue sujeta a su propio criterio.
 
 - **Las cifras reales no se habilitan con esta hoja.** Hace falta un PR propio con un modo nuevo y explícito para producción, con su prueba y su rollback, y sólo después de 1–3 (paquete §5, fila 5).
 - **Si la Directiva pide cambios** (otro k, menos información, otra forma de informar a los agricultores), se cambia la política y se repite esta revisión sobre el texto nuevo.
