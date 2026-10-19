@@ -1,0 +1,357 @@
+{
+  "label": "VER2-Belator-1366x768",
+  "canonical": "Belator",
+  "alias": "Bellator",
+  "browser": "Chrome/155.0.8059.82",
+  "viewport": "1366x768",
+  "date": "2026-10-19T03:25:35.139Z",
+  "tenant_slug": "f10ux-web-ver2",
+  "dataset_sha256": "1d11151ad0053610e12ecbbf39ddefa5104bbeed7ec70d9982935515479591e5",
+  "stages": [
+    {
+      "stage": "antes_de_W3",
+      "result": "CUMPLE",
+      "checks": 20
+    },
+    {
+      "stage": "W3",
+      "result": "CUMPLE",
+      "checks": 2
+    },
+    {
+      "stage": "tras_W3",
+      "result": "CUMPLE",
+      "checks": 19
+    },
+    {
+      "stage": "tras_W4",
+      "result": "CUMPLE",
+      "checks": 7
+    }
+  ],
+  "observed": {
+    "antes_Directiva": {
+      "linked_members": 6,
+      "members_with_contribution": 4,
+      "suppressed_cells": false
+    },
+    "antes_Administrador": {
+      "linked_members": 6,
+      "members_with_contribution": 4,
+      "suppressed_cells": false
+    },
+    "web_cobertura_antes": "Cobertura · Verano Demo4 de 6 agricultores vinculados con cifras publicadasAusencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes están en ellas.",
+    "tras_Directiva": {
+      "linked_members": 6,
+      "members_with_contribution": 4,
+      "suppressed_cells": true
+    },
+    "tras_Directiva_fila_Bellator": {
+      "status": "SUPPRESSED_REVISION",
+      "total_base": null,
+      "contributors": null
+    },
+    "tras_Administrador": {
+      "linked_members": 6,
+      "members_with_contribution": 4,
+      "suppressed_cells": true
+    },
+    "tras_Administrador_fila_Bellator": {
+      "status": "SUPPRESSED_REVISION",
+      "total_base": null,
+      "contributors": null
+    },
+    "web_cobertura_tras": "Cobertura · Verano Demo4 de 6 agricultores vinculados con cifras publicadasHay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí. Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes están en ellas.",
+    "web_fila_Bellator_tras": "Bellator(L) | Oculto (revisión) | La cifra anterior se retiró por una baja, una disputa o una reagrupación, y aún no hay cambios suficientes para publicar otra. | — | —"
+  },
+  "checks": [
+    {
+      "stage": "antes_de_W3",
+      "name": "Directiva: resumen HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Directiva: sólo celdas DECLARED_NEED en ML",
+      "ok": true,
+      "detail": "DECLARED_NEED/ML DECLARED_NEED/ML DECLARED_NEED/ML"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Directiva: Belator = 6000 ML, 3 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 6000 (6) 3"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Directiva: Bellator = 12000 ML, 3 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 12000 (12) 3"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Directiva: Glifosato Demo = 150000 ML, 4 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 150000 (150) 4"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Directiva: cobertura 4 de 6 agricultores vinculados con cifras publicadas",
+      "ok": true,
+      "detail": "members_with_contribution=4 linked_members=6 suppressed_cells=false"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Directiva: política provisional, k = 3, sin aprobar",
+      "ok": true,
+      "detail": "{\"mode\":\"PROVISIONAL_SYNTHETIC\",\"policy\":\"F07-POL-01\",\"approved\":false,\"threshold\":3}"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Administrador: resumen HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Administrador: sólo celdas DECLARED_NEED en ML",
+      "ok": true,
+      "detail": "DECLARED_NEED/ML DECLARED_NEED/ML DECLARED_NEED/ML"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Administrador: Belator = 6000 ML, 3 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 6000 (6) 3"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Administrador: Bellator = 12000 ML, 3 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 12000 (12) 3"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Administrador: Glifosato Demo = 150000 ML, 4 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 150000 (150) 4"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Administrador: cobertura 4 de 6 agricultores vinculados con cifras publicadas",
+      "ok": true,
+      "detail": "members_with_contribution=4 linked_members=6 suppressed_cells=false"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Administrador: política provisional, k = 3, sin aprobar",
+      "ok": true,
+      "detail": "{\"mode\":\"PROVISIONAL_SYNTHETIC\",\"policy\":\"F07-POL-01\",\"approved\":false,\"threshold\":3}"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Sin asociación vigente ni historial (W3 parte sin asociación)",
+      "ok": true,
+      "detail": "HTTP 200 current=0 history=0"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Sin borradores previos (W4 parte sin borradores)",
+      "ok": true,
+      "detail": "HTTP 200 n=0"
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Web: Belator | 6 L | 3 |",
+      "ok": true,
+      "detail": "Belator(L) | Publicado | 6 L | 3 | 18 oct de 2026, 11:24 p. m."
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Web: Bellator | 12 L | 3 |",
+      "ok": true,
+      "detail": "Bellator(L) | Publicado | 12 L | 3 | 18 oct de 2026, 11:23 p. m."
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Web: Glifosato Demo | 150 L | 4 |",
+      "ok": true,
+      "detail": "Glifosato Demo(L) | Publicado | 150 L | 4 | 18 oct de 2026, 11:23 p. m."
+    },
+    {
+      "stage": "antes_de_W3",
+      "name": "Web: cobertura «4 de 6 agricultores vinculados con cifras publicadas»",
+      "ok": true,
+      "detail": "Cobertura · Verano Demo4 de 6 agricultores vinculados con cifras publicadasAusencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes están en ellas."
+    },
+    {
+      "stage": "W3",
+      "name": "La lista de canónicos ofrece Belator",
+      "ok": true,
+      "detail": "481ec6a4"
+    },
+    {
+      "stage": "W3",
+      "name": "Historial «Bellator → Belator» con motivo",
+      "ok": true,
+      "detail": "Bellator → Belator18 oct de 2026, 11:25 p. m. – vigenteDirectiva Demo: Mismo producto (DS-UX, verificación previa)—"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Directiva: resumen HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Directiva: sólo celdas DECLARED_NEED en ML",
+      "ok": true,
+      "detail": "DECLARED_NEED/ML DECLARED_NEED/ML DECLARED_NEED/ML"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Directiva: Belator = 18000 ML, 3 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 18000 (18) 3"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Directiva: Glifosato Demo = 150000 ML, 4 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 150000 (150) 4"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Directiva: cobertura 4 de 6 agricultores vinculados con cifras publicadas",
+      "ok": true,
+      "detail": "members_with_contribution=4 linked_members=6 suppressed_cells=true"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Directiva: política provisional, k = 3, sin aprobar",
+      "ok": true,
+      "detail": "{\"mode\":\"PROVISIONAL_SYNTHETIC\",\"policy\":\"F07-POL-01\",\"approved\":false,\"threshold\":3}"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Directiva: Bellator sin cifra propia",
+      "ok": true,
+      "detail": "{\"status\":\"SUPPRESSED_REVISION\",\"total_base\":null,\"contributors\":null}"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Administrador: resumen HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Administrador: sólo celdas DECLARED_NEED en ML",
+      "ok": true,
+      "detail": "DECLARED_NEED/ML DECLARED_NEED/ML DECLARED_NEED/ML"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Administrador: Belator = 18000 ML, 3 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 18000 (18) 3"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Administrador: Glifosato Demo = 150000 ML, 4 aportantes, publicada",
+      "ok": true,
+      "detail": "DISCLOSED 150000 (150) 4"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Administrador: cobertura 4 de 6 agricultores vinculados con cifras publicadas",
+      "ok": true,
+      "detail": "members_with_contribution=4 linked_members=6 suppressed_cells=true"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Administrador: política provisional, k = 3, sin aprobar",
+      "ok": true,
+      "detail": "{\"mode\":\"PROVISIONAL_SYNTHETIC\",\"policy\":\"F07-POL-01\",\"approved\":false,\"threshold\":3}"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Administrador: Bellator sin cifra propia",
+      "ok": true,
+      "detail": "{\"status\":\"SUPPRESSED_REVISION\",\"total_base\":null,\"contributors\":null}"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "API: una asociación vigente Bellator → Belator",
+      "ok": true,
+      "detail": "[{\"association_ref\":\"41ac248c\",\"product_ref\":\"53dccb6b\",\"product_name\":\"Bellator\",\"canonical_product_ref\":\"481ec6a4\",\"canonical_product_name\":\"Belator\",\"valid_from\":\"2026-10-19T03:25:29.899Z\",\"valid_to\":null,\"actor_r"
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Web: Belator | 18 L | 3 |",
+      "ok": true,
+      "detail": "Belator(L) | Publicado | 18 L | 3 | 18 oct de 2026, 11:24 p. m."
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Web: Glifosato Demo | 150 L | 4 |",
+      "ok": true,
+      "detail": "Glifosato Demo(L) | Publicado | 150 L | 4 | 18 oct de 2026, 11:23 p. m."
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Web: cobertura «4 de 6 agricultores vinculados con cifras publicadas»",
+      "ok": true,
+      "detail": "Cobertura · Verano Demo4 de 6 agricultores vinculados con cifras publicadasHay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí. Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes están en ellas."
+    },
+    {
+      "stage": "tras_W3",
+      "name": "Web: Bellator sin cifra propia",
+      "ok": true,
+      "detail": "Bellator(L) | Oculto (revisión) | La cifra anterior se retiró por una baja, una disputa o una reagrupación, y aún no hay cambios suficientes para publicar otra. | — | —"
+    },
+    {
+      "stage": "tras_W4",
+      "name": "Un borrador en el historial",
+      "ok": true,
+      "detail": "1 fila"
+    },
+    {
+      "stage": "tras_W4",
+      "name": "CSV descargado",
+      "ok": true,
+      "detail": "9 líneas"
+    },
+    {
+      "stage": "tras_W4",
+      "name": "CSV: Belator 18000 ML (18 L), 3 aportantes",
+      "ok": true,
+      "detail": "0,481ec6a4,Belator,ML,L,DISCLOSED,18000,18,3,2026-10-19T03:24:04.624Z,2026-10-19T03:25:30.578Z,false"
+    },
+    {
+      "stage": "tras_W4",
+      "name": "CSV: Glifosato Demo 150000 ML (150 L), 4 aportantes",
+      "ok": true,
+      "detail": "2,d1e168a4,Glifosato Demo,ML,L,DISCLOSED,150000,150,4,2026-10-19T03:23:44.985Z,2026-10-19T03:25:25.487Z,false"
+    },
+    {
+      "stage": "tras_W4",
+      "name": "CSV: Bellator sin cifra propia",
+      "ok": true,
+      "detail": "1,53dccb6b,Bellator,ML,L,SUPPRESSED_REVISION,,,,,,false"
+    },
+    {
+      "stage": "tras_W4",
+      "name": "CSV sin NaN ni undefined",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "stage": "tras_W4",
+      "name": "API: un borrador",
+      "ok": true,
+      "detail": "n=1"
+    }
+  ]
+}
