@@ -1,3 +1,5 @@
+# Consulta (2026-10-19, tras el ensayo de API, antes del teléfono): SELECT status, "deletionReason", "purgePending", "failureCode", count(*) FROM "BackupMetadata" GROUP BY 1,2,3,4 ORDER BY 1,2
+# columnas: status | deletionReason | purgePending | failureCode | count
 AVAILABLE |  | f |  | 4
 FAILED |  | f | SHA256_MISMATCH | 1
 FAILED |  | f | TRANSFER_INCOMPLETE | 1

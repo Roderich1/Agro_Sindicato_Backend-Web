@@ -44,11 +44,11 @@ Las herramientas sólo escriben y leen bajo `ensayo-f08/`, y `s3_inspect.cjs` re
 | SHA-256 incorrecto | 422; ningún objeto nuevo; staging y multipart vacíos | PASS |
 | Subida cortada a mitad | Se declararon 12 MiB, se enviaron 3 MiB y se cortó el socket. Las 2 copias anteriores siguen disponibles y sus bytes se descargan íntegros; ningún objeto nuevo; staging y multipart vacíos | PASS |
 | Concurrencia | Con una subida lenta en curso, la segunda subida devuelve **409 `BACKUP_UPLOAD_IN_PROGRESS`**; la primera termina con 201 | PASS |
-| Rotación (5 + 1) | Con 5 copias (A, B, C, D y E) se registró antes la lista exacta de lo que se retiraría: la copia `a65b26dc` y el objeto `objects/6afc8b82…`, con todas sus versiones. La sexta (F) da 201 y queda verificada. Después quedan **exactamente B, C, D, E y F**; A devuelve 404 y tiene **0 versiones físicas** en B2, marcadores incluidos; B a F siguen con 1 versión cada una y sus bytes íntegros | PASS |
+| Rotación (5 + 1) | Con 5 copias (A, B, C, D y E) la herramienta escribió antes la retirada **prevista** (la copia más antigua, `a65b26dc`, y su objeto `objects/6afc8b82…` con todas sus versiones); de la lista previa del servidor sólo se comprobó que tuviera 5 copias. La previsión se **confirmó después**: La sexta (F) da 201 y queda verificada. Después quedan **exactamente B, C, D, E y F**; A devuelve 404 y tiene **0 versiones físicas** en B2, marcadores incluidos; B a F siguen con 1 versión cada una y sus bytes íntegros | PASS |
 | Borrado del propietario | `DELETE` de B → 204; **0 versiones físicas** de su objeto en B2 | PASS |
 | Conciliación final | 4 copias disponibles = 4 objetos en B2, con 1 versión cada uno; 0 marcadores; staging y multipart vacíos | PASS |
 
-**PostgreSQL tras el ensayo de API** ([`f08_b2/db_tras_api.txt`](f08_b2/db_tras_api.txt)):
+**PostgreSQL tras el ensayo de API** ([`f08_b2/db_tras_api.txt`](f08_b2/db_tras_api.txt), con la consulta y las columnas en la cabecera):
 - AVAILABLE: 4;
 - FAILED: 1 por `SHA256_MISMATCH` y 1 por `TRANSFER_INCOMPLETE`;
 - DELETED: 1 con `OWNER` y 1 con `RETENTION`;
@@ -72,7 +72,7 @@ Las herramientas sólo escriben y leen bajo `ensayo-f08/`, y `s3_inspect.cjs` re
 | Reabrir no publica | La app se detuvo y se reabrió: **0 peticiones en 80 s** | PASS |
 | Copia frente a restaurado | `tool/f08_bkp/snapshot.py --compare` entre el contenido de la copia y el estado restaurado: **Resultado: PASS**. De 29 tablas, 27 quedan IGUAL y las fotos coinciden por nombre y SHA-256 (2 → 2). Las otras 2 tienen la transformación esperada: `app_settings` (`activated_installation_ref`) y `sync_outbox` (`ACKED→ACKED` 1, `OUTCOME_UNKNOWN→RESTORE_PAUSED` 1, con la misma operación, cantidad y causalidad). Ver [`f08_b2/compare_copia_despues.txt`](f08_b2/compare_copia_despues.txt) | PASS |
 | Liberar la cola | Sincronización mostró «Sincronizado: 1 · Pausado: restauración: 1» y «Envíos pausados por una restauración. No se publican solos». Al pulsar «Liberar»: `refresh` 200 y **un único** `POST /sync/v1/push 200` (18:35:56Z), con la **misma** operación `5acb001b` | PASS |
-| Central sin duplicados | Journal de Sync v1: 2 entradas (`17548fa0` y `5acb001b`, ambas APPLIED, como antes de liberar). Contribuciones ACTIVE: 2. La app pasa a «Sincronizado: 2» | PASS |
+| Central sin duplicados | Journal de Sync v1: 2 entradas (`17548fa0` y `5acb001b`, ambas APPLIED, como antes de liberar). Contribuciones ACTIVE: 2 (consultas y salida en [`f08_b2/sync_central.txt`](f08_b2/sync_central.txt)). La app pasa a «Sincronizado: 2». **Alcance:** aquí la operación liberada ya estaba aplicada en el Central, así que se prueba la idempotencia del reenvío. El caso en que la liberación publica por **primera vez** una operación nunca aplicada lo cubrió el ensayo F08 del 2026-10-16 (`F08_MOBILE_RESTORE.md` §5), con el adaptador de disco | PASS |
 | Logcat | `logcat_scan.sh`: JWT 0, contraseñas 0, campos sensibles 0, valores opacos de 43+ caracteres 0 y FATAL 0 ([`f08_b2/logcat_scan.txt`](f08_b2/logcat_scan.txt)) | PASS |
 | Log de la API | 162 líneas, sin `accessKeyId`, `secretAccessKey`, cabeceras de autorización ni firmas. Las únicas cadenas de 31 o más caracteres son nombres de controladores de Nest con códigos de color | PASS |
 
@@ -84,7 +84,7 @@ Las herramientas sólo escriben y leen bajo `ensayo-f08/`, y `s3_inspect.cjs` re
   - `ensayo-f08/objects/`: 5 versiones en 5 claves distintas y 0 marcadores;
   - `ensayo-f08/staging/`: 0;
   - multipart sin terminar: 0.
-- **PostgreSQL** ([`f08_b2/db_final.txt`](f08_b2/db_final.txt)):
+- **PostgreSQL** ([`f08_b2/db_final.txt`](f08_b2/db_final.txt), con la consulta y las columnas en la cabecera):
   - AVAILABLE: 5 (4 del ensayo de API y 1 del teléfono), una por objeto;
   - FAILED: 2;
   - DELETED: 1 con `OWNER` y 1 con `RETENTION`;
@@ -108,7 +108,8 @@ Las herramientas sólo escriben y leen bajo `ensayo-f08/`, y `s3_inspect.cjs` re
 - la política institucional de datos reales y el cifrado que se exija para ellos;
 - la operación productiva, con costos, monitoreo y rotación de claves;
 - un teléfono de otro modelo (la reinstalación limpia se hizo en el mismo POCO);
-- la carga concurrente de varios usuarios.
+- la carga concurrente de varios usuarios;
+- contra B2 real no se ejercieron las pruebas de concurrencia C2 (borrado del propietario frente a la rotación) y C5, ni la cota con un proveedor que rechaza los borrados (T-R5). Sólo las cubren las suites con PostgreSQL y el doble S3 (`F08_BKP_06_RETENCION.md`).
 
 Siguen vigentes los límites declarados en `F08_BKP_07_B2_ADAPTER.md` y `F08_BKP_06_RETENCION.md`, incluidos la fila UPLOADING colgada tras un reinicio y el `--reconcile` después de una limpieza manual.
 

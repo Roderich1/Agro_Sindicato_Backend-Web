@@ -1,0 +1,6 @@
+# Consulta (2026-10-19, tras liberar la cola a las 18:35:56Z; releída sin cambios después): journal de Sync v1 y contribuciones del tenant del teléfono
+# SELECT left("operationId"::text,8), outcome, "createdAt" FROM "SyncV1OperationJournal" ORDER BY "createdAt"   -- columnas: operación (8) | outcome | createdAt
+17548fa0 | APPLIED | 2026-10-19 18:19:04.271
+5acb001b | APPLIED | 2026-10-19 18:24:51.979
+# SELECT status, count(*) FROM "SyncV1Contribution" GROUP BY status   -- columnas: status | count
+ACTIVE | 2
