@@ -44,7 +44,7 @@ Las herramientas sólo escriben y leen bajo `ensayo-f08/`, y `s3_inspect.cjs` re
 | SHA-256 incorrecto | 422; ningún objeto nuevo; staging y multipart vacíos | PASS |
 | Subida cortada a mitad | Se declararon 12 MiB, se enviaron 3 MiB y se cortó el socket. Las 2 copias anteriores siguen disponibles y sus bytes se descargan íntegros; ningún objeto nuevo; staging y multipart vacíos. **Límite:** 3 MiB está por debajo del umbral de 8 MiB de `stage()`, así que **no salió ninguna petición a B2**. Este caso prueba el servicio, no el proveedor. El corte por encima del umbral está en el §1.1 | PASS |
 | Concurrencia | Con una subida lenta en curso, la segunda subida devuelve **409 `BACKUP_UPLOAD_IN_PROGRESS`**; la primera termina con 201 | PASS |
-| Rotación (5 + 1) | Con 5 copias (A, B, C, D y E) la herramienta escribió antes la retirada **prevista** (la copia más antigua, `a65b26dc`, y su objeto `objects/6afc8b82…` con todas sus versiones); de la lista previa del servidor sólo se comprobó que tuviera 5 copias. La previsión se **confirmó después**: La sexta (F) da 201 y queda verificada. Después quedan **exactamente B, C, D, E y F**; A devuelve 404 y tiene **0 versiones físicas** en B2, marcadores incluidos; B a F siguen con 1 versión cada una y sus bytes íntegros | PASS |
+| Rotación (5 + 1) | Con 5 copias (A, B, C, D y E) la herramienta escribió antes la retirada **prevista** (la copia más antigua, `a65b26dc`, y su objeto `objects/6afc8b82…` con todas sus versiones); de la lista previa del servidor sólo se comprobó que tuviera 5 copias. La previsión se **confirmó después**: la sexta (F) da 201 y queda verificada. Después quedan **exactamente B, C, D, E y F**; A devuelve 404 y tiene **0 versiones físicas** en B2, marcadores incluidos; B a F siguen con 1 versión cada una y sus bytes íntegros | PASS |
 | Borrado del propietario | `DELETE` de B → 204; **0 versiones físicas** de su objeto en B2 | PASS |
 | Conciliación final | 4 copias disponibles = 4 objetos en B2, con 1 versión cada uno; 0 marcadores; staging y multipart vacíos | PASS |
 
@@ -155,7 +155,7 @@ También siguen vigentes los límites de `F08_BKP_06_RETENCION.md`, entre ellos 
 - `tool/f08_b2/b2_cut_multipart.cjs`: el corte multipart del §1.1.
 - `tool/f08_b2/s3_inspect.cjs`: inspección de sólo lectura del prefijo.
 
-Las tres resuelven `@aws-sdk/client-s3` desde `Back/node_modules`, o desde `F08_B2_NODE_MODULES`,, leen las credenciales sólo del entorno y no imprimen secretos.
+Las tres resuelven `@aws-sdk/client-s3` desde `Back/node_modules`, o desde `F08_B2_NODE_MODULES`, leen las credenciales sólo del entorno y no imprimen secretos.
 
 **Fuera de los repositorios** (con las mismas reglas):
 - el arnés de entorno: contenedor, túnel y contraseñas de un solo uso;
