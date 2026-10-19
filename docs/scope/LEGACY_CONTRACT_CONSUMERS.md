@@ -64,3 +64,19 @@ Todos los siguientes archivos están versionados y se clasifican `EXISTS_NOT_EXE
   - el bloqueo de escrituras es la PHASE 6 (#81).
 - **Rollback:** compilar la Web con `VITE_LEGACY_FARMER_WEB=enabled` o revertir el commit.
 - **Evidencia:** [F07_WEB_01.md](../evidence/F07_WEB_01.md).
+
+## Actualización 2026-10-19: reauditoría estática de Flutter en `463d3ec`
+
+Hecha por la sesión B de Claude Code el 2026-10-19 (19:30Z) para el contraste de #81. Detalle en [F10_CONTRASTE_81_Y_VALIDATION.md](../evidence/F10_CONTRASTE_81_Y_VALIDATION.md) §3.1. **No sustituye a la auditoría anterior**: la completa para el HEAD Mobile actual.
+
+- **Revisión:** Mobile `main` **`463d3ecb93f178efa3333c48c299759a9e96ac80`**, con Flutter CI 39254103212 SUCCESS. Desde F05, la app tiene cliente de red.
+- **Búsqueda:** `git grep` en `lib/` de las rutas de la tabla anterior: `/sync/operations`, `/inventory`, `/applications`, `/plots`, `/crops`, `/plot-crop-assignments`, `/purchases`, `/suppliers`, `/accounts-payable`, `/reports` y `/calendar`. Además, la lista de todas las rutas `api/v1/…` que nombra `lib/`.
+- **Resultado:** **ningún archivo** de `lib/` nombra una ruta heredada. Las únicas rutas que usa la app son:
+  - `auth/clients`;
+  - `auth/v2/login`, `logout`, `me`, `refresh` y `session/client`;
+  - `me/backups`;
+  - `sync/v1/operations`, `push` y `references`.
+
+  Clasificación: `NOT_FOUND_IN_AUDITED_REVISION` (`463d3ec`).
+- **Web:** los consumidores de la tabla sólo existen tras `VITE_LEGACY_FARMER_WEB=enabled`, que es el rollback de la PHASE 5.
+- **Límite:** es una búsqueda estática, sin ejecución. Los consumidores externos o desplegados siguen como `INSUFFICIENT_EVIDENCE`. Antes de cualquier bloqueo (PHASE 6) o retiro (PHASE 9), se reaudita el HEAD de ese momento. **No autoriza ningún cambio.**
