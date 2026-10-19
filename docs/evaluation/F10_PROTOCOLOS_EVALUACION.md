@@ -411,14 +411,15 @@ Son criterios operativos del estudio piloto, acordados antes de medir. **No son 
   - chacos «Norte» y «Sur»; «Proveedor Demo»; productos «Glifosato Demo» y «Bellator»;
   - stock inicial **5 L** de Glifosato Demo y **1 L** de Bellator, obtenido con **operaciones válidas** (compras por el repositorio, no inserciones directas);
   - campaña y productos **vinculados explícitamente** a sus equivalentes centrales;
-  - **dos variantes de modalidad: propia y compartida.** La del participante sigue el diseño de la muestra (al menos 1 en modalidad compartida, §3.3); no se cambia a modalidad propia por comodidad del arnés.
+  - **dos variantes de modalidad: propia y compartida.** La del participante sigue el diseño de la muestra (al menos 1 en modalidad compartida, §3.3); no se cambia a modalidad propia por comodidad del arnés. La variante compartida añade una persona familiar sintética («Familiar Demo») para que la elección de persona y las asignaciones sean reales;
   - **Ejecución nominal:** tras T1 y T2, Glifosato Demo 6 L y Bellator 1,3 L. **T3 se juzga contra el oráculo condicionado** a lo que el participante haya guardado realmente (tabla de `09_…` §2); sus errores no se corrigen en secreto.
-- **Web, tenant aislado de las sesiones Móvil, restablecido antes de cada participante Web:**
+- **Web, tenant aislado de las sesiones Móvil, nuevo por participante Web:** «restablecido» significa **un tenant nuevo sembrado con la misma composición para cada participante Web** (D01, D02 y el piloto X01); los anteriores se conservan intactos. No se borra nada: las asociaciones de productos y las divulgaciones colectivas están protegidas contra el borrado por disparadores, y la primera lectura del resumen ya registra divulgaciones.
   - campaña «Verano Demo»; productos centrales «Glifosato Demo», «Bellator» y «Belator» (este último **sin asociar**);
-  - **seis** miembros AGRICULTOR sintéticos (M1–M6);
+  - **seis** miembros AGRICULTOR sintéticos (M1–M6) **y ningún otro AGRICULTOR activo en el tenant** (el denominador de la cobertura cuenta todos los AGRICULTOR activos con cuenta activa; la Directiva y el Administrador no cuentan);
   - necesidades declaradas: **Glifosato Demo** M1 20 L, M2 35 L, M3 45 L, M4 50 L (total **150 L**); **Bellator** M1 3 L, M2 4 L, M3 5 L (12 L); **Belator** M1 1 L, M2 2 L, M3 3 L (6 L; **18 L canónicos** tras reconciliar en W3); **M5 y M6 no aportan a ninguna celda**;
   - **cobertura esperada «4 de 6» antes y después de W3.** Precisión: el código calcula los miembros con aportación como la **unión** de los miembros presentes en las cifras publicadas, no sólo los de Glifosato; con esta composición la unión es M1–M4;
   - W3 parte **sin asociación** y W4 **sin borradores previos**;
+  - **a comprobar al sembrar, antes del piloto:** tras W3 la celda de Belator deja de tener cifra propia (sus aportes pasan a Bellator) y puede mostrarse como retirada, con el aviso de celdas sin cifra en la línea de cobertura, aunque la cobertura siga siendo «4 de 6». El resultado real se registra en `09_…` §4 antes de la primera sesión;
   - divulgación en modo `provisional-synthetic` con el entorno de §0.4 (`NODE_ENV=development`), k = 3, **sin desactivar ninguna protección de la política**.
   - **Oráculo independiente** (cantidades, unidades, cobertura) contrastado con la API y con la Web **antes de la primera sesión**. Si la Web muestra otra cosa, se corrige la siembra, no el valor esperado.
 

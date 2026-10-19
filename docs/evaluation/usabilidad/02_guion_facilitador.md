@@ -18,8 +18,7 @@ Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo
    - los SHA de Backend, Web y Mobile;
    - el SHA-256 de la APK, el modelo del teléfono y el navegador con su versión.
 2. **Móvil.**
-   - Copia aislada `.f10ux`, reinstalada y sembrada con el dataset del protocolo.
-   - Activada por el facilitador con una cuenta sintética nueva. El participante no teclea contraseñas.
+   - Copia aislada `.f10ux`, en este orden (v1.4, lo exige el generador DS-UX): reinstalar → **activar** con una cuenta sintética nueva eligiendo la **modalidad del participante** (el participante no teclea contraseñas) → descargar las referencias del tenant → detener la app y extraer la base → **sembrar DS-UX** → devolver la base y comparar su SHA-256 → abrir en Inicio con red.
    - Pantalla en **Inicio**, con red **encendida**.
    - Cronómetro a cero.
 3. **Web.**

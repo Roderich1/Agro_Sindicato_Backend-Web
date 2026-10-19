@@ -5,7 +5,7 @@
 La sesión A opera el teléfono y prepara cada instalación de `.f10ux`. Los valores esperados **se registran antes de la primera sesión**, consultando el entorno ya sembrado y contrastándolos con el oráculo independiente. No se suponen.
 
 **Por qué hace falta:**
-- las tarjetas (protocolo v1.2 §3.4) usan «Glifosato Demo», «Bellator»/«Belator», «parcela Norte» y «Verano Demo»;
+- las tarjetas (protocolo §3.4, igual en v1.2, v1.3 y v1.4) usan «Glifosato Demo», «Bellator»/«Belator», «parcela Norte» y «Verano Demo»;
 - el dataset D4 (`docs/evidence/F06_DATASET.csv` en Mobile) tiene «Belator», «Bellator», «Glifosato F06», «Urea F06» y «Mancozeb F06», con campañas C1/C2;
 - **en D4 no existen** «Glifosato Demo», «Verano Demo» ni la parcela «Norte».
 
@@ -21,7 +21,8 @@ Hallazgo de la revisión de A.
 | Proveedor | «Proveedor Demo» | T1 |
 | Productos | «Glifosato Demo» (L, base mL) y «Bellator» (L, base mL), **vinculados** a los productos centrales homónimos | T1–T6 |
 | Stock inicial | Glifosato Demo **5 L** y Bellator **1 L**, cada uno con una compra fechada hace 10 días, **escrita con operaciones válidas del repositorio** (no inserciones directas) (v1.4) | T2, T3, T6 |
-| Modalidad (v1.4) | **Propia o compartida**, según el diseño de la muestra (§3.3: al menos 1 participante en modalidad compartida). El generador recibe la modalidad (`F10_UX_MODALIDAD`) y se niega si no coincide con la elegida al activar. No se usa modalidad propia para todos por comodidad del arnés | Todas |
+| Modalidad (v1.4) | **Propia o compartida**, según el diseño de la muestra (§3.3: al menos 1 participante en modalidad compartida). El generador recibe la modalidad (`F10_UX_MODALIDAD`; acepta `INDIVIDUAL` de la hoja de registro como sinónimo de `PROPIA`) y se niega si no coincide con la elegida al activar. No se usa modalidad propia para todos por comodidad del arnés | Todas |
+| Persona familiar (v1.4, sólo compartida) | «Familiar Demo», para que la elección de persona y las asignaciones de T1/T2 sean reales | T1, T2, T3 |
 | Generador (v1.4) | `tool/f10_ux/seed_dsux_mobile.dart` (sobre la base extraída de `.f10ux`), `dsux_fixture.dart` (composición y semilla), `oracle_dsux_mobile.dart` (lectura del estado guardado; no corrige nada). Parámetros: `F10_UX_DB`, `F10_UX_SESSION_DATE`, `F10_UX_MODALIDAD`, `F10_UX_REFERENCES` (JSON de `GET /api/v1/sync/v1/references` del tenant Móvil) | — |
 | Red | Encendida al empezar. El facilitador la apaga antes de T1 y la enciende antes de T5 (guion §6) | T1, T4, T5 |
 
@@ -53,12 +54,12 @@ Si las sesiones Móvil sincronizan con el mismo Central, las necesidades de T4/T
 |---|---|---|
 | Campaña | «Verano Demo» | W1, W2, W4 |
 | Productos centrales | «Glifosato Demo», «Bellator» y **«Belator»**, este último como producto aparte **sin asociar** a Bellator | W1, W3 |
-| Miembros AGRICULTOR | **M = 6** sintéticos (M1–M6) | W2 |
+| Miembros AGRICULTOR | **M = 6** sintéticos (M1–M6) **y ningún otro AGRICULTOR activo en el tenant**; la Directiva y el Administrador no cuentan en el denominador | W2 |
 | Necesidades declaradas de Glifosato Demo en Verano Demo | **M1 20 L, M2 35 L, M3 45 L, M4 50 L** (total 150 L) | W1, W2, W4 |
 | Necesidades de Bellator (v1.4) | **M1 3 L, M2 4 L, M3 5 L** (12 L) | W3, W4 |
 | Necesidades de Belator (v1.4) | **M1 1 L, M2 2 L, M3 3 L** (6 L); tras asociar en W3, **18 L canónicos** de Bellator | W3, W4 |
 | M5 y M6 (v1.4) | **No aportan a ninguna celda** | W2 |
-| Estado al empezar cada participante Web (v1.4) | Tenant **restablecido**: W3 **sin asociación** Belator–Bellator; W4 **sin borradores previos** | W3, W4 |
+| Estado al empezar cada participante Web (v1.4) | **Tenant nuevo** por participante Web (D01, D02, piloto X01), sembrado con la misma composición; los anteriores se conservan intactos (asociaciones y divulgaciones no se pueden borrar sin desactivar protecciones). W3 **sin asociación** Belator–Bellator; W4 **sin borradores previos** | W3, W4 |
 | Generador (v1.4) | Sesión B, Backend, por el patrón de `f07-synthetic-seed.cjs`; semilla 20261018 y fecha de sesión como parámetro; oráculo independiente | — |
 | Divulgación | Modo `provisional-synthetic`, con el entorno de la v1.2 §0.4 (`NODE_ENV=development`) porque F07-POL-01 (#107) no está aprobada; k = 3 | W1–W4 |
 
@@ -72,7 +73,7 @@ Si las sesiones Móvil sincronizan con el mismo Central, las necesidades de T4/T
 |---|---|---|
 | W1 | Necesidad declarada total de Glifosato Demo en Verano Demo = 20 + 35 + 45 + 50 = **150 L** | Abrir el resumen con la cuenta de Directiva del entorno sembrado y anotar el valor mostrado. Si difiere de 150 L, se corrige la fixture, no el valor esperado |
 | W2 | Cobertura **«4 de 6»**, antes y después de W3. Los 2 que no declararon **no** cuentan como cero | Ídem, con la línea de cobertura, y contraste con la API y con el oráculo independiente (v1.4) |
-| W3 (v1.4) | Tras asociar Belator a Bellator con motivo: asociación visible en el historial; Bellator **18 L** canónicos (12 + 6) si la política publica la celda | Resultado real comprobado con la política actual antes del piloto |
+| W3 (v1.4) | Tras asociar Belator a Bellator con motivo: asociación visible en el historial; Bellator **18 L** canónicos (12 + 6). La celda de Belator puede quedar retirada y la línea de cobertura añadir el aviso de celdas sin cifra, con la cobertura aún en «4 de 6» | Resultado real comprobado con la política actual antes del piloto y registrado aquí |
 
 El valor que se registra en la hoja es **el que muestra la Web sembrada antes de la primera sesión**, con su fecha real y el SHA del entorno. Si el total aparece en otra unidad (por ejemplo, 150 000 mL), se acepta como correcta la lectura equivalente. Esta equivalencia se fija en el piloto.
 
@@ -83,5 +84,7 @@ El valor que se registra en la hoja es **el que muestra la Web sembrada antes de
 - [ ] Registrar, antes de la primera sesión, los valores esperados reales de T3 (tabla de §2) y de W1/W2 (§4).
 - [ ] Confirmar que W3 parte de «Belator» sin asociar y que W4 puede generar un borrador con esos datos.
 - [ ] Que la siembra no reutilice ni borre ningún entorno conservado (protocolo §0).
-- [ ] (v1.4) Tenant Web aislado del tenant de las sesiones Móvil; procedimiento de restablecimiento antes de cada participante Web.
+- [ ] (v1.4) Tenant Web aislado del tenant de las sesiones Móvil; un tenant nuevo por participante Web (sin borrar los anteriores).
+- [ ] (v1.4, **decisión de Roderich antes del piloto**) T3 en modalidad compartida: el oráculo da el saldo total del producto y la parte del titular. El criterio vigente es el saldo total (§2); si el participante responde con su parte, se registra tal cual y no se reinterpreta durante la sesión. Si Roderich prefiere aceptar también la parte del titular, se fija como precisión antes del piloto.
+- [ ] (v1.4) **Para observar en el piloto:** la tarjeta T2 dice «parcela Norte» y la app rotula «Chaco»; T1 y T2 piden mL y la app registra en L (el participante teclea 0,5 y 0,2); las pistas del guion §6 se comprueban contra las etiquetas actuales («Necesidad declarada al sindicato», «Sincronización con el sindicato», «Aplicaciones», «Inventario»).
 - [ ] (v1.4) El escenario del preflight E2E de la sesión A (20 L desde el teléfono + 2 aportantes sintéticos de 20 L = 60 L) vive en un entorno propio y **no** se mezcla con este tenant ni con el oráculo de 150 L.
