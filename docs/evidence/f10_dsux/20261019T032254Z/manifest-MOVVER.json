@@ -1,0 +1,64 @@
+{
+  "generator": "f10-dsux-central-seed v1",
+  "label": "MOVVER",
+  "tenant": {
+    "id": "b0101550",
+    "slug": "f10ux-movil-movver"
+  },
+  "campaign": {
+    "id": "7c1b06f7",
+    "name": "Verano Demo",
+    "start_date": "2026-09-19T04:00:00.000Z",
+    "end_date": null
+  },
+  "products": {
+    "Glifosato Demo": "842bd69f",
+    "Bellator": "8dd9b43c"
+  },
+  "accounts": {
+    "X01": "<correo retirado>",
+    "P01": "<correo retirado>",
+    "P02": "<correo retirado>",
+    "P03": "<correo retirado>",
+    "P04": "<correo retirado>",
+    "P05": "<correo retirado>"
+  },
+  "references": {
+    "path_written": true,
+    "sha256": "62b64d483362c1ddf5054232faf8ddbe55f872cd5918760bf073dda40387c34a",
+    "read_by": "a reader account of this same tenant (the tenant of every participant account), revoked and deactivated afterwards",
+    "tenant_slug": "f10ux-movil-movver",
+    "same_tenant_as_accounts": true,
+    "campaign_ref_is_this_tenant": true,
+    "product_refs_are_this_tenant": true
+  },
+  "dataset": {
+    "target": "movil",
+    "seed": "20261018",
+    "session_date": "2026-10-19",
+    "campaign": "Verano Demo",
+    "campaign_period": {
+      "start_date": "2026-09-19T04:00:00.000Z",
+      "end_date": null
+    },
+    "products": [
+      {
+        "name": "Glifosato Demo",
+        "unit": "L"
+      },
+      {
+        "name": "Bellator",
+        "unit": "L"
+      }
+    ],
+    "participants": [
+      "X01",
+      "P01",
+      "P02",
+      "P03",
+      "P04",
+      "P05"
+    ]
+  },
+  "dataset_sha256": "8a622e0bc9eb467d62fce37269184cce79f07eae4ca8b8c7c43f3840df85ee1a"
+}

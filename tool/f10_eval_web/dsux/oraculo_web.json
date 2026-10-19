@@ -1,0 +1,61 @@
+{
+  "que_es": "Oráculo independiente del tenant Web DS-UX (protocolo v1.4 §3.3.1; 09_fixture_y_valores_esperados.md §3–§4). Escrito a mano por la sesión B el 2026-10-18 a partir de la composición fijada por Roderich Rendón; no lo genera ni lo lee el generador. oraculo_check.py recalcula 'esperado' desde 'necesidades' con la regla del umbral k y comprueba que coinciden.",
+  "politica": { "modo": "PROVISIONAL_SYNTHETIC", "k": 3 },
+  "unidades": { "base": "ML", "presentacion": "L", "base_por_presentacion": 1000 },
+  "campana": "Verano Demo",
+  "productos": ["Glifosato Demo", "Bellator", "Belator"],
+  "agricultores": ["M1", "M2", "M3", "M4", "M5", "M6"],
+  "necesidades": [
+    { "miembro": "M1", "producto": "Glifosato Demo", "litros": 20 },
+    { "miembro": "M2", "producto": "Glifosato Demo", "litros": 35 },
+    { "miembro": "M3", "producto": "Glifosato Demo", "litros": 45 },
+    { "miembro": "M4", "producto": "Glifosato Demo", "litros": 50 },
+    { "miembro": "M1", "producto": "Bellator", "litros": 3 },
+    { "miembro": "M2", "producto": "Bellator", "litros": 4 },
+    { "miembro": "M3", "producto": "Bellator", "litros": 5 },
+    { "miembro": "M1", "producto": "Belator", "litros": 1 },
+    { "miembro": "M2", "producto": "Belator", "litros": 2 },
+    { "miembro": "M3", "producto": "Belator", "litros": 3 }
+  ],
+  "esperado": {
+    "antes_de_W3": {
+      "celdas": [
+        { "producto": "Belator", "total_base": "6000", "total_presentacion": "6", "aportantes": 3, "publicada": true },
+        { "producto": "Bellator", "total_base": "12000", "total_presentacion": "12", "aportantes": 3, "publicada": true },
+        { "producto": "Glifosato Demo", "total_base": "150000", "total_presentacion": "150", "aportantes": 4, "publicada": true }
+      ],
+      "cobertura": { "members_with_contribution": 4, "linked_members": 6 },
+      "asociaciones_vigentes": 0,
+      "borradores": 0
+    },
+    "tras_W3": {
+      "nota": "W3 asocia una denominación a la otra. El participante puede elegir cualquiera de las dos como canónica; el total canónico es el mismo. La fila de la denominación asociada no tiene cifra propia.",
+      "celdas_por_canonico": {
+        "Bellator": [
+          { "producto": "Bellator", "total_base": "18000", "total_presentacion": "18", "aportantes": 3, "publicada": true },
+          { "producto": "Glifosato Demo", "total_base": "150000", "total_presentacion": "150", "aportantes": 4, "publicada": true }
+        ],
+        "Belator": [
+          { "producto": "Belator", "total_base": "18000", "total_presentacion": "18", "aportantes": 3, "publicada": true },
+          { "producto": "Glifosato Demo", "total_base": "150000", "total_presentacion": "150", "aportantes": 4, "publicada": true }
+        ]
+      },
+      "denominacion_asociada_sin_cifra": true,
+      "cobertura": { "members_with_contribution": 4, "linked_members": 6 },
+      "asociaciones_vigentes": 1
+    },
+    "tras_W4": {
+      "borradores": 1,
+      "lineas_por_canonico": {
+        "Bellator": [
+          { "producto": "Bellator", "total_base": "18000", "total_presentacion": "18", "aportantes": 3 },
+          { "producto": "Glifosato Demo", "total_base": "150000", "total_presentacion": "150", "aportantes": 4 }
+        ],
+        "Belator": [
+          { "producto": "Belator", "total_base": "18000", "total_presentacion": "18", "aportantes": 3 },
+          { "producto": "Glifosato Demo", "total_base": "150000", "total_presentacion": "150", "aportantes": 4 }
+        ]
+      }
+    }
+  }
+}
