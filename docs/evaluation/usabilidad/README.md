@@ -22,7 +22,7 @@ Gate relacionado: GATE-F10 (#49), **Pending**.
 
 Revisión de la sesión C de Claude Code del 2026-10-18 por el encargo de Roderich Rendón (sección C, «Preparación de la evaluación humana»). **Sigue sin ejecutarse ninguna sesión.** Esta sección sólo registra lo que ya existe, lo que falta y quién puede hacerlo; no añade un segundo paquete.
 
-- **Protocolo:** v1.3 `9bfcad2`, integrado. Su §3 es idéntico al de la v1.2 `9292425` que citan estos archivos (ver «Fuentes»). **Actualización del 2026-10-18 (sesión A):** la **v1.4** sólo precisa el dataset DS-UX en §3.3 (nuevo §3.3.1), sin tocar tareas, umbrales, muestra, ayudas ni SUS; las citas «§3.4–§3.7» siguen siendo exactas.
+- **Protocolo:** v1.3 `9bfcad2`, integrado. Su §3 es idéntico al de la v1.2 `9292425` que citan estos archivos (ver «Fuentes»). **Actualización del 2026-10-18 (sesión A):** la **v1.4** sólo precisa el dataset DS-UX en §3.3 (nuevo §3.3.1), sin tocar tareas, umbrales, muestra, ayudas ni SUS; las citas «§3.4–§3.7» siguen siendo exactas. **Actualización del 2026-10-19 (sesión A):** la **v1.5** sólo precisa la consigna y el fin observable de T3 en §3.4 (saldo **total**, sumando a todas las personas de la instalación), por decisión de Roderich del 2026-10-19, antes del piloto; las tarjetas pasan a **TAR-2** y el guion a **GUION-2**, sin cambiar umbrales, muestra, ayudas, SUS ni cálculo.
 - **Base candidata para las sesiones:** Mobile `main` `fd8dc7d` al 2026-10-18, o cualquier `main` posterior con el mismo `lib/` (código `lib/` = `27c4654`, con la corrección de legibilidad con fuente grande de MOB #129, PR #131, integrado en `196372a`; los merges posteriores #128, #130 y #132 sólo tocan `tool/` y `docs/`: `git diff --stat 27c4654 fd8dc7d -- lib android pubspec.yaml` vacío); Backend/Web `main` `fd6e957` (código = `cab433d`, sin cambios en `Back/src`, `Back/prisma` ni `Web/src` desde entonces). **La copia `.f10ux` del protocolo (§0.5 y §3.3) no se ha compilado**; se compila desde esa base con `tool/f10_eval/build_profile_apk.sh` y su SHA-256 se anota en cada sesión (guion §1).
 - **Equipo disponible:** POCO X5 Pro 5G, el **A1** del protocolo §2.3 (Android 12 / API 31, MIUI V14, 1080×2400, 440 dpi). Es el equipo que §3.3 prevé para Móvil («A1 con `.f10ux`»): **no hay cambio de protocolo.** El HONOR JDY-LX3P (A4/A4-F de la serie 2 de compatibilidad) no está conectado y §3.3 no lo prevé para usabilidad; si se decidiera usarlo, sería un cambio de protocolo que debe registrarse y revisarse **antes del piloto y de la muestra**, y lo decide Roderich, no este paquete. Web: B1 o B2 (Chrome o Edge en Windows 11, versión exacta registrada), según §3.3.
 - **Datos:** §3.3 dice «sembrado con el dataset sintético D4», pero las tarjetas de §3.4 usan nombres que D4 no tiene («Glifosato Demo», «Verano Demo», parcela «Norte»; `09_fixture_y_valores_esperados.md`). La fixture DS-UX de `09_…` **sigue siendo una propuesta sin construir**; no existe ningún generador ni ningún entorno sembrado con esos nombres (comprobado el 2026-10-18 en `lib/`, `tool/` y `Back/scripts/` de ambos repositorios). Resolverlo requiere una precisión del protocolo (dataset de usabilidad DS-UX en §3.3, sin tocar tareas, umbrales ni criterios) **antes del piloto**, y después construir y sembrar la fixture. **Actualización del 2026-10-18 (sesión A):** Roderich aprobó la precisión; la **v1.4 §3.3.1** la fija y `09_…` recoge la composición definitiva. Los generadores están en preparación (Móvil: sesión C; Central/Web: sesión B).
@@ -110,10 +110,12 @@ Se fijan **después del piloto** y **antes** de la primera sesión de la muestra
 
 | Instrumento | Versión propuesta | Estado | Fecha de fijación (real) | Motivo del cambio |
 |---|---|---|---|---|
-| Tarjetas | TAR-1 | Propuesta | | |
+| Tarjetas | TAR-1 | Sustituida antes del piloto por TAR-2 | | |
+| Tarjetas | **TAR-2** | Propuesta (se fija tras el piloto) | | 2026-10-19: consigna de T3 precisada (saldo total; protocolo v1.5). Resto igual a TAR-1 |
 | SEQ | SEQ-ES-1 | Propuesta (traducción de trabajo) | | |
 | SUS | SUS-ES-1 (literal + A-1, A-2) | Propuesta | | |
-| Guion y pistas | GUION-1 | Propuesta | | |
+| Guion y pistas | GUION-1 | Sustituida antes del piloto por GUION-2 | | |
+| Guion y pistas | **GUION-2** | Propuesta (se fija tras el piloto) | | 2026-10-19: T3 de §6 precisada (saldo total, partes por persona aparte, equivalencia L/mL) |
 
 ## Diccionario de los CSV
 
