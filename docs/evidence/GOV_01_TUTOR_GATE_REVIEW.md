@@ -26,7 +26,7 @@ Estado de los gates leído del Project #3 el 2026-10-19; sólo informa, no se mo
 | GATE-F01 | BE #9 | Passed · Done · Verified | Comentarios del issue #9, incluido el corrigendum post-gate F01-CORR-01 (#90); `docs/architecture/F01_INTEGRATION_DECISIONS.md` | | | | Pendiente |
 | GATE-F02 | BE #15 | Passed · Done · Verified | `docs/evidence/F02_GATE_EVALUATION.md` y `docs/evidence/F02_GATE_DECISION.md` | | | | Pendiente |
 | GATE-F03 | Roderich1/AppMovilAgroquimico#23 | Passed · Done · Partial | Mobile `docs/evidence/GATE_F03_EVALUATION.md` y `docs/evidence/GATE_F03_DECISION.md` | | | | Pendiente |
-| GATE-F04 | Roderich1/AppMovilAgroquimico#28 | Passed · Done · Partial | Mobile `docs/evidence/gate-f04-modo-propio-compartido.md` y `docs/evidence/F04_GATE_DECISION_PROPUESTA.md` | | | | Pendiente |
+| GATE-F04 | Roderich1/AppMovilAgroquimico#28 | Passed · Done · Partial | Mobile `docs/evidence/gate-f04-modo-propio-compartido.md` y `docs/evidence/F04_GATE_DECISION_PROPUESTA.md` (propuesta); la decisión que pasó el gate está en el cuerpo de Roderich1/AppMovilAgroquimico#28, cerrado el 2026-10-18 | | | | Pendiente |
 | GATE-F05 | BE #19 | Passed · Done · Partial | `docs/evidence/F05_GATE_EVALUATION.md` y `docs/evidence/F05_GATE_DECISION.md` | | | | Pendiente |
 | GATE-F06 | BE #22 | Passed · Done · Partial | `docs/evidence/GATE_F06.md` y `docs/evidence/F06_GATE_DECISION.md` | | | | Pendiente |
 | GATE-F07 | BE #29 | **Pending** · Validation · Partial | `docs/evidence/F07_GATE.md`; además, la política de #107: `docs/architecture/F07_AGGREGATE_DISCLOSURE_POLICY.md`, `docs/evidence/F07_POL_01_PAQUETE_DECISION.md` y `docs/evidence/F07_POL_01_REVISION_INSTITUCIONAL.md` §5.3 | | | | Pendiente |
