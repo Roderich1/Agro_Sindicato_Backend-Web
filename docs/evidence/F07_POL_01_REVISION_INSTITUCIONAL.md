@@ -75,6 +75,7 @@ Para mostrar estos ejemplos pueden usarse las capturas sintéticas de D4: [resum
   - `f07-acceptance.postgres.spec.ts`.
   Verifican que el código hace lo que dice la política. **No sustituyen ninguna de las decisiones de abajo.**
 - **#107 sigue abierto y GATE-F07 (#29) sigue Pending.**
+- **Recomprobado el 2026-10-18 sobre `fd6e957`** (sesión C, por el encargo de Roderich Rendón, sección C): sin cambios en `Back/src`, `Back/prisma` ni `Web/src` desde `cab433d`; `disclosure-policy.spec.ts` sigue con 30 casos; la guarda de producción sigue probada en `Back/src/modules/collective/application/collective-config.spec.ts` («allows the provisional policy only outside production»); los ejemplos del §2.1 y sus capturas siguen vigentes. **El registro del §5 sigue en blanco porque ninguna revisión ha ocurrido.** Nadie fue contactado.
 
 ## 4. Quién decide qué
 

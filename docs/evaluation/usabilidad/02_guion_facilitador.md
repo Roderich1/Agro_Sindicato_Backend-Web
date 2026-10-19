@@ -4,7 +4,7 @@
 
 **Claude Code no facilita ni observa sesiones** ni produce observaciones humanas.
 
-**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.2** (BE PR #122, commit `9292425`, pendiente de integrar). En cada sesión se anota el SHA de `main` donde quede integrado. Las reglas que este guion añade al protocolo (salvo P-5, ya incorporada en v1.2 §3.6) (ayuda a los 60 s, `INCORRECTA` = fallo, doble marca en el SUS = vacía, pregunta «¿Dejó alguna sin marcar a propósito?») son **precisiones propuestas**: se confirman en el piloto y se registran en el protocolo (`README.md`, «Precisiones»). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
+**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.3** (`9bfcad2`, integrado en `main`; §3 idéntico al de la v1.2 `9292425` que citaba este guion). En cada sesión se anota el SHA de `main` vigente. Las reglas que este guion añade al protocolo (salvo P-5, ya incorporada en v1.2 §3.6) (ayuda a los 60 s, `INCORRECTA` = fallo, doble marca en el SUS = vacía, pregunta «¿Dejó alguna sin marcar a propósito?») son **precisiones propuestas**: se confirman en el piloto y se registran en el protocolo (`README.md`, «Precisiones»). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
 
 Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo tono para todas las personas.
 
