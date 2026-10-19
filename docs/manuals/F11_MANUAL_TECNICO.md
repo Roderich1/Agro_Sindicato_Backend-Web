@@ -53,7 +53,7 @@ La lista cerrada de rutas que la app puede llamar está en Mobile `lib/services/
 
 ### 2.2 Construir el Backend
 
-Orden de `Back/Dockerfile` y del CI:
+Orden de `Back/Dockerfile`:
 
 ```sh
 cd Back
@@ -65,7 +65,10 @@ npm run build:seed                 # compila prisma/seed.ts a dist/prisma/seed.j
 npm run start:prod                 # node dist/main.js
 ```
 
-El CI añade `npx prisma validate`, `npm test -- --runInBand`, `npm run openapi:check` y las suites con PostgreSQL. **[Probado]** en cada run de CI; para el ensayo B2, en un worktree limpio sobre `f0b55ee` (`F08_BKP_07_B2_ENSAYO_REAL.md` §0).
+**Qué se probó y dónde:**
+- **El CI** (`backend-f02.yml`) ejecuta `npm ci`, `npx prisma validate`, `npx prisma generate`, `npm run build`, `npm test -- --runInBand`, `npm run openapi:check` y las suites con PostgreSQL. **[Probado]** en cada run.
+- **El CI no ejecuta** el borrado de `tsbuildinfo`, `build:seed` ni `start:prod`. Esos pasos se probaron en el ensayo B2, en un worktree limpio sobre `f0b55ee` (`F08_BKP_07_B2_ENSAYO_REAL.md` §0). **[Probado]**
+- **La imagen Docker** termina con `npm prune --omit=dev`. `prisma` está en `dependencies`, así que `npx prisma migrate deploy` sigue disponible dentro de la imagen.
 
 ### 2.3 Construir la Web
 
@@ -122,7 +125,7 @@ DATABASE_URL=<url de PostgreSQL> npx prisma migrate deploy
 
 - `node dist/prisma/seed.js` crea el tenant y las cuentas de demostración, con **una contraseña de demostración fija y pública en el repositorio** (`Back/prisma/seed.ts`). Si se vuelve a ejecutar, reactiva esas cuentas.
 - **No debe ejecutarse en un entorno con datos reales**, o sus contraseñas deben cambiarse en el acto. El arnés de ensayos rota todas las contraseñas de la semilla después de sembrar (Mobile `tool/f03_res_01/rotate_passwords.cjs`).
-- Los generadores sintéticos (`Back/scripts/f07-synthetic-seed.cjs`, `f10-dsux-central-seed.cjs`, `f10-dsv-central-seed.cjs`) se niegan a ejecutarse con `NODE_ENV=production` o contra una base que no sea local (salvo `f10-dsux-central-seed.cjs`, que exige sus propias variables; ver su cabecera).
+- Los generadores sintéticos (`Back/scripts/f07-synthetic-seed.cjs`, `f10-dsux-central-seed.cjs`, `f10-dsv-central-seed.cjs`) se niegan a ejecutarse con `NODE_ENV=production` o contra una base que no sea local. Cada uno exige además su propia variable de confirmación, como `F10_UX_SYNTHETIC_SEED=yes` (ver la cabecera de cada script).
 
 ---
 
@@ -154,7 +157,7 @@ El Backend valida el entorno al arrancar con un esquema zod (`Back/src/config/en
 | `BACKUP_STORAGE_DIR` | Directorio del proveedor de disco | sin valor: rutas en 503 | Sólo con `disk` |
 | `BACKUP_MAX_BYTES` | Tamaño máximo de una copia | `104857600` (100 MiB); máximo 1 GiB | No |
 | `BACKUP_MAX_ACTIVE_PER_MEMBER` | Copias verificadas que se conservan por agricultor | `5`; máximo 100 | No |
-| `BACKUP_UPLOAD_DEADLINE_MS` | Plazo de una subida | `1800000` (30 min); entre 60 000 y 3 599 999 | No |
+| `BACKUP_UPLOAD_DEADLINE_MS` | Plazo de una subida, como **reserva**: el límite efectivo del cuerpo es hoy el `requestTimeout` de Node, de 300 s (ver abajo) | `1800000` (30 min); entre 60 000 y 3 599 999 | No |
 | `BACKUP_PRODUCTION_ADMISSION` | Abre los respaldos con `NODE_ENV=production` | `enabled` \| `disabled` (plantilla y compose `disabled`) | Cerrado salvo decisión (§7.3) |
 | `BACKUP_S3_ENDPOINT` | Endpoint S3 de B2 | origen `https` sin ruta, p. ej. `https://s3.<región>.backblazeb2.com` | Con `b2` |
 | `BACKUP_S3_REGION` | Región | `[a-z0-9-]{1,32}` | Con `b2` |
@@ -164,9 +167,15 @@ El Backend valida el entorno al arrancar con un esquema zod (`Back/src/config/en
 
 **Constantes que no se configuran:**
 - Abandono de una subida: 60 min (`BACKUP_UPLOAD_ABANDON_MS` en `backups-config.ts`). **No es una variable de entorno.**
-- Límites de peticiones: 20 por minuto en general, 5 por minuto en el login (`app.module.ts`, controladores de autenticación).
+- Límites de peticiones (`app.module.ts` y controladores de autenticación):
+  - 20 por minuto en general;
+  - 5 por minuto en el login;
+  - 10 por minuto en `POST /auth/v2/refresh`.
+
+  Se cuentan por la IP que ve Node. La API no configura `trust proxy` (§10).
 - Prefijo global `api/v1`, Helmet, `ValidationPipe` con lista blanca, Swagger en `/docs`.
-- `requestTimeout` de Node: 300 s, sin cambiar en `main.ts`.
+- `requestTimeout` de Node: 300 s, sin cambiar en `main.ts`. **Es el límite real de una transferencia**, y la app también corta a los 5 min (Mobile `remote_backup_api.dart`). Con el máximo de 100 MB, una subida exige unos **2,7 Mbit/s sostenidos** (`F08_BACKUP.md`, revisión B6). Un respaldo grande en una red rural lenta puede no caber.
+- Swagger se monta en `/docs` **en todos los modos, también en producción** (`main.ts`). Es un riesgo productivo (§10).
 
 **Proveedor `b2` incompleto:** el Backend registra sólo los **nombres** de las variables que faltan y deja las rutas de respaldo en 503. **Nunca cae al disco** (`backups.module.ts`).
 
@@ -223,7 +232,8 @@ Diseño: `docs/architecture/F08_BKP_06_RETENCION.md`. Evidencia: `docs/evidence/
 **Contrato:** desde BE #148, una subida con N copias responde 201 y retira la más antigua. `BACKUP_QUOTA_EXCEEDED` sigue en el enum, pero ya no se emite.
 
 **Plazos:**
-- Una subida se corta a los 30 min: queda `FAILED UPLOAD_DEADLINE`, sus bytes se purgan y la respuesta es 503 con `Connection: close`.
+- **En la práctica, una transferencia se corta a los 5 min**, por el `requestTimeout` de Node y por el cliente Mobile. La fila queda `FAILED`, sin bytes, y la copia anterior se conserva.
+- El plazo propio de 30 min (`BACKUP_UPLOAD_DEADLINE_MS`) es una reserva por si ese límite cambiara. Al vencer, la fila queda `FAILED UPLOAD_DEADLINE`, sus bytes se purgan y la respuesta es 503 con `Connection: close`.
 - Una fila `UPLOADING` con más de 60 min se cierra como `FAILED ABANDONED` en la siguiente reserva.
 
 **Probado:** suites con PostgreSQL (16 casos de retención y 5 sobre el doble S3, con mutaciones M1–M8 detectadas) y, contra B2 real, la rotación 5 + 1, que deja 0 versiones físicas de la copia retirada, y el 409 por concurrencia (ensayo §1). **[Probado]**
@@ -277,6 +287,7 @@ npm run backups:inventory -- --cleanup --older-than-minutes <N> --apply  # ejecu
 |---|---|---|---|
 | Todas las rutas de respaldo responden 503 | Admisión cerrada en producción, proveedor `disk` sin `BACKUP_STORAGE_DIR` o `b2` incompleto | Revisar el log de arranque, que nombra las variables que faltan. No abrir la admisión sin la decisión de §7.3 | [Probado] (`F08_BACKUP.md`, `F08_BKP_07_B2_ADAPTER.md`) |
 | Un agricultor recibe 409 `BACKUP_UPLOAD_IN_PROGRESS` sin tener ninguna subida en curso | Fila `UPLOADING` colgada tras un reinicio del servidor | Esperar al cierre por abandono (≤ 60 min desde que empezó). No borrar la fila a mano | Límite declarado (`F08_BKP_06_RETENCION.md`, evidencia) |
+| Un respaldo grande, en una red lenta, falla a los 5 min | `requestTimeout` de Node (300 s) y límite del cliente | La fila queda `FAILED`, sin bytes, y la copia anterior se conserva. Hace falta una red más rápida o un respaldo más pequeño. Ampliar el límite exige cambiar el código (Node y app) | Límite declarado (`F08_BACKUP.md`, B6) |
 | Un agricultor recibe 503 en cada subida y la cola de purgas crece | El proveedor rechaza los borrados | Corregir el acceso al proveedor y ejecutar `--reconcile --apply` | [Probado] en el doble S3; sin probar en B2 real |
 | El inventario termina con código 3 | Copia `AVAILABLE` sin objeto o con otro tamaño | Revisión humana; no hay corrección automática | [Sin probar] en un entorno conservado |
 | Restos tras una limpieza manual | `purgePending` sigue activo | `--reconcile --apply` | Límite declarado |
@@ -294,14 +305,14 @@ El uso desde la app está en el manual de usuario. Aquí sólo va lo que necesit
 - **Límites de extracción:** 5002 entradas, manifiesto de 4 MiB, 128 MiB por entrada y 256 MiB en total. No se admiten enlaces, cifrado, ZIP64 ni multidisco. **[Probado]** en host (`F10_BACKUP_EXTRACT_LIMITS.md`, Mobile). No se comprueba el espacio libre antes de extraer.
 - **Restauración guardada** (`lib/guarded_restore.dart`):
   - se comprueba el titular de la copia antes de sustituir nada;
-  - la copia actual se asegura como `.previo-<fecha>.db` (checkpoint, comprobación del `-wal` y SHA-256);
+  - la copia actual se asegura como `.previo-<fecha>.db` (checkpoint, comprobación del `-wal` y SHA-256), y sus fotos como la carpeta `invoices.previo-<fecha>`;
   - si algo falla después de sustituir, se revierte entera;
   - los envíos pendientes pasan a `RESTORE_PAUSED` y sólo salen cuando el agricultor los libera con acceso verificado.
 
   **[Probado]**: en host (`F10_RESTORE_WAL_ROLLBACK.md`) y en el POCO X5 Pro, con reversión forzada y copias alteradas, ajenas o «zip bomb» rechazadas (`F10_RESTORE_DEVICE.md`, 2026-10-16). El POCO usa *rollback journal*, no WAL.
 - **Restauración desde el servidor:** descarga a `.part`, comprueba cabecera, tamaño y SHA-256 antes de renombrar. **[Probado]** contra disco (`F08_MOBILE_RESTORE.md` §5) y contra B2 real (ensayo §2).
 - **Límites declarados:**
-  - las copias `.previo` se acumulan sin retención;
+  - las copias `.previo`, de la base y de la carpeta de fotos, se acumulan sin retención;
   - no hay cifrado del lado del cliente;
   - no hay respaldo automático ni programado.
 
@@ -334,7 +345,11 @@ Herramientas de Mobile `tool/f03_res_01/` y de Backend `tool/f08_b2/`:
 - la semilla de demostración desactivada o con sus contraseñas cambiadas;
 - una clave de B2 con sólo `listFiles`, `readFiles`, `writeFiles` y `deleteFiles`, limitada a su prefijo;
 - `backups:inventory -- --reconcile` periódico;
-- monitorización.
+- monitorización;
+- una decisión sobre el límite de 5 min por transferencia (§4.1) para respaldos grandes en redes lentas;
+- si hay un proxy delante de la API, su configuración para respaldos y `trust proxy` (§10);
+- Swagger desactivado o protegido (§10);
+- un procedimiento probado de copia y restauración de PostgreSQL (§9.3).
 
 Ver también el §10 del diseño de retención.
 
@@ -344,7 +359,12 @@ Ver también el §10 del diseño de retención.
   - las rutas de respaldo responden 503 salvo `BACKUP_PRODUCTION_ADMISSION=enabled`;
   - Sync v1 responde 503 salvo `SYNC_V1_PRODUCTION_ADMISSION=enabled`;
   - las cifras colectivas siempre están en `POLICY_PENDING`.
-- **Ninguna de las ocho condiciones del §5 del modelo de amenazas se cumple hoy** (`F08_BACKUP_THREAT_MODEL.md`), entre ellas el cifrado en reposo que proteja del operador, TLS real, cupo global, copias del propio almacenamiento y la decisión explícita de Roderich.
+- **Ninguna de las ocho condiciones del §5 del modelo de amenazas se cumple por completo** (`F08_BACKUP_THREAT_MODEL.md`, con sus notas fechadas). Algunas están avanzadas:
+  - condición 1: el proveedor está elegido (B2), pero faltan los costos y quién lo administra;
+  - condición 4: la retención está implementada, pero sin un período aprobado;
+  - condición 8: el E2E en dispositivo se hizo con datos sintéticos (MOB #36, Partial).
+
+  Faltan del todo el cifrado en reposo que proteja del operador, TLS real, el cupo global, las copias del propio almacenamiento y la decisión explícita de Roderich.
 - La política de divulgación colectiva tampoco está aprobada para datos reales (`F07_AGGREGATE_DISCLOSURE_POLICY.md`; #107; GATE-F07 Pending).
 
 ---
@@ -382,7 +402,7 @@ Ver §6. Es el único procedimiento de recuperación de datos probado de punta a
 - no hay restauración del almacenamiento de respaldos (condición 6 del §5 del modelo de amenazas);
 - no hay rotación de `JWT_SECRET`, `JWT_REFRESH_SECRET` ni de las claves de B2.
 
-La única rotación con soporte es la de la clave de huella de Sync v1, mediante `SYNC_V1_FINGERPRINT_PREVIOUS_KEYS`, probada en unidad (`F05_SYNC_05.md`).
+La única rotación con soporte es la de la clave de huella de Sync v1, mediante `SYNC_V1_FINGERPRINT_PREVIOUS_KEYS`. Está probada en unidad («verifies with previous versions after a rotation…», `Back/src/modules/sync-v1/domain/fingerprint.spec.ts:53`) y descrita en `F05_SYNC_05.md`.
 
 **Precondición de cualquier paso *contract*.** Antes de una migración que retire tablas, columnas o rutas (fases 6 y 9 de `docs/scope/TRANSITION_PLAN.md`, BE #81), hacen falta dos cosas:
 - un ciclo **probado** de copia y restauración de la base del Central;
@@ -400,12 +420,26 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
 
 `docker-compose.yml` es de **desarrollo y demostración**. No sirve para producción tal como está:
 - **Migraciones:** el arranque hace `migrate deploy || db push`. Si la migración falla, `db push` cambia el esquema sin historial. En producción hay que quitar esa alternativa.
-- **Semilla:** se ejecuta en **cada arranque**, con la contraseña pública de demostración, y reactiva las cuentas de la semilla.
+- **Semilla:** se ejecuta en **cada arranque**.
+  - La contraseña pública de demostración sólo se pone al **crear** una cuenta: el `upsert` no cambia `passwordHash` al actualizar (`seed.ts`). Una contraseña ya rotada se conserva.
+  - Pero cada arranque **reactiva** las cuentas de la semilla que se hubieran desactivado.
 - **Cookies:** pone `COOKIE_SECURE: "false"` junto a `NODE_ENV=production`.
 - **Secretos:** `JWT_SECRET` y `JWT_REFRESH_SECRET` son marcadores `change-me…`.
 - **Sync v1:** no define las variables `SYNC_V1_*`, así que Sync v1 responde 503.
 - **Respaldos:** usa el proveedor de disco en un volumen con la admisión cerrada.
-- **Tamaño de las subidas tras nginx:** `Web/nginx.conf` no fija `client_max_body_size`, cuyo valor por defecto en nginx es 1 MiB. Si la app usara ese nginx como origen, las subidas de respaldo grandes se rechazarían antes de llegar a la API. Los ensayos no pasaron por ese nginx. **[Sin probar]**: hay que verificarlo antes de usar ese esquema.
+- **Tamaño de las subidas tras nginx:** `Web/nginx.conf` no fija `client_max_body_size`, cuyo valor por defecto en nginx es 1 MiB. Si la app usara ese nginx como origen, las subidas de respaldo grandes se rechazarían antes de llegar a la API. Los ensayos no pasaron por ese nginx.
+
+  En el mismo `location /api/` hay otros tres valores por defecto, también **[Sin probar]** y con efecto productivo:
+  - **`proxy_request_buffering on`:** nginx recibe el cuerpo entero, en memoria o en disco, antes de reenviarlo. El 413 y el SHA-256 en flujo de la API llegan después, y nginx necesita disco para el cuerpo.
+  - **`proxy_read_timeout` de 60 s:** después de recibir el cuerpo, el adaptador B2 puede tardar hasta unos 420 s en el peor caso (commit de 180 s y purga de 120 s, con sus llamadas). Si pasa de 60 s, nginx responde 504 mientras la API puede terminar la copia: la app vería un fallo con la copia ya creada.
+  - **Sin `trust proxy`:** la API no lo configura, y el límite de peticiones usa la IP de la petición. Detrás de nginx, **todos los clientes comparten la IP del proxy**: los límites de 20 por minuto, de 5 por minuto en el login y de 10 por minuto en el refresh pasan a ser globales, y el log de errores registra la IP de nginx.
+
+  **Mitigación, a verificar antes de usar ese esquema:**
+  - un `location` propio para `/api/v1/me/backups` con `client_max_body_size` ≥ `BACKUP_MAX_BYTES`, `proxy_request_buffering off` y `proxy_read_timeout` > 420 s;
+  - `trust proxy` en la API, limitado al proxy propio.
+
+  La otra opción es que la app use directamente el origen TLS de la API.
+- **Swagger en producción:** la documentación interactiva de la API se publica en `/docs` también con `NODE_ENV=production` (`main.ts`). Hay que decidir si se desactiva o se protege.
 - **Rutas heredadas de escritura privada:** la API sigue aceptando del AGRICULTOR, sobre lo suyo, `POST /purchases`, `/inventory`, `/applications`, `/plots`, `/accounts-payable` y `/sync/operations` (`docs/security/AUTHORIZATION_MATRIX_VIGENTE.md` §2.4). La app (`463d3ec`) no usa ninguna, y la Web sólo con `VITE_LEGACY_FARMER_WEB=enabled` (`docs/scope/LEGACY_CONTRACT_CONSUMERS.md`). En un despliegue, otro cliente podría escribir datos privados en el Central. Cerrarlas es la PHASE 6 de BE #81, que no está iniciada y depende de una decisión de Roderich. Mientras tanto queda como **límite productivo**.
 - **Dependencias:** el triaje de seguridad del 2026-09-28 dejó hallazgos sin resolver que exigen revisión antes de producción (`docs/security/F02_THREAT_MODEL.md`).
 
