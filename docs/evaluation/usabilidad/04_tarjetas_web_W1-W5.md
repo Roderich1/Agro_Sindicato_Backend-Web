@@ -5,7 +5,7 @@
 - el código va **detrás**;
 - el enunciado es el del protocolo (v1.2 §3.4) y no se cambia sin subir la versión de las tarjetas (`README.md`).
 
-Versión de las tarjetas: **TAR-1**
+Versión de las tarjetas: **TAR-2** (2026-10-19; las tarjetas Web no cambian respecto de TAR-1: la versión es común a Móvil y Web y sube por la precisión de T3)
 
 ---
 

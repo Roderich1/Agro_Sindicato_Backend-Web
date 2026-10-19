@@ -3,9 +3,9 @@
 **Para imprimir:**
 - una tarjeta por hoja o media hoja, con letra grande (≥ 18 pt);
 - el código va **detrás**, nunca delante;
-- el enunciado es el del protocolo (v1.2 §3.4) y no se cambia sin subir la versión de las tarjetas (`README.md`).
+- el enunciado es el del protocolo (v1.2 §3.4; T3 precisada en la v1.5 §3.4) y no se cambia sin subir la versión de las tarjetas (`README.md`).
 
-Versión de las tarjetas: **TAR-1**
+Versión de las tarjetas: **TAR-2** (2026-10-19, antes del piloto: precisión de T3 por la v1.5 del protocolo; T1, T2, T4, T5 y T6 sin cambios respecto de TAR-1)
 
 ---
 
@@ -23,7 +23,7 @@ Versión de las tarjetas: **TAR-1**
 
 ### T3
 
-> ¿Cuánto Bellator le queda y por qué movimientos?
+> ¿Cuánto Bellator queda en total y qué movimientos explican ese saldo?
 
 ---
 

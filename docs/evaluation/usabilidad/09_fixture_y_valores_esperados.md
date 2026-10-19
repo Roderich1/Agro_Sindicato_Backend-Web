@@ -5,7 +5,7 @@
 La sesión A opera el teléfono y prepara cada instalación de `.f10ux`. Los valores esperados **se registran antes de la primera sesión**, consultando el entorno ya sembrado y contrastándolos con el oráculo independiente. No se suponen.
 
 **Por qué hace falta:**
-- las tarjetas (protocolo §3.4, igual en v1.2, v1.3 y v1.4) usan «Glifosato Demo», «Bellator»/«Belator», «parcela Norte» y «Verano Demo»;
+- las tarjetas (protocolo §3.4, igual en v1.2, v1.3 y v1.4; la v1.5 sólo precisa la consigna de T3) usan «Glifosato Demo», «Bellator»/«Belator», «parcela Norte» y «Verano Demo»;
 - el dataset D4 (`docs/evidence/F06_DATASET.csv` en Mobile) tiene «Belator», «Bellator», «Glifosato F06», «Urea F06» y «Mancozeb F06», con campañas C1/C2;
 - **en D4 no existen** «Glifosato Demo», «Verano Demo» ni la parcela «Norte».
 
@@ -34,7 +34,14 @@ Hallazgo de la revisión de A.
 
 T3 mide **leer** el saldo y sus movimientos, no repetir T1 y T2. La respuesta correcta es la que la aplicación tiene guardada en ese momento:
 
-> **Saldo esperado de Bellator** = 1 000 mL (inicial) + compras de Bellator **guardadas** en T1 − aplicaciones de Bellator **guardadas** en T2
+> **Saldo esperado de Bellator (total)** = 1 000 mL (inicial) + compras de Bellator **guardadas** en T1 − aplicaciones de Bellator **guardadas** en T2, **sumando a todas las personas de la instalación**
+
+**Precisión v1.5 (decisión de Roderich Rendón del 2026-10-19 («Agrocuentas: integraciones, T3 y conciliación de tarjetas EI/REC», §2)):** la tarjeta (TAR-2) pregunta «¿Cuánto Bellator queda **en total** y qué movimientos explican ese saldo?». T3 se evalúa por el **saldo total** y por los movimientos que lo explican. En modalidad propia, el total coincide con el saldo del titular. En modalidad compartida:
+
+- el oráculo (`by_person_base`) da el saldo de cada persona (titular y «Familiar Demo») como **datos separados**; el facilitador los anota junto al total, en mL y en L;
+- la parte de una persona **no equivale al total** cuando son cantidades distintas. Ejemplo: con 1,3 L en total y 0,8 L del titular, responder sólo «0,8 L» no completa T3; mostrar esa parte y después identificar 1,3 L sí puede completarla, con las ayudas anotadas según el guion §4;
+- las cantidades equivalentes en litros y mililitros son la misma respuesta (1 300 mL = 1,3 L);
+- las asignaciones y consumos que haya guardado el participante **no se corrigen**: el total se calcula sobre lo guardado.
 
 | T1 guardó (Bellator) | T2 guardó (Bellator) | Saldo esperado | Movimientos que debe señalar |
 |---|---|---|---|
@@ -44,7 +51,9 @@ T3 mide **leer** el saldo y sus movimientos, no repetir T1 y T2. La respuesta co
 | nada | nada | 1 000 mL | Compra inicial |
 | Otro valor (error crítico en T1 o T2) | — | El que muestre la aplicación | Los guardados. El error crítico ya se registró en su tarea |
 
-**Antes de entregar la tarjeta T3,** el facilitador consulta en silencio el saldo en Inventario y lo anota en la hoja de registro (columna Notas de T3). El éxito se juzga contra ese valor. **(v1.4)** Después de la sesión, `oracle_dsux_mobile.dart` (sólo lectura) obtiene el oráculo condicionado a lo guardado, que debe coincidir con lo anotado. **Los errores del participante no se corrigen en secreto**, ni antes ni después de T3.
+Los saldos de la tabla son **totales**. En modalidad compartida, cómo se reparten entre el titular y «Familiar Demo» depende de las asignaciones guardadas en T1 y T2 (la existencia inicial de 1 L está asignada al titular); el reparto se anota, pero no cambia el valor que se juzga.
+
+**Antes de entregar la tarjeta T3,** el facilitador consulta en silencio el **saldo total** en Inventario y lo anota en la hoja de registro (columna Notas de T3), en mL y en L; en compartida, también la parte de cada persona. El éxito se juzga contra ese valor. **(v1.4)** Después de la sesión, `oracle_dsux_mobile.dart` (sólo lectura) obtiene el oráculo condicionado a lo guardado, que debe coincidir con lo anotado. **Los errores del participante no se corrigen en secreto**, ni antes ni después de T3.
 
 ## 3. Backend y Web (entorno central de la evaluación Web, **separado** del de las sesiones Móvil)
 
@@ -86,6 +95,7 @@ El valor que se registra en la hoja es **el que muestra la Web sembrada antes de
 - [ ] Confirmar que W3 parte de «Belator» sin asociar y que W4 puede generar un borrador con esos datos.
 - [ ] Que la siembra no reutilice ni borre ningún entorno conservado (protocolo §0).
 - [ ] (v1.4) Tenant Web aislado del tenant de las sesiones Móvil; un tenant nuevo por participante Web (sin borrar los anteriores).
-- [ ] (v1.4, **decisión de Roderich antes del piloto**) T3 en modalidad compartida: el oráculo da el saldo total del producto y la parte del titular. El criterio vigente es el saldo total (§2); si el participante responde con su parte, se registra tal cual y no se reinterpreta durante la sesión. Si Roderich prefiere aceptar también la parte del titular, se fija como precisión antes del piloto.
+- [x] (v1.4 → **v1.5, decidido por Roderich el 2026-10-19**) T3 en modalidad compartida: se juzga el **saldo total** (todas las personas); la parte del titular no lo sustituye cuando es distinta. Consigna precisada en TAR-2 y guion GUION-2 (§2).
+- [ ] (v1.5) **Para observar en el piloto:** si «en total» se entiende igual en las dos modalidades. Si el piloto muestra ambigüedad, se registra como problema del instrumento y la redacción definitiva se fija antes de la muestra (`08_…` §4).
 - [ ] (v1.4) **Para observar en el piloto:** la tarjeta T2 dice «parcela Norte» y la app rotula «Chaco»; T1 y T2 piden mL y la app registra en L (el participante teclea 0,5 y 0,2); las pistas del guion §6 se comprueban contra las etiquetas actuales («Necesidad declarada al sindicato», «Sincronización con el sindicato», «Aplicaciones», «Inventario»).
 - [ ] (v1.4) El escenario del preflight E2E de la sesión A (20 L desde el teléfono + 2 aportantes sintéticos de 20 L = 60 L) vive en un entorno propio y **no** se mezcla con este tenant ni con el oráculo de 150 L.

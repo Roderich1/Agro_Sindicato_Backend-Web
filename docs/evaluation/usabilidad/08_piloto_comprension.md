@@ -50,11 +50,11 @@ Preguntas adicionales:
 
 ## 4. Qué se decide con esto
 
-- Si **todo se entiende**, las versiones TAR-1, SEQ-ES-1 y SUS-ES-1 quedan fijas y se anotan en `README.md`, en el registro de versiones.
+- Si **todo se entiende**, las versiones TAR-2 (TAR-1 con la precisión de T3 del 2026-10-19, anterior al piloto), SEQ-ES-1 y SUS-ES-1 quedan fijas y se anotan en `README.md`, en el registro de versiones.
 - Si **algo no se entiende**:
   1. Se propone el cambio mínimo. Para el SUS, sólo las adaptaciones candidatas registradas (C-1, C-2) u otra con su motivo.
   2. Se registra en `06_cuestionario_SUS_es.md` §5, o en la tarjeta, con la fecha real.
-  3. Se sube la versión: TAR-2, SEQ-ES-2 o SUS-ES-2.
+  3. Se sube la versión: TAR-3, SEQ-ES-2 o SUS-ES-2.
   4. Si el cambio fue grande, se repite el piloto con otra persona ajena (X02).
 - **Nada cambia una vez empezada la muestra final.** Una incidencia posterior se anota como desviación, no como cambio de instrumento.
 - **El piloto no aporta resultados:** su SUS, sus tiempos y sus éxitos no se publican como evaluación. Sólo se publica qué se ajustó y por qué.
