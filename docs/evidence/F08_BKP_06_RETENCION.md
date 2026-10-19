@@ -121,6 +121,10 @@ Los `no-undef` de globales de Node y Jest (`AbortSignal`, `afterEach`, `NodeJS`�
 ## Lo que esta evidencia no cubre
 
 - **`stillCandidate`** sigue haciendo un `list()` completo por candidato: con B2 son O(n²) llamadas en una limpieza grande. Es correcto, pero caro, y se declara.
+- **Una fila `UPLOADING` colgada** (por un reinicio del servidor a mitad de una subida, o por el camino de estado desconocido tras la finalización) bloquea al Member con 409 `BACKUP_UPLOAD_IN_PROGRESS` hasta que cumple `BACKUP_UPLOAD_ABANDON_MS` (60 min). Después, la siguiente subida la cierra como `ABANDONED` y la purga. Es un límite de uso declarado (observación 1 de B en la revisión del código).
+- **La limpieza manual** (`--cleanup --apply`) de `deletedWithObject` y `failedWithObject` borra los bytes, pero no limpia `purgePending`. La fila sigue contando en *P* hasta la siguiente reconciliación, que llama a `remove` (idempotente) y la limpia.
+  - Para una subida no causa un 503 de más: la reconciliación del Member corre **antes** de la reserva.
+  - Sí se ve como pendiente en el recuento del CLI hasta un `--reconcile --apply` (observación 2 de B).
 - **El doble S3** imita la API S3, no a B2. El comportamiento real del bucket (versiones, Object Lock, SSE-B2 y tiempos) queda para el ensayo con la clave restringida a `ensayo-f08/`.
 
 **Nada contra B2 real** hasta que exista la clave restringida a `ensayo-f08/`.
