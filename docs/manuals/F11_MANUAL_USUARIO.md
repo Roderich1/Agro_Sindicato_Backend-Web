@@ -12,7 +12,7 @@
 - Los textos entre comillas («…») se copiaron del código de esa versión: botones, menús y mensajes.
 - No se usó ningún teléfono ni se arrancó ningún servicio.
 - Cuando una pantalla o un paso no tiene una prueba fechada en un dispositivo, se marca **[Verificar]**.
-- Los textos de los botones de la app no se comprobaron en pantalla para esta versión. La última versión probada en un teléfono tiene el código de `27c4654`, y desde entonces la app sólo cambió los rótulos de las cifras netas, la bitácora del chaco y el CSV.
+- **Esta versión de la app (`463d3ec`) se probó en un teléfono el 2026-10-19:** activación, subida y restauración desde la nube, comparación de la copia y liberación de la cola (Backend `docs/evidence/F08_BKP_07_B2_ENSAYO_REAL.md` §2, POCO X5 Pro). Las demás pantallas tienen sus ensayos físicos en versiones anteriores, que se citan en cada sección. Desde `27c4654`, la app sólo cambió los rótulos de las cifras netas, la bitácora del chaco y el CSV.
 
 **Capturas:**
 - **App móvil:** todas las capturas de la app que hay en el repositorio Mobile (`artifacts/ui-audit/`) son del 2026-09-05/06, anteriores a la activación, la modalidad, la sincronización, el respaldo en la nube y las cifras netas. **No se usan en este manual.** Hay que tomar capturas nuevas con datos sintéticos **[Verificar]**.
@@ -45,7 +45,7 @@ La primera vez hay que **activar en línea** con la cuenta que le dio el sindica
 
 | Opción | Qué significa (texto de la app) |
 |---|---|
-| «Compartido» (la opción marcada por defecto) | «Varias personas (familiares o terceros) compran, aplican y transfieren productos; cada una tiene su inventario y su cuenta.» |
+| «Compartido» (la opción marcada por defecto: Mobile `lib/presentation/screens/owner_setup_screen.dart:50`) | «Varias personas (familiares o terceros) compran, aplican y transfieren productos; cada una tiene su inventario y su cuenta.» |
 | «Propio» | «Sólo el titular compra, aplica y paga. No hay transferencias ni hay que elegir persona en los formularios.» |
 
 Pulse «Confirmar titular».
@@ -178,7 +178,7 @@ En modo compartido aparece «Distribución por persona». La «Asignación neta�
 - El reporte de inventario muestra físico, comprometido, proyectado y valor, pero **no** las columnas netas.
 
 **Evidencia:**
-- **Cifras netas:** hay pruebas en host (MOB #140, `76eea02`), pero **sin ensayo en un teléfono** **[Verificar]**.
+- **Cifras netas:** hay pruebas en host (MOB #140, `76eea02`). Se vieron en pantalla en el POCO durante la preparación del piloto (2026-10-19), pero **sin evidencia versionada** **[Verificar]**.
 - **Reportes:** capturas de la serie EV2, del 2026-09, anteriores a esta versión **[Verificar]**.
 
 ### 5. Necesidad declarada
@@ -207,7 +207,11 @@ Es **lo que usted pide al sindicato para una campaña**. No cambia su inventario
 - No se incluye el consumo de familiares ni de terceros.
 
 **Enviar** (Inicio › «Sincronización con el sindicato»):
-- La app **no envía nada en segundo plano**. Envía cuando usted pulsa «Sincronizar ahora», y mientras la app está abierta con acceso verificado.
+- **Cuándo envía:**
+  - cuando usted pulsa «Sincronizar ahora»;
+  - **y también sola**, cada minuto, mientras la app está abierta y el acceso en línea está verificado. El acceso verificado dura 10 minutos.
+- **Con la app cerrada o en segundo plano no envía nada.**
+- Una acción en línea que verifica el acceso, como «Verificar acceso en línea» o subir un respaldo a la nube, **puede disparar el envío de lo que ya estaba pendiente**. En el ensayo del 2026-10-19, la app envió una necesidad pendiente justo después de subir un respaldo (ensayo B2 §2, fila «Desviación»).
 - Si el acceso no está verificado, primero lo comprueba en línea. Si falla: «Verifique el acceso en línea para enviar. Sus datos siguen guardados.»
 - Resultado: «Aceptados: n. Conflictos: n. Rechazados: n.» o «No hay envíos pendientes.»
 
@@ -287,7 +291,11 @@ Es una **copia privada de su cuenta** en el servidor del sindicato. «Nadie más
 
 Si el sindicato ya los había recibido, no se duplican.
 
-**Un respaldo no es una sincronización:** subir una copia no envía sus totales al sindicato.
+**Un respaldo no es una sincronización:**
+- la copia no se publica ni se comparte con el sindicato;
+- pero subirla verifica el acceso en línea, y con el acceso verificado la app **puede enviar lo que ya estaba pendiente en la cola** (§6).
+
+Si quiere que algo pendiente no salga todavía, no use funciones en línea hasta decidirlo. Una vez restaurada una copia, lo que esta traiga sin confirmar no sale hasta que usted pulse «Liberar».
 
 **Evidencia:**
 - Restauración en instalación limpia, sin publicar, y liberación con un solo envío:
@@ -497,11 +505,12 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 - **Equipos probados:**
   - app: POCO X5 Pro (Android 12) y HONOR JDY-LX3P (Android 16);
   - Web: Chrome y Edge.
+- **Letra grande en pantallas pequeñas:** con la fuente del sistema aumentada en el HONOR (720 px, configuración A4-F), la compatibilidad está registrada como **NO CUMPLE**, por textos cortados (MOB #129). La corrección está integrada, pero falta repetir la medición en ese equipo (`F10_CONTRASTE_81_Y_VALIDATION.md`, fila 48-1, en BE #153).
 
 ### 12. Lo que hay que verificar antes de cerrar este manual
 
 1. Capturas nuevas de la app con datos sintéticos: activación, titular, modalidad, Sincronización, Respaldo en la nube, detalle de inventario con cifras netas y Reportes.
-2. Las cifras netas en un teléfono: hoy sólo tienen prueba en host.
+2. Las cifras netas en un teléfono: tienen prueba en host. Se vieron en pantalla en la preparación del piloto, pero falta la evidencia versionada.
 3. Que los textos citados de la app coincidan en pantalla con la versión que se entregue. Si la APK final no es `463d3ec`, hay que releer este manual.
 4. Las sesiones de usabilidad T1–T6 y W1–W5 (#47, MOB #37): sus resultados pueden pedir cambios de redacción.
 5. La relectura del recorrido de usuario por la sesión A.
