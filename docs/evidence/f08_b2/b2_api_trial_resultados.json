@@ -1,0 +1,283 @@
+{
+ "results": [
+  {
+   "label": "estado inicial: titular sin copias y prefijo vacío",
+   "ok": true
+  },
+  {
+   "label": "A (1 MiB): subida de 1048576 B → HTTP 201 en 2695 ms, SHA-256 confirmado",
+   "ok": true
+  },
+  {
+   "label": "A (1 MiB): exactamente 1 objeto nuevo en B2 bajo objects/",
+   "ok": true,
+   "extra": {
+    "key": "6afc8b82"
+   }
+  },
+  {
+   "label": "A (1 MiB): el objeto final tiene 1 versión y ningún marcador",
+   "ok": true
+  },
+  {
+   "label": "A (1 MiB): HeadObject tamaño 1048576, SSE AES256, agro-sha256 y agro-size iguales",
+   "ok": true
+  },
+  {
+   "label": "A (1 MiB): GetObject directo de B2 da los mismos bytes (SHA-256 7376b3ad…)",
+   "ok": true
+  },
+  {
+   "label": "A (1 MiB): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales",
+   "ok": true
+  },
+  {
+   "label": "A (1 MiB): staging vacío y sin multipart pendiente",
+   "ok": true
+  },
+  {
+   "label": "B (20 MiB, multipart): subida de 20971520 B → HTTP 201 en 13138 ms, SHA-256 confirmado",
+   "ok": true
+  },
+  {
+   "label": "B (20 MiB, multipart): exactamente 1 objeto nuevo en B2 bajo objects/",
+   "ok": true,
+   "extra": {
+    "key": "c1ef49b1"
+   }
+  },
+  {
+   "label": "B (20 MiB, multipart): el objeto final tiene 1 versión y ningún marcador",
+   "ok": true
+  },
+  {
+   "label": "B (20 MiB, multipart): HeadObject tamaño 20971520, SSE AES256, agro-sha256 y agro-size iguales",
+   "ok": true
+  },
+  {
+   "label": "B (20 MiB, multipart): GetObject directo de B2 da los mismos bytes (SHA-256 2e83047f…)",
+   "ok": true
+  },
+  {
+   "label": "B (20 MiB, multipart): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales",
+   "ok": true
+  },
+  {
+   "label": "B (20 MiB, multipart): staging vacío y sin multipart pendiente",
+   "ok": true
+  },
+  {
+   "label": "otro agricultor del mismo tenant: HTTP 404, indistinguible de una copia inexistente",
+   "ok": true
+  },
+  {
+   "label": "otro agricultor no ve las copias en su lista",
+   "ok": true
+  },
+  {
+   "label": "otro agricultor no puede borrar: HTTP 404",
+   "ok": true
+  },
+  {
+   "label": "Administrador del mismo tenant: lista HTTP 403, contenido HTTP 403",
+   "ok": true
+  },
+  {
+   "label": "agricultor de otro tenant: HTTP 404, indistinguible",
+   "ok": true
+  },
+  {
+   "label": "sin sesión: HTTP 401",
+   "ok": true
+  },
+  {
+   "label": "SHA-256 incorrecto: HTTP 422; ningún objeto nuevo; staging vacío",
+   "ok": true
+  },
+  {
+   "label": "subida cortada (cortada): las 2 copias anteriores siguen disponibles e íntegras; sin objeto nuevo; staging vacío",
+   "ok": true
+  },
+  {
+   "label": "concurrencia: la segunda subida → HTTP 409 BACKUP_UPLOAD_IN_PROGRESS; la primera → HTTP 201",
+   "ok": true
+  },
+  {
+   "label": "D (2 MiB): subida de 2097152 B → HTTP 201 en 3056 ms, SHA-256 confirmado",
+   "ok": true
+  },
+  {
+   "label": "D (2 MiB): exactamente 1 objeto nuevo en B2 bajo objects/",
+   "ok": true,
+   "extra": {
+    "key": "c6656ace"
+   }
+  },
+  {
+   "label": "D (2 MiB): el objeto final tiene 1 versión y ningún marcador",
+   "ok": true
+  },
+  {
+   "label": "D (2 MiB): HeadObject tamaño 2097152, SSE AES256, agro-sha256 y agro-size iguales",
+   "ok": true
+  },
+  {
+   "label": "D (2 MiB): GetObject directo de B2 da los mismos bytes (SHA-256 a06791f6…)",
+   "ok": true
+  },
+  {
+   "label": "D (2 MiB): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales",
+   "ok": true
+  },
+  {
+   "label": "D (2 MiB): staging vacío y sin multipart pendiente",
+   "ok": true
+  },
+  {
+   "label": "E (2 MiB): subida de 2097152 B → HTTP 201 en 3263 ms, SHA-256 confirmado",
+   "ok": true
+  },
+  {
+   "label": "E (2 MiB): exactamente 1 objeto nuevo en B2 bajo objects/",
+   "ok": true,
+   "extra": {
+    "key": "22058401"
+   }
+  },
+  {
+   "label": "E (2 MiB): el objeto final tiene 1 versión y ningún marcador",
+   "ok": true
+  },
+  {
+   "label": "E (2 MiB): HeadObject tamaño 2097152, SSE AES256, agro-sha256 y agro-size iguales",
+   "ok": true
+  },
+  {
+   "label": "E (2 MiB): GetObject directo de B2 da los mismos bytes (SHA-256 f3e0cda4…)",
+   "ok": true
+  },
+  {
+   "label": "E (2 MiB): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales",
+   "ok": true
+  },
+  {
+   "label": "E (2 MiB): staging vacío y sin multipart pendiente",
+   "ok": true
+  },
+  {
+   "label": "antes de rotar: 5 copias disponibles",
+   "ok": true
+  },
+  {
+   "label": "F (1 MiB, sexta): subida de 1048576 B → HTTP 201 en 2492 ms, SHA-256 confirmado",
+   "ok": true
+  },
+  {
+   "label": "F (1 MiB, sexta): exactamente 1 objeto nuevo en B2 bajo objects/",
+   "ok": true,
+   "extra": {
+    "key": "74944770"
+   }
+  },
+  {
+   "label": "F (1 MiB, sexta): el objeto final tiene 1 versión y ningún marcador",
+   "ok": true
+  },
+  {
+   "label": "F (1 MiB, sexta): HeadObject tamaño 1048576, SSE AES256, agro-sha256 y agro-size iguales",
+   "ok": true
+  },
+  {
+   "label": "F (1 MiB, sexta): GetObject directo de B2 da los mismos bytes (SHA-256 dac96e5c…)",
+   "ok": true
+  },
+  {
+   "label": "F (1 MiB, sexta): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales",
+   "ok": true
+  },
+  {
+   "label": "F (1 MiB, sexta): staging vacío y sin multipart pendiente",
+   "ok": true
+  },
+  {
+   "label": "tras rotar: quedan exactamente B, C, D, E y F; A ya no está en la lista",
+   "ok": true
+  },
+  {
+   "label": "A retirada: contenido HTTP 404; versiones físicas en B2 0 (marcadores incluidos)",
+   "ok": true
+  },
+  {
+   "label": "B sigue en B2 con 1 versión e íntegra",
+   "ok": true
+  },
+  {
+   "label": "C sigue en B2 con 1 versión e íntegra",
+   "ok": true
+  },
+  {
+   "label": "D sigue en B2 con 1 versión e íntegra",
+   "ok": true
+  },
+  {
+   "label": "E sigue en B2 con 1 versión e íntegra",
+   "ok": true
+  },
+  {
+   "label": "F sigue en B2 con 1 versión e íntegra",
+   "ok": true
+  },
+  {
+   "label": "borrado de B por el propietario: HTTP 204; versiones físicas en B2 0",
+   "ok": true
+  },
+  {
+   "label": "final: 4 copias disponibles = 4 objetos en B2 (1 versión cada uno), 0 marcadores, staging y multipart vacíos",
+   "ok": true
+  }
+ ],
+ "copies": [
+  {
+   "tag": "A (1 MiB)",
+   "id": "a65b26dc",
+   "key": "6afc8b82",
+   "size": 1048576,
+   "sha256": "7376b3ad5cedea6afd6cec320afb046d86c95e5a73b6129f2c113162e00b71d6"
+  },
+  {
+   "tag": "B (20 MiB, multipart)",
+   "id": "426a8e3d",
+   "key": "c1ef49b1",
+   "size": 20971520,
+   "sha256": "2e83047f37fbf5943ce1838b0d0042e1119e67ea49e0d6078e22fada88808031"
+  },
+  {
+   "tag": "C (3 MiB, lenta)",
+   "id": "533f15bc",
+   "key": "2750b41a",
+   "size": 3145728,
+   "sha256": "0b5ce771a5117937b1f850e866fca22dbd96a06c29dba3852334de28bc550a9b"
+  },
+  {
+   "tag": "D (2 MiB)",
+   "id": "7bbe6702",
+   "key": "c6656ace",
+   "size": 2097152,
+   "sha256": "a06791f6457840cfb62717fb084c6c661f821eaa01d6baf5a8840e2d1d76376f"
+  },
+  {
+   "tag": "E (2 MiB)",
+   "id": "e443cfae",
+   "key": "22058401",
+   "size": 2097152,
+   "sha256": "f3e0cda4dfa736e085e7221748f508a69899b8f72b58597bea3ecc9d951b53d3"
+  },
+  {
+   "tag": "F (1 MiB, sexta)",
+   "id": "68558d5a",
+   "key": "74944770",
+   "size": 1048576,
+   "sha256": "dac96e5c9e455a114ab01a06ff68c8a3dc77bfbfad3ceb04edbba7c8d0d568c4"
+  }
+ ]
+}

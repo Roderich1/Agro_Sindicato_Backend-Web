@@ -1,0 +1,67 @@
+2026-10-19T18:08:58.878Z inicio; API http://127.0.0.1:3142; bucket agro-backups-roderich; prefijo ensayo-f08/
+2026-10-19T18:09:01.000Z B2 inicial: objects/ 0 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:09:01.016Z PASS estado inicial: titular sin copias y prefijo vacío
+2026-10-19T18:09:03.847Z PASS A (1 MiB): subida de 1048576 B → HTTP 201 en 2695 ms, SHA-256 confirmado
+2026-10-19T18:09:03.984Z PASS A (1 MiB): exactamente 1 objeto nuevo en B2 bajo objects/
+2026-10-19T18:09:04.119Z PASS A (1 MiB): el objeto final tiene 1 versión y ningún marcador
+2026-10-19T18:09:04.256Z PASS A (1 MiB): HeadObject tamaño 1048576, SSE AES256, agro-sha256 y agro-size iguales
+2026-10-19T18:09:05.129Z PASS A (1 MiB): GetObject directo de B2 da los mismos bytes (SHA-256 7376b3ad…)
+2026-10-19T18:09:06.323Z PASS A (1 MiB): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales
+2026-10-19T18:09:06.756Z B2 tras A (1 MiB): objects/ 1 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:09:06.757Z PASS A (1 MiB): staging vacío y sin multipart pendiente
+2026-10-19T18:09:20.045Z PASS B (20 MiB, multipart): subida de 20971520 B → HTTP 201 en 13138 ms, SHA-256 confirmado
+2026-10-19T18:09:20.460Z PASS B (20 MiB, multipart): exactamente 1 objeto nuevo en B2 bajo objects/
+2026-10-19T18:09:20.600Z PASS B (20 MiB, multipart): el objeto final tiene 1 versión y ningún marcador
+2026-10-19T18:09:20.737Z PASS B (20 MiB, multipart): HeadObject tamaño 20971520, SSE AES256, agro-sha256 y agro-size iguales
+2026-10-19T18:09:24.348Z PASS B (20 MiB, multipart): GetObject directo de B2 da los mismos bytes (SHA-256 2e83047f…)
+2026-10-19T18:09:30.987Z PASS B (20 MiB, multipart): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales
+2026-10-19T18:09:31.677Z B2 tras B (20 MiB, multipart): objects/ 2 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:09:31.677Z PASS B (20 MiB, multipart): staging vacío y sin multipart pendiente
+2026-10-19T18:09:31.696Z PASS otro agricultor del mismo tenant: HTTP 404, indistinguible de una copia inexistente
+2026-10-19T18:09:31.703Z PASS otro agricultor no ve las copias en su lista
+2026-10-19T18:09:31.709Z PASS otro agricultor no puede borrar: HTTP 404
+2026-10-19T18:09:31.719Z PASS Administrador del mismo tenant: lista HTTP 403, contenido HTTP 403
+2026-10-19T18:09:31.725Z PASS agricultor de otro tenant: HTTP 404, indistinguible
+2026-10-19T18:09:31.726Z PASS sin sesión: HTTP 401
+2026-10-19T18:09:35.814Z B2 tras el SHA-256 incorrecto: objects/ 2 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:09:36.002Z PASS SHA-256 incorrecto: HTTP 422; ningún objeto nuevo; staging vacío
+2026-10-19T18:09:42.236Z B2 tras la subida cortada: objects/ 2 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:09:47.044Z PASS subida cortada (cortada): las 2 copias anteriores siguen disponibles e íntegras; sin objeto nuevo; staging vacío
+2026-10-19T18:09:56.624Z PASS concurrencia: la segunda subida → HTTP 409 BACKUP_UPLOAD_IN_PROGRESS; la primera → HTTP 201
+2026-10-19T18:10:00.235Z PASS D (2 MiB): subida de 2097152 B → HTTP 201 en 3056 ms, SHA-256 confirmado
+2026-10-19T18:10:00.379Z PASS D (2 MiB): exactamente 1 objeto nuevo en B2 bajo objects/
+2026-10-19T18:10:00.515Z PASS D (2 MiB): el objeto final tiene 1 versión y ningún marcador
+2026-10-19T18:10:00.652Z PASS D (2 MiB): HeadObject tamaño 2097152, SSE AES256, agro-sha256 y agro-size iguales
+2026-10-19T18:10:01.706Z PASS D (2 MiB): GetObject directo de B2 da los mismos bytes (SHA-256 a06791f6…)
+2026-10-19T18:10:03.257Z PASS D (2 MiB): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales
+2026-10-19T18:10:03.698Z B2 tras D (2 MiB): objects/ 4 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:10:03.698Z PASS D (2 MiB): staging vacío y sin multipart pendiente
+2026-10-19T18:10:07.099Z PASS E (2 MiB): subida de 2097152 B → HTTP 201 en 3263 ms, SHA-256 confirmado
+2026-10-19T18:10:07.236Z PASS E (2 MiB): exactamente 1 objeto nuevo en B2 bajo objects/
+2026-10-19T18:10:07.373Z PASS E (2 MiB): el objeto final tiene 1 versión y ningún marcador
+2026-10-19T18:10:07.509Z PASS E (2 MiB): HeadObject tamaño 2097152, SSE AES256, agro-sha256 y agro-size iguales
+2026-10-19T18:10:07.961Z PASS E (2 MiB): GetObject directo de B2 da los mismos bytes (SHA-256 f3e0cda4…)
+2026-10-19T18:10:09.073Z PASS E (2 MiB): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales
+2026-10-19T18:10:09.484Z B2 tras E (2 MiB): objects/ 5 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:10:09.484Z PASS E (2 MiB): staging vacío y sin multipart pendiente
+2026-10-19T18:10:09.497Z PASS antes de rotar: 5 copias disponibles
+2026-10-19T18:10:09.497Z lista previa exacta de lo que se retirará: copia a65b26dc (la más antigua), objeto objects/6afc8b82… y todas sus versiones
+2026-10-19T18:10:12.138Z PASS F (1 MiB, sexta): subida de 1048576 B → HTTP 201 en 2492 ms, SHA-256 confirmado
+2026-10-19T18:10:12.277Z PASS F (1 MiB, sexta): exactamente 1 objeto nuevo en B2 bajo objects/
+2026-10-19T18:10:12.443Z PASS F (1 MiB, sexta): el objeto final tiene 1 versión y ningún marcador
+2026-10-19T18:10:12.582Z PASS F (1 MiB, sexta): HeadObject tamaño 1048576, SSE AES256, agro-sha256 y agro-size iguales
+2026-10-19T18:10:13.090Z PASS F (1 MiB, sexta): GetObject directo de B2 da los mismos bytes (SHA-256 dac96e5c…)
+2026-10-19T18:10:13.751Z PASS F (1 MiB, sexta): descarga por la API HTTP 200, bytes, tamaño y cabecera SHA-256 iguales
+2026-10-19T18:10:14.165Z B2 tras F (1 MiB, sexta): objects/ 5 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:10:14.165Z PASS F (1 MiB, sexta): staging vacío y sin multipart pendiente
+2026-10-19T18:10:16.183Z PASS tras rotar: quedan exactamente B, C, D, E y F; A ya no está en la lista
+2026-10-19T18:10:16.335Z PASS A retirada: contenido HTTP 404; versiones físicas en B2 0 (marcadores incluidos)
+2026-10-19T18:10:19.313Z PASS B sigue en B2 con 1 versión e íntegra
+2026-10-19T18:10:19.995Z PASS C sigue en B2 con 1 versión e íntegra
+2026-10-19T18:10:20.487Z PASS D sigue en B2 con 1 versión e íntegra
+2026-10-19T18:10:20.960Z PASS E sigue en B2 con 1 versión e íntegra
+2026-10-19T18:10:21.354Z PASS F sigue en B2 con 1 versión e íntegra
+2026-10-19T18:10:22.226Z PASS borrado de B por el propietario: HTTP 204; versiones físicas en B2 0
+2026-10-19T18:10:22.640Z B2 final: objects/ 4 versiones, 0 marcadores; staging/ 0; multipart sin terminar 0
+2026-10-19T18:10:22.648Z PASS final: 4 copias disponibles = 4 objetos en B2 (1 versión cada uno), 0 marcadores, staging y multipart vacíos
+2026-10-19T18:10:22.648Z Ensayo de API contra B2: 55/55 PASS

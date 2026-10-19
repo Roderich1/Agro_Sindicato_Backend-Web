@@ -1,0 +1,7 @@
+# Consulta (2026-10-19, tras el ensayo; mismo estado que a las 18:36:47Z): SELECT status, "deletionReason", "purgePending", "failureCode", count(*) FROM "BackupMetadata" GROUP BY 1,2,3,4 ORDER BY 1,2
+# columnas: status | deletionReason | purgePending | failureCode | count
+AVAILABLE |  | f |  | 5
+FAILED |  | f | SHA256_MISMATCH | 1
+FAILED |  | f | TRANSFER_INCOMPLETE | 1
+DELETED | OWNER | f |  | 1
+DELETED | RETENTION | f |  | 1

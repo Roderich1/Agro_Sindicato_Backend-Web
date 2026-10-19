@@ -1,0 +1,31 @@
+IGUAL                    account_transactions — 0 filas
+IGUAL                    android_metadata — 1 filas
+TRANSFORMACIÓN ESPERADA  app_settings — claves cambiadas: ['activated_installation_ref']
+IGUAL                    application_consumptions — 0 filas
+IGUAL                    application_items — 0 filas
+IGUAL                    application_plan_items — 0 filas
+IGUAL                    application_plans — 0 filas
+IGUAL                    applications — 0 filas
+IGUAL                    campaign_bindings — 1 filas
+IGUAL                    campaigns — 1 filas
+IGUAL                    declared_need_versions — 2 filas
+IGUAL                    declared_needs — 2 filas
+IGUAL                    farms — 2 filas
+IGUAL                    inventory_lots — 2 filas
+IGUAL                    inventory_movements — 2 filas
+IGUAL                    owner_bindings — 1 filas
+IGUAL                    payment_allocations — 0 filas
+IGUAL                    persons — 1 filas
+IGUAL                    product_bindings — 2 filas
+IGUAL                    products — 2 filas
+IGUAL                    provider_payments — 0 filas
+IGUAL                    purchase_allocations — 2 filas
+IGUAL                    purchase_items — 2 filas
+IGUAL                    purchases — 2 filas
+IGUAL                    suppliers — 1 filas
+TRANSFORMACIÓN ESPERADA  sync_outbox — operación/cantidad/causalidad iguales=True; estados {'ACKED→ACKED': 1, 'OUTCOME_UNKNOWN→RESTORE_PAUSED': 1}
+IGUAL                    transfer_items — 0 filas
+IGUAL                    transfer_lot_items — 0 filas
+IGUAL                    transfers — 0 filas
+IGUAL                    fotos (nombre y SHA-256) — 2 → 2
+Resultado: PASS

@@ -1,0 +1,8 @@
+2026-10-19T18:45:24.455Z antes: 4 copias del titular; objects/ 5 versiones; multipart sin terminar 0
+2026-10-19T18:45:30.286Z enviados 12582912 B de 20971520; multipart en curso en B2 bajo staging/: 1 (staging/2e27e211-3a0)
+2026-10-19T18:45:30.287Z PASS durante el envío existía en B2 un multipart en curso bajo staging/ (UploadPart real)
+2026-10-19T18:45:32.732Z tras el corte (sin respuesta): multipart sin terminar 0; staging/ 0; objects/ 5
+2026-10-19T18:45:32.732Z PASS tras el corte: multipart abortado (0 sin terminar) y staging/ vacío en B2
+2026-10-19T18:45:32.732Z PASS objects/ no cambia
+2026-10-19T18:45:37.861Z PASS las 4 copias anteriores siguen disponibles y sus bytes coinciden con su SHA-256
+2026-10-19T18:45:38.000Z corte multipart: 4/4 PASS

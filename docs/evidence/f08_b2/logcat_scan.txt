@@ -1,0 +1,6 @@
+contraseñas del ensayo: 0 (las de credential.sh son de un solo uso y no se conservan: ver la línea siguiente)
+nombres de campos sensibles (refresh_token, accessToken, password): 0
+FATAL/Unhandled: 0
+valores opacos de 43+ caracteres (refresh tokens): 0
+campos sensibles sin distinguir mayúsculas: 0
+registro propio: líneas=9 JWT=0 UUID=0 refresh/token/password=0 opacos43=0 campos=0
