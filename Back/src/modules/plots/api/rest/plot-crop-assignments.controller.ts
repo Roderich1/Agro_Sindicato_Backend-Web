@@ -10,6 +10,7 @@ import {
   UpdatePlotCropAssignmentDto,
 } from '../../application/dto/plot-flow.dto';
 import { PlotFlowUseCase } from '../../application/use-cases/plot-flow.use-case';
+import { LegacyPrivateWrite } from '@/shared/api/legacy-private-writes';
 
 @ApiTags('plot-crop-assignments')
 @ApiBearerAuth()
@@ -32,6 +33,7 @@ export class PlotCropAssignmentsController {
   }
 
   @Post()
+  @LegacyPrivateWrite(201)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Asignar cultivo principal a una parcela propia en campana abierta' })
   async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreatePlotCropAssignmentDto) {
@@ -46,6 +48,7 @@ export class PlotCropAssignmentsController {
   }
 
   @Patch(':id')
+  @LegacyPrivateWrite(200)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Actualizar cultivo asignado a una parcela propia en campana abierta' })
   async update(

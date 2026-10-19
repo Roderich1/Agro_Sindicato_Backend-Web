@@ -61,7 +61,10 @@ describePostgres("F10-SEC-02 legacy routes: private/collective boundary on Postg
 
   beforeAll(async () => {
     const databaseUrl = await createIsolatedDatabase(postgresUrl!, "f10_sec");
-    ({ app, prisma, jwt } = await createSyncV1App(databaseUrl));
+    // #81 PHASE 6: this suite seeds and checks ownership through the legacy
+    // private writes, so it runs on the ROLLBACK path; the default closed
+    // path is covered by f81-phase6-legacy-writes.postgres.spec.ts.
+    ({ app, prisma, jwt } = await createSyncV1App(databaseUrl, { legacyPrivateWrites: "rollback" }));
     f = await seedFixture(prisma);
     farmerA = await createSession(prisma, jwt, f.members.farmerA);
     farmerA2 = await createSession(prisma, jwt, f.members.farmerA2);

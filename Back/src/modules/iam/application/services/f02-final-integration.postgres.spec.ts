@@ -8,6 +8,7 @@ import cookieParser = require("cookie-parser");
 import { randomUUID } from "node:crypto";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
+import { LegacyPrivateWritesConfig } from "@/shared/api/legacy-private-writes";
 
 const postgresUrl = process.env["F02_FINAL_PG_TEST_URL"];
 const describePostgres = postgresUrl ? describe : describe.skip;
@@ -32,8 +33,13 @@ describePostgres("F02-IAM-05 final HTTP/PostgreSQL integration", () => {
     process.env["JWT_SECRET"] = "f02-final-jwt-secret-long-enough-123";
     process.env["JWT_REFRESH_SECRET"] = "f02-final-refresh-secret-long-enough-123";
     const { AppModule } = await import("@/app.module");
+    // #81 PHASE 6: these ownership checks run on the ROLLBACK path
+    // (LEGACY_PRIVATE_WRITES_ROLLBACK=enabled); by default the legacy private
+    // writes answer 403 LEGACY_ROUTE_CLOSED (f81-phase6-legacy-writes spec).
     const module = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideGuard(ThrottlerGuard).useValue({ canActivate: () => true }).compile();
+      .overrideGuard(ThrottlerGuard).useValue({ canActivate: () => true })
+      .overrideProvider(LegacyPrivateWritesConfig).useValue({ rollback: true })
+      .compile();
     app = module.createNestApplication();
     app.setGlobalPrefix("api/v1");
     app.use(cookieParser());

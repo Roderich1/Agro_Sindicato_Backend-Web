@@ -11,6 +11,7 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { configureBackupsBodyGuard } from "@/modules/backups/api/rest/backups-body";
 import { BACKUP_STORAGE, BackupStorage } from "@/modules/backups/domain/backup-storage.port";
 import { configureSyncV1BodyParser } from "../api/rest/sync-v1-body";
+import { LegacyPrivateWritesConfig } from "@/shared/api/legacy-private-writes";
 import cookieParser = require("cookie-parser");
 
 /**
@@ -61,6 +62,11 @@ export async function createSyncV1App(
     fingerprintKey?: string | null;
     /** F08-BKP-07: replaces the backup storage the environment would choose. */
     backupStorage?: BackupStorage;
+    /**
+     * #81 PHASE 6: `rollback` opens the legacy private writes again, as
+     * LEGACY_PRIVATE_WRITES_ROLLBACK=enabled would; omitted, they stay closed.
+     */
+    legacyPrivateWrites?: "closed" | "rollback";
   } = {},
 ) {
   process.env["DATABASE_URL"] = databaseUrl;
@@ -87,6 +93,10 @@ export async function createSyncV1App(
   }
   if (options.backupStorage)
     builder = builder.overrideProvider(BACKUP_STORAGE).useValue(options.backupStorage);
+  if (options.legacyPrivateWrites)
+    builder = builder
+      .overrideProvider(LegacyPrivateWritesConfig)
+      .useValue({ rollback: options.legacyPrivateWrites === "rollback" });
   const module = await builder.compile();
   const app = module.createNestApplication({ logger: false });
   app.setGlobalPrefix("api/v1");

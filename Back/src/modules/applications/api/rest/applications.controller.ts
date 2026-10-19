@@ -10,6 +10,7 @@ import {
   ListApplicationsQueryDto,
 } from '../../application/dto/application.dto';
 import { ApplicationsUseCase } from '../../application/use-cases/applications.use-case';
+import { LegacyPrivateWrite } from '@/shared/api/legacy-private-writes';
 
 @ApiTags('applications')
 @ApiBearerAuth()
@@ -32,6 +33,7 @@ export class ApplicationsController {
   }
 
   @Post()
+  @LegacyPrivateWrite(201)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Registrar aplicacion de agroquimico a parcela y descontar stock' })
   async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateApplicationDto) {
@@ -59,6 +61,7 @@ export class ApplicationsController {
   }
 
   @Post(':id/cancel')
+  @LegacyPrivateWrite(200)
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Anular una aplicacion propia indicando motivo' })
