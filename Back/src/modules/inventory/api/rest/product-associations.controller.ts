@@ -25,6 +25,8 @@ export class ProductAssociationsController {
   constructor(private readonly reconciliation: ProductReconciliationUseCase) {}
 
   @Get()
+  // F10-SEC-02 M8 (#45): never cached, like its catalog.
+  @Header("Cache-Control", "no-store")
   @ApiOperation({ summary: "Asociaciones vigentes e historial de denominaciones con su producto canónico" })
   @ApiResponse({ status: 200, schema: associationListSchema })
   @ApiResponse({ status: 401, description: "Sin credencial vigente" })

@@ -326,6 +326,40 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     }
   });
 
+  it("F10-SEC-02 M5 (#45): a role change withdraws the contribution and the prior figure", async () => {
+    const p = await product("Rol");
+    for (const farmer of farmers) await push(farmer, { product: p, quantity: "2000" });
+    const before = await summary();
+    expect(cellOf(before, p)).toMatchObject({ status: "DISCLOSED", total_base: "10000", contributors: 5 });
+    // Farmer 2 becomes DIRECTIVA, as the user administration does it (User and Member).
+    const member = await prisma.member.findUniqueOrThrow({ where: { id: farmers[2]!.memberId }, select: { userId: true } });
+    await prisma.user.update({ where: { id: member.userId }, data: { role: "DIRECTIVA" } });
+    await prisma.member.update({ where: { id: farmers[2]!.memberId }, data: { role: "DIRECTIVA" } });
+    try {
+      const res = await summary();
+      // Rule 3: the earlier figure included a contribution that no longer
+      // counts, so it is withdrawn; never a figure with that amount subtracted.
+      expect(cellOf(res, p)).toMatchObject({ status: "SUPPRESSED_REVISION", total_base: null, contributors: null });
+      expect(res.body.coverage.linked_members).toBe(before.body.coverage.linked_members - 1);
+      const csv = await http()
+        .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
+        .set("Authorization", `Bearer ${director.token}`);
+      // Same decision in the CSV channel: status, totals and contributors empty.
+      const row = (csv.text as string).split("\n").find((line) => line.includes(p))!;
+      expect(row.split(",").slice(5, 9)).toEqual(["SUPPRESSED_REVISION", "", "", ""]);
+      const releases = await prisma.collectiveRelease.findMany({
+        where: { canonicalProductId: p }, include: { items: true },
+      });
+      expect(releases).toHaveLength(1);
+      expect(releases[0]!.withdrawnAt).not.toBeNull();
+      // The history the differencing rule needs is kept (M3).
+      expect(releases[0]!.items).toHaveLength(5);
+    } finally {
+      await prisma.member.update({ where: { id: farmers[2]!.memberId }, data: { role: "AGRICULTOR" } });
+      await prisma.user.update({ where: { id: member.userId }, data: { role: "AGRICULTOR" } });
+    }
+  });
+
   it("aliases: confirmed association, distinct Members, no unit mixing and history", async () => {
     const belator = await product("Belator");
     const bellator = await product("Bellator");

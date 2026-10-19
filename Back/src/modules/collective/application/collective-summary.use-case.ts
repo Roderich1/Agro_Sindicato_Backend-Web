@@ -266,7 +266,12 @@ export class CollectiveSummaryUseCase {
     };
   }
 
-  /** ACTIVE contributions with a quantity, from active Members and accounts. */
+  /**
+   * ACTIVE contributions with a quantity, from active farmers with active
+   * accounts: the same scope as `linkedMembers`, the coverage denominator.
+   * F10-SEC-02 M5 (#45): a Member that stops being AGRICULTOR leaves the
+   * figures, like an inactive one (rule 3 withdraws the earlier figure).
+   */
   private async eligible(tx: Tx, tenantId: string, campaignId: string): Promise<EligibleContribution[]> {
     const rows = await tx.syncV1Contribution.findMany({
       where: {
@@ -274,7 +279,7 @@ export class CollectiveSummaryUseCase {
         campaignId,
         status: "ACTIVE",
         quantityBase: { not: null },
-        member: { isActive: true, user: { isActive: true } },
+        member: { role: "AGRICULTOR", isActive: true, user: { isActive: true } },
       },
       select: {
         id: true,
