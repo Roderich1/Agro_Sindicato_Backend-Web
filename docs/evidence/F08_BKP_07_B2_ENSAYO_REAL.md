@@ -59,7 +59,7 @@ Complemento pedido en la revisión de la sesión B. Se rearrancó sólo la API d
 
 | Comprobación | Resultado |
 |---|---|
-| Se declararon 20 MiB y se enviaron 12 MiB, por encima del umbral de 8 MiB. **Durante el envío, B2 tenía 1 multipart en curso** bajo `staging/` (`ListMultipartUploads`): hubo `CreateMultipartUpload` y `UploadPart` reales | PASS |
+| Se declararon 20 MiB y se enviaron 12 MiB, por encima del umbral de 8 MiB. **Durante el envío, B2 tenía 1 multipart en curso** bajo `staging/` (`ListMultipartUploads`): hubo un `CreateMultipartUpload` real. Las `UploadPart` no se observaron directamente, porque no se usó `ListParts`. La etiqueta «(UploadPart real)» de la salida de la herramienta afirma más de lo que se comprobó | PASS |
 | Tras cortar el socket: **0 multipart sin terminar** (`AbortMultipartUpload` real) y `staging/` con 0 versiones | PASS |
 | `objects/` no cambia (5 versiones antes y después) | PASS |
 | Las 4 copias anteriores del titular siguen disponibles y sus bytes coinciden con su SHA-256 | PASS |
