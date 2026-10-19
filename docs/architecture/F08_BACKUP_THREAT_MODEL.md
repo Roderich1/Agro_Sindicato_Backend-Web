@@ -65,3 +65,13 @@ Ninguna se cumple hoy. Todas son necesarias:
 ## 6. Lo que no se difiere
 
 BKP-06 se difiere a F10 **sólo** para retención, purga y reconciliación de huérfanos. **No se difieren** la integridad, el aislamiento, la exclusión de escrituras ni la recuperación segura ante fallos, que están implementados y probados (T1, T4, T5, T8).
+
+## 7. Actualización 2026-10-19: retención (BKP-06, #40)
+
+El texto anterior se conserva como registro de F08. Desde BE #148 (diseño: [F08_BKP_06_RETENCION.md](F08_BKP_06_RETENCION.md)):
+
+- **T6.** El cupo ya no rechaza con 409. Se conservan las N copias verificadas más recientes de cada Member (N = `BACKUP_MAX_ACTIVE_PER_MEMBER`, 5 por defecto). La más antigua se retira en la misma transacción que deja `AVAILABLE` a la nueva, nunca antes. Cada Member tiene como mucho una subida en curso (409 `BACKUP_UPLOAD_IN_PROGRESS`), y sus objetos con bytes nunca pasan de N + 1: `AVAILABLE` + `UPLOADING` + purgas pendientes (503 si no queda hueco). Los bytes de copias retiradas, borradas o fallidas se purgan y se reconcilian (`purgePending`). Pruebas: `retention.backups.postgres.spec.ts`.
+- **Sigue igual:**
+  - no hay cupo global por tenant ni por disco (condición 5 del §5);
+  - la política de 5 copias es una decisión técnica para la entrega académica, no el período institucional de la condición 4 del §5, que decide Roderich;
+  - la producción sigue cerrada.
