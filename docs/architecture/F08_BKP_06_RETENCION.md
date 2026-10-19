@@ -81,7 +81,7 @@ ALTER TABLE "BackupMetadata"
 ## 5. Abandono sin borrar una transferencia activa (R6)
 
 Que una fila tenga más de `BACKUP_UPLOAD_ABANDON_MS` (60 min) **no basta** para concluir que su transferencia terminó. Este diseño la hace terminar por construcción:
-- **Plazo propio de cada subida.** `BACKUP_UPLOAD_DEADLINE_MS` = 30 min, una constante en `backups-config.ts` que pongo yo o B, con la comprobación de que es menor que `ABANDON_MS`.
+- **Plazo propio de cada subida.** `BACKUP_UPLOAD_DEADLINE_MS` = 30 min, una constante que B añade en `backups-config.ts` y `env.schema.ts` dentro de #147 (decisión de A), con la comprobación de que es menor que `ABANDON_MS`. #148 la consume por ese nombre.
   - Si se alcanza con el cuerpo aún en curso, el servicio destruye su `Sha256Meter`. Así `stage` falla y la fila queda `FAILED`.
   - Para el `commit` y las llamadas posteriores, el adaptador aplica sus propios plazos por petición (pregunta Q5 a B).
 - **Cota actual de la transferencia HTTP.** `main.ts` no configura tiempos, así que el `requestTimeout` por defecto de Node corta la petición a los 5 min. Es el mismo valor que cita el cliente MOB.
@@ -132,10 +132,12 @@ En un bucket versionado, que un nombre deje de listarse **no demuestra** que sus
   - Si un reintento del `CopyObject` crea una segunda versión del final, `remove` las purga todas. Cada fila tiene su propia clave UUID, así que **nunca hay dos versiones legítimas del mismo nombre**: una versión extra es siempre resto de un reintento.
 - **Plazos** (R-d): cada petición que no transporta el cuerpo del cliente tiene un tope total, además del de inactividad. El peor caso de `commit` (cabeceras, copia, comprobación y purga del staging), con sus reintentos, queda por debajo de `BACKUP_UPLOAD_DEADLINE_MS`.
 - **`list()` del inventario:**
-  - sólo ve las versiones vigentes (`ListObjectsV2`), y basta con eso;
-  - las versiones no vigentes que genera nuestro propio flujo son siempre de filas con `purgePending`, y su autoridad es la reconciliación, que llama a `remove` y `discardStaged`;
-  - en B2 no hay filas anteriores a la migración;
-  - **límite declarado:** el inventario no ve las versiones ni los marcadores que deje un tercero.
+  - con B2, cada versión es una entrada: `ListObjectVersions` sobre `objects/` y `staging/`, y `ListMultipartUploads` sobre `staging/`;
+  - `StoredBackupFile` gana los campos opcionales `versionId`, `hidden`, `deleteMarker` e `incompleteUpload` (#147 §8). El disco no los rellena, así que su salida no cambia;
+  - el inventario agrupa por clave y clasifica con la versión vigente, como hoy;
+  - las versiones ocultas, los marcadores y los multipart incompletos se cuentan aparte, en las categorías `hiddenVersion` e `incompleteUpload`. El CLI sólo las imprime si hay alguna, y con disco nunca las hay;
+  - la limpieza manual de una clave `DELETED`, `FAILED` o sin fila usa `remove` o `discardStaged`, que purgan también las versiones ocultas. Las versiones ocultas de una copia `AVAILABLE`, por ejemplo una copia duplicada por un reintento, sólo se informan y nunca se tocan;
+  - la autoridad sobre las filas con `purgePending` sigue siendo la reconciliación.
 
 **Lo que no se hace:**
 - no se depende de una regla de *lifecycle* del bucket ni se cambia ninguna regla del bucket;
@@ -199,9 +201,9 @@ Hasta que exista la clave restringida a `ensayo-f08/`, no se hace nada contra B2
 | T-R1c | Sin subidas no se retira nada, aunque las copias sean viejas: no hay caducidad por edad. |
 | T-R2 | Con N = 1, la copia anterior sólo se retira cuando la nueva está `AVAILABLE`. Una subida fallida (422, 413 o corte) con N copias no retira ninguna. |
 | T-R4 | Si falla el `commit` o el paso a `AVAILABLE`, ninguna copia anterior cambia, ni su fila ni su objeto. |
-| T-R5 | `remove` falla durante la rotación:<ul><li>la subida da 201;</li><li>la retirada queda `purgePending`;</li><li>con el almacenamiento todavía fallando, la siguiente subida da 503 y no escribe nada;</li><li>al recuperarse, la siguiente subida reconcilia y continúa;</li><li>en ningún momento hay más de N + 1 objetos del Member.</li></ul> |
+| T-R5 | *P* = 1 por dos causas distintas: `remove` falla durante la rotación, o fallan `discardStaged` y `remove` tras una subida fallida (observación 2 de B). En ambos casos:<ul><li>en el caso de la rotación, la subida da 201;</li><li>la retirada queda `purgePending`;</li><li>con el almacenamiento todavía fallando, la siguiente subida da 503 y no escribe nada;</li><li>al recuperarse, la siguiente subida reconcilia y continúa;</li><li>en ningún momento hay más de N + 1 objetos del Member.</li></ul> |
 | T-R7 | El propietario puede borrar su última copia (204). La retención nunca deja en 0 a un Member que tenía copias. |
-| T-B2 | Con el doble S3 en memoria de #147 y el adaptador B2:<ul><li>tras la retirada y la reconciliación quedan 0 versiones y 0 marcadores de la clave;</li><li>un `remove` que sólo ocultara el nombre deja la fila con `purgePending`;</li><li>un `commit` cuya purga del staging falla deja la fila `FAILED` con `purgePending`, sin retirar ninguna copia anterior.</li></ul> |
+| T-B2 | En el nivel del servicio, con un doble **del puerto** que imita versiones:<ul><li>tras la retirada y la reconciliación quedan 0 versiones de la clave;</li><li>un `remove` que lanza un error porque su comprobación final todavía ve una versión deja la fila con `purgePending`;</li><li>un `commit` que lanza un error porque falla la purga del staging deja la fila `FAILED` con `purgePending`, sin retirar ninguna copia anterior;</li><li>el inventario informa de `hiddenVersion`.</li></ul>La mutación «`remove` sin `VersionId`» y los casos de API S3 (paginación, multipart abierto) se fijan en el contrato del adaptador de #147, sobre su doble S3. Cuando estén integrados los dos PR, A puede pedir una prueba que una ambos. |
 
 **Concurrencia:**
 
@@ -233,13 +235,15 @@ Hasta que exista la clave restringida a `ensayo-f08/`, no se hace nada contra B2
    - la comunicación al colectivo (DEC-F01-10).
 5. **Reglas y contenido del bucket fuera de `ensayo-f08/`:** versiones, *lifecycle* y Object Lock. No se tocan.
 6. **Huérfanos anteriores a esta migración** (`purgePending = false`): siguen con el inventario y la limpieza manual de BE #119.
-7. **Retención de las copias `.previo` que acumula la app.** Es Mobile, fuera de este PR del Backend.
-8. **Estado del issue, del Project y de los gates:** los decide Roderich.
+7. **Copia tardía después de un `commit` agotado** (observación 1 de B). Si el presupuesto de 180 s del `commit` vence mientras B2 todavía copia en el servidor, la fila queda `FAILED` con `purgePending`. Si la purga termina antes de que aparezca la copia, queda un objeto final sin fila pendiente. Es improbable con copias de 100 MB o menos. Se declara como límite: lo detecta el inventario (`failedWithObject`, también por versión) y lo retira la limpieza manual.
+8. **Retención de las copias `.previo` que acumula la app.** Es Mobile, fuera de este PR del Backend.
+9. **Estado del issue, del Project y de los gates:** los decide Roderich.
 
 ## 11. Preguntas para B
 
 - **Q1.** Respondida por #147: staging como objeto propio y `commit` con `CopyObject` de la versión fijada.
-- **Q2.** ¿Aceptas los contratos de `remove` y `discardStaged` del §7, es decir, R-a y R-b, y el de `commit`, que es R-c?
-- **Q3.** Respondida: `list()` sólo ve las versiones vigentes, con el límite declarado en el §7.
-- **Q4.** ¿Pones tú `BACKUP_UPLOAD_DEADLINE_MS` en `backups-config.ts`, o me autorizas a añadir esa constante?
-- **Q5.** Pendiente de R-d: tope total por petición y la suma del peor caso de `commit`.
+- **Q2.** Aceptada por B: `remove` y `discardStaged` vuelven a listar al final y lanzan un error si queda algo; `stage` aborta y espera.
+- **Q3.** Respondida: campos opcionales por versión, como recoge el §7.
+- **Q4.** Decidida por A: B la añade en #147 y #148 la consume. El orden de integración es #147 y después #148.
+- **Q5.** Respondida: 10 s de conexión, 60 s de inactividad, 3 intentos. Presupuestos totales: `commit` 180 s; `remove`, `discardStaged` y `removeStagedFile` 120 s; `open` 60 s hasta las cabeceras. Todo queda por debajo de los 30 min del plazo de subida.
+- **Pendiente de confirmar en #147 (R-c):** que `commit` lance un error, y no se dé por bueno, cuando falla la purga comprobada del staging.
