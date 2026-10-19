@@ -34,6 +34,7 @@ import { InventoryLotUseCase } from '../../application/use-cases/inventory-lot.u
 import { InventoryStockUseCase } from '../../application/use-cases/inventory-stock.use-case';
 import { ProductCatalogUseCase } from '../../application/use-cases/product-catalog.use-case';
 import { LegacyRouteClosedGuard } from '@/shared/api/legacy-route-closed.guard';
+import { LegacyPrivateWrite } from '@/shared/api/legacy-private-writes';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -91,6 +92,7 @@ export class InventoryController {
   }
 
   @Post('initial-stock')
+  @LegacyPrivateWrite(201)
   // F10-SEC-02 (#45): owner-scoped private operation; institutional roles do not operate it (ADR-003).
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Registrar inventario inicial del agricultor autenticado' })
@@ -103,6 +105,7 @@ export class InventoryController {
   }
 
   @Post('entries')
+  @LegacyPrivateWrite(201)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Registrar una entrada de agroquimico' })
   async registerEntry(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RegisterStockEntryDto) {
@@ -111,6 +114,7 @@ export class InventoryController {
   }
 
   @Post('exits')
+  @LegacyPrivateWrite(200)
   @Roles(UserRole.AGRICULTOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Registrar una salida de agroquimico validando stock disponible' })
@@ -120,6 +124,7 @@ export class InventoryController {
   }
 
   @Post('adjustments')
+  @LegacyPrivateWrite(200)
   @Roles(UserRole.AGRICULTOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Registrar ajuste de inventario por perdida, dano o correccion' })
@@ -136,6 +141,7 @@ export class InventoryController {
   }
 
   @Patch('lots/:id')
+  @LegacyPrivateWrite(200)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Actualizar lote, vencimiento o almacen de un lote' })
   async updateLot(

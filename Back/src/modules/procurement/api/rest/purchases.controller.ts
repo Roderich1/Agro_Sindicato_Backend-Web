@@ -11,6 +11,7 @@ import { CreateJointPurchaseUseCase } from '../../application/use-cases/create-j
 import { CreatePurchaseUseCase } from '../../application/use-cases/create-purchase.use-case';
 import { ListPurchasesUseCase } from '../../application/use-cases/list-purchases.use-case';
 import { LegacyRouteClosedGuard } from '@/shared/api/legacy-route-closed.guard';
+import { LegacyPrivateWrite } from '@/shared/api/legacy-private-writes';
 
 @ApiTags('purchases')
 @ApiBearerAuth()
@@ -44,8 +45,8 @@ export class PurchasesController {
   }
 
   @Post()
+  @LegacyPrivateWrite()
   @Roles(UserRole.AGRICULTOR)
-  @ApiForbiddenResponse({ description: 'Compra individual legacy: sólo Agricultor vigente.' })
   @ApiOperation({ summary: 'Registrar compra al contado o a credito con entrada de inventario' })
   async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreatePurchaseDto) {
     this.logger.log(`[PURCHASE CREATE] userId=${user.sub} tenantId=${user.tenantId} mode=${dto.paymentMode}`);

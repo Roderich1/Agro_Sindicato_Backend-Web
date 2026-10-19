@@ -88,6 +88,10 @@ export const envSchema = z.object({
   BACKUP_S3_SECRET_ACCESS_KEY: optionalText(z.string().regex(/^\S{1,256}$/)),
   // One segment ending in "/" (e.g. `ensayo-f08/`): never the bucket root.
   BACKUP_S3_PREFIX: optionalText(z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}\/$/)),
+  // #81 PHASE 6: the farmer's legacy private writes are closed (403
+  // LEGACY_ROUTE_CLOSED). `enabled` is an operational rollback of this
+  // server only, never the normal path; it authorises nothing.
+  LEGACY_PRIVATE_WRITES_ROLLBACK: optionalText(z.enum(["enabled", "disabled"])),
 });
 
 export type Env = z.infer<typeof envSchema>;

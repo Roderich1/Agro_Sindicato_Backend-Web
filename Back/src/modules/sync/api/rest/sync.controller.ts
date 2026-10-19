@@ -9,6 +9,7 @@ import {
   SyncOperationsDto,
 } from '../../application/dto/sync-operations.dto';
 import { SyncOperationsUseCase } from '../../application/use-cases/sync-operations.use-case';
+import { LegacyPrivateWrite } from '@/shared/api/legacy-private-writes';
 
 @ApiTags('sync')
 @ApiBearerAuth()
@@ -20,8 +21,8 @@ export class SyncController {
   constructor(private readonly syncOperationsUseCase: SyncOperationsUseCase) {}
 
   @Post('operations')
+  @LegacyPrivateWrite()
   @Roles(UserRole.AGRICULTOR)
-  @ApiForbiddenResponse({ description: 'Operación individual legacy: sólo Agricultor vigente.' })
   @ApiOperation({ summary: 'Sincronizar operaciones registradas sin conexion' })
   async sync(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: SyncOperationsDto) {
     this.logger.log(`[SYNC OPERATIONS] userId=${user.sub} tenantId=${user.tenantId} clientId=${dto.clientId} count=${dto.operations.length}`);

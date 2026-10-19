@@ -7,6 +7,7 @@ import { AuthenticatedPrincipal } from '../../../iam/application/types/authentic
 import { ListPayablesQueryDto } from '../../application/dto/list-payables-query.dto';
 import { RegisterPaymentDto } from '../../application/dto/register-payment.dto';
 import { AccountsPayableUseCase } from '../../application/use-cases/accounts-payable.use-case';
+import { LegacyPrivateWrite } from '@/shared/api/legacy-private-writes';
 
 @ApiTags('accounts-payable')
 @ApiBearerAuth()
@@ -26,6 +27,7 @@ export class AccountsPayableController {
   }
 
   @Post(':id/payments')
+  @LegacyPrivateWrite(201)
   @ApiOperation({ summary: 'Registrar abono parcial o total' })
   async registerPayment(
     @CurrentUser() user: AuthenticatedPrincipal,
@@ -37,6 +39,7 @@ export class AccountsPayableController {
   }
 
   @Post(':id/pay-total')
+  @LegacyPrivateWrite(201)
   @ApiOperation({ summary: 'Registrar pago total del saldo pendiente' })
   async payTotal(
     @CurrentUser() user: AuthenticatedPrincipal,

@@ -18,6 +18,7 @@ import { LoginUseCase } from "../use-cases/login.use-case";
 import { RefreshSessionUseCase } from "../use-cases/refresh-session.use-case";
 import { GetMeUseCase } from "../use-cases/get-me.use-case";
 import { CreateJointPurchaseUseCase } from "@/modules/procurement/application/use-cases/create-joint-purchase.use-case";
+import { LegacyPrivateWritesConfig } from "@/shared/api/legacy-private-writes";
 
 const postgresUrl = process.env["F02_D_PG_TEST_URL"];
 const describePostgres = postgresUrl ? describe : describe.skip;
@@ -78,9 +79,14 @@ describePostgres("F02-IAM-04 current authorization context — PostgreSQL 16 + H
     process.env["JWT_SECRET"] = secret;
     process.env["JWT_REFRESH_SECRET"] = "f02-d-test-refresh-secret-long-enough-123";
     const { AppModule } = await import("@/app.module");
+    // #81 PHASE 6: these ownership checks run on the ROLLBACK path
+    // (LEGACY_PRIVATE_WRITES_ROLLBACK=enabled); by default the legacy private
+    // writes answer 403 LEGACY_ROUTE_CLOSED (f81-phase6-legacy-writes spec).
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideGuard(ThrottlerGuard)
       .useValue({ canActivate: () => true })
+      .overrideProvider(LegacyPrivateWritesConfig)
+      .useValue({ rollback: true })
       .compile();
     app = module.createNestApplication();
     app.setGlobalPrefix("api/v1");

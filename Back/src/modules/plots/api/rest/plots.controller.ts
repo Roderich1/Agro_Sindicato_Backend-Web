@@ -22,6 +22,7 @@ import {
   UpdatePlotDto,
 } from '../../application/dto/plot-flow.dto';
 import { PlotFlowUseCase } from '../../application/use-cases/plot-flow.use-case';
+import { LegacyPrivateWrite } from '@/shared/api/legacy-private-writes';
 
 @ApiTags('plots')
 @ApiBearerAuth()
@@ -44,6 +45,7 @@ export class PlotsController {
   }
 
   @Post()
+  @LegacyPrivateWrite(201)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Crear una parcela del agricultor autenticado' })
   async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreatePlotDto) {
@@ -56,6 +58,7 @@ export class PlotsController {
   }
 
   @Patch(':id')
+  @LegacyPrivateWrite(200)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Editar una parcela propia del agricultor autenticado' })
   async update(
@@ -73,6 +76,7 @@ export class PlotsController {
   }
 
   @Post(':id/deactivate')
+  @LegacyPrivateWrite(200)
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.AGRICULTOR)
   @ApiOperation({ summary: 'Inactivar una parcela propia sin borrar su historial' })
