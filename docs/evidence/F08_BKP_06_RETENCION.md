@@ -73,14 +73,55 @@ La URL de la base de pruebas se pasó por variable de entorno y no se escribe aq
 
 La mutación «`remove` sin `VersionId`» pertenece al adaptador B2 y la fija el contrato de pruebas de BE #147, sobre su doble S3.
 
+## Actualización del 2026-10-19: merge de `main` con BE #147 y lo que dependía de él
+
+Las secciones anteriores describen `2aaf67d` y se conservan tal cual.
+
+**CI de `7b3ace9`** (run 39277701496): **falló**. `sync-v1-journal.postgres.spec.ts` contaba exactamente 11 migraciones y la migración de retención es la 12.ª. En local sólo se habían ejecutado las suites de `backups`, así que el fallo no apareció antes. Se corrigió la prueba, que ahora espera 12 con `_f08_bkp06_retention` al final; en local da 30/30.
+
+**Commits:**
+- `a151488`: merge de `origin/main` `6141572` (BE #147), sin rebase. El único conflicto estaba en los imports de `cli/backups-inventory.ts` y se conservan `storageFromEnv` y `--reconcile`;
+- `df26c3a`: lo que dependía de #147.
+
+**Qué se añadió en `df26c3a`:**
+- **Plazo de subida** (`BackupsConfig.uploadDeadlineMs`, 30 min por defecto, que define #147). Al vencer, destruye el `Sha256Meter`. La fila queda `FAILED UPLOAD_DEADLINE` con sus bytes purgados, y la respuesta es 503 `BACKUP_STORAGE_UNAVAILABLE` con `Connection: close`. Junto con los topes del adaptador (el `commit` de B2, 180 s), una fila con más de 60 min ya no tiene ninguna escritura en curso.
+- **Inventario:**
+  - las versiones ocultas y los marcadores van a `hiddenVersion` y sólo se informan;
+  - los multipart sin completar van a `incompleteUpload`, una categoría que la limpieza acotada puede abortar con el umbral de antigüedad y la nueva comprobación;
+  - con el disco no aparecen nunca.
+- **`b2-retention.backups.postgres.spec.ts`** (5 casos). Usa el adaptador `S3BackupStorage` sobre el «doble S3 en memoria» de #147, **que no es B2**:
+
+| Caso | Qué comprueba |
+|---|---|
+| Rotación | La copia retirada queda con 0 versiones. Las N vigentes tienen una versión cada una, y no queda ningún staging. |
+| El proveedor rechaza los borrados por `VersionId` | La retirada queda pendiente con su versión (N + 1) y la subida siguiente da 503. Al recuperarse, se reconcilia: N y 0 versiones de la retirada. |
+| `commit` cuya purga del staging falla (R-c) | 503, la fila queda `FAILED STORAGE_COMMIT_FAILED` con `purgePending`, y no se retira ninguna copia. La siguiente subida la reconcilia: sin final ni staging. |
+| Plazo de subida (300 ms en la prueba) | Con medio cuerpo y nada más: 503, `FAILED UPLOAD_DEADLINE`, sin versiones ni multipart de esa clave, y la copia anterior sigue. |
+| Inventario | Una versión ocultada por un tercero (2 entradas, 300 bytes) aparece como `hiddenVersion` y no como objeto sin fila. Un multipart abierto (200 bytes) aparece como `incompleteUpload`. La limpieza aborta el multipart y **no** toca la versión oculta. |
+
+**Comandos y resultado** (árbol de `df26c3a`, base desechable):
+
+```text
+npx tsc --noEmit -p tsconfig.json                                     → sin errores
+npm run openapi:check                                                 → snapshots iguales; F02, F05, F06 y F08 passed
+F08_BKP_PG_TEST_URL=<base> npx jest src/modules/backups --runInBand    → 10 suites, 153 pruebas, todas PASS
+F05_SYNC_05A_PG_TEST_URL=<base> npx jest sync-v1-journal.postgres.spec.ts → 30/30
+npx eslint <archivos de backups cambiados>                            → 2 errores no-undef: AbortController (mi prueba B2) y NodeJS (CLI que viene de #147)
+```
+
+Los `no-undef` de globales de Node y Jest (`AbortSignal`, `afterEach`, `NodeJS`…) también aparecen en los archivos de `main` que entraron con #147. Es un hueco de la configuración de ESLint, que el CI no ejecuta. En el servicio se evitó importando `clearTimeout` y `setTimeout` de `node:timers`, y en la prueba B2, importando `afterEach` de `@jest/globals`.
+
+**Mutaciones nuevas** (revertidas, `git status` limpio):
+
+| ID | Mutación | Resultado (`b2-retention`) |
+|---|---|---|
+| M7 | El plazo de subida no destruye el medidor | **falla** «an upload cut at its deadline…» (1 de 5) |
+| M8 | El inventario no separa las versiones ocultas | **falla** «the inventory reports hidden versions…» (1 de 5) |
+
 ## Lo que esta evidencia no cubre
 
-**Depende de BE #147 y se hará al hacer merge de `main`, sin rebase:**
-- el plazo de subida (`uploadDeadlineMs`, 30 min) que corta el `Sha256Meter`;
-- las categorías `hiddenVersion` e `incompleteUpload` del inventario;
-- T-B2 con el adaptador B2 real sobre el doble S3.
-
-Hasta entonces, la garantía de que una fila con más de 60 min no tiene ninguna transferencia en curso descansa en el `requestTimeout` de Node, de 300 s, que sólo cubre el cuerpo.
+- **`stillCandidate`** sigue haciendo un `list()` completo por candidato: con B2 son O(n²) llamadas en una limpieza grande. Es correcto, pero caro, y se declara.
+- **El doble S3** imita la API S3, no a B2. El comportamiento real del bucket (versiones, Object Lock, SSE-B2 y tiempos) queda para el ensayo con la clave restringida a `ensayo-f08/`.
 
 **Nada contra B2 real** hasta que exista la clave restringida a `ensayo-f08/`.
 
