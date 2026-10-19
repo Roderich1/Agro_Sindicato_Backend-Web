@@ -8,11 +8,14 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const BE = path.join(__dirname, "..", "..", "Back", "node_modules");
+const BE = process.env.F08_B2_NODE_MODULES || path.join(__dirname, "..", "..", "Back", "node_modules");
 const { S3Client, ListObjectVersionsCommand, HeadObjectCommand, GetObjectCommand, ListMultipartUploadsCommand } =
   require(path.join(BE, "@aws-sdk/client-s3"));
 const api = process.argv[2]; const outFile = process.argv[3];
 const e = process.env; const P = e.BACKUP_S3_PREFIX; const Bucket = e.BACKUP_S3_BUCKET;
+for (const k of ["BACKUP_S3_ENDPOINT", "BACKUP_S3_REGION", "BACKUP_S3_BUCKET", "BACKUP_S3_PREFIX", "BACKUP_S3_ACCESS_KEY_ID", "BACKUP_S3_SECRET_ACCESS_KEY"])
+  if (!e[k]) { console.error(`falta ${k}`); process.exit(2); }
+if (!/^[a-z0-9][a-z0-9-]{0,62}\/$/.test(P)) { console.error("prefijo inválido"); process.exit(2); }
 const s3 = new S3Client({ endpoint: e.BACKUP_S3_ENDPOINT, region: e.BACKUP_S3_REGION, forcePathStyle: true,
   credentials: { accessKeyId: e.BACKUP_S3_ACCESS_KEY_ID, secretAccessKey: e.BACKUP_S3_SECRET_ACCESS_KEY } });
 const log = []; const results = [];

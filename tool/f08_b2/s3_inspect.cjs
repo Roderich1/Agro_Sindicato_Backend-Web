@@ -7,7 +7,7 @@
 //   node s3_inspect.cjs uploads                  multipart sin terminar bajo el prefijo
 const path = require("node:path");
 const crypto = require("node:crypto");
-const BE = path.join(__dirname, "..", "..", "Back", "node_modules");
+const BE = process.env.F08_B2_NODE_MODULES || path.join(__dirname, "..", "..", "Back", "node_modules");
 const { S3Client, ListObjectVersionsCommand, HeadObjectCommand, GetObjectCommand, ListMultipartUploadsCommand } =
   require(path.join(BE, "@aws-sdk/client-s3"));
 const e = process.env;

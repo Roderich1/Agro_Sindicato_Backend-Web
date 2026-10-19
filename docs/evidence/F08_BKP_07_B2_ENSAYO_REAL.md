@@ -42,11 +42,29 @@ Las herramientas sólo escriben y leen bajo `ensayo-f08/`, y `s3_inspect.cjs` re
 | B, 20 MiB (multipart) | Lo mismo; subida en 13,1 s | PASS |
 | Aislamiento | Otro agricultor del mismo tenant: 404, indistinguible de una copia inexistente; no la ve en su lista y no puede borrarla (404). Administrador del mismo tenant: 403 en la lista y en el contenido. Agricultor de **otro tenant**: 404, indistinguible. Sin sesión: 401 | PASS |
 | SHA-256 incorrecto | 422; ningún objeto nuevo; staging y multipart vacíos | PASS |
-| Subida cortada a mitad | Se declararon 12 MiB, se enviaron 3 MiB y se cortó el socket. Las 2 copias anteriores siguen disponibles y sus bytes se descargan íntegros; ningún objeto nuevo; staging y multipart vacíos | PASS |
+| Subida cortada a mitad | Se declararon 12 MiB, se enviaron 3 MiB y se cortó el socket. Las 2 copias anteriores siguen disponibles y sus bytes se descargan íntegros; ningún objeto nuevo; staging y multipart vacíos. **Límite:** 3 MiB está por debajo del umbral de 8 MiB de `stage()`, así que **no salió ninguna petición a B2**. Este caso prueba el servicio, no el proveedor. El corte por encima del umbral está en el §1.1 | PASS |
 | Concurrencia | Con una subida lenta en curso, la segunda subida devuelve **409 `BACKUP_UPLOAD_IN_PROGRESS`**; la primera termina con 201 | PASS |
 | Rotación (5 + 1) | Con 5 copias (A, B, C, D y E) la herramienta escribió antes la retirada **prevista** (la copia más antigua, `a65b26dc`, y su objeto `objects/6afc8b82…` con todas sus versiones); de la lista previa del servidor sólo se comprobó que tuviera 5 copias. La previsión se **confirmó después**: La sexta (F) da 201 y queda verificada. Después quedan **exactamente B, C, D, E y F**; A devuelve 404 y tiene **0 versiones físicas** en B2, marcadores incluidos; B a F siguen con 1 versión cada una y sus bytes íntegros | PASS |
 | Borrado del propietario | `DELETE` de B → 204; **0 versiones físicas** de su objeto en B2 | PASS |
 | Conciliación final | 4 copias disponibles = 4 objetos en B2, con 1 versión cada uno; 0 marcadores; staging y multipart vacíos | PASS |
+
+### 1.1 Corte de una subida multipart contra B2 real: **4/4 PASS** (18:45:20–18:45:39Z)
+
+Complemento pedido en la revisión de la sesión B. Se rearrancó sólo la API del mismo entorno, sin túnel ni teléfono:
+- `main` `f0b55ee` y proveedor b2;
+- secretos efímeros nuevos;
+- la contraseña del PostgreSQL conservado se reasignó por stdin, sin borrar nada.
+
+**Comando:** `F08_B2_NODE_MODULES=… credential.sh run D powershell -File con_b2.ps1 node tool/f08_b2/b2_cut_multipart.cjs http://127.0.0.1:3142`. Salida en [`f08_b2/b2_cut_multipart.txt`](f08_b2/b2_cut_multipart.txt).
+
+| Comprobación | Resultado |
+|---|---|
+| Se declararon 20 MiB y se enviaron 12 MiB, por encima del umbral de 8 MiB. **Durante el envío, B2 tenía 1 multipart en curso** bajo `staging/` (`ListMultipartUploads`): hubo `CreateMultipartUpload` y `UploadPart` reales | PASS |
+| Tras cortar el socket: **0 multipart sin terminar** (`AbortMultipartUpload` real) y `staging/` con 0 versiones | PASS |
+| `objects/` no cambia (5 versiones antes y después) | PASS |
+| Las 4 copias anteriores del titular siguen disponibles y sus bytes coinciden con su SHA-256 | PASS |
+
+En PostgreSQL ([`f08_b2/db_tras_corte.txt`](f08_b2/db_tras_corte.txt)) hay una fila FAILED `TRANSFER_INCOMPLETE` más (2 en total), sin `purgePending`. El log de esta API no contiene credenciales, cabeceras de autorización ni firmas.
 
 **PostgreSQL tras el ensayo de API** ([`f08_b2/db_tras_api.txt`](f08_b2/db_tras_api.txt), con la consulta y las columnas en la cabecera):
 - AVAILABLE: 4;
@@ -111,15 +129,32 @@ Las herramientas sólo escriben y leen bajo `ensayo-f08/`, y `s3_inspect.cjs` re
 - la carga concurrente de varios usuarios;
 - contra B2 real no se ejercieron las pruebas de concurrencia C2 (borrado del propietario frente a la rotación) y C5, ni la cota con un proveedor que rechaza los borrados (T-R5). Sólo las cubren las suites con PostgreSQL y el doble S3 (`F08_BKP_06_RETENCION.md`).
 
-Siguen vigentes los límites declarados en `F08_BKP_07_B2_ADAPTER.md` y `F08_BKP_06_RETENCION.md`, incluidos la fila UPLOADING colgada tras un reinicio y el `--reconcile` después de una limpieza manual.
+**Límites de `F08_BKP_07_B2_ADAPTER.md` §5, punto por punto:**
+
+| Punto | Estado tras este ensayo |
+|---|---|
+| `Content-MD5` en `PutObject` y `UploadPart` | **Confirmado**: B2 aceptó las subidas simples y multipart del adaptador |
+| `CopyObject` con `MetadataDirective=REPLACE` | **Confirmado**: los objetos finales llevan `agro-sha256` y `agro-size` |
+| SSE-B2 (`AES256`) | **Confirmado** en los objetos comprobados (§4) |
+| `ListObjectVersions` y `ListMultipartUploads` | **Confirmados** con esta clave |
+| `DeleteObject` con `VersionId` | **Confirmado**: retención y borrado del propietario dejan 0 versiones y 0 marcadores |
+| `AbortMultipartUpload` | **Confirmado** en el §1.1 |
+| Clave limitada al prefijo | **Abierto**: la clave usada no tiene prefijo (desviación de §0) |
+| `BadDigest` (un `Content-MD5` erróneo rechazado por B2) | **Abierto**: no se provocó |
+| Paginación de los listados | **Abierto**: con 5 objetos no hay más de una página |
+| `CopyObject` con el `versionId` fijado | **Abierto**: no se observó qué versión de staging se copió; sólo el resultado |
+| Simple frente a multipart | Se deduce por el tamaño (1 MiB frente a 20 MiB); el ensayo no observa qué operación hizo el SDK, salvo en el §1.1, donde el multipart se vio en B2 |
+
+También siguen vigentes los límites de `F08_BKP_06_RETENCION.md`, entre ellos la fila UPLOADING colgada tras un reinicio y el `--reconcile` después de una limpieza manual.
 
 ## 5. Herramientas
 
 **En este repositorio:**
-- `tool/f08_b2/b2_api_trial.cjs`: el ensayo de API.
+- `tool/f08_b2/b2_api_trial.cjs`: el ensayo de API. Tras la revisión de B se le añadió la validación de las variables y del prefijo que ya tenía `s3_inspect.cjs`; el ensayo de las 18:08Z se ejecutó con la versión anterior, que sólo lee de S3 y escribe a través de la API.
+- `tool/f08_b2/b2_cut_multipart.cjs`: el corte multipart del §1.1.
 - `tool/f08_b2/s3_inspect.cjs`: inspección de sólo lectura del prefijo.
 
-Las dos resuelven `@aws-sdk/client-s3` desde `Back/node_modules`, leen las credenciales sólo del entorno y no imprimen secretos.
+Las tres resuelven `@aws-sdk/client-s3` desde `Back/node_modules`, o desde `F08_B2_NODE_MODULES`,, leen las credenciales sólo del entorno y no imprimen secretos.
 
 **Fuera de los repositorios** (con las mismas reglas):
 - el arnés de entorno: contenedor, túnel y contraseñas de un solo uso;
