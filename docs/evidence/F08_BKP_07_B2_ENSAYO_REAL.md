@@ -107,6 +107,7 @@ En PostgreSQL ([`f08_b2/db_tras_corte.txt`](f08_b2/db_tras_corte.txt)) hay una f
   - FAILED: 2;
   - DELETED: 1 con `OWNER` y 1 con `RETENTION`;
   - ninguna con `purgePending`.
+- **Tras el corte multipart del §1.1** (18:45Z), B2 sigue igual: 5 objetos, staging y multipart vacíos. En PostgreSQL hay 1 FAILED más (`TRANSFER_INCOMPLETE`): 3 FAILED en total, sin `purgePending`.
 - Los 5 objetos sintéticos se **conservan** bajo `ensayo-f08/` como registro del ensayo. Se pueden retirar con un `DELETE` del propietario por la API.
 - **Entorno:**
   - API, observador y túnel detenidos;
