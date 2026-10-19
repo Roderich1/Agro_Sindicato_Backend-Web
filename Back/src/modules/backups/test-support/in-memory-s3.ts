@@ -28,6 +28,9 @@ import type { S3Sender } from "../infrastructure/s3-backup-storage";
  */
 export const MIN_PART_BYTES = 5_000_000;
 
+/** Code-unit order, as S3 lists keys (UTF-8 binary order for these ASCII names). */
+export const byCode = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 export interface StoredVersionRecord {
   versionId: string;
   deleteMarker: boolean;
@@ -91,7 +94,9 @@ export class InMemoryS3 implements S3Sender {
 
   /** Every name with at least one version or marker under `prefix`. */
   names(prefix = ""): string[] {
-    return [...this.objects.keys()].filter((k) => k.startsWith(prefix) && this.versionsOf(k).length).sort();
+    return [...this.objects.keys()]
+      .filter((k) => k.startsWith(prefix) && this.versionsOf(k).length)
+      .sort(byCode);
   }
 
   /** Total stored versions and markers, plus unfinished uploads. */
@@ -144,7 +149,8 @@ export class InMemoryS3 implements S3Sender {
   private checkMd5(input: Record<string, unknown>, body: Buffer) {
     const declared = input["ContentMD5"];
     if (typeof declared !== "string") throw s3Error("MissingContentMD5", 400);
-    if (createHash("md5").update(body).digest("base64") !== declared) throw s3Error("BadDigest", 400);
+    // Content-MD5 is the S3 protocol's transport check of the body, not a cryptographic use; the copy's integrity is its SHA-256.
+    if (createHash("md5").update(body).digest("base64") !== declared) throw s3Error("BadDigest", 400); // NOSONAR: S3 Content-MD5 transport check, not cryptographic
     if (input["ContentLength"] !== body.length) throw s3Error("IncompleteBody", 400);
   }
 
@@ -166,7 +172,8 @@ export class InMemoryS3 implements S3Sender {
       const body = input["Body"] as Buffer;
       this.checkMd5(input, body);
       upload.parts.set(input["PartNumber"] as number, body);
-      return { ETag: `"${createHash("md5").update(body).digest("hex")}"` };
+      // The S3 ETag of a part is its MD5 (protocol value, not a cryptographic use).
+      return { ETag: `"${createHash("md5").update(body).digest("hex")}"` }; // NOSONAR: S3 part ETag (MD5) protocol value, not cryptographic
     }
     if (command instanceof CompleteMultipartUploadCommand) {
       const uploadId = input["UploadId"] as string;
@@ -285,7 +292,7 @@ export class InMemoryS3 implements S3Sender {
     const all = [...this.uploads.entries()]
       .filter(([, u]) => u.key.startsWith(prefix))
       .map(([uploadId, u]) => ({ uploadId, ...u }))
-      .sort((a, b) => a.key.localeCompare(b.key) || a.uploadId.localeCompare(b.uploadId));
+      .sort((a, b) => byCode(a.key, b.key) || byCode(a.uploadId, b.uploadId));
     const keyMarker = input["KeyMarker"] as string | undefined;
     const uploadIdMarker = input["UploadIdMarker"] as string | undefined;
     let start = 0;

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { backupStorageContract } from "../test-support/backup-storage.contract";
+import { backupStorageContract, byCode } from "../test-support/backup-storage.contract";
 import { LocalDiskBackupStorage } from "./local-disk-backup-storage";
 
 /** F08-BKP-02 (#38): disk adapter on a real temporary directory. */
@@ -11,7 +11,7 @@ backupStorageContract("LocalDiskBackupStorage", async () => {
   const root = await mkdtemp(join(tmpdir(), "f08-bkp-02-"));
   return {
     storage: new LocalDiskBackupStorage(root),
-    entries: async (area) => (await readdir(join(root, area)).catch(() => [])).sort(),
+    entries: async (area) => (await readdir(join(root, area)).catch(() => [])).sort(byCode),
     writeForeign: (area, name, content) => writeFile(join(root, area, name), content),
     readForeign: (area, name) => readFile(join(root, area, name), "utf8"),
     isEmpty: async () => (await readdir(root)).length === 0,

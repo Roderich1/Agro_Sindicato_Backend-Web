@@ -20,6 +20,12 @@ export interface StorageHarness {
   dispose(): Promise<void>;
 }
 
+/**
+ * Code-unit order for keys and names: deterministic and locale independent,
+ * unlike `localeCompare` or a `sort()` without a compare function.
+ */
+export const byCode = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 export async function readAll(stream: Readable): Promise<Buffer> {
   const chunks: Buffer[] = [];
   for await (const chunk of stream) chunks.push(chunk as Buffer);
@@ -154,7 +160,7 @@ export function backupStorageContract(label: string, create: () => Promise<Stora
 
       const listed = await storage.list();
       const order = (a: { area: string; key: string | null }, b: { area: string; key: string | null }) =>
-        `${a.area}${a.key}`.localeCompare(`${b.area}${b.key}`);
+        byCode(`${a.area}${a.key}`, `${b.area}${b.key}`);
       expect(listed.map(({ area, key: k, sizeBytes }) => ({ area, key: k, sizeBytes })).sort(order)).toEqual(
         [
           { area: "objects", key, sizeBytes: 10 },
@@ -170,7 +176,7 @@ export function backupStorageContract(label: string, create: () => Promise<Stora
       await storage.removeStagedFile(part);
       expect((await storage.list()).filter((f) => f.area === "staging")).toEqual([]);
       expect(await h.entries("staging")).toEqual([]);
-      expect((await h.entries("objects")).sort()).toEqual([key, "notas.txt"].sort());
+      expect((await h.entries("objects")).sort(byCode)).toEqual([key, "notas.txt"].sort(byCode));
     });
   });
 }

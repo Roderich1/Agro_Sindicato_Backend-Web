@@ -115,3 +115,25 @@ Comando de cada una: `npx jest src/modules/backups`.
 - **Inventario:** en este PR ignora las versiones ocultas, los marcadores y los multipart incompletos. Su clasificación (`hiddenVersion`, `incompleteUpload`) llega con la retención de #148.
 - **SSE-B2 no es cifrado del lado del cliente.** No cumple la condición 2 del §5 de `F08_BACKUP_THREAT_MODEL.md`, y la admisión productiva sigue cerrada.
 - **Sin cifrado del lado del cliente, sin despliegue y sin retención aplicada:** eso es #148 y queda fuera de este PR.
+
+## 6. Corrección del quality gate de SonarCloud (2026-10-19)
+
+Sobre `fa4d941`, el quality gate del PR estaba en ERROR por dos calificaciones nuevas. La de fiabilidad (`new_reliability_rating`) se debía a tres S2871. La de seguridad (`new_security_rating`) se debía a tres S4790.
+
+**S2871 (`sort()` sin función de comparación).** Se usa `byCode`, que ordena por unidad de código: es determinista y no depende del locale, a diferencia de `localeCompare`. Se aplicó:
+- en `backup-storage.contract.ts` y en `in-memory-s3.ts`, que son los dos avisos;
+- también en los demás `sort` de los archivos nuevos de este PR: los dos specs del adaptador y el orden de las subidas del doble.
+
+**S4790 (MD5).** Es el `Content-MD5` que exige el protocolo S3 como comprobación de transporte del cuerpo, más el ETag de una parte en el doble. No es un uso criptográfico: la integridad de la copia la da el SHA-256. Se marcó con `// NOSONAR` y la justificación en la misma línea. **No se cambió ni se quitó el algoritmo**, porque B2 lo usa para validar el cuerpo.
+
+**S3776 (complejidad).** El mapeo de cada página de `ListObjectVersions` pasa a `versionsOfPage()`, sin cambiar el comportamiento.
+
+**Ejecución local sobre el árbol corregido** (en `Back/`):
+
+| Hora (UTC) | Comando | Salida resumida |
+|---|---|---|
+| 15:19:00 | `npx tsc --noEmit -p tsconfig.json` | Sin errores |
+| 15:19:00–15:19:20 | `npx jest src/modules/backups src/config` | 105 pasan, 37 se omiten (las PG, opt-in), 142 en total |
+| 15:19:20–15:20:06 | `F08_BKP_PG_TEST_URL=… npx jest backups.postgres.spec.ts --runInBand` | 37/37 |
+
+El estado del gate tras el push consta en el PR.

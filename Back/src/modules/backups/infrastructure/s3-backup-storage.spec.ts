@@ -4,6 +4,7 @@ import { BackupObjectMissingError } from "../domain/backup-storage.port";
 import { BackupTooLargeError, Sha256Meter } from "../application/sha256-meter";
 import {
   backupStorageContract,
+  byCode,
   failingSource,
   readAll,
 } from "../test-support/backup-storage.contract";
@@ -32,7 +33,7 @@ function entriesOf(s3: InMemoryS3, area: "objects" | "staging"): string[] {
     for (const _ of s3.versionsOf(name)) names.push(name.slice(base.length));
   for (const upload of s3.uploads.values())
     if (upload.key.startsWith(base)) names.push(upload.key.slice(base.length));
-  return names.sort();
+  return names.sort(byCode);
 }
 
 backupStorageContract("S3BackupStorage over the in-memory S3 double", async () => {
@@ -341,10 +342,12 @@ describe("S3BackupStorage (B2 by its S3 API) over the in-memory S3 double", () =
       ]),
     );
     expect(listed.find((f) => f.versionId === hidden)?.hidden).toBe(true);
-    expect(listed.filter((f) => f.key === gone).map((f) => [f.hidden, f.deleteMarker]).sort()).toEqual([
-      [true, false],
-      [true, true],
-    ]);
+    expect(
+      listed
+        .filter((f) => f.key === gone)
+        .map((f) => `${f.hidden}/${f.deleteMarker}`)
+        .sort(byCode),
+    ).toEqual(["true/false", "true/true"]);
     expect(listed.filter((f) => f.incompleteUpload).map(pick)).toEqual([
       { area: "staging", key: uploadKey.slice(`${PREFIX}staging/`.length, -".0123456789abcdef.part".length), sizeBytes: 12, hidden: undefined, deleteMarker: undefined, incompleteUpload: true },
     ]);

@@ -99,8 +99,13 @@ const SHA256_META = "agro-sha256";
 const SIZE_META = "agro-size";
 const CONTENT_TYPE = "application/octet-stream";
 
+/**
+ * Content-MD5 of a request body: the S3 protocol's transport check (the
+ * provider rejects a body that does not match), not a cryptographic use. The
+ * integrity of a copy is given by its SHA-256.
+ */
 function md5(bytes: Buffer): string {
-  return createHash("md5").update(bytes).digest("base64");
+  return createHash("md5").update(bytes).digest("base64"); // NOSONAR: S3 Content-MD5 transport check, not cryptographic
 }
 
 function statusOf(error: unknown): number | undefined {
@@ -119,6 +124,39 @@ function deadline(ms: number, parent?: AbortSignal) {
   timer.unref?.();
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
   return { signal, clear: () => clearTimeout(timer) };
+}
+
+/** One entry of a `ListObjectVersions` page (a version or a delete marker). */
+interface ListedVersion {
+  Key?: string;
+  VersionId?: string;
+  IsLatest?: boolean;
+  Size?: number;
+  LastModified?: Date;
+}
+
+/** The versions and delete markers of one page, entries without a key skipped. */
+function versionsOfPage(page: {
+  Versions?: ListedVersion[];
+  DeleteMarkers?: ListedVersion[];
+}): StoredVersion[] {
+  const entry = (v: ListedVersion, deleteMarker: boolean): StoredVersion[] =>
+    v.Key
+      ? [
+          {
+            name: v.Key,
+            versionId: v.VersionId,
+            latest: v.IsLatest === true,
+            deleteMarker,
+            sizeBytes: deleteMarker ? 0 : (v.Size ?? 0),
+            modifiedAt: v.LastModified ?? new Date(0),
+          },
+        ]
+      : [];
+  return [
+    ...(page.Versions ?? []).flatMap((v) => entry(v, false)),
+    ...(page.DeleteMarkers ?? []).flatMap((m) => entry(m, true)),
+  ];
 }
 
 /**
@@ -469,8 +507,8 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
     let versionIdMarker: string | undefined;
     for (;;) {
       const page = await this.call<{
-        Versions?: { Key?: string; VersionId?: string; IsLatest?: boolean; Size?: number; LastModified?: Date }[];
-        DeleteMarkers?: { Key?: string; VersionId?: string; IsLatest?: boolean; LastModified?: Date }[];
+        Versions?: ListedVersion[];
+        DeleteMarkers?: ListedVersion[];
         IsTruncated?: boolean;
         NextKeyMarker?: string;
         NextVersionIdMarker?: string;
@@ -483,28 +521,7 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
         }),
         signal,
       );
-      for (const v of page.Versions ?? []) {
-        if (!v.Key) continue;
-        found.push({
-          name: v.Key,
-          versionId: v.VersionId,
-          latest: v.IsLatest === true,
-          deleteMarker: false,
-          sizeBytes: v.Size ?? 0,
-          modifiedAt: v.LastModified ?? new Date(0),
-        });
-      }
-      for (const m of page.DeleteMarkers ?? []) {
-        if (!m.Key) continue;
-        found.push({
-          name: m.Key,
-          versionId: m.VersionId,
-          latest: m.IsLatest === true,
-          deleteMarker: true,
-          sizeBytes: 0,
-          modifiedAt: m.LastModified ?? new Date(0),
-        });
-      }
+      found.push(...versionsOfPage(page));
       if (!page.IsTruncated) return found;
       if (!page.NextKeyMarker && !page.NextVersionIdMarker) throw new Error("S3_PAGINATION_STALLED");
       keyMarker = page.NextKeyMarker;
