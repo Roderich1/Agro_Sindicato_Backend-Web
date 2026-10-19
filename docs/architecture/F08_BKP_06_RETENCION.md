@@ -1,0 +1,235 @@
+# F08-BKP-06 (#40): retención de copias privadas — diseño
+
+- **Fecha:** 2026-10-19. Sesión C, sobre Backend `main` `23ffaa2`.
+- **Estado:** diseño para revisión de la sesión B. **Todavía no hay código.**
+- **Dueños:**
+  - C: la política y el servicio (`backups.service.ts`), la retención y el inventario.
+  - B: el adaptador B2, `backups.module.ts`, `backups-config.ts` y `env.schema.ts`.
+  - A: el número de la migración y la integración, en serie.
+- **Política:** la aprobó Roderich Rendón el 2026-10-19 como decisión técnica del autor **para la entrega académica**. No es un plazo institucional para datos reales.
+
+## 1. De dónde se parte
+
+- `reserve()` cuenta las filas `UPLOADING` y `AVAILABLE` del Member bajo `pg_advisory_xact_lock`. Con 5 (`BACKUP_MAX_ACTIVE_PER_MEMBER`, por defecto 5) responde **409 `BACKUP_QUOTA_EXCEEDED`**.
+- La app (MOB `463d3ec`, `remote_backup_api.dart`) muestra entonces «Ya tiene el máximo de copias en el servidor. Elimine una antes de subir otra.». Por eso **es el agricultor quien borra una copia válida** para poder subir la siguiente (`F08_BKP_06_CONTRASTE.md` §2).
+- Si falla el borrado del objeto, el que pide el propietario o el que se intenta tras una subida fallida, queda un huérfano que nadie registra. Sólo lo ve el inventario manual (`backups:inventory`, BE #119).
+- No existe adaptador remoto: sólo `LocalDiskBackupStorage`.
+
+## 2. Reglas
+
+Cada regla se puede comprobar con una prueba (§9). *A*, *U* y *P* son conteos por Member:
+- *A*: filas `AVAILABLE`;
+- *U*: filas `UPLOADING` no abandonadas;
+- *P*: filas `DELETED` o `FAILED` con bytes que todavía pueden existir en el almacenamiento (§3).
+
+| | Regla |
+|---|---|
+| R1 | Tras cada subida verificada se conservan las **N** copias `AVAILABLE` más recientes del Member (N = `BACKUP_MAX_ACTIVE_PER_MEMBER`, 5 por defecto). Las demás se retiran. Ninguna caduca por edad: sin subidas nuevas, nada se retira. |
+| R2 | La retención **nunca deja al Member sin su última copia válida**. Sólo retira copias cuando *A* > N ≥ 1, nunca la copia recién verificada y siempre empezando por la más antigua. |
+| R3 | **Una sola subida provisional por Member a la vez** (*U* ≤ 1), con el tope de tamaño de siempre (`BACKUP_MAX_BYTES`). No hace falta borrar una copia válida para subir su reemplazo. |
+| R4 | Una copia anterior sólo se retira cuando la nueva ya está **íntegra y `AVAILABLE`**: su SHA-256 recalculado coincide, su objeto está confirmado y su fila marcada. Las dos cosas ocurren en la misma transacción, así que la lista nunca muestra más de N copias ni menos de las que corresponden. |
+| R5 | **Cota de bytes por Member:** *A* + *U* + *P* ≤ N + 1 en todo momento. Con los valores por defecto son 6 objetos, a lo sumo 6 × 100 MB. Cuando falla una limpieza se conserva ese exceso acotado, queda registrado (§4) y se reconcilia. No hay crecimiento ilimitado. |
+| R6 | Una subida abandonada (`UPLOADING` con más de `BACKUP_UPLOAD_ABANDON_MS`) se cierra como `FAILED ABANDONED`, y sus bytes se limpian sin tocar nunca una transferencia activa (§5). |
+| R7 | El `DELETE` del propietario conserva su contrato: 204, borrado lógico inmediato y borrado de los bytes. Puede borrar **también su última copia**. R2 sólo protege frente a la retención automática. |
+
+Se reutilizan los estados `UPLOADING`, `AVAILABLE`, `FAILED` y `DELETED`, sin valores nuevos en el enum.
+
+## 3. Esquema: dos columnas (migración nueva, número a cargo de A)
+
+```sql
+ALTER TABLE "BackupMetadata"
+  ADD COLUMN "purgePending" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "deletionReason" VARCHAR(16),
+  ADD CONSTRAINT "BackupMetadata_purgePending_check"
+    CHECK (NOT "purgePending" OR "status" IN ('DELETED', 'FAILED')),
+  ADD CONSTRAINT "BackupMetadata_deletionReason_check"
+    CHECK ("deletionReason" IS NULL OR ("status" = 'DELETED' AND "deletionReason" IN ('OWNER', 'RETENTION')));
+```
+
+**Por qué hace falta un cambio de esquema:**
+- **`purgePending`.** Sin esta columna, *P* no se puede contar sin listar el almacenamiento, y R5 no se podría hacer cumplir dentro del bloqueo. Vale `true` desde que una fila pasa a `DELETED` o `FAILED` hasta que el adaptador confirma que **no queda ningún byte** de su clave (§6). El `CHECK` garantiza en la base que **una fila `AVAILABLE` nunca tiene una purga pendiente**: ninguna limpieza puede apuntar a una copia válida.
+- **`deletionReason`.** Distingue el borrado del propietario de la retención (R7). Sin ella, la evidencia y el inventario no pueden demostrar que la retención no tocó lo que no le correspondía.
+
+**Filas anteriores:** quedan con `purgePending = false` y `deletionReason = NULL`, sin rellenar nada a posteriori. Sus posibles huérfanos se siguen tratando con el inventario y la limpieza manual de BE #119, como hasta ahora (§10).
+
+## 4. Subida con rotación
+
+1. **Reconciliar antes del bloqueo.** Se reintenta la purga de las filas del Member con `purgePending` (como mucho N + 1; ver §6).
+2. **Reservar** (transacción con `pg_advisory_xact_lock` del Member, como hoy):
+   - se cierran las subidas abandonadas: `FAILED`, `ABANDONED` y `purgePending = true`;
+   - si *U* ≥ 1, se responde **409 `BACKUP_UPLOAD_IN_PROGRESS`**;
+   - si *A* + *P* > N, se responde **503 `BACKUP_STORAGE_UNAVAILABLE`**: hay purgas que el almacenamiento todavía no aceptó, y aceptar la subida rompería R5;
+   - si no, se crea la fila `UPLOADING`. Desde ahí *A* + *U* + *P* ≤ N + 1.
+3. **Transferir y verificar** en streaming, como hoy (`stage`, `Sha256Meter` y SHA-256). Cada salida con error marca la fila `FAILED` con `purgePending = true` y llama enseguida a `discardStaged` y `remove`, que son idempotentes. Si las dos confirman, se pone `purgePending = false`.
+4. **Confirmar el objeto** con `commit()`, como hoy.
+5. **Completar y rotar**, en **una** transacción con el mismo bloqueo:
+   - `UPLOADING` → `AVAILABLE` sobre su id. Si no cambia exactamente 1 fila, se sigue el camino actual: la fila fue abandonada y se borran sus bytes;
+   - se leen las `AVAILABLE` del Member en el orden de la lista (`createdAt desc, id desc`) y se excluye la nueva. Sobran las que pasan de N − 1;
+   - esas filas pasan, con `WHERE status = 'AVAILABLE'`, a `DELETED`, con `deletedAt`, `deletionReason = 'RETENTION'` y `purgePending = true`.
+6. **Purgar fuera de la transacción**, con `remove(key)` para cada retirada:
+   - si funciona, `purgePending = false`;
+   - si falla, la fila queda pendiente y se registra en el log sólo el nombre del error, nunca claves ni identificadores (como hoy).
+
+   La respuesta es **201**, la misma vista de siempre, aunque falle la purga: la copia nueva sí quedó guardada.
+
+**Si falla la transacción del paso 5:** se vuelve a leer la fila, como hoy en `METADATA_UPDATE_FAILED`.
+- Si la fila está `AVAILABLE`, la rotación también se confirmó, porque iba en la misma transacción. Las retiradas quedan `purgePending` y se reconcilian en la siguiente subida.
+- Si la fila sigue `UPLOADING`, no se retiró nada.
+
+**Concurrencia con el borrado del propietario:** el `DELETE` del propietario pasa a tomar el mismo bloqueo del Member. Si no lo hiciera, un `DELETE` simultáneo de otra copia y una rotación calculada sobre un conteo viejo dejarían N − 1 copias.
+
+## 5. Abandono sin borrar una transferencia activa (R6)
+
+Que una fila tenga más de `BACKUP_UPLOAD_ABANDON_MS` (60 min) **no basta** para concluir que su transferencia terminó. Este diseño la hace terminar por construcción:
+- **Plazo propio de cada subida.** `BACKUP_UPLOAD_DEADLINE_MS` = 30 min, una constante en `backups-config.ts` que pongo yo o B, con la comprobación de que es menor que `ABANDON_MS`.
+  - Si se alcanza con el cuerpo aún en curso, el servicio destruye su `Sha256Meter`. Así `stage` falla y la fila queda `FAILED`.
+  - Para el `commit` y las llamadas posteriores, el adaptador aplica sus propios plazos por petición (pregunta Q5 a B).
+- **Cota actual de la transferencia HTTP.** `main.ts` no configura tiempos, así que el `requestTimeout` por defecto de Node corta la petición a los 5 min. Es el mismo valor que cita el cliente MOB.
+- **Conclusión:** una fila `UPLOADING` con más de 60 min ya no tiene ninguna escritura en curso.
+- **Revalidaciones que se mantienen:**
+  - el paso a `FAILED` es condicional (`WHERE status = 'UPLOADING'`);
+  - la finalización de una subida que llegue tarde no cambia ninguna fila y borra sus propios bytes;
+  - la limpieza manual sigue exigiendo una antigüedad mínima de 60 min y vuelve a comprobar el candidato justo antes de borrarlo.
+
+## 6. Purga y reconciliación
+
+**Qué se reconcilia:** cada fila con `purgePending = true` y con `status` en (`DELETED`, `FAILED`). El estado se vuelve a leer antes de actuar, y el `CHECK` del §3 impide además que sea `AVAILABLE`.
+- **Fila `DELETED`:** se llama a `remove(key)`.
+- **Fila `FAILED`:** se llama a `discardStaged(key)` y después a `remove(key)`.
+- Si el adaptador confirma, `purgePending = false` (`WHERE id AND purgePending`). Es idempotente aunque dos procesos reconcilien la misma fila a la vez.
+
+**Cuándo se reconcilia:**
+- antes de cada subida del Member (§4, paso 1);
+- tras cada `DELETE` del propietario, como hoy, pero ahora queda registrado;
+- con una orden del operador, `backups:inventory -- --reconcile [--apply]`, que sin `--apply` sólo planifica (*dry-run*).
+
+**Inventario:** suma el recuento de purgas pendientes por motivo (`OWNER`, `RETENTION` o `FAILED`), sin claves ni identificadores. **La limpieza manual sigue sin tocar ninguna copia `AVAILABLE` ni borrar filas.**
+
+## 7. B2 con «Keep all versions» (coordinación con B)
+
+En un bucket versionado, que un nombre deje de listarse **no demuestra** que sus bytes se purgaron. Se distinguen tres niveles:
+
+| Nivel | Qué es | Quién lo produce |
+|---|---|---|
+| **Borrado lógico** | La fila está `DELETED` o `FAILED`. La API ya no la lista ni la sirve. | El servicio |
+| **Marcador de borrado** | Un `DeleteObject` sin `VersionId` oculta el nombre, pero la versión con los bytes sigue en el bucket. | Nunca el servicio ni el adaptador |
+| **Versión física** | Cada versión con bytes de `objects/<key>`, o de su staging. Sólo desaparece con un `DeleteObject` que lleve su `VersionId`. | La purga |
+
+**Lo que el servicio necesita del adaptador.** Es un contrato del puerto: la forma la propone B.
+- **`remove(key)`:**
+  - borra **cada versión y cada marcador** del nombre exacto (`ListObjectVersions` con el filtro `Key === name` y `DeleteObject` con `VersionId`);
+  - vuelve a listar y sólo termina bien si no queda ninguno;
+  - un nombre ausente no es error;
+  - un fallo se propaga: el servicio deja la fila pendiente.
+- **`discardStaged(key)`:**
+  - aborta toda subida incompleta de esa clave (`ListMultipartUploads` + `AbortMultipartUpload`);
+  - purga las versiones de cualquier objeto de staging;
+  - es idempotente.
+- **`stage()`:** sólo termina, bien o con error, cuando ya no queda ninguna petición de escritura en curso.
+- **`commit()`:**
+  - deja el objeto completo bajo su nombre (por ejemplo, `CompleteMultipartUpload`);
+  - un reintento que genere una segunda versión del mismo nombre no es un problema: `remove` purga todas.
+  - Cada fila tiene su clave UUID, así que **nunca hay dos versiones legítimas del mismo nombre**: una versión extra es siempre resto de un reintento.
+- **`list()` del inventario:**
+  - incluye las versiones no vigentes, los marcadores y las subidas incompletas, cada una con su tamaño y su fecha;
+  - así se ven los bytes que ya no aparecen por nombre: las versiones huérfanas.
+
+**Lo que no se hace:**
+- no se depende de una regla de *lifecycle* del bucket ni se cambia ninguna regla del bucket;
+- no se purgan copias reales.
+
+**Prefijo:** todo vive bajo el prefijo configurado (`ensayo-f08/` en el ensayo). El servicio nunca ve ese prefijo.
+
+**Object Lock:** si el bucket tuviera Object Lock o retención de versiones, `remove` fallaría. La fila quedaría pendiente y R5 frenaría las subidas siguientes con 503, sin perder copias válidas. Es un resultado que se registraría tal cual en el ensayo.
+
+## 8. Contrato de la API y de la app
+
+**Cambia el contrato.** Explícitamente:
+
+| Caso | Hasta `23ffaa2` | Con este diseño |
+|---|---|---|
+| `POST` con N copias `AVAILABLE` | 409 `BACKUP_QUOTA_EXCEEDED` | **201**. La copia más antigua se retira: deja de listarse, y su `GET …/content` y su `DELETE` responden 404, como cualquier copia eliminada. |
+| `POST` con otra subida del Member en curso | 201 mientras *A* + *U* < N | **409 `BACKUP_UPLOAD_IN_PROGRESS`** (código nuevo) |
+| `POST` con purgas pendientes que superan la cota | No existía | 503 `BACKUP_STORAGE_UNAVAILABLE` (código existente, causa nueva) |
+| `BACKUP_QUOTA_EXCEEDED` | Se emitía | **Deja de emitirse.** Se conserva en el enum de OpenAPI marcado como «ya no se emite», para no romper a quien lo reconozca. |
+| `GET` (lista), `GET …/content` y `DELETE` | — | Sin cambios de forma ni de códigos. La lista nunca pasa de N. |
+
+Las formas de las respuestas no cambian.
+
+**La app no necesita cambios** (MOB `463d3ec` se mantiene):
+- **Subida con N copias:** recibe 201 y vuelve a pedir la lista (`remote_backup_screen.dart:78`), así que la copia retirada desaparece de la pantalla. La app ya no pide al agricultor que borre una copia válida.
+- **`409 BACKUP_UPLOAD_IN_PROGRESS`:** la app no conoce el código y lo trata como `unavailable` («El servicio de respaldos no está disponible ahora»). Como el resultado es incierto, consulta la lista y busca su SHA-256 (`remote_backup_service.dart`, `uploadNew`), que es justo lo que conviene si la otra subida termina bien. Además, desde un mismo teléfono no puede ocurrir: la pantalla bloquea una segunda subida con `_busy`.
+- **El texto de `quotaExceeded`** («Elimine una…») queda inalcanzable. Retirarlo sería una mejora móvil opcional, no necesaria.
+
+**Herramientas:**
+- `tool/f08_bkp/api_preflight.cjs` (MOB) hace 2 subidas y no prueba la cuota, así que no le afecta.
+- `docs/api/openapi-f08-backups.json` se regenera.
+- `F08_BACKUP_THREAT_MODEL.md` (T6) y `F08_BACKUP.md` (fila «Cupo») reciben una **nota fechada**. Su texto histórico no se reescribe.
+
+**Prueba que cambia:** «limits the copies in use per Member (409) and frees a slot on deletion» (`backups.postgres.spec.ts:394`) prueba el contrato anterior. Se sustituye por las pruebas R1–R3 del §9, y en el PR se dirá así, sin presentarlo como la misma prueba.
+
+## 9. Pruebas antes del cierre
+
+**Dónde se ejecutan:**
+- en local, sólo las suites afectadas: `backups.postgres.spec.ts`, `inventory.backups.postgres.spec.ts` y los `*.spec.ts` de `backups`;
+- la suite completa, en el CI (`backend-f02.yml` ya ejecuta `backups.postgres.spec.ts`).
+
+**Con qué almacenamiento:**
+- el adaptador de disco;
+- y, para las versiones, un **almacenamiento en memoria que imita versiones y marcadores**. Está en el test y **no se llama B2**.
+
+Hasta que exista la clave restringida a `ensayo-f08/`, no se hace nada contra B2 real.
+
+**Funcionales:**
+
+| ID | Caso |
+|---|---|
+| T-R1 | Con N copias, una subida da 201. Quedan exactamente las N más recientes. La más antigua queda `DELETED`/`RETENTION`, sin objeto y con `purgePending = false`. |
+| T-R1b | Con N − 1 copias, una subida no retira nada. |
+| T-R1c | Sin subidas no se retira nada, aunque las copias sean viejas: no hay caducidad por edad. |
+| T-R2 | Con N = 1, la copia anterior sólo se retira cuando la nueva está `AVAILABLE`. Una subida fallida (422, 413 o corte) con N copias no retira ninguna. |
+| T-R4 | Si falla el `commit` o el paso a `AVAILABLE`, ninguna copia anterior cambia, ni su fila ni su objeto. |
+| T-R5 | `remove` falla durante la rotación:<ul><li>la subida da 201;</li><li>la retirada queda `purgePending`;</li><li>con el almacenamiento todavía fallando, la siguiente subida da 503 y no escribe nada;</li><li>al recuperarse, la siguiente subida reconcilia y continúa;</li><li>en ningún momento hay más de N + 1 objetos del Member.</li></ul> |
+| T-R7 | El propietario puede borrar su última copia (204). La retención nunca deja en 0 a un Member que tenía copias. |
+| T-B2 | Con el almacenamiento versionado en memoria:<ul><li>la purga deja 0 versiones y 0 marcadores;</li><li>un `remove` que sólo ocultara el nombre se detecta como fallo;</li><li>el inventario informa de las versiones huérfanas.</li></ul> |
+
+**Concurrencia:**
+
+| ID | Caso |
+|---|---|
+| C1 | Dos `POST` simultáneos del mismo Member, con N copias: uno da 201 y el otro 409 `BACKUP_UPLOAD_IN_PROGRESS`. Al final hay N copias y una única retirada. |
+| C2 | Con N copias, termina una subida mientras el propietario borra una de las anteriores (la más antigua u otra): quedan exactamente N (N + 1 − 1), sin que la retención retire ninguna. |
+| C3 | Una descarga compite con la retirada de esa copia: responde 404 o una transferencia que el cliente rechaza por SHA-256. Nunca da 500 ni sirve bytes ajenos. |
+| C4 | Subidas simultáneas de dos Members: ninguno bloquea ni rota las copias del otro. |
+| C5 | Un `UPLOADING` reciente nunca se cierra ni se descarta (ni al reservar, ni con la limpieza o la reconciliación del operador). Uno de más de 60 min se cierra como `ABANDONED` y su staging se limpia. Una finalización que llega tarde no resucita la fila. |
+| C6 | La reconciliación del operador corre en paralelo con una rotación: es idempotente y nunca toca una fila `AVAILABLE`. El `CHECK` rechaza `purgePending` en una fila `AVAILABLE`. |
+
+**Mutaciones** (se revierten y no se commitean):
+- quitar el bloqueo del `DELETE`: C2 debe fallar;
+- rotar antes de marcar `AVAILABLE`: T-R4 debe fallar;
+- no contar *P* al reservar: T-R5 debe fallar;
+- un `remove` sin `VersionId`: T-B2 debe fallar.
+
+## 10. Fuera de este PR: el resto externo de #40
+
+1. **Ensayo contra B2 real.** Hace falta que Roderich cree una *Application Key* restringida al prefijo `ensayo-f08/`, con `listFiles`, `readFiles`, `writeFiles` y `deleteFiles`, y que `_wt/tools/secretos-b2/comprobar_b2.ps1` lo muestre. Hasta entonces, sólo pruebas locales, sin llamarlas B2.
+2. **Política institucional de retención para datos reales**: plazo, número de copias y purga. Decide Roderich con la institución. Las 5 copias de este diseño valen sólo para la entrega académica.
+3. **Cifrado en reposo** que se exija para datos reales (del proveedor o del cliente). Decide Roderich. Este diseño no cambia la configuración del bucket.
+4. **Operación productiva:**
+   - la admisión (`BACKUP_PRODUCTION_ADMISSION` sigue cerrada);
+   - la monitorización;
+   - la ejecución periódica de `--reconcile`;
+   - el contrato con el proveedor;
+   - la comunicación al colectivo (DEC-F01-10).
+5. **Reglas y contenido del bucket fuera de `ensayo-f08/`:** versiones, *lifecycle* y Object Lock. No se tocan.
+6. **Huérfanos anteriores a esta migración** (`purgePending = false`): siguen con el inventario y la limpieza manual de BE #119.
+7. **Retención de las copias `.previo` que acumula la app.** Es Mobile, fuera de este PR del Backend.
+8. **Estado del issue, del Project y de los gates:** los decide Roderich.
+
+## 11. Preguntas para B
+
+- **Q1.** ¿Cómo hace el adaptador el `stage` y el `commit` en B2: subida multiparte, o un objeto de staging más una copia? Para el servicio, cualquiera vale si cumple el §7.
+- **Q2.** ¿Aceptas el contrato de `remove` (purga de todas las versiones y comprobación final) y el de `discardStaged` (abortar las multiparte y purgar el staging)?
+- **Q3.** ¿Cómo prefieres que `list()` exponga las versiones? ¿Campos opcionales `versionId` y `hidden`, u otra forma que no rompa el adaptador de disco?
+- **Q4.** ¿Pones tú `BACKUP_UPLOAD_DEADLINE_MS` en `backups-config.ts`, o me autorizas a añadir esa constante?
+- **Q5.** ¿Qué plazos por petición aplica el adaptador para que el `commit`, el `remove` y el `discardStaged` no queden colgados más allá del plazo de la subida?
