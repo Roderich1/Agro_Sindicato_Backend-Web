@@ -34,7 +34,7 @@ Cada regla se puede comprobar con una prueba (§9). *A*, *U* y *P* son conteos p
 
 Se reutilizan los estados `UPLOADING`, `AVAILABLE`, `FAILED` y `DELETED`, sin valores nuevos en el enum.
 
-## 3. Esquema: dos columnas (migración nueva, número a cargo de A)
+## 3. Esquema: dos columnas (migración `20261019150000_f08_bkp06_retention`, asignada por A)
 
 ```sql
 ALTER TABLE "BackupMetadata"
@@ -115,24 +115,27 @@ En un bucket versionado, que un nombre deje de listarse **no demuestra** que sus
 | **Marcador de borrado** | Un `DeleteObject` sin `VersionId` oculta el nombre, pero la versión con los bytes sigue en el bucket. | Nunca el servicio ni el adaptador |
 | **Versión física** | Cada versión con bytes de `objects/<key>`, o de su staging. Sólo desaparece con un `DeleteObject` que lleve su `VersionId`. | La purga |
 
-**Lo que el servicio necesita del adaptador.** Es un contrato del puerto: la forma la propone B.
-- **`remove(key)`:**
+**Lo que el servicio necesita del adaptador.** Es un contrato del puerto. Su forma la fija el diseño de B en BE #147, que sube el staging como un objeto propio, `staging/<key>.<hex>.part`, y hace el `commit` con un `CopyObject` de la versión fijada. Los requisitos R-a a R-d son los de mi revisión de #147.
+- **`remove(key)`** (R-a):
   - borra **cada versión y cada marcador** del nombre exacto (`ListObjectVersions` con el filtro `Key === name` y `DeleteObject` con `VersionId`);
-  - vuelve a listar y sólo termina bien si no queda ninguno;
+  - vuelve a listar, recorriendo todas las páginas, y sólo termina bien si no queda ninguno; si queda alguno, lanza un error;
   - un nombre ausente no es error;
-  - un fallo se propaga: el servicio deja la fila pendiente.
-- **`discardStaged(key)`:**
-  - aborta toda subida incompleta de esa clave (`ListMultipartUploads` + `AbortMultipartUpload`);
-  - purga las versiones de cualquier objeto de staging;
+  - un fallo se propaga, y el servicio deja la fila pendiente.
+- **`discardStaged(key)`** (R-a y R-b):
+  - aborta todo multipart incompleto de `staging/<key>.*.part` (`ListMultipartUploads` y `AbortMultipartUpload`);
+  - purga las versiones de esos objetos de staging y lo comprueba como `remove`;
   - es idempotente.
-- **`stage()`:** sólo termina, bien o con error, cuando ya no queda ninguna petición de escritura en curso.
-- **`commit()`:**
-  - deja el objeto completo bajo su nombre (por ejemplo, `CompleteMultipartUpload`);
-  - un reintento que genere una segunda versión del mismo nombre no es un problema: `remove` purga todas.
-  - Cada fila tiene su clave UUID, así que **nunca hay dos versiones legítimas del mismo nombre**: una versión extra es siempre resto de un reintento.
+- **`stage()`:** sólo termina, bien o con error, cuando no queda ninguna petición de escritura en curso.
+- **`commit()`** (R-c):
+  - deja visible el objeto final y **sólo termina bien cuando ha purgado y comprobado el staging**;
+  - si esa purga falla, lanza un error: la fila queda `FAILED` con `purgePending` y la reconciliación retira el final y el staging. Así ningún resto de una copia `AVAILABLE` queda fuera de la cota R5.
+  - Si un reintento del `CopyObject` crea una segunda versión del final, `remove` las purga todas. Cada fila tiene su propia clave UUID, así que **nunca hay dos versiones legítimas del mismo nombre**: una versión extra es siempre resto de un reintento.
+- **Plazos** (R-d): cada petición que no transporta el cuerpo del cliente tiene un tope total, además del de inactividad. El peor caso de `commit` (cabeceras, copia, comprobación y purga del staging), con sus reintentos, queda por debajo de `BACKUP_UPLOAD_DEADLINE_MS`.
 - **`list()` del inventario:**
-  - incluye las versiones no vigentes, los marcadores y las subidas incompletas, cada una con su tamaño y su fecha;
-  - así se ven los bytes que ya no aparecen por nombre: las versiones huérfanas.
+  - sólo ve las versiones vigentes (`ListObjectsV2`), y basta con eso;
+  - las versiones no vigentes que genera nuestro propio flujo son siempre de filas con `purgePending`, y su autoridad es la reconciliación, que llama a `remove` y `discardStaged`;
+  - en B2 no hay filas anteriores a la migración;
+  - **límite declarado:** el inventario no ve las versiones ni los marcadores que deje un tercero.
 
 **Lo que no se hace:**
 - no se depende de una regla de *lifecycle* del bucket ni se cambia ninguna regla del bucket;
@@ -144,7 +147,14 @@ En un bucket versionado, que un nombre deje de listarse **no demuestra** que sus
 
 ## 8. Contrato de la API y de la app
 
-**Cambia el contrato.** Explícitamente:
+**Garantía del 201 con rotación:** una respuesta 201 que retira copias **nunca** retira una antes de que la nueva esté verificada y `AVAILABLE`. El orden es fijo:
+1. el SHA-256 recalculado coincide con el declarado;
+2. `commit()` confirma el objeto;
+3. una única transacción, bajo el bloqueo del Member, marca la nueva `AVAILABLE` y retira las sobrantes, con la condición `WHERE status = 'AVAILABLE'`.
+
+Si falla cualquiera de los pasos 1 a 3, no se retira nada (T-R2 y T-R4). La purga física de las retiradas viene después de esa transacción. Si falla, la copia nueva sigue `AVAILABLE` y la retirada queda pendiente (R5).
+
+**Cambia el contrato** (A lo aceptó el 2026-10-19). Explícitamente:
 
 | Caso | Hasta `23ffaa2` | Con este diseño |
 |---|---|---|
@@ -166,7 +176,7 @@ Las formas de las respuestas no cambian.
 - `docs/api/openapi-f08-backups.json` se regenera.
 - `F08_BACKUP_THREAT_MODEL.md` (T6) y `F08_BACKUP.md` (fila «Cupo») reciben una **nota fechada**. Su texto histórico no se reescribe.
 
-**Prueba que cambia:** «limits the copies in use per Member (409) and frees a slot on deletion» (`backups.postgres.spec.ts:394`) prueba el contrato anterior. Se sustituye por las pruebas R1–R3 del §9, y en el PR se dirá así, sin presentarlo como la misma prueba.
+**Prueba que cambia:** «limits the copies in use per Member (409) and frees a slot on deletion» (`backups.postgres.spec.ts:394`) prueba el contrato anterior. Se sustituye por T-R1, T-R1b y C1 del §9, porque probaba el contrato anterior. En el PR y en la evidencia se dirá así, sin presentarla como la misma prueba. La OpenAPI (`docs/api/openapi-f08-backups.json`) documenta el cambio.
 
 ## 9. Pruebas antes del cierre
 
@@ -176,7 +186,7 @@ Las formas de las respuestas no cambian.
 
 **Con qué almacenamiento:**
 - el adaptador de disco;
-- y, para las versiones, un **almacenamiento en memoria que imita versiones y marcadores**. Está en el test y **no se llama B2**.
+- y, para las versiones, el **«doble S3 en memoria»** de #147 con su adaptador. T-B2 se ejecuta cuando #147 esté integrado; el doble **no se llama B2**.
 
 Hasta que exista la clave restringida a `ensayo-f08/`, no se hace nada contra B2 real.
 
@@ -191,7 +201,7 @@ Hasta que exista la clave restringida a `ensayo-f08/`, no se hace nada contra B2
 | T-R4 | Si falla el `commit` o el paso a `AVAILABLE`, ninguna copia anterior cambia, ni su fila ni su objeto. |
 | T-R5 | `remove` falla durante la rotación:<ul><li>la subida da 201;</li><li>la retirada queda `purgePending`;</li><li>con el almacenamiento todavía fallando, la siguiente subida da 503 y no escribe nada;</li><li>al recuperarse, la siguiente subida reconcilia y continúa;</li><li>en ningún momento hay más de N + 1 objetos del Member.</li></ul> |
 | T-R7 | El propietario puede borrar su última copia (204). La retención nunca deja en 0 a un Member que tenía copias. |
-| T-B2 | Con el almacenamiento versionado en memoria:<ul><li>la purga deja 0 versiones y 0 marcadores;</li><li>un `remove` que sólo ocultara el nombre se detecta como fallo;</li><li>el inventario informa de las versiones huérfanas.</li></ul> |
+| T-B2 | Con el doble S3 en memoria de #147 y el adaptador B2:<ul><li>tras la retirada y la reconciliación quedan 0 versiones y 0 marcadores de la clave;</li><li>un `remove` que sólo ocultara el nombre deja la fila con `purgePending`;</li><li>un `commit` cuya purga del staging falla deja la fila `FAILED` con `purgePending`, sin retirar ninguna copia anterior.</li></ul> |
 
 **Concurrencia:**
 
@@ -228,8 +238,8 @@ Hasta que exista la clave restringida a `ensayo-f08/`, no se hace nada contra B2
 
 ## 11. Preguntas para B
 
-- **Q1.** ¿Cómo hace el adaptador el `stage` y el `commit` en B2: subida multiparte, o un objeto de staging más una copia? Para el servicio, cualquiera vale si cumple el §7.
-- **Q2.** ¿Aceptas el contrato de `remove` (purga de todas las versiones y comprobación final) y el de `discardStaged` (abortar las multiparte y purgar el staging)?
-- **Q3.** ¿Cómo prefieres que `list()` exponga las versiones? ¿Campos opcionales `versionId` y `hidden`, u otra forma que no rompa el adaptador de disco?
+- **Q1.** Respondida por #147: staging como objeto propio y `commit` con `CopyObject` de la versión fijada.
+- **Q2.** ¿Aceptas los contratos de `remove` y `discardStaged` del §7, es decir, R-a y R-b, y el de `commit`, que es R-c?
+- **Q3.** Respondida: `list()` sólo ve las versiones vigentes, con el límite declarado en el §7.
 - **Q4.** ¿Pones tú `BACKUP_UPLOAD_DEADLINE_MS` en `backups-config.ts`, o me autorizas a añadir esa constante?
-- **Q5.** ¿Qué plazos por petición aplica el adaptador para que el `commit`, el `remove` y el `discardStaged` no queden colgados más allá del plazo de la subida?
+- **Q5.** Pendiente de R-d: tope total por petición y la suma del peor caso de `commit`.
