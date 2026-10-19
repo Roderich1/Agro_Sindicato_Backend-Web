@@ -176,7 +176,7 @@ Las formas de las respuestas no cambian.
 - `docs/api/openapi-f08-backups.json` se regenera.
 - `F08_BACKUP_THREAT_MODEL.md` (T6) y `F08_BACKUP.md` (fila «Cupo») reciben una **nota fechada**. Su texto histórico no se reescribe.
 
-**Prueba que cambia:** «limits the copies in use per Member (409) and frees a slot on deletion» (`backups.postgres.spec.ts:394`) prueba el contrato anterior. Se sustituye por T-R1, T-R1b y C1 del §9, porque probaba el contrato anterior. En el PR y en la evidencia se dirá así, sin presentarla como la misma prueba. La OpenAPI (`docs/api/openapi-f08-backups.json`) documenta el cambio.
+**Prueba que cambia:** «limits the copies in use per Member (409) and frees a slot on deletion» (`backups.postgres.spec.ts:394`) prueba el contrato anterior y por eso se sustituye por T-R1, T-R1b y C1 del §9. En el PR y en la evidencia se dirá así, sin presentarla como la misma prueba. La OpenAPI (`docs/api/openapi-f08-backups.json`) documenta el cambio.
 
 ## 9. Pruebas antes del cierre
 
