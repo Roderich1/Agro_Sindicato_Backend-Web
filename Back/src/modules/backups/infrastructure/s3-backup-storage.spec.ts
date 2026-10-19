@@ -1,0 +1,414 @@
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { Readable } from "node:stream";
+import { BackupObjectMissingError } from "../domain/backup-storage.port";
+import { BackupTooLargeError, Sha256Meter } from "../application/sha256-meter";
+import {
+  backupStorageContract,
+  byCode,
+  failingSource,
+  readAll,
+} from "../test-support/backup-storage.contract";
+import { hang, InMemoryS3, MIN_PART_BYTES, s3Error } from "../test-support/in-memory-s3";
+import { S3_LIMITS, S3_PART_BYTES, S3BackupStorage, S3Limits } from "./s3-backup-storage";
+
+/**
+ * F08-BKP-07: the S3 adapter over the «doble S3 en memoria». The double is
+ * not Backblaze B2: these tests prove the adapter's logic against the S3 API
+ * semantics it relies on, not the real provider.
+ */
+const BUCKET = "agro-test-bucket";
+const PREFIX = "ensayo-f08/";
+
+function setup(limits: S3Limits = S3_LIMITS) {
+  const s3 = new InMemoryS3(BUCKET);
+  const storage = new S3BackupStorage(s3, { bucket: BUCKET, prefix: PREFIX }, limits);
+  return { s3, storage };
+}
+
+/** Local name of every version, marker and upload of an area. */
+function entriesOf(s3: InMemoryS3, area: "objects" | "staging"): string[] {
+  const base = `${PREFIX}${area}/`;
+  const names: string[] = [];
+  for (const name of s3.names(base))
+    for (const _ of s3.versionsOf(name)) names.push(name.slice(base.length));
+  for (const upload of s3.uploads.values())
+    if (upload.key.startsWith(base)) names.push(upload.key.slice(base.length));
+  return names.sort(byCode);
+}
+
+backupStorageContract("S3BackupStorage over the in-memory S3 double", async () => {
+  const { s3, storage } = setup();
+  return {
+    storage,
+    entries: async (area) => entriesOf(s3, area),
+    writeForeign: async (area, name, content) => {
+      s3.putDirect(`${PREFIX}${area}/${name}`, Buffer.from(content));
+    },
+    readForeign: async (area, name) => {
+      const versions = s3.versionsOf(`${PREFIX}${area}/${name}`);
+      return versions[versions.length - 1].body.toString();
+    },
+    isEmpty: async () => s3.totalEntries() === 0,
+    dispose: async () => undefined,
+  };
+});
+
+const names = (s3: InMemoryS3, name: string) => s3.sent.filter((c) => c.name === name);
+
+describe("S3BackupStorage (B2 by its S3 API) over the in-memory S3 double", () => {
+  it("everything lives under the prefix; the final copy carries its SHA-256 and size", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const bytes = Buffer.from("respaldo sintético");
+    await (await storage.stage(key, Readable.from([bytes]))).commit();
+    expect(s3.names()).toEqual([`${PREFIX}objects/${key}`]);
+    const [version] = s3.versionsOf(`${PREFIX}objects/${key}`);
+    expect(version.metadata).toEqual({
+      "agro-sha256": createHash("sha256").update(bytes).digest("hex"),
+      "agro-size": String(bytes.length),
+    });
+    for (const command of s3.sent) {
+      const name = command.input["Key"] ?? command.input["Prefix"];
+      expect(String(name).startsWith(PREFIX)).toBe(true);
+    }
+    const copy = names(s3, "CopyObjectCommand")[0].input;
+    expect(copy["MetadataDirective"]).toBe("REPLACE");
+    expect(copy["CopySource"]).toMatch(new RegExp(`^${BUCKET}/${PREFIX}staging/${key}\\.[0-9a-f]{16}\\.part\\?versionId=`));
+  });
+
+  it.each([
+    ["1 MiB", 1024 * 1024, 0],
+    ["exactly 8 MiB", S3_PART_BYTES, 0],
+    ["8 MiB + 1 byte", S3_PART_BYTES + 1, 2],
+    ["20 MiB", 20 * 1024 * 1024, 3],
+  ])("%s: one PutObject up to 8 MiB, multipart of 8 MiB parts above", async (_, size, parts) => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const bytes = randomBytes(size);
+    // Uneven chunks, as an HTTP body arrives.
+    const chunks: Buffer[] = [];
+    for (let at = 0; at < size; at += 700_001) chunks.push(bytes.subarray(at, at + 700_001));
+    await (await storage.stage(key, Readable.from(chunks))).commit();
+    expect(names(s3, "PutObjectCommand")).toHaveLength(parts === 0 ? 1 : 0);
+    const uploaded = names(s3, "UploadPartCommand").map((c) => (c.input["Body"] as Buffer).length);
+    if (parts === 0) expect(uploaded).toEqual([]);
+    else {
+      expect(uploaded).toHaveLength(parts);
+      for (const length of uploaded.slice(0, -1)) expect(length).toBe(S3_PART_BYTES);
+      expect(S3_PART_BYTES).toBeGreaterThanOrEqual(MIN_PART_BYTES);
+    }
+    for (const c of [...names(s3, "PutObjectCommand"), ...names(s3, "UploadPartCommand")])
+      expect(c.input["ContentMD5"]).toBe(
+        createHash("md5").update(c.input["Body"] as Buffer).digest("base64"),
+      );
+    const opened = await storage.open(key);
+    expect(opened.sizeBytes).toBe(size);
+    expect((await readAll(opened.stream)).equals(bytes)).toBe(true);
+    expect(s3.uploads.size).toBe(0);
+  });
+
+  it("the double rejects, like S3, a non-final part under 5 000 000 bytes and a one-part multipart", async () => {
+    const s3 = new InMemoryS3(BUCKET);
+    const signal = new AbortController().signal;
+    const { CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand } =
+      await import("@aws-sdk/client-s3");
+    const md5 = (b: Buffer) => createHash("md5").update(b).digest("base64");
+    const part = async (uploadId: string, n: number, body: Buffer) =>
+      s3.send(
+        new UploadPartCommand({ Bucket: BUCKET, Key: "k", UploadId: uploadId, PartNumber: n, Body: body, ContentLength: body.length, ContentMD5: md5(body) }),
+        { abortSignal: signal },
+      );
+    const complete = (uploadId: string, n: number) =>
+      s3.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: BUCKET,
+          Key: "k",
+          UploadId: uploadId,
+          MultipartUpload: { Parts: Array.from({ length: n }, (_, i) => ({ PartNumber: i + 1 })) },
+        }),
+        { abortSignal: signal },
+      );
+    const a = ((await s3.send(new CreateMultipartUploadCommand({ Bucket: BUCKET, Key: "k" }), { abortSignal: signal })) as { UploadId: string }).UploadId;
+    await part(a, 1, Buffer.alloc(MIN_PART_BYTES - 1));
+    await part(a, 2, Buffer.alloc(10));
+    await expect(complete(a, 2)).rejects.toMatchObject({ name: "EntityTooSmall" });
+    const b = ((await s3.send(new CreateMultipartUploadCommand({ Bucket: BUCKET, Key: "k" }), { abortSignal: signal })) as { UploadId: string }).UploadId;
+    await part(b, 1, Buffer.alloc(10));
+    await expect(complete(b, 1)).rejects.toMatchObject({ name: "EntityTooSmall" });
+  });
+
+  it("413 of the meter in the middle of a part: the original error, the multipart aborted, nothing left", async () => {
+    const { s3, storage } = setup();
+    const meter = new Sha256Meter(S3_PART_BYTES + 3 * 1024 * 1024);
+    Readable.from([randomBytes(S3_PART_BYTES + 1024 * 1024), randomBytes(4 * 1024 * 1024)]).pipe(meter);
+    await expect(storage.stage(randomUUID(), meter)).rejects.toBeInstanceOf(BackupTooLargeError);
+    expect(s3.totalEntries()).toBe(0);
+  });
+
+  it("a source cut while a part is uploading aborts that request: stage only settles when nothing is in flight", async () => {
+    const { s3, storage } = setup();
+    let inFlight = 0;
+    s3.before = async (command, signal) => {
+      if (command.name !== "UploadPartCommand") return;
+      inFlight++;
+      try {
+        await hang(signal);
+      } finally {
+        inFlight--;
+      }
+    };
+    const source = new Readable({ read() {} });
+    source.push(randomBytes(S3_PART_BYTES + 10));
+    const staging = storage.stage(randomUUID(), source);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(inFlight).toBe(1);
+    source.destroy(new Error("transfer cut"));
+    await expect(staging).rejects.toThrow("transfer cut");
+    expect(inFlight).toBe(0);
+    expect(s3.totalEntries()).toBe(0);
+  });
+
+  it("BadDigest from the provider: stage fails and nothing is visible", async () => {
+    const { s3, storage } = setup();
+    s3.before = (command) => {
+      if (command.name === "PutObjectCommand") throw s3Error("BadDigest", 400);
+    };
+    const key = randomUUID();
+    await expect(storage.stage(key, Readable.from([Buffer.from("x")]))).rejects.toMatchObject({ name: "BadDigest" });
+    await expect(storage.open(key)).rejects.toBeInstanceOf(BackupObjectMissingError);
+    expect(s3.totalEntries()).toBe(0);
+  });
+
+  it("ambiguous commit: a timeout after the copy is resolved by the head and the commit holds", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
+    s3.after = (command) => {
+      if (command.name === "CopyObjectCommand") throw s3Error("TimeoutError", 0);
+    };
+    await staged.commit();
+    expect((await readAll((await storage.open(key)).stream)).toString()).toBe("respaldo");
+    expect(entriesOf(s3, "objects")).toEqual([key]);
+    expect(entriesOf(s3, "staging")).toEqual([]);
+  });
+
+  it("a copy that did not happen: commit fails and leaves nothing", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
+    s3.before = (command) => {
+      if (command.name === "CopyObjectCommand") throw s3Error("InternalError", 500);
+    };
+    await expect(staged.commit()).rejects.toMatchObject({ name: "InternalError" });
+    await expect(storage.open(key)).rejects.toBeInstanceOf(BackupObjectMissingError);
+    expect(s3.totalEntries()).toBe(0);
+  });
+
+  it("a retried copy that left two identical versions: commit ends with exactly one", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
+    s3.after = (command) => {
+      if (command.name !== "CopyObjectCommand") return;
+      // The SDK's retry of a copy that had in fact succeeded.
+      const final = command.input["Key"] as string;
+      const [first] = s3.versionsOf(final);
+      s3.putDirect(final, first.body, first.metadata);
+      s3.after = undefined;
+    };
+    await staged.commit();
+    expect(s3.versionsOf(`${PREFIX}objects/${key}`)).toHaveLength(1);
+    expect((await readAll((await storage.open(key)).stream)).toString()).toBe("respaldo");
+  });
+
+  it("commit refuses an existing final object and never overwrites it", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    s3.putDirect(`${PREFIX}objects/${key}`, Buffer.from("ya estaba"));
+    const staged = await storage.stage(key, Readable.from([Buffer.from("nueva")]));
+    await expect(staged.commit()).rejects.toThrow("S3_OBJECT_ALREADY_EXISTS");
+    expect(names(s3, "CopyObjectCommand")).toHaveLength(0);
+    expect(s3.versionsOf(`${PREFIX}objects/${key}`).map((v) => v.body.toString())).toEqual(["ya estaba"]);
+    expect(entriesOf(s3, "staging")).toEqual([]);
+  });
+
+  it("commit whose staging purge fails throws (R-c) and leaves no visible copy", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
+    let deletes = 0;
+    s3.before = (command) => {
+      if (command.name === "DeleteObjectCommand" && String(command.input["Key"]).includes("/staging/") && deletes++ === 0)
+        throw s3Error("ServiceUnavailable", 503);
+    };
+    await expect(staged.commit()).rejects.toMatchObject({ name: "ServiceUnavailable" });
+    await expect(storage.open(key)).rejects.toBeInstanceOf(BackupObjectMissingError);
+    // The service then calls discardStaged and remove, which check.
+    s3.before = undefined;
+    await storage.discardStaged(key);
+    await storage.remove(key);
+    expect(s3.totalEntries()).toBe(0);
+  });
+
+  it("remove deletes every version and marker of its exact name only, never without a version id", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const neighbour = randomUUID();
+    await (await storage.stage(key, Readable.from([Buffer.from("a")]))).commit();
+    await (await storage.stage(neighbour, Readable.from([Buffer.from("b")]))).commit();
+    const name = `${PREFIX}objects/${key}`;
+    s3.putDirect(name, Buffer.from("otra versión"));
+    s3.hideDirect(name);
+    s3.putDirect(`${name}-x`, Buffer.from("comparte prefijo"));
+    s3.pageSize = 2; // several pages
+    await storage.remove(key);
+    await storage.remove(key);
+    expect(s3.versionsOf(name)).toEqual([]);
+    expect(s3.versionsOf(`${PREFIX}objects/${neighbour}`)).toHaveLength(1);
+    expect(s3.versionsOf(`${name}-x`)).toHaveLength(1);
+    expect(names(s3, "DeleteObjectCommand").every((c) => typeof c.input["VersionId"] === "string")).toBe(true);
+    expect(names(s3, "ListObjectVersionsCommand").some((c) => c.input["KeyMarker"] !== undefined)).toBe(true);
+  });
+
+  it("remove whose final listing still sees a version throws", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    await (await storage.stage(key, Readable.from([Buffer.from("a")]))).commit();
+    const name = `${PREFIX}objects/${key}`;
+    s3.before = (command) => {
+      // A provider that answers 204 but keeps the bytes.
+      if (command.name === "DeleteObjectCommand") throw Object.assign(new Error("ignored"), { swallow: true });
+    };
+    const original = s3.send.bind(s3);
+    s3.send = async (command, options) => {
+      try {
+        return await original(command, options);
+      } catch (error) {
+        if ((error as { swallow?: boolean }).swallow) return {};
+        throw error;
+      }
+    };
+    await expect(storage.remove(key)).rejects.toThrow("S3_VERSIONS_REMAIN");
+    expect(s3.versionsOf(name)).toHaveLength(1);
+  });
+
+  it("discardStaged aborts an open multipart upload of its key and purges its staging", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    const source = new Readable({ read() {} });
+    s3.before = async (command, signal) => {
+      // The process dies after the first part: the multipart stays open.
+      if (command.name === "UploadPartCommand" && command.input["PartNumber"] === 2) await hang(signal);
+    };
+    source.push(randomBytes(2 * S3_PART_BYTES + 10));
+    const staging = storage.stage(key, source).catch(() => undefined);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(s3.uploads.size).toBe(1);
+    const otherUpload = randomUUID();
+    s3.uploads.set(otherUpload, { key: `${PREFIX}staging/${randomUUID()}.0123456789abcdef.part`, parts: new Map(), initiated: new Date() });
+    s3.before = undefined;
+    await storage.discardStaged(key);
+    expect([...s3.uploads.keys()]).toEqual([otherUpload]);
+    source.destroy(new Error("cut"));
+    await staging;
+  });
+
+  it("list reports hidden versions, markers and unfinished uploads, one entry each", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    await (await storage.stage(key, Readable.from([Buffer.from("abc")]))).commit();
+    const name = `${PREFIX}objects/${key}`;
+    const hidden = s3.versionsOf(name)[0].versionId;
+    s3.putDirect(name, Buffer.from("abcd"));
+    const gone = randomUUID();
+    s3.putDirect(`${PREFIX}objects/${gone}`, Buffer.from("zz"));
+    s3.hideDirect(`${PREFIX}objects/${gone}`);
+    const uploadKey = `${PREFIX}staging/${randomUUID()}.0123456789abcdef.part`;
+    s3.uploads.set("u1", { key: uploadKey, parts: new Map([[1, Buffer.alloc(7)], [2, Buffer.alloc(5)]]), initiated: new Date() });
+
+    const listed = await storage.list();
+    const pick = (f: (typeof listed)[number]) => ({
+      area: f.area,
+      key: f.key,
+      sizeBytes: f.sizeBytes,
+      hidden: f.hidden,
+      deleteMarker: f.deleteMarker,
+      incompleteUpload: f.incompleteUpload,
+    });
+    expect(listed.filter((f) => f.key === key).map(pick)).toEqual(
+      expect.arrayContaining([
+        { area: "objects", key, sizeBytes: 4, hidden: false, deleteMarker: false, incompleteUpload: undefined },
+        { area: "objects", key, sizeBytes: 3, hidden: true, deleteMarker: false, incompleteUpload: undefined },
+      ]),
+    );
+    expect(listed.find((f) => f.versionId === hidden)?.hidden).toBe(true);
+    expect(
+      listed
+        .filter((f) => f.key === gone)
+        .map((f) => `${f.hidden}/${f.deleteMarker}`)
+        .sort(byCode),
+    ).toEqual(["true/false", "true/true"]);
+    expect(listed.filter((f) => f.incompleteUpload).map(pick)).toEqual([
+      { area: "staging", key: uploadKey.slice(`${PREFIX}staging/`.length, -".0123456789abcdef.part".length), sizeBytes: 12, hidden: undefined, deleteMarker: undefined, incompleteUpload: true },
+    ]);
+  });
+
+  it("open of an absent or hidden key is BackupObjectMissingError", async () => {
+    const { s3, storage } = setup();
+    await expect(storage.open(randomUUID())).rejects.toBeInstanceOf(BackupObjectMissingError);
+    const key = randomUUID();
+    await (await storage.stage(key, Readable.from([Buffer.from("a")]))).commit();
+    s3.hideDirect(`${PREFIX}objects/${key}`);
+    await expect(storage.open(key)).rejects.toBeInstanceOf(BackupObjectMissingError);
+  });
+
+  it("a provider that denies (403) fails stage, open and remove with its own error, never as success or missing", async () => {
+    const { s3, storage } = setup();
+    const key = randomUUID();
+    await (await storage.stage(key, Readable.from([Buffer.from("a")]))).commit();
+    s3.before = () => {
+      throw s3Error("AccessDenied", 403);
+    };
+    await expect(storage.stage(randomUUID(), Readable.from([Buffer.from("b")]))).rejects.toMatchObject({ name: "AccessDenied" });
+    await expect(storage.open(key)).rejects.toMatchObject({ name: "AccessDenied" });
+    await expect(storage.remove(key)).rejects.toMatchObject({ name: "AccessDenied" });
+    await expect(storage.discardStaged(key)).rejects.toMatchObject({ name: "AccessDenied" });
+    s3.before = undefined;
+    expect((await readAll((await storage.open(key)).stream)).toString()).toBe("a");
+  });
+
+  it("a hung call is aborted within its budget (commit, remove, open)", async () => {
+    const limits: S3Limits = { callMs: 40, commitMs: 120, purgeMs: 80, openMs: 40 };
+    const { s3, storage } = setup(limits);
+    const key = randomUUID();
+    const staged = await storage.stage(key, Readable.from([Buffer.from("a")]));
+    s3.before = async (command, signal) => {
+      if (command.name !== "PutObjectCommand") await hang(signal);
+    };
+    const timed = async (run: () => Promise<unknown>) => {
+      const started = Date.now();
+      await expect(run()).rejects.toThrow("S3_DEADLINE_EXCEEDED");
+      return Date.now() - started;
+    };
+    expect(await timed(() => staged.commit())).toBeLessThan(1000);
+    expect(await timed(() => storage.remove(key))).toBeLessThan(1000);
+    expect(await timed(() => storage.open(key))).toBeLessThan(1000);
+    expect(await timed(() => storage.discardStaged(key))).toBeLessThan(1000);
+  });
+
+  it("an empty body is staged and can be discarded (the service rejects it as EMPTY)", async () => {
+    const { s3, storage } = setup();
+    const staged = await storage.stage(randomUUID(), Readable.from([]));
+    await staged.discard();
+    expect(s3.totalEntries()).toBe(0);
+  });
+
+  it("a cut source of a previous key never touches another copy", async () => {
+    const { s3, storage } = setup();
+    const previous = randomUUID();
+    await (await storage.stage(previous, Readable.from([Buffer.from("válida")]))).commit();
+    await expect(storage.stage(randomUUID(), failingSource(randomBytes(S3_PART_BYTES + 5)))).rejects.toThrow("transfer cut");
+    expect(entriesOf(s3, "objects")).toEqual([previous]);
+    expect(s3.uploads.size).toBe(0);
+  });
+});

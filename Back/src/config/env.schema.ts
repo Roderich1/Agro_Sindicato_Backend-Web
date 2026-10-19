@@ -54,6 +54,40 @@ export const envSchema = z.object({
   BACKUP_MAX_ACTIVE_PER_MEMBER: optionalText(
     z.coerce.number().int().positive().max(100),
   ),
+  // F08-BKP-06 (#40): deadline of one upload. Must stay below the abandon
+  // window (BACKUP_UPLOAD_ABANDON_MS, 60 min), so an UPLOADING row older than
+  // that has no transfer in progress.
+  BACKUP_UPLOAD_DEADLINE_MS: optionalText(
+    z.coerce.number().int().min(60_000).max(3_599_999),
+  ),
+  // F08-BKP-07: storage provider. Empty or `disk` = BACKUP_STORAGE_DIR (as
+  // before); `b2` = the S3 variables below, and never the disk. An
+  // incomplete `b2` configuration leaves the routes at 503.
+  BACKUP_STORAGE_PROVIDER: optionalText(z.enum(["disk", "b2"])),
+  BACKUP_S3_ENDPOINT: optionalText(
+    z
+      .string()
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        return (
+          url.protocol === "https:" &&
+          !url.username &&
+          !url.password &&
+          (url.pathname === "/" || url.pathname === "") &&
+          !url.search &&
+          !url.hash
+        );
+      }, "must be an https origin without path, query or credentials"),
+  ),
+  BACKUP_S3_REGION: optionalText(z.string().regex(/^[a-z0-9-]{1,32}$/)),
+  BACKUP_S3_BUCKET: optionalText(z.string().regex(/^[A-Za-z0-9-]{6,63}$/)),
+  // Secrets: length and pattern checks only, so a validation error never
+  // carries the value.
+  BACKUP_S3_ACCESS_KEY_ID: optionalText(z.string().regex(/^\S{1,128}$/)),
+  BACKUP_S3_SECRET_ACCESS_KEY: optionalText(z.string().regex(/^\S{1,256}$/)),
+  // One segment ending in "/" (e.g. `ensayo-f08/`): never the bucket root.
+  BACKUP_S3_PREFIX: optionalText(z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}\/$/)),
 });
 
 export type Env = z.infer<typeof envSchema>;
