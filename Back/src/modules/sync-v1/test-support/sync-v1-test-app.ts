@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import { URL } from "node:url";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { configureBackupsBodyGuard } from "@/modules/backups/api/rest/backups-body";
+import { BACKUP_STORAGE, BackupStorage } from "@/modules/backups/domain/backup-storage.port";
 import { configureSyncV1BodyParser } from "../api/rest/sync-v1-body";
 import cookieParser = require("cookie-parser");
 
@@ -55,7 +56,12 @@ export async function createIsolatedDatabase(adminUrl: string, prefix: string) {
 
 export async function createSyncV1App(
   databaseUrl: string,
-  options: { throttle?: boolean; fingerprintKey?: string | null } = {},
+  options: {
+    throttle?: boolean;
+    fingerprintKey?: string | null;
+    /** F08-BKP-07: replaces the backup storage the environment would choose. */
+    backupStorage?: BackupStorage;
+  } = {},
 ) {
   process.env["DATABASE_URL"] = databaseUrl;
   process.env["NODE_ENV"] = "test";
@@ -79,6 +85,8 @@ export async function createSyncV1App(
       .overrideProvider(getOptionsToken())
       .useValue({ throttlers: [{ ttl: 60000, limit: 20 }], skipIf: () => true });
   }
+  if (options.backupStorage)
+    builder = builder.overrideProvider(BACKUP_STORAGE).useValue(options.backupStorage);
   const module = await builder.compile();
   const app = module.createNestApplication({ logger: false });
   app.setGlobalPrefix("api/v1");

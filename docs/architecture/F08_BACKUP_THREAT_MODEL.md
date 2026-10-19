@@ -49,6 +49,14 @@ Por decisión de Roderich Rendón (opción 2), este documento **completa la docu
 - **Proveedor productivo pendiente.** Puede ser un almacenamiento de objetos o un volumen gestionado. Están pendientes la integración externa, sus credenciales y sus costos. **No se probó ni se declara Backblaze B2 ni otro proveedor.**
 - Sin despliegue real. La admisión productiva sigue cerrada: `BACKUP_PRODUCTION_ADMISSION` no está autorizado y `docker-compose.yml` lo fija en `disabled`.
 
+> **Actualización del 2026-10-19 (F08-BKP-07, BE #147).** Esta nota no reescribe el texto anterior, que describe el estado a la fecha de elaboración.
+> - **Proveedor elegido:** Roderich eligió **Backblaze B2 por su API S3**, el 2026-10-19.
+> - **Adaptador:** `S3BackupStorage`, que se activa sólo con `BACKUP_STORAGE_PROVIDER=b2`. El disco sigue siendo el valor por defecto.
+> - **Qué está probado:** sólo en host, contra un **doble S3 en memoria**, que **no es B2**.
+> - **Pendiente:** el ensayo contra B2 real, a la espera de una clave restringida al prefijo `ensayo-f08/`.
+> - **SSE-B2** (cifrado del proveedor) se solicita en cada escritura, pero **no cumple la condición 2 del §5**: B2 descifra para quien tenga la clave, y no protege de T3.
+> - **La admisión productiva sigue cerrada.** Las condiciones 2 a 8 del §5 no cambian.
+
 ## 5. Condiciones antes de admitir datos reales
 
 Ninguna se cumple hoy. Todas son necesarias:
