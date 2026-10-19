@@ -384,6 +384,12 @@ Ver §6. Es el único procedimiento de recuperación de datos probado de punta a
 
 La única rotación con soporte es la de la clave de huella de Sync v1, mediante `SYNC_V1_FINGERPRINT_PREVIOUS_KEYS`, probada en unidad (`F05_SYNC_05.md`).
 
+**Precondición de cualquier paso *contract*.** Antes de una migración que retire tablas, columnas o rutas (fases 6 y 9 de `docs/scope/TRANSITION_PLAN.md`, BE #81), hacen falta dos cosas:
+- un ciclo **probado** de copia y restauración de la base del Central;
+- `docs/scope/LEGACY_CONTRACT_CONSUMERS.md` con cero consumidores en el HEAD de ese momento.
+
+Lo probado en los respaldos es el **respaldo privado del teléfono**, no la base central (`F10_CONTRASTE_81_Y_VALIDATION.md`, fila 81-M, en BE #153). Hoy ningún paso *contract* está autorizado ni se ha ejecutado.
+
 ### 9.4 Reparación de la migración inicial
 
 Una base creada con la migración inicial anterior a la eliminación del BOM sigue siendo compatible con Prisma 6.19.3 (`INITIAL_MIGRATION_BOM_REPAIR.md`). **[Probado]**. Hay que repetir la comprobación si cambia la versión mayor de Prisma.
@@ -400,6 +406,7 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
 - **Sync v1:** no define las variables `SYNC_V1_*`, así que Sync v1 responde 503.
 - **Respaldos:** usa el proveedor de disco en un volumen con la admisión cerrada.
 - **Tamaño de las subidas tras nginx:** `Web/nginx.conf` no fija `client_max_body_size`, cuyo valor por defecto en nginx es 1 MiB. Si la app usara ese nginx como origen, las subidas de respaldo grandes se rechazarían antes de llegar a la API. Los ensayos no pasaron por ese nginx. **[Sin probar]**: hay que verificarlo antes de usar ese esquema.
+- **Rutas heredadas de escritura privada:** la API sigue aceptando del AGRICULTOR, sobre lo suyo, `POST /purchases`, `/inventory`, `/applications`, `/plots`, `/accounts-payable` y `/sync/operations` (`docs/security/AUTHORIZATION_MATRIX_VIGENTE.md` §2.4). La app (`463d3ec`) no usa ninguna, y la Web sólo con `VITE_LEGACY_FARMER_WEB=enabled` (`docs/scope/LEGACY_CONTRACT_CONSUMERS.md`). En un despliegue, otro cliente podría escribir datos privados en el Central. Cerrarlas es la PHASE 6 de BE #81, que no está iniciada y depende de una decisión de Roderich. Mientras tanto queda como **límite productivo**.
 - **Dependencias:** el triaje de seguridad del 2026-09-28 dejó hallazgos sin resolver que exigen revisión antes de producción (`docs/security/F02_THREAT_MODEL.md`).
 
 ---
