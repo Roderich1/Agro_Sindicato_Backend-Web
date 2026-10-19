@@ -1084,6 +1084,11 @@ model BackupMetadata {
   createdAt     DateTime     @default(now())
   completedAt   DateTime?
   deletedAt     DateTime?
+  /// F08-BKP-06 (#40): DELETED or FAILED row whose bytes the storage has not
+  /// yet confirmed as gone. A CHECK keeps it false on any other status.
+  purgePending  Boolean      @default(false)
+  /// OWNER or RETENTION, only on DELETED rows (CHECK in the migration).
+  deletionReason String?     @db.VarChar(16)
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   member Member @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)

@@ -12,6 +12,7 @@ import type { Readable } from "node:stream";
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { BACKUP_STORAGE, BackupStorage } from "./domain/backup-storage.port";
+import { interceptCompletion } from "./test-support/backup-test-hooks";
 import {
   createIsolatedDatabase,
   createSession,
@@ -391,22 +392,11 @@ describePostgres("F08 private backups on PostgreSQL and disk", () => {
     expect(await files()).toEqual(before);
   });
 
-  it("limits the copies in use per Member (409) and frees a slot on deletion", async () => {
-    const ids: string[] = [];
-    for (let i = 0; i < MAX_ACTIVE; i++) {
-      const response = await upload(farmerA2, payload(64).bytes);
-      expect(response.status).toBe(201);
-      ids.push(response.body.id);
-    }
-    const over = await upload(farmerA2, payload(64).bytes);
-    expect(over.status).toBe(409);
-    expect(over.body).toEqual({ errorCode: "BACKUP_QUOTA_EXCEEDED" });
-    // Another Member is not affected by farmerA2's quota.
-    expect((await upload(farmerB, payload(64).bytes)).status).toBe(201);
-
-    expect((await http().delete(`${BASE}/${ids[0]}`).set(auth(farmerA2))).status).toBe(204);
-    expect((await upload(farmerA2, payload(64).bytes)).status).toBe(201);
-  });
+  // «limits the copies in use per Member (409) and frees a slot on deletion»
+  // tested the contract before retention (#40): with N copies the upload was
+  // refused with 409 BACKUP_QUOTA_EXCEEDED. Retention replaced that contract
+  // (N copies: 201 and the oldest is retired); its cases are T-R1, T-R1b and
+  // C1 in retention.backups.postgres.spec.ts.
 
   it("deletes logically and removes the file; it is no longer listed or served", async () => {
     const { bytes } = payload();
@@ -462,7 +452,7 @@ describePostgres("F08 private backups on PostgreSQL and disk", () => {
 
   it("if marking the copy AVAILABLE fails after the commit, its bytes are removed", async () => {
     const before = await files();
-    jest.spyOn(prisma.backupMetadata, "updateMany").mockRejectedValueOnce(new Error("simulated"));
+    interceptCompletion(prisma, { fail: "before" });
     const response = await upload(farmerA, payload().bytes);
     expect(response.status).toBe(500);
     expect(await files()).toEqual(before);
@@ -473,11 +463,7 @@ describePostgres("F08 private backups on PostgreSQL and disk", () => {
 
   it("an ambiguous AVAILABLE update that did commit keeps the copy and its bytes", async () => {
     const { bytes } = payload();
-    const original = prisma.backupMetadata.updateMany.bind(prisma.backupMetadata);
-    jest.spyOn(prisma.backupMetadata, "updateMany").mockImplementationOnce((async (args: unknown) => {
-      await original(args as never);
-      throw new Error("connection lost after commit (simulated)");
-    }) as never);
+    interceptCompletion(prisma, { fail: "after" });
     const response = await upload(farmerA, bytes);
     expect(response.status).toBe(201);
     const row = await prisma.backupMetadata.findUniqueOrThrow({ where: { id: response.body.id } });

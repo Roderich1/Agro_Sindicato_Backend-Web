@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import type { BackupMetadata } from "@prisma/client";
+import type { BackupMetadata, Prisma } from "@prisma/client";
 import { createHash, randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { finished } from "node:stream";
@@ -11,6 +11,7 @@ import {
   BackupStorage,
 } from "../domain/backup-storage.port";
 import { BackupHttpError, BackupOwnerContext } from "./backup-http-error";
+import { purgePending } from "./backup-retention";
 import { BACKUP_UPLOAD_ABANDON_MS, BackupsConfig } from "./backups-config";
 import {
   BackupTooLargeError,
@@ -50,6 +51,12 @@ export interface BackupDownload {
 
 const NOT_FOUND = () => new BackupHttpError(404, "BACKUP_NOT_FOUND");
 
+/** Serialises reservation, completion and deletion of one Member's copies. */
+async function lockOwner(tx: Prisma.TransactionClient, owner: BackupOwnerContext) {
+  const lockKey = `backup:${owner.tenantId}:${owner.memberId}`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+}
+
 function single(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? undefined : value;
 }
@@ -82,6 +89,13 @@ function toView(row: BackupMetadata): BackupView {
  * Every query is scoped by the authenticated tenant and Member: a backup of
  * another Member or tenant is indistinguishable from a missing one (404).
  * Nothing here reads or writes Sync v1 or collective tables (F06 §8).
+ *
+ * Retention (F08-BKP-06, #40; `docs/architecture/F08_BKP_06_RETENCION.md`):
+ * the N most recent verified copies are kept (N =
+ * `BACKUP_MAX_ACTIVE_PER_MEMBER`). A copy is retired only in the transaction
+ * that makes a newer one AVAILABLE, never by age, never the last one. At most
+ * one upload per Member is in progress, and AVAILABLE + UPLOADING + rows
+ * pending purge never exceed N + 1.
  */
 @Injectable()
 export class BackupsService {
@@ -110,9 +124,10 @@ export class BackupsService {
   /**
    * Streams the body to staging while hashing and counting it. The copy
    * becomes AVAILABLE only after the server-computed SHA-256 matches the
-   * declared one and the object is committed. Any failure leaves the row
-   * FAILED (never listed) and no staged or committed bytes; earlier AVAILABLE
-   * copies are untouched.
+   * declared one and the object is committed; in that same transaction the
+   * copies beyond the N most recent are retired. Any failure leaves the row
+   * FAILED (never listed) with its bytes pending purge, and no earlier
+   * AVAILABLE copy is retired.
    */
   async upload(
     owner: BackupOwnerContext,
@@ -121,6 +136,8 @@ export class BackupsService {
   ): Promise<BackupView> {
     const storage = this.requireStorage();
     const declared = this.parseUploadHeaders(headers);
+    await this.closeAbandoned(owner);
+    await this.purgeOwner(storage, owner);
     const row = await this.reserve(owner, declared);
 
     const meter = new Sha256Meter(this.config.maxBytes);
@@ -168,15 +185,14 @@ export class BackupsService {
       throw new BackupHttpError(503, "BACKUP_STORAGE_UNAVAILABLE");
     }
 
-    let completed: { count: number };
+    let retired: string[] | null;
     try {
-      completed = await this.prisma.backupMetadata.updateMany({
-        where: { id: row.id, status: "UPLOADING" },
-        data: { status: "AVAILABLE", sizeBytes: BigInt(meter.bytes), completedAt: new Date() },
-      });
+      retired = await this.completeAndRotate(owner, row.id, meter.bytes);
     } catch (error) {
       // An ambiguous failure may still have committed: read the row again
       // before removing anything, so an AVAILABLE copy never loses its bytes.
+      // Completion and retirement share one transaction: if the row is
+      // AVAILABLE, the retired rows are pending and the next upload purges them.
       const current = await this.prisma.backupMetadata
         .findUnique({ where: { id: row.id }, select: { status: true } })
         .catch(() => null);
@@ -188,16 +204,64 @@ export class BackupsService {
         // listed copy without content) and report the failure.
         throw error;
       }
-      await storage.remove(row.storageKey).catch(() => undefined);
       await this.fail(row.id, "METADATA_UPDATE_FAILED");
       throw error;
     }
-    if (completed.count !== 1) {
-      // Marked abandoned meanwhile: the bytes must not outlive their row.
-      await storage.remove(row.storageKey);
+    if (retired === null) {
+      // Marked abandoned meanwhile: the bytes must not outlive their row,
+      // which is already FAILED and pending purge.
+      await purgePending(this.prisma, storage, { id: row.id });
       throw new BackupHttpError(503, "BACKUP_STORAGE_UNAVAILABLE");
     }
+    if (retired.length > 0) {
+      const purge = await purgePending(this.prisma, storage, { id: { in: retired } });
+      if (purge.failed > 0) this.logger.warn("Backup retention purge pending");
+    }
     return toView(await this.prisma.backupMetadata.findUniqueOrThrow({ where: { id: row.id } }));
+  }
+
+  /**
+   * One transaction under the Member lock: the verified copy becomes
+   * AVAILABLE and, only then, the AVAILABLE copies beyond the N most recent
+   * (oldest first, never the new one) are retired. Returns the retired ids,
+   * or null if the upload was closed as abandoned meanwhile.
+   */
+  private async completeAndRotate(
+    owner: BackupOwnerContext,
+    id: string,
+    bytes: number,
+  ): Promise<string[] | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await lockOwner(tx, owner);
+      const completed = await tx.backupMetadata.updateMany({
+        where: { id, status: "UPLOADING" },
+        data: { status: "AVAILABLE", sizeBytes: BigInt(bytes), completedAt: new Date() },
+      });
+      if (completed.count !== 1) return null;
+      const surplus = await tx.backupMetadata.findMany({
+        where: {
+          tenantId: owner.tenantId,
+          memberId: owner.memberId,
+          status: "AVAILABLE",
+          id: { not: id },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: this.config.maxActivePerMember - 1,
+        select: { id: true },
+      });
+      if (surplus.length === 0) return [];
+      const ids = surplus.map((s) => s.id);
+      await tx.backupMetadata.updateMany({
+        where: { id: { in: ids }, status: "AVAILABLE" },
+        data: {
+          status: "DELETED",
+          deletedAt: new Date(),
+          deletionReason: "RETENTION",
+          purgePending: true,
+        },
+      });
+      return ids;
+    });
   }
 
   /**
@@ -234,21 +298,25 @@ export class BackupsService {
     }
   }
 
+  /**
+   * The owner's deletion (unchanged contract): any own copy, the last one
+   * included. Under the Member lock, so it never races with a rotation.
+   */
   async remove(owner: BackupOwnerContext, id: string): Promise<void> {
     const storage = this.requireStorage();
     const row = await this.findOwnedAvailable(owner, id);
-    const deleted = await this.prisma.backupMetadata.updateMany({
-      where: { id: row.id, tenantId: owner.tenantId, memberId: owner.memberId, status: "AVAILABLE" },
-      data: { status: "DELETED", deletedAt: new Date() },
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      await lockOwner(tx, owner);
+      return tx.backupMetadata.updateMany({
+        where: { id: row.id, tenantId: owner.tenantId, memberId: owner.memberId, status: "AVAILABLE" },
+        data: { status: "DELETED", deletedAt: new Date(), deletionReason: "OWNER", purgePending: true },
+      });
     });
     if (deleted.count !== 1) throw NOT_FOUND();
-    try {
-      await storage.remove(row.storageKey);
-    } catch (error) {
-      // Logically deleted: never listed or served again. The orphan object is
-      // a declared limitation until retention (#40) adds reconciliation.
-      this.logger.warn(`Backup object removal failed (${(error as Error).name})`);
-    }
+    const purge = await purgePending(this.prisma, storage, { id: row.id });
+    // Logically deleted: never listed or served again. A failed purge stays
+    // pending and is retried before the owner's next upload.
+    if (purge.failed > 0) this.logger.warn("Backup object removal pending");
   }
 
   private async findOwnedAvailable(owner: BackupOwnerContext, id: string) {
@@ -289,42 +357,60 @@ export class BackupsService {
   }
 
   /**
-   * Reserves an UPLOADING row under a per-Member lock: abandoned uploads are
-   * closed and the quota of copies in use is enforced atomically.
+   * Closes the Member's uploads older than BACKUP_UPLOAD_ABANDON_MS as FAILED
+   * ABANDONED, with their bytes pending purge. The status change is
+   * conditional, so a late completion of the same upload changes nothing.
    */
-  private async reserve(
-    owner: BackupOwnerContext,
-    declared: { sha256: string; formatVersion: number; schemaVersion: number },
-  ) {
-    const abandoned: string[] = [];
-    const row = await this.prisma.$transaction(async (tx) => {
-      const lockKey = `backup:${owner.tenantId}:${owner.memberId}`;
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
-      const stale = await tx.backupMetadata.findMany({
+  private async closeAbandoned(owner: BackupOwnerContext): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await lockOwner(tx, owner);
+      await tx.backupMetadata.updateMany({
         where: {
           tenantId: owner.tenantId,
           memberId: owner.memberId,
           status: "UPLOADING",
           createdAt: { lt: new Date(Date.now() - BACKUP_UPLOAD_ABANDON_MS) },
         },
-        select: { id: true, storageKey: true },
-      });
-      if (stale.length > 0) {
-        await tx.backupMetadata.updateMany({
-          where: { id: { in: stale.map((s) => s.id) }, status: "UPLOADING" },
-          data: { status: "FAILED", failureCode: "ABANDONED", completedAt: new Date() },
-        });
-        abandoned.push(...stale.map((s) => s.storageKey));
-      }
-      const inUse = await tx.backupMetadata.count({
-        where: {
-          tenantId: owner.tenantId,
-          memberId: owner.memberId,
-          status: { in: ["UPLOADING", "AVAILABLE"] },
+        data: {
+          status: "FAILED",
+          failureCode: "ABANDONED",
+          completedAt: new Date(),
+          purgePending: true,
         },
       });
-      if (inUse >= this.config.maxActivePerMember)
-        throw new BackupHttpError(409, "BACKUP_QUOTA_EXCEEDED");
+    });
+  }
+
+  /** Retries the Member's pending purges before admitting a new upload. */
+  private async purgeOwner(storage: BackupStorage, owner: BackupOwnerContext): Promise<void> {
+    const purge = await purgePending(this.prisma, storage, {
+      tenantId: owner.tenantId,
+      memberId: owner.memberId,
+    });
+    if (purge.failed > 0) this.logger.warn("Backup purge still pending");
+  }
+
+  /**
+   * Reserves an UPLOADING row under the Member lock. One upload at a time
+   * (409 BACKUP_UPLOAD_IN_PROGRESS), and only while AVAILABLE + pending purge
+   * leave room for it within N + 1 objects (otherwise 503: the storage has
+   * not yet accepted earlier purges).
+   */
+  private async reserve(
+    owner: BackupOwnerContext,
+    declared: { sha256: string; formatVersion: number; schemaVersion: number },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await lockOwner(tx, owner);
+      const mine = { tenantId: owner.tenantId, memberId: owner.memberId };
+      const uploading = await tx.backupMetadata.count({ where: { ...mine, status: "UPLOADING" } });
+      if (uploading > 0) throw new BackupHttpError(409, "BACKUP_UPLOAD_IN_PROGRESS");
+      const available = await tx.backupMetadata.count({ where: { ...mine, status: "AVAILABLE" } });
+      const pending = await tx.backupMetadata.count({ where: { ...mine, purgePending: true } });
+      if (available + pending > this.config.maxActivePerMember) {
+        this.logger.warn("Backup upload refused: purges pending above the limit");
+        throw new BackupHttpError(503, "BACKUP_STORAGE_UNAVAILABLE");
+      }
       return tx.backupMetadata.create({
         data: {
           id: randomUUID(),
@@ -338,20 +424,23 @@ export class BackupsService {
         },
       });
     });
-    for (const key of abandoned) {
-      await this.storage?.discardStaged(key).catch(() => undefined);
-    }
-    return row;
   }
 
+  /**
+   * Closes the upload as FAILED with its bytes pending purge, then purges
+   * them (staged and committed, both idempotent). Never throws.
+   */
   private async fail(id: string, failureCode: string): Promise<void> {
     try {
       await this.prisma.backupMetadata.updateMany({
         where: { id, status: "UPLOADING" },
-        data: { status: "FAILED", failureCode, completedAt: new Date() },
+        data: { status: "FAILED", failureCode, completedAt: new Date(), purgePending: true },
       });
     } catch (error) {
       this.logger.error(`Backup failure could not be recorded (${(error as Error).name})`);
+      return;
     }
+    const purge = await purgePending(this.prisma, this.requireStorage(), { id }).catch(() => null);
+    if (!purge || purge.failed > 0) this.logger.warn("Backup failed upload purge pending");
   }
 }

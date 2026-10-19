@@ -13,6 +13,7 @@ export const backupErrorSchema: SchemaObject = {
         "AUTH_CONTEXT_FORBIDDEN",
         "BACKUP_NOT_FOUND",
         "BACKUP_QUOTA_EXCEEDED",
+        "BACKUP_UPLOAD_IN_PROGRESS",
         "BACKUP_TOO_LARGE",
         "UNSUPPORTED_MEDIA_TYPE",
         "BACKUP_SHA256_MISMATCH",
