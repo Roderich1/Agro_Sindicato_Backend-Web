@@ -19,10 +19,17 @@ export interface BackupStorage {
   /** Bytes of a committed object; `BackupObjectMissingError` if absent. */
   open(key: string): Promise<{ sizeBytes: number; stream: Readable }>;
 
-  /** Removes a committed object. Removing an absent object is not an error. */
+  /**
+   * Removes a committed object: in a versioned store, every version and
+   * delete marker of its exact name, checked by listing again. Resolves only
+   * when nothing of it is left; removing an absent object is not an error.
+   */
   remove(key: string): Promise<void>;
 
-  /** Removes a staged object left behind (e.g. an abandoned upload). */
+  /**
+   * Removes the staged objects left behind (e.g. an abandoned upload),
+   * including unfinished multipart uploads, with the same check as `remove`.
+   */
   discardStaged(key: string): Promise<void>;
 }
 
@@ -57,6 +64,17 @@ export interface StoredBackupFile {
   key: string | null;
   sizeBytes: number;
   modifiedAt: Date;
+  /**
+   * Versioned stores only (B2, F08-BKP-07): every version is its own entry.
+   * The disk adapter leaves these fields unset.
+   */
+  versionId?: string;
+  /** Not the current version of its name, or a delete marker. */
+  hidden?: boolean;
+  /** A delete marker: no bytes of its own, it hides the versions below it. */
+  deleteMarker?: boolean;
+  /** An unfinished multipart upload (staging); size is the sum of its parts. */
+  incompleteUpload?: boolean;
 }
 
 /**
@@ -66,7 +84,7 @@ export interface StoredBackupFile {
  */
 export interface BackupStorageInventory {
   list(): Promise<StoredBackupFile[]>;
-  /** Removes `staging/<name>` if it is a staging file. Idempotent. */
+  /** Removes `staging/<name>` (every version of it) if it is a staging file. Idempotent. */
   removeStagedFile(name: string): Promise<void>;
 }
 

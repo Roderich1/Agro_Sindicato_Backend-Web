@@ -1,146 +1,22 @@
-import { afterEach, beforeEach } from "@jest/globals";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { BackupObjectMissingError } from "../domain/backup-storage.port";
+import { backupStorageContract, byCode } from "../test-support/backup-storage.contract";
 import { LocalDiskBackupStorage } from "./local-disk-backup-storage";
 
 /** F08-BKP-02 (#38): disk adapter on a real temporary directory. */
-describe("LocalDiskBackupStorage", () => {
-  let root: string;
-  let storage: LocalDiskBackupStorage;
-
-  beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "f08-bkp-02-"));
-    storage = new LocalDiskBackupStorage(root);
-  });
-
-  afterEach(async () => {
-    await rm(root, { recursive: true, force: true });
-  });
-
-  const read = async (stream: Readable) => {
-    const chunks: Buffer[] = [];
-    for await (const chunk of stream) chunks.push(chunk as Buffer);
-    return Buffer.concat(chunks);
+backupStorageContract("LocalDiskBackupStorage", async () => {
+  const root = await mkdtemp(join(tmpdir(), "f08-bkp-02-"));
+  return {
+    storage: new LocalDiskBackupStorage(root),
+    entries: async (area) => (await readdir(join(root, area)).catch(() => [])).sort(byCode),
+    writeForeign: (area, name, content) => writeFile(join(root, area, name), content),
+    readForeign: (area, name) => readFile(join(root, area, name), "utf8"),
+    isEmpty: async () => (await readdir(root)).length === 0,
+    dispose: () => rm(root, { recursive: true, force: true }),
   };
-
-  /** A source that emits some bytes and then fails, like a cut transfer. */
-  function failingSource(bytes: Buffer) {
-    let sent = false;
-    return new Readable({
-      read() {
-        if (!sent) {
-          sent = true;
-          this.push(bytes);
-        } else {
-          this.destroy(new Error("transfer cut"));
-        }
-      },
-    });
-  }
-
-  it("a staged object is invisible until committed, then readable under its key", async () => {
-    const key = randomUUID();
-    const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
-    await expect(storage.open(key)).rejects.toBeInstanceOf(BackupObjectMissingError);
-    expect(await readdir(join(root, "staging"))).toHaveLength(1);
-
-    await staged.commit();
-
-    const opened = await storage.open(key);
-    expect(opened.sizeBytes).toBe(8);
-    expect((await read(opened.stream)).toString()).toBe("respaldo");
-    expect(await readdir(join(root, "staging"))).toEqual([]);
-    expect(await readdir(join(root, "objects"))).toEqual([key]);
-  });
-
-  it("discard leaves nothing behind", async () => {
-    const key = randomUUID();
-    const staged = await storage.stage(key, Readable.from([Buffer.from("x")]));
-    await staged.discard();
-    await expect(storage.open(key)).rejects.toBeInstanceOf(BackupObjectMissingError);
-    expect(await readdir(join(root, "staging"))).toEqual([]);
-    expect(await readdir(join(root, "objects"))).toEqual([]);
-  });
-
-  it("a source that fails mid-transfer leaves no partial file and keeps the previous object", async () => {
-    const previous = randomUUID();
-    await (await storage.stage(previous, Readable.from([Buffer.from("válida")]))).commit();
-
-    await expect(
-      storage.stage(randomUUID(), failingSource(Buffer.alloc(4096, 1))),
-    ).rejects.toThrow("transfer cut");
-
-    expect(await readdir(join(root, "staging"))).toEqual([]);
-    expect(await readdir(join(root, "objects"))).toEqual([previous]);
-    expect((await read((await storage.open(previous)).stream)).toString()).toBe("válida");
-  });
-
-  it("only server-generated UUID keys are accepted, never paths", async () => {
-    for (const key of ["../escape", "a/b", "C:\\x", "", "not-a-uuid"]) {
-      await expect(storage.stage(key, Readable.from([Buffer.from("x")]))).rejects.toThrow(
-        "Invalid backup storage key",
-      );
-      await expect(storage.open(key)).rejects.toThrow("Invalid backup storage key");
-      await expect(storage.remove(key)).rejects.toThrow("Invalid backup storage key");
-    }
-    expect(await readdir(root)).toEqual([]);
-  });
-
-  it("remove is idempotent and discardStaged clears an abandoned upload", async () => {
-    const key = randomUUID();
-    await (await storage.stage(key, Readable.from([Buffer.from("x")]))).commit();
-    await storage.remove(key);
-    await storage.remove(key);
-    await expect(storage.open(key)).rejects.toBeInstanceOf(BackupObjectMissingError);
-
-    const abandoned = randomUUID();
-    await storage.stage(abandoned, Readable.from([Buffer.from("y")]));
-    await writeFile(join(root, "staging", `${randomUUID()}.keep.part`), "other");
-    await storage.discardStaged(abandoned);
-    const left = await readdir(join(root, "staging"));
-    expect(left).toHaveLength(1);
-    expect(left[0]).not.toContain(abandoned);
-    expect(await readFile(join(root, "staging", left[0]), "utf8")).toBe("other");
-  });
-
-  it("a committed object cannot be committed twice", async () => {
-    const staged = await storage.stage(randomUUID(), Readable.from([Buffer.from("x")]));
-    await staged.commit();
-    await expect(staged.commit()).rejects.toThrow("already settled");
-  });
-
-  it("F10 inventory: lists objects and staging with their keys; removes only staging files", async () => {
-    const key = randomUUID();
-    const staged = await storage.stage(key, Readable.from([Buffer.from("x".repeat(10))]));
-    const pending = randomUUID();
-    await storage.stage(pending, Readable.from([Buffer.from("yy")]));
-    await staged.commit();
-    await writeFile(join(root, "objects", "notas.txt"), "z");
-
-    const listed = await storage.list();
-    expect(listed.map(({ area, key: k, sizeBytes }) => ({ area, key: k, sizeBytes })).sort(
-      (a, b) => `${a.area}${a.key}`.localeCompare(`${b.area}${b.key}`),
-    )).toEqual(
-      [
-        { area: "objects", key, sizeBytes: 10 },
-        { area: "objects", key: null, sizeBytes: 1 },
-        { area: "staging", key: pending, sizeBytes: 2 },
-      ].sort((a, b) => `${a.area}${a.key}`.localeCompare(`${b.area}${b.key}`)),
-    );
-
-    const part = listed.find((f) => f.area === "staging")!.name;
-    for (const bad of ["notas.txt", "../objects/" + key, key, `${key}.part`])
-      await expect(storage.removeStagedFile(bad)).rejects.toThrow("Not a backup staging file");
-    await storage.removeStagedFile(part);
-    await storage.removeStagedFile(part);
-    expect((await storage.list()).filter((f) => f.area === "staging")).toEqual([]);
-    expect(await readdir(join(root, "staging"))).toEqual([]);
-    expect((await readdir(join(root, "objects"))).sort()).toEqual([key, "notas.txt"].sort());
-  });
 });
 
 describe("LocalDiskBackupStorage directory creation", () => {
@@ -155,5 +31,19 @@ describe("LocalDiskBackupStorage directory creation", () => {
     await (await storage.stage(key, Readable.from([Buffer.from("x")]))).commit();
     expect((await storage.open(key)).sizeBytes).toBe(1);
     await rm(parent, { recursive: true, force: true });
+  });
+
+  it("leaves the versioned-store fields of the inventory unset", async () => {
+    const root = await mkdtemp(join(tmpdir(), "f08-bkp-fields-"));
+    const storage = new LocalDiskBackupStorage(root);
+    await (await storage.stage(randomUUID(), Readable.from([Buffer.from("x")]))).commit();
+    await storage.stage(randomUUID(), Readable.from([Buffer.from("y")]));
+    for (const file of await storage.list()) {
+      expect(file.versionId).toBeUndefined();
+      expect(file.hidden).toBeUndefined();
+      expect(file.deleteMarker).toBeUndefined();
+      expect(file.incompleteUpload).toBeUndefined();
+    }
+    await rm(root, { recursive: true, force: true });
   });
 });

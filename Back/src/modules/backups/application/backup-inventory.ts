@@ -132,6 +132,10 @@ export async function inventoryBackups(
   const objects = new Map<string, StoredBackupFile>();
   const findings: InventoryFinding[] = [];
   for (const file of files) {
+    // Versioned stores (F08-BKP-07) also list hidden versions, markers and
+    // unfinished uploads; they are classified by the retention work (#148).
+    // Here only current versions count, as with the disk adapter.
+    if (file.hidden || file.incompleteUpload) continue;
     if (file.area === "staging") {
       findings.push({
         category: file.key ? "stagingPart" : "unexpectedStagingFile",
@@ -225,7 +229,11 @@ async function stillCandidate(
   cutoff: number,
 ): Promise<boolean> {
   const file = (await storage.list()).find(
-    (f) => f.area === finding.file!.area && f.name === finding.file!.name,
+    (f) =>
+      !f.hidden &&
+      !f.incompleteUpload &&
+      f.area === finding.file!.area &&
+      f.name === finding.file!.name,
   );
   if (!file || file.modifiedAt.getTime() > cutoff) return false;
   if (finding.category === "stagingPart") return true;
