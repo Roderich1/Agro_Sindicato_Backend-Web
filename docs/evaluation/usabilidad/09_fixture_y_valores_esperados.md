@@ -57,7 +57,7 @@ Si las sesiones Móvil sincronizan con el mismo Central, las necesidades de T4/T
 | Miembros AGRICULTOR | **M = 6** sintéticos (M1–M6) **y ningún otro AGRICULTOR activo en el tenant**; la Directiva y el Administrador no cuentan en el denominador | W2 |
 | Necesidades declaradas de Glifosato Demo en Verano Demo | **M1 20 L, M2 35 L, M3 45 L, M4 50 L** (total 150 L) | W1, W2, W4 |
 | Necesidades de Bellator (v1.4) | **M1 3 L, M2 4 L, M3 5 L** (12 L) | W3, W4 |
-| Necesidades de Belator (v1.4) | **M1 1 L, M2 2 L, M3 3 L** (6 L); tras asociar en W3, **18 L canónicos** de Bellator | W3, W4 |
+| Necesidades de Belator (v1.4) | **M1 1 L, M2 2 L, M3 3 L** (6 L); tras asociar en W3, **18 L con 3 aportantes bajo el nombre canónico que elija el participante** (Bellator o Belator: los dos sentidos cumplen la tarjeta) | W3, W4 |
 | M5 y M6 (v1.4) | **No aportan a ninguna celda** | W2 |
 | Estado al empezar cada participante Web (v1.4) | **Tenant nuevo** por participante Web (D01, D02, piloto X01), sembrado con la misma composición; los anteriores se conservan intactos (asociaciones y divulgaciones no se pueden borrar sin desactivar protecciones). W3 **sin asociación** Belator–Bellator; W4 **sin borradores previos** | W3, W4 |
 | Generador (v1.4) | Sesión B, Backend, por el patrón de `f07-synthetic-seed.cjs`; semilla 20261018 y fecha de sesión como parámetro; oráculo independiente | — |
@@ -73,7 +73,8 @@ Si las sesiones Móvil sincronizan con el mismo Central, las necesidades de T4/T
 |---|---|---|
 | W1 | Necesidad declarada total de Glifosato Demo en Verano Demo = 20 + 35 + 45 + 50 = **150 L** | Abrir el resumen con la cuenta de Directiva del entorno sembrado y anotar el valor mostrado. Si difiere de 150 L, se corrige la fixture, no el valor esperado |
 | W2 | Cobertura **«4 de 6»**, antes y después de W3. Los 2 que no declararon **no** cuentan como cero | Ídem, con la línea de cobertura, y contraste con la API y con el oráculo independiente (v1.4) |
-| W3 (v1.4) | Tras asociar Belator a Bellator con motivo: asociación visible en el historial; Bellator **18 L** canónicos (12 + 6). La celda de Belator puede quedar retirada y la línea de cobertura añadir el aviso de celdas sin cifra, con la cobertura aún en «4 de 6» | Resultado real comprobado con la política actual antes del piloto y registrado aquí |
+| W3 (v1.4) | Asociación confirmada con motivo y visible en el historial; **18 L con 3 aportantes bajo el canónico elegido** (12 + 6); la otra denominación queda como fila **«Oculto (revisión)»** sin cifra («La cifra anterior se retiró por… una reagrupación…») y la línea de cobertura añade «Hay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí.»; cobertura **«4 de 6»** | **Comprobado por la sesión B el 2026-10-19 03:22–03:25Z** sobre `df0df1d` con su generador Central (PR BE #145), en los dos sentidos (48/48 comprobaciones en cada uno) |
+| W4 (v1.4) | Un borrador en el historial; CSV con Glifosato Demo 150 L y el canónico 18 L (la fila oculta se conserva sin cifra) | Ídem |
 
 El valor que se registra en la hoja es **el que muestra la Web sembrada antes de la primera sesión**, con su fecha real y el SHA del entorno. Si el total aparece en otra unidad (por ejemplo, 150 000 mL), se acepta como correcta la lectura equivalente. Esta equivalencia se fija en el piloto.
 
