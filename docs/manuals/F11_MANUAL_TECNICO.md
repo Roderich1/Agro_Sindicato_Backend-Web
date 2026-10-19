@@ -411,6 +411,10 @@ La única rotación con soporte es la de la clave de huella de Sync v1, mediante
 
 Lo probado en los respaldos es el **respaldo privado del teléfono**, no la base central (`F10_CONTRASTE_81_Y_VALIDATION.md`, fila 81-M, en BE #153). Hoy ningún paso *contract* está autorizado ni se ha ejecutado.
 
+> **Nota del 2026-10-19 (fase 6 limitada de #81, sin reescribir lo anterior).** La fase 6 que se aplicó es sólo el **cierre reversible** de las escrituras privadas heredadas (`docs/evidence/F81_FASE6_CIERRE_ESCRITURAS.md`).
+> - **Por qué no exige esta precondición:** no retira rutas, tablas, columnas, modelos ni datos, no tiene migración y se revierte con `LEGACY_PRIVATE_WRITES_ROLLBACK=enabled`.
+> - **Cuándo sí la exige:** la PHASE 9, o cualquier parte de la PHASE 6 que llegue a retirar rutas, modelos o datos.
+
 ### 9.4 Reparación de la migración inicial
 
 Una base creada con la migración inicial anterior a la eliminación del BOM sigue siendo compatible con Prisma 6.19.3 (`INITIAL_MIGRATION_BOM_REPAIR.md`). **[Probado]**. Hay que repetir la comprobación si cambia la versión mayor de Prisma.

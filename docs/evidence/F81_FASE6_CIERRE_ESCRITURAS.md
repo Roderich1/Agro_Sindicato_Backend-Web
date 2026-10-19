@@ -112,7 +112,12 @@ Sus aserciones no cambian: los 403 y 404 vigentes son los mismos. Las demás sui
 
 ### 4.3 Resultados locales
 
-Sobre el árbol de este PR, el 2026-10-19 hacia las 20:50Z. Node 25.9.0 y PostgreSQL 16.13 en un contenedor local desechable.
+Entorno: el 2026-10-19, entre las ~20:30Z y las 20:54Z (cierre registrado con `date -u`), con Node 25.9.0 y PostgreSQL 16.13 en un contenedor local desechable.
+
+**Qué árbol se probó en cada caso:**
+- **Árbol final, igual al `Back/` de `8522912`:** `tsc`, la prueba de unidad, la suite nueva y `openapi:check` (los 10 casos de las dos primeras, tras el último cambio de código).
+- **Árbol intermedio:** las tres suites de propiedad. Era el árbol anterior a agrupar `@UseGuards` y `@ApiForbiddenResponse` en el decorador `@LegacyPrivateWrite`, un cambio que no altera el guard.
+- **El árbol final completo** pasó en el CI del PR: run 39323519607 (`verify`, sobre `f884d84`), que incluye las tres suites de propiedad y la nueva.
 
 ```text
 npx tsc --noEmit -p tsconfig.json                                          → sin errores
