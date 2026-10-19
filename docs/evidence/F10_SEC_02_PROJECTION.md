@@ -109,6 +109,8 @@ Resultados de la verificación completa en la §6.
   - el significado nuevo de la cobertura (§5);
   - la regla de historial entre claves (F07-POL-01 §3).
 
+  **Nota del 2026-10-19.** Los dos puntos quedan redactados en `F06_COLLECTIVE_PROJECTION_CONTRACT.md` §7.1, por decisión de Roderich: la regla de historial entre claves se apoya en una clase de retención nueva, `R_DISCLOSURE_MEMORY`, y la semántica de la cobertura se describe sin cambiar los cálculos. M3 se conserva en el alcance sintético; no se purga. La retención para datos reales queda pendiente de la política (#107). El texto anterior de este documento no se reescribe.
+
 ## 6. Verificación
 
 Dos ejecuciones en serie en el PC de desarrollo, con PostgreSQL 16 en bases nuevas de `agro_b_web_pg` y las suites F02 migradas como en el CI.

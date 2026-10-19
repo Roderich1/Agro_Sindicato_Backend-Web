@@ -171,3 +171,10 @@ Cada cifra se modela como una suma de columnas `aportación|cantidad`, con aritm
 
 Evidencia: `F10_SEC_02_PROJECTION.md` (H1–H2) y `F07_CIERRE_MATRIZ.md` §2. Paquete de decisión: `F07_POL_01_PAQUETE_DECISION.md`.
 
+## 10. Nota del 2026-10-19: retención de la memoria de divulgación
+
+La regla de combinaciones (§9) necesita recordar cada divulgación con la cantidad de cada aportación (hallazgo M3 de F10-SEC-02). Eso contradecía `R_CURRENT` del contrato F06. Roderich Rendón decidió el 2026-10-19 enmendar el contrato con una clase separada, `R_DISCLOSURE_MEMORY` (`F06_COLLECTIVE_PROJECTION_CONTRACT.md` §7.1), en lugar de purgar ese historial.
+
+- **Datos sintéticos:** la memoria se conserva durante el ensayo y la evaluación; su eliminación se trata de forma conjunta y autorizada, nunca selectiva.
+- **Datos reales:** su finalidad, minimización, duración y salida forman parte de la decisión pendiente de esta política (#107). No hay un plazo aprobado, y `PERIOD_DELEGATED` no es una retención indefinida autorizada.
+- La regla y la cobertura no cambian con esta nota. Esta nota no aprueba la política: sigue siendo una propuesta para datos sintéticos, con k = 3 provisional.
