@@ -157,7 +157,7 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
 
 | Clase | Inicio / contenido permitido | Criterio de salida y minimización | Responsable / issue / plazo |
 | --- | --- | --- | --- |
-| `R_DISCLOSURE_MEMORY` | Cada divulgación decidida por la política (`RELEASE`), con las aportaciones que la componían y la cantidad de cada una en ese momento. Detalle en la tabla siguiente | Sólo la usan la decisión de divulgación y la cobertura; las propuestas leen únicamente la cifra ya publicada. Se conserva mientras el sistema siga tomando decisiones de divulgación sobre esa campaña. No se olvidan divulgaciones de forma selectiva. Su eliminación se trata de forma conjunta y autorizada (ver abajo) | Roderich1: F10 #45 verificación; F07 #107 política para datos reales. Datos sintéticos: durante el ensayo y la evaluación del entorno correspondiente. Datos reales: **sin plazo hasta que haya una política aprobada** |
+| `R_DISCLOSURE_MEMORY` | Cada divulgación decidida por la política (`RELEASE`), con las aportaciones que la componían y la cantidad de cada una en ese momento. Detalle en la tabla siguiente | Sólo la usan la decisión de divulgación y la cobertura; la lectura de una propuesta sólo toma la cifra ya publicada, y su creación pasa por la misma decisión. Se conserva mientras el sistema siga tomando decisiones de divulgación sobre esa campaña. No se olvidan divulgaciones de forma selectiva. Su eliminación se trata de forma conjunta y autorizada (ver abajo) | Roderich1: F10 #45 verificación; F07 #107 política para datos reales. Datos sintéticos: durante el ensayo y la evaluación del entorno correspondiente. Datos reales: **sin plazo hasta que haya una política aprobada** |
 
 **Qué se conserva exactamente** (`Back/prisma/schema.prisma`, comprobado sobre el código de `f0b55ee`):
 
@@ -171,7 +171,7 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
 **Inmutabilidad.** Los disparadores de `20261016043000` impiden borrar `CollectiveRelease` y sólo admiten marcar `withdrawnAt` una vez; `CollectiveReleaseItem` no admite ni UPDATE ni DELETE. Una divulgación retirada sigue en la memoria, porque su cifra ya pudo conocerse.
 
 **Quién la lee y cómo se controla:**
-- **Lectores en el servicio:** `CollectiveSummaryUseCase` (`Back/src/modules/collective/application/collective-summary.use-case.ts`). `releaseHistories()` lee las divulgaciones con sus filas y el `memberId` de cada aportación para aplicar la regla de combinaciones y la cobertura. `provisional()` crea las divulgaciones y marca su retirada. `JointPurchaseProposalUseCase` sólo lee de `CollectiveRelease` el total, el número de aportantes y las fechas de la divulgación que respalda cada línea. Nunca lee `CollectiveReleaseItem`.
+- **Lectores en el servicio:** `CollectiveSummaryUseCase` (`Back/src/modules/collective/application/collective-summary.use-case.ts`). `releaseHistories()` lee las divulgaciones con sus filas y el `memberId` de cada aportación para aplicar la regla de combinaciones y la cobertura. `provisional()` crea las divulgaciones y marca su retirada. `JointPurchaseProposalUseCase`, al **leer** una propuesta, sólo toma de `CollectiveRelease` el total, el número de aportantes y las fechas de la divulgación que respalda cada línea, sin leer `CollectiveReleaseItem`. Al **crearla** (`POST …/proposals`), ejecuta `summary.decide()` en la misma transacción (`joint-purchase-proposal.use-case.ts:100`): pasa así por la misma decisión, que lee la memoria y puede crear o retirar divulgaciones.
 - **Acceso:** las rutas que llegan a esos casos de uso (`GET /collective/campaigns/:campaignId/summary` y `summary.csv`, y las de propuestas bajo `/collective`) exigen DIRECTIVA o ADMINISTRADOR y el tenant de la sesión, y responden con `Cache-Control: no-store`.
 - **Sin exposición:**
   - ninguna ruta, esquema OpenAPI, CSV ni pantalla Web devuelve `contributionId`, `sequence`, `quantityBase` por aportación ni el `memberId` de una divulgación;
@@ -182,9 +182,9 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
 - **No se amplía la entrada.** La whitelist del §2 (las ocho filas ALLOW de la matriz de campos) no cambia, y no se admiten nuevas operaciones privadas. La memoria se deriva de aportes ya admitidos; no es un canal de entrada.
 
 **Cobertura: semántica actual** (sin cambios en los cálculos; la describen el §5 de este contrato y F07-POL-01 R9 y §9):
-- `linked_members` cuenta los agricultores activos del tenant, con su cuenta activa.
+- `linked_members` cuenta los Members AGRICULTOR activos del tenant, con su cuenta activa.
 - `members_with_contribution` es la unión de los Members que están dentro de las cifras que el resumen muestra en esa lectura:
-  - los de una cifra nueva (`RELEASE`), según sus aportaciones vigentes;
+  - los de una cifra nueva (`RELEASE`), según las aportaciones vigentes de esos mismos Members (BE #157, M5);
   - los de una cifra anterior que se sigue mostrando (`SHOW_PRIOR`), según la memoria de esa divulgación.
 - Un Member que sólo está en celdas suprimidas no se cuenta. `suppressed_cells` avisa, sin conteo, de que alguna celda no tiene cifra.
 - **Relación con la memoria:** la cobertura de una cifra ya publicada se obtiene de esa memoria. Por eso eliminarla de forma selectiva cambiaría también la cobertura y las cifras que la política deja ver.
