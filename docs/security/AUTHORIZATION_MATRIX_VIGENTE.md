@@ -117,3 +117,15 @@ La Web dejó de ser cliente operativo del agricultor (PR #127, `9df7888`): un AG
 - Matriz de la **API del Backend** en `cab433d`; consumidores externos o desplegados fuera de estos repositorios siguen como `INSUFFICIENT_EVIDENCE` (`LEGACY_CONTRACT_CONSUMERS.md`).
 - Las escrituras heredadas del agricultor (`POST /purchases`, inventario, parcelas, aplicaciones, pagos propios, `/sync/operations`) siguen activas sobre lo propio; su bloqueo es la PHASE 6 del plan de transición y no corresponde a #44.
 - La política de divulgación del agregado (F07-POL-01, #107) decide el **contenido** de las rutas colectivas; esta matriz sólo decide **quién** llega a ellas.
+
+## 7. Nota del 2026-10-19 sobre los respaldos (sin reescribir lo anterior)
+
+La añadió la sesión B de Claude Code el 2026-10-19, a raíz del desfase que encontró C en la revisión de BE #153. Lo detalla `../evidence/F10_CONTRASTE_81_Y_VALIDATION.md`, fila 44-2.
+
+- **Base:** BE #148 (retención, merge `f0b55ee`) cambió `backups.service.ts` y `backups.postgres.spec.ts` después de que se escribiera esta matriz sobre `cab433d`.
+- **La autorización no cambia.** La fila de `/me/backups` (§2.7) sigue valiendo: las mismas respuestas por actor y el mismo `BackupsAuthGuard`, y todas las consultas filtran por el `tenantId` y el `memberId` de la sesión.
+- **Referencias vigentes en `f0b55ee`:**
+  - **Consultas:** `backups.service.ts:126, 266-267, 334, 348, 392-393, 410-411 y 428`. Sustituyen a `:104,241,257` de la fila, que ahora apuntan a otras líneas.
+  - **Pruebas:** `backups.postgres.spec.ts` tiene **21** casos, no 22, porque #148 sustituyó el del 409 `BACKUP_QUOTA_EXCEEDED`. La separación por Member en la rotación la cubre además `retention.backups.postgres.spec.ts`, con el caso C4: dos Members suben a la vez y cada uno sólo rota sus propias copias.
+- **El 409 cambió de significado:** ahora es `BACKUP_UPLOAD_IN_PROGRESS`, por otra subida del mismo Member en curso, y el 503 incluye las purgas pendientes por encima del cupo (`backups.controller.ts`). No son respuestas de autorización.
+- No se ejecutó ninguna suite para esta nota: los recuentos salen de contar los `it(` del archivo.
