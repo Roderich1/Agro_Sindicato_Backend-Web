@@ -129,3 +129,19 @@ La añadió la sesión B de Claude Code el 2026-10-19, a raíz del desfase que e
   - **Pruebas:** `backups.postgres.spec.ts` tiene **21** casos, no 22, porque #148 sustituyó el del 409 `BACKUP_QUOTA_EXCEEDED`. La separación por Member en la rotación la cubre además `retention.backups.postgres.spec.ts`, con el caso C4: dos Members suben a la vez y cada uno sólo rota sus propias copias.
 - **El 409 cambió de significado:** ahora es `BACKUP_UPLOAD_IN_PROGRESS`, por otra subida del mismo Member en curso, y el 503 incluye las purgas pendientes por encima del cupo (`backups.controller.ts`). No son respuestas de autorización.
 - No se ejecutó ninguna suite para esta nota: los recuentos salen de contar los `it(` del archivo.
+
+## 8. Nota del 2026-10-19 sobre la fase 6 de #81 (sin reescribir lo anterior)
+
+La añadió la sesión C de Claude Code el 2026-10-19, en la rama `feat/f81-fase6-cierre-escrituras` sobre `main` `c9d9992`. El detalle está en `../evidence/F81_FASE6_CIERRE_ESCRITURAS.md`.
+
+- **Qué cambia en §2.4:** las 16 escrituras privadas heredadas del AGRICULTOR responden ahora **403 `LEGACY_ROUTE_CLOSED`** al AGRICULTOR, sin efectos.
+  - Son: `POST /inventory/initial-stock`, `entries`, `exits` y `adjustments`; `PATCH /inventory/lots/:id`; `POST /purchases`; `POST /accounts-payable/:id/payments` y `pay-total`; `POST /applications` y `:id/cancel`; `POST /plots`, `PATCH /plots/:id` y `POST /plots/:id/deactivate`; `POST` y `PATCH /plot-crop-assignments`; y `POST /sync/operations`.
+  - Las filas de §2.4 describen esas rutas en el camino de rollback del servidor (`LEGACY_PRIVATE_WRITES_ROLLBACK=enabled`). Ese camino no es la vía normal y no autoriza ningún despliegue.
+- **Lo que no cambia:**
+  - las lecturas (`GET`) de §2.4;
+  - el 401 sin sesión;
+  - el 403 de rol de la Directiva y del Administrador;
+  - §2.5 (`calendar/events` incluido) y las rutas centrales.
+- **Pruebas:**
+  - el cierre: `f81-phase6-legacy-writes.postgres.spec.ts`;
+  - las pruebas que cita §2.4 (legacy-boundary, current-auth-context y f02-final-integration) corren ahora con el rollback activo, así que prueban la propiedad de ese camino.

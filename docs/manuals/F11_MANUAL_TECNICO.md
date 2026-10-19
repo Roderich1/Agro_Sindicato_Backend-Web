@@ -164,6 +164,7 @@ El Backend valida el entorno al arrancar con un esquema zod (`Back/src/config/en
 | `BACKUP_S3_BUCKET` | Bucket privado | `[A-Za-z0-9-]{6,63}` | Con `b2` |
 | `BACKUP_S3_ACCESS_KEY_ID` / `BACKUP_S3_SECRET_ACCESS_KEY` | Credenciales | secretos; el esquema sólo comprueba su forma, para no repetir el valor en un error | Con `b2` |
 | `BACKUP_S3_PREFIX` | Un segmento terminado en `/` (p. ej. `ensayo-f08/`); nunca la raíz del bucket | — | Con `b2` |
+| `LEGACY_PRIVATE_WRITES_ROLLBACK` | Rollback operativo del cierre de las escrituras privadas heredadas (fase 6 de #81, §10). **No es la vía normal** y no autoriza ningún despliegue | `enabled` \| `disabled` (vacía = `disabled`: cerradas) | No; debe quedar sin definir o en `disabled` |
 
 **Constantes que no se configuran:**
 - Abandono de una subida: 60 min (`BACKUP_UPLOAD_ABANDON_MS` en `backups-config.ts`). **No es una variable de entorno.**
@@ -183,7 +184,7 @@ El Backend valida el entorno al arrancar con un esquema zod (`Back/src/config/en
 
 | Dónde | Variable | Uso |
 |---|---|---|
-| Web (compilación) | `VITE_LEGACY_FARMER_WEB=enabled` | Muestra las pantallas heredadas del agricultor. Por defecto, apagado: un agricultor ve sólo el aviso «Esta Web es para la Directiva y el Administrador» |
+| Web (compilación) | `VITE_LEGACY_FARMER_WEB=enabled` | Muestra las pantallas heredadas del agricultor. Por defecto, apagado: un agricultor ve sólo el aviso «Esta Web es para la Directiva y el Administrador». **Con el Backend por defecto, esas pantallas no pueden guardar** (403 `LEGACY_ROUTE_CLOSED`): para eso haría falta además `LEGACY_PRIVATE_WRITES_ROLLBACK=enabled` en el servidor (§10) |
 | Web (desarrollo) | `VITE_API_PROXY_TARGET` | Destino del proxy de Vite (por defecto `http://localhost:3000`) |
 | App (compilación) | `AGRO_API_BASE_URL` | Origen HTTPS del Central (§2.4) |
 
@@ -427,7 +428,7 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
 - **Secretos:** `JWT_SECRET` y `JWT_REFRESH_SECRET` son marcadores `change-me…`.
 - **Sync v1:** no define las variables `SYNC_V1_*`, así que Sync v1 responde 503.
 - **Respaldos:** usa el proveedor de disco en un volumen con la admisión cerrada.
-- **Tamaño de las subidas tras nginx:** `Web/nginx.conf` no fija `client_max_body_size`, cuyo valor por defecto en nginx es 1 MiB. Si la app usara ese nginx como origen, las subidas de respaldo grandes se rechazarían antes de llegar a la API. Los ensayos no pasaron por ese nginx.
+- **Tamaño de las subidas tras nginx:** `Web/nginx.conf` no fija `client_max_body_size`, cuyo valor por defecto en nginx es 1 MiB. Si la app usara ese nginx como origen, las subidas de respaldo grandes se rechazarían antes de llegar a la API. Los ensayos no pasaron por ese nginx. **[Sin probar]**.
 
   En el mismo `location /api/` hay otros tres valores por defecto, también **[Sin probar]** y con efecto productivo:
   - **`proxy_request_buffering on`:** nginx recibe el cuerpo entero, en memoria o en disco, antes de reenviarlo. El 413 y el SHA-256 en flujo de la API llegan después, y nginx necesita disco para el cuerpo.
@@ -441,6 +442,12 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
   La otra opción es que la app use directamente el origen TLS de la API.
 - **Swagger en producción:** la documentación interactiva de la API se publica en `/docs` también con `NODE_ENV=production` (`main.ts`). Hay que decidir si se desactiva o se protege.
 - **Rutas heredadas de escritura privada:** la API sigue aceptando del AGRICULTOR, sobre lo suyo, `POST /purchases`, `/inventory`, `/applications`, `/plots`, `/accounts-payable` y `/sync/operations` (`docs/security/AUTHORIZATION_MATRIX_VIGENTE.md` §2.4). La app (`463d3ec`) no usa ninguna, y la Web sólo con `VITE_LEGACY_FARMER_WEB=enabled` (`docs/scope/LEGACY_CONTRACT_CONSUMERS.md`). En un despliegue, otro cliente podría escribir datos privados en el Central. Cerrarlas es la PHASE 6 de BE #81, que no está iniciada y depende de una decisión de Roderich. Mientras tanto queda como **límite productivo**.
+
+  > **Actualización del 2026-10-19 (fase 6 limitada de #81, sin reescribir lo anterior).**
+  > - **Qué cambia:** por decisión de Roderich, las 16 escrituras privadas heredadas del AGRICULTOR están **cerradas por defecto**: responden 403 `LEGACY_ROUTE_CLOSED`, sin efectos (`docs/evidence/F81_FASE6_CIERRE_ESCRITURAS.md`).
+  > - **Lo que no cambia:** las lecturas, `calendar/events` y las funciones centrales.
+  > - **Rollback:** sólo del servidor, con `LEGACY_PRIVATE_WRITES_ROLLBACK=enabled` (§4.1). Registra un aviso en el arranque; no es la vía normal ni autoriza ningún despliegue.
+  > - **Qué sigue:** no se retiró ninguna tabla, modelo ni dato, y ningún paso *contract* está autorizado (§9.3). Quedan como límite productivo las **lecturas** privadas heredadas y la posibilidad de activar el rollback.
 - **Dependencias:** el triaje de seguridad del 2026-09-28 dejó hallazgos sin resolver que exigen revisión antes de producción (`docs/security/F02_THREAT_MODEL.md`).
 
 ---
