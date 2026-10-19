@@ -26,6 +26,7 @@ const ASSOCIATIONS = "/api/v1/collective/product-associations";
 interface Res {
   status: number;
   body: any;
+  headers: Record<string, string>;
 }
 
 describePostgres("F07-REC-01 product reconciliation on PostgreSQL", () => {
@@ -72,6 +73,8 @@ describePostgres("F07-REC-01 product reconciliation on PostgreSQL", () => {
       expect(res.body.changed).toBe(true);
     }
     const list: Res = await http().get(ASSOCIATIONS).set("Authorization", `Bearer ${director.token}`);
+    // F10-SEC-02 M8 (#45): the association list is never cached, like its catalog.
+    expect(list.headers["cache-control"]).toBe("no-store");
     const current = list.body.current.filter((row: any) => row.canonical_product_ref === canonical);
     expect(current.map((row: any) => row.product_name).sort()).toEqual(["Belator", "Bellator"]);
     const directorUser = await prisma.member.findUniqueOrThrow({ where: { id: director.memberId }, select: { userId: true } });
