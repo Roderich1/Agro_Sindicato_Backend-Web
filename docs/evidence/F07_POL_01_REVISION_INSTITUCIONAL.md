@@ -87,6 +87,8 @@ Es el orden del paquete §5, sin cambios.
 | 2 | **Directiva del Sindicato 19 de Agosto** | (a) si acepta la **finalidad** (planificar compras conjuntas); (b) si acepta que la Directiva y el Administrador vean **sólo totales**, con la regla del §1; (c) si acepta los límites del §2; (d) **cómo y cuándo se informa a los agricultores** de que sus declaraciones y consumos cuentan en esos totales; (e) **quién revisa la decisión y cada cuánto**; (f) **qué se hace si un agricultor pide que no se cuenten sus datos** |
 | 3 | **Tutor** (GOV-01, #105) | Su revisión del entregable, en sus propios términos. Una revisión no equivale a una aprobación |
 
+**Nota del 2026-10-19.** La política tiene una memoria técnica de divulgación, `R_DISCLOSURE_MEMORY` (`docs/architecture/F06_COLLECTIVE_PROJECTION_CONTRACT.md` §7.1). Guarda cada cifra publicada con la cantidad de cada aportación, vinculada al agricultor por su aportación, para impedir que se calcule un aporte por diferencias. Antes de admitir datos reales, la decisión del autor (fila 1) tiene que fijar también su finalidad, minimización, duración y salida. Hoy no hay ningún plazo aprobado.
+
 **Ninguna respuesta sustituye a otra:**
 - la decisión técnica delegada del 2026-10-16 no es la de la Directiva;
 - un mensaje informal no es un acta;
@@ -102,6 +104,7 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - Texto de la política revisado (archivo y SHA):
 - Decisión sobre el texto (aprueba / pide cambios / rechaza):
 - k para datos reales y número de agricultores vinculados en que se basa:
+- Memoria de divulgación (`R_DISCLOSURE_MEMORY`) para datos reales: finalidad, minimización, duración y salida:
 - Responsable y fecha de la próxima revisión:
 - Fórmula: «Verificado por Roderich Rendón (autor) el <fecha real>»:
 

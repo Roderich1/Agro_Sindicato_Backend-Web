@@ -16,6 +16,8 @@ La regla es **DENY por defecto**. ALLOW expresa permiso de dominio propuesto, su
 
 Las clases `R_CURRENT`, `R_CAUSAL`, `R_CENTRAL_AUDIT`, `R_CENTRAL_REFERENCE`, `R_PRIVATE_LOCAL`, `R_BACKUP_F08` tienen inicio, finalidad, salida y responsable en §7 del contrato. Los plazos delegados deben aprobarse antes de producción/eliminación; no son retención indefinida. Fuente/consumidor/follow-up por cada ALLOW se explicitan en la fila y en la tabla de evidencia.
 
+**Nota del 2026-10-19 (enmienda del contrato §7.1).** Se añade la clase `R_DISCLOSURE_MEMORY`, la memoria técnica de divulgación (`CollectiveRelease` y `CollectiveReleaseItem`), con la finalidad exclusiva de impedir inferencias por diferencias y entre claves. No es un campo de entrada: **esta matriz no cambia**, siguen 8 ALLOW y 118 DENY, y ninguna fila pasa a ALLOW. `R_CURRENT` sigue rigiendo el aporte vigente. La enmienda rige desde esa fecha y no es un cumplimiento retroactivo.
+
 CONDITIONAL = 0: no hay permisos ambiguos de campos. Los bindings/propiedad aún pendientes son precondiciones que fallan cerradas; no autorizan campos extra. Person central sigue condicional en F01, pero ninguna fila Person se admite en estos dos tipos. Cambiarlo requiere una finalidad aprobada y auditoría nueva.
 
 ## Índice de fuentes

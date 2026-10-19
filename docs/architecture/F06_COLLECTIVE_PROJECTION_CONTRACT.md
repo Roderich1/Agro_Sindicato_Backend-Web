@@ -144,6 +144,60 @@ Se fijan finalidad, inicio, salida y responsable; **no se inventan días**. `PER
 
 En rechazo por campos privados, la auditoría registra clasificación y referencia mínima segura, **no el valor rechazado ni el cuerpo**. No guardar conflictos como snapshots completos de SQLite. Los datos mínimos de conflicto sólo los consulta el propietario autorizado o el proceso central que necesite resolverlo; Directiva recibe estado autorizado sin cantidades individuales.
 
+### 7.1 Enmienda del 2026-10-19: memoria técnica de divulgación (`R_DISCLOSURE_MEMORY`)
+
+**Qué es.** Una enmienda mínima de este §7, decidida por Roderich Rendón el 2026-10-19 («Decisiones sobre el contraste y siguiente trabajo acotado», §5) para resolver la contradicción entre `R_CURRENT` y el hallazgo M3 de F10-SEC-02 (`docs/evidence/F10_SEC_02_PROJECTION.md` §3). La redactó la sesión A de Claude Code; la revisan las sesiones B y C. No es una revisión del tutor ni una aprobación institucional.
+
+**Desde cuándo.** Rige desde el **2026-10-19**, la fecha real de la enmienda. **No es un cumplimiento retroactivo:** entre la migración `20261016043000_f06_collective_consolidation` (2026-10-16) y esta fecha, el código guardó un historial de cantidades que `R_CURRENT` no admitía. Esa contradicción existió y queda registrada así. El texto anterior de la tabla no se reescribe, y no se afirma que el código haya prevalecido sobre el contrato sin enmendar.
+
+**Qué cambia:**
+- **`R_CURRENT` no cambia** y sigue rigiendo el aporte vigente (`SyncV1Contribution`): un aporte sustituido o cancelado sale de inmediato del cálculo, y la contribución no guarda un historial de cantidades por conveniencia.
+- **Se crea una clase separada, `R_DISCLOSURE_MEMORY`**, para la memoria de las divulgaciones ya hechas. Su **única finalidad** es impedir que una cifra nueva, combinada con las que ya se divulgaron, permita inferir un aporte por diferencias, también entre claves (F07-POL-01, regla de combinaciones, `F07_AGGREGATE_DISCLOSURE_POLICY.md` §9). No sirve para reportes, auditoría, analítica ni ninguna otra finalidad.
+- **Esta enmienda conserva M3 en el alcance sintético.** No autoriza una purga del historial para que desaparezca la contradicción.
+
+| Clase | Inicio / contenido permitido | Criterio de salida y minimización | Responsable / issue / plazo |
+| --- | --- | --- | --- |
+| `R_DISCLOSURE_MEMORY` | Cada divulgación decidida por la política (`RELEASE`), con las aportaciones que la componían y la cantidad de cada una en ese momento. Detalle en la tabla siguiente | Sólo la usan la decisión de divulgación y la cobertura; las propuestas leen únicamente la cifra ya publicada. Se conserva mientras el sistema siga tomando decisiones de divulgación sobre esa campaña. No se olvidan divulgaciones de forma selectiva. Su eliminación se trata de forma conjunta y autorizada (ver abajo) | Roderich1: F10 #45 verificación; F07 #107 política para datos reales. Datos sintéticos: durante el ensayo y la evaluación del entorno correspondiente. Datos reales: **sin plazo hasta que haya una política aprobada** |
+
+**Qué se conserva exactamente** (`Back/prisma/schema.prisma`, comprobado sobre el código de `f0b55ee`):
+
+| Tabla | Campos | Vínculos internos |
+| --- | --- | --- |
+| `CollectiveRelease` | `id`, `tenantId`, `campaignId`, `canonicalProductId`, `projectionType`, `baseUnit`, `totalBase`, `contributorCount`, `dataAsOf`, `releasedAt`, `withdrawnAt` | Tenant, campaña y producto canónico; `JointPurchaseProposalLine.releaseId` señala la divulgación que respalda una línea de propuesta |
+| `CollectiveReleaseItem` | `releaseId`, `contributionId`, `sequence` y `quantityBase` (la cantidad de **esa** aportación en **esa** divulgación; `NULL` en filas anteriores a `20261016150500_f07_pol_01_release_item_quantity`) | `contributionId` → `SyncV1Contribution`, que lleva el `memberId`. Por eso la memoria **está vinculada a cada agricultor** a través de su aportación |
+
+**Lo que no es.** `CollectiveReleaseItem` guarda, por aportación, su identificador, su secuencia y su cantidad, no sólo un total agregado. **No es anónima** y no se describe como si sólo guardara cifras colectivas. El comentario del modelo `CollectiveRelease` en el esquema («no guarda cantidades por agricultor») es anterior a la migración `20261016150500` y está desfasado: esta sección describe el estado real.
+
+**Inmutabilidad.** Los disparadores de `20261016043000` impiden borrar `CollectiveRelease` y sólo admiten marcar `withdrawnAt` una vez; `CollectiveReleaseItem` no admite ni UPDATE ni DELETE. Una divulgación retirada sigue en la memoria, porque su cifra ya pudo conocerse.
+
+**Quién la lee y cómo se controla:**
+- **Lectores en el servicio:** `CollectiveSummaryUseCase` (`Back/src/modules/collective/application/collective-summary.use-case.ts`). `releaseHistories()` lee las divulgaciones con sus filas y el `memberId` de cada aportación para aplicar la regla de combinaciones y la cobertura. `provisional()` crea las divulgaciones y marca su retirada. `JointPurchaseProposalUseCase` sólo lee de `CollectiveRelease` el total, el número de aportantes y las fechas de la divulgación que respalda cada línea. Nunca lee `CollectiveReleaseItem`.
+- **Acceso:** las rutas que llegan a esos casos de uso (`GET /collective/campaigns/:campaignId/summary` y `summary.csv`, y las de propuestas bajo `/collective`) exigen DIRECTIVA o ADMINISTRADOR y el tenant de la sesión, y responden con `Cache-Control: no-store`.
+- **Sin exposición:**
+  - ninguna ruta, esquema OpenAPI, CSV ni pantalla Web devuelve `contributionId`, `sequence`, `quantityBase` por aportación ni el `memberId` de una divulgación;
+  - el resumen y la propuesta sólo entregan los totales, el número de aportantes y las fechas que la política deja publicar;
+  - los registros (`[COLLECTIVE SUMMARY]` y `[JOINT PROPOSAL]`) sólo llevan los identificadores del tenant, la campaña, la propuesta y el actor, y el número de celdas.
+
+  Comprobado con búsquedas sobre `Back/src` y `Web/src` en `f0b55ee`. Es una lectura estática del código, no una prueba nueva.
+- **No se amplía la entrada.** La whitelist del §2 (las ocho filas ALLOW de la matriz de campos) no cambia, y no se admiten nuevas operaciones privadas. La memoria se deriva de aportes ya admitidos; no es un canal de entrada.
+
+**Cobertura: semántica actual** (sin cambios en los cálculos; la describen el §5 de este contrato y F07-POL-01 R9 y §9):
+- `linked_members` cuenta los agricultores activos del tenant, con su cuenta activa.
+- `members_with_contribution` es la unión de los Members que están dentro de las cifras que el resumen muestra en esa lectura:
+  - los de una cifra nueva (`RELEASE`), según sus aportaciones vigentes;
+  - los de una cifra anterior que se sigue mostrando (`SHOW_PRIOR`), según la memoria de esa divulgación.
+- Un Member que sólo está en celdas suprimidas no se cuenta. `suppressed_cells` avisa, sin conteo, de que alguna celda no tiene cifra.
+- **Relación con la memoria:** la cobertura de una cifra ya publicada se obtiene de esa memoria. Por eso eliminarla de forma selectiva cambiaría también la cobertura y las cifras que la política deja ver.
+
+**Datos sintéticos.** La memoria se conserva durante el ensayo y la evaluación del entorno correspondiente. Su eliminación posterior se trata de forma conjunta y autorizada, con todo el entorno o toda la campaña. No se olvidan divulgaciones anteriores de forma selectiva mientras el sistema siga tomando decisiones basadas en ellas.
+
+**Datos reales: pendiente, sin aprobación.** Antes de admitir datos reales hace falta una política aprobada que fije la finalidad, la minimización, la duración y la salida de esta memoria. Es parte de la decisión de F07-POL-01 (#107) y de `docs/evidence/F07_POL_01_REVISION_INSTITUCIONAL.md` §4–5.
+- `PERIOD_DELEGATED` no se convierte aquí en una retención indefinida autorizada.
+- No se fija ningún número de días.
+- Esta enmienda no aprueba la política F07-POL-01, no es una validación institucional y no habilita producción.
+
+**Una alternativa futura sin memoria** tendría que demostrar antes que no debilita la protección frente a cifras que ya pudieron conocerse. Esta enmienda no la construye.
+
 ## 8. Sync y backup
 
 Sync transporta únicamente intención autorizada sobre la whitelist; backup sirve para recuperación privada del propietario. Un archivo, manifiesto o clave de backup no es proyección.
