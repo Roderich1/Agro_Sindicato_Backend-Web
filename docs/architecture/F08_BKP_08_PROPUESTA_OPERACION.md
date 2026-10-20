@@ -68,7 +68,7 @@ Cada punto lleva tres partes:
 
 **Condiciones de aceptación:**
 - La prueba existente de R2 sigue en verde.
-- El ítem 6 (T-R5) está superado contra B2 real.
+- El ítem 6 (T-R5) está superado contra B2 real, en sus dos variantes: clave sin borrado y purga de la rotación rechazada.
 - La alerta está definida con su umbral aprobado.
 
 ## 3. Copias `.previo` de la app (ítem 10)
@@ -166,8 +166,17 @@ No hay ningún código que las retire, así que **se acumulan en cada restauraci
 - Backend: ningún cambio funcional, salvo quizá aceptar el nuevo valor de formato.
 - Operación: comunicación al colectivo (DEC-F01-10), porque el soporte ya no podrá recuperar copias.
 
+**Lo que exige la condición vigente.** La condición 2 del §5 del modelo de amenaza pide, para datos reales, un cifrado en reposo que impida al operador del servidor leer los respaldos. Hoy, de las opciones de la tabla, eso **sólo lo da el cifrado del lado del cliente**.
+
+**Las dos salidas posibles no son equivalentes:**
+- **(b) Cifrado del lado del cliente,** con el riesgo de pérdida de la clave aceptado. Es la única que **cumple** la condición 2.
+- **(a) Seguir sólo con SSE-B2 y aceptar el riesgo del operador (T3).**
+  - **No cumple** la condición 2, ni la cumple de forma automática por aceptar el riesgo.
+  - Sería una **excepción expresa**: una decisión escrita y fechada de Roderich que modifique o dispense esa condición en `F08_BACKUP_THREAT_MODEL.md`, con una nota nueva y sin reescribir el texto anterior. Tendría que nombrar el riesgo residual T3, quién lo asume y hasta cuándo, y quedar registrada como **Waived**, no como cumplida.
+  - Mientras esa nota no exista, la condición 2 sigue sin cumplirse y la admisión de datos reales sigue cerrada.
+
 **Condiciones de aceptación,** si Roderich lo exige para datos reales:
-- Decisión escrita entre (a) sólo SSE-B2, con el riesgo T3 aceptado de forma explícita, y (b) cifrado del cliente, con el riesgo de pérdida aceptado.
+- Una decisión escrita entre (a) y (b), en los términos de arriba. Con (a), la nota de excepción en el modelo de amenaza; nunca un «cumple».
 - Con (b):
   - una prueba de que una copia descargada por el operador desde B2 no revela el marcador sintético;
   - una restauración en un teléfono de **otro modelo** con el código (ítem 7 de #151);
@@ -223,7 +232,7 @@ No hay ningún código que las retire, así que **se acumulan en cada restauraci
 | 2. Última copia | Alertas y aviso en la app; ítem 6 (T-R5) contra B2 real | Backend/operación; Mobile | Sí: el T-R5 real |
 | 3. `.previo` | Conservar sólo la más reciente, tras una restauración validada | Mobile | No, pero conviene antes del piloto con datos reales |
 | 4. Reconciliación y capacidad | Tarea diaria, alertas, cupo global medido, costos con la tarifa vigente | Operación; Backend si hay métricas | Sí: condición 5 del §5 |
-| 5. Cifrado | Decisión (a) o (b); con (b), el diseño del formato y las pruebas del §5 | Roderich; Mobile | Sí: condición 2 del §5 |
+| 5. Cifrado | Decisión (a) o (b). Sólo (b) cumple la condición 2; (a) es una excepción expresa en el modelo de amenaza, no un cumplimiento. Con (b), el diseño del formato y las pruebas del §5 | Roderich; Mobile | Sí: condición 2 del §5 |
 | 6. Cierre | Purga por cuenta y procedimiento de fin de servicio | Backend/operación | Sí: depende de la política del ítem 12 |
 | 7. Bucket | Ningún cambio salvo decisión explícita | Roderich | No |
 

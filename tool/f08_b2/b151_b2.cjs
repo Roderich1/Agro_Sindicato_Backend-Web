@@ -10,7 +10,8 @@
 // ensayo-f08/b151-20261019/<subcarpeta>/ y no lee ni escribe fuera. Datos sintéticos (bytes aleatorios).
 //
 //   node b151_b2.cjs b2 <rw|ro|nodel> <paso> <dir-salida> [confirmar]
-//     pasos: preparar (rw) · caso1 (ro o nodel) · casos2a5 (rw) · c6 (rw: C2 y C5; nodel: T-R5; exige
+//     pasos: preparar (rw) · caso1 (ro o nodel) · casos2a5 (rw) · c6 (rw: C2 y C5; nodel: T-R5;
+//     rotacion, bajo la clave nodel: T-R5 con la purga de la rotación rechazada por B2; exige
 //     F08_BKP_PG_TEST_URL) · inventario (cualquiera) · limpiar (rw, exige «confirmar»)
 //   node b151_b2.cjs doble todos <todo|c6> <dir-salida>
 //     el ciclo de los ítems 1–5 (todo) o la suite del ítem 6 (c6) contra el doble S3 en memoria
@@ -495,7 +496,7 @@ async function limpiar(c) {
 
 // ---------------------------------------------------------------- principal
 
-const STEPS = { preparar: ["rw"], caso1: ["ro", "nodel"], casos2a5: ["rw"], c6: ["rw", "nodel"], inventario: ["rw", "ro", "nodel"], limpiar: ["rw"] };
+const STEPS = { preparar: ["rw"], caso1: ["ro", "nodel"], casos2a5: ["rw"], c6: ["rw", "nodel", "rotacion"], inventario: ["rw", "ro", "nodel"], limpiar: ["rw"] };
 
 /**
  * Ítem 6: lanza la suite con PostgreSQL (C2 y C5 con rw; T-R5 con nodel) con este mismo entorno.
@@ -509,6 +510,30 @@ function c6(destino, perfil, outDir) {
     stdio: "inherit",
     env: { ...process.env, F08_B151_DESTINO: destino, F08_B151_PERFIL: perfil, F08_B151_SALIDA: path.resolve(outDir) },
   });
+  return r.status === 0 ? 0 : 1;
+}
+
+/**
+ * T-R5, variante de la rotación: necesita dos claves en un proceso. Se lanza bajo con_b2.ps1 con la
+ * clave nodel; este proceso la comprueba, la copia a F08_B151_NODEL_* (sólo en el entorno del hijo) y
+ * vuelve a lanzarse bajo con_b2.ps1 con la clave rw (F08_B151_CON_B2 y F08_B151_RW_CLIXML, rutas
+ * absolutas). El hijo, que ya tiene las dos, ejecuta la suite.
+ */
+async function rotacion(outDir) {
+  if (process.env.F08_B151_NODEL_ACCESS_KEY_ID) return c6("b2", "rotacion", outDir);
+  const settings = sup.b2SettingsFromEnv();
+  if (!settings) throw new Error("faltan variables BACKUP_S3_* (ejecútalo bajo con_b2.ps1 con la clave nodel) o BACKUP_S3_PREFIX");
+  await sup.verifyB2Key(settings, "nodel");
+  const conB2 = process.env.F08_B151_CON_B2;
+  const rwKey = process.env.F08_B151_RW_CLIXML;
+  const fs = require("node:fs");
+  for (const p of [conB2, rwKey]) if (!p || !path.isAbsolute(p) || !fs.existsSync(p)) throw new Error("rotacion necesita F08_B151_CON_B2 y F08_B151_RW_CLIXML (rutas absolutas existentes)");
+  const powershell = path.join(process.env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  const r = require("node:child_process").spawnSync(powershell,
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", conB2, "-Ruta", rwKey, process.execPath, __filename, "b2", "rotacion", "c6", outDir], {
+      stdio: "inherit",
+      env: { ...process.env, F08_B151_NODEL_ACCESS_KEY_ID: settings.accessKeyId, F08_B151_NODEL_SECRET_ACCESS_KEY: settings.secretAccessKey },
+    });
   return r.status === 0 ? 0 : 1;
 }
 
@@ -532,6 +557,7 @@ async function main() {
     report.note(`informe: ${files.json} y ${files.text}`);
     return report.failed;
   }
+  if (paso === "c6" && perfil === "rotacion") return rotacion(outDir);
   if (!sup.isProfile(perfil) || !STEPS[paso]?.includes(perfil)) throw new Error(`${usage}\n(el paso ${paso} admite: ${STEPS[paso]?.join(", ") ?? "—"})`);
   if (paso === "limpiar" && confirm !== "confirmar") throw new Error("limpiar borra todo el prefijo de ensayo: añade «confirmar»");
   if (paso === "c6") return c6("b2", perfil, outDir);

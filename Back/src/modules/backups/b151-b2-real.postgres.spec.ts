@@ -1,7 +1,7 @@
 import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, beforeAll } from "@jest/globals";
-import { ListMultipartUploadsCommand, ListObjectVersionsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, ListMultipartUploadsCommand, ListObjectVersionsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { Server } from "node:http";
@@ -12,18 +12,21 @@ import type { Readable } from "node:stream";
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { purgePending } from "./application/backup-retention";
-import { S3BackupStorage } from "./infrastructure/s3-backup-storage";
+import { S3BackupStorage, S3Sender } from "./infrastructure/s3-backup-storage";
 import { gateCommit, interceptCompletion } from "./test-support/backup-test-hooks";
 import {
   B151Connection,
   B151Profile,
   B151Report,
   b2SettingsFromEnv,
+  ErrorSummary,
   errorSummary,
   isProfile,
+  nodelSettingsFromEnv,
   treeVersion,
   verifyB2Key,
 } from "./test-support/b151-b2-real";
+import { s3Error } from "./test-support/in-memory-s3";
 import {
   createIsolatedDatabase,
   createSession,
@@ -53,16 +56,32 @@ const postgresUrl = process.env["F08_BKP_PG_TEST_URL"];
 const destino = process.env["F08_B151_DESTINO"];
 const perfil = process.env["F08_B151_PERFIL"];
 const settings = destino === "b2" ? b2SettingsFromEnv() : null;
-const enabled = !!postgresUrl && (destino === "doble" || (destino === "b2" && !!settings && isProfile(perfil)));
-const describeFor = (profile: B151Profile) =>
-  enabled && (destino === "doble" || perfil === profile) ? describe : describe.skip;
+/** rw (C2, C5), nodel (T-R5) or rotacion (T-R5 with the rotation's purge refused: rw plus the nodel key). */
+type SuiteMode = B151Profile | "rotacion";
+const enabled =
+  !!postgresUrl && (destino === "doble" || (destino === "b2" && !!settings && (isProfile(perfil) || perfil === "rotacion")));
+const describeFor = (mode: SuiteMode) =>
+  enabled && (destino === "doble" || perfil === mode) ? describe : describe.skip;
+const STEP_LABEL: Record<SuiteMode, string> = {
+  rw: "C2 y C5",
+  ro: "(sin pruebas con ro)",
+  nodel: "T-R5",
+  rotacion: "T-R5, variante de la rotación",
+};
 const BASE = "/api/v1/me/backups";
 const N = 3;
 const sha = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 const md5 = (bytes: Buffer) => createHash("md5").update(bytes).digest("base64"); // NOSONAR: S3 Content-MD5 transport check, not cryptographic
 
-/** One app over one isolated database and the adapter under `<prefix>c6-<profile>/`. */
-function suite(profile: B151Profile) {
+/**
+ * One app over one isolated database and the adapter under
+ * `<prefix>c6-<mode>/`. In `rotacion` the adapter talks to B2 with rw, and
+ * only while `routeRotationDeletes` is on, every `DeleteObject` of a name
+ * under `objects/` goes out with the nodel key instead: B2 itself refuses it.
+ */
+function suite(mode: SuiteMode) {
+  const profile: B151Profile = mode === "rotacion" ? "rw" : mode;
+  const reportProfile = mode === "rotacion" ? "rw+nodel" : profile;
   const s = {} as {
     app: INestApplication;
     server: Server;
@@ -74,35 +93,71 @@ function suite(profile: B151Profile) {
     storage: S3BackupStorage;
     base: string;
     report: B151Report;
+    routeRotationDeletes: boolean;
+    routed: { sent: number; refused: ErrorSummary[] };
   };
+  s.routeRotationDeletes = false;
+  s.routed = { sent: 0, refused: [] };
 
   beforeAll(async () => {
     s.conn = destino === "b2" ? B151Connection.b2(settings!) : B151Connection.doble("ensayo-f08/b151-20261019/doble-pg/");
     s.conn.simulated = profile;
     const key = destino === "b2" ? await verifyB2Key(settings!, profile) : null;
-    s.base = `${s.conn.settings.prefix}c6-${profile}/`;
-    s.storage = new S3BackupStorage(s.conn.sender, { bucket: s.conn.settings.bucket, prefix: s.base });
+    let second: Awaited<ReturnType<typeof verifyB2Key>> | null = null;
+    let sender: S3Sender = s.conn.sender;
+    if (mode === "rotacion") {
+      let nodel: S3Sender;
+      if (destino === "b2") {
+        const nodelSettings = nodelSettingsFromEnv(settings!);
+        if (!nodelSettings) throw new Error("rotacion needs F08_B151_NODEL_* (run it through b151_b2.cjs)");
+        second = await verifyB2Key(nodelSettings, "nodel");
+        nodel = B151Connection.b2(nodelSettings).sender;
+      } else {
+        // The double has one store: the refusal of the second key is simulated.
+        nodel = { send: async () => Promise.reject(s3Error("AccessDenied", 403)) };
+      }
+      const rw = s.conn.sender;
+      sender = {
+        send: async (command, options) => {
+          const isRotationDelete =
+            s.routeRotationDeletes &&
+            command instanceof DeleteObjectCommand &&
+            (command.input.Key ?? "").startsWith(`${s.base}objects/`);
+          if (!isRotationDelete) return rw.send(command, options);
+          s.routed.sent += 1;
+          try {
+            return await nodel.send(command, options);
+          } catch (error) {
+            s.routed.refused.push(errorSummary(error));
+            throw error;
+          }
+        },
+      };
+    }
+    s.base = `${s.conn.settings.prefix}c6-${mode}/`;
+    s.storage = new S3BackupStorage(sender, { bucket: s.conn.settings.bucket, prefix: s.base });
     s.report = new B151Report({
       herramienta: "Back/src/modules/backups/b151-b2-real.postgres.spec.ts",
       destino: destino as "b2" | "doble",
-      perfil: profile,
-      paso: profile === "rw" ? "C2 y C5" : "T-R5",
+      perfil: reportProfile,
+      paso: STEP_LABEL[mode],
       version: treeVersion(join(__dirname, "..", "..", "..", "..")),
       configuracion: {
         prefijoAdaptador: s.base,
         bucket: s.conn.settings.bucket,
         N,
         ...(key ? { clave: { capacidades: key.capabilities, namePrefix: key.namePrefix } } : {}),
+        ...(second ? { claveDeLosBorradosDeLaRotacion: { capacidades: second.capabilities, namePrefix: second.namePrefix } } : {}),
       },
     });
     const existing = (await versions("")).length + (await uploads("")).length;
     if (existing > 0) throw new Error(`${s.base} is not empty: use another BACKUP_S3_PREFIX subfolder or clean it`);
     // A disk directory is configured on purpose: nothing may ever land in it.
-    s.diskDir = await mkdtemp(join(tmpdir(), `f08-b151-${profile}-disk-`));
+    s.diskDir = await mkdtemp(join(tmpdir(), `f08-b151-${mode}-disk-`));
     process.env["BACKUP_STORAGE_DIR"] = s.diskDir;
     process.env["BACKUP_MAX_BYTES"] = String(64 * 1024);
     process.env["BACKUP_MAX_ACTIVE_PER_MEMBER"] = String(N);
-    const databaseUrl = await createIsolatedDatabase(postgresUrl!, `f08_b151_${profile}`);
+    const databaseUrl = await createIsolatedDatabase(postgresUrl!, `f08_b151_${mode}`);
     ({ app: s.app, prisma: s.prisma, jwt: s.jwt } = await createSyncV1App(databaseUrl, { backupStorage: s.storage }));
     s.server = s.app.getHttpServer();
     await new Promise<void>((resolve) => s.server.listen(0, "127.0.0.1", resolve));
@@ -121,7 +176,7 @@ function suite(profile: B151Profile) {
     if (s.report) {
       const out = process.env["F08_B151_SALIDA"] ?? join(tmpdir(), "b151");
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const files = s.report.write(out, `b151-${destino}-${profile}-c6-${stamp}`);
+      const files = s.report.write(out, `b151-${destino}-${mode}-c6-${stamp}`);
       s.report.note(`informe: ${files.json} y ${files.text}`);
     }
   });
@@ -169,7 +224,7 @@ function suite(profile: B151Profile) {
     } catch (error) {
       result = { observado: { error: errorSummary(error) }, ok: false };
     }
-    s.report.add({ caso, perfil: profile, esperado, observado: result.observado, veredicto: result.ok ? "PASS" : "FAIL", ...(result.nota ? { nota: result.nota } : {}) });
+    s.report.add({ caso, perfil: reportProfile, esperado, observado: result.observado, veredicto: result.ok ? "PASS" : "FAIL", ...(result.nota ? { nota: result.nota } : {}) });
     expect({ caso, ok: result.ok }).toEqual({ caso, ok: true });
   }
 
@@ -499,5 +554,76 @@ describeFor("nodel")("BE #151 item 6 with the real S3 adapter: T-R5 with a key t
           nota: "La variante «falla la purga de la rotación» no es alcanzable con esta clave: ningún commit llega a AVAILABLE sin deleteFiles. Esa variante queda cubierta sólo con PostgreSQL y el doble S3.",
         };
       });
+  }, 600000);
+});
+
+describeFor("rotacion")("BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)", () => {
+  const t = suite("rotacion");
+
+  it("T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled", async () => {
+    const { session, ids } = await t.farmerWith(N);
+    const retired = (await t.rowsOf(session))[0];
+
+    t.s.routeRotationDeletes = true;
+    const rotated = await t.upload(session);
+    await t.check("T-R5r-a: la subida que rota, con el borrado de la copia retirada enviado con la clave nodel",
+      "201; la nueva queda AVAILABLE; la más antigua DELETED RETENTION con purga pendiente; B2 rechazó el borrado y su versión sigue; N listadas e íntegras",
+      async () => {
+        const row = await t.s.prisma.backupMetadata.findUniqueOrThrow({ where: { id: ids[0] } });
+        const observado = {
+          subida: rotated.status, estado: row.status, motivo: row.deletionReason, purgaPendiente: row.purgePending,
+          borradosEnviadosConNodel: t.s.routed.sent, rechazosDeB2: t.s.routed.refused,
+          versionesDeLaRetirada: (await t.versions(`objects/${retired.storageKey}`)).length,
+          listadas: (await t.listIds(session)).length, availableIntactas: await t.availableIntact(session),
+        };
+        return {
+          observado,
+          ok: rotated.status === 201 && row.status === "DELETED" && row.deletionReason === "RETENTION" && row.purgePending &&
+            t.s.routed.sent > 0 && t.s.routed.refused.length === t.s.routed.sent &&
+            t.s.routed.refused.every((e) => e.status === 401 || e.status === 403) &&
+            observado.versionesDeLaRetirada === 1 && observado.listadas === N && observado.availableIntactas,
+          nota: "La herramienta elige qué clave envía el borrado de objects/; el rechazo lo decide B2 (la clave nodel no tiene deleteFiles).",
+        };
+      });
+
+    const rowsBefore = (await t.rowsOf(session)).length;
+    const entriesBefore = (await t.versions("")).length;
+    const refused = await t.upload(session);
+    await t.check("T-R5r-b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida",
+      "503 BACKUP_STORAGE_UNAVAILABLE, sin fila nueva ni escritura nueva en B2; siguen N listadas",
+      async () => {
+        const observado = {
+          subida: refused.status, cuerpo: refused.body, filasNuevas: (await t.rowsOf(session)).length - rowsBefore,
+          entradasNuevasEnB2: (await t.versions("")).length - entriesBefore, listadas: (await t.listIds(session)).length,
+        };
+        return {
+          observado,
+          ok: refused.status === 503 && refused.body?.errorCode === "BACKUP_STORAGE_UNAVAILABLE" && observado.filasNuevas === 0 &&
+            observado.entradasNuevasEnB2 === 0 && observado.listadas === N,
+        };
+      });
+
+    t.s.routeRotationDeletes = false;
+    const reconciled = await t.upload(session);
+    await t.check("T-R5r-c: con la clave con deleteFiles otra vez, la siguiente subida reconcilia",
+      "201; ninguna purga pendiente; la retirada sin versiones en B2; N AVAILABLE con 1 versión cada una",
+      async () => {
+        const rows = await t.rowsOf(session);
+        const observado = {
+          subida: reconciled.status, pendientes: rows.filter((r) => r.purgePending).length,
+          versionesDeLaRetirada: (await t.versions(`objects/${retired.storageKey}`)).length,
+          available: rows.filter((r) => r.status === "AVAILABLE").length, availableIntactas: await t.availableIntact(session),
+        };
+        return {
+          observado,
+          ok: reconciled.status === 201 && observado.pendientes === 0 && observado.versionesDeLaRetirada === 0 &&
+            observado.available === N && observado.availableIntactas,
+        };
+      });
+
+    for (const row of (await t.rowsOf(session)).filter((r) => r.status === "AVAILABLE")) await t.s.storage.remove(row.storageKey);
+    const left = (await t.versions("")).length + (await t.uploads("")).length;
+    t.s.report.note(`c6-rotacion: subcarpeta limpiada por el adaptador con rw; quedan ${left} entradas`);
+    expect(left).toBe(0);
   }, 600000);
 });

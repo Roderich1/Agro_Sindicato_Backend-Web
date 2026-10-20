@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { createS3Client, S3BackupStorageSettings, S3Sender } from "../infrastructure/s3-backup-storage";
 import { InMemoryS3, s3Error } from "./in-memory-s3";
 
@@ -25,6 +25,8 @@ export const B151_PROFILES = {
   nodel: ["listFiles", "readFiles", "writeFiles"],
 } as const;
 export type B151Profile = keyof typeof B151_PROFILES;
+/** A report row's key: one profile, or rw with the rotation's deletes sent with nodel (T-R5, rotation variant). */
+export type B151ReportProfile = B151Profile | "rw+nodel";
 /** `b2`: the real provider. `doble`: the in-memory S3 double, never B2. */
 export type B151Target = "b2" | "doble";
 
@@ -95,8 +97,9 @@ export async function verifyB2Key(
   };
   const buckets = (allowed.buckets ?? []).map((b) => b.name).filter(Boolean) as string[];
   if (allowed.bucketName) buckets.push(allowed.bucketName);
-  const capabilities = [...(allowed.capabilities ?? [])].sort();
-  const expected = [...B151_PROFILES[profile]].sort();
+  const byName = (a: string, b: string) => a.localeCompare(b);
+  const capabilities = [...(allowed.capabilities ?? [])].sort(byName);
+  const expected = [...B151_PROFILES[profile]].sort(byName);
   const check: KeyCheck = {
     bucket: buckets.join(","),
     namePrefix: allowed.namePrefix ?? null,
@@ -137,17 +140,33 @@ export type Verdict = "PASS" | "FAIL" | "NO_CONCLUYENTE";
 
 export interface CaseResult {
   caso: string;
-  perfil: B151Profile;
+  perfil: B151ReportProfile;
   esperado: string;
   observado: unknown;
   veredicto: Verdict;
   nota?: string;
 }
 
+/**
+ * Git by absolute path only (never resolved through PATH): F08_B151_GIT, or
+ * the standard install locations. Null if none exists.
+ */
+function gitExecutable(): string | null {
+  const candidates = [
+    process.env["F08_B151_GIT"],
+    "C:\\Program Files\\Git\\cmd\\git.exe",
+    "/usr/bin/git",
+    "/usr/local/bin/git",
+  ];
+  return candidates.find((c): c is string => !!c && isAbsolute(c) && existsSync(c)) ?? null;
+}
+
 /** Commit of the tree the tool runs from, and whether its relevant files differ from it. */
 export function treeVersion(root: string): { sha: string; cambiosLocales: string[] } {
+  const executable = gitExecutable();
+  if (!executable) return { sha: "desconocido (git no encontrado por ruta absoluta)", cambiosLocales: [] };
   const git = (...args: string[]) =>
-    execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    execFileSync(executable, ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
   try {
     const sha = git("rev-parse", "HEAD");
     const dirty = git("status", "--porcelain", "--", "Back/src/modules/backups", "tool/f08_b2");
@@ -169,7 +188,7 @@ export class B151Report {
     readonly header: {
       herramienta: string;
       destino: B151Target;
-      perfil: B151Profile | "varios (doble)";
+      perfil: B151ReportProfile | "varios (doble)";
       paso: string;
       version: { sha: string; cambiosLocales: string[] };
       configuracion: Record<string, unknown>;
@@ -213,7 +232,7 @@ export class B151Report {
     const lines = [
       `${this.header.herramienta} · destino ${this.header.destino} · perfil ${this.header.perfil} · paso ${this.header.paso}`,
       document.declaracion,
-      `versión ${this.header.version.sha}${this.header.version.cambiosLocales.length ? ` + cambios locales: ${this.header.version.cambiosLocales.join("; ")}` : ""}`,
+      versionLine(this.header.version),
       `configuración ${JSON.stringify(this.header.configuracion)}`,
       "",
       ...this.cases.flatMap((c) => [
@@ -235,8 +254,20 @@ export class B151Report {
   }
 }
 
+function versionLine(version: { sha: string; cambiosLocales: string[] }): string {
+  const local = version.cambiosLocales.length ? " + cambios locales: " + version.cambiosLocales.join("; ") : "";
+  return `versión ${version.sha}${local}`;
+}
+
 function secrets(env = process.env): string[] {
-  return ["BACKUP_S3_ACCESS_KEY_ID", "BACKUP_S3_SECRET_ACCESS_KEY", "B2_APPLICATION_KEY_ID", "B2_APPLICATION_KEY"]
+  return [
+    "BACKUP_S3_ACCESS_KEY_ID",
+    "BACKUP_S3_SECRET_ACCESS_KEY",
+    "B2_APPLICATION_KEY_ID",
+    "B2_APPLICATION_KEY",
+    "F08_B151_NODEL_ACCESS_KEY_ID",
+    "F08_B151_NODEL_SECRET_ACCESS_KEY",
+  ]
     .map((name) => env[name])
     .filter((v): v is string => !!v && v.length >= 6);
 }
@@ -278,7 +309,8 @@ export class B151Connection {
 
   static doble(prefix: string): B151Connection {
     const settings: S3BackupStorageSettings = {
-      endpoint: "http://doble.invalid",
+      // Never contacted: the double answers in memory.
+      endpoint: "https://doble.invalid",
       region: "doble",
       bucket: "bucket-sintetico-b151",
       accessKeyId: "doble",
@@ -298,7 +330,8 @@ export class B151Connection {
     ]);
     s3.before = (command) => {
       const input = command.input;
-      const key = String(input["Key"] ?? input["Prefix"] ?? "");
+      const named = input["Key"] ?? input["Prefix"];
+      const key = typeof named === "string" ? named : "";
       if (!key.startsWith(B151_KEY_PREFIX)) throw s3Error("AccessDenied", 403);
       if (target.simulated === "ro" && writes.has(command.name)) throw s3Error("AccessDenied", 403);
       if (
@@ -311,4 +344,20 @@ export class B151Connection {
     };
     return target;
   }
+}
+
+/**
+ * Settings of the second key (nodel) for the rotation variant of T-R5: the
+ * same endpoint, bucket and prefix as `base`, with the credentials in
+ * F08_B151_NODEL_ACCESS_KEY_ID / F08_B151_NODEL_SECRET_ACCESS_KEY (copied
+ * from `con_b2.ps1` by `b151_b2.cjs`, never in argv). Null if missing.
+ */
+export function nodelSettingsFromEnv(
+  base: S3BackupStorageSettings,
+  env = process.env,
+): S3BackupStorageSettings | null {
+  const accessKeyId = env["F08_B151_NODEL_ACCESS_KEY_ID"];
+  const secretAccessKey = env["F08_B151_NODEL_SECRET_ACCESS_KEY"];
+  if (!accessKeyId || !secretAccessKey) return null;
+  return { ...base, accessKeyId, secretAccessKey };
 }
