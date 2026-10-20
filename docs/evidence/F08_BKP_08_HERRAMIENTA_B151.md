@@ -113,3 +113,12 @@ Jest: 5 tests passed, con PostgreSQL local `postgres:16-alpine` en 127.0.0.1:554
 5. Revocación con `revocar_claves_b151.ps1`, que también pide la clave maestra. Si no se ejecuta, las claves caducan a los 3 días.
 
 **Hasta entonces, ningún ítem de #151 §A queda acreditado contra B2.** Tampoco la cobertura de T-R5: sus dos variantes sólo se han ejecutado contra el doble.
+
+> **Nota del 2026-10-20 (01:23:00–01:23:17Z), sobre `601cc4c`.**
+> - **Qué cambia:** sólo dos expresiones del soporte, por los avisos de SonarCloud S8786 y S7780 sobre `1abce6c`: la barra final del endpoint se quita sin una expresión regular, y la ruta de git va con `String.raw`, con el mismo valor.
+> - **Resultado contra el doble,** con el árbol limpio, idéntico al de la tabla anterior:
+>   - ítems 1–5: 34 PASS;
+>   - rw: 6 PASS;
+>   - nodel: 5 PASS;
+>   - rotacion: 3 PASS;
+>   - Jest: 5 passed.
