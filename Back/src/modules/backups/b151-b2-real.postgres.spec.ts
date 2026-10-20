@@ -582,7 +582,7 @@ describeFor("rotacion")("BE #151 item 6 with the real S3 adapter: T-R5, the purg
         const row = await t.s.prisma.backupMetadata.findUniqueOrThrow({ where: { id: ids[0] } });
         const observado = {
           subida: rotated.status, estado: row.status, motivo: row.deletionReason, purgaPendiente: row.purgePending,
-          borradosEnviadosConNodel: t.s.routed.sent, rechazosDeB2: t.s.routed.refused,
+          borradosEnviadosConNodel: t.s.routed.sent, rechazosDeB2: [...t.s.routed.refused],
           soloLaRetirada: t.s.routed.keys.every((k) => k === `objects/${retired.storageKey}`),
           versionesDeLaRetirada: (await t.versions(`objects/${retired.storageKey}`)).length,
           listadas: (await t.listIds(session)).length, availableIntactas: await t.availableIntact(session),
