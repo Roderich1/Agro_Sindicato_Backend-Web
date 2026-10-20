@@ -1,0 +1,24 @@
+Back/src/modules/backups/b151-b2-real.postgres.spec.ts · destino doble · perfil nodel · paso T-R5
+Ejecutado contra el doble S3 en memoria, NO contra Backblaze B2: valida la herramienta, no el proveedor.
+versión c2c1b15e41e9c80cf439b1736efcf2ef4b6d2e88
+configuración {"prefijoAdaptador":"ensayo-f08/b151-20261019/doble-pg/c6-nodel/","bucket":"bucket-sintetico-b151","N":3}
+
+PASS [nodel] T-R5 preparación: N copias válidas escritas con la clave nodel y descargables por la API
+  esperado: lista con N copias; cada descarga 200 con sus bytes
+  observado: {"listadas":3,"intactas":[true,true,true]}
+PASS [nodel] T-R5a: una subida con el proveedor que rechaza borrados
+  esperado: 503 BACKUP_STORAGE_UNAVAILABLE (el commit no puede purgar el staging); la fila FAILED STORAGE_COMMIT_FAILED con purga pendiente; nada retirado; las N copias siguen listadas e íntegras
+  observado: {"subida":503,"cuerpo":{"errorCode":"BACKUP_STORAGE_UNAVAILABLE"},"estado":"FAILED","codigo":"STORAGE_COMMIT_FAILED","purgaPendiente":true,"retention":0,"listadas":3,"intactas":[true,true,true],"restosEnB2":2}
+  nota: Los restos en B2 de la subida fallida (objeto final y staging) no se pueden borrar con esta clave: quedan para «limpiar» con rw.
+PASS [nodel] T-R5b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida
+  esperado: 503 BACKUP_STORAGE_UNAVAILABLE sin fila nueva ni escritura nueva en B2
+  observado: {"subida":503,"cuerpo":{"errorCode":"BACKUP_STORAGE_UNAVAILABLE"},"filasNuevas":0,"entradasNuevasEnB2":0}
+PASS [nodel] T-R5c: el borrado del propietario con el proveedor que rechaza borrados
+  esperado: 204 (borrado lógico: deja de listarse y servirse) con la purga pendiente; sus bytes siguen en B2 hasta que una clave con deleteFiles reconcilie; las otras copias íntegras
+  observado: {"borrado":204,"estado":"DELETED","motivo":"OWNER","purgaPendiente":true,"descarga":404,"versionesEnB2":1,"otrasIntactas":[true,true]}
+PASS [nodel] T-R5d: la cota sigue cerrada y la reconciliación con esta clave no confirma nada
+  esperado: subida 503; purgePending: 0 confirmadas, 2 fallidas (OWNER y FAILED); las filas siguen pendientes
+  observado: {"subida":503,"reconciliacion":{"pending":{"OWNER":1,"RETENTION":0,"FAILED":1},"confirmed":0,"failed":2},"filasPendientes":2}
+  nota: La variante «falla la purga de la rotación» no es alcanzable con esta clave: ningún commit llega a AVAILABLE sin deleteFiles. Esa variante queda cubierta sólo con PostgreSQL y el doble S3.
+
+resumen: 5 PASS, 0 FAIL, 0 NO_CONCLUYENTE
