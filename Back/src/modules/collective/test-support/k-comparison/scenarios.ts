@@ -154,7 +154,7 @@ function synthetic(
   const bySize = cells.map((count, i) => ({ count, i })).sort((a, b) => b.count - a.count || a.i - b.i);
   const largest = bySize[0]!.i;
   const first = holders[largest]![0]!;
-  const removed = holders[largest]![holders[largest]!.length - 1]!;
+  const removed = holders[largest]!.at(-1)!;
   const roleChange = holders[bySize[1]!.i]!.find((member) => member !== removed)!;
   return {
     id,
