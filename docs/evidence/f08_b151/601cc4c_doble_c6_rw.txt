@@ -1,0 +1,25 @@
+Back/src/modules/backups/b151-b2-real.postgres.spec.ts · destino doble · perfil rw · paso C2 y C5
+Ejecutado contra el doble S3 en memoria, NO contra Backblaze B2: valida la herramienta, no el proveedor.
+versión 601cc4ced6c041c3d3c9581dd4d6930a8c2adb61
+configuración {"prefijoAdaptador":"ensayo-f08/b151-20261019/doble-pg/c6-rw/","bucket":"bucket-sintetico-b151","N":3}
+
+PASS [rw] C2a: borrado del propietario mientras la subida espera en el commit
+  esperado: borrado 204; subida 201; quedan N AVAILABLE; ninguna retirada por RETENTION; la borrada sin versiones en B2; cada AVAILABLE con 1 versión y sin staging
+  observado: {"borrado":204,"subida":201,"available":3,"retention":0,"owner":[true],"versionesDeLaBorrada":0,"availableIntactas":true}
+PASS [rw] C2b: borrado del propietario durante la transacción de completado
+  esperado: el borrado espera al cerrojo del Member; subida 201 y borrado 204; RETENTION = la más antigua, OWNER = la otra; N-1 AVAILABLE; ambas sin versiones en B2
+  observado: {"borradoDentroDelCerrojo":false,"subida":201,"borrado":204,"retention":[true],"owner":[true],"available":2,"versionesRetirada":0,"versionesBorrada":0,"availableIntactas":true}
+PASS [rw] C5a: una fila UPLOADING reciente no se cierra
+  esperado: 409; la fila sigue UPLOADING; su staging sigue en B2
+  observado: {"subida":409,"estado":"UPLOADING","stagingEnB2":1}
+PASS [rw] C5b: una fila abandonada (> 60 min) se cierra y su staging se purga en B2
+  esperado: 201; la fila FAILED ABANDONED sin purga pendiente; 0 versiones de su staging en B2
+  observado: {"subida":201,"estado":"FAILED","codigo":"ABANDONED","purgaPendiente":false,"stagingEnB2":0}
+PASS [rw] C5c: una subida cerrada como abandonada mientras esperaba el commit; su commit tardío no cambia nada
+  esperado: la otra subida 201; la tardía 503; la fila FAILED ABANDONED sin purga pendiente; ni objeto final ni staging en B2; no aparece en la lista
+  observado: {"otra":201,"tardia":503,"estado":"FAILED","codigo":"ABANDONED","purgaPendiente":false,"entradasEnB2":0,"listada":false,"availableIntactas":true}
+PASS [rw] c6-rw: en B2 sólo quedan los objetos de copias AVAILABLE (1 versión cada una)
+  esperado: 0 entradas ajenas; tantas versiones como copias AVAILABLE; 0 multipart
+  observado: {"available":7,"versiones":7,"ajenas":0,"multipart":0}
+
+resumen: 6 PASS, 0 FAIL, 0 NO_CONCLUYENTE
