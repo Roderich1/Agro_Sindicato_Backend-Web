@@ -39,4 +39,22 @@ for (const id of ids) {
   }
 }
 console.log("");
+// Cobertura, celdas suprimidas y pendientes por paso; por campaña separadas con «;» (no se suman personas entre campañas).
+const STEPS = ["E1_PUBLICAR", "E2_SUSTITUIR", "E3_ASOCIAR", "E4_BAJA", "E5_CAMBIO_ROL"];
+const perCampaign = (rows, f) => rows.map(f).join("; ");
+console.log("| Escenario | k | Distribución de aportantes por celda en E1 | " + STEPS.map((s) => `${s.slice(0, 2)}: con cifra de vinculados · suprimidas · pendientes`).join(" | ") + " |");
+console.log("|---|---|---|" + STEPS.map(() => "---").join("|") + "|");
+for (const id of ids) {
+  for (const run of runs) {
+    const s = run.scenarios.find((x) => x.id === id);
+    const e1 = s.reads.filter((r) => r.step === STEPS[0]);
+    const dist = perCampaign(e1, (r) => r.distribution.map((d) => d.members).join("-"));
+    const cols = STEPS.map((step) =>
+      perCampaign(s.reads.filter((r) => r.step === step), (r) =>
+        `${r.members_with_contribution}/${r.linked_members} · ${r.suppressed_cells ? "sí" : "no"} · ${r.disclosed_pending}`),
+    );
+    console.log(`| ${s.id} | ${run.meta.k} | ${dist} | ${cols.join(" | ")} |`);
+  }
+}
+console.log("");
 for (const run of runs) console.log(`- k = ${run.meta.k}: SHA ${run.meta.sha}, árbol limpio ${run.meta.tree_clean}, ${run.meta.started_at} → ${run.meta.finished_at}, Node ${run.meta.node}`);

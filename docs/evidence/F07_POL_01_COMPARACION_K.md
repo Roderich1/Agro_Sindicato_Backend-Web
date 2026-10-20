@@ -11,7 +11,7 @@
 - **Encargo:** de Roderich, el 2026-10-19 («F07 y F08: umbrales, retención y comprobaciones», §2), asignado por la sesión A a la sesión B.
 - **Quién lo hizo:**
   - la **sesión B** dejó la herramienta en borrador, sin commitear, en `_wt/B-F07-UMBRALES`;
-  - la **sesión C** la continuó el 2026-10-20 a pedido de Roderich, sin cambiar su lógica, salvo que `git` se invoca ahora por ruta absoluta;
+  - la **sesión C** la continuó el 2026-10-19 en America/La_Paz (2026-10-20 en UTC), a pedido de Roderich. Mantuvo la secuencia y los escenarios, y añadió `git` por ruta absoluta y, tras la revisión cruzada, el oráculo de las cifras pendientes (§1);
   - C la ejecutó y redactó esta evidencia.
 - **Datos:** todos sintéticos.
 - **Versión:** `6d679fda230923ca54846ab12cc8128d97f4acf1` (rama `docs/f07-comparacion-k`, sobre `main` `769d441`), con el árbol limpio.
@@ -62,13 +62,20 @@ cd .. && node tool/f07_k_comparison/resumir.cjs <dir>
 
 Cada lectura comprueba:
 - que los canales coinciden entre sí (JSON = CSV = propuesta);
-- que las cifras coinciden con un **oráculo** calculado a partir de las operaciones enviadas, no del servidor;
+- que las cifras coinciden con un **oráculo** calculado a partir de las operaciones enviadas, no del servidor:
+  - una cifra nueva, sin cambios pendientes, es exactamente el total y el número de Members vigentes;
+  - una cifra conservada (`pending_changes`) es exactamente la última que se publicó para esa celda sin pendientes. Las liberaciones sólo ocurren en estas lecturas, porque la propuesta no decide nada nuevo;
+  - **mutación:** si se altera ese oráculo, la prueba falla;
 - que ninguna cifra se publica con menos de k Members **vigentes**;
 - que una celda sin aportes queda retirada;
-- que la cobertura (`linked_members` y `members_with_contribution`) es correcta;
+- que la cobertura es correcta en **todas** las lecturas:
+  - `linked_members`;
+  - `members_with_contribution`: una cifra nueva cuenta a sus Members vigentes, y una conservada a los de su liberación (F10-SEC-02);
 - que generar la propuesta no decide nada nuevo: ni liberaciones ni retiradas.
 
-Las reglas del historial y de las combinaciones entre claves (`SUPPRESSED_REVISION`) actúan igual con los dos k.
+Las lecturas con alguna cifra conservada fueron 14 de 40 con k = 3 y 10 de 40 con k = 5.
+
+**Lo que no se comprueba:** no hay un atacante que intente aislar a un grupo de menos de k por diferencias entre liberaciones. La regla de historial y de combinaciones entre claves (`SUPPRESSED_REVISION` y retiradas) **se observó actuando** tras E2–E5 con los dos k, pero esta comparación **no demuestra** que impida toda diferencia. Eso lo cubren, en su alcance, las pruebas propias de la regla.
 
 ## 2. Escenarios
 
@@ -111,13 +118,13 @@ Los supuestos sintéticos **no describen al Sindicato ni al piloto**. La distrib
 En D4, las líneas con cifra de la propuesta en E1 (2/5) están en kg (G). Por eso los litros cubiertos son 0.
 
 **Lo que se observa:**
-1. **Con 6 o menos aportantes por campaña**, k = 5 deja la propuesta sin ninguna cifra útil o casi:
+1. **Con 6 o menos aportantes por campaña**, k = 5 recorta mucho la propuesta:
    - DSUX y D4: 0 líneas con cifra;
-   - S06-ALTA y S12-BAJA: 1–2 líneas con cifra en E1 y ninguna en E5.
+   - S06-ALTA y S12-BAJA: 2 y 1 líneas con cifra en E1 (el 54 % y el 29 % de los litros) y ninguna en E5.
    - Con k = 3, en E1:
      - DSUX, S06-ALTA y S12-BAJA muestran entre el 68 % y el 100 % de los litros declarados;
      - D4 sólo muestra cifras en kg: 4 celdas y 2 líneas.
-2. **La secuencia E2–E5** (sustitución, asociación, baja y cambio de rol) retira o deja en revisión celdas con cualquier k. Es lo que debe hacer la regla de historial y combinaciones. Con k = 5, tras E5 sólo S30-ALTA conserva cifras (3 de 8 líneas, 260 de 788 L). Con k = 3 conservan cifras S06-ALTA, S12-BAJA, S12-ALTA, S30-BAJA y S30-ALTA.
+2. **La secuencia E2–E5** (sustitución, asociación, baja y cambio de rol) retira o deja en revisión celdas con cualquier k: se observa la regla de historial y combinaciones actuando, lo que no prueba que impida cualquier diferencia (§1). Con k = 5, tras E5 sólo S30-ALTA conserva cifras (3 de 8 líneas, 260 de 788 L). Con k = 3 conservan cifras S06-ALTA, S12-BAJA, S12-ALTA, S30-BAJA y S30-ALTA.
 3. **El riesgo residual no desaparece con k = 5.** Siguen publicándose celdas con exactamente k aportantes en S06-ALTA, S12-BAJA, S12-ALTA y S30-ALTA, donde k − 1 aportantes coludidos deducen al restante. Tampoco desaparecen la dominancia (un aportante con la mayor parte del total) ni el conocimiento externo.
 4. **La coherencia entre canales y con el oráculo** fue total con los dos k (0 inconsistencias en 2 × 7 ejecuciones). La diferencia entre k es de utilidad y de riesgo, no de corrección.
 
@@ -125,8 +132,8 @@ En D4, las líneas con cifra de la propuesta en E1 (2/5) están en kg (G). Por e
 
 | Número | Valor | Fuente |
 |---|---|---|
-| **Personas del piloto** | **Ninguna confirmada** | Protocolo v1.5; `_wt/tools/piloto-f10/LEEME.md`: el bloqueo humano es la falta de la persona, con su consentimiento |
-| **Población declarada en la tesis** | **74 miembros** de la nómina institucional del Sindicato 19 de Agosto | `Proyecto_Grado_Rodrigo_Univalle_v1.5.docx`, §1.8 «Población y muestra» (pág. 13 según el índice), párrafo 586 de `word/document.xml`: «La población de estudio estará conformada por los 74 miembros…». En §3.3.1 (párrafo 1096): 38 respuestas efectivas al cuestionario censal, 31 de agricultores sin cargo y 7 de la directiva. En el párrafo 1289: «La nómina contiene 74 posiciones y posibles nombres repetidos… la vigencia y unicidad de los registros quedan pendientes de confirmación» |
+| **Personas del piloto** | **Ninguna confirmada** | Registro de coordinación del 2026-10-19 (fuera del repositorio): «Bloqueo humano: no hay una persona piloto con consentimiento» |
+| **Población declarada en la tesis** | **74 miembros** de la nómina institucional del Sindicato 19 de Agosto | `Proyecto_Grado_Rodrigo_Univalle_v1.5.docx`, §1.8.1 «Población», dentro del §1.8 (pág. 13 según el índice), párrafo 586 de `word/document.xml`, con los párrafos numerados desde 1 en el orden del documento: «La población de estudio estará conformada por los 74 miembros…». En §3.3.1 (párrafo 1096): 38 respuestas efectivas al cuestionario censal, 31 de agricultores sin cargo y 7 de la directiva. En §3.3.4 «Evidencia documental» (párrafo 1289): «La nómina contiene 74 posiciones y posibles nombres repetidos… la vigencia y unicidad de los registros quedan pendientes de confirmación» |
 | **Agricultores realmente vinculados en el sistema** | **PENDIENTE, sin confirmar** | No hay despliegue ni datos reales |
 
 **El documento de la tesis se leyó sin modificarlo.** Su SHA-256, `72C61FC2…2EAF2CC`, fue el mismo antes y después de la extracción.
@@ -136,15 +143,25 @@ Los 74 son miembros, no aportantes de una campaña ni de un producto. Los 38 son
 ## 5. Recomendación y sus límites
 
 **Recomendación: mantener k = 3 como valor provisional** para la entrega académica y el piloto con datos sintéticos, sin adoptar k = 5 ahora. Los motivos:
-- **Utilidad:** con grupos de 4 a 6 aportantes, que es el orden de DS-UX, D4 y los supuestos bajos, k = 5 deja la propuesta conjunta sin cifras. Eso anula el propósito de CU-12 (preparar una compra conjunta) sin que el riesgo residual desaparezca.
-- **Protección:** con k = 3 la protección no descansa sólo en el umbral. También actúan la regla de historial y combinaciones, que retira o deja en revisión lo que una diferencia revelaría, y la exclusión de los Members dados de baja o con otro rol (M5), comprobadas aquí con los dos k.
+- **Utilidad:** con grupos de 3 a 6 aportantes, que es el orden de DS-UX, D4 y los supuestos bajos, k = 5 recorta mucho la propuesta conjunta:
+  - DS-UX y D4 quedan sin ninguna cifra;
+  - S06-ALTA y S12-BAJA conservan en E1 2 y 1 líneas (el 54 % y el 29 % de los litros), y ninguna tras E5.
+  - Eso reduce mucho la utilidad de CU-12 (preparar una compra conjunta) sin que el riesgo residual desaparezca.
+- **Protección:** con k = 3 la protección no descansa sólo en el umbral. También actúan:
+  - la exclusión de los Members dados de baja o con otro rol (M5), comprobada aquí en la cobertura y en el oráculo;
+  - la regla de historial y combinaciones, que aquí **se observó** retirando o dejando en revisión celdas, aunque esta comparación no la prueba contra un atacante (§1).
 
 **Antes de fijar k para datos reales,** hace falta, como mínimo:
 1. el **número real de agricultores vinculados** y su **participación por producto y campaña**: los aportantes por celda, no los miembros;
 2. la decisión del autor, la Directiva y el tutor (#107);
 3. volver a ejecutar esta comparación con una distribución sintética que imite la real.
 
-Como orientación que debe confirmarse con esos datos: **un k mayor sólo tiene sentido si las celdas tienen de forma habitual bastantes más aportantes que k**. En estos escenarios, k = 5 conserva utilidad sólo en S30-ALTA (23 aportantes).
+Como orientación que debe confirmarse con esos datos: **un k mayor sólo tiene sentido si las celdas tienen de forma habitual bastantes más aportantes que k**. En estos escenarios:
+- en E1, k = 5 conserva:
+  - el 76 %, el 54 % y el 81 % de los litros declarados en S12-ALTA, S30-BAJA y S30-ALTA;
+  - el 54 % (159 de 297 L) en S06-ALTA y el 29 % (69 de 242 L) en S12-BAJA;
+  - nada en DS-UX y D4;
+- tras la secuencia E2–E5, sólo S30-ALTA (23 aportantes) conserva alguna cifra.
 
 **Límites:**
 - Todos los escenarios son sintéticos. Los supuestos S* no describen al Sindicato.

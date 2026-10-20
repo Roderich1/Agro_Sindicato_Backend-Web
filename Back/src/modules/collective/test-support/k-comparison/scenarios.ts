@@ -115,8 +115,10 @@ function d4(): Scenario {
 }
 
 /**
- * A SYNTHETIC ASSUMPTION: `linked` farmers, the first `contributing` of them
- * declare needs; product i has `cells[i]` contributors, chosen by rotation;
+ * A SYNTHETIC ASSUMPTION: `linked` farmers; contributors are drawn by
+ * rotation from the first `contributing` of them (the rotation may leave some
+ * of that pool without any need: the actual count is `contributing_initial`
+ * in the results); product i has `cells[i]` contributors;
  * `alias` is a second denomination of product `alias.target` with
  * `alias.count` contributors, associated in step E3. Quantities are whole
  * litres from a fixed formula. Steps follow one rule for all of them:
@@ -179,6 +181,6 @@ export function scenarios(): Scenario[] {
     synthetic("S12-BAJA", 12, 5, [5, 4, 3, 2, 1], { target: 2, count: 2 }, "SUPUESTO SINTÉTICO: 12 vinculados, 5 aportan"),
     synthetic("S12-ALTA", 12, 10, [10, 8, 6, 5, 4, 3], { target: 4, count: 2 }, "SUPUESTO SINTÉTICO: 12 vinculados, 10 aportan"),
     synthetic("S30-BAJA", 30, 9, [9, 6, 4, 3, 2, 2, 1], { target: 2, count: 2 }, "SUPUESTO SINTÉTICO: 30 vinculados, 9 aportan"),
-    synthetic("S30-ALTA", 30, 24, [18, 12, 9, 7, 5, 4, 3, 2], { target: 5, count: 3 }, "SUPUESTO SINTÉTICO: 30 vinculados, 24 aportan"),
+    synthetic("S30-ALTA", 30, 24, [18, 12, 9, 7, 5, 4, 3, 2], { target: 5, count: 3 }, "SUPUESTO SINTÉTICO: 30 vinculados, 23 aportan (rotación sobre los 24 primeros)"),
   ];
 }

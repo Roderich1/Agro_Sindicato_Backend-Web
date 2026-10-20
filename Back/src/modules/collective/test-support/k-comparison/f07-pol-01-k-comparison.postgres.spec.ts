@@ -154,6 +154,8 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
       [c.member, c.campaign, c.type, c.product, c.unit].join("|");
     const state = new Map(scenario.members.map((code) => [code, { active: true, role: "AGRICULTOR" }]));
     const canonical = new Map(scenario.products.map((p) => [p.name, p.name]));
+    /** The oracle of kept figures: per campaign and cell, the last figure released without pending changes. */
+    const released = new Map<string, { total: string; members: Set<string> }>();
     const nameOf = new Map(Object.entries(ids.products).map(([name, id]) => [id, name]));
 
     async function push(session: TestSession, c: Omit<ScenarioContribution, "cancelled">, action: "PUBLISH" | "SUPERSEDE" | "CANCEL", pred: string | null) {
@@ -243,8 +245,15 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
         if (c.status === "DISCLOSED") {
           check(`${where} ${id} no figure under k`, c.contributors >= K, c);
           check(`${where} ${id} visible only with k current Members`, (t?.members.size ?? 0) >= K, { c, now: t?.members.size });
+          const memory = `${campaign}|${id}`;
           if (!c.pending_changes) {
             check(`${where} ${id} exact when not pending`, t !== undefined && c.total_base === t.total.toString() && c.contributors === t.members.size, { c, t: t && { total: t.total.toString(), members: t.members.size } });
+            // Releases happen only in these summary reads (the proposal decides nothing new): this is the cell's latest release.
+            if (t) released.set(memory, { total: t.total.toString(), members: new Set(t.members) });
+          } else {
+            // A figure kept from before: exactly the last one released for this cell, never a recomputed or foreign one.
+            const prior = released.get(memory);
+            check(`${where} ${id} pending shows its last release`, prior !== undefined && c.total_base === prior.total && c.contributors === prior.members.size, { c, prior: prior && { total: prior.total, members: prior.members.size } });
           }
         }
         if (c.status === "SUPPRESSED_UNDER_THRESHOLD") check(`${where} ${id} under threshold`, (t?.members.size ?? 0) < K, { now: t?.members.size });
@@ -253,10 +262,11 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
       for (const id of truth.keys()) check(`${where} ${id} present`, cells.some((c) => c.cell === id), id);
       check(`${where} linked`, s.coverage.linked_members === linked(), [s.coverage.linked_members, linked()]);
       const disclosed = cells.filter((c) => c.status === "DISCLOSED");
-      if (disclosed.every((c) => !c.pending_changes)) {
-        const inside = new Set(disclosed.flatMap((c) => [...truth.get(c.cell)!.members]));
-        check(`${where} members_with_contribution`, s.coverage.members_with_contribution === inside.size, [s.coverage.members_with_contribution, inside.size]);
-      }
+      // «N de M con cifras publicadas»: a new figure counts its current Members; a kept one, those of its release.
+      const inside = new Set(
+        disclosed.flatMap((c) => [...(c.pending_changes ? released.get(`${campaign}|${c.cell}`)?.members ?? [] : truth.get(c.cell)?.members ?? [])]),
+      );
+      check(`${where} members_with_contribution`, s.coverage.members_with_contribution === inside.size, [s.coverage.members_with_contribution, inside.size]);
       const withdrawn = await prisma.collectiveRelease.count({ where: { campaignId: ref, withdrawnAt: { not: null } } });
       const releases = await prisma.collectiveRelease.count({ where: { campaignId: ref } });
       const litres = (unit: string, visible: boolean) =>
