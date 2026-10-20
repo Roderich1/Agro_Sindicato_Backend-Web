@@ -65,7 +65,10 @@ Cada lectura comprueba:
 - que las cifras coinciden con un **oráculo** calculado a partir de las operaciones enviadas, no del servidor:
   - una cifra nueva, sin cambios pendientes, es exactamente el total y el número de Members vigentes;
   - una cifra conservada (`pending_changes`) es exactamente la última que se publicó para esa celda sin pendientes. Las liberaciones sólo ocurren en estas lecturas, porque la propuesta no decide nada nuevo;
-  - **mutación:** si se altera ese oráculo, la prueba falla;
+  - **mutación** (2026-10-20, hacia las 01:30Z, sobre el árbol de trabajo previo a `98375dc` con este oráculo ya escrito). Se mostró y se revirtió; el archivo quedó idéntico al de `98375dc`.
+    - **Cambio:** en la comprobación «pending shows its last release», `c.total_base === prior.total` pasó a `c.total_base === prior.total + "1"`.
+    - **Orden:** `F07_K_COMPARE_K=3 F07_K_COMPARE_SCENARIOS=S12-ALTA npx jest f07-pol-01-k-comparison --runInBand`.
+    - **Resultado:** la prueba falla, con las fallas «E2_SUSTITUIR … DECLARED_NEED|Producto P1|ML pending shows its last release» y «E3_ASOCIAR … Producto P1» y «… Producto P5». La cifra servida era la de la liberación (129000 con 10 aportantes, y 53000 con 4), así que la comprobación detecta cualquier cifra distinta de la última liberada;
 - que ninguna cifra se publica con menos de k Members **vigentes**;
 - que una celda sin aportes queda retirada;
 - que la cobertura es correcta en **todas** las lecturas:
