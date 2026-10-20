@@ -14,10 +14,10 @@
   - la **sesión C** la continuó el 2026-10-19 en America/La_Paz (2026-10-20 en UTC), a pedido de Roderich. Mantuvo la secuencia y los escenarios, y añadió `git` por ruta absoluta y, tras la revisión cruzada, el oráculo de las cifras pendientes (§1);
   - C la ejecutó y redactó esta evidencia.
 - **Datos:** todos sintéticos.
-- **Versión:** `6d679fda230923ca54846ab12cc8128d97f4acf1` (rama `docs/f07-comparacion-k`, sobre `main` `769d441`), con el árbol limpio.
+- **Versión:** `98375dc849eb0bf567e5176a7ec6796ccf9db163` (rama `docs/f07-comparacion-k`, sobre `main` `769d441`), con el árbol limpio. La primera ejecución, sobre `6d679fd`, dio las mismas cifras con el oráculo anterior.
 - **Fecha real:**
-  - k = 3: 2026-10-20, de 01:18:37 a 01:19:18Z;
-  - k = 5: de 01:19:21 a 01:20:05Z (2026-10-19 en America/La_Paz).
+  - k = 3: 2026-10-20, de 01:32:46 a 01:33:29Z;
+  - k = 5: de 01:33:33 a 01:34:14Z (2026-10-19 en America/La_Paz).
 
 ## 1. Procedimiento reproducible
 
@@ -116,6 +116,8 @@ Los supuestos sintéticos **no describen al Sindicato ni al piloto**. La distrib
 | | 5 | 5 / 4 de 9 | 5/9 · 673 de 834 L | 3 / 2 / 3 de 8 · 3 | 3/8 · 260 de 788 L | 1 |
 
 En D4, las líneas con cifra de la propuesta en E1 (2/5) están en kg (G). Por eso los litros cubiertos son 0.
+
+**Cobertura por paso.** La cobertura (`members_with_contribution` de `linked_members`), si hay celdas suprimidas, las cifras pendientes por paso y la distribución de aportantes por celda están en la segunda tabla de [`f07_k_comparison/resumen.md`](f07_k_comparison/resumen.md). Un ejemplo es S30-ALTA tras E5: 19 de 28 con cifra con k = 3, frente a 11 de 28 con k = 5.
 
 **Lo que se observa:**
 1. **Con 6 o menos aportantes por campaña**, k = 5 recorta mucho la propuesta:
