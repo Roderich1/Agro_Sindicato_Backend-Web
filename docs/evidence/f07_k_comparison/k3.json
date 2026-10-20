@@ -1,0 +1,5096 @@
+{
+  "meta": {
+    "k": 3,
+    "injection": "jest.mock de disclosure-policy sólo en este archivo; el sistema conserva PROVISIONAL_THRESHOLD = 3",
+    "sha": "98375dc849eb0bf567e5176a7ec6796ccf9db163",
+    "tree_clean": true,
+    "node": "v25.9.0",
+    "started_at": "2026-10-20T01:32:46.783Z",
+    "finished_at": "2026-10-20T01:33:29.316Z"
+  },
+  "scenarios": [
+    {
+      "id": "DSUX",
+      "origin": "FIXTURE",
+      "source": "tool/f10_eval_web/dsux/oraculo_web.json (M1–M6; 4 de 6 aportan)",
+      "database": "f07k3_dsux_a80c8582aef84609b035727715c9053d",
+      "postgres": "16.13",
+      "linked_initial": 6,
+      "contributing_initial": 4,
+      "steps": {
+        "supersede": {
+          "member": "M2",
+          "campaign": "Verano Demo",
+          "type": "DECLARED_NEED",
+          "product": "Glifosato Demo",
+          "unit": "ML",
+          "quantity": "38000"
+        },
+        "associate": {
+          "product": "Belator",
+          "canonical": "Bellator"
+        },
+        "deactivate": "M4",
+        "roleChange": "M3"
+      },
+      "reads": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Verano Demo",
+          "linked_members": 6,
+          "members_with_contribution": 4,
+          "suppressed_cells": false,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members": 3
+            }
+          ],
+          "cells": 3,
+          "disclosed": 3,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 0,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 3,
+          "need_ml_declared": "168000",
+          "need_ml_visible": "168000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 3,
+              "total_now": "6000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "6000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members_now": 3,
+              "total_now": "12000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "12000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members_now": 4,
+              "total_now": "150000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "150000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Verano Demo",
+          "linked_members": 6,
+          "members_with_contribution": 4,
+          "suppressed_cells": false,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members": 3
+            }
+          ],
+          "cells": 3,
+          "disclosed": 3,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 0,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 3,
+          "need_ml_declared": "171000",
+          "need_ml_visible": "168000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 3,
+              "total_now": "6000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "6000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members_now": 3,
+              "total_now": "12000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "12000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members_now": 4,
+              "total_now": "153000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "150000",
+              "pending_changes": true
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Verano Demo",
+          "linked_members": 6,
+          "members_with_contribution": 4,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members": 3
+            }
+          ],
+          "cells": 3,
+          "disclosed": 2,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 0,
+          "suppressed_revision": 1,
+          "overflow": 0,
+          "withdrawn_total": 1,
+          "withdrawn_in_step": 1,
+          "releases_total": 4,
+          "need_ml_declared": "171000",
+          "need_ml_visible": "168000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 0,
+              "total_now": "0",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members_now": 3,
+              "total_now": "18000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "18000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members_now": 4,
+              "total_now": "153000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "150000",
+              "pending_changes": true
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Verano Demo",
+          "linked_members": 5,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members": 3
+            }
+          ],
+          "cells": 3,
+          "disclosed": 1,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 0,
+          "suppressed_revision": 2,
+          "overflow": 0,
+          "withdrawn_total": 2,
+          "withdrawn_in_step": 1,
+          "releases_total": 4,
+          "need_ml_declared": "121000",
+          "need_ml_visible": "18000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 0,
+              "total_now": "0",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members_now": 3,
+              "total_now": "18000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "18000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members_now": 3,
+              "total_now": "103000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Verano Demo",
+          "linked_members": 4,
+          "members_with_contribution": 0,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members": 2
+            }
+          ],
+          "cells": 3,
+          "disclosed": 0,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 2,
+          "suppressed_revision": 1,
+          "overflow": 0,
+          "withdrawn_total": 3,
+          "withdrawn_in_step": 1,
+          "releases_total": 4,
+          "need_ml_declared": "68000",
+          "need_ml_visible": "0",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": null,
+          "published_with_exactly_k": 0,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 0,
+              "total_now": "0",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members_now": 2,
+              "total_now": "10000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato Demo|ML",
+              "members_now": 2,
+              "total_now": "58000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        }
+      ],
+      "proposals": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Verano Demo",
+          "lines": 3,
+          "lines_with_figure": 3,
+          "lines_hidden": 0,
+          "hidden_by_status": {},
+          "lines_pending": 0,
+          "covered_ml": "168000",
+          "covered_g": "0",
+          "declared_ml": "168000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 6,
+            "members_with_contribution": 4,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Verano Demo",
+          "lines": 3,
+          "lines_with_figure": 3,
+          "lines_hidden": 0,
+          "hidden_by_status": {},
+          "lines_pending": 1,
+          "covered_ml": "168000",
+          "covered_g": "0",
+          "declared_ml": "171000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 6,
+            "members_with_contribution": 4,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Verano Demo",
+          "lines": 3,
+          "lines_with_figure": 2,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 1
+          },
+          "lines_pending": 1,
+          "covered_ml": "168000",
+          "covered_g": "0",
+          "declared_ml": "171000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 6,
+            "members_with_contribution": 4,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Verano Demo",
+          "lines": 3,
+          "lines_with_figure": 1,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 2
+          },
+          "lines_pending": 0,
+          "covered_ml": "18000",
+          "covered_g": "0",
+          "declared_ml": "121000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 5,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Verano Demo",
+          "lines": 3,
+          "lines_with_figure": 0,
+          "lines_hidden": 3,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 1,
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "0",
+          "declared_ml": "68000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 4,
+            "members_with_contribution": 0,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "D4",
+      "origin": "FIXTURE",
+      "source": "Back/src/modules/collective/test-support/d4/F06_EXPECTED_CONTRIBUTIONS.csv (F1–F3 aportan; 12 vinculados, F06_RECONCILIATION.md)",
+      "database": "f07k3_d4_96b6558e82d9495d93d04dcc78770428",
+      "postgres": "16.13",
+      "linked_initial": 12,
+      "contributing_initial": 3,
+      "steps": {
+        "supersede": {
+          "member": "F1",
+          "campaign": "C1",
+          "type": "DECLARED_NEED",
+          "product": "Belator",
+          "unit": "ML",
+          "quantity": "5500"
+        },
+        "associate": {
+          "product": "Bellator",
+          "canonical": "Belator"
+        },
+        "deactivate": "F3",
+        "roleChange": "F2"
+      },
+      "reads": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "C1",
+          "linked_members": 12,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members": 3
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members": 1
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members": 1
+            }
+          ],
+          "cells": 8,
+          "disclosed": 2,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 6,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 2,
+          "need_ml_declared": "11000",
+          "need_ml_visible": "0",
+          "need_g_declared": "25000",
+          "need_g_visible": "25000",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 2,
+              "total_now": "5000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members_now": 1,
+              "total_now": "3000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members_now": 3,
+              "total_now": "8250",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "8250",
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 1,
+              "total_now": "5000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members_now": 2,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 2,
+              "total_now": "7000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members_now": 1,
+              "total_now": "4000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members_now": 3,
+              "total_now": "25000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "25000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "C2",
+          "linked_members": 12,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members": 3
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato F06|ML",
+              "members": 1
+            }
+          ],
+          "cells": 5,
+          "disclosed": 2,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 2,
+          "need_ml_declared": "1000",
+          "need_ml_visible": "0",
+          "need_g_declared": "11500",
+          "need_g_visible": "11500",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 1,
+              "total_now": "1200",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members_now": 2,
+              "total_now": "1400",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 3,
+              "total_now": "9500",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "9500",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato F06|ML",
+              "members_now": 1,
+              "total_now": "1000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members_now": 3,
+              "total_now": "11500",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "11500",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "C1",
+          "linked_members": 12,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members": 3
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members": 1
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members": 1
+            }
+          ],
+          "cells": 8,
+          "disclosed": 2,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 6,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 2,
+          "need_ml_declared": "11500",
+          "need_ml_visible": "0",
+          "need_g_declared": "25000",
+          "need_g_visible": "25000",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 2,
+              "total_now": "5000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members_now": 1,
+              "total_now": "3000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members_now": 3,
+              "total_now": "8250",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "8250",
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 1,
+              "total_now": "5000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members_now": 2,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 2,
+              "total_now": "7500",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Bellator|ML",
+              "members_now": 1,
+              "total_now": "4000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members_now": 3,
+              "total_now": "25000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "25000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "C2",
+          "linked_members": 12,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members": 3
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato F06|ML",
+              "members": 1
+            }
+          ],
+          "cells": 5,
+          "disclosed": 2,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 2,
+          "need_ml_declared": "1000",
+          "need_ml_visible": "0",
+          "need_g_declared": "11500",
+          "need_g_visible": "11500",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 1,
+              "total_now": "1200",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Bellator|ML",
+              "members_now": 2,
+              "total_now": "1400",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 3,
+              "total_now": "9500",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "9500",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato F06|ML",
+              "members_now": 1,
+              "total_now": "1000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members_now": 3,
+              "total_now": "11500",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "11500",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "C1",
+          "linked_members": 12,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 3
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members": 3
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 1
+            }
+          ],
+          "cells": 6,
+          "disclosed": 4,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 2,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "11500",
+          "need_ml_visible": "11500",
+          "need_g_declared": "25000",
+          "need_g_visible": "25000",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 4,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 3,
+              "total_now": "8000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "8000",
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members_now": 3,
+              "total_now": "8250",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "8250",
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 1,
+              "total_now": "5000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members_now": 2,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 3,
+              "total_now": "11500",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "11500",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members_now": 3,
+              "total_now": "25000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "25000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "C2",
+          "linked_members": 12,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members": 3
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato F06|ML",
+              "members": 1
+            }
+          ],
+          "cells": 4,
+          "disclosed": 2,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 2,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 2,
+          "need_ml_declared": "1000",
+          "need_ml_visible": "0",
+          "need_g_declared": "11500",
+          "need_g_visible": "11500",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 2,
+              "total_now": "2600",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 3,
+              "total_now": "9500",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "9500",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Glifosato F06|ML",
+              "members_now": 1,
+              "total_now": "1000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members_now": 3,
+              "total_now": "11500",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "11500",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "C1",
+          "linked_members": 11,
+          "members_with_contribution": 0,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members": 2
+            }
+          ],
+          "cells": 5,
+          "disclosed": 0,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 5,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 4,
+          "withdrawn_in_step": 4,
+          "releases_total": 4,
+          "need_ml_declared": "9500",
+          "need_ml_visible": "0",
+          "need_g_declared": "15000",
+          "need_g_visible": "0",
+          "min_contributors_published": null,
+          "published_with_exactly_k": 0,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 2,
+              "total_now": "7000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members_now": 2,
+              "total_now": "6500",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members_now": 2,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 2,
+              "total_now": "9500",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members_now": 2,
+              "total_now": "15000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "C2",
+          "linked_members": 11,
+          "members_with_contribution": 0,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 2
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members": 2
+            }
+          ],
+          "cells": 3,
+          "disclosed": 0,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 2,
+          "withdrawn_in_step": 2,
+          "releases_total": 2,
+          "need_ml_declared": "0",
+          "need_ml_visible": "0",
+          "need_g_declared": "6500",
+          "need_g_visible": "0",
+          "min_contributors_published": null,
+          "published_with_exactly_k": 0,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 2,
+              "total_now": "2600",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 2,
+              "total_now": "5000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members_now": 2,
+              "total_now": "6500",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "C1",
+          "linked_members": 10,
+          "members_with_contribution": 0,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 1
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members": 1
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members": 1
+            }
+          ],
+          "cells": 5,
+          "disclosed": 0,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 5,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 4,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "5500",
+          "need_ml_visible": "0",
+          "need_g_declared": "15000",
+          "need_g_visible": "0",
+          "min_contributors_published": null,
+          "published_with_exactly_k": 0,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 1,
+              "total_now": "4000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Glifosato F06|ML",
+              "members_now": 1,
+              "total_now": "4000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Urea F06|G",
+              "members_now": 1,
+              "total_now": "12000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Belator|ML",
+              "members_now": 1,
+              "total_now": "5500",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Urea F06|G",
+              "members_now": 1,
+              "total_now": "15000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "C2",
+          "linked_members": 10,
+          "members_with_contribution": 0,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members": 1
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members": 1
+            }
+          ],
+          "cells": 3,
+          "disclosed": 0,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 2,
+          "withdrawn_in_step": 0,
+          "releases_total": 2,
+          "need_ml_declared": "0",
+          "need_ml_visible": "0",
+          "need_g_declared": "4000",
+          "need_g_visible": "0",
+          "min_contributors_published": null,
+          "published_with_exactly_k": 0,
+          "detail": [
+            {
+              "cell": "CONSUMPTION_TOTAL|Belator|ML",
+              "members_now": 1,
+              "total_now": "2000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "CONSUMPTION_TOTAL|Mancozeb F06|G",
+              "members_now": 1,
+              "total_now": "3000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Mancozeb F06|G",
+              "members_now": 1,
+              "total_now": "4000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        }
+      ],
+      "proposals": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "C1",
+          "lines": 3,
+          "lines_with_figure": 1,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "25000",
+          "declared_ml": "11000",
+          "declared_g": "25000",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "C2",
+          "lines": 2,
+          "lines_with_figure": 1,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "11500",
+          "declared_ml": "1000",
+          "declared_g": "11500",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "C1",
+          "lines": 3,
+          "lines_with_figure": 1,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "25000",
+          "declared_ml": "11500",
+          "declared_g": "25000",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "C2",
+          "lines": 2,
+          "lines_with_figure": 1,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "11500",
+          "declared_ml": "1000",
+          "declared_g": "11500",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "C1",
+          "lines": 2,
+          "lines_with_figure": 2,
+          "lines_hidden": 0,
+          "hidden_by_status": {},
+          "lines_pending": 0,
+          "covered_ml": "11500",
+          "covered_g": "25000",
+          "declared_ml": "11500",
+          "declared_g": "25000",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "C2",
+          "lines": 2,
+          "lines_with_figure": 1,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "11500",
+          "declared_ml": "1000",
+          "declared_g": "11500",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "C1",
+          "lines": 2,
+          "lines_with_figure": 0,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "0",
+          "declared_ml": "9500",
+          "declared_g": "15000",
+          "coverage": {
+            "linked_members": 11,
+            "members_with_contribution": 0,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "C2",
+          "lines": 1,
+          "lines_with_figure": 0,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "0",
+          "declared_ml": "0",
+          "declared_g": "6500",
+          "coverage": {
+            "linked_members": 11,
+            "members_with_contribution": 0,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "C1",
+          "lines": 2,
+          "lines_with_figure": 0,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "0",
+          "declared_ml": "5500",
+          "declared_g": "15000",
+          "coverage": {
+            "linked_members": 10,
+            "members_with_contribution": 0,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "C2",
+          "lines": 1,
+          "lines_with_figure": 0,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "0",
+          "covered_g": "0",
+          "declared_ml": "0",
+          "declared_g": "4000",
+          "coverage": {
+            "linked_members": 10,
+            "members_with_contribution": 0,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "S06-ALTA",
+      "origin": "SUPUESTO_SINTETICO",
+      "source": "SUPUESTO SINTÉTICO: 6 vinculados, los 6 aportan",
+      "database": "f07k3_s06alta_21c661a708ce40f39a4897ca50f38e5e",
+      "postgres": "16.13",
+      "linked_initial": 6,
+      "contributing_initial": 6,
+      "steps": {
+        "supersede": {
+          "member": "S01",
+          "campaign": "Campaña sintética",
+          "type": "DECLARED_NEED",
+          "product": "Producto P1",
+          "unit": "ML",
+          "quantity": "10000"
+        },
+        "associate": {
+          "product": "Producto P4 bis",
+          "canonical": "Producto P4"
+        },
+        "deactivate": "S06",
+        "roleChange": "S04"
+      },
+      "reads": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 6,
+          "members_with_contribution": 6,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4 bis|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            }
+          ],
+          "cells": 6,
+          "disclosed": 4,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 2,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "297000",
+          "need_ml_visible": "249000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 6,
+              "total_now": "90000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "90000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 5,
+              "total_now": "69000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "69000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 4,
+              "total_now": "49000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "49000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4 bis|ML",
+              "members_now": 2,
+              "total_now": "29000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "41000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "41000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "19000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "linked_members": 6,
+          "members_with_contribution": 6,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4 bis|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            }
+          ],
+          "cells": 6,
+          "disclosed": 4,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 2,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "298000",
+          "need_ml_visible": "249000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 6,
+              "total_now": "91000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "90000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 5,
+              "total_now": "69000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "69000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 4,
+              "total_now": "49000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "49000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4 bis|ML",
+              "members_now": 2,
+              "total_now": "29000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "41000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "41000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "19000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 6,
+          "members_with_contribution": 6,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            }
+          ],
+          "cells": 5,
+          "disclosed": 4,
+          "disclosed_pending": 2,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "298000",
+          "need_ml_visible": "249000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 6,
+              "total_now": "91000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "90000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 5,
+              "total_now": "69000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "69000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 4,
+              "total_now": "49000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "49000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 5,
+              "total_now": "70000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "41000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "19000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "linked_members": 5,
+          "members_with_contribution": 5,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            }
+          ],
+          "cells": 5,
+          "disclosed": 2,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 2,
+          "overflow": 0,
+          "withdrawn_total": 2,
+          "withdrawn_in_step": 2,
+          "releases_total": 5,
+          "need_ml_declared": "261000",
+          "need_ml_visible": "106000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 4,
+          "published_with_exactly_k": 0,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 5,
+              "total_now": "70000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 4,
+              "total_now": "66000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 4,
+              "total_now": "49000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "49000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 4,
+              "total_now": "57000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "57000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "19000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "linked_members": 4,
+          "members_with_contribution": 4,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            }
+          ],
+          "cells": 5,
+          "disclosed": 1,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 3,
+          "overflow": 0,
+          "withdrawn_total": 4,
+          "withdrawn_in_step": 2,
+          "releases_total": 6,
+          "need_ml_declared": "203000",
+          "need_ml_visible": "63000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 4,
+          "published_with_exactly_k": 0,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 4,
+              "total_now": "63000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "63000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 3,
+              "total_now": "54000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 3,
+              "total_now": "32000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "35000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "19000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        }
+      ],
+      "proposals": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "lines": 6,
+          "lines_with_figure": 4,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 0,
+          "covered_ml": "249000",
+          "covered_g": "0",
+          "declared_ml": "297000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 6,
+            "members_with_contribution": 6,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "lines": 6,
+          "lines_with_figure": 4,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 1,
+          "covered_ml": "249000",
+          "covered_g": "0",
+          "declared_ml": "298000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 6,
+            "members_with_contribution": 6,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "lines": 5,
+          "lines_with_figure": 4,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 2,
+          "covered_ml": "249000",
+          "covered_g": "0",
+          "declared_ml": "298000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 6,
+            "members_with_contribution": 6,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "lines": 5,
+          "lines_with_figure": 2,
+          "lines_hidden": 3,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 2,
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "106000",
+          "covered_g": "0",
+          "declared_ml": "261000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 5,
+            "members_with_contribution": 5,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "lines": 5,
+          "lines_with_figure": 1,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 3,
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "63000",
+          "covered_g": "0",
+          "declared_ml": "203000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 4,
+            "members_with_contribution": 4,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "S12-BAJA",
+      "origin": "SUPUESTO_SINTETICO",
+      "source": "SUPUESTO SINTÉTICO: 12 vinculados, 5 aportan",
+      "database": "f07k3_s12baja_28df8caeb1024fd9b507cc14471a0a03",
+      "postgres": "16.13",
+      "linked_initial": 12,
+      "contributing_initial": 5,
+      "steps": {
+        "supersede": {
+          "member": "S01",
+          "campaign": "Campaña sintética",
+          "type": "DECLARED_NEED",
+          "product": "Producto P1",
+          "unit": "ML",
+          "quantity": "10000"
+        },
+        "associate": {
+          "product": "Producto P3 bis",
+          "canonical": "Producto P3"
+        },
+        "deactivate": "S05",
+        "roleChange": "S04"
+      },
+      "reads": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 12,
+          "members_with_contribution": 5,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 1
+            }
+          ],
+          "cells": 6,
+          "disclosed": 3,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 3,
+          "need_ml_declared": "242000",
+          "need_ml_visible": "165000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 5,
+              "total_now": "69000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "69000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 4,
+              "total_now": "66000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "66000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members_now": 2,
+              "total_now": "27000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 3,
+              "total_now": "30000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "30000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 2,
+              "total_now": "30000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 1,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "linked_members": 12,
+          "members_with_contribution": 5,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 1
+            }
+          ],
+          "cells": 6,
+          "disclosed": 3,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 3,
+          "need_ml_declared": "243000",
+          "need_ml_visible": "165000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 5,
+              "total_now": "70000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "69000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 4,
+              "total_now": "66000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "66000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members_now": 2,
+              "total_now": "27000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 3,
+              "total_now": "30000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "30000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 2,
+              "total_now": "30000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 1,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 12,
+          "members_with_contribution": 5,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 1
+            }
+          ],
+          "cells": 5,
+          "disclosed": 3,
+          "disclosed_pending": 2,
+          "suppressed_under_threshold": 2,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 3,
+          "need_ml_declared": "243000",
+          "need_ml_visible": "165000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 5,
+              "total_now": "70000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "69000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 4,
+              "total_now": "66000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "66000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 5,
+              "total_now": "57000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "30000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 2,
+              "total_now": "30000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 1,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "linked_members": 11,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 1
+            }
+          ],
+          "cells": 5,
+          "disclosed": 1,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 2,
+          "suppressed_revision": 2,
+          "overflow": 0,
+          "withdrawn_total": 2,
+          "withdrawn_in_step": 2,
+          "releases_total": 3,
+          "need_ml_declared": "188000",
+          "need_ml_visible": "30000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 4,
+              "total_now": "56000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 3,
+              "total_now": "47000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 4,
+              "total_now": "41000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "30000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 1,
+              "total_now": "24000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 1,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "linked_members": 10,
+          "members_with_contribution": 3,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 1
+            }
+          ],
+          "cells": 5,
+          "disclosed": 1,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 1,
+          "overflow": 0,
+          "withdrawn_total": 3,
+          "withdrawn_in_step": 1,
+          "releases_total": 4,
+          "need_ml_declared": "152000",
+          "need_ml_visible": "49000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 3,
+              "total_now": "49000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "49000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 2,
+              "total_now": "35000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 3,
+              "total_now": "24000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 1,
+              "total_now": "24000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 1,
+              "total_now": "20000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        }
+      ],
+      "proposals": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "lines": 6,
+          "lines_with_figure": 3,
+          "lines_hidden": 3,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 3
+          },
+          "lines_pending": 0,
+          "covered_ml": "165000",
+          "covered_g": "0",
+          "declared_ml": "242000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 5,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "lines": 6,
+          "lines_with_figure": 3,
+          "lines_hidden": 3,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 3
+          },
+          "lines_pending": 1,
+          "covered_ml": "165000",
+          "covered_g": "0",
+          "declared_ml": "243000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 5,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "lines": 5,
+          "lines_with_figure": 3,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 2,
+          "covered_ml": "165000",
+          "covered_g": "0",
+          "declared_ml": "243000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 5,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "lines": 5,
+          "lines_with_figure": 1,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 2,
+            "SUPPRESSED_UNDER_THRESHOLD": 2
+          },
+          "lines_pending": 1,
+          "covered_ml": "30000",
+          "covered_g": "0",
+          "declared_ml": "188000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 11,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "lines": 5,
+          "lines_with_figure": 1,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 3,
+            "SUPPRESSED_REVISION": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "49000",
+          "covered_g": "0",
+          "declared_ml": "152000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 10,
+            "members_with_contribution": 3,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "S12-ALTA",
+      "origin": "SUPUESTO_SINTETICO",
+      "source": "SUPUESTO SINTÉTICO: 12 vinculados, 10 aportan",
+      "database": "f07k3_s12alta_8741cdfe740d4ab7a1b167c5211556d9",
+      "postgres": "16.13",
+      "linked_initial": 12,
+      "contributing_initial": 10,
+      "steps": {
+        "supersede": {
+          "member": "S01",
+          "campaign": "Campaña sintética",
+          "type": "DECLARED_NEED",
+          "product": "Producto P1",
+          "unit": "ML",
+          "quantity": "10000"
+        },
+        "associate": {
+          "product": "Producto P5 bis",
+          "canonical": "Producto P5"
+        },
+        "deactivate": "S10",
+        "roleChange": "S04"
+      },
+      "reads": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 12,
+          "members_with_contribution": 10,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 10
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 8
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5 bis|ML",
+              "members": 2
+            }
+          ],
+          "cells": 7,
+          "disclosed": 6,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 6,
+          "need_ml_declared": "529000",
+          "need_ml_visible": "498000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 10,
+              "total_now": "129000",
+              "status": "DISCLOSED",
+              "contributors": 10,
+              "total_base": "129000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 8,
+              "total_now": "107000",
+              "status": "DISCLOSED",
+              "contributors": 8,
+              "total_base": "107000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 6,
+              "total_now": "78000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "78000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 5,
+              "total_now": "87000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "87000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5 bis|ML",
+              "members_now": 2,
+              "total_now": "31000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 4,
+              "total_now": "53000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "53000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 3,
+              "total_now": "44000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "44000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "linked_members": 12,
+          "members_with_contribution": 10,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 10
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 8
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5 bis|ML",
+              "members": 2
+            }
+          ],
+          "cells": 7,
+          "disclosed": 6,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 6,
+          "need_ml_declared": "530000",
+          "need_ml_visible": "498000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 10,
+              "total_now": "130000",
+              "status": "DISCLOSED",
+              "contributors": 10,
+              "total_base": "129000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 8,
+              "total_now": "107000",
+              "status": "DISCLOSED",
+              "contributors": 8,
+              "total_base": "107000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 6,
+              "total_now": "78000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "78000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 5,
+              "total_now": "87000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "87000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5 bis|ML",
+              "members_now": 2,
+              "total_now": "31000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 4,
+              "total_now": "53000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "53000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 3,
+              "total_now": "44000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "44000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 12,
+          "members_with_contribution": 10,
+          "suppressed_cells": false,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 10
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 8
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 3
+            }
+          ],
+          "cells": 6,
+          "disclosed": 6,
+          "disclosed_pending": 2,
+          "suppressed_under_threshold": 0,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 6,
+          "need_ml_declared": "530000",
+          "need_ml_visible": "498000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 10,
+              "total_now": "130000",
+              "status": "DISCLOSED",
+              "contributors": 10,
+              "total_base": "129000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 8,
+              "total_now": "107000",
+              "status": "DISCLOSED",
+              "contributors": 8,
+              "total_base": "107000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 6,
+              "total_now": "78000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "78000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 5,
+              "total_now": "87000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "87000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 6,
+              "total_now": "84000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "53000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 3,
+              "total_now": "44000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "44000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "linked_members": 11,
+          "members_with_contribution": 6,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 3
+            }
+          ],
+          "cells": 6,
+          "disclosed": 2,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 0,
+          "suppressed_revision": 4,
+          "overflow": 0,
+          "withdrawn_total": 4,
+          "withdrawn_in_step": 4,
+          "releases_total": 6,
+          "need_ml_declared": "488000",
+          "need_ml_visible": "97000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 9,
+              "total_now": "127000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 7,
+              "total_now": "99000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 5,
+              "total_now": "65000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 4,
+              "total_now": "69000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 6,
+              "total_now": "84000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "53000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 3,
+              "total_now": "44000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "44000",
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "linked_members": 10,
+          "members_with_contribution": 8,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 8
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 3
+            }
+          ],
+          "cells": 6,
+          "disclosed": 3,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 0,
+          "suppressed_revision": 3,
+          "overflow": 0,
+          "withdrawn_total": 4,
+          "withdrawn_in_step": 0,
+          "releases_total": 8,
+          "need_ml_declared": "443000",
+          "need_ml_visible": "244000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 8,
+              "total_now": "120000",
+              "status": "DISCLOSED",
+              "contributors": 8,
+              "total_base": "120000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 6,
+              "total_now": "87000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 5,
+              "total_now": "65000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "47000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 5,
+              "total_now": "80000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "80000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 3,
+              "total_now": "44000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "44000",
+              "pending_changes": false
+            }
+          ]
+        }
+      ],
+      "proposals": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "lines": 7,
+          "lines_with_figure": 6,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "498000",
+          "covered_g": "0",
+          "declared_ml": "529000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 10,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "lines": 7,
+          "lines_with_figure": 6,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 1,
+          "covered_ml": "498000",
+          "covered_g": "0",
+          "declared_ml": "530000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 10,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "lines": 6,
+          "lines_with_figure": 6,
+          "lines_hidden": 0,
+          "hidden_by_status": {},
+          "lines_pending": 2,
+          "covered_ml": "498000",
+          "covered_g": "0",
+          "declared_ml": "530000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 12,
+            "members_with_contribution": 10,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "lines": 6,
+          "lines_with_figure": 2,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 4
+          },
+          "lines_pending": 1,
+          "covered_ml": "97000",
+          "covered_g": "0",
+          "declared_ml": "488000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 11,
+            "members_with_contribution": 6,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "lines": 6,
+          "lines_with_figure": 3,
+          "lines_hidden": 3,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 3
+          },
+          "lines_pending": 0,
+          "covered_ml": "244000",
+          "covered_g": "0",
+          "declared_ml": "443000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 10,
+            "members_with_contribution": 8,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "S30-BAJA",
+      "origin": "SUPUESTO_SINTETICO",
+      "source": "SUPUESTO SINTÉTICO: 30 vinculados, 9 aportan",
+      "database": "f07k3_s30baja_2dd5ab91c3b249b9be3e89af970a9def",
+      "postgres": "16.13",
+      "linked_initial": 30,
+      "contributing_initial": 9,
+      "steps": {
+        "supersede": {
+          "member": "S01",
+          "campaign": "Campaña sintética",
+          "type": "DECLARED_NEED",
+          "product": "Producto P1",
+          "unit": "ML",
+          "quantity": "10000"
+        },
+        "associate": {
+          "product": "Producto P3 bis",
+          "canonical": "Producto P3"
+        },
+        "deactivate": "S09",
+        "roleChange": "S04"
+      },
+      "reads": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 30,
+          "members_with_contribution": 9,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 1
+            }
+          ],
+          "cells": 8,
+          "disclosed": 4,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 4,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "389000",
+          "need_ml_visible": "320000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 9,
+              "total_now": "126000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "126000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 6,
+              "total_now": "85000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "85000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members_now": 2,
+              "total_now": "17000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 4,
+              "total_now": "62000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "62000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "47000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "47000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "15000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 1,
+              "total_now": "16000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "linked_members": 30,
+          "members_with_contribution": 9,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 1
+            }
+          ],
+          "cells": 8,
+          "disclosed": 4,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 4,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "390000",
+          "need_ml_visible": "320000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 9,
+              "total_now": "127000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "126000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 6,
+              "total_now": "85000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "85000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3 bis|ML",
+              "members_now": 2,
+              "total_now": "17000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 4,
+              "total_now": "62000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "62000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "47000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "47000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "15000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 1,
+              "total_now": "16000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 30,
+          "members_with_contribution": 9,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 1
+            }
+          ],
+          "cells": 7,
+          "disclosed": 4,
+          "disclosed_pending": 2,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 4,
+          "need_ml_declared": "390000",
+          "need_ml_visible": "320000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 9,
+              "total_now": "127000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "126000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 6,
+              "total_now": "85000",
+              "status": "DISCLOSED",
+              "contributors": 6,
+              "total_base": "85000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 6,
+              "total_now": "79000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "62000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "47000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "47000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "15000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 1,
+              "total_now": "16000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "linked_members": 29,
+          "members_with_contribution": 5,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 8
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 1
+            }
+          ],
+          "cells": 7,
+          "disclosed": 2,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 2,
+          "overflow": 0,
+          "withdrawn_total": 2,
+          "withdrawn_in_step": 2,
+          "releases_total": 5,
+          "need_ml_declared": "341000",
+          "need_ml_visible": "120000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 8,
+              "total_now": "108000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 5,
+              "total_now": "61000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 5,
+              "total_now": "73000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "73000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "47000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "47000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 2,
+              "total_now": "15000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 1,
+              "total_now": "16000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "linked_members": 28,
+          "members_with_contribution": 7,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 2
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 1
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 1
+            }
+          ],
+          "cells": 7,
+          "disclosed": 3,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 3,
+          "suppressed_revision": 1,
+          "overflow": 0,
+          "withdrawn_total": 2,
+          "withdrawn_in_step": 0,
+          "releases_total": 6,
+          "need_ml_declared": "318000",
+          "need_ml_visible": "221000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 7,
+              "total_now": "101000",
+              "status": "DISCLOSED",
+              "contributors": 7,
+              "total_base": "101000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 4,
+              "total_now": "49000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 5,
+              "total_now": "73000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "73000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 3,
+              "total_now": "47000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "47000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 1,
+              "total_now": "11000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 1,
+              "total_now": "16000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        }
+      ],
+      "proposals": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "lines": 8,
+          "lines_with_figure": 4,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 4
+          },
+          "lines_pending": 0,
+          "covered_ml": "320000",
+          "covered_g": "0",
+          "declared_ml": "389000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 30,
+            "members_with_contribution": 9,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "lines": 8,
+          "lines_with_figure": 4,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 4
+          },
+          "lines_pending": 1,
+          "covered_ml": "320000",
+          "covered_g": "0",
+          "declared_ml": "390000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 30,
+            "members_with_contribution": 9,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "lines": 7,
+          "lines_with_figure": 4,
+          "lines_hidden": 3,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 3
+          },
+          "lines_pending": 2,
+          "covered_ml": "320000",
+          "covered_g": "0",
+          "declared_ml": "390000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 30,
+            "members_with_contribution": 9,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "lines": 7,
+          "lines_with_figure": 2,
+          "lines_hidden": 5,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 2,
+            "SUPPRESSED_UNDER_THRESHOLD": 3
+          },
+          "lines_pending": 0,
+          "covered_ml": "120000",
+          "covered_g": "0",
+          "declared_ml": "341000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 29,
+            "members_with_contribution": 5,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "lines": 7,
+          "lines_with_figure": 3,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 1,
+            "SUPPRESSED_UNDER_THRESHOLD": 3
+          },
+          "lines_pending": 0,
+          "covered_ml": "221000",
+          "covered_g": "0",
+          "declared_ml": "318000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 28,
+            "members_with_contribution": 7,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "S30-ALTA",
+      "origin": "SUPUESTO_SINTETICO",
+      "source": "SUPUESTO SINTÉTICO: 30 vinculados, 23 aportan (rotación sobre los 24 primeros)",
+      "database": "f07k3_s30alta_93395a7affb84d69af35cca6556c3d56",
+      "postgres": "16.13",
+      "linked_initial": 30,
+      "contributing_initial": 23,
+      "steps": {
+        "supersede": {
+          "member": "S01",
+          "campaign": "Campaña sintética",
+          "type": "DECLARED_NEED",
+          "product": "Producto P1",
+          "unit": "ML",
+          "quantity": "10000"
+        },
+        "associate": {
+          "product": "Producto P6 bis",
+          "canonical": "Producto P6"
+        },
+        "deactivate": "S18",
+        "roleChange": "S04"
+      },
+      "reads": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 30,
+          "members_with_contribution": 22,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 18
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 12
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6 bis|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members": 2
+            }
+          ],
+          "cells": 9,
+          "disclosed": 8,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 8,
+          "need_ml_declared": "834000",
+          "need_ml_visible": "813000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 18,
+              "total_now": "244000",
+              "status": "DISCLOSED",
+              "contributors": 18,
+              "total_base": "244000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 12,
+              "total_now": "169000",
+              "status": "DISCLOSED",
+              "contributors": 12,
+              "total_base": "169000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 9,
+              "total_now": "111000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "111000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 7,
+              "total_now": "89000",
+              "status": "DISCLOSED",
+              "contributors": 7,
+              "total_base": "89000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 5,
+              "total_now": "60000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "60000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6 bis|ML",
+              "members_now": 3,
+              "total_now": "38000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "38000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 4,
+              "total_now": "69000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "69000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 3,
+              "total_now": "33000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "33000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "linked_members": 30,
+          "members_with_contribution": 22,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 18
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 12
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 4
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6 bis|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members": 2
+            }
+          ],
+          "cells": 9,
+          "disclosed": 8,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 0,
+          "overflow": 0,
+          "withdrawn_total": 0,
+          "withdrawn_in_step": 0,
+          "releases_total": 8,
+          "need_ml_declared": "835000",
+          "need_ml_visible": "813000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 2,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 18,
+              "total_now": "245000",
+              "status": "DISCLOSED",
+              "contributors": 18,
+              "total_base": "244000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 12,
+              "total_now": "169000",
+              "status": "DISCLOSED",
+              "contributors": 12,
+              "total_base": "169000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 9,
+              "total_now": "111000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "111000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 7,
+              "total_now": "89000",
+              "status": "DISCLOSED",
+              "contributors": 7,
+              "total_base": "89000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 5,
+              "total_now": "60000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "60000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6 bis|ML",
+              "members_now": 3,
+              "total_now": "38000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "38000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 4,
+              "total_now": "69000",
+              "status": "DISCLOSED",
+              "contributors": 4,
+              "total_base": "69000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 3,
+              "total_now": "33000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "33000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "linked_members": 30,
+          "members_with_contribution": 22,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 18
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 12
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members": 2
+            }
+          ],
+          "cells": 9,
+          "disclosed": 7,
+          "disclosed_pending": 1,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 1,
+          "overflow": 0,
+          "withdrawn_total": 1,
+          "withdrawn_in_step": 1,
+          "releases_total": 9,
+          "need_ml_declared": "835000",
+          "need_ml_visible": "813000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 18,
+              "total_now": "245000",
+              "status": "DISCLOSED",
+              "contributors": 18,
+              "total_base": "244000",
+              "pending_changes": true
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 12,
+              "total_now": "169000",
+              "status": "DISCLOSED",
+              "contributors": 12,
+              "total_base": "169000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 9,
+              "total_now": "111000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "111000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 7,
+              "total_now": "89000",
+              "status": "DISCLOSED",
+              "contributors": 7,
+              "total_base": "89000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 5,
+              "total_now": "60000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "60000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6 bis|ML",
+              "members_now": 0,
+              "total_now": "0",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 7,
+              "total_now": "107000",
+              "status": "DISCLOSED",
+              "contributors": 7,
+              "total_base": "107000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 3,
+              "total_now": "33000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "33000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "linked_members": 29,
+          "members_with_contribution": 17,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 17
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 12
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members": 2
+            }
+          ],
+          "cells": 9,
+          "disclosed": 5,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 3,
+          "overflow": 0,
+          "withdrawn_total": 3,
+          "withdrawn_in_step": 2,
+          "releases_total": 9,
+          "need_ml_declared": "807000",
+          "need_ml_visible": "462000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 17,
+              "total_now": "232000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 12,
+              "total_now": "169000",
+              "status": "DISCLOSED",
+              "contributors": 12,
+              "total_base": "169000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 9,
+              "total_now": "111000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "111000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 7,
+              "total_now": "89000",
+              "status": "DISCLOSED",
+              "contributors": 7,
+              "total_base": "89000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 5,
+              "total_now": "60000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "60000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6 bis|ML",
+              "members_now": 0,
+              "total_now": "0",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 6,
+              "total_now": "92000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 3,
+              "total_now": "33000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "33000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "linked_members": 28,
+          "members_with_contribution": 19,
+          "suppressed_cells": true,
+          "distribution": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members": 16
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members": 11
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members": 9
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members": 7
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members": 6
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members": 5
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members": 3
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members": 2
+            }
+          ],
+          "cells": 9,
+          "disclosed": 5,
+          "disclosed_pending": 0,
+          "suppressed_under_threshold": 1,
+          "suppressed_revision": 3,
+          "overflow": 0,
+          "withdrawn_total": 4,
+          "withdrawn_in_step": 1,
+          "releases_total": 10,
+          "need_ml_declared": "788000",
+          "need_ml_visible": "518000",
+          "need_g_declared": "0",
+          "need_g_visible": "0",
+          "min_contributors_published": 3,
+          "published_with_exactly_k": 1,
+          "detail": [
+            {
+              "cell": "DECLARED_NEED|Producto P1|ML",
+              "members_now": 16,
+              "total_now": "225000",
+              "status": "DISCLOSED",
+              "contributors": 16,
+              "total_base": "225000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P2|ML",
+              "members_now": 11,
+              "total_now": "157000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P3|ML",
+              "members_now": 9,
+              "total_now": "111000",
+              "status": "DISCLOSED",
+              "contributors": 9,
+              "total_base": "111000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P4|ML",
+              "members_now": 7,
+              "total_now": "89000",
+              "status": "DISCLOSED",
+              "contributors": 7,
+              "total_base": "89000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P5|ML",
+              "members_now": 5,
+              "total_now": "60000",
+              "status": "DISCLOSED",
+              "contributors": 5,
+              "total_base": "60000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6 bis|ML",
+              "members_now": 0,
+              "total_now": "0",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P6|ML",
+              "members_now": 6,
+              "total_now": "92000",
+              "status": "SUPPRESSED_REVISION",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P7|ML",
+              "members_now": 3,
+              "total_now": "33000",
+              "status": "DISCLOSED",
+              "contributors": 3,
+              "total_base": "33000",
+              "pending_changes": false
+            },
+            {
+              "cell": "DECLARED_NEED|Producto P8|ML",
+              "members_now": 2,
+              "total_now": "21000",
+              "status": "SUPPRESSED_UNDER_THRESHOLD",
+              "contributors": null,
+              "total_base": null,
+              "pending_changes": false
+            }
+          ]
+        }
+      ],
+      "proposals": [
+        {
+          "step": "E1_PUBLICAR",
+          "campaign": "Campaña sintética",
+          "lines": 9,
+          "lines_with_figure": 8,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "813000",
+          "covered_g": "0",
+          "declared_ml": "834000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 30,
+            "members_with_contribution": 22,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E2_SUSTITUIR",
+          "campaign": "Campaña sintética",
+          "lines": 9,
+          "lines_with_figure": 8,
+          "lines_hidden": 1,
+          "hidden_by_status": {
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 1,
+          "covered_ml": "813000",
+          "covered_g": "0",
+          "declared_ml": "835000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 30,
+            "members_with_contribution": 22,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E3_ASOCIAR",
+          "campaign": "Campaña sintética",
+          "lines": 9,
+          "lines_with_figure": 7,
+          "lines_hidden": 2,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 1,
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 1,
+          "covered_ml": "813000",
+          "covered_g": "0",
+          "declared_ml": "835000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 30,
+            "members_with_contribution": 22,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E4_BAJA",
+          "campaign": "Campaña sintética",
+          "lines": 9,
+          "lines_with_figure": 5,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 3,
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "462000",
+          "covered_g": "0",
+          "declared_ml": "807000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 29,
+            "members_with_contribution": 17,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        },
+        {
+          "step": "E5_CAMBIO_ROL",
+          "campaign": "Campaña sintética",
+          "lines": 9,
+          "lines_with_figure": 5,
+          "lines_hidden": 4,
+          "hidden_by_status": {
+            "SUPPRESSED_REVISION": 3,
+            "SUPPRESSED_UNDER_THRESHOLD": 1
+          },
+          "lines_pending": 0,
+          "covered_ml": "518000",
+          "covered_g": "0",
+          "declared_ml": "788000",
+          "declared_g": "0",
+          "coverage": {
+            "linked_members": 28,
+            "members_with_contribution": 19,
+            "basis": "PUBLISHED_FIGURES"
+          }
+        }
+      ],
+      "failures": []
+    }
+  ]
+}
