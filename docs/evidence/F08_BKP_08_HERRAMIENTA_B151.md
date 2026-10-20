@@ -79,8 +79,12 @@ El texto de arriba describe `c2c1b15`. Desde entonces cambiaron cuatro cosas:
   - las copias se crean y confirman con la clave rw;
   - sólo el `DeleteObject` de la copia retirada por la rotación sale con la clave nodel, de modo que el rechazo lo decide B2;
   - después, con la clave rw otra vez, la siguiente subida reconcilia.
-  - **Mutación:** si no se enruta el borrado, T-R5r-a falla (1 failed).
-- **Revisión independiente** de un agente de revisión de esta sesión (no es la sesión B) sobre `8ecded0`: «LISTO con condiciones». Lo que se aplicó a raíz de ella:
+  - **Mutación** (2026-10-20, hacia las 01:10Z, sobre el árbol de trabajo previo a `8ecded0`, con la suite ya escrita). Se revirtió y el archivo quedó idéntico al de `8ecded0`.
+    - **Cambio:** en T-R5r-a, `t.s.routeRotationDeletes = true;` pasó a `false`.
+    - **Orden:** `F08_B151_DESTINO=doble npx jest b151-b2-real -t "rotation"`, con `F08_BKP_PG_TEST_URL` en el entorno.
+    - **Salida resumida:** «× T-R5 (rotation): a purge refused during the rotation keeps the bounded excess…» y «Tests: 1 failed, 4 skipped, 5 total».
+    - Esta salida no se guardó en un archivo; se registra aquí resumida.
+- **Revisión de código por un agente de esta misma sesión** (no es la sesión B) sobre `8ecded0`: «LISTO con condiciones». Lo que se aplicó a raíz de ella:
   - `145f25c`: la condición, que era volver a ejecutar con la rotación y corregir la nota de T-R5d, más los cinco menores:
     - las claves enrutadas;
     - los rechazos del adaptador exigen un error de permisos, y otro error da NO_CONCLUYENTE;
@@ -116,9 +120,13 @@ Jest: 5 tests passed, con PostgreSQL local `postgres:16-alpine` en 127.0.0.1:554
 
 > **Nota del 2026-10-20 (01:23:00–01:23:17Z), sobre `601cc4c`.**
 > - **Qué cambia:** sólo dos expresiones del soporte, por los avisos de SonarCloud S8786 y S7780 sobre `1abce6c`: la barra final del endpoint se quita sin una expresión regular, y la ruta de git va con `String.raw`, con el mismo valor.
-> - **Resultado contra el doble,** con el árbol limpio, idéntico al de la tabla anterior:
+> - **Resultado contra el doble,** con el árbol limpio, con los mismos recuentos que la tabla anterior (salidas en `f08_b151/601cc4c_*.txt`):
 >   - ítems 1–5: 34 PASS;
 >   - rw: 6 PASS;
 >   - nodel: 5 PASS;
 >   - rotacion: 3 PASS;
 >   - Jest: 5 passed.
+
+> **Nota del 2026-10-20 sobre la revisión del HEAD final.** El mismo agente de revisión de esta sesión volvió a revisar `54eb3e0` y dio «LISTO». Sus dos observaciones menores se aplican aquí:
+> - se cambió el nombre de la revisión, que no es independiente;
+> - se respaldaron la mutación y la re-ejecución de `601cc4c` con su orden y su salida.
