@@ -105,6 +105,10 @@ export async function verifyB2Key(
     namePrefix: allowed.namePrefix ?? null,
     capabilities,
   };
+  // The signed requests must go to the endpoint B2 reports for this key, not another host.
+  const s3ApiUrl = typeof api["s3ApiUrl"] === "string" ? api["s3ApiUrl"].replace(/\/+$/, "") : null;
+  if (s3ApiUrl !== settings.endpoint.replace(/\/+$/, ""))
+    throw new Error("BACKUP_S3_ENDPOINT is not the S3 endpoint that B2 reports for this key");
   if (buckets.length !== 1 || buckets[0] !== settings.bucket)
     throw new Error("the key is not restricted to the configured bucket");
   if (check.namePrefix !== B151_KEY_PREFIX) throw new Error(`the key's namePrefix is not ${B151_KEY_PREFIX}`);

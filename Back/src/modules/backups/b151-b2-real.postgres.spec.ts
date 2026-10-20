@@ -25,6 +25,7 @@ import {
   nodelSettingsFromEnv,
   treeVersion,
   verifyB2Key,
+  scrub,
 } from "./test-support/b151-b2-real";
 import { s3Error } from "./test-support/in-memory-s3";
 import {
@@ -69,6 +70,14 @@ const STEP_LABEL: Record<SuiteMode, string> = {
   rotacion: "T-R5, variante de la rotación",
 };
 const BASE = "/api/v1/me/backups";
+/** Any error escaping a test (setup included) reaches the Jest console scrubbed of the keys. */
+const scrubbed = (fn: () => Promise<void>) => async () => {
+  try {
+    await fn();
+  } catch (error) {
+    throw new Error(scrub(error instanceof Error ? (error.stack ?? error.message) : String(error)));
+  }
+};
 const N = 3;
 const sha = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 const md5 = (bytes: Buffer) => createHash("md5").update(bytes).digest("base64"); // NOSONAR: S3 Content-MD5 transport check, not cryptographic
@@ -94,12 +103,12 @@ function suite(mode: SuiteMode) {
     base: string;
     report: B151Report;
     routeRotationDeletes: boolean;
-    routed: { sent: number; refused: ErrorSummary[] };
+    routed: { sent: number; keys: string[]; refused: ErrorSummary[] };
   };
   s.routeRotationDeletes = false;
-  s.routed = { sent: 0, refused: [] };
+  s.routed = { sent: 0, keys: [], refused: [] };
 
-  beforeAll(async () => {
+  beforeAll(scrubbed(async () => {
     s.conn = destino === "b2" ? B151Connection.b2(settings!) : B151Connection.doble("ensayo-f08/b151-20261019/doble-pg/");
     s.conn.simulated = profile;
     const key = destino === "b2" ? await verifyB2Key(settings!, profile) : null;
@@ -125,6 +134,7 @@ function suite(mode: SuiteMode) {
             (command.input.Key ?? "").startsWith(`${s.base}objects/`);
           if (!isRotationDelete) return rw.send(command, options);
           s.routed.sent += 1;
+          s.routed.keys.push((command.input.Key ?? "").slice(s.base.length));
           try {
             return await nodel.send(command, options);
           } catch (error) {
@@ -164,7 +174,7 @@ function suite(mode: SuiteMode) {
     s.f = await seedFixture(s.prisma);
     for (const level of ["log", "warn", "error", "debug", "verbose"] as const)
       jest.spyOn(Logger.prototype, level).mockImplementation(() => undefined);
-  }, 300000);
+  }), 300000);
 
   afterAll(async () => {
     jest.restoreAllMocks();
@@ -295,7 +305,7 @@ function suite(mode: SuiteMode) {
 describeFor("rw")("BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)", () => {
   const t = suite("rw");
 
-  it("C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock", async () => {
+  it("C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock", scrubbed(async () => {
     {
       const { session, ids } = await t.farmerWith(N);
       const first = (await t.rowsOf(session))[0];
@@ -363,9 +373,9 @@ describeFor("rw")("BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)",
           };
         });
     }
-  }, 600000);
+  }), 600000);
 
-  it("C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing", async () => {
+  it("C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing", scrubbed(async () => {
     const session = await t.newFarmer();
     const key = randomUUID();
     const row = await t.s.prisma.backupMetadata.create({
@@ -427,9 +437,9 @@ describeFor("rw")("BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)",
             !w.purgePending && observado.entradasEnB2 === 0 && !observado.listada && observado.availableIntactas,
         };
       });
-  }, 600000);
+  }), 600000);
 
-  it("rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all", async () => {
+  it("rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all", scrubbed(async () => {
     const rows = await t.s.prisma.backupMetadata.findMany({ where: { status: "AVAILABLE" } });
     const all = await t.versions("");
     const known = new Set(rows.map((r) => `objects/${r.storageKey}`));
@@ -444,13 +454,13 @@ describeFor("rw")("BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)",
     const left = (await t.versions("")).length + (await t.uploads("")).length;
     t.s.report.note(`c6-rw: subcarpeta limpiada por el adaptador (remove de ${rows.length} copias); quedan ${left} entradas`);
     expect(left).toBe(0);
-  }, 300000);
+  }), 300000);
 });
 
 describeFor("nodel")("BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)", () => {
   const t = suite("nodel");
 
-  it("T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending", async () => {
+  it("T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending", scrubbed(async () => {
     const session = await t.newFarmer();
     // N valid copies written directly (the key can write, and no commit can succeed without deleteFiles).
     const seeded: { id: string; key: string; bytes: Buffer }[] = [];
@@ -551,16 +561,16 @@ describeFor("nodel")("BE #151 item 6 with the real S3 adapter: T-R5 with a key t
         return {
           observado,
           ok: third.status === 503 && reconcile.confirmed === 0 && reconcile.failed === 2 && pending === 2,
-          nota: "La variante «falla la purga de la rotación» no es alcanzable con esta clave: ningún commit llega a AVAILABLE sin deleteFiles. Esa variante queda cubierta sólo con PostgreSQL y el doble S3.",
+          nota: "Con sólo esta clave la purga de la rotación no se alcanza (ningún commit llega a AVAILABLE sin deleteFiles); esa variante es la suite «rotacion» (rw + nodel).",
         };
       });
-  }, 600000);
+  }), 600000);
 });
 
 describeFor("rotacion")("BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)", () => {
   const t = suite("rotacion");
 
-  it("T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled", async () => {
+  it("T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled", scrubbed(async () => {
     const { session, ids } = await t.farmerWith(N);
     const retired = (await t.rowsOf(session))[0];
 
@@ -573,13 +583,14 @@ describeFor("rotacion")("BE #151 item 6 with the real S3 adapter: T-R5, the purg
         const observado = {
           subida: rotated.status, estado: row.status, motivo: row.deletionReason, purgaPendiente: row.purgePending,
           borradosEnviadosConNodel: t.s.routed.sent, rechazosDeB2: t.s.routed.refused,
+          soloLaRetirada: t.s.routed.keys.every((k) => k === `objects/${retired.storageKey}`),
           versionesDeLaRetirada: (await t.versions(`objects/${retired.storageKey}`)).length,
           listadas: (await t.listIds(session)).length, availableIntactas: await t.availableIntact(session),
         };
         return {
           observado,
           ok: rotated.status === 201 && row.status === "DELETED" && row.deletionReason === "RETENTION" && row.purgePending &&
-            t.s.routed.sent > 0 && t.s.routed.refused.length === t.s.routed.sent &&
+            t.s.routed.sent > 0 && t.s.routed.refused.length === t.s.routed.sent && observado.soloLaRetirada &&
             t.s.routed.refused.every((e) => e.status === 401 || e.status === 403) &&
             observado.versionesDeLaRetirada === 1 && observado.listadas === N && observado.availableIntactas,
           nota: "La herramienta elige qué clave envía el borrado de objects/; el rechazo lo decide B2 (la clave nodel no tiene deleteFiles).",
@@ -625,5 +636,5 @@ describeFor("rotacion")("BE #151 item 6 with the real S3 adapter: T-R5, the purg
     const left = (await t.versions("")).length + (await t.uploads("")).length;
     t.s.report.note(`c6-rotacion: subcarpeta limpiada por el adaptador con rw; quedan ${left} entradas`);
     expect(left).toBe(0);
-  }, 600000);
+  }), 600000);
 });

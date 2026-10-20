@@ -154,6 +154,11 @@ function instrument(inner, hooks = {}) {
 }
 
 const denied = (r) => !r.ok && sup.isAccessDenied(r.error);
+/**
+ * Un caso del adaptador que debe fallar por permisos: PASS sólo con el rechazo del proveedor;
+ * un éxito es FAIL; otro error (timeout, fallo de la herramienta) no prueba nada: NO_CONCLUYENTE.
+ */
+const refusal = (r) => (denied(r) ? "PASS" : r.ok ? "FAIL" : "NO_CONCLUYENTE");
 const snapshot = (items) => items.map((v) => `${v.key}|${v.versionId}|${v.marker}|${v.latest}`).sort().join("\n");
 
 // ---------------------------------------------------------------- caso 1: claves sin escritura o sin borrado
@@ -202,9 +207,9 @@ async function caso1(c) {
     const h = await c.attempt(() => c.raw(new sdk.DeleteObjectCommand({ Bucket: c.Bucket, Key: `${c.P}c1/objects/${K}` })));
     c.add("1-ro: DeleteObject sin versionId (marcador) en crudo sobre la copia válida", "rechazo de permisos (403), sin marcador", h, denied(h));
     const s1 = await c.attempt(() => st.stage(uuid(), chunked(crypto.randomBytes(KiB))));
-    c.add("1-ro: adaptador stage (PutObject)", "error cerrado, sin éxito aparente", { ok: s1.ok, error: s1.error }, !s1.ok);
+    c.add("1-ro: adaptador stage (PutObject)", "rechazo de permisos del proveedor propagado, sin éxito aparente", { ok: s1.ok, error: s1.error }, null, undefined, refusal(s1));
     const s2 = await c.attempt(() => st.stage(uuid(), chunked(crypto.randomBytes(S3_PART_BYTES + MiB))));
-    c.add("1-ro: adaptador stage multipart (> 8 MiB)", "error cerrado, sin éxito aparente", { ok: s2.ok, error: s2.error }, !s2.ok);
+    c.add("1-ro: adaptador stage multipart (> 8 MiB)", "rechazo de permisos del proveedor propagado, sin éxito aparente", { ok: s2.ok, error: s2.error }, null, undefined, refusal(s2));
   } else {
     const d = await c.attempt(() => c.raw(new sdk.DeleteObjectCommand({ Bucket: c.Bucket, Key: `${c.P}c1/objects/${K}`, VersionId: vK })));
     c.add("1-nodel: DeleteObject por versionId en crudo sobre la copia válida", "rechazo de permisos (403)", d, denied(d));
@@ -220,7 +225,7 @@ async function caso1(c) {
       denied(h) || (h.ok && kept),
       h.ok ? "B2 aceptó el marcador sin deleteFiles: una clave sin borrado puede ocultar un nombre, aunque no borre sus bytes. El adaptador nunca envía un borrado sin versionId." : undefined);
     const rm = await c.attempt(() => st.remove(K));
-    c.add("1-nodel: adaptador remove de la copia válida", "error cerrado (no resuelve)", rm, !rm.ok);
+    c.add("1-nodel: adaptador remove de la copia válida", "rechazo de permisos del proveedor propagado (no resuelve)", rm, null, undefined, refusal(rm));
     const k2 = uuid();
     const staged = await c.attempt(() => st.stage(k2, chunked(crypto.randomBytes(4 * KiB))));
     const commit = staged.ok ? await c.attempt(() => staged.value.commit()) : null;
@@ -228,9 +233,9 @@ async function caso1(c) {
     c.add("1-nodel: adaptador stage + commit (el commit purga el staging por versionId)",
       "stage aceptado (writeFiles); commit con error cerrado, sin éxito aparente; quedan restos para «limpiar» con rw",
       { stage: staged.ok ? "ok" : staged.error, commit: commit && (commit.ok ? "ok" : commit.error), restosEnB2: residue },
-      staged.ok && commit && !commit.ok);
+      null, undefined, staged.ok ? refusal(commit) : "FAIL");
     const dis = await c.attempt(() => st.discardStaged(k2));
-    c.add("1-nodel: adaptador discardStaged de esos restos", "error cerrado (no resuelve)", dis, !dis.ok);
+    c.add("1-nodel: adaptador discardStaged de esos restos", "rechazo de permisos del proveedor propagado (no resuelve)", dis, null, undefined, refusal(dis));
   }
 
   const after = (await c.versions("c1/")).items;
@@ -349,15 +354,20 @@ async function caso3(c) {
     listOk && !(truncV > 0 && truncU > 0) ? "NO_CONCLUYENTE" : undefined);
 
   const steps = [];
+  const callsBefore3d = inst.calls.length;
   for (const [label, fn] of [["remove A (2 versiones)", () => st.remove(kA)], ["remove B (versión + marcador)", () => st.remove(kB)], ["discardStaged C", () => st.discardStaged(kC)], ["removeStagedFile D", () => st.removeStagedFile(nameD.slice("c3/staging/".length))]]) {
     const r = await c.attempt(fn);
     steps.push({ paso: label, resultado: r.ok ? "ok" : r.error });
   }
   const leftV = (await c.versions("c3/")).items.length;
   const leftU = (await c.uploads("c3/")).items.length;
+  const trunc3d = inst.calls.slice(callsBefore3d).filter((x) => x.truncada).length;
+  const purged = steps.every((s) => s.resultado === "ok") && leftV === 0 && leftU === 0;
   c.add("3d: purgas del adaptador (remove, discardStaged, removeStagedFile) con la misma paginación inyectada",
     "todas resuelven; c3/ queda sin versiones, marcadores ni multipart",
-    { pasos: steps, versiones: leftV, multipart: leftU }, steps.every((s) => s.resultado === "ok") && leftV === 0 && leftU === 0);
+    { pasos: steps, versiones: leftV, multipart: leftU, paginasTruncadas: trunc3d },
+    purged && trunc3d > 0, trunc3d ? undefined : "Sin páginas truncadas durante las purgas: los bucles no se ejercitaron.",
+    purged && trunc3d === 0 ? "NO_CONCLUYENTE" : undefined);
 }
 
 // ---------------------------------------------------------------- caso 4: CopyObject con versionId fijado
