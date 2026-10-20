@@ -106,8 +106,13 @@ export async function verifyB2Key(
     capabilities,
   };
   // The signed requests must go to the endpoint B2 reports for this key, not another host.
-  const s3ApiUrl = typeof api["s3ApiUrl"] === "string" ? api["s3ApiUrl"].replace(/\/+$/, "") : null;
-  if (s3ApiUrl !== settings.endpoint.replace(/\/+$/, ""))
+  const withoutTrailingSlash = (url: string) => {
+    let end = url.length;
+    while (end > 0 && url[end - 1] === "/") end--;
+    return url.slice(0, end);
+  };
+  const s3ApiUrl = typeof api["s3ApiUrl"] === "string" ? withoutTrailingSlash(api["s3ApiUrl"]) : null;
+  if (s3ApiUrl !== withoutTrailingSlash(settings.endpoint))
     throw new Error("BACKUP_S3_ENDPOINT is not the S3 endpoint that B2 reports for this key");
   if (buckets.length !== 1 || buckets[0] !== settings.bucket)
     throw new Error("the key is not restricted to the configured bucket");
@@ -158,7 +163,7 @@ export interface CaseResult {
 function gitExecutable(): string | null {
   const candidates = [
     process.env["F08_B151_GIT"],
-    "C:\\Program Files\\Git\\cmd\\git.exe",
+    String.raw`C:\Program Files\Git\cmd\git.exe`,
     "/usr/bin/git",
     "/usr/local/bin/git",
   ];
