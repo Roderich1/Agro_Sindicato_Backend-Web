@@ -65,3 +65,51 @@ powershell -ExecutionPolicy Bypass -File tool\f08_b2\b151_ejecutar.ps1 -Subcarpe
 **Qué queda en B2:**
 - La clave `nodel` deja restos que no puede borrar: el caso 1 y la subida fallida de T-R5. Los retira `limpiar` con `rw`.
 - Sin `-Limpiar`, queda en `c1/` la copia válida de referencia del caso 1.
+
+## Actualización del 2026-10-20 (01:15:41–01:15:58Z), sobre `4c31320`. No reescribe lo anterior
+
+El texto de arriba describe `c2c1b15`. Desde entonces cambiaron cuatro cosas:
+- **SonarCloud** de #160 sobre `20b0874` dio FAILURE (Reliability D, Security B), con 6 incidencias. Las 6 eran ciertas y se corrigieron sin desactivar reglas ni excluir archivos (`8ecded0`):
+  - `sort()` sin comparador (S2871, dos veces): ahora usa `localeCompare`;
+  - `git` resuelto por el PATH (S4036): ahora sólo por ruta absoluta, con `F08_B151_GIT` o las ubicaciones estándar;
+  - plantillas anidadas (S4624);
+  - `http://` en el endpoint del doble, que nunca se contacta (S5332);
+  - un `String()` de un valor sin tipo (S6551).
+- **La variante de T-R5 «falla la purga de la rotación»**, que arriba constaba como no alcanzable, ahora tiene suite propia, `rotacion`:
+  - las copias se crean y confirman con la clave rw;
+  - sólo el `DeleteObject` de la copia retirada por la rotación sale con la clave nodel, de modo que el rechazo lo decide B2;
+  - después, con la clave rw otra vez, la siguiente subida reconcilia.
+  - **Mutación:** si no se enruta el borrado, T-R5r-a falla (1 failed).
+- **Revisión independiente** de un agente de revisión de esta sesión (no es la sesión B) sobre `8ecded0`: «LISTO con condiciones». Lo que se aplicó a raíz de ella:
+  - `145f25c`: la condición, que era volver a ejecutar con la rotación y corregir la nota de T-R5d, más los cinco menores:
+    - las claves enrutadas;
+    - los rechazos del adaptador exigen un error de permisos, y otro error da NO_CONCLUYENTE;
+    - 3d degrada a NO_CONCLUYENTE sin páginas truncadas;
+    - el endpoint debe ser el `s3ApiUrl` de B2;
+    - la consola de Jest sale saneada.
+  - `4c31320`: el informe de T-R5r-a guardaba por referencia la lista de rechazos.
+- **Resultados contra el doble S3** (no es B2), con el árbol limpio:
+
+| Ejecución | Resultado | Salida |
+|---|---|---|
+| `doble todos todo` (ítems 1–5) | 34 PASS, 0 FAIL, 0 NO_CONCLUYENTE | [`f08_b151/4c31320_doble_items1a5.txt`](f08_b151/4c31320_doble_items1a5.txt) |
+| `doble todos c6`, suite rw (C2, C5) | 6 PASS | [`f08_b151/4c31320_doble_c6_rw.txt`](f08_b151/4c31320_doble_c6_rw.txt) |
+| `doble todos c6`, suite nodel (T-R5) | 5 PASS | [`f08_b151/4c31320_doble_c6_nodel.txt`](f08_b151/4c31320_doble_c6_nodel.txt) |
+| `doble todos c6`, suite rotacion (T-R5, rotación) | 3 PASS. El borrado enrutado fue sólo el de la retirada, con 1 rechazo **simulado por el doble** | [`f08_b151/4c31320_doble_c6_rotacion.txt`](f08_b151/4c31320_doble_c6_rotacion.txt) |
+
+Jest: 5 tests passed, con PostgreSQL local `postgres:16-alpine` en 127.0.0.1:55443.
+
+**Lo que sigue sin ensayarse fuera de B2:** el relanzamiento de dos claves del paso `rotacion` (`b151_b2.cjs`, con `con_b2.ps1` nodel → rw). Exige una clave nodel real antes de relanzarse, así que sólo se ejercita en la ejecución real.
+
+### Ejecución contra B2 real: **NO EJECUTADA** (2026-10-20, 01:07Z)
+
+**Motivo:** las tres claves temporales no existen. En `%LOCALAPPDATA%\Agrocuentas\secretos` sólo está `backblaze-b2.clixml`, la clave amplia del ensayo de #149. Esa clave no sirve: no es ninguno de los perfiles, y la herramienta la rechaza porque no tiene el `namePrefix` `ensayo-f08/b151-20261019/`.
+
+**Para ejecutarla:**
+1. Roderich ejecuta `crear_claves_b151.ps1` en su propia ventana; pide la clave maestra de forma oculta.
+2. Se comprueban la vigencia, las capacidades, el bucket y el prefijo de las tres claves, sin mostrarlas.
+3. `b151_ejecutar.ps1 -Subcarpeta <nueva> -Salida <dir> -ConC6 -Limpiar`, con un PostgreSQL desechable.
+4. Una evidencia aparte con los resultados reales de los ítems 1–6 por separado, conservando FAIL y NO_CONCLUYENTE.
+5. Revocación con `revocar_claves_b151.ps1`, que también pide la clave maestra. Si no se ejecuta, las claves caducan a los 3 días.
+
+**Hasta entonces, ningún ítem de #151 §A queda acreditado contra B2.** Tampoco la cobertura de T-R5: sus dos variantes sólo se han ejecutado contra el doble.
