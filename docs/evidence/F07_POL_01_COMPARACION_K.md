@@ -174,3 +174,8 @@ Como orientación que debe confirmarse con esos datos: **un k mayor sólo tiene 
 - No se midieron ataques de dominancia ni de conocimiento externo.
 - La inyección de k es sólo de prueba.
 - **Ningún k garantiza el anonimato.**
+
+> **Nota del 2026-10-20 (01:37:14–01:38:41Z), sobre `04fbc9d`.**
+> - **Qué cambia:** sólo `.at(-1)` en `scenarios.ts`, por el aviso de SonarCloud S7755. La semántica es la misma.
+> - **Resultado:** se volvieron a ejecutar k = 3 y k = 5 con el árbol limpio, con 7/7 cada uno.
+> - **Comparación con los `k3.json` y `k5.json` de este directorio:** son idénticos, salvo en `meta` (SHA y horas), en los nombres de las bases y en las marcas `data_as_of` y `released_at`.
