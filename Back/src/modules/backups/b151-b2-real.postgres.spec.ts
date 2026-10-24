@@ -15,8 +15,8 @@ import { purgePending } from "./application/backup-retention";
 import { S3BackupStorage, S3Sender } from "./infrastructure/s3-backup-storage";
 import { gateCommit, interceptCompletion } from "./test-support/backup-test-hooks";
 import {
-  B151_KEY_PREFIX,
   b151Format,
+  b151KeyPrefix,
   B151Connection,
   B151Profile,
   B151Report,
@@ -58,7 +58,10 @@ import {
  * `F08_B151_FORMATO=2` (F08-ADR-003): every copy is a format-2 envelope (the
  * outer header of the phone's encryption over random bytes: the server and
  * B2 see the same as with a real one, and nobody can decrypt it), and the app
- * runs with `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`. Default: format 1.
+ * runs with `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`. `F08_B151_FORMATO=1`:
+ * the container before that encryption. Since 2026-10-24 there is no
+ * default: a run without `F08_B151_FORMATO`, or without `F08_B151_RAIZ`
+ * (the trial's root), stops before touching anything.
  */
 const postgresUrl = process.env["F08_BKP_PG_TEST_URL"];
 const destino = process.env["F08_B151_DESTINO"];
@@ -86,7 +89,8 @@ const scrubbed = (fn: () => Promise<void>) => async () => {
   }
 };
 const N = 3;
-const FORMATO = b151Format();
+// Read only when the suite runs (it is required then); skipped, the value is never used.
+const FORMATO = enabled ? b151Format() : 1;
 const MAGIC = Buffer.from("AGROENC\0", "latin1");
 /**
  * The format-2 envelope helpers of F08-ADR-003 (#163), loaded only with
@@ -136,7 +140,7 @@ function suite(mode: SuiteMode) {
   s.trace = [];
 
   beforeAll(scrubbed(async () => {
-    s.conn = destino === "b2" ? B151Connection.b2(settings!) : B151Connection.doble(`${B151_KEY_PREFIX}doble-pg/`);
+    s.conn = destino === "b2" ? B151Connection.b2(settings!) : B151Connection.doble(`${b151KeyPrefix()}doble-pg/`);
     s.conn.simulated = profile;
     const key = destino === "b2" ? await verifyB2Key(settings!, profile) : null;
     let second: Awaited<ReturnType<typeof verifyB2Key>> | null = null;

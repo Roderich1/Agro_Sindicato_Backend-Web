@@ -15,32 +15,32 @@ import { InMemoryS3, s3Error } from "./in-memory-s3";
  * every report is scrubbed of them before it is written. Nothing runs
  * outside `<root><subfolder>/`, where the root is the `namePrefix` of the
  * temporary keys: `ensayo-f08/b151-<yyyymmdd>/`, from `F08_B151_RAIZ`
- * (`crear_claves_b151.ps1 -Prefijo`; default `ensayo-f08/b151-20261019/`,
- * the keys of the first preparation).
+ * (`crear_claves_b151.ps1 -Prefijo`). Since 2026-10-24 it has no default: a
+ * run without it stops before touching anything, so none lands by accident
+ * on the root of an earlier trial.
  */
 const B151_ROOT = /^ensayo-f08\/b151-\d{8}\/$/;
 
-/** The trial's root; refuses anything but `ensayo-f08/b151-<yyyymmdd>/`. */
+/** The trial's root, required; refuses anything but `ensayo-f08/b151-<yyyymmdd>/`. */
 export function b151KeyPrefix(env = process.env): string {
-  const root = env["F08_B151_RAIZ"] ?? "ensayo-f08/b151-20261019/";
+  const root = env["F08_B151_RAIZ"];
+  if (!root)
+    throw new Error("F08_B151_RAIZ is required: the trial's root, ensayo-f08/b151-<yyyymmdd>/ (the namePrefix of its keys); there is no default");
   if (!B151_ROOT.test(root)) throw new Error("F08_B151_RAIZ must be ensayo-f08/b151-<yyyymmdd>/");
   return root;
 }
 
-export const B151_KEY_PREFIX = b151KeyPrefix();
-// The root has only [a-z0-9/-], so it can go into the pattern as it is.
-export const B151_PREFIX = new RegExp(`^${B151_KEY_PREFIX}[a-z0-9][a-z0-9-]{0,40}/$`);
-
 /**
- * Format of the copies the item-6 suite sends through the API (F08-ADR-003):
- * 1 (the container before client-side encryption, default) or 2 (encrypted
- * on the phone; the suite then also sets `BACKUP_REQUIRE_CLIENT_ENCRYPTION`).
+ * Format of the copies the item-6 suite sends through the API (F08-ADR-003),
+ * required whenever that suite runs (no default since 2026-10-24): 1 (the
+ * container before client-side encryption) or 2 (encrypted on the phone; the
+ * suite then also sets `BACKUP_REQUIRE_CLIENT_ENCRYPTION`).
  */
 export function b151Format(env = process.env): 1 | 2 {
-  const value = env["F08_B151_FORMATO"] ?? "1";
+  const value = env["F08_B151_FORMATO"];
   if (value === "1") return 1;
   if (value === "2") return 2;
-  throw new Error("F08_B151_FORMATO must be 1 or 2");
+  throw new Error(value ? "F08_B151_FORMATO must be 1 or 2" : "F08_B151_FORMATO is required for the item-6 suite: 1 or 2; there is no default");
 }
 
 /** The three temporary keys of `crear_claves_b151.ps1`. */
@@ -61,8 +61,11 @@ export function isProfile(value: string | undefined): value is B151Profile {
 
 /** Refuses any prefix other than `<root><subfolder>/`. */
 export function assertB151Prefix(prefix: string | undefined): string {
-  if (!prefix || !B151_PREFIX.test(prefix) || prefix.includes(".."))
-    throw new Error(`BACKUP_S3_PREFIX must be ${B151_KEY_PREFIX}<subfolder>/`);
+  const root = b151KeyPrefix();
+  // The root has only [a-z0-9/-], so it can go into the pattern as it is.
+  const pattern = new RegExp(`^${root}[a-z0-9][a-z0-9-]{0,40}/$`);
+  if (!prefix || !pattern.test(prefix) || prefix.includes(".."))
+    throw new Error(`BACKUP_S3_PREFIX must be ${root}<subfolder>/`);
   return prefix;
 }
 
@@ -141,7 +144,8 @@ export async function verifyB2Key(
     throw new Error("BACKUP_S3_ENDPOINT is not the S3 endpoint that B2 reports for this key");
   if (buckets.length !== 1 || buckets[0] !== settings.bucket)
     throw new Error("the key is not restricted to the configured bucket");
-  if (check.namePrefix !== B151_KEY_PREFIX) throw new Error(`the key's namePrefix is not ${B151_KEY_PREFIX}`);
+  const root = b151KeyPrefix();
+  if (check.namePrefix !== root) throw new Error(`the key's namePrefix is not ${root}`);
   if (JSON.stringify(capabilities) !== JSON.stringify(expected))
     throw new Error(`the key's capabilities are not those of profile ${profile}: ${capabilities.join(", ")}`);
   return check;
@@ -351,6 +355,7 @@ export class B151Connection {
       secretAccessKey: "doble",
       prefix: assertB151Prefix(prefix),
     };
+    const root = b151KeyPrefix();
     const s3 = new InMemoryS3(settings.bucket);
     const target = new B151Connection("doble", s3, settings, s3);
     const writes = new Set([
@@ -366,7 +371,7 @@ export class B151Connection {
       const input = command.input;
       const named = input["Key"] ?? input["Prefix"];
       const key = typeof named === "string" ? named : "";
-      if (!key.startsWith(B151_KEY_PREFIX)) throw s3Error("AccessDenied", 403);
+      if (!key.startsWith(root)) throw s3Error("AccessDenied", 403);
       if (target.simulated === "ro" && writes.has(command.name)) throw s3Error("AccessDenied", 403);
       if (
         target.simulated === "nodel" &&

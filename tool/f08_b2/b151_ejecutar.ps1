@@ -3,14 +3,16 @@ BE #151 §A, ítems 1–6 (2026-10-19): ejecuta contra Backblaze B2 real la secu
 b151_b2.cjs, cada paso con su clave temporal (crear_claves_b151.ps1) inyectada por con_b2.ps1 sólo en
 el proceso de ese paso. Este script no lee, no imprime y no pasa por argv ninguna clave.
 
-  powershell -ExecutionPolicy Bypass -File tool\f08_b2\b151_ejecutar.ps1 -Subcarpeta <nombre> -Salida <dir> [-Raiz <raíz>] [-Formato 1|2] [-ConC6] [-Limpiar]
+  powershell -ExecutionPolicy Bypass -File tool\f08_b2\b151_ejecutar.ps1 -Raiz <raíz> -Subcarpeta <nombre> -Salida <dir> [-ConC6 -Formato 1|2] [-Limpiar]
 
-  -Raiz        namePrefix de las claves temporales (crear_claves_b151.ps1 -Prefijo), con la forma
-               ensayo-f08/b151-<aaaammdd>/; por defecto ensayo-f08/b151-20261019/
+  -Raiz        obligatorio, sin valor por defecto (desde el 2026-10-24): el namePrefix de las claves
+               temporales de este ensayo (crear_claves_b151.ps1 -Prefijo), con la forma
+               ensayo-f08/b151-<aaaammdd>/
   -Subcarpeta  carpeta nueva bajo la raíz (p. ej. a-20261019t2300); la herramienta
                se niega a cualquier otro prefijo y «preparar» exige que esté vacía
-  -Formato     formato de las copias que el ítem 6 sube por la API: 1 (por defecto) o 2, el cifrado en el
-               teléfono de F08-ADR-003, que además ejecuta la API con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true
+  -Formato     obligatorio con -ConC6, sin valor por defecto (desde el 2026-10-24): el formato de las
+               copias que el ítem 6 sube por la API, 1 o 2 (el cifrado en el teléfono de F08-ADR-003,
+               que además ejecuta la API con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true). Sin -ConC6 no se usa
   -Salida      carpeta de los informes JSON y de texto (saneados)
   -ConC6       además, el ítem 6: C2 y C5 con rw; T-R5 con nodel; y T-R5 con la purga de la rotación
                rechazada por B2 (copias con rw, borrados de la rotación con nodel: el paso se lanza con
@@ -24,8 +26,8 @@ Si un paso falla, se registra y la secuencia sigue; el código de salida es el n
 param(
   [Parameter(Mandatory = $true)][ValidatePattern('^[a-z0-9][a-z0-9-]{0,40}$')][string]$Subcarpeta,
   [Parameter(Mandatory = $true)][string]$Salida,
-  [ValidatePattern('^ensayo-f08/b151-[0-9]{8}/$')][string]$Raiz = 'ensayo-f08/b151-20261019/',
-  [ValidateSet('1', '2')][string]$Formato = '1',
+  [Parameter(Mandatory = $true)][ValidatePattern('^ensayo-f08/b151-[0-9]{8}/$')][string]$Raiz,
+  [ValidateSet('1', '2')][string]$Formato,
   [switch]$ConC6,
   [switch]$Limpiar,
   [string]$Secretos = (Join-Path $env:LOCALAPPDATA 'Agrocuentas\secretos'),
@@ -41,10 +43,11 @@ foreach ($p in 'rw', 'ro', 'nodel') {
   if (-not (Test-Path (Join-Path $Secretos "b151-$p.clixml"))) { throw "Falta la clave b151-$p.clixml en $Secretos (crear_claves_b151.ps1)." }
 }
 if ($ConC6 -and -not $env:F08_BKP_PG_TEST_URL) { throw '-ConC6 necesita F08_BKP_PG_TEST_URL en el entorno.' }
+if ($ConC6 -and -not $Formato) { throw '-ConC6 necesita -Formato 1 o 2: el formato que se mide, sin valor por defecto.' }
 New-Item -ItemType Directory -Force -Path $Salida | Out-Null
 $Salida = (Resolve-Path $Salida).Path
 $env:F08_B151_RAIZ = $Raiz
-$env:F08_B151_FORMATO = $Formato
+if ($ConC6) { $env:F08_B151_FORMATO = $Formato }
 $env:BACKUP_S3_PREFIX = "$Raiz$Subcarpeta/"
 
 # Cada paso: clave con la que se lanza, perfil para la herramienta, paso y argumentos extra.

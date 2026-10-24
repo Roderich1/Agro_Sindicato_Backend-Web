@@ -6,9 +6,14 @@
 // Secretos: sólo BACKUP_S3_* del entorno (con_b2.ps1). Nunca se imprimen, ni se escriben, ni pasan
 // por argv; el informe se sanea y se rechaza si llevara alguno. Antes de tocar nada pregunta a B2
 // (b2_authorize_account) qué puede hacer la clave y se niega si no es exactamente el perfil declarado,
-// sólo ese bucket y el namePrefix de la raíz (F08_B151_RAIZ, ensayo-f08/b151-<aaaammdd>/; por defecto
-// ensayo-f08/b151-20261019/). Exige BACKUP_S3_PREFIX = <raíz><subcarpeta>/ y no lee ni escribe fuera.
-// Datos sintéticos (bytes aleatorios). F08_B151_FORMATO sólo cambia las copias del ítem 6 (c6).
+// sólo ese bucket y el namePrefix de la raíz del ensayo. Exige BACKUP_S3_PREFIX = <raíz><subcarpeta>/ y
+// no lee ni escribe fuera. Datos sintéticos (bytes aleatorios).
+//
+// Obligatorias desde el 2026-10-24, sin valor por defecto; si faltan, se detiene antes de tocar nada:
+//   F08_B151_RAIZ     la raíz del ensayo, ensayo-f08/b151-<aaaammdd>/ (el namePrefix de sus claves,
+//                     crear_claves_b151.ps1 -Prefijo), en todos los pasos, también contra el doble;
+//   F08_B151_FORMATO  1 o 2, el formato que mide el ítem 6 (c6); sólo cambia sus copias y sólo se
+//                     exige en ese paso.
 //
 //   node b151_b2.cjs b2 <rw|ro|nodel> <paso> <dir-salida> [confirmar]
 //     pasos: preparar (rw) · caso1 (ro o nodel) · casos2a5 (rw) · h3 (ro) y r5b (rw): la repetición
@@ -164,6 +169,11 @@ const denied = (r) => !r.ok && sup.isAccessDenied(r.error);
  * un éxito es FAIL; otro error (timeout, fallo de la herramienta) no prueba nada: NO_CONCLUYENTE.
  */
 const refusal = (r) => (denied(r) ? "PASS" : r.ok ? "FAIL" : "NO_CONCLUYENTE");
+/**
+ * Una subida multiparte que debe fallar con la causa conservada (H3): PASS con el rechazo; un éxito o
+ * el AbortError del origen en lugar del rechazo, FAIL; otro error, NO_CONCLUYENTE.
+ */
+const keptRefusal = (r) => (denied(r) ? "PASS" : r.ok || r.error.name === "AbortError" ? "FAIL" : "NO_CONCLUYENTE");
 const snapshot = (items) => items.map((v) => `${v.key}|${v.versionId}|${v.marker}|${v.latest}`).sort().join("\n");
 
 // ---------------------------------------------------------------- caso 1: claves sin escritura o sin borrado
@@ -214,7 +224,8 @@ async function caso1(c) {
     const s1 = await c.attempt(() => st.stage(uuid(), chunked(crypto.randomBytes(KiB))));
     c.add("1-ro: adaptador stage (PutObject)", "rechazo de permisos del proveedor propagado, sin éxito aparente", { ok: s1.ok, error: s1.error }, null, undefined, refusal(s1));
     const s2 = await c.attempt(() => st.stage(uuid(), chunked(crypto.randomBytes(S3_PART_BYTES + MiB))));
-    c.add("1-ro: adaptador stage multipart (> 8 MiB)", "rechazo de permisos del proveedor propagado, sin éxito aparente", { ok: s2.ok, error: s2.error }, null, undefined, refusal(s2));
+    // Desde el 2026-10-24, con el criterio de H3: el AbortError del origen es FAIL, no NO_CONCLUYENTE.
+    c.add("1-ro: adaptador stage multipart (> 8 MiB)", "rechazo de permisos del proveedor propagado, no el AbortError del origen; sin éxito aparente", { ok: s2.ok, error: s2.error }, null, undefined, keptRefusal(s2));
   } else {
     const d = await c.attempt(() => c.raw(new sdk.DeleteObjectCommand({ Bucket: c.Bucket, Key: `${c.P}c1/objects/${K}`, VersionId: vK })));
     c.add("1-nodel: DeleteObject por versionId en crudo sobre la copia válida", "rechazo de permisos (403)", d, denied(d));
@@ -505,9 +516,6 @@ async function caso5(c) {
 
 // ---------------------------------------------------------------- repetición acotada: 5b y H3 (#151)
 
-/** Una subida que debe fallar con la causa conservada: PASS con el rechazo; éxito o AbortError, FAIL. */
-const keptRefusal = (r) => (denied(r) ? "PASS" : r.ok || r.error.name === "AbortError" ? "FAIL" : "NO_CONCLUYENTE");
-
 /** ¿Sigue intacta la copia válida K (versión vK, bytes de ref) y la abre el adaptador `st`? */
 async function validCopy(c, st, sub, K, vK, ref) {
   const same = (await c.versions(`${sub}objects/${K}`)).items.filter((v) => v.key === `${sub}objects/${K}`);
@@ -738,12 +746,15 @@ async function main() {
   const [destino, perfil, paso, outDir, confirm] = process.argv.slice(2);
   const usage = "uso: node b151_b2.cjs b2 <rw|ro|nodel> <preparar|caso1|casos2a5|h3|r5b|c6|inventario|limpiar> <dir-salida> [confirmar] · node b151_b2.cjs doble todos <todo|acotada|c6> <dir-salida>";
   if (!outDir || !["b2", "doble"].includes(destino)) throw new Error(usage);
+  // Sin valor por defecto: se detiene aquí, antes de tocar nada, si faltan o no son válidos.
+  sup.b151KeyPrefix();
+  if (paso === "c6") sup.b151Format();
   const version = sup.treeVersion(ROOT);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   if (destino === "doble") {
     if (perfil !== "todos" || !["todo", "acotada", "c6"].includes(paso)) throw new Error(usage);
     if (paso === "c6") return c6("doble", "", outDir);
-    const conn = sup.B151Connection.doble(`${sup.B151_KEY_PREFIX}doble/`);
+    const conn = sup.B151Connection.doble(`${sup.b151KeyPrefix()}doble/`);
     const report = new sup.B151Report({ herramienta: "tool/f08_b2/b151_b2.cjs", destino, perfil: "varios (doble)", paso, version, configuracion: { prefijo: conn.settings.prefix, bucket: conn.settings.bucket, parteMultipart: S3_PART_BYTES } });
     report.note("destino: doble S3 en memoria (NO es Backblaze B2); perfiles simulados por el doble");
     const cycle = paso === "acotada"
