@@ -582,11 +582,20 @@ async function main() {
   });
   report.note(`destino: Backblaze B2 real; clave verificada (${key.capabilities.join(", ")}; namePrefix ${key.namePrefix})`);
   const c = context(conn, report, perfil);
-  if (paso === "preparar") await preparar(c);
-  if (paso === "caso1") await caso1(c);
-  if (paso === "casos2a5") for (const fn of [caso2, caso3, caso4, caso5]) await fn(c);
-  if (paso === "inventario") await inventario(c);
-  if (paso === "limpiar") await limpiar(c);
+  // Un error no previsto en un caso queda en el informe como FAIL (y el informe se escribe igual);
+  // en casos2a5, los casos siguientes se ejecutan.
+  const run = async (fn) => {
+    try {
+      await fn(c);
+    } catch (error) {
+      c.add(`${paso}: ${fn.name} abortado por un error no previsto`, "sin errores no previstos", { error: sup.errorSummary(error) }, false);
+    }
+  };
+  if (paso === "preparar") await run(preparar);
+  if (paso === "caso1") await run(caso1);
+  if (paso === "casos2a5") for (const fn of [caso2, caso3, caso4, caso5]) await run(fn);
+  if (paso === "inventario") await run(inventario);
+  if (paso === "limpiar") await run(limpiar);
   const files = report.write(outDir, `b151-b2-${perfil}-${paso}-${stamp}`);
   report.note(`informe: ${files.json} y ${files.text}`);
   return report.failed;

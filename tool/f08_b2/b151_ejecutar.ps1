@@ -29,10 +29,13 @@ param(
   [switch]$ConC6,
   [switch]$Limpiar,
   [string]$Secretos = (Join-Path $env:LOCALAPPDATA 'Agrocuentas\secretos'),
-  [string]$ConB2 = (Join-Path $PSScriptRoot '..\..\..\tools\secretos-b2\con_b2.ps1')
+  [string]$ConB2 = ''
 )
 $ErrorActionPreference = 'Stop'
-$herramienta = Join-Path $PSScriptRoot 'b151_b2.cjs'
+# En Windows PowerShell 5.1, $PSScriptRoot llega vacío al valor por defecto de un parámetro.
+$aqui = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $ConB2) { $ConB2 = Join-Path $aqui '..\..\..\tools\secretos-b2\con_b2.ps1' }
+$herramienta = Join-Path $aqui 'b151_b2.cjs'
 if (-not (Test-Path $ConB2)) { throw "No se encuentra con_b2.ps1 en $ConB2 (usa -ConB2)." }
 foreach ($p in 'rw', 'ro', 'nodel') {
   if (-not (Test-Path (Join-Path $Secretos "b151-$p.clixml"))) { throw "Falta la clave b151-$p.clixml en $Secretos (crear_claves_b151.ps1)." }

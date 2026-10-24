@@ -181,6 +181,9 @@ function suite(mode: SuiteMode) {
     process.env["BACKUP_MAX_BYTES"] = String(64 * 1024);
     process.env["BACKUP_MAX_ACTIVE_PER_MEMBER"] = String(N);
     process.env["BACKUP_REQUIRE_CLIENT_ENCRYPTION"] = FORMATO === 2 ? "true" : "false";
+    // The app gets the adapter injected: it needs no BACKUP_S3_* (already read above), and the
+    // trial's prefix has more than the one segment its env schema admits.
+    for (const name of Object.keys(process.env)) if (name.startsWith("BACKUP_S3_")) delete process.env[name];
     const databaseUrl = await createIsolatedDatabase(postgresUrl!, `f08_b151_${mode}`);
     ({ app: s.app, prisma: s.prisma, jwt: s.jwt } = await createSyncV1App(databaseUrl, { backupStorage: s.storage }));
     s.server = s.app.getHttpServer();
