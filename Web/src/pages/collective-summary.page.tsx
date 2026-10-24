@@ -6,8 +6,10 @@ import {
   DisclosureNotice,
   PendingChangesNote,
   QuantityCell,
+  SealBanner,
   StatusBadge,
 } from '../components/collective-ui';
+import { SealPanel } from '../components/seal-panel';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
@@ -29,17 +31,21 @@ const SECTIONS: { type: ProjectionType; title: string; description: string }[] =
 /**
  * F07-WEB-02 (#24): resumen colectivo por campaña y producto canónico. Sólo
  * presenta lo que decidió el servidor (F07-POL-01): no suma, no resta y no
- * deduce cifras ocultas.
+ * deduce cifras ocultas. F07 (2026-10-23): muestra la versión sellada, si la
+ * hay, y el panel de revisión y sellado.
  */
 export function CollectiveSummaryPage() {
   const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
   const [summary, setSummary] = useState<CollectiveSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Cambia en cada recarga para que el panel de sellado relea su estado.
+  const [reloads, setReloads] = useState(0);
 
   const load = useCallback(async (campaignId: string) => {
     setLoading(true);
     setError(null);
+    setReloads((value) => value + 1);
     try {
       setSummary(await collectiveService.summary(campaignId));
     } catch (err) {
@@ -72,6 +78,9 @@ export function CollectiveSummaryPage() {
         {error && <Notice kind="error">{error}</Notice>}
         {loading && <p className="text-sm text-slate-500">Cargando…</p>}
         {summary && !loading && <SummaryBody summary={summary} />}
+        {selected && summary && !loading && !summary.seal && (
+          <SealPanel key={`${selected}:${reloads}`} campaignId={selected} onSealed={() => void load(selected)} />
+        )}
         {!selected && !campaignsError && <EmptyState title="No hay campañas" description="Cree o abra una campaña compartida." />}
       </div>
     </AppShell>
@@ -83,7 +92,14 @@ function SummaryBody({ summary }: { summary: CollectiveSummary }) {
   return (
     <div className="space-y-6">
       <DisclosureNotice mode={disclosure.mode} threshold={disclosure.threshold} />
-      {summary.coverage && <CoverageBanner coverage={summary.coverage} campaignName={summary.campaign.name} />}
+      {summary.seal && <SealBanner seal={summary.seal} />}
+      {summary.coverage && (
+        <CoverageBanner
+          coverage={summary.coverage}
+          campaignName={summary.campaign.name}
+          sealedAt={summary.seal?.sealed_at}
+        />
+      )}
       {disclosure.mode === 'PROVISIONAL_SYNTHETIC' &&
         SECTIONS.map((section) => (
           <CellsTable

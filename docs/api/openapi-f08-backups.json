@@ -2296,6 +2296,24 @@
           "operations"
         ]
       },
+      "SealCampaignDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita de quien sella (DIRECTIVA o ADMINISTRADOR)"
+          },
+          "review_ref": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "review_ref de la revisión mostrada (GET …/seal)"
+          }
+        },
+        "required": [
+          "confirmed",
+          "review_ref"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {

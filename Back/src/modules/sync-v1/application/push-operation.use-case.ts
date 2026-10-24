@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Prisma, SyncV1Contribution } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
+import { sealLockKey } from "@/modules/collective/domain/seal";
 import { ack, ackFromJournal, SyncV1Ack } from "../domain/ack";
 import { decideCausal } from "../domain/causal-decision";
 import { quantityInRange, SyncV1Envelope } from "../domain/envelope";
@@ -208,6 +209,20 @@ export class PushOperationUseCase {
       productId: product.id,
       baseUnit: base_unit,
     };
+    // F07 seal (F07_SEALED_HISTORY_CONTRACT §3.5, §7): shared against the
+    // seal's exclusive lock, for every action that reaches a decision, so this
+    // operation is clearly before the seal (inside its decision) or after it.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${sealLockKey(identity.tenantId, campaign.id)}, 0))`;
+    const seal = await tx.collectiveSeal.findFirst({
+      where: { tenantId: identity.tenantId, campaignId: campaign.id },
+      select: { id: true },
+    });
+    // New values never reach a sealed campaign; the rejection is terminal and
+    // stored, so a resend of this operation gets the same answer.
+    if (valued && seal) {
+      const current = await this.contributions.find(tx, key);
+      return this.reject(tx, identity, "CAMPAIGN_SEALED", current?.id ?? null);
+    }
     // CANCEL may withdraw in a closed campaign; new values need it open.
     if (valued && !(campaign.status === "ABIERTA" && campaign.isActive)) {
       const current = await this.contributions.find(tx, key);
@@ -243,14 +258,32 @@ export class PushOperationUseCase {
       },
     });
 
-    switch (decision.kind) {
-      case "REJECT":
-        return this.reject(tx, identity, decision.code, contribution.id);
-      case "CONFLICT":
-        return this.conflict(tx, identity, contribution, decision);
-      case "APPLY":
-        return this.apply(tx, identity, contribution, decision, quantity_base);
-    }
+    if (decision.kind === "REJECT") return this.reject(tx, identity, decision.code, contribution.id);
+    const result =
+      decision.kind === "CONFLICT"
+        ? await this.conflict(tx, identity, contribution, decision)
+        : await this.apply(tx, identity, contribution, decision, quantity_base);
+    // Only a CANCEL gets here in a sealed campaign. Its withdrawal (applied,
+    // or disputed: no active contribution is left either way) takes away the
+    // visibility of the sealed figures that included this contribution; the
+    // sealed data itself does not change (contract §5.2).
+    if (seal) await this.withdrawSealedVisibility(tx, seal.id, contribution.id);
+    return result;
+  }
+
+  private async withdrawSealedVisibility(
+    tx: Prisma.TransactionClient,
+    sealId: string,
+    contributionId: string,
+  ): Promise<void> {
+    await tx.$executeRaw`
+      UPDATE "CollectiveSealEntry" e
+      SET "visibilityWithdrawnAt" = now()
+      FROM "CollectiveReleaseItem" i
+      WHERE e."sealId" = ${sealId}::uuid
+        AND e."releaseId" = i."releaseId"
+        AND i."contributionId" = ${contributionId}::uuid
+        AND e."visibilityWithdrawnAt" IS NULL`;
   }
 
   private async apply(

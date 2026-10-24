@@ -57,6 +57,15 @@ No ACK no es outcome REJECTED: OUTCOME_UNKNOWN es estado **local**, no un sexto 
 | C39 Fingerprint igual de rechazo/conflicto final tras cambio de contexto de catálogo | Resultado inicial final permanece; no aplicar intención antigua ahora | 200 | Mismo REJECTED o CONFLICT persistido | MOVE_TO_TERMINAL_FAILURE o KEEP_FOR_RECONCILIATION | Nueva intención requiere nueva decisión humana; no retry para aprovechar catálogo cambiado | No automático | Mismo ID obtiene mismo resultado final | 0 | P-MIN | #17 / #18; #21 |
 | C40 Revocación detectada antes de punto de aceptación durable | Abortar decisión/commit; no ACK APPLIED parcial | 403 | NO_ACK; AUTH_CONTEXT_FORBIDDEN | KEEP_FOR_RECONCILIATION | Detener envíos; nunca tratar el 403 como acceso al journal | No mientras revocado | Conservar ID original | 0 nuevos; estado anterior protegido | P-MIN; contexto revalidado sin secretos | #17 / #18; F10 #44 |
 
+### Enmienda del 2026-10-23: campaña sellada (F07)
+
+Se añaden dos filas sin reescribir las anteriores. Detalle en [`F07_SEALED_HISTORY_CONTRACT.md`](F07_SEALED_HISTORY_CONTRACT.md) §7 y en el contrato F05 §8 (enmienda de la misma fecha). Las redactó la sesión B y las revisa la sesión A. C17 (replay del mismo ID) también vale para una campaña sellada: el journal responde antes de mirar el estado de la campaña.
+
+| Caso | Estado servidor | HTTP | outcome / code | disposition | Acción Mobile | Retry automático | Reusar ID | business_effect_count | Privacidad | Issues |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C16b PUBLISH/SUPERSEDE nuevo en campaña **sellada** | Journal de rechazo válido; sin nuevo total; versión sellada y divulgaciones intactas | 200 | REJECTED / CAMPAIGN_SEALED | MOVE_TO_TERMINAL_FAILURE | «Requiere intervención»: conservar dato local; explicar que el histórico sellado no se actualiza; no reasignar a otra campaña | No automático | Mismo ID obtiene el mismo rechazo | 0 | P-MIN | F07 sellado; #107 |
+| C16c CANCEL propietario válido en campaña **sellada** | CANCELLED sin cantidad; entradas selladas que incluían la aportación marcan retirada de visibilidad; snapshot sellado intacto | 200 | APPLIED / OK (o CONFLICT según causalidad) | RETIRE_FROM_OUTBOX (o KEEP_FOR_RECONCILIATION) | Retirada permitida; no borrar operaciones locales | No tras ACK | ID CANCEL original | 1 transición de cancelación | P-MIN | F07 sellado; #107 |
+
 ## Entrega a pruebas e implementación
 
 40 casos, 11 columnas. Backend #17 realiza la durabilidad/aislamiento; #18 ejecuta cada caso y conserva requests sintéticos, recibos mínimos, conteo por intención y estado causal final sin cuerpos privados. #21 verifica dataset y agregado autorizado, incluidas disminución por reversión y exclusión de cancelado/contestado. [Roderich1/AppMovilAgroquimico#29](https://github.com/Roderich1/AppMovilAgroquimico/issues/29), [Roderich1/AppMovilAgroquimico#30](https://github.com/Roderich1/AppMovilAgroquimico/issues/30) y [Roderich1/AppMovilAgroquimico#31](https://github.com/Roderich1/AppMovilAgroquimico/issues/31) reciben el handoff; valores de backoff/ventanas y políticas PERIOD_DELEGATED se validan antes de producción.

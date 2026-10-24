@@ -89,6 +89,13 @@ Es el orden del paquete §5, sin cambios.
 
 **Nota del 2026-10-19.** La política tiene una memoria técnica de divulgación, `R_DISCLOSURE_MEMORY` (`docs/architecture/F06_COLLECTIVE_PROJECTION_CONTRACT.md` §7.1). Guarda cada cifra publicada con la cantidad de cada aportación, vinculada al agricultor por su aportación, para impedir que se calcule un aporte por diferencias. Antes de admitir datos reales, la decisión del autor (fila 1) tiene que fijar también su finalidad, minimización, duración y salida. Hoy no hay ningún plazo aprobado.
 
+**Nota del 2026-10-23 (sesión B).** Roderich decidió el 2026-10-23, para el entorno sintético, conservar el historial colectivo con un sellado manual (contrato F06 §7.2 y `docs/architecture/F07_SEALED_HISTORY_CONTRACT.md`).
+- El sellado lo hace DIRECTIVA o ADMINISTRADOR, por campaña cerrada.
+- **No hay eliminación de la memoria:** la propuesta M-2 de BE #159 se descarta.
+- La versión sellada es **vinculable** a los agricultores a través de esa memoria.
+- Antes de usar datos reales hay que decidir también la finalidad, los lectores y la duración del historial. Hoy no hay plazo aprobado.
+- La comparación reproducible de k = 3 y k = 5 está en BE #161 (`docs/evidence/F07_POL_01_COMPARACION_K.md`), **pendiente de integrar**. Esta hoja no tiene un §2.2.
+
 **Ninguna respuesta sustituye a otra:**
 - la decisión técnica delegada del 2026-10-16 no es la de la Directiva;
 - un mensaje informal no es un acta;
@@ -105,6 +112,7 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - Decisión sobre el texto (aprueba / pide cambios / rechaza):
 - k para datos reales y número de agricultores vinculados en que se basa:
 - Memoria de divulgación (`R_DISCLOSURE_MEMORY`) para datos reales: finalidad, minimización, duración y salida:
+- Historial colectivo sellado (`R_COLLECTIVE_HISTORY`) para datos reales: finalidad, lectores y duración (campo añadido el 2026-10-23; vacío):
 - Responsable y fecha de la próxima revisión:
 - Fórmula: «Verificado por Roderich Rendón (autor) el <fecha real>»:
 
@@ -119,6 +127,7 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - Respuesta a 2(d) cómo se informa a los agricultores:
 - Respuesta a 2(e) responsable y periodicidad de revisión:
 - Respuesta a 2(f) tratamiento de una solicitud de exclusión:
+- Historial colectivo: si se conservan versiones selladas como registro histórico, quién puede consultarlas y por cuánto tiempo (campo añadido el 2026-10-23; vacío):
 - Observaciones o condiciones:
 
 ### 5.3 Tutor
@@ -133,3 +142,5 @@ Se completa **sólo** con lo que de verdad ocurra, con fechas reales. Lo que no 
 - **Las cifras reales no se habilitan con esta hoja.** Hace falta un PR propio con un modo nuevo y explícito para producción, con su prueba y su rollback, y sólo después de 1–3 (paquete §5, fila 5).
 - **Si la Directiva pide cambios** (otro k, menos información, otra forma de informar a los agricultores), se cambia la política y se repite esta revisión sobre el texto nuevo.
 - **Mientras falten 1–3, #107 sigue abierto** (paquete §5). Esta hoja no añade ni quita condiciones de cierre.
+
+**Nota del 2026-10-23 (sesión B), añadida después del texto anterior del §6.** Sellar una campaña no habilita cifras reales, no concede permisos de lectura nuevos y no hace anónimos los datos. En `POLICY_PENDING`, tampoco las versiones selladas muestran cifras.

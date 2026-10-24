@@ -45,6 +45,7 @@ describe('menú congelado (F07-WEB-01)', () => {
       COLLECTIVE_PATHS.summary,
       COLLECTIVE_PATHS.proposals,
       COLLECTIVE_PATHS.coverage,
+      COLLECTIVE_PATHS.trends,
       COLLECTIVE_PATHS.reconciliation,
       '/campaigns',
     ]);

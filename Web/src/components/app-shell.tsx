@@ -63,6 +63,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
   },
   {
+    label: 'Tendencias',
+    to: COLLECTIVE_PATHS.trends,
+    icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
+  },
+  {
     label: 'Reconciliación',
     to: COLLECTIVE_PATHS.reconciliation,
     icon: <NavIcon d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />,

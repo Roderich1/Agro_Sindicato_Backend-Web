@@ -22,6 +22,15 @@ describe("collective disclosure configuration (F06 §5, F07-POL-01)", () => {
   });
 });
 
+describe("collective seal configuration (F07, 2026-10-23)", () => {
+  it("keeps the manual seal off unless explicitly enabled", () => {
+    expect(config({ NODE_ENV: "test" }).sealingEnabled).toBe(false);
+    expect(config({ NODE_ENV: "test", COLLECTIVE_SEALING: "disabled" }).sealingEnabled).toBe(false);
+    expect(config({ NODE_ENV: "test", COLLECTIVE_SEALING: "yes" }).sealingEnabled).toBe(false);
+    expect(config({ NODE_ENV: "test", COLLECTIVE_SEALING: "enabled" }).sealingEnabled).toBe(true);
+  });
+});
+
 describe("collective output channels", () => {
   it("presents base units as L/KG exactly, without floats", () => {
     expect(presentation(0n)).toBe("0");
@@ -34,6 +43,7 @@ describe("collective output channels", () => {
     const csv = summaryCsv({
       contractVersion: 1,
       campaign: { campaign_ref: "camp", name: "Campaña, 2026", status: "ABIERTA" },
+      seal: null,
       disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: 3 },
       coverage: { linked_members: 5, members_with_contribution: 3, suppressed_cells: true },
       cells: [
@@ -58,8 +68,9 @@ describe("collective output channels", () => {
     expect(csv).toContain("SUPPRESSED_UNDER_THRESHOLD,,,,,,false");
     // F10-SEC-02: the coverage line says that some row has no figure, without a count.
     const [header, values] = csv.split(/\r?\n/);
-    expect(header!.endsWith("linked_members,members_with_contribution,suppressed_cells")).toBe(true);
-    expect(values!.endsWith(",5,3,true")).toBe(true);
+    // F07 (2026-10-23): followed by the sealed version, empty when not sealed.
+    expect(header!.endsWith("linked_members,members_with_contribution,suppressed_cells,seal_ref,seal_version,sealed_at")).toBe(true);
+    expect(values!.endsWith(",5,3,true,,,")).toBe(true);
   });
 
   it("a name that starts like a formula is neutralized, not executed (CSV injection)", () => {
@@ -80,6 +91,7 @@ describe("collective output channels", () => {
     const csv = summaryCsv({
       contractVersion: 1,
       campaign: { campaign_ref: "camp", name: "=1+1", status: "ABIERTA" },
+      seal: null,
       disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: 3 },
       coverage: { linked_members: 5, members_with_contribution: 3, suppressed_cells: true },
       cells: names.map((product_name) => ({ ...cell, product_name })),
