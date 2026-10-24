@@ -11,6 +11,85 @@
 - `NO_CONCLUYENTE`: corregido sin volver a ejecutar;
 - `NOT_RUN`: no ejecutado.
 
+## 0. Cierre técnico sobre el código actual (`73f4c82`, redactado el 2026-10-24 a las 20:53Z)
+
+El código actual de #162 es `73f4c82`. Respecto de `4a060cc`, sólo cambia un archivo de prueba (`f07-collective-seal.postgres.spec.ts`). Las secciones 1 a 6 conservan el detalle y la procedencia de cada resultado. Esta sección los ordena en tres bloques: lo implementado, lo probado y lo que necesita validación institucional.
+
+### 0.a Lo implementado
+
+**Decisiones del autor.** Todo lo que sigue aplica tres decisiones de diseño que Roderich Rendón tomó el 2026-10-23 para el entorno sintético (contrato F07, cabecera):
+- el umbral `k = 3` (`PROVISIONAL_THRESHOLD`);
+- la conservación histórica: se sella y no se elimina, y se descarta la M-2 de #159;
+- el sellado manual.
+
+No son aprobaciones de la Directiva ni del tutor.
+
+- **Persistencia y guardas en la base** (migración nueva y `schema.prisma`):
+  - `CollectiveSeal` y `CollectiveSealEntry`, con `version = 1`;
+  - disparadores que impiden modificar o borrar un sellado y sus entradas, añadir entradas, crear o retirar divulgaciones de una campaña sellada, reabrirla o sellar una campaña abierta;
+  - la memoria de divulgación de una campaña sellada se conserva, sin purga.
+- **Sellado manual** (`POST /collective/campaigns/:id/seal`, `GET …/seal`):
+  - sólo DIRECTIVA y ADMINISTRADOR del tenant (RU-18/RU-19, ADR-003);
+  - confirmación explícita y `review_ref` contra la revisión mostrada;
+  - idempotente: una segunda petición devuelve `created: false`;
+  - bloqueo consultivo exclusivo y una sola transacción, sin efecto parcial;
+  - bandera `COLLECTIVE_SEALING`, apagada por defecto;
+  - auditoría mínima en `AuditLog`.
+- **Lectura de una campaña sellada:** el resumen, su CSV y las propuestas de compra conjunta leen la versión sellada sin escribir ni recalcular. Una propuesta sin sellar decide en modo de sólo lectura.
+- **Retirada tras el sellado:** un CANCEL posterior quita la visibilidad de la cifra afectada (`WITHDRAWN_AFTER_SEAL`) sin cambiar el snapshot sellado.
+- **Sync v1:** en una campaña sellada, PUBLISH y SUPERSEDE reciben `REJECTED/CAMPAIGN_SEALED/MOVE_TO_TERMINAL_FAILURE`. El replay anterior al sellado conserva su respuesta. El `push` toma el bloqueo compartido del sellado.
+- **Tendencias** (`GET /collective/trends`, `trends.csv`):
+  - leen sólo versiones selladas; una campaña sin sellar aparece como `NOT_SEALED`, sin cifras;
+  - nunca leen `CollectiveReleaseItem`;
+  - aplican la política vigente: `POLICY_PENDING` no da cifras, y una celda por debajo de `k` queda suprimida.
+- **Web:**
+  - `seal-panel`: revisión, confirmación y mensajes de 409;
+  - página de tendencias con su CSV;
+  - el resumen marca la versión sellada;
+  - navegación sólo para DIRECTIVA y ADMINISTRADOR.
+
+### 0.b Lo probado
+
+| Qué | SHA | Comando o run | Fecha real (UTC) | Resultado |
+|---|---|---|---|---|
+| Suite del sellado (PostgreSQL desechable) | `73f4c82` | CI `Web F07 verification`, run `40097400361`, job `f07-proposal-postgres`: `npx jest f07-collective-seal.postgres.spec.ts --runInBand` | 2026-10-24, 13:16:06Z–13:17:31Z | **PASS 20/20** (§2.2) |
+| `f07-web-proposal` / `f07-acceptance` | `73f4c82` | el mismo run | idem | PASS 12/12, 6/6 |
+| Web: `lint`, `build` (`tsc -b && vite build`), Vitest | `73f4c82` | el mismo run, job `web` | idem | PASS; Vitest 10 archivos, 88/88 |
+| Backend completo | `73f4c82` | CI `Backend F02 verification`, run `40097400413` | 2026-10-24, 13:16:06Z–13:19:10Z | **PASS**: unitarias 324, `openapi:check` y las suites PostgreSQL de §2.2 |
+| Análisis estático | `73f4c82` | check `SonarCloud Code Analysis` del PR #162 | 2026-10-24 | pass |
+| Suite del sellado y mutaciones M1–M6 y M8 | `8ad60cb` | local, §3 | 2026-10-23 | PASS 19/19; las 7 mutaciones hacen fallar la suite |
+| Unitarias del dominio | `943f578` | local, §4 | 2026-10-23 | PASS 47/47 |
+| Suites corregidas (`sync-v1-journal`, `f06-coll-05`) y `product-reconciliation` | `4a060cc` | CI, runs `40060250490` y `40060250510` (§2.1) | 2026-10-24 | PASS 30/30, 16/16, 5/5 |
+
+**Fallo intermitente corregido en D1 (`73f4c82`).**
+- **Dónde se vio:** en la CI de la rama de F08 #163 (`045ae97`, run `40087793244`, 2026-10-24 10:54:59Z), con la suite del sellado en 18/19. Falló la prueba «sealed reads never write, never recompute, and the CSV carries the same decisions».
+- **Clase:** era un falso positivo de la prueba, no un defecto de la aplicación. El auxiliar `expectNoNumber` construía una expresión regular con el valor sin escapar, así que el «.» de «1.2» aceptaba cualquier carácter. A veces coincidía con los milisegundos de la marca de tiempo ISO del CSV (p. ej. «.112Z»), según la hora de la ejecución.
+- **Corrección:** el valor se escapa y se compara literalmente. Una prueba de control fija que «1.2» y «1200» siguen detectándose y que la marca de tiempo y «1x2» no coinciden. La suite pasa de 19 a 20 pruebas.
+- **Resultado:** 20/20 en el run `40097400361`. Según la sesión A, también hay 20/20 en #163 (`9255f2c`) y #164 (`d35cd25`); esos dos runs no los ha revisado esta sesión.
+
+**Sin ejecutar sobre `73f4c82`:**
+- las mutaciones (última ejecución sobre `8ad60cb`);
+- el recorrido funcional de la Web contra un Backend desechable (pendiente; `NOT_RUN`);
+- la prueba en DEVICE de `CAMPAIGN_SEALED` en Mobile, a cargo de la sesión A, que no forma parte de esta evidencia.
+
+### 0.c Lo que necesita validación institucional
+
+Nada de lo siguiente está validado por la Directiva, el tutor ni otra instancia. Esta evidencia no lo sustituye:
+- **El umbral `k = 3`:** sólo rige en el modo sintético (`PROVISIONAL_SYNTHETIC`). La política F07-POL-01 (#107) no está aprobada, y el modo por defecto sigue siendo `POLICY_PENDING`, sin cifras. La comparación de `k` está en BE #161, pendiente de integrar.
+- **La conservación histórica:** el historial sellado es vinculable al agricultor a través de la memoria de divulgación (contrato §2). Conservarlo sin plazo de purga con datos reales requiere una decisión institucional sobre su retención.
+- **El sellado manual:** falta confirmar quién sella en la práctica y en qué momento de la campaña. Hoy lo hacen DIRECTIVA y ADMINISTRADOR, según la decisión de roles del autor (ADR-003).
+- **La baja o la petición de no contar los datos tras el sellado:** depende de la respuesta 2(f) de la hoja institucional (§6).
+- **El uso con datos reales y GATE-F07:** no se habilitan. GATE-F07 y #107 no cambian.
+
+### 0.d Límites
+
+- Es una evidencia **funcional y técnica**. No mide la experiencia de personas usuarias.
+- **Sólo datos sintéticos** en bases desechables. Ningún dato real.
+- `COLLECTIVE_SEALING` sigue apagada. Se enciende sólo con la compilación Mobile que trate `CAMPAIGN_SEALED` como fallo terminal, comprobada en DEVICE (§6).
+- No hay copia ni restauración del Central. Una restauración anterior a un sellado olvidaría cifras ya conocidas (§6).
+- El aporte de un agricultor dado de baja tras el sellado sigue en las cifras selladas visibles, sin vía de retirada (§6).
+- Las mutaciones se ejecutaron sobre `8ad60cb`, no sobre `73f4c82`. El código Backend es el mismo: `git diff 8ad60cb 73f4c82 -- Back/src Back/prisma` sólo cambia tres archivos `*.spec.ts`. Lo demás que cambia entre ambos es la Web, la línea de CI, `openapi-contract.cjs` con sus snapshots y la documentación, y las mutaciones no tocaban nada de eso.
+
 ## 1. Qué SHA se probó
 
 | SHA | Qué contiene | Qué se ejecutó sobre él |
@@ -20,8 +99,10 @@
 | `2f4c24f` | Más dos pruebas existentes corregidas (sólo archivos `*.spec.ts`) | Nada (§2, FAIL corregidos) |
 | `15e1b72` | Más los snapshots OpenAPI y sus aserciones | `npm run openapi:check` |
 | `4a060cc` | Más esta evidencia (sólo documentación) | CI de GitHub completa del PR #162 (§2.1) |
+| `f6395cc` | Más los resultados de §2.1 (sólo documentación) | CI de GitHub, runs `40060619420` y `40060619455`, `success` (§2.1, corrección) |
+| `73f4c82` | Más la corrección de la prueba `expectNoNumber` (sólo `f07-collective-seal.postgres.spec.ts`; D1) | CI de GitHub completa del PR #162 (§2.2). Es el código actual |
 
-Entre `8ad60cb` y `15e1b72`, `git diff -- Back/src Back/prisma` sólo cambia las dos pruebas de `2f4c24f`. El código de la aplicación es el mismo.
+Entre `8ad60cb` y `15e1b72`, `git diff -- Back/src Back/prisma` sólo cambia las dos pruebas de `2f4c24f`. El código de la aplicación es el mismo. Hasta `73f4c82` sólo se añade además la prueba corregida.
 
 ## 2. Batería Backend sobre `77b9bc2` (2026-10-24, desde las 00:45:56Z)
 
@@ -79,6 +160,8 @@ La Web sí queda cubierta: `npm run build` es `tsc -b && vite build`.
 
 Este cambio, que sólo toca `docs/evidence/F07_*`, no dispara ninguno de los dos workflows. Los resultados de arriba corresponden a `4a060cc`.
 
+**Corrección (2026-10-24):** la frase anterior era falsa. El commit `f6395cc`, que la añadió, sí disparó los dos workflows: `Backend F02 verification`, run `40060619420`, y `Web F07 verification`, run `40060619455`, ambos con `success` (04:00:36Z). Se conserva la frase original como registro.
+
 **Composición `comp/f01-f08-be` `453acce` (PR #164, «NO FUSIONAR», de A):**
 - `Backend F02 verification`, run `40060272620`, `success`:
   - unitarias: 41 suites, 345 pruebas;
@@ -86,6 +169,32 @@ Este cambio, que sólo toca `docs/evidence/F07_*`, no dispara ninguno de los dos
 - `Web F07 verification`, run `40060272680`, `success`, con los mismos totales que #162.
 
 Es una rama de composición, no una propuesta de fusión.
+
+### 2.2 CI de GitHub sobre `73f4c82` (PR draft #162, código actual, 2026-10-24)
+
+Mismo entorno que en §2.1. Los resultados se leyeron con `gh run view <id> --log` y `gh pr checks 162` el 2026-10-24.
+
+**`Backend F02 verification`** (run `40097400413`, de 13:16:06Z a 13:19:10Z, `success`):
+
+| Paso | Resultado |
+|---|---|
+| `npm run build`, `npm test -- --runInBand` | PASS: 40 suites, 324 pruebas; 19 suites saltadas |
+| `npm run openapi:check` | PASS |
+| `auth-v2` / `current-auth-context` / `f02-final-integration` | PASS 12/12, 25/25, 3/3 |
+| `sync-v1-journal` / `sync-v1-adversarial` / `sync-v1-references` | PASS 30/30, 41/41, 7/7 |
+| `f06-coll-05` / `product-reconciliation` | PASS 16/16, 5/5 |
+| `backups` | PASS 57/57 |
+| `f10-sec-02-legacy-boundary` / `f81-phase6-legacy-writes` / `f10-sec-02-disclosure-gaps` | PASS 29/29, 7/7, 2/2 |
+
+**`Web F07 verification`** (run `40097400361`, de 13:16:06Z a 13:17:31Z, `success`):
+
+| Job | Resultado |
+|---|---|
+| `web`: `lint`, `build`, `npm test` (Vitest) | PASS: 10 archivos, 88/88 |
+| `f07-proposal-postgres`: `f07-web-proposal` / `f07-acceptance` | PASS 12/12, 6/6 |
+| `f07-proposal-postgres`: `f07-collective-seal` | **PASS 20/20**, con la prueba de control nueva (§0.b) |
+
+**`SonarCloud Code Analysis`** (check del PR #162 sobre `73f4c82`): pass.
 
 ## 3. Suite del sellado y mutaciones (sobre `8ad60cb`, 2026-10-23)
 
@@ -145,7 +254,7 @@ M7 (umbral vigente) se descartó porque no discrimina con k = 3 en todos los esc
   - `npx eslint src` → 0 errores y 2 avisos anteriores (contextos).
   - Una prueba encontró un defecto real, corregido antes del commit: tras un 409 de revisión obsoleta, el panel borraba su propio mensaje al recargar la revisión.
 - **OpenAPI, sobre `15e1b72`** (2026-10-24, con una base local desechable): `npm run openapi:check` PASS (los snapshots coinciden y las aserciones F02, F05, F06 y F08 pasan).
-- **CI de GitHub:** PASS sobre `4a060cc` (§2.1).
+- **CI de GitHub:** PASS sobre `4a060cc` (§2.1) y sobre `73f4c82`, el código actual (§2.2).
 
 ## 5. Revisiones técnicas entre sesiones
 
