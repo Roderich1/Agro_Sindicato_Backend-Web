@@ -11,11 +11,13 @@
 // Datos sintéticos (bytes aleatorios). F08_B151_FORMATO sólo cambia las copias del ítem 6 (c6).
 //
 //   node b151_b2.cjs b2 <rw|ro|nodel> <paso> <dir-salida> [confirmar]
-//     pasos: preparar (rw) · caso1 (ro o nodel) · casos2a5 (rw) · c6 (rw: C2 y C5; nodel: T-R5;
+//     pasos: preparar (rw) · caso1 (ro o nodel) · casos2a5 (rw) · h3 (ro) y r5b (rw): la repetición
+//     acotada de 5b y H3 tras su corrección (h3 usa la copia de «preparar») · c6 (rw: C2 y C5; nodel: T-R5;
 //     rotacion, bajo la clave nodel: T-R5 con la purga de la rotación rechazada por B2; exige
 //     F08_BKP_PG_TEST_URL) · inventario (cualquiera) · limpiar (rw, exige «confirmar»)
-//   node b151_b2.cjs doble todos <todo|c6> <dir-salida>
-//     el ciclo de los ítems 1–5 (todo) o la suite del ítem 6 (c6) contra el doble S3 en memoria
+//   node b151_b2.cjs doble todos <todo|acotada|c6> <dir-salida>
+//     el ciclo de los ítems 1–5 (todo), el de la repetición acotada (acotada: preparar, h3, r5b,
+//     inventario, limpiar) o la suite del ítem 6 (c6) contra el doble S3 en memoria
 //     (NO es B2; valida la herramienta).
 // Entorno opcional: F08_B151_BACK (carpeta Back con src/ y node_modules/), F08_B2_NODE_MODULES.
 const crypto = require("node:crypto");
@@ -127,7 +129,9 @@ function context(conn, report, profile) {
     for (const u of (await c.uploads(sub)).items) await c.raw(new sdk.AbortMultipartUploadCommand({ Bucket, Key: P + u.key, UploadId: u.uploadId }));
     return (await c.versions(sub)).items.length + (await c.uploads(sub)).items.length;
   };
-  c.storage = (sub, sender = conn.sender) => new S3BackupStorage(sender, { bucket: Bucket, prefix: P + sub });
+  // Con `reports`, los informes de limpieza del adaptador (onStagingCleanup, desde 2d5085d) se guardan ahí.
+  c.storage = (sub, sender = conn.sender, reports) =>
+    new S3BackupStorage(sender, { bucket: Bucket, prefix: P + sub }, undefined, reports ? (r) => reports.push(r) : undefined);
   c.add = (caso, esperado, observado, ok, nota, veredicto) =>
     report.add({ caso, perfil: profile, esperado, observado, veredicto: veredicto ?? (ok ? "PASS" : "FAIL"), ...(nota ? { nota } : {}) });
   c.short = (v) => sup.shortVersion(v);
@@ -499,6 +503,175 @@ async function caso5(c) {
   c.add("5: c5/ limpio al terminar", "0 versiones y 0 multipart", { restantes: remaining }, remaining === 0);
 }
 
+// ---------------------------------------------------------------- repetición acotada: 5b y H3 (#151)
+
+/** Una subida que debe fallar con la causa conservada: PASS con el rechazo; éxito o AbortError, FAIL. */
+const keptRefusal = (r) => (denied(r) ? "PASS" : r.ok || r.error.name === "AbortError" ? "FAIL" : "NO_CONCLUYENTE");
+
+/** ¿Sigue intacta la copia válida K (versión vK, bytes de ref) y la abre el adaptador `st`? */
+async function validCopy(c, st, sub, K, vK, ref) {
+  const same = (await c.versions(`${sub}objects/${K}`)).items.filter((v) => v.key === `${sub}objects/${K}`);
+  const read = await c.read(`${sub}objects/${K}`);
+  const opened = await c.attempt(async () => {
+    const o = await st.open(K);
+    const h = crypto.createHash("sha256");
+    for await (const chunk of o.stream) h.update(chunk);
+    return h.digest("hex");
+  });
+  const observado = { versiones: same.length, mismaVersion: same[0]?.versionId === vK, sha256: read.sha256.slice(0, 12), open: opened.ok ? "ok" : opened.error };
+  const intact = same.length === 1 && (vK === undefined || same[0].versionId === vK) && !same[0].marker && read.sha256 === ref && opened.ok && opened.value === ref;
+  return { observado, intact };
+}
+
+/**
+ * H3 con la clave ro: el rechazo de B2 a una subida multiparte del adaptador debe ser el error de
+ * stage (403/AccessDenied), no el AbortError del origen que el adaptador destruye al salir; la
+ * limpieza se registra aparte (onStagingCleanup). Usa la copia válida de «preparar» (rw) en c1/,
+ * que sigue intacta, y nada cambia bajo c1/.
+ */
+async function h3(c) {
+  const fixture = (await c.versions("c1/objects/")).items;
+  if (fixture.length !== 1 || fixture[0].marker) {
+    c.add("H3: copia válida de referencia presente (de «preparar» con rw)", "exactamente 1 versión en c1/objects/", { entradas: fixture.length }, false);
+    return;
+  }
+  const K = fixture[0].key.slice("c1/objects/".length);
+  const vK = fixture[0].versionId;
+  const ref = (await c.read(`c1/objects/${K}`)).sha256;
+  const before = snapshot((await c.versions("c1/")).items);
+  const reports = [];
+  const st = c.storage("c1/", c.conn.sender, reports);
+  const source = chunked(crypto.randomBytes(S3_PART_BYTES + MiB));
+  const sourceErrors = [];
+  source.on("error", (e) => sourceErrors.push(e.name));
+  const s = await c.attempt(() => st.stage(uuid(), source));
+  c.add("H3: adaptador stage multipart (> 8 MiB) con la clave ro, causa conservada",
+    "el error de stage es el rechazo de permisos de B2 (403/AccessDenied), no el AbortError del origen; sin éxito aparente",
+    { ok: s.ok, error: s.error, erroresDelOrigen: sourceErrors }, null, undefined, keptRefusal(s));
+  const r = reports[0];
+  c.add("H3: limpieza registrada aparte (onStagingCleanup)",
+    "un informe STAGE_FAILED con la causa del proveedor (403) y la limpieza completa: el rechazo no creó nada",
+    { informes: reports }, reports.length === 1 && r.trigger === "STAGE_FAILED" && r.failure?.origin === "provider" && r.failure?.status === 403 && r.complete === true);
+  const kept = await validCopy(c, st, "c1/", K, vK, ref);
+  c.add("H3: la copia válida sigue intacta (misma versión, sin marcador; bytes iguales; el adaptador la abre)", "ninguna copia válida perdida", kept.observado, kept.intact);
+  const same = snapshot((await c.versions("c1/")).items) === before;
+  c.add("H3: nada cambió bajo c1/", "mismas versiones y marcadores que antes", { igual: same }, same);
+}
+
+/**
+ * 5b con la clave rw, en c5r/: el origen se corta después de que B2 cree la multiparte y antes de que
+ * su UploadId llegue al adaptador (la herramienta deja que CreateMultipartUpload llegue a B2 y descarta
+ * la respuesta). El adaptador debe encontrarla por el nombre exacto de su intento y abortarla, sin tocar
+ * otro intento de la misma clave, otra clave, una copia AVAILABLE ni otra subida del adaptador en curso
+ * a la vez. Después, esa subida concurrente y una subida normal se completan.
+ */
+async function r5b(c) {
+  const sub = "c5r/";
+  if ((await c.versions(sub)).items.length || (await c.uploads(sub)).items.length) {
+    c.add("5b-r: c5r/ vacío antes de empezar", "c5r/ vacío", { entradas: "no vacío" }, false, "Usa otra subcarpeta en BACKUP_S3_PREFIX o ejecuta «limpiar» antes.");
+    return;
+  }
+  const st = (sender, reports) => c.storage(sub, sender, reports);
+  // Una copia AVAILABLE previa.
+  const keep = uuid();
+  const keepBytes = crypto.randomBytes(64 * KiB);
+  await (await st().stage(keep, chunked(keepBytes))).commit();
+  // Otro intento de la misma clave y otra clave: multipartes abiertas en crudo por la herramienta.
+  const cutKey = uuid();
+  const foreignIds = [];
+  for (const rel of [`staging/${stagingName(cutKey)}`, `staging/${stagingName(uuid())}`])
+    foreignIds.push((await c.raw(new sdk.CreateMultipartUploadCommand({ Bucket: c.Bucket, Key: c.P + sub + rel, ContentType: "application/octet-stream", ServerSideEncryption: "AES256" }))).UploadId);
+  // Otra subida del adaptador en curso: sube su primera parte y espera.
+  const concKey = uuid();
+  const concBytes = crypto.randomBytes(S3_PART_BYTES + MiB);
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  let partSent;
+  const firstPart = new Promise((resolve) => (partSent = resolve));
+  async function* gated() {
+    yield concBytes.subarray(0, S3_PART_BYTES + 1);
+    await gate;
+    yield concBytes.subarray(S3_PART_BYTES + 1);
+  }
+  const concSender = instrument(c.conn.sender, { after: async (cmd) => { if (cmd.constructor.name === "UploadPartCommand") partSent(); } });
+  const concStage = st(concSender).stage(concKey, Readable.from(gated()));
+  concStage.catch(() => undefined);
+  await Promise.race([firstPart, concStage.then(() => { throw new Error("la subida concurrente terminó antes de tiempo"); })]);
+
+  // El intento cortado.
+  const reports = [];
+  const listedPrefixes = [];
+  let createdId = null;
+  const source = new Readable({ read() {} });
+  source.push(crypto.randomBytes(S3_PART_BYTES + 1));
+  const cut = new Error("corte simulado del origen tras crear la multiparte");
+  const cutSender = {
+    send: async (cmd, options) => {
+      if (cmd.constructor.name === "ListMultipartUploadsCommand") listedPrefixes.push(cmd.input.Prefix.slice(c.P.length));
+      if (cmd.constructor.name !== "CreateMultipartUploadCommand") return c.conn.sender.send(cmd, options);
+      // B2 la crea de verdad; su respuesta no llega al adaptador.
+      const out = await c.conn.sender.send(cmd, { abortSignal: AbortSignal.timeout(120_000) });
+      createdId = out.UploadId || null;
+      source.destroy(cut);
+      await new Promise((resolve) => {
+        if (options.abortSignal.aborted) resolve();
+        else options.abortSignal.addEventListener("abort", resolve, { once: true });
+      });
+      throw Object.assign(new Error("Request aborted"), { name: "AbortError" });
+    },
+  };
+  const r = await c.attempt(() => st(cutSender, reports).stage(cutKey, source));
+  const ups = (await c.uploads(sub)).items;
+  const ownName = new RegExp(`^${sub}staging/${cutKey}\\.[0-9a-f]{16}\\.part$`);
+  const observado = {
+    stage: r.ok ? "aceptado" : r.error,
+    causaConservada: !r.ok && r.error.message === cut.message,
+    b2CreoLaMultiparte: createdId !== null,
+    multipartDelIntentoRestantes: ups.filter((u) => u.uploadId === createdId).length,
+    otroIntentoYOtraClaveIntactos: foreignIds.filter((id) => ups.some((u) => u.uploadId === id)).length,
+    subidaConcurrenteAbierta: ups.filter((u) => u.key.startsWith(`${sub}staging/${concKey}.`)).length,
+    stagingDelIntento: (await c.versions(`${sub}staging/${cutKey}.`)).items.filter((v) => ownName.test(v.key)).length,
+    listadosMultipart: listedPrefixes.map((p) => (ownName.test(p) ? "nombre exacto del intento" : p)),
+  };
+  c.add("5b-r: corte tras crear la multiparte y antes de recibir su UploadId",
+    "error de stage = el corte del origen; B2 creó la multiparte y el adaptador la abortó, buscándola sólo por el nombre exacto de su intento; otro intento de la misma clave, otra clave y la subida concurrente siguen abiertos; nada del intento en staging",
+    observado,
+    observado.causaConservada && observado.b2CreoLaMultiparte && observado.multipartDelIntentoRestantes === 0 && observado.otroIntentoYOtraClaveIntactos === 2 &&
+      observado.subidaConcurrenteAbierta === 1 && observado.stagingDelIntento === 0 && listedPrefixes.length > 0 && listedPrefixes.every((p) => ownName.test(p)));
+  const rep = reports[0];
+  c.add("5b-r: limpieza registrada aparte (onStagingCleanup)", "un informe STAGE_FAILED con la causa del origen y la limpieza completa (nada pendiente)",
+    { informes: reports }, reports.length === 1 && rep.trigger === "STAGE_FAILED" && rep.failure?.origin === "source" && rep.complete === true && rep.pending.length === 0);
+
+  // La subida concurrente sigue y se completa.
+  release();
+  const conc = await c.attempt(async () => (await concStage).commit());
+  const concRead = conc.ok ? await c.read(`${sub}objects/${concKey}`) : null;
+  c.add("5b-r: la subida concurrente del adaptador se completa", "commit aceptado; bytes iguales a los enviados",
+    { commit: conc.ok ? "ok" : conc.error, sha256Igual: concRead?.sha256 === sha(concBytes) }, conc.ok && concRead?.sha256 === sha(concBytes));
+  const kept = await validCopy(c, st(), sub, keep, undefined, sha(keepBytes));
+  c.add("5b-r: la copia AVAILABLE previa sigue intacta", "1 versión, sin marcador; bytes iguales; el adaptador la abre", kept.observado, kept.intact);
+
+  // Una subida normal completa.
+  const normal = uuid();
+  const normalBytes = crypto.randomBytes(S3_PART_BYTES + MiB);
+  const n = await c.attempt(async () => (await st().stage(normal, chunked(normalBytes))).commit());
+  const normalRead = n.ok ? await c.read(`${sub}objects/${normal}`) : null;
+  c.add("5b-r: una subida normal completa (multiparte de 9 MiB)", "commit aceptado; bytes iguales; sin multipart ni staging de esa clave",
+    { commit: n.ok ? "ok" : n.error, sha256Igual: normalRead?.sha256 === sha(normalBytes), multipart: (await c.uploads(`${sub}staging/${normal}.`)).items.length, staging: (await c.versions(`${sub}staging/${normal}.`)).items.length },
+    n.ok && normalRead?.sha256 === sha(normalBytes));
+
+  // La herramienta aborta sus propias multipartes (por su UploadId) y comprueba lo que queda en c5r/.
+  const open = (await c.uploads(sub)).items;
+  for (const id of foreignIds) {
+    const u = open.find((x) => x.uploadId === id);
+    if (u) await c.raw(new sdk.AbortMultipartUploadCommand({ Bucket: c.Bucket, Key: c.P + u.key, UploadId: id }));
+  }
+  const vs = (await c.versions(sub)).items;
+  const left = { objetos: vs.filter((v) => v.key.startsWith(`${sub}objects/`) && !v.marker).length, marcadores: vs.filter((v) => v.marker).length, staging: vs.filter((v) => v.key.startsWith(`${sub}staging/`)).length, multipart: (await c.uploads(sub)).items.length };
+  c.add("5b-r: estado de c5r/ al terminar (antes de «limpiar»)", "3 copias en objects/ (la previa, la concurrente y la normal), 0 marcadores, 0 staging, 0 multipart",
+    left, left.objetos === 3 && left.marcadores === 0 && left.staging === 0 && left.multipart === 0);
+}
+
 // ---------------------------------------------------------------- inventario y limpieza
 
 async function inventario(c) {
@@ -520,7 +693,7 @@ async function limpiar(c) {
 
 // ---------------------------------------------------------------- principal
 
-const STEPS = { preparar: ["rw"], caso1: ["ro", "nodel"], casos2a5: ["rw"], c6: ["rw", "nodel", "rotacion"], inventario: ["rw", "ro", "nodel"], limpiar: ["rw"] };
+const STEPS = { preparar: ["rw"], caso1: ["ro", "nodel"], casos2a5: ["rw"], h3: ["ro"], r5b: ["rw"], c6: ["rw", "nodel", "rotacion"], inventario: ["rw", "ro", "nodel"], limpiar: ["rw"] };
 
 /**
  * Ítem 6: lanza la suite con PostgreSQL (C2 y C5 con rw; T-R5 con nodel) con este mismo entorno.
@@ -563,17 +736,20 @@ async function rotacion(outDir) {
 
 async function main() {
   const [destino, perfil, paso, outDir, confirm] = process.argv.slice(2);
-  const usage = "uso: node b151_b2.cjs b2 <rw|ro|nodel> <preparar|caso1|casos2a5|c6|inventario|limpiar> <dir-salida> [confirmar] · node b151_b2.cjs doble todos <todo|c6> <dir-salida>";
+  const usage = "uso: node b151_b2.cjs b2 <rw|ro|nodel> <preparar|caso1|casos2a5|h3|r5b|c6|inventario|limpiar> <dir-salida> [confirmar] · node b151_b2.cjs doble todos <todo|acotada|c6> <dir-salida>";
   if (!outDir || !["b2", "doble"].includes(destino)) throw new Error(usage);
   const version = sup.treeVersion(ROOT);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   if (destino === "doble") {
-    if (perfil !== "todos" || !["todo", "c6"].includes(paso)) throw new Error(usage);
+    if (perfil !== "todos" || !["todo", "acotada", "c6"].includes(paso)) throw new Error(usage);
     if (paso === "c6") return c6("doble", "", outDir);
     const conn = sup.B151Connection.doble(`${sup.B151_KEY_PREFIX}doble/`);
     const report = new sup.B151Report({ herramienta: "tool/f08_b2/b151_b2.cjs", destino, perfil: "varios (doble)", paso, version, configuracion: { prefijo: conn.settings.prefix, bucket: conn.settings.bucket, parteMultipart: S3_PART_BYTES } });
     report.note("destino: doble S3 en memoria (NO es Backblaze B2); perfiles simulados por el doble");
-    for (const [profile, fn] of [["rw", preparar], ["ro", caso1], ["nodel", caso1], ["rw", caso2], ["rw", caso3], ["rw", caso4], ["rw", caso5], ["rw", inventario], ["rw", limpiar]]) {
+    const cycle = paso === "acotada"
+      ? [["rw", preparar], ["ro", h3], ["rw", r5b], ["rw", inventario], ["rw", limpiar]]
+      : [["rw", preparar], ["ro", caso1], ["nodel", caso1], ["rw", caso2], ["rw", caso3], ["rw", caso4], ["rw", caso5], ["rw", inventario], ["rw", limpiar]];
+    for (const [profile, fn] of cycle) {
       conn.simulated = profile;
       await fn(context(conn, report, profile));
     }
@@ -607,6 +783,8 @@ async function main() {
   if (paso === "preparar") await run(preparar);
   if (paso === "caso1") await run(caso1);
   if (paso === "casos2a5") for (const fn of [caso2, caso3, caso4, caso5]) await run(fn);
+  if (paso === "h3") await run(h3);
+  if (paso === "r5b") await run(r5b);
   if (paso === "inventario") await run(inventario);
   if (paso === "limpiar") await run(limpiar);
   const files = report.write(outDir, `b151-b2-${perfil}-${paso}-${stamp}`);
