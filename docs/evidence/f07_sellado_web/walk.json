@@ -1,0 +1,294 @@
+{
+  "browser": "Chrome/156.0.8078.47",
+  "checks": [
+    {
+      "route": "R1",
+      "name": "DIRECTIVA: menú con Resumen colectivo y Tendencias",
+      "ok": true,
+      "detail": "/colectivo/resumen /colectivo/propuestas /colectivo/cobertura /colectivo/tendencias /colectivo/reconciliacion"
+    },
+    {
+      "route": "R1",
+      "name": "DIRECTIVA: entra en /colectivo/tendencias",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R1",
+      "name": "ADMINISTRADOR: menú con Resumen colectivo y Tendencias",
+      "ok": true,
+      "detail": "/colectivo/resumen /colectivo/propuestas /colectivo/cobertura /colectivo/tendencias /colectivo/reconciliacion"
+    },
+    {
+      "route": "R1",
+      "name": "ADMINISTRADOR: entra en /colectivo/tendencias",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R1",
+      "name": "AGRICULTOR: sin enlaces colectivos en el menú",
+      "ok": true,
+      "detail": "inicio /sin-acceso-web; enlaces "
+    },
+    {
+      "route": "R1",
+      "name": "AGRICULTOR: /colectivo/tendencias redirige fuera",
+      "ok": true,
+      "detail": "queda en /sin-acceso-web"
+    },
+    {
+      "route": "R1",
+      "name": "AGRICULTOR: /colectivo/resumen redirige fuera",
+      "ok": true,
+      "detail": "queda en /sin-acceso-web"
+    },
+    {
+      "route": "R1",
+      "name": "API, AGRICULTOR: GET tendencias → 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "route": "R1",
+      "name": "API, AGRICULTOR: GET estado del sellado → 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "route": "R1",
+      "name": "API, AGRICULTOR: POST sellar → 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "route": "R1",
+      "name": "API, DIRECTIVA de otro tenant: GET estado del sellado → 404",
+      "ok": true,
+      "detail": "404"
+    },
+    {
+      "route": "R2",
+      "name": "campaña abierta: no se puede sellar (bloqueo CAMPAIGN_NOT_CLOSED)",
+      "ok": true,
+      "detail": "[\"CAMPAIGN_NOT_CLOSED\"]"
+    },
+    {
+      "route": "R2",
+      "name": "campaña abierta: el panel no ofrece sellar",
+      "ok": true,
+      "detail": "Sellado de la versión colectiva\n\nSellar fija una versión identificable de estos resultados para consultas históricas. No reabre ni cambia la campaña, no habilit"
+    },
+    {
+      "route": "R2",
+      "name": "preparación: cierre de C1 por la API (DIRECTIVA)",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "route": "R2",
+      "name": "botón «Sellar esta versión…»",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R2",
+      "name": "sin marcar la confirmación, «Sellar» está deshabilitado",
+      "ok": true,
+      "detail": "[true]"
+    },
+    {
+      "route": "R2",
+      "name": "botón «Sellar» del diálogo, una vez marcada la confirmación",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R2",
+      "name": "POST del sellado desde la UI → 201/200, SEALED, created: true",
+      "ok": true,
+      "detail": "200 SEALED created=true"
+    },
+    {
+      "route": "R2",
+      "name": "tras sellar: sin panel de sellado, con «Versión 1 · sellada el…» y «Cobertura al sellar»",
+      "ok": true,
+      "detail": "Versión 1 · sellada el 24 oct de 2026, 6:34 p. m. por Directiva sintética (Directiva) / COBERTURA AL SELLAR (24 OCT DE 2026, 6:34 P. M.) · CAMPAÑA VERANO 2026 (SINTÉTICA)"
+    },
+    {
+      "route": "R2",
+      "name": "snapshot en la base: 1 sellado con entradas, ninguna retirada",
+      "ok": true,
+      "detail": "8 entradas, rol DIRECTIVA, umbral 3"
+    },
+    {
+      "route": "R3",
+      "name": "API, ADMINISTRADOR: segundo sellado → created: false",
+      "ok": true,
+      "detail": "200 created=false"
+    },
+    {
+      "route": "R3",
+      "name": "API: sin confirmación, aun sellada → 422 (nunca un éxito)",
+      "ok": true,
+      "detail": "422"
+    },
+    {
+      "route": "R3",
+      "name": "un solo sellado y el snapshot idéntico",
+      "ok": true,
+      "detail": "sellados 1"
+    },
+    {
+      "route": "R3",
+      "name": "UI, ADMINISTRADOR: la campaña sellada no ofrece sellar otra vez",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R4",
+      "name": "C1 aparece con su versión sellada",
+      "ok": true,
+      "detail": "Campaña Verano 2026 (sintética)\tCERRADA\tVersión 1, sellada el 24 oct de 2026, 6:34 p. m.\t3 de 4 con cifras publicadas"
+    },
+    {
+      "route": "R4",
+      "name": "C2 sin sellar: «Sin sellar: no aporta cifras»",
+      "ok": true,
+      "detail": "Campaña Invierno 2026 (sintética)\tABIERTA\tSin sellar: no aporta cifras\t—"
+    },
+    {
+      "route": "R4",
+      "name": "API: Glifosato F06 en C1 DISCLOSED, 8250 mL, 3 aportantes (k = 3)",
+      "ok": true,
+      "detail": "{\"campaign_ref\":\"<uuid>\",\"status\":\"DISCLOSED\",\"total_base\":\"8250\",\"total_presentation\":\"8.25\",\"contributors\":3,\"data_as_of\":\"2026-10-24T22:32:39.805Z\",\"pending_changes\":false}"
+    },
+    {
+      "route": "R4",
+      "name": "API: Belator en C1 (2 aportantes) SUPPRESSED_UNDER_THRESHOLD, sin total ni aportantes",
+      "ok": true,
+      "detail": "{\"campaign_ref\":\"<uuid>\",\"status\":\"SUPPRESSED_UNDER_THRESHOLD\",\"total_base\":null,\"total_presentation\":null,\"contributors\":null,\"data_as_of\":null,\"pending_changes\":false}"
+    },
+    {
+      "route": "R4",
+      "name": "API: C2, sin sellar, NOT_SEALED y sin cifra",
+      "ok": true,
+      "detail": "{\"campaign_ref\":\"<uuid>\",\"status\":\"NOT_SEALED\",\"total_base\":null,\"total_presentation\":null,\"contributors\":null,\"data_as_of\":null,\"pending_changes\":false}"
+    },
+    {
+      "route": "R4",
+      "name": "UI: Glifosato F06 en C1 muestra cifra y 3 aportantes",
+      "ok": true,
+      "detail": "Campaña Verano 2026 (sintética)\tPublicado\t8,25 L\t3\t24 oct de 2026, 6:32 p. m."
+    },
+    {
+      "route": "R4",
+      "name": "UI: Belator en C1 suprimida: sin total ni aportantes ni fecha",
+      "ok": true,
+      "detail": "Campaña Verano 2026 (sintética) | Oculto | Menos de 3 agricultores aportaron: la cifra no se publica para no revelar aportes individuales. | — | —"
+    },
+    {
+      "route": "R4",
+      "name": "botón «Descargar CSV»",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R4",
+      "name": "CSV descargado desde la UI",
+      "ok": true,
+      "detail": "tendencias-consumo.csv"
+    },
+    {
+      "route": "R4",
+      "name": "CSV: Glifosato F06 en C1 con 8250",
+      "ok": true,
+      "detail": "CONSUMPTION_TOTAL,<uuid>,Glifosato F06,ML,L,<uuid>,Campaña Verano 2026 (sintética),<uuid>,DISCLOSED,8250,8.25,3,2026-10-24T22:32:39.805Z,false"
+    },
+    {
+      "route": "R4",
+      "name": "CSV: Belator en C1 suprimida, sin 5000 ni 4000 ni 1000",
+      "ok": true,
+      "detail": "CONSUMPTION_TOTAL,<uuid>,Belator,ML,L,<uuid>,Campaña Verano 2026 (sintética),<uuid>,SUPPRESSED_UNDER_THRESHOLD,,,,,false"
+    },
+    {
+      "route": "R4",
+      "name": "CSV: cabecera",
+      "ok": true,
+      "detail": "disclosure,policy,approved,threshold,projection_type"
+    },
+    {
+      "route": "R5",
+      "name": "recarga: el selector vuelve a mostrar C1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R5",
+      "name": "recarga: el resumen sellado no cambia (API)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R5",
+      "name": "recarga: el texto de la página no cambia",
+      "ok": true,
+      "detail": "antes: [] después: []"
+    },
+    {
+      "route": "R5",
+      "name": "recarga: el snapshot en la base no cambia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R5",
+      "name": "Sync v1: PUBLISH nuevo en C1 sellada → REJECTED CAMPAIGN_SEALED",
+      "ok": true,
+      "detail": "200 REJECTED CAMPAIGN_SEALED"
+    },
+    {
+      "route": "R5",
+      "name": "Sync v1: CANCEL de F1 (Glifosato F06, C1) tras el sellado → APPLIED",
+      "ok": true,
+      "detail": "200 APPLIED"
+    },
+    {
+      "route": "R5",
+      "name": "tras el CANCEL: sellado, entradas y divulgaciones referenciadas idénticos en la base",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R5",
+      "name": "tras el CANCEL: sólo la entrada de Glifosato F06 (consumo) queda marcada como retirada",
+      "ok": true,
+      "detail": "1 marcadas"
+    },
+    {
+      "route": "R5",
+      "name": "tras el CANCEL: Glifosato F06 en C1 → WITHDRAWN_AFTER_SEAL, sin cifra",
+      "ok": true,
+      "detail": "{\"campaign_ref\":\"<uuid>\",\"status\":\"WITHDRAWN_AFTER_SEAL\",\"total_base\":null,\"total_presentation\":null,\"contributors\":null,\"data_as_of\":null,\"pending_changes\":false}"
+    },
+    {
+      "route": "R5",
+      "name": "tras el CANCEL: 8250 ya no aparece en el resumen",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "route": "R5",
+      "name": "tras el CANCEL: la referencia del sellado no cambia",
+      "ok": true,
+      "detail": "misma"
+    },
+    {
+      "route": "R5",
+      "name": "UI: Glifosato F06 en C1 retirada: sin total ni aportantes ni fecha",
+      "ok": true,
+      "detail": "Campaña Verano 2026 (sintética) | Retirado tras sellar | Un aportante retiró su aporte después del sellado: la cifra sellada ya no se muestra. El dato sellado no cambió. | — | —"
+    }
+  ],
+  "failed": 0
+}

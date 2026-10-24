@@ -143,9 +143,9 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     // F06 #21 the collective consolidation after both, the F10-SEC-02
     // review the quantity of each released item, F07 #27 the joint purchase
     // proposal draft, F08 #37 the backup metadata, F10-SEC-02 the
-    // coverage basis of each draft, and F08-BKP-06 (#40) the backup
-    // retention columns last.
-    expect(migrations).toHaveLength(12);
+    // coverage basis of each draft, F08-BKP-06 (#40) the backup retention
+    // columns, and F07 (2026-10-23) the collective seal last.
+    expect(migrations).toHaveLength(13);
     expect(migrations.every((m) => m.finished_at !== null)).toBe(true);
     expect(migrations[4].migration_name).toMatch(
       /_f05_sync_v1_journal_expand$/,
@@ -165,6 +165,7 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     expect(migrations[9].migration_name).toMatch(/_f08_backup_metadata$/);
     expect(migrations[10].migration_name).toMatch(/_f10_proposal_coverage_basis$/);
     expect(migrations[11].migration_name).toMatch(/_f08_bkp06_retention$/);
+    expect(migrations[12].migration_name).toMatch(/_f07_collective_seal$/);
   });
 
   it("creates a nominal PROCESSING journal without final ACK fields", async () => {

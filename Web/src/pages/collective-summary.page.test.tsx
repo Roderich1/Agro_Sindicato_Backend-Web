@@ -3,11 +3,13 @@ import { AxiosError, AxiosHeaders } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
-import { cell, summaryWith } from '../test/fixtures';
+import { cell, SEAL, sealStateWith, summaryWith } from '../test/fixtures';
 import { CAMPAIGN, renderAt } from '../test/render';
 import { CollectiveSummaryPage } from './collective-summary.page';
 
-vi.mock('../services/collective.service', () => ({ collectiveService: { summary: vi.fn() } }));
+vi.mock('../services/collective.service', () => ({
+  collectiveService: { summary: vi.fn(), sealState: vi.fn(), seal: vi.fn() },
+}));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
 
 const PATH = `/colectivo/resumen?campaign=${CAMPAIGN.id}`;
@@ -21,6 +23,32 @@ function httpError(status: number) {
 describe('Resumen colectivo', () => {
   beforeEach(() => {
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN]);
+    vi.mocked(collectiveService.sealState).mockResolvedValue(
+      sealStateWith({ can_seal: false, blocked_by: ['CAMPAIGN_NOT_CLOSED'], review: null }),
+    );
+  });
+
+  it('versión sellada: se identifica, la cobertura es la del sellado y una cifra retirada tras sellar no aparece', async () => {
+    vi.mocked(collectiveService.summary).mockResolvedValue({
+      ...summaryWith([
+        cell({ product_name: 'Urea', base_unit: 'G', total_base: '25000', total_presentation: '25', contributors: 3 }),
+        // Aunque llegara un total, una cifra retirada tras sellar no se muestra.
+        cell({ product_name: 'Belator', status: 'WITHDRAWN_AFTER_SEAL', total_base: '6000', contributors: 3 }),
+      ]),
+      seal: SEAL,
+    });
+    renderAt(<CollectiveSummaryPage />, { path: PATH });
+    const banner = await screen.findByTestId('seal-banner');
+    expect(banner.textContent).toMatch(/Versión 1/);
+    expect(banner.textContent).toMatch(/Administrador sintético \(Administrador\)/);
+    expect(banner.textContent).toMatch(/no puede asegurar que todos los teléfonos publicaron todo/);
+    expect(screen.getByTestId('coverage').textContent).toMatch(/Cobertura al sellar/);
+    const withdrawn = screen.getByTestId('cell-DECLARED_NEED-Belator-ML');
+    expect(withdrawn.textContent).toMatch(/retiró su aporte después del sellado/);
+    expect(withdrawn.textContent).not.toMatch(/6000|6 L/);
+    // Una campaña sellada no ofrece sellar otra vez.
+    expect(screen.queryByTestId('seal-panel')).toBeNull();
+    expect(collectiveService.sealState).not.toHaveBeenCalled();
   });
 
   it('POLICY_PENDING: no hay tablas, ni cifras, ni cobertura', async () => {
