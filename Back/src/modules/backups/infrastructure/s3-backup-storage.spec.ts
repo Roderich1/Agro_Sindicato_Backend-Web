@@ -937,6 +937,28 @@ describe("#151 5b and H3: the cleanup of a failed stage, and its original cause 
         expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_CREATION_UNKNOWN"] }]);
       });
 
+      it.each([
+        ["null", null],
+        ["undefined", undefined],
+        ["a string", "rechazo en texto"],
+      ])("a rejection that is not an object (%s) is propagated as it is, never as a TypeError; the upload stays unknown and is listed", async (_, refusal) => {
+        const { s3, storage, reports } = reported();
+        s3.before = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(names(s3, "ListMultipartUploadsCommand")).toHaveLength(1);
+        expect(reports).toMatchObject([{ failure: { origin: "provider" }, complete: false, pending: ["MULTIPART_CREATION_UNKNOWN"] }]);
+      });
+
+      it("open whose GetObject rejects with null propagates that null, not a TypeError", async () => {
+        const { s3, storage } = reported();
+        s3.before = (command) => {
+          if (command.name === "GetObjectCommand") throw null;
+        };
+        await expect(storage.open(randomUUID())).rejects.toBeNull();
+      });
+
       it("403 on its only attempt: it created nothing, nothing is listed, complete", async () => {
         const { s3, storage, reports } = reported();
         const refusal = s3Error("AccessDenied", 403, 1);

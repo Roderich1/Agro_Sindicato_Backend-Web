@@ -160,11 +160,12 @@ function md5(bytes: Buffer): string {
 }
 
 function statusOf(error: unknown): number | undefined {
-  return (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+  // A rejection need not be an object (null, a string): never a TypeError that hides it.
+  return (error as { $metadata?: { httpStatusCode?: number } } | null | undefined)?.$metadata?.httpStatusCode;
 }
 
 function isNotFound(error: unknown): boolean {
-  const name = (error as { name?: string }).name;
+  const name = (error as { name?: string } | null | undefined)?.name;
   return name === "NoSuchKey" || name === "NotFound" || statusOf(error) === 404;
 }
 
@@ -176,7 +177,7 @@ function isNotFound(error: unknown): boolean {
  */
 function isDefinitiveRefusal(error: unknown): boolean {
   const status = statusOf(error);
-  const attempts = (error as { $metadata?: { attempts?: number } }).$metadata?.attempts;
+  const attempts = (error as { $metadata?: { attempts?: number } } | null | undefined)?.$metadata?.attempts;
   return (
     status !== undefined &&
     status >= 400 &&
@@ -194,7 +195,7 @@ function failureOf(
   error: unknown,
 ): NonNullable<S3StagingCleanupReport["failure"]> {
   const name = error instanceof Error ? error.name : typeof error;
-  const status = statusOf(error ?? {});
+  const status = statusOf(error);
   const deadline = origin === "provider" && error instanceof Error && error.message === DEADLINE_EXCEEDED;
   return { origin: deadline ? "deadline" : origin, name, ...(status === undefined ? {} : { status }) };
 }
