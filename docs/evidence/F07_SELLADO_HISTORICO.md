@@ -19,6 +19,7 @@
 | `77b9bc2` | Más la Web y la línea de CI | Batería Backend (§2) y Vitest de la Web |
 | `2f4c24f` | Más dos pruebas existentes corregidas (sólo archivos `*.spec.ts`) | Nada (§2, FAIL corregidos) |
 | `15e1b72` | Más los snapshots OpenAPI y sus aserciones | `npm run openapi:check` |
+| `4a060cc` | Más esta evidencia (sólo documentación) | CI de GitHub completa del PR #162 (§2.1) |
 
 Entre `8ad60cb` y `15e1b72`, `git diff -- Back/src Back/prisma` sólo cambia las dos pruebas de `2f4c24f`. El código de la aplicación es el mismo.
 
@@ -41,7 +42,50 @@ La interrumpió Claude Code por falta de memoria del sistema (unos 3 GB libres d
 | `f07-collective-seal` sobre el HEAD | idem | **NOT_RUN** (interrupción); PASS 19/19 sobre `8ad60cb` (§3) |
 | `product-reconciliation` | idem | **NOT_RUN** (interrupción) |
 
-**Pendiente:** ejecutar `sync-v1-journal`, `f06-coll-05`, `f07-collective-seal` y `product-reconciliation` sobre el HEAD. Se puede hacer en local cuando haya memoria, o con la CI del PR draft (`backend-f02.yml` ejecuta las de Sync v1 y F06; `web.yml` ejecuta las de F07, incluida la del sellado).
+**Cierre de lo pendiente:** las cuatro suites que quedaron `NO_CONCLUYENTE` o `NOT_RUN` se ejecutaron en la CI de GitHub sobre `4a060cc` (§2.1). En local siguen sin volver a ejecutarse.
+
+### 2.1 CI de GitHub sobre `4a060cc` (PR draft #162, 2026-10-24)
+
+PostgreSQL de servicio de GitHub Actions, con bases desechables y datos sintéticos. Los resultados se leyeron de los registros de cada ejecución con `gh run view <id> --log`.
+
+**`Backend F02 verification`** (`backend-f02.yml`, run `40060250490`, de 03:55:05Z a 03:58:22Z, `success`):
+
+| Paso | Resultado |
+|---|---|
+| `prisma validate`, `prisma generate`, `npm run build` | PASS |
+| `npm test -- --runInBand` | PASS: 40 suites, 324 pruebas; 19 suites saltadas (PostgreSQL sin URL) |
+| `npm run openapi:check` | PASS: aserciones F02, F05, F06 y F08 |
+| `auth-v2` / `current-auth-context` / `f02-final-integration` | PASS 12/12, 25/25, 3/3 |
+| `sync-v1-journal` | **PASS 30/30** (antes `NO_CONCLUYENTE`) |
+| `sync-v1-adversarial` / `sync-v1-references` | PASS 41/41, 7/7 |
+| `f06-coll-05` | **PASS 16/16** (antes `NO_CONCLUYENTE`) |
+| `product-reconciliation` | **PASS 5/5** (antes `NOT_RUN`) |
+| `backups` (5 suites) | PASS 57/57 |
+| `f10-sec-02-legacy-boundary` / `f81-phase6-legacy-writes` / `f10-sec-02-disclosure-gaps` | PASS 29/29, 7/7, 2/2 |
+
+**`Web F07 verification`** (`web.yml`, run `40060250510`, `success`):
+
+| Job | Resultado |
+|---|---|
+| `web`: `lint`, `build`, `npm test` (Vitest) | PASS: 10 archivos, 88/88 |
+| `f07-proposal-postgres`: `f07-web-proposal` / `f07-acceptance` | PASS 12/12, 6/6 |
+| `f07-proposal-postgres`: `f07-collective-seal` | **PASS 19/19** (antes `NOT_RUN` sobre el HEAD) |
+
+**Lo que la CI no ejecuta:**
+- las mutaciones M1–M6 y M8 (§3), que sólo se ejecutaron en local sobre `8ad60cb`;
+- la prueba en DEVICE de `CAMPAIGN_SEALED` en Mobile (§6, a cargo de A).
+
+La Web sí queda cubierta: `npm run build` es `tsc -b && vite build`.
+
+Este cambio, que sólo toca `docs/evidence/F07_*`, no dispara ninguno de los dos workflows. Los resultados de arriba corresponden a `4a060cc`.
+
+**Composición `comp/f01-f08-be` `453acce` (PR #164, «NO FUSIONAR», de A):**
+- `Backend F02 verification`, run `40060272620`, `success`:
+  - unitarias: 41 suites, 345 pruebas;
+  - las mismas suites PostgreSQL con los mismos totales, salvo `backups`: 6 suites, 68/68.
+- `Web F07 verification`, run `40060272680`, `success`, con los mismos totales que #162.
+
+Es una rama de composición, no una propuesta de fusión.
 
 ## 3. Suite del sellado y mutaciones (sobre `8ad60cb`, 2026-10-23)
 
@@ -101,7 +145,7 @@ M7 (umbral vigente) se descartó porque no discrimina con k = 3 en todos los esc
   - `npx eslint src` → 0 errores y 2 avisos anteriores (contextos).
   - Una prueba encontró un defecto real, corregido antes del commit: tras un 409 de revisión obsoleta, el panel borraba su propio mensaje al recargar la revisión.
 - **OpenAPI, sobre `15e1b72`** (2026-10-24, con una base local desechable): `npm run openapi:check` PASS (los snapshots coinciden y las aserciones F02, F05, F06 y F08 pasan).
-- **CI de GitHub:** **NOT_RUN** (la rama no está publicada).
+- **CI de GitHub:** PASS sobre `4a060cc` (§2.1).
 
 ## 5. Revisiones técnicas entre sesiones
 
