@@ -109,3 +109,20 @@ El texto anterior se conserva como registro. Diseño: Mobile `docs/adr/F08-ADR-0
   - las subidas del formato 1 siguen admitidas por defecto para el entorno sintético y la herramienta de #160.
 - **Se añade como condición previa a datos reales** (enmienda del §5): `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`, que rechaza el formato 1 con 422 `BACKUP_ENCRYPTION_REQUIRED`. No es una admisión: la admisión productiva sigue cerrada y las demás condiciones no cambian.
 - **Riesgo nuevo, aceptado:** perder a la vez el teléfono y la clave anotada hace irrecuperables las copias cifradas.
+
+## 9. Actualización 2026-10-24: existencia y visibilidad en B2 por listado (#151)
+
+El texto anterior se conserva como registro. En el ensayo de #151 del 2026-10-24 (`docs/evidence/F08_BKP_08_B2_REAL_FORMATO2.md`), **en ese entorno B2 y con las claves temporales de mínimo privilegio**, se observaron dos comportamientos. No se afirma que ocurran en todas las configuraciones de B2:
+
+- **H1:** `HeadObject` y `GetObject` de un nombre inexistente respondieron 403, no 404. El commit del adaptador, que decidía con ese 404 si el nombre final estaba libre, no podía completar ninguna copia.
+- **H2:** al paginar `ListObjectVersions`, B2 marcó `IsLatest` en la primera entrada de cada nombre en cada página, aunque fuera una versión antigua.
+
+Cambios en `S3BackupStorage` (Roderich eligió el 2026-10-24 corregir el adaptador sin ampliar los permisos):
+
+- **Existencia por listado.** El commit comprueba el nombre final con `ListObjectVersions`, con ese nombre como prefijo, dentro del bucket y del prefijo autorizados. Sólo cuenta la **igualdad exacta**: otro nombre que empiece igual no prueba nada. Cualquier versión o marcador del nombre exacto cuenta como existente, y entonces no se copia nada.
+- **Falla cerrado.** Un 403, una página inválida, un listado estancado o un listado que llega al límite de páginas lanzan un error. Nunca se interpretan como «no existe» ni como «no queda nada». No se amplían permisos ni hay alternativa a disco.
+- **No es una reserva atómica.** Entre el listado y la copia, otro escritor del mismo nombre no se detectaría. La unicidad sigue descansando, como antes, en las claves UUID que genera el servidor para cada copia y en una sola subida en curso por Member (§7). El listado es una comprobación, igual que lo era el `HEAD`.
+- **Visibilidad sin fiarse sólo de `IsLatest`.** El inventario de versiones para purgar (todas las versiones y marcadores, por id de versión) se separa de qué entrada es la vigente. La vigente de cada nombre es la marcada en la primera página donde aparece ese nombre, y las marcas de páginas posteriores se ignoran. Hay incoherencia, y el inventario falla cerrado, cuando ninguna o más de una entrada cumple esa condición, cuando una entrada se repite o cuando otra entrada es más reciente por fecha. Nunca se elige una versión comparando ids como texto, ni se resucita un objeto oculto por un marcador. Las purgas ya no consultan `IsLatest`.
+- **Incompleto no es completo.** Si un listado llega al límite de trabajo (`listPages`) o al plazo, el inventario termina con error y no se presenta como completo.
+
+**Pruebas:** `s3-backup-storage.spec.ts`, en el bloque «#151: what B2 answered…». El doble imita los dos comportamientos (`quirks.missingAs403`, `quirks.latestPerPage`) y los casos de páginas de 1, 2, 3, 4 y 1 000 entradas dan el mismo resultado lógico. Además, el contrato del almacenamiento se ejecuta con `latestPerPage` y páginas de 1. Con el adaptador anterior, 21 de los casos nuevos fallan. El doble **no es B2**. La repetición contra B2 real tiene su propia evidencia.
