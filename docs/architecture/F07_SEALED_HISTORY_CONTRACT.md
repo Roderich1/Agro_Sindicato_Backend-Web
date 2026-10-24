@@ -1,10 +1,10 @@
 # F07 — Histórico colectivo conservado, sellado manual y consultas de tendencias
 
 - **Fecha real:** 2026-10-23 (America/La_Paz). Lo redacta la sesión B de Claude Code sobre Backend `main` `769d441`.
-- **Base de las decisiones:** `_briefs/INICIO_F01_F08_2026-10-23/01_DECISIONES_APROBADAS.md` §5, §6 y §9. Son acuerdos de diseño del autor (Roderich Rendón) para el **entorno sintético**. No son una aprobación institucional, de la Directiva ni del tutor.
+- **Base de las decisiones:** las decisiones de Roderich Rendón del 2026-10-23 sobre F07 (umbral, conservación histórica y sellado manual). Son acuerdos de diseño del autor (Roderich Rendón) para el **entorno sintético**. No son una aprobación institucional, de la Directiva ni del tutor.
 - **Revisión técnica:** la sesión A revisa las invariantes compartidas (autorización, idempotencia, `sync-v1`) y la sesión C revisa la implementación. Esa revisión no se llama aprobación.
 - **Requisitos:** RF-24, RNF-05 (política de divulgación, F07-POL-01 #107), los roles RU-18/RU-19 ([ADR-003](../adr/ADR-003-administrador-presidente-funciones-directiva.md)) y la clase de retención del contrato F06 §7.
-- **Antecedente:** BE #159 (`b5b2804`, draft) proponía «M-2: sellar y después eliminar de forma conjunta por campaña». **Esa eliminación se descarta** (decisión del 2026-10-23, §6) y este contrato la sustituye. #159 queda como antecedente: no se cierra ni se reescribe. §10 resuelve las observaciones de su revisión.
+- **Antecedente:** BE #159 (`b5b2804`, draft) proponía «M-2: sellar y después eliminar de forma conjunta por campaña». **Esa eliminación se descarta** (decisión de Roderich del 2026-10-23) y este contrato la sustituye. #159 queda como antecedente: no se cierra ni se reescribe. §10 resuelve las observaciones de su revisión.
 - **Enmiendas que acompañan a este contrato**, todas fechadas y sin reescribir el texto anterior:
   - F06 §6 (nota) y §7.2;
   - F05 §8 (código `CAMPAIGN_SEALED`) y la matriz de reintentos (C16b, C16c);
@@ -48,7 +48,12 @@ Datos reales: siguen sin admitirse.
 - la memoria de una campaña sellada se conserva mientras exista su versión sellada (FK `Restrict` y disparadores; §4);
 - **no hay purga** de la memoria en este bloque (la M-2 de #159 se descarta).
 
-**La memoria técnica no se usa como analítica.** Las tendencias leen sólo `CollectiveSeal`, `CollectiveSealEntry` y, de `CollectiveRelease`, el total, el número de aportantes y las fechas de la divulgación referenciada. **Nunca leen `CollectiveReleaseItem`.** La única lectura nueva de `CollectiveReleaseItem` es la de §5.2 (retirada tras el sellado), una finalidad de protección y no de análisis.
+**La memoria técnica no se usa como analítica.**
+- Las tendencias y la consulta histórica leen sólo `CollectiveSeal`, `CollectiveSealEntry` y, de `CollectiveRelease`, el total, el número de aportantes y las fechas de la divulgación referenciada. **Nunca leen `CollectiveReleaseItem`.**
+- `CollectiveReleaseItem` sólo se lee para:
+  - **(a) la decisión de divulgación**, también cuando se ejecuta en modo de sólo lectura para servir una propuesta sin sellar (§10, hallazgo 3). Es la misma finalidad de F06 §7.1;
+  - **(b) la retirada de visibilidad** tras el sellado (§5.2).
+- Las dos son finalidades de protección, no de análisis. Lo declara F06 §7.2, que enmienda la frase de §7.1 «sin leer `CollectiveReleaseItem`».
 
 **No se añade historial al journal** (`SyncV1OperationJournal`, `R_CAUSAL`): el sellado no escribe en él. Para el sellado sólo se escribe el registro mínimo de `AuditLog` (§3.4).
 
@@ -65,19 +70,30 @@ Datos reales: siguen sin admitirse.
 ### 3.2 Precondiciones (en el servidor, en este orden)
 
 0. **Antes de todo**, los guardas de rol y de tenant de §3.1: 401, 403 o 404. Así, un AGRICULTOR u otro tenant no pueden saber si la campaña está sellada.
-1. **Ya sellada** → respuesta idempotente con la versión existente (`200`, `created: false`). No escribe nada.
-2. Modo de divulgación `POLICY_PENDING` → `409 POLICY_PENDING`. No se sella una versión sin cifras autorizadas.
-3. Campaña distinta de `CERRADA` → `409 CAMPAIGN_NOT_CLOSED`. Se exige el cierre por dos motivos:
+1. **Body:**
+   - `confirmed` distinto de `true` → `422 CONFIRMATION_REQUIRED`;
+   - `review_ref` sin formato → `400`.
+
+   Se comprueba **antes** que el sellado existente: una petición sin confirmar nunca recibe un éxito (hallazgo 7 de C). **Ninguna escritura.**
+2. **Ya sellada** → respuesta idempotente con la versión existente (`200`, `created: false`). No escribe nada.
+3. **Bandera `COLLECTIVE_SEALING` apagada** (por defecto) → `409 SEALING_DISABLED` (hallazgo 2 de C):
+   - el sellado convierte cualquier publicación posterior en `CAMPAIGN_SEALED`, que es terminal;
+   - por eso se habilita sólo con la compilación Mobile que maneja ese código, comprobada en DEVICE con la APK de ese SHA. Es una **condición de habilitación**, no una limitación aceptada;
+   - leer versiones selladas no depende de la bandera.
+4. Modo de divulgación `POLICY_PENDING` → `409 POLICY_PENDING`. No se sella una versión sin cifras autorizadas.
+5. Campaña distinta de `CERRADA` → `409 CAMPAIGN_NOT_CLOSED`. Se exige el cierre por dos motivos:
    - sellar una campaña `ABIERTA` dejaría a los agricultores operando en una campaña que ya no admite publicaciones;
    - la revisión de #159 (hallazgo 2) mostró que actuar sobre una campaña abierta debilita la regla. `CERRADA` es terminal en el modelo vigente (`openCampaign` no la reabre).
-4. Body inválido: `confirmed` distinto de `true` o `review_ref` sin formato → `422 CONFIRMATION_REQUIRED` / `400`. **Ninguna escritura.**
-5. La revisión mostrada ya no coincide con el estado actual (`review_ref` distinto) → `409 SEAL_REVIEW_STALE`. **Ninguna escritura**: la transacción se revierte entera, también las divulgaciones que la decisión hubiera creado en ella.
+6. La revisión mostrada ya no coincide con el estado actual (`review_ref` distinto) → `409 SEAL_REVIEW_STALE`. **Ninguna escritura**: la transacción se revierte entera, también las divulgaciones que la decisión hubiera creado en ella.
 
 ### 3.3 Revisión previa obligatoria (`GET …/seal`)
 
 Antes de sellar, la Web muestra lo que devuelve el servidor:
 - **cobertura**: agricultores vinculados y agricultores dentro de cifras publicadas, la misma regla del resumen;
-- **datos aceptados hasta**: la hora del servidor de la revisión. El sellado incluirá lo aceptado hasta el instante del sellado (§3.5);
+- **`accepted_until`**: el instante de la decisión que se revisa o se sella (hallazgo 4 de C):
+  - la decisión considera todo lo aceptado hasta ese instante, pero **no todas las cifras lo reflejan**;
+  - cada cifra vale por su propio `data_as_of`;
+  - una cifra con `pending_changes` o una celda `SUPPRESSED_REVISION` muestran una divulgación anterior, o ninguna, y la Web las rotula así;
 - **conflictos o pendientes conocidos**, como booleanos, sin conteo:
   - `open_disputes`: alguna aportación de la campaña tiene una disputa abierta;
   - `pending_changes`: alguna cifra se muestra con cambios pendientes;
@@ -110,8 +126,22 @@ Cualquier fallo revierte todo: no queda un sellado sin entradas, ni divulgacione
 
 **Garantías:**
 - **Doble toque o dos actores a la vez:** el segundo espera el bloqueo, ve el sellado del primero y lo devuelve con `created: false`. La base lo garantiza también con `@@unique([tenantId, campaignId, version])` y `CHECK (version = 1)`.
-- **Carrera con una publicación o una retirada** (§7): cada `push` que llega a decidir toma el mismo bloqueo en modo **compartido** antes de decidir. Vale para **cualquier acción**, también CANCEL (observación O1 de la revisión de A). El sellado espera a que terminen los `push` en curso y los nuevos esperan al sellado. Cada operación queda claramente **antes** (incluida en la decisión) o **después** (rechazada o tratada según §7). No hay instantánea intermedia.
-- **Orden de bloqueos sin ciclos.** El sellado toma `collective-seal` y después `collective`. El `push` toma la operación, después `collective-seal` compartido y después la fila de la aportación. El resumen sólo toma `collective`. Ningún camino toma estos bloqueos en orden inverso.
+- **Carrera con una retirada o una publicación** (§7): cada `push` que llega a decidir toma el mismo bloqueo en modo **compartido** antes de decidir. Vale para **cualquier acción**, también CANCEL (observación O1 de la revisión de A). El sellado espera a que terminen los `push` en curso y los nuevos esperan al sellado. No hay instantánea intermedia.
+  - **La carrera real es CANCEL ↔ sellado** (hallazgo 6 de C). Como sólo se sella una campaña `CERRADA`, un PUBLISH anterior al sellado ya recibe `CAMPAIGN_NOT_OPEN`.
+  - Un CANCEL **antes** queda dentro de la decisión sellada. La cifra se retira (`SUPPRESSED_REVISION`), salvo que la regla permita otra.
+  - Un CANCEL **después** marca `visibilityWithdrawnAt` y la cifra pasa a `WITHDRAWN_AFTER_SEAL`.
+  - Un PUBLISH después del sellado recibe `CAMPAIGN_SEALED`.
+- **Orden de bloqueos sin ciclos:**
+  - el sellado toma `collective-seal` y después `collective`;
+  - el `push` toma la operación, después `collective-seal` compartido y después la fila de la aportación;
+  - el resumen sólo toma `collective`.
+
+  Ningún camino toma estos bloqueos en orden inverso.
+- **Un resumen que empieza antes del sellado** (hallazgo 5 de C) comprueba el sellado **después** de obtener el bloqueo `collective`:
+  - si el sellado se confirmó mientras esperaba, sirve la versión sellada, sin decidir ni escribir;
+  - si no, decide antes de que el sellado pueda tomar ese bloqueo.
+
+  No llega a chocar con el disparador de §4.
 
 **Huella de revisión (`review_ref`).** SHA-256 de un JSON canónico con:
 - la campaña;
@@ -148,8 +178,11 @@ CollectiveSealEntry   -- una por celda del resumen en el instante del sellado
   - `CollectiveSeal`: sin UPDATE ni DELETE;
   - `CollectiveSealEntry`: sin DELETE. El único UPDATE admitido marca `visibilityWithdrawnAt` de NULL a una fecha, una sola vez y sin tocar otra columna.
 - `CHECK (("status" = 'DISCLOSED') = ("releaseId" IS NOT NULL))` y `CHECK ("version" = 1)`.
-- Una entrada sólo puede apuntar a una divulgación **de la misma campaña y tenant** (disparador en INSERT).
-- **Ninguna divulgación nueva en una campaña sellada**: un disparador sobre `CollectiveRelease` rechaza INSERT, y cualquier UPDATE de `withdrawnAt`, si la campaña tiene sellado. Así, aunque un defecto del código volviera a llamar a la decisión, la base impide recalcular la versión sellada.
+- Las entradas sólo se insertan **en la misma transacción** que crea su sellado. Cada una sólo puede apuntar a la divulgación **vigente** (`withdrawnAt IS NULL`) **de la misma celda**: tenant, campaña, tipo, producto canónico y unidad. Lo comprueba un disparador en INSERT (hallazgo 8 de C).
+- La base sólo admite el sellado de una campaña `CERRADA` del mismo tenant. Una campaña sellada no cambia de estado ni de tenant.
+- **Ninguna divulgación nueva en una campaña sellada**: los disparadores rechazan, si la campaña tiene sellado:
+  - el INSERT y cualquier UPDATE de `withdrawnAt` en `CollectiveRelease`;
+  - el INSERT en `CollectiveReleaseItem`. Así, aunque un defecto del código volviera a llamar a la decisión, la base impide recalcular la versión sellada.
 
 **Datos que no se copian:** las entradas no duplican el total ni las aportaciones. La cifra sale de la divulgación referenciada, que ya es inmutable. No se crea ningún campo nuevo en el payload Mobile.
 
@@ -180,7 +213,18 @@ Una entrada sellada `DISCLOSED` se sirve con su cifra sólo si se cumple **todo*
 - **Por qué también CONFLICT.** Según F05 §6, un CANCEL concurrente con otra intención deja la aportación `CANCELLED` o `CONTESTED` con la disputa abierta. En los dos casos no queda ninguna contribución activa, y el aportante expresó su voluntad de retirarse. Ocultar es la opción conservadora (observación O3 de A).
 - El dato sellado (estado, divulgación y cifra) **no cambia**.
 
-**Cambios de elegibilidad tras el sellado** (baja del Member o de su cuenta, cambio de rol) **no retiran** cifras selladas. Motivo: si lo hicieran, un ADMINISTRADOR podría desactivar a un agricultor y observar qué cifras históricas desaparecen, y así deducir en qué productos participó. La versión sellada recoge la elegibilidad que había al sellar. Las **reasociaciones canónicas** posteriores tampoco afectan a la versión sellada.
+**Cambios de elegibilidad tras el sellado** (baja del Member o de su cuenta, cambio de rol) **no retiran** cifras selladas.
+- **Motivo:** si lo hicieran, un ADMINISTRADOR podría desactivar a un agricultor y observar qué cifras históricas desaparecen, y así deducir en qué productos participó.
+- La versión sellada recoge la elegibilidad que había al sellar.
+- Las **reasociaciones canónicas** posteriores tampoco afectan a la versión sellada.
+
+**Limitación declarada** (hallazgo 3 de C):
+- Antes del sellado, la regla R4 retira la cifra cuando un Member o su cuenta se dan de baja. Después del sellado, no.
+- Un agricultor dado de baja tampoco puede emitir CANCEL: Sync v1 revalida el contexto y responde 403.
+- Su aporte queda dentro de las cifras selladas visibles, sin una vía propia de retirada.
+- Su tratamiento depende de la respuesta 2(f) de la hoja institucional («qué se hace si un agricultor pide que no se cuenten sus datos»). Hoy no existe.
+- **Regla para el futuro**, no construida: una retirada central sólo podría afectar a la **versión sellada completa** de la campaña, nunca a una celda, para no habilitar la inferencia descrita arriba.
+- Con datos sintéticos no hay personas afectadas.
 
 **Una entrada nunca gana visibilidad:**
 - no hay forma de borrar `visibilityWithdrawnAt`;
@@ -264,13 +308,18 @@ Un reenvío del mismo `operationId` devuelve exactamente ese ACK, guardado en el
   - la consulta no publica ninguna cifra nueva.
 
   Riesgo que se acepta, como en F07-POL-01 §0: el conocimiento externo de que los demás aportantes no cambiaron entre campañas.
+- **Gráficos** (hallazgo 9 de C):
+  - salen del **mismo JSON** que la tabla y el CSV;
+  - cada serie es un tipo, producto y unidad; no se apilan series ni se dibujan áreas;
+  - los puntos sin cifra (suprimidos, retirados, `NO_DATA` y `NOT_SEALED`) son **huecos**: no se interpolan ni se dibujan como cero, y cada uno se rotula con su estado;
+  - una prueba comprueba que gráfico, tabla y CSV muestran las mismas cifras y los mismos estados.
 - **No incluye** forecasting, dosis recomendadas, ahorro, reparto, pagos ni notificaciones a agricultores.
 
 ## 9. API (resumen)
 
 | Método y ruta | Roles | Escribe |
 |---|---|---|
-| `GET /collective/campaigns/:id/seal` | DIRECTIVA, ADMINISTRADOR | Sin sellar: lo mismo que una lectura del resumen. Sellada: nada |
+| `GET /collective/campaigns/:id/seal` | DIRECTIVA, ADMINISTRADOR | Sin sellar y sellable: lo mismo que una lectura del resumen. Sellada o bloqueada (`blocked_by`): nada |
 | `POST /collective/campaigns/:id/seal` | DIRECTIVA, ADMINISTRADOR | El sellado, sus entradas y la auditoría, en una transacción |
 | `GET /collective/campaigns/:id/summary` y `.csv` | ídem | Sellada: nada. Añade el campo `seal` y la columna `seal_ref` |
 | `GET /collective/campaigns/:id/proposals`, `GET /collective/proposals/:id` y `/csv` | ídem | **Nada**, sellada o no (§10, hallazgo 3) |
@@ -279,7 +328,7 @@ Un reenvío del mismo `operationId` devuelve exactamente ese ACK, guardado en el
 
 `seal` (en el resumen, la propuesta y las tendencias):
 `{ seal_ref, version, sealed_at, accepted_until, sealed_by: { user_ref, name, role } }`.
-`accepted_until` es igual a `sealed_at`: el Central incluyó lo que había aceptado hasta ese instante.
+`accepted_until` es igual a `sealed_at`, que es el instante de la decisión sellada. Cada cifra vale por su propio `data_as_of`, y las cifras con `pending_changes` muestran una divulgación anterior (§3.3). No prueba que los teléfonos publicaran todo.
 
 ## 10. Observaciones de la revisión de #159 y cómo se resuelven
 
@@ -300,7 +349,11 @@ Se ejecutan con PostgreSQL desechable y cuentas sintéticas (`collective-seal.po
 - sellan ambos roles; AGRICULTOR y otro tenant no;
 - una confirmación ausente, una revisión obsoleta y un fallo transaccional inyectado no dejan efecto parcial;
 - el sellado concurrente y la doble solicitud producen un solo sellado;
-- la carrera entre `push` y sellado: cada publicación queda antes (incluida) o después (`CAMPAIGN_SEALED`);
+- la carrera CANCEL ↔ sellado:
+  - antes → `SUPPRESSED_REVISION` en la versión sellada;
+  - después → `WITHDRAWN_AFTER_SEAL`;
+  - en ninguna se da un estado intermedio;
+- un PUBLISH después del sellado → `CAMPAIGN_SEALED`, con un replay idéntico;
 - el replay anterior al sellado conserva su resultado;
 - la publicación nueva se rechaza sin duplicar ni alterar el snapshot;
 - CANCEL y cambios de elegibilidad no filtran cifras;
@@ -320,3 +373,11 @@ La Web prueba estados, confirmación, cobertura y falta de red (Vitest).
   - O5: los guardas de rol y tenant van antes de todo.
 
   Se incorporan en este texto. Es una revisión técnica entre sesiones, no una aprobación.
+- **2026-10-23, sesión C sobre `de94e83`** (con un agente de revisión de C): LISTO CON CONDICIONES.
+  - Importantes:
+    - 1: lectura de `CollectiveReleaseItem` en la decisión de sólo lectura → §2 y F06 §7.2;
+    - 2: reintento sin fin de un Mobile anterior → bandera `COLLECTIVE_SEALING` y condición de habilitación, §3.2;
+    - 3: baja tras el sellado → limitación declarada y 2(f), §5.2;
+    - 4: `accepted_until` → §3.3 y §9.
+  - Menores: 5–10, en §3.2, §3.5, §4, §8 y en la cita de las decisiones.
+  - Se incorporan en este texto. Es una revisión técnica entre sesiones, no una aprobación.

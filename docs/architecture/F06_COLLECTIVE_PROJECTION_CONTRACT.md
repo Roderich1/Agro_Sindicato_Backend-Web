@@ -207,7 +207,7 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
 ### 7.2 Enmienda del 2026-10-23: historial colectivo sellado (`R_COLLECTIVE_HISTORY`)
 
 **Qué es.**
-- Origen: las decisiones de Roderich Rendón del 2026-10-23 (`01_DECISIONES_APROBADAS.md` §6): conservar el histórico colectivo para consultas y tendencias descriptivas, y sellar de forma manual.
+- Origen: las decisiones de Roderich Rendón del 2026-10-23: conservar el histórico colectivo para consultas y tendencias descriptivas, y sellar de forma manual.
 - Detalle: [`F07_SEALED_HISTORY_CONTRACT.md`](F07_SEALED_HISTORY_CONTRACT.md).
 - La redactó la sesión B de Claude Code. La revisan las sesiones A y C. No es una aprobación institucional.
 - Rige desde el 2026-10-23. **No es retroactiva**, y el texto anterior de §7 y §7.1 no se reescribe.
@@ -227,7 +227,11 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
   - tras el sellado, la aportación vigente se conserva como soporte del vínculo de la memoria, que la referencia con FK `Restrict`, y **no se usa para ningún cálculo nuevo de esa campaña**;
   - la salida de `R_CURRENT` para una campaña sellada queda subordinada a la de su historial. No se borra por separado.
 - **`R_DISCLOSURE_MEMORY` (§7.1)**, dos precisiones:
-  1. **Nueva finalidad acotada:** la memoria se lee también para saber a qué entradas selladas afecta la retirada (CANCEL) de un aportante después del sellado, y retirar su visibilidad. Es una finalidad de protección. **No** la convierte en analítica: las tendencias y la consulta histórica no leen `CollectiveReleaseItem`.
+  1. **Lectores de `CollectiveReleaseItem`.** §7.1 decía que leer una propuesta no lee esa tabla. Desde esta enmienda la leen:
+     - la decisión de divulgación, también en modo de sólo lectura para servir una propuesta sin sellar, con la misma finalidad de §7.1;
+     - **nueva finalidad acotada:** la retirada de visibilidad. Sirve para saber a qué entradas selladas afecta el CANCEL de un aportante después del sellado.
+
+     Las dos son de protección. **No** la convierten en analítica: las tendencias y la consulta histórica no leen `CollectiveReleaseItem`.
   2. **Duración:** la memoria de una campaña sellada se conserva mientras exista su versión sellada.
 - **La propuesta M-2 de BE #159** («sellar y después eliminar de forma conjunta por campaña») se **descarta** por la decisión del 2026-10-23. No se adopta ningún plazo automático (30 días u otro) para borrar o sellar.
 - **`R_CAUSAL` y el journal:** el sellado no añade historial al journal. El rechazo `CAMPAIGN_SEALED` se guarda como cualquier otro rechazo (F05 §8, enmienda del 2026-10-23).
