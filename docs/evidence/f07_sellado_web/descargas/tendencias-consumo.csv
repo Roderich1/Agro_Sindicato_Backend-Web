@@ -1,0 +1,19 @@
+disclosure,policy,approved,threshold,projection_type
+PROVISIONAL_SYNTHETIC,F07-POL-01,false,3,CONSUMPTION_TOTAL
+notice,"Sólo versiones selladas, celda por celda. No suma, resta ni promedia entre campañas, productos, unidades o tipos. Una ausencia o una cifra oculta no es cero. Un cambio de cobertura no prueba un cambio del consumo de cada agricultor. Sin pronósticos ni recomendaciones."
+
+campaign_ref,campaign,campaign_status,start_date,seal_ref,seal_version,sealed_at,linked_members,members_with_contribution,suppressed_cells
+b77d6121-44d6-44ae-b450-858b20bbebea,Campaña Invierno 2026 (sintética),ABIERTA,2026-05-01T00:00:00.000Z,,,,,,
+d76a6b11-31a2-4ec8-a5d9-6a72895bb711,Campaña Verano 2026 (sintética),CERRADA,2026-09-01T00:00:00.000Z,2039c233-345c-4843-83fc-c507a1e5bce4,1,2026-10-24T22:34:24.593Z,4,3,true
+
+projection_type,product_ref,product_name,base_unit,presentation_unit,campaign_ref,campaign,seal_ref,status,total_base,total_presentation,contributors,data_as_of,pending_changes
+CONSUMPTION_TOTAL,ad5e1a3a-b0e4-45c0-a36a-8e54211bb6a5,Belator,ML,L,b77d6121-44d6-44ae-b450-858b20bbebea,Campaña Invierno 2026 (sintética),,NOT_SEALED,,,,,false
+CONSUMPTION_TOTAL,ad5e1a3a-b0e4-45c0-a36a-8e54211bb6a5,Belator,ML,L,d76a6b11-31a2-4ec8-a5d9-6a72895bb711,Campaña Verano 2026 (sintética),2039c233-345c-4843-83fc-c507a1e5bce4,SUPPRESSED_UNDER_THRESHOLD,,,,,false
+CONSUMPTION_TOTAL,f811aabc-248e-4af3-80f9-5c7b70c96eaf,Bellator,ML,L,b77d6121-44d6-44ae-b450-858b20bbebea,Campaña Invierno 2026 (sintética),,NOT_SEALED,,,,,false
+CONSUMPTION_TOTAL,f811aabc-248e-4af3-80f9-5c7b70c96eaf,Bellator,ML,L,d76a6b11-31a2-4ec8-a5d9-6a72895bb711,Campaña Verano 2026 (sintética),2039c233-345c-4843-83fc-c507a1e5bce4,SUPPRESSED_UNDER_THRESHOLD,,,,,false
+CONSUMPTION_TOTAL,f48611be-422d-4f01-be3a-8b566608d2c0,Glifosato F06,ML,L,b77d6121-44d6-44ae-b450-858b20bbebea,Campaña Invierno 2026 (sintética),,NOT_SEALED,,,,,false
+CONSUMPTION_TOTAL,f48611be-422d-4f01-be3a-8b566608d2c0,Glifosato F06,ML,L,d76a6b11-31a2-4ec8-a5d9-6a72895bb711,Campaña Verano 2026 (sintética),2039c233-345c-4843-83fc-c507a1e5bce4,DISCLOSED,8250,8.25,3,2026-10-24T22:32:39.805Z,false
+CONSUMPTION_TOTAL,97adbaa4-431e-47eb-ad3d-97db3ae5c52c,Mancozeb F06,G,KG,b77d6121-44d6-44ae-b450-858b20bbebea,Campaña Invierno 2026 (sintética),,NOT_SEALED,,,,,false
+CONSUMPTION_TOTAL,97adbaa4-431e-47eb-ad3d-97db3ae5c52c,Mancozeb F06,G,KG,d76a6b11-31a2-4ec8-a5d9-6a72895bb711,Campaña Verano 2026 (sintética),2039c233-345c-4843-83fc-c507a1e5bce4,SUPPRESSED_UNDER_THRESHOLD,,,,,false
+CONSUMPTION_TOTAL,3c272493-cb25-4d52-8dec-9a9ee805f75b,Urea F06,G,KG,b77d6121-44d6-44ae-b450-858b20bbebea,Campaña Invierno 2026 (sintética),,NOT_SEALED,,,,,false
+CONSUMPTION_TOTAL,3c272493-cb25-4d52-8dec-9a9ee805f75b,Urea F06,G,KG,d76a6b11-31a2-4ec8-a5d9-6a72895bb711,Campaña Verano 2026 (sintética),2039c233-345c-4843-83fc-c507a1e5bce4,SUPPRESSED_UNDER_THRESHOLD,,,,,false
