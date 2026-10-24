@@ -128,9 +128,12 @@ function suite(mode: SuiteMode) {
     report: B151Report;
     routeRotationDeletes: boolean;
     routed: { sent: number; keys: string[]; refused: ErrorSummary[] };
+    /** Every call of the adapter: command, name under the base and outcome (T-R5a checks the cause). */
+    trace: { name: string; key: string; ok: boolean; error?: ErrorSummary }[];
   };
   s.routeRotationDeletes = false;
   s.routed = { sent: 0, keys: [], refused: [] };
+  s.trace = [];
 
   beforeAll(scrubbed(async () => {
     s.conn = destino === "b2" ? B151Connection.b2(settings!) : B151Connection.doble(`${B151_KEY_PREFIX}doble-pg/`);
@@ -169,6 +172,20 @@ function suite(mode: SuiteMode) {
       };
     }
     s.base = `${s.conn.settings.prefix}c6-${mode}/`;
+    const untraced = sender;
+    sender = {
+      send: async (command, options) => {
+        const input = (command as { input?: { Key?: string; Prefix?: string } }).input ?? {};
+        const entry = { name: command.constructor.name, key: String(input.Key ?? input.Prefix ?? "").slice(s.base.length), ok: true };
+        s.trace.push(entry);
+        try {
+          return await untraced.send(command, options);
+        } catch (error) {
+          Object.assign(entry, { ok: false, error: errorSummary(error) });
+          throw error;
+        }
+      },
+    };
     s.storage = new S3BackupStorage(sender, { bucket: s.conn.settings.bucket, prefix: s.base });
     s.report = new B151Report({
       herramienta: "Back/src/modules/backups/b151-b2-real.postgres.spec.ts",
@@ -582,22 +599,34 @@ describeFor("nodel")("BE #151 item 6 with the real S3 adapter: T-R5 with a key t
         return { observado: { listadas: ids.length, intactas: ok }, ok: ids.length === N && ok.every(Boolean) };
       });
 
+    const traced = t.s.trace.length;
     const first = await t.upload(session);
     const failed = (await t.rowsOf(session)).at(-1)!;
     await t.check("T-R5a: una subida con el proveedor que rechaza borrados",
-      "503 BACKUP_STORAGE_UNAVAILABLE (el commit no puede purgar el staging); la fila FAILED STORAGE_COMMIT_FAILED con purga pendiente; nada retirado; las N copias siguen listadas e íntegras",
+      "503 BACKUP_STORAGE_UNAVAILABLE (el commit no puede purgar el staging); la fila FAILED STORAGE_COMMIT_FAILED con purga pendiente; nada retirado; las N copias siguen listadas e íntegras. Sólo por la causa prevista: la copia al nombre final se hizo y el primer fallo es un DeleteObject rechazado (401/403)",
       async () => {
         const rows = await t.rowsOf(session);
+        const calls = t.s.trace.slice(traced);
+        // A 404 to a HEAD is an answer ("absent"), not a failure.
+        const firstFailure = calls.find((c) => !c.ok && !(c.name === "HeadObjectCommand" && c.error?.status === 404));
+        const causa = {
+          copiaAlNombreFinal: calls.some((c) => c.name === "CopyObjectCommand" && c.ok && c.key === `objects/${failed.storageKey}`),
+          primerFallo: firstFailure ? { comando: firstFailure.name, nombre: firstFailure.key.split("/")[0], error: firstFailure.error } : null,
+        };
+        const expectedCause =
+          causa.copiaAlNombreFinal &&
+          firstFailure?.name === "DeleteObjectCommand" &&
+          (firstFailure.error?.status === 401 || firstFailure.error?.status === 403);
         const observado = {
           subida: first.status, cuerpo: first.body, estado: failed.status, codigo: failed.failureCode, purgaPendiente: failed.purgePending,
           retention: rows.filter((r) => r.deletionReason === "RETENTION").length, listadas: (await t.listIds(session)).length,
-          intactas: await intact(), restosEnB2: await t.entriesOfKey(failed.storageKey),
+          intactas: await intact(), restosEnB2: await t.entriesOfKey(failed.storageKey), causa,
         };
         return {
           observado,
           ok: first.status === 503 && first.body?.errorCode === "BACKUP_STORAGE_UNAVAILABLE" && failed.status === "FAILED" &&
             failed.failureCode === "STORAGE_COMMIT_FAILED" && failed.purgePending && observado.retention === 0 &&
-            observado.listadas === N && observado.intactas.every(Boolean),
+            observado.listadas === N && observado.intactas.every(Boolean) && expectedCause,
           nota: "Los restos en B2 de la subida fallida (objeto final y staging) no se pueden borrar con esta clave: quedan para «limpiar» con rw.",
         };
       });

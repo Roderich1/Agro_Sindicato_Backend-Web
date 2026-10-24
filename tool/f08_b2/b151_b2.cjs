@@ -304,7 +304,7 @@ async function caso2(c) {
 async function caso3(c) {
   const kA = uuid(), kB = uuid(), kC = uuid(), kD = uuid();
   await c.put(`c3/objects/${kA}`, crypto.randomBytes(KiB));
-  await c.put(`c3/objects/${kA}`, crypto.randomBytes(KiB));
+  const vA2 = await c.put(`c3/objects/${kA}`, crypto.randomBytes(KiB));
   await c.put(`c3/objects/${kB}`, crypto.randomBytes(KiB));
   await c.raw(new sdk.DeleteObjectCommand({ Bucket: c.Bucket, Key: `${c.P}c3/objects/${kB}` }));
   const nameD = `c3/staging/${stagingName(kD)}`;
@@ -322,6 +322,17 @@ async function caso3(c) {
       { paginas: paged.pages, unionIgual: equal, estancada: !!paged.estancada },
       equal && !paged.estancada && honoured, honoured ? undefined : "El proveedor no paginó con ese MaxKeys: los bucles no se ejercitaron.",
       equal && !paged.estancada && !honoured ? "NO_CONCLUYENTE" : undefined);
+    // 3a compara también IsLatest tal como lo da el proveedor (H2 de 2026-10-24). Aparte, sin esa marca:
+    // las mismas entradas, sin duplicados ni faltantes.
+    const ids = (items) => items.map((v) => `${v.key}|${v.versionId}|${v.marker}`);
+    const union = ids(paged.items);
+    const sameEntries = !paged.estancada && new Set(union).size === union.length && union.slice().sort().join("\n") === ids(all.items).sort().join("\n");
+    const flagsPerPage = paged.items.filter((v) => v.latest).length;
+    c.add(`3a-bis: ListObjectVersions con MaxKeys=${max}, la unión sin IsLatest`,
+      "las mismas entradas que el listado sin límite, sin duplicados ni faltantes",
+      { paginas: paged.pages.length, entradas: union.length, mismasEntradas: sameEntries, marcasIsLatestEnLaUnion: flagsPerPage, marcasIsLatestSinLimite: all.items.filter((v) => v.latest).length },
+      sameEntries && honoured, honoured ? undefined : "El proveedor no paginó con ese MaxKeys: los bucles no se ejercitaron.",
+      sameEntries && !honoured ? "NO_CONCLUYENTE" : undefined);
   }
   const allUp = await c.uploads("c3/");
   const pagedUp = await c.uploads("c3/", 1);
@@ -346,11 +357,13 @@ async function caso3(c) {
   const truncU = inst.calls.filter((x) => x.name === "ListMultipartUploadsCommand" && x.truncada).length;
   const objects = listed.filter((f) => f.area === "objects");
   const incomplete = listed.filter((f) => f.incompleteUpload);
+  const visible = objects.filter((f) => !f.hidden);
   const listOk = objects.length === 4 && objects.filter((f) => f.deleteMarker).length === 1 &&
-    objects.filter((f) => !f.hidden).length === 1 && incomplete.length === 2 && incomplete.every((f) => [kC, kD].includes(f.key));
+    visible.length === 1 && visible[0].key === kA && visible[0].versionId === vA2 &&
+    incomplete.length === 2 && incomplete.every((f) => [kC, kD].includes(f.key));
   c.add("3c: adaptador list() (inventario) con MaxKeys=1 y MaxUploads=1 inyectados",
-    "4 entradas en objects/ (1 marcador, 1 sola visible) y 2 multipart sin terminar de staging/, recorriendo varias páginas",
-    { objetos: objects.length, marcadores: objects.filter((f) => f.deleteMarker).length, multipart: incomplete.length, paginasTruncadasVersiones: truncV, paginasTruncadasUploads: truncU },
+    "4 entradas en objects/ (1 marcador, 1 sola visible: la última versión escrita de A) y 2 multipart sin terminar de staging/, recorriendo varias páginas",
+    { objetos: objects.length, marcadores: objects.filter((f) => f.deleteMarker).length, visibleEsLaUltimaDeA: visible.length === 1 && visible[0].versionId === vA2, multipart: incomplete.length, paginasTruncadasVersiones: truncV, paginasTruncadasUploads: truncU },
     listOk && truncV > 0 && truncU > 0, truncV && truncU ? undefined : "Sin páginas truncadas: el proveedor no paginó y los bucles no se ejercitaron.",
     listOk && !(truncV > 0 && truncU > 0) ? "NO_CONCLUYENTE" : undefined);
 
