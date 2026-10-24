@@ -74,12 +74,27 @@ export function hang(signal: AbortSignal): Promise<never> {
   });
 }
 
+/**
+ * What B2 answered with the restricted keys of the #151 trial (2026-10-24).
+ * Observed in that B2 environment only; not claimed for every configuration.
+ */
+export interface B2Quirks {
+  /** HeadObject and GetObject of a name without a current version answer 403, not 404. */
+  missingAs403: boolean;
+  /**
+   * ListObjectVersions flags IsLatest on the first entry of each name within
+   * each page, even when an earlier page already listed newer entries of it.
+   */
+  latestPerPage: boolean;
+}
+
 export class InMemoryS3 implements S3Sender {
   readonly objects = new Map<string, StoredVersionRecord[]>();
   readonly uploads = new Map<string, UploadRecord>();
   readonly sent: SentCommand[] = [];
   /** Page size of the listings (small values exercise pagination). */
   pageSize = 1000;
+  quirks: B2Quirks = { missingAs403: false, latestPerPage: false };
   before?: CommandHook;
   /** Run after the command took effect (e.g. a timeout after the copy). */
   after?: CommandHook;
@@ -215,6 +230,8 @@ export class InMemoryS3 implements S3Sender {
     }
     if (command instanceof HeadObjectCommand || command instanceof GetObjectCommand) {
       const latest = this.latest(key);
+      if ((!latest || latest.deleteMarker) && this.quirks.missingAs403)
+        throw s3Error(command instanceof HeadObjectCommand ? "Unknown" : "AccessDenied", 403);
       if (!latest || latest.deleteMarker)
         throw s3Error(command instanceof HeadObjectCommand ? "NotFound" : "NoSuchKey", 404);
       return {
@@ -265,7 +282,13 @@ export class InMemoryS3 implements S3Sender {
         : all.findIndex((e) => e.key > keyMarker);
       if (start < 0) start = all.length;
     }
-    const page = all.slice(start, start + this.pageSize);
+    const firstOfName = new Set<string>();
+    const page = all.slice(start, start + this.pageSize).map((e) => {
+      if (!this.quirks.latestPerPage) return e;
+      const latest = !firstOfName.has(e.key);
+      firstOfName.add(e.key);
+      return { ...e, latest };
+    });
     const truncated = start + this.pageSize < all.length;
     const last = page[page.length - 1];
     return {

@@ -1,0 +1,311 @@
+
+== preparar ú perfil rw ú clave rw ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+2026-10-24T15:30:18.795Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+ERROR Unknown: UnknownError
+   paso preparar (rw) termin¢ con c¢digo 2
+
+== caso1 ú perfil ro ú clave ro ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+2026-10-24T15:30:21.790Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:30:22.313Z FAIL [ro] 1: copia vÃ¡lida de referencia presente (de Â«prepararÂ» con rw)
+2026-10-24T15:30:22.315Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-ro-caso1-2026-10-24T15-30-21-094Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-ro-caso1-2026-10-24T15-30-21-094Z.txt
+   paso caso1 (ro) termin¢ con c¢digo 1
+
+== caso1 ú perfil nodel ú clave nodel ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+2026-10-24T15:30:23.639Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:30:24.055Z FAIL [nodel] 1: copia vÃ¡lida de referencia presente (de Â«prepararÂ» con rw)
+2026-10-24T15:30:24.056Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-nodel-caso1-2026-10-24T15-30-22-947Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-nodel-caso1-2026-10-24T15-30-22-947Z.txt
+   paso caso1 (nodel) termin¢ con c¢digo 1
+
+== casos2a5 ú perfil rw ú clave rw ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+2026-10-24T15:30:25.346Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:30:26.295Z PASS [rw] 2a: PutObject en crudo con Content-MD5 de otros bytes
+2026-10-24T15:30:27.647Z PASS [rw] 2b: UploadPart en crudo con Content-MD5 de otros bytes
+2026-10-24T15:30:29.349Z PASS [rw] 2c: adaptador stage simple (PutObject) con Content-MD5 alterado por la herramienta
+2026-10-24T15:30:33.106Z PASS [rw] 2d: adaptador stage multipart (UploadPart 1) con Content-MD5 alterado por la herramienta
+2026-10-24T15:30:33.646Z PASS [rw] 2: c2/ limpio al terminar
+2026-10-24T15:30:36.315Z FAIL [rw] 3a: ListObjectVersions en crudo con MaxKeys=1 (4 entradas: 3 versiones y 1 marcador)
+2026-10-24T15:30:36.588Z PASS [rw] 3a: ListObjectVersions en crudo con MaxKeys=2 (4 entradas: 3 versiones y 1 marcador)
+2026-10-24T15:30:37.004Z PASS [rw] 3b: ListMultipartUploads en crudo con MaxUploads=1 (2 multipart sin terminar)
+2026-10-24T15:30:38.213Z FAIL [rw] 3c: adaptador list() (inventario) con MaxKeys=1 y MaxUploads=1 inyectados
+2026-10-24T15:30:41.293Z PASS [rw] 3d: purgas del adaptador (remove, discardStaged, removeStagedFile) con la misma paginaciÃ³n inyectada
+2026-10-24T15:30:43.306Z PASS [rw] 4a: CopyObject en crudo de la primera de dos versiones de staging (versionId fijado), con metadatos REPLACE
+2026-10-24T15:30:43.995Z PASS [rw] 4b: control, CopyObject en crudo SIN versionId del mismo staging
+ERROR AccessDenied: Cannot access bucket
+   paso casos2a5 (rw) termin¢ con c¢digo 2
+
+== c6 ú perfil rw ú clave rw ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+  console.log
+    2026-10-24T15:30:53.879Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rw-c6-2026-10-24T15-30-53-878Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rw-c6-2026-10-24T15-30-53-878Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+FAIL src/modules/backups/b151-b2-real.postgres.spec.ts (7.001 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    Ã— C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock (1 ms)
+    Ã— C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing
+    Ã— format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2
+    Ã— rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    â—‹ skipped T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    â—‹ skipped T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled
+
+  â— BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw) â€º C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+
+    ZodError: [
+      {
+        "validation": "regex",
+        "code": "invalid_string",
+        "message": "Invalid",
+        "path": [
+          "BACKUP_S3_PREFIX"
+        ]
+      }
+    ]
+
+      27 |     ConfigModule.forRoot({
+      28 |       isGlobal: true,
+    > 29 |       validate: (config) => envSchema.parse(config)
+         |                                       ^
+      30 |     }),
+      31 |     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+      32 |     PrismaModule,
+
+      at Object.get error [as error] (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:45:31)
+      at ZodObject.parse (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:120:22)
+      at Object.validate (src/app.module.ts:29:39)
+      at ConfigModule.forRoot (../../C-F08-CIF-BE/Back/node_modules/@nestjs/config/dist/config.module.js:88:45)
+      at Object.<anonymous> (src/app.module.ts:27:18)
+      at src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25
+      at createSyncV1App (src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:185:53
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+  â— BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw) â€º C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing
+
+    ZodError: [
+      {
+        "validation": "regex",
+        "code": "invalid_string",
+        "message": "Invalid",
+        "path": [
+          "BACKUP_S3_PREFIX"
+        ]
+      }
+    ]
+
+      27 |     ConfigModule.forRoot({
+      28 |       isGlobal: true,
+    > 29 |       validate: (config) => envSchema.parse(config)
+         |                                       ^
+      30 |     }),
+      31 |     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+      32 |     PrismaModule,
+
+      at Object.get error [as error] (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:45:31)
+      at ZodObject.parse (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:120:22)
+      at Object.validate (src/app.module.ts:29:39)
+      at ConfigModule.forRoot (../../C-F08-CIF-BE/Back/node_modules/@nestjs/config/dist/config.module.js:88:45)
+      at Object.<anonymous> (src/app.module.ts:27:18)
+      at src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25
+      at createSyncV1App (src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:185:53
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+  â— BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw) â€º format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2
+
+    ZodError: [
+      {
+        "validation": "regex",
+        "code": "invalid_string",
+        "message": "Invalid",
+        "path": [
+          "BACKUP_S3_PREFIX"
+        ]
+      }
+    ]
+
+      27 |     ConfigModule.forRoot({
+      28 |       isGlobal: true,
+    > 29 |       validate: (config) => envSchema.parse(config)
+         |                                       ^
+      30 |     }),
+      31 |     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+      32 |     PrismaModule,
+
+      at Object.get error [as error] (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:45:31)
+      at ZodObject.parse (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:120:22)
+      at Object.validate (src/app.module.ts:29:39)
+      at ConfigModule.forRoot (../../C-F08-CIF-BE/Back/node_modules/@nestjs/config/dist/config.module.js:88:45)
+      at Object.<anonymous> (src/app.module.ts:27:18)
+      at src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25
+      at createSyncV1App (src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:185:53
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+  â— BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw) â€º rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all
+
+    ZodError: [
+      {
+        "validation": "regex",
+        "code": "invalid_string",
+        "message": "Invalid",
+        "path": [
+          "BACKUP_S3_PREFIX"
+        ]
+      }
+    ]
+
+      27 |     ConfigModule.forRoot({
+      28 |       isGlobal: true,
+    > 29 |       validate: (config) => envSchema.parse(config)
+         |                                       ^
+      30 |     }),
+      31 |     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+      32 |     PrismaModule,
+
+      at Object.get error [as error] (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:45:31)
+      at ZodObject.parse (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:120:22)
+      at Object.validate (src/app.module.ts:29:39)
+      at ConfigModule.forRoot (../../C-F08-CIF-BE/Back/node_modules/@nestjs/config/dist/config.module.js:88:45)
+      at Object.<anonymous> (src/app.module.ts:27:18)
+      at src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25
+      at createSyncV1App (src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:185:53
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 2 skipped, 6 total
+Snapshots:   0 total
+Time:        7.17 s, estimated 11 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+   paso c6 (rw) termin¢ con c¢digo 1
+
+== c6 ú perfil nodel ú clave nodel ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+  console.log
+    2026-10-24T15:31:01.855Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-nodel-c6-2026-10-24T15-31-01-854Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-nodel-c6-2026-10-24T15-31-01-854Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+FAIL src/modules/backups/b151-b2-real.postgres.spec.ts (6.727 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    â—‹ skipped C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+    â—‹ skipped C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing
+    â—‹ skipped format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2
+    â—‹ skipped rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    Ã— T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending (1 ms)
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    â—‹ skipped T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled
+
+  â— BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel) â€º T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending
+
+    ZodError: [
+      {
+        "validation": "regex",
+        "code": "invalid_string",
+        "message": "Invalid",
+        "path": [
+          "BACKUP_S3_PREFIX"
+        ]
+      }
+    ]
+
+      27 |     ConfigModule.forRoot({
+      28 |       isGlobal: true,
+    > 29 |       validate: (config) => envSchema.parse(config)
+         |                                       ^
+      30 |     }),
+      31 |     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+      32 |     PrismaModule,
+
+      at Object.get error [as error] (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:45:31)
+      at ZodObject.parse (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:120:22)
+      at Object.validate (src/app.module.ts:29:39)
+      at ConfigModule.forRoot (../../C-F08-CIF-BE/Back/node_modules/@nestjs/config/dist/config.module.js:88:45)
+      at Object.<anonymous> (src/app.module.ts:27:18)
+      at src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25
+      at createSyncV1App (src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:185:53
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 5 skipped, 6 total
+Snapshots:   0 total
+Time:        6.896 s, estimated 8 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+   paso c6 (nodel) termin¢ con c¢digo 1
+
+== c6 ú perfil rotacion ú clave nodel ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+  console.log
+    2026-10-24T15:31:12.166Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rotacion-c6-2026-10-24T15-31-12-164Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rotacion-c6-2026-10-24T15-31-12-164Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+FAIL src/modules/backups/b151-b2-real.postgres.spec.ts (7.383 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    â—‹ skipped C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+    â—‹ skipped C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing
+    â—‹ skipped format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2
+    â—‹ skipped rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    â—‹ skipped T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    Ã— T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled
+
+  â— BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel) â€º T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled
+
+    ZodError: [
+      {
+        "validation": "regex",
+        "code": "invalid_string",
+        "message": "Invalid",
+        "path": [
+          "BACKUP_S3_PREFIX"
+        ]
+      }
+    ]
+
+      27 |     ConfigModule.forRoot({
+      28 |       isGlobal: true,
+    > 29 |       validate: (config) => envSchema.parse(config)
+         |                                       ^
+      30 |     }),
+      31 |     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+      32 |     PrismaModule,
+
+      at Object.get error [as error] (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:45:31)
+      at ZodObject.parse (../../C-F08-CIF-BE/Back/node_modules/zod/v3/types.cjs:120:22)
+      at Object.validate (src/app.module.ts:29:39)
+      at ConfigModule.forRoot (../../C-F08-CIF-BE/Back/node_modules/@nestjs/config/dist/config.module.js:88:45)
+      at Object.<anonymous> (src/app.module.ts:27:18)
+      at src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25
+      at createSyncV1App (src/modules/sync-v1/test-support/sync-v1-test-app.ts:84:25)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:185:53
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 5 skipped, 6 total
+Snapshots:   0 total
+Time:        7.546 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+   paso c6 (rotacion) termin¢ con c¢digo 1
+
+== inventario ú perfil rw ú clave rw ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+2026-10-24T15:31:13.701Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:31:14.247Z PASS [rw] inventario del prefijo (sÃ³lo lectura)
+2026-10-24T15:31:14.250Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rw-inventario-2026-10-24T15-31-13-008Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rw-inventario-2026-10-24T15-31-13-008Z.txt
+
+== limpiar ú perfil rw ú clave rw ú prefijo ensayo-f08/b151-20261024/c-f2-20261024t1130/
+2026-10-24T15:31:15.555Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:31:16.991Z PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId
+2026-10-24T15:31:17.001Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rw-limpiar-2026-10-24T15-31-14-828Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real\b151-b2-rw-limpiar-2026-10-24T15-31-14-828Z.txt
+
+Pasos con fallos: 7 de 9. Informes en C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real
+exit=7

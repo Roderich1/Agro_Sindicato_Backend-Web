@@ -1,0 +1,10 @@
+tool/f08_b2/b151_b2.cjs · destino b2 · perfil rw · paso preparar
+Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.
+versión 71ac088f8ff9d534a86439da6007ec5ed88a54c7
+configuración {"prefijo":"ensayo-f08/b151-20261024/c-f2-20261024t1140/","bucket":"agro-backups-roderich","region":"us-east-005","clave":{"capacidades":["deleteFiles","listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"},"parteMultipart":8388608}
+
+FAIL [rw] preparar: preparar abortado por un error no previsto
+  esperado: sin errores no previstos
+  observado: {"error":{"name":"Unknown","code":null,"status":403,"message":"UnknownError"}}
+
+resumen: 0 PASS, 1 FAIL, 0 NO_CONCLUYENTE

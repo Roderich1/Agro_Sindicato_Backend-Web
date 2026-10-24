@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { BackupObjectMissingError } from "../domain/backup-storage.port";
+import { cleanupBackupLeftovers, inventoryBackups, MIN_CLEANUP_AGE_MINUTES } from "../application/backup-inventory";
 import { BackupTooLargeError, Sha256Meter } from "../application/sha256-meter";
 import {
   backupStorageContract,
@@ -378,7 +379,7 @@ describe("S3BackupStorage (B2 by its S3 API) over the in-memory S3 double", () =
   });
 
   it("a hung call is aborted within its budget (commit, remove, open)", async () => {
-    const limits: S3Limits = { callMs: 40, commitMs: 120, purgeMs: 80, openMs: 40 };
+    const limits: S3Limits = { ...S3_LIMITS, callMs: 40, commitMs: 120, purgeMs: 80, openMs: 40 };
     const { s3, storage } = setup(limits);
     const key = randomUUID();
     const staged = await storage.stage(key, Readable.from([Buffer.from("a")]));
@@ -411,4 +412,418 @@ describe("S3BackupStorage (B2 by its S3 API) over the in-memory S3 double", () =
     expect(entriesOf(s3, "objects")).toEqual([previous]);
     expect(s3.uploads.size).toBe(0);
   });
+});
+
+/** Rewrites the provider's answer to every call of one command. */
+function rewrite(
+  s3: InMemoryS3,
+  command: string,
+  change: (out: Record<string, unknown>, input: Record<string, unknown>) => unknown,
+) {
+  const original = s3.send.bind(s3);
+  s3.send = async (sent, options) => {
+    const out = await original(sent, options);
+    if (sent.constructor.name !== command) return out;
+    return change(out as Record<string, unknown>, (sent as { input: Record<string, unknown> }).input);
+  };
+}
+
+type Listed = { Key?: string; VersionId?: string; IsLatest?: boolean; LastModified?: Date };
+
+/** Names under `objects/` with old versions, a marker on top and a version over a marker. */
+function versionedState(s3: InMemoryS3) {
+  const at = (key: string) => `${PREFIX}objects/${key}`;
+  const [a, b, c] = [randomUUID(), randomUUID(), randomUUID()];
+  for (const body of ["a1", "a22", "a333"]) s3.putDirect(at(a), Buffer.from(body));
+  s3.putDirect(at(b), Buffer.from("b1"));
+  s3.hideDirect(at(b));
+  s3.putDirect(at(c), Buffer.from("c1"));
+  s3.hideDirect(at(c));
+  s3.putDirect(at(c), Buffer.from("c22"));
+  return { a, b, c };
+}
+
+/** What the double holds under `objects/`: only the last entry of a name, if not a marker, is visible. */
+function truthOf(s3: InMemoryS3) {
+  const base = `${PREFIX}objects/`;
+  return s3
+    .names(base)
+    .flatMap((name) => {
+      const versions = s3.versionsOf(name);
+      const current = versions[versions.length - 1];
+      return versions.map((v) => ({
+        name: name.slice(base.length),
+        versionId: v.versionId,
+        deleteMarker: v.deleteMarker,
+        hidden: v.deleteMarker || v !== current,
+      }));
+    })
+    .sort((x, y) => byCode(x.versionId, y.versionId));
+}
+
+describe("#151: what B2 answered with the trial's restricted keys, imitated by the double (regressions)", () => {
+  function b2(pageSize = 1000, limits: S3Limits = S3_LIMITS) {
+    const t = setup(limits);
+    t.s3.quirks = { missingAs403: true, latestPerPage: true };
+    t.s3.pageSize = pageSize;
+    return t;
+  }
+
+  describe("H1: HeadObject of an absent name answers 403, not 404", () => {
+    it("the commit decides existence by listing the exact name: the copy becomes available, and no HEAD precedes the copy", async () => {
+      const { s3, storage } = b2(2);
+      const key = randomUUID();
+      await (await storage.stage(key, Readable.from([Buffer.from("respaldo")]))).commit();
+      expect((await readAll((await storage.open(key)).stream)).toString()).toBe("respaldo");
+      expect(entriesOf(s3, "objects")).toEqual([key]);
+      expect(entriesOf(s3, "staging")).toEqual([]);
+      const order = s3.sent.map((c) => c.name);
+      expect(order.indexOf("HeadObjectCommand")).toBeGreaterThan(order.indexOf("CopyObjectCommand"));
+      const final = `${PREFIX}objects/${key}`;
+      const check = s3.sent.findIndex((c) => c.name === "ListObjectVersionsCommand" && c.input["Prefix"] === final);
+      expect(check).toBeGreaterThan(-1);
+      expect(check).toBeLessThan(order.indexOf("CopyObjectCommand"));
+    });
+
+    it.each([false, true])(
+      "any version or marker of the exact final name counts as existing (403 quirk: %s): nothing is copied and the third party's versions stay",
+      async (quirk) => {
+        const { s3, storage } = setup();
+        s3.quirks.missingAs403 = quirk;
+        const key = randomUUID();
+        const final = `${PREFIX}objects/${key}`;
+        s3.putDirect(final, Buffer.from("de un tercero"));
+        s3.hideDirect(final);
+        const staged = await storage.stage(key, Readable.from([Buffer.from("nueva")]));
+        await expect(staged.commit()).rejects.toThrow("S3_OBJECT_ALREADY_EXISTS");
+        expect(names(s3, "CopyObjectCommand")).toHaveLength(0);
+        expect(s3.versionsOf(final).map((v) => `${v.deleteMarker}/${v.body.toString()}`)).toEqual([
+          "false/de un tercero",
+          "true/",
+        ]);
+        expect(entriesOf(s3, "staging")).toEqual([]);
+      },
+    );
+
+    it("a name that only shares the prefix of the final name proves nothing: the commit goes on and leaves it alone", async () => {
+      const { s3, storage } = b2(1);
+      const key = randomUUID();
+      const final = `${PREFIX}objects/${key}`;
+      s3.putDirect(`${final}-x`, Buffer.from("comparte prefijo"));
+      s3.putDirect(`${final}0`, Buffer.from("también"));
+      await (await storage.stage(key, Readable.from([Buffer.from("respaldo")]))).commit();
+      expect(s3.versionsOf(final)).toHaveLength(1);
+      expect(s3.versionsOf(`${final}-x`)).toHaveLength(1);
+      expect(s3.versionsOf(`${final}0`)).toHaveLength(1);
+    });
+
+    const failures: [string, (s3: InMemoryS3, final: string) => void, RegExp | { name: string }][] = [
+      [
+        "403 on the listing",
+        (s3, final) => {
+          s3.before = (c) => {
+            if (c.name === "ListObjectVersionsCommand" && c.input["Prefix"] === final) throw s3Error("AccessDenied", 403);
+          };
+        },
+        { name: "AccessDenied" },
+      ],
+      [
+        "page with an entry without a name",
+        (s3, final) =>
+          rewrite(s3, "ListObjectVersionsCommand", (out, input) =>
+            input["Prefix"] === final ? { ...out, Versions: [{ VersionId: "v", IsLatest: true, LastModified: new Date(), Size: 1 }] } : out,
+          ),
+        /S3_LISTING_/,
+      ],
+      [
+        "page with an entry outside the listed prefix",
+        (s3, final) =>
+          rewrite(s3, "ListObjectVersionsCommand", (out, input) =>
+            input["Prefix"] === final
+              ? { ...out, Versions: [{ Key: `${PREFIX}objects/otro`, VersionId: "v", IsLatest: true, LastModified: new Date(), Size: 1 }] }
+              : out,
+          ),
+        /S3_LISTING_/,
+      ],
+      [
+        "truncated page without markers",
+        (s3, final) =>
+          rewrite(s3, "ListObjectVersionsCommand", (out, input) =>
+            input["Prefix"] === final ? { ...out, IsTruncated: true, NextKeyMarker: undefined, NextVersionIdMarker: undefined } : out,
+          ),
+        /S3_/,
+      ],
+      [
+        "page without IsTruncated",
+        (s3, final) =>
+          rewrite(s3, "ListObjectVersionsCommand", (out, input) =>
+            input["Prefix"] === final ? { ...out, IsTruncated: undefined } : out,
+          ),
+        /S3_LISTING_/,
+      ],
+      [
+        "answer that is not a listing",
+        (s3, final) => rewrite(s3, "ListObjectVersionsCommand", (out, input) => (input["Prefix"] === final ? null : out)),
+        /S3_LISTING_/,
+      ],
+    ];
+    it.each(failures)(
+      "%s while checking the final name fails closed: never 'absent', nothing copied, staging purged",
+      async (_, arrange, expected) => {
+        const { s3, storage } = b2();
+        const key = randomUUID();
+        const final = `${PREFIX}objects/${key}`;
+        const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
+        arrange(s3, final);
+        const commit = expect(staged.commit()).rejects;
+        if (expected instanceof RegExp) await commit.toThrow(expected);
+        else await commit.toMatchObject(expected);
+        expect(names(s3, "CopyObjectCommand")).toHaveLength(0);
+        s3.before = undefined;
+        expect(s3.versionsOf(final)).toEqual([]);
+        expect(entriesOf(s3, "staging")).toEqual([]);
+      },
+    );
+
+    it("a listing of the final name cut by the page limit fails closed, nothing copied", async () => {
+      const { s3, storage } = b2(1, { ...S3_LIMITS, listPages: 1 } as S3Limits);
+      const key = randomUUID();
+      const final = `${PREFIX}objects/${key}`;
+      s3.putDirect(`${final}-a`, Buffer.from("a"));
+      s3.putDirect(`${final}-b`, Buffer.from("b"));
+      const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
+      await expect(staged.commit()).rejects.toThrow("S3_LISTING_INCOMPLETE");
+      expect(names(s3, "CopyObjectCommand")).toHaveLength(0);
+      expect(s3.versionsOf(final)).toEqual([]);
+    });
+
+    it("a copy that did not happen reports the copy's error, not the 403 of the head after it", async () => {
+      const { s3, storage } = b2();
+      const key = randomUUID();
+      const staged = await storage.stage(key, Readable.from([Buffer.from("respaldo")]));
+      s3.before = (c) => {
+        if (c.name === "CopyObjectCommand") throw s3Error("InternalError", 500);
+      };
+      await expect(staged.commit()).rejects.toMatchObject({ name: "InternalError" });
+      expect(s3.totalEntries()).toBe(0);
+    });
+
+    it("open after a 403: absent or hidden by the listing of the exact name is BackupObjectMissingError", async () => {
+      const { s3, storage } = b2(1);
+      const absent = randomUUID();
+      s3.putDirect(`${PREFIX}objects/${absent}-x`, Buffer.from("comparte prefijo"));
+      await expect(storage.open(absent)).rejects.toBeInstanceOf(BackupObjectMissingError);
+      const hidden = randomUUID();
+      s3.putDirect(`${PREFIX}objects/${hidden}`, Buffer.from("antes"));
+      s3.hideDirect(`${PREFIX}objects/${hidden}`);
+      await expect(storage.open(hidden)).rejects.toBeInstanceOf(BackupObjectMissingError);
+    });
+
+    it("open after a 403: a denied or invalid listing, or a current version that cannot be read, keeps the 403", async () => {
+      const { s3, storage } = b2();
+      const absent = randomUUID();
+      s3.before = (c) => {
+        if (c.name === "ListObjectVersionsCommand") throw s3Error("AccessDenied", 403);
+      };
+      await expect(storage.open(absent)).rejects.toMatchObject({ name: "AccessDenied" });
+      s3.before = undefined;
+      rewrite(s3, "ListObjectVersionsCommand", (out) => ({ ...out, IsTruncated: undefined }));
+      await expect(storage.open(absent)).rejects.toMatchObject({ name: "AccessDenied" });
+      const { s3: other, storage: denied } = b2();
+      const present = randomUUID();
+      other.putDirect(`${PREFIX}objects/${present}`, Buffer.from("existe"));
+      other.before = (c) => {
+        if (c.name === "GetObjectCommand") throw s3Error("AccessDenied", 403);
+      };
+      await expect(denied.open(present)).rejects.toMatchObject({ name: "AccessDenied" });
+    });
+  });
+
+  describe("multipart listings are checked like the version listings (fail closed)", () => {
+    const stagingName = () => `${PREFIX}staging/${randomUUID()}.0123456789abcdef.part`;
+    const upload = (s3: InMemoryS3, key = stagingName()) => {
+      s3.uploads.set(randomUUID(), { key, parts: new Map([[1, Buffer.alloc(7)]]), initiated: new Date(Date.UTC(2026, 0, 1)) });
+      return key;
+    };
+    type Upload = { Key?: string; UploadId?: string; Initiated?: Date };
+    const uploadsOf = (out: Record<string, unknown>) => (out["Uploads"] as Upload[] | undefined) ?? [];
+
+    it("an upload without Initiated is never dated 1970: the F10 cleanup aborts nothing and fails", async () => {
+      const { s3, storage } = setup();
+      upload(s3);
+      rewrite(s3, "ListMultipartUploadsCommand", (out) => ({
+        ...out,
+        Uploads: uploadsOf(out).map(({ Initiated: _, ...u }) => u),
+      }));
+      const prisma = {
+        backupMetadata: { findMany: async () => [], findUnique: async () => null },
+      } as unknown as Parameters<typeof cleanupBackupLeftovers>[0];
+      await expect(
+        cleanupBackupLeftovers(prisma, storage, { olderThanMinutes: MIN_CLEANUP_AGE_MINUTES, apply: true }),
+      ).rejects.toThrow("S3_LISTING_INVALID");
+      expect(names(s3, "AbortMultipartUploadCommand")).toHaveLength(0);
+      expect(s3.uploads.size).toBe(1);
+    });
+
+    const invalid: [string, (out: Record<string, unknown>) => unknown][] = [
+      ["an entry without UploadId", (out) => ({ ...out, Uploads: uploadsOf(out).map(({ UploadId: _, ...u }) => u) })],
+      ["an entry without Key", (out) => ({ ...out, Uploads: uploadsOf(out).map(({ Key: _, ...u }) => u) })],
+      ["an entry outside the listed prefix", (out) => ({ ...out, Uploads: [...uploadsOf(out), { Key: "otro/x", UploadId: "u", Initiated: new Date() }] })],
+      ["an invalid Initiated", (out) => ({ ...out, Uploads: uploadsOf(out).map((u) => ({ ...u, Initiated: new Date(Number.NaN) })) })],
+      ["a page without IsTruncated", (out) => ({ ...out, IsTruncated: undefined })],
+    ];
+    it.each(invalid)("%s makes discardStaged and list() fail, never skipped", async (_, change) => {
+      const { s3, storage } = setup();
+      const key = randomUUID();
+      upload(s3, `${PREFIX}staging/${key}.0123456789abcdef.part`);
+      rewrite(s3, "ListMultipartUploadsCommand", change);
+      await expect(storage.discardStaged(key)).rejects.toThrow("S3_LISTING_INVALID");
+      await expect(storage.list()).rejects.toThrow("S3_LISTING_INVALID");
+      expect(s3.uploads.size).toBe(1);
+    });
+
+    it("a repeated upload, or markers that do not advance, fail closed", async () => {
+      const { s3, storage } = setup();
+      upload(s3);
+      rewrite(s3, "ListMultipartUploadsCommand", (out) => ({ ...out, Uploads: [...uploadsOf(out), ...uploadsOf(out)] }));
+      await expect(storage.list()).rejects.toThrow("S3_LISTING_INCONSISTENT");
+      const again = setup();
+      upload(again.s3);
+      rewrite(again.s3, "ListMultipartUploadsCommand", (out, input) => ({
+        ...out,
+        IsTruncated: true,
+        NextKeyMarker: input["KeyMarker"] ?? "k",
+        NextUploadIdMarker: input["UploadIdMarker"] ?? "u",
+      }));
+      await expect(again.storage.list()).rejects.toThrow("S3_PAGINATION_STALLED");
+    });
+
+    it("ListParts: the page limit, a stalled marker or a part without size fail closed, never an undercount", async () => {
+      const endless = setup({ ...S3_LIMITS, listPages: 3 });
+      upload(endless.s3);
+      let n = 0;
+      rewrite(endless.s3, "ListPartsCommand", (out) => ({ ...out, IsTruncated: true, NextPartNumberMarker: String(++n) }));
+      await expect(endless.storage.list()).rejects.toThrow("S3_LISTING_INCOMPLETE");
+      const stalled = setup();
+      upload(stalled.s3);
+      rewrite(stalled.s3, "ListPartsCommand", (out, input) => ({ ...out, IsTruncated: true, NextPartNumberMarker: input["PartNumberMarker"] ?? "1" }));
+      await expect(stalled.storage.list()).rejects.toThrow("S3_PAGINATION_STALLED");
+      const sizeless = setup();
+      upload(sizeless.s3);
+      rewrite(sizeless.s3, "ListPartsCommand", (out) => ({
+        ...out,
+        Parts: ((out["Parts"] as { PartNumber?: number }[]) ?? []).map((p) => ({ PartNumber: p.PartNumber })),
+      }));
+      await expect(sizeless.storage.list()).rejects.toThrow("S3_LISTING_INVALID");
+    });
+  });
+
+  describe("H2: IsLatest flagged on the first entry of each name in every page", () => {
+    it.each([1, 2, 3, 4, 1000])(
+      "pages of %i: list() gives the same logical result, one visible version per name at most, no duplicates, no old version visible",
+      async (pageSize) => {
+        const { s3, storage } = b2(pageSize);
+        versionedState(s3);
+        const listed = (await storage.list())
+          .filter((f) => f.area === "objects")
+          .map((f) => ({ name: f.name, versionId: f.versionId, deleteMarker: f.deleteMarker, hidden: f.hidden }))
+          .sort((x, y) => byCode(x.versionId!, y.versionId!));
+        expect(listed).toEqual(truthOf(s3));
+        expect(new Set(listed.map((f) => f.versionId)).size).toBe(listed.length);
+      },
+    );
+
+    it.each([1, 2, 1000])("pages of %i: the F10 inventory matches rows against current versions only", async (pageSize) => {
+      const { s3, storage } = b2(pageSize);
+      const { a, c } = versionedState(s3);
+      const prisma = {
+        backupMetadata: {
+          findMany: async () => [
+            { storageKey: a, status: "AVAILABLE", sizeBytes: 4n },
+            { storageKey: c, status: "AVAILABLE", sizeBytes: 3n },
+          ],
+        },
+      } as unknown as Parameters<typeof inventoryBackups>[0];
+      const { summary } = await inventoryBackups(prisma, storage);
+      expect(summary.availableOk.count).toBe(2);
+      expect(summary.availableSizeMismatch.count).toBe(0);
+      expect(summary.unreferencedObject.count).toBe(0);
+      expect(summary.hiddenVersion.count).toBe(6);
+    });
+
+    it("purge does not rely on IsLatest: a commit holds with a provider that flags none, and list() then fails closed", async () => {
+      const { s3, storage } = setup();
+      const strip = (entries: unknown) => ((entries as Listed[] | undefined) ?? []).map(({ IsLatest: _, ...e }) => e);
+      rewrite(s3, "ListObjectVersionsCommand", (out) => ({ ...out, Versions: strip(out["Versions"]), DeleteMarkers: strip(out["DeleteMarkers"]) }));
+      const key = randomUUID();
+      await (await storage.stage(key, Readable.from([Buffer.from("respaldo")]))).commit();
+      expect(s3.versionsOf(`${PREFIX}objects/${key}`)).toHaveLength(1);
+      await expect(storage.list()).rejects.toThrow("S3_LISTING_INCONSISTENT");
+    });
+
+    const contradictions: [string, (entries: Listed[]) => Listed[]][] = [
+      ["every entry flagged", (entries) => entries.map((e) => ({ ...e, IsLatest: true }))],
+      [
+        "the flag on an older entry",
+        (entries) => entries.map((e) => ({ ...e, IsLatest: e.LastModified === entries[entries.length - 1].LastModified })),
+      ],
+      ["an entry listed twice", (entries) => [...entries, entries[0]]],
+    ];
+    it.each(contradictions)("a listing with %s fails closed instead of choosing a version", async (_, change) => {
+      const { s3, storage } = setup();
+      const name = `${PREFIX}objects/${randomUUID()}`;
+      for (const body of ["1", "22", "333"]) s3.putDirect(name, Buffer.from(body));
+      // Only the listing of objects/ (staging/ is empty) is altered.
+      rewrite(s3, "ListObjectVersionsCommand", (out, input) =>
+        input["Prefix"] === `${PREFIX}objects/` ? { ...out, Versions: change(out["Versions"] as Listed[]) } : out,
+      );
+      await expect(storage.list()).rejects.toThrow(/S3_LISTING_INCONSISTENT/);
+    });
+
+    it("a listing cut by the page limit is reported as incomplete, never as a complete inventory", async () => {
+      const { s3, storage } = b2(1, { ...S3_LIMITS, listPages: 2 } as S3Limits);
+      versionedState(s3);
+      await expect(storage.list()).rejects.toThrow("S3_LISTING_INCOMPLETE");
+      const prisma = { backupMetadata: { findMany: async () => [] } } as unknown as Parameters<typeof inventoryBackups>[0];
+      await expect(inventoryBackups(prisma, storage)).rejects.toThrow("S3_LISTING_INCOMPLETE");
+    });
+  });
+});
+
+backupStorageContract("S3BackupStorage over the double with both #151 behaviours (403 for absent names, per-page IsLatest) and pages of 1", async () => {
+  const { s3, storage } = setup();
+  s3.quirks = { missingAs403: true, latestPerPage: true };
+  s3.pageSize = 1;
+  return {
+    storage,
+    entries: async (area) => entriesOf(s3, area),
+    writeForeign: async (area, name, content) => {
+      s3.putDirect(`${PREFIX}${area}/${name}`, Buffer.from(content));
+    },
+    readForeign: async (area, name) => {
+      const versions = s3.versionsOf(`${PREFIX}${area}/${name}`);
+      return versions[versions.length - 1].body.toString();
+    },
+    isEmpty: async () => s3.totalEntries() === 0,
+    dispose: async () => undefined,
+  };
+});
+
+backupStorageContract("S3BackupStorage over the double with B2's per-page IsLatest and pages of 1", async () => {
+  const { s3, storage } = setup();
+  s3.quirks.latestPerPage = true;
+  s3.pageSize = 1;
+  return {
+    storage,
+    entries: async (area) => entriesOf(s3, area),
+    writeForeign: async (area, name, content) => {
+      s3.putDirect(`${PREFIX}${area}/${name}`, Buffer.from(content));
+    },
+    readForeign: async (area, name) => {
+      const versions = s3.versionsOf(`${PREFIX}${area}/${name}`);
+      return versions[versions.length - 1].body.toString();
+    },
+    isEmpty: async () => s3.totalEntries() === 0,
+    dispose: async () => undefined,
+  };
 });

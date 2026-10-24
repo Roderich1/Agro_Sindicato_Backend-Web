@@ -1,0 +1,48 @@
+{
+ "fecha": "2026-10-24T15:33:01.003Z",
+ "prefijo": "ensayo-f08/b151-20261024/c-f2-20261024t1130/sonda/",
+ "bucket": "agro-backups-roderich",
+ "pasos": [
+  {
+   "paso": "HeadObject de un nombre inexistente",
+   "ok": false,
+   "error": {
+    "name": "Unknown",
+    "code": null,
+    "status": 403,
+    "message": "UnknownError"
+   }
+  },
+  {
+   "paso": "GetObject de un nombre inexistente",
+   "ok": false,
+   "error": {
+    "name": "AccessDenied",
+    "code": "AccessDenied",
+    "status": 403,
+    "message": "Cannot access bucket"
+   }
+  },
+  {
+   "paso": "PutObject con SSE AES256",
+   "ok": true,
+   "status": 200
+  },
+  {
+   "paso": "HeadObject del objeto existente",
+   "ok": true,
+   "status": 200
+  },
+  {
+   "paso": "CopyObject con versionId, REPLACE y SSE AES256",
+   "ok": true,
+   "status": 200
+  },
+  {
+   "paso": "CopyObject con versionId y REPLACE, sin SSE",
+   "ok": true,
+   "status": 200
+  }
+ ],
+ "restantesTrasLimpiar": 0
+}

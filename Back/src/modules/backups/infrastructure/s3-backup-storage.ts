@@ -40,16 +40,21 @@ export interface S3BackupStorageSettings {
 /** Up to this size a copy is one `PutObject`; above it, multipart with parts of this size. */
 export const S3_PART_BYTES = 8 * 1024 * 1024;
 
-/** Time limits (ms). Every call that does not carry the client's body is bounded. */
+/**
+ * Time limits (ms), and the work limit of a listing. Every call that does not
+ * carry the client's body is bounded.
+ */
 export interface S3Limits {
   /** One SDK call, its retries included. */
   callMs: number;
-  /** Whole `commit`: head, copy, head, purge of staging and of duplicates. */
+  /** Whole `commit`: existence listing, copy, head, purge of staging and of duplicates. */
   commitMs: number;
   /** Whole `remove`, `discardStaged` or `removeStagedFile`. */
   purgeMs: number;
   /** `open` until the response headers arrive. */
   openMs: number;
+  /** Pages of one `ListObjectVersions` listing; past them it is incomplete. */
+  listPages: number;
 }
 
 export const S3_LIMITS: S3Limits = {
@@ -57,7 +62,22 @@ export const S3_LIMITS: S3Limits = {
   commitMs: 180_000,
   purgeMs: 120_000,
   openMs: 60_000,
+  listPages: 1_000,
 };
+
+/**
+ * A version listing that cannot be taken as complete and true: past its page
+ * limit, stalled, with an invalid page, or with flags that contradict its
+ * order. It never means "absent" nor "nothing left".
+ */
+export class S3ListingError extends Error {
+  constructor(
+    code: "S3_LISTING_INCOMPLETE" | "S3_LISTING_INVALID" | "S3_LISTING_INCONSISTENT" | "S3_PAGINATION_STALLED",
+  ) {
+    super(code);
+    this.name = "S3ListingError";
+  }
+}
 
 /** What the adapter needs from the SDK client; `S3Client` satisfies it. */
 export interface S3Sender {
@@ -85,14 +105,17 @@ export function createS3Client(settings: S3BackupStorageSettings): S3Client {
   });
 }
 
-/** A version (or delete marker) of one exact name. */
+/** A version (or delete marker) of one exact name, as listed. */
 interface StoredVersion {
   name: string;
-  versionId: string | undefined;
-  latest: boolean;
+  versionId: string;
+  /** The provider's IsLatest; only trusted as `currentEntries` describes. */
+  flaggedLatest: boolean;
   deleteMarker: boolean;
   sizeBytes: number;
   modifiedAt: Date;
+  /** Page of the listing it came in, from 0. */
+  page: number;
 }
 
 const SHA256_META = "agro-sha256";
@@ -135,28 +158,81 @@ interface ListedVersion {
   LastModified?: Date;
 }
 
-/** The versions and delete markers of one page, entries without a key skipped. */
-function versionsOfPage(page: {
+/** One `ListObjectVersions` page, before it is checked. */
+interface ListedPage {
   Versions?: ListedVersion[];
   DeleteMarkers?: ListedVersion[];
-}): StoredVersion[] {
-  const entry = (v: ListedVersion, deleteMarker: boolean): StoredVersion[] =>
-    v.Key
-      ? [
-          {
-            name: v.Key,
-            versionId: v.VersionId,
-            latest: v.IsLatest === true,
-            deleteMarker,
-            sizeBytes: deleteMarker ? 0 : (v.Size ?? 0),
-            modifiedAt: v.LastModified ?? new Date(0),
-          },
-        ]
-      : [];
+  IsTruncated?: boolean;
+  NextKeyMarker?: string;
+  NextVersionIdMarker?: string;
+}
+
+/**
+ * The versions and delete markers of one page listed under `prefix`. Any
+ * entry without a name or version id, outside the prefix, without a date or
+ * (a version) without a size makes the page invalid: it is never skipped.
+ */
+function versionsOfPage(page: ListedPage, prefix: string, index: number): StoredVersion[] {
+  const entry = (v: ListedVersion, deleteMarker: boolean): StoredVersion => {
+    const valid =
+      typeof v === "object" &&
+      v !== null &&
+      typeof v.Key === "string" &&
+      v.Key.startsWith(prefix) &&
+      typeof v.VersionId === "string" &&
+      v.VersionId.length > 0 &&
+      v.LastModified instanceof Date &&
+      !Number.isNaN(v.LastModified.getTime()) &&
+      (v.IsLatest === undefined || typeof v.IsLatest === "boolean") &&
+      (deleteMarker || (Number.isSafeInteger(v.Size) && v.Size! >= 0));
+    if (!valid) throw new S3ListingError("S3_LISTING_INVALID");
+    return {
+      name: v.Key!,
+      versionId: v.VersionId!,
+      flaggedLatest: v.IsLatest === true,
+      deleteMarker,
+      sizeBytes: deleteMarker ? 0 : v.Size!,
+      modifiedAt: v.LastModified!,
+      page: index,
+    };
+  };
+  const list = (entries: unknown): ListedVersion[] => {
+    if (entries === undefined) return [];
+    if (!Array.isArray(entries)) throw new S3ListingError("S3_LISTING_INVALID");
+    return entries as ListedVersion[];
+  };
   return [
-    ...(page.Versions ?? []).flatMap((v) => entry(v, false)),
-    ...(page.DeleteMarkers ?? []).flatMap((m) => entry(m, true)),
+    ...list(page.Versions).map((v) => entry(v, false)),
+    ...list(page.DeleteMarkers).map((m) => entry(m, true)),
   ];
+}
+
+/**
+ * The current entry (version or delete marker) of each name of a complete
+ * listing, without trusting IsLatest alone. A listing starts at the newest
+ * entry of each name, so the current one is in the first page where its name
+ * appears, and it must be the only entry flagged IsLatest for that name in
+ * that page; flags in later pages are ignored. B2 was observed (#151,
+ * 2026-10-24, with the trial's keys) to flag the first entry of each name in
+ * every page. The version id is never compared. Fails closed when a name has
+ * no such entry, more than one, or one older (LastModified) than another
+ * entry of its name.
+ */
+function currentEntries(entries: StoredVersion[]): Map<string, StoredVersion> {
+  const firstPage = new Map<string, number>();
+  for (const v of entries) if (!firstPage.has(v.name)) firstPage.set(v.name, v.page);
+  const current = new Map<string, StoredVersion>();
+  for (const v of entries) {
+    if (v.page !== firstPage.get(v.name) || !v.flaggedLatest) continue;
+    if (current.has(v.name)) throw new S3ListingError("S3_LISTING_INCONSISTENT");
+    current.set(v.name, v);
+  }
+  for (const v of entries) {
+    const head = current.get(v.name);
+    if (!head || v.modifiedAt.getTime() > head.modifiedAt.getTime())
+      throw new S3ListingError("S3_LISTING_INCONSISTENT");
+  }
+  return current;
 }
 
 /**
@@ -171,6 +247,10 @@ function versionsOfPage(page: {
  * version id, and lists again: in a versioned bucket a name that is no longer
  * listed is not proof that its bytes are gone. A delete without a version id
  * (which would only add a marker) is never sent.
+ *
+ * Existence and visibility come from version listings, never from a 404 or
+ * from IsLatest alone (#151); a listing that is denied, invalid or incomplete
+ * fails closed.
  *
  * Nothing is logged here; errors are rethrown for the service to close.
  */
@@ -364,9 +444,14 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
     const limit = deadline(this.limits.commitMs);
     let copied = false;
     try {
-      // Server UUID keys are unique per copy: an existing final object is
-      // never overwritten.
-      if (await this.head(final, limit.signal)) throw new Error("S3_OBJECT_ALREADY_EXISTS");
+      // Server UUID keys are unique per copy: a final name that already has
+      // any version or marker is never written. The listing is a check, not
+      // an atomic reservation: a writer of the same name between it and the
+      // copy would not be detected, and the purges of this commit (the one
+      // that keeps only the verified version, and the one of the catch once
+      // `copied` is set) would delete that writer's versions. That the
+      // window stays empty rests on the server's UUID keys, not on this check.
+      if (await this.exists(final, limit.signal)) throw new Error("S3_OBJECT_ALREADY_EXISTS");
       copied = true;
       let copyError: unknown;
       try {
@@ -386,7 +471,10 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
         // Ambiguous (e.g. a timeout after the copy): the head decides.
         copyError = error;
       }
-      const head = await this.head(final, limit.signal);
+      // A head that fails after a failed copy reports the copy's error.
+      const head = await this.head(final, limit.signal).catch((error: unknown) => {
+        throw copyError ?? error;
+      });
       if (!head || head.sizeBytes !== bytes || head.sha256 !== sha256 || !head.versionId)
         throw copyError ?? new Error("S3_COPY_NOT_VERIFIED");
       // Only one physical version of the final name, and no staging left:
@@ -402,6 +490,17 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
     }
   }
 
+  /**
+   * Whether the exact name has any version or delete marker, by listing it.
+   * Not by HeadObject: with the #151 trial's keys, B2 answered 403, not 404,
+   * for an absent name. A name that merely starts with this one proves
+   * nothing. A denied, invalid or incomplete listing throws: never "absent".
+   */
+  private async exists(name: string, signal: AbortSignal): Promise<boolean> {
+    return (await this.versions(name, signal)).some((v) => v.name === name);
+  }
+
+  /** The current version of an existing name; null only on a 404. */
   private async head(
     name: string,
     signal: AbortSignal,
@@ -442,9 +541,28 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
     } catch (error) {
       if (controller.signal.aborted) throw controller.signal.reason;
       if (isNotFound(error)) throw new BackupObjectMissingError();
+      if (statusOf(error) === 403 && (await this.absentByListing(name, controller.signal)))
+        throw new BackupObjectMissingError();
       throw error;
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  /**
+   * After a 403 to a GetObject (B2 with the #151 trial's keys answered 403
+   * for an absent name): true only if a complete, coherent listing of the
+   * exact name shows no current version (nothing, or a delete marker on
+   * top). A name with a current version, or a listing that is denied,
+   * invalid or incomplete, gives false: the caller rethrows the 403.
+   */
+  private async absentByListing(name: string, signal: AbortSignal): Promise<boolean> {
+    try {
+      const versions = await this.versions(name, signal);
+      const current = currentEntries(versions).get(name);
+      return current === undefined || current.deleteMarker;
+    } catch {
+      return false;
     }
   }
 
@@ -472,7 +590,8 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
   /**
    * Deletes, by version id, every version and marker of the names that
    * `match` selects under `prefix` (except `keep`), then lists again and
-   * fails if any is left.
+   * fails if any is left. It works on the whole version inventory, never on
+   * IsLatest: `keep` must end as the only entry of its name, and a version.
    */
   private async purge(
     match: (name: string) => boolean,
@@ -484,7 +603,6 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
       (v) => match(v.name) && v.versionId !== keep,
     );
     for (const version of doomed) {
-      if (!version.versionId) throw new Error("S3_VERSION_ID_MISSING");
       await this.call(
         new DeleteObjectCommand({
           Bucket: this.bucket,
@@ -496,23 +614,25 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
     }
     const left = (await this.versions(prefix, signal)).filter((v) => match(v.name));
     if (left.some((v) => v.versionId !== keep)) throw new Error("S3_VERSIONS_REMAIN");
-    if (keep !== undefined && !left.some((v) => v.versionId === keep && v.latest && !v.deleteMarker))
+    if (keep !== undefined && !left.some((v) => v.versionId === keep && !v.deleteMarker))
       throw new Error("S3_VERIFIED_VERSION_MISSING");
   }
 
-  /** Every version and delete marker under `prefix`, all pages. */
+  /**
+   * Every version and delete marker under `prefix`, all pages, in listing
+   * order: the inventory that purges work on. It says nothing about which
+   * entry is current (see `currentEntries`). Fails closed (S3ListingError)
+   * past `listPages`, on a stalled or invalid page, or on an entry listed
+   * twice: an incomplete listing is never returned as complete.
+   */
   private async versions(prefix: string, signal: AbortSignal): Promise<StoredVersion[]> {
     const found: StoredVersion[] = [];
+    const seen = new Set<string>();
     let keyMarker: string | undefined;
     let versionIdMarker: string | undefined;
-    for (;;) {
-      const page = await this.call<{
-        Versions?: ListedVersion[];
-        DeleteMarkers?: ListedVersion[];
-        IsTruncated?: boolean;
-        NextKeyMarker?: string;
-        NextVersionIdMarker?: string;
-      }>(
+    for (let index = 0; ; index++) {
+      if (index >= this.limits.listPages) throw new S3ListingError("S3_LISTING_INCOMPLETE");
+      const page = await this.call<ListedPage | null>(
         new ListObjectVersionsCommand({
           Bucket: this.bucket,
           Prefix: prefix,
@@ -521,29 +641,49 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
         }),
         signal,
       );
-      found.push(...versionsOfPage(page));
+      if (typeof page !== "object" || page === null || typeof page.IsTruncated !== "boolean")
+        throw new S3ListingError("S3_LISTING_INVALID");
+      for (const version of versionsOfPage(page, prefix, index)) {
+        const id = JSON.stringify([version.name, version.versionId]);
+        if (seen.has(id)) throw new S3ListingError("S3_LISTING_INCONSISTENT");
+        seen.add(id);
+        found.push(version);
+      }
       if (!page.IsTruncated) return found;
-      if (!page.NextKeyMarker && !page.NextVersionIdMarker) throw new Error("S3_PAGINATION_STALLED");
+      if (
+        (!page.NextKeyMarker && !page.NextVersionIdMarker) ||
+        (page.NextKeyMarker === keyMarker && page.NextVersionIdMarker === versionIdMarker)
+      )
+        throw new S3ListingError("S3_PAGINATION_STALLED");
       keyMarker = page.NextKeyMarker;
       versionIdMarker = page.NextVersionIdMarker;
     }
   }
 
-  /** Unfinished multipart uploads under `prefix`, all pages. */
+  /**
+   * Unfinished multipart uploads under `prefix`, all pages, with the same
+   * checks as `versions`: an entry without a name or upload id, outside the
+   * prefix or without a valid `Initiated` makes the page invalid (never
+   * skipped, never dated 1970: an upload in progress must not look old to
+   * the F10 cleanup); a repeated entry, a stalled page or the page limit
+   * fail closed.
+   */
   private async uploads(
     prefix: string,
     signal: AbortSignal,
   ): Promise<{ name: string; uploadId: string; initiated: Date }[]> {
     const found: { name: string; uploadId: string; initiated: Date }[] = [];
+    const seen = new Set<string>();
     let keyMarker: string | undefined;
     let uploadIdMarker: string | undefined;
-    for (;;) {
+    for (let index = 0; ; index++) {
+      if (index >= this.limits.listPages) throw new S3ListingError("S3_LISTING_INCOMPLETE");
       const page = await this.call<{
-        Uploads?: { Key?: string; UploadId?: string; Initiated?: Date }[];
+        Uploads?: unknown;
         IsTruncated?: boolean;
         NextKeyMarker?: string;
         NextUploadIdMarker?: string;
-      }>(
+      } | null>(
         new ListMultipartUploadsCommand({
           Bucket: this.bucket,
           Prefix: prefix,
@@ -552,12 +692,35 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
         }),
         signal,
       );
-      for (const u of page.Uploads ?? []) {
-        if (u.Key && u.UploadId)
-          found.push({ name: u.Key, uploadId: u.UploadId, initiated: u.Initiated ?? new Date(0) });
+      if (
+        typeof page !== "object" ||
+        page === null ||
+        typeof page.IsTruncated !== "boolean" ||
+        (page.Uploads !== undefined && !Array.isArray(page.Uploads))
+      )
+        throw new S3ListingError("S3_LISTING_INVALID");
+      for (const u of (page.Uploads ?? []) as { Key?: unknown; UploadId?: unknown; Initiated?: unknown }[]) {
+        const valid =
+          typeof u === "object" &&
+          u !== null &&
+          typeof u.Key === "string" &&
+          u.Key.startsWith(prefix) &&
+          typeof u.UploadId === "string" &&
+          u.UploadId.length > 0 &&
+          u.Initiated instanceof Date &&
+          !Number.isNaN(u.Initiated.getTime());
+        if (!valid) throw new S3ListingError("S3_LISTING_INVALID");
+        const id = JSON.stringify([u.Key, u.UploadId]);
+        if (seen.has(id)) throw new S3ListingError("S3_LISTING_INCONSISTENT");
+        seen.add(id);
+        found.push({ name: u.Key as string, uploadId: u.UploadId as string, initiated: u.Initiated as Date });
       }
       if (!page.IsTruncated) return found;
-      if (!page.NextKeyMarker && !page.NextUploadIdMarker) throw new Error("S3_PAGINATION_STALLED");
+      if (
+        (!page.NextKeyMarker && !page.NextUploadIdMarker) ||
+        (page.NextKeyMarker === keyMarker && page.NextUploadIdMarker === uploadIdMarker)
+      )
+        throw new S3ListingError("S3_PAGINATION_STALLED");
       keyMarker = page.NextKeyMarker;
       uploadIdMarker = page.NextUploadIdMarker;
     }
@@ -582,16 +745,21 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
       throw new Error("S3_UPLOADS_REMAIN");
   }
 
-  /** Sum of the parts of an unfinished multipart upload. */
+  /**
+   * Sum of the parts of an unfinished multipart upload. A part without a
+   * valid size, a page without IsTruncated, a stalled page or the page limit
+   * fail closed: the size is never undercounted.
+   */
   private async uploadedBytes(name: string, uploadId: string, signal: AbortSignal): Promise<number> {
     let total = 0;
     let marker: string | undefined;
-    for (;;) {
+    for (let index = 0; ; index++) {
+      if (index >= this.limits.listPages) throw new S3ListingError("S3_LISTING_INCOMPLETE");
       const page = await this.call<{
-        Parts?: { Size?: number }[];
+        Parts?: unknown;
         IsTruncated?: boolean;
         NextPartNumberMarker?: string;
-      }>(
+      } | null>(
         new ListPartsCommand({
           Bucket: this.bucket,
           Key: name,
@@ -600,16 +768,32 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
         }),
         signal,
       );
-      for (const part of page.Parts ?? []) total += part.Size ?? 0;
+      if (
+        typeof page !== "object" ||
+        page === null ||
+        typeof page.IsTruncated !== "boolean" ||
+        (page.Parts !== undefined && !Array.isArray(page.Parts))
+      )
+        throw new S3ListingError("S3_LISTING_INVALID");
+      for (const part of (page.Parts ?? []) as { Size?: unknown }[]) {
+        const size = typeof part === "object" && part !== null ? part.Size : undefined;
+        if (typeof size !== "number" || !Number.isSafeInteger(size) || size < 0)
+          throw new S3ListingError("S3_LISTING_INVALID");
+        total += size;
+      }
       if (!page.IsTruncated) return total;
-      if (!page.NextPartNumberMarker) throw new Error("S3_PAGINATION_STALLED");
+      if (!page.NextPartNumberMarker || page.NextPartNumberMarker === marker)
+        throw new S3ListingError("S3_PAGINATION_STALLED");
       marker = page.NextPartNumberMarker;
     }
   }
 
   /**
    * Every version, delete marker and unfinished upload under `objects/` and
-   * `staging/` (F10 inventory, #40), one entry each.
+   * `staging/` (F10 inventory, #40), one entry each. Only the current entry
+   * of a name, when it is a version, is visible (`hidden: false`). A listing
+   * that is incomplete or contradicts itself throws (S3ListingError): it is
+   * never reported as a complete inventory.
    */
   async list(): Promise<StoredBackupFile[]> {
     const limit = deadline(this.limits.purgeMs);
@@ -617,9 +801,11 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
       const found: StoredBackupFile[] = [];
       for (const area of ["objects", "staging"] as const) {
         const base = `${this.prefix}${area}/`;
-        for (const version of await this.versions(base, limit.signal)) {
+        const versions = await this.versions(base, limit.signal);
+        const current = currentEntries(versions);
+        for (const version of versions) {
           const name = version.name.slice(base.length);
-          if (!version.name.startsWith(base) || name.length === 0) continue;
+          if (name.length === 0) continue;
           found.push({
             area,
             name,
@@ -627,7 +813,7 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
             sizeBytes: version.sizeBytes,
             modifiedAt: version.modifiedAt,
             versionId: version.versionId,
-            hidden: version.deleteMarker || !version.latest,
+            hidden: version.deleteMarker || current.get(version.name) !== version,
             deleteMarker: version.deleteMarker,
           });
         }
@@ -635,7 +821,7 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
       const base = `${this.prefix}staging/`;
       for (const upload of await this.uploads(base, limit.signal)) {
         const name = upload.name.slice(base.length);
-        if (!upload.name.startsWith(base) || name.length === 0) continue;
+        if (name.length === 0) continue;
         found.push({
           area: "staging",
           name,

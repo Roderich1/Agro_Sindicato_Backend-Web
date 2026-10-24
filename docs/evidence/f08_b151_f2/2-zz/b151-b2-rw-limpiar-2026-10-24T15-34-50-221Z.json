@@ -1,0 +1,51 @@
+{
+ "herramienta": "tool/f08_b2/b151_b2.cjs",
+ "destino": "b2",
+ "perfil": "rw",
+ "paso": "limpiar",
+ "version": {
+  "sha": "cf6b4d7b0cf30361e485f845f1b78d45874f721e",
+  "cambiosLocales": [
+   "M Back/src/modules/backups/b151-b2-real.postgres.spec.ts",
+   "M tool/f08_b2/b151_b2.cjs",
+   "M tool/f08_b2/b151_ejecutar.ps1"
+  ]
+ },
+ "configuracion": {
+  "prefijo": "ensayo-f08/b151-20261024/zz/",
+  "bucket": "agro-backups-roderich",
+  "region": "us-east-005",
+  "clave": {
+   "capacidades": [
+    "deleteFiles",
+    "listFiles",
+    "readFiles",
+    "writeFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  },
+  "parteMultipart": 8388608
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T15:34:51.920Z",
+ "resumen": {
+  "PASS": 1,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId",
+   "perfil": "rw",
+   "esperado": "0 restantes",
+   "observado": {
+    "restantes": 0
+   },
+   "veredicto": "PASS"
+  }
+ ],
+ "registro": [
+  "2026-10-24T15:34:50.936Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)",
+  "2026-10-24T15:34:51.919Z PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId"
+ ]
+}
