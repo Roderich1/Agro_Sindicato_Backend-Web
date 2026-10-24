@@ -115,6 +115,12 @@ F05 #16/#17 debe representar identidad lógica de intención, vínculo causal/an
 
 Una campaña debe estar habilitada para contribuciones conforme a su autoridad central (`ABIERTA` y `isActive` en el modelo vigente). Una transición a cerrada impide una nueva publicación/sustitución ordinaria; el error requiere revisión del contexto, no reapertura automática. La cancelación del propietario sigue siendo una retirada, incluso para campaña cerrada, si su identidad/autorización siguen válidas. Con credenciales revocadas, la retirada/depuración se tramita por la política central responsable, nunca por un bypass anónimo.
 
+**Nota del 2026-10-23 (campaña sellada; detalle en [`F07_SEALED_HISTORY_CONTRACT.md`](F07_SEALED_HISTORY_CONTRACT.md) §7).**
+- **Sellado y cierre son estados distintos.** Sólo se sella una campaña cerrada.
+- **Publicación o sustitución nuevas** en una campaña sellada: se rechazan con `CAMPAIGN_SEALED`. Es un fallo terminal; no se reabre la campaña ni se remapea a otra.
+- **Replay** de una intención ya resuelta: devuelve su resultado original.
+- **CANCEL del propietario:** sigue siendo una retirada válida. No altera la versión sellada; sólo retira la visibilidad de las cifras selladas que incluían esa aportación.
+
 Concurrencia: dos sucesores incompatibles del mismo antecesor no se resuelven mediante LWW universal, suma, máximo ni hora de cliente. Central conserva sólo el conflicto mínimo autorizado y detiene esa actualización; Mobile presenta la decisión al propietario, que emite una nueva intención causal válida. Un antecesor obsoleto o cancelado no puede reactivarse por reenvío. Backend tampoco sobrescribe SQLite como solución de conflicto.
 
 | Caso que F05 #18 debe cubrir | Invariante de este contrato |
@@ -197,6 +203,43 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
 - Esta enmienda no aprueba la política F07-POL-01, no es una validación institucional y no habilita producción.
 
 **Una alternativa futura sin memoria** tendría que demostrar antes que no debilita la protección frente a cifras que ya pudieron conocerse. Esta enmienda no la construye.
+
+### 7.2 Enmienda del 2026-10-23: historial colectivo sellado (`R_COLLECTIVE_HISTORY`)
+
+**Qué es.**
+- Origen: las decisiones de Roderich Rendón del 2026-10-23 (`01_DECISIONES_APROBADAS.md` §6): conservar el histórico colectivo para consultas y tendencias descriptivas, y sellar de forma manual.
+- Detalle: [`F07_SEALED_HISTORY_CONTRACT.md`](F07_SEALED_HISTORY_CONTRACT.md).
+- La redactó la sesión B de Claude Code. La revisan las sesiones A y C. No es una aprobación institucional.
+- Rige desde el 2026-10-23. **No es retroactiva**, y el texto anterior de §7 y §7.1 no se reescribe.
+
+**Nueva clase `R_COLLECTIVE_HISTORY`:**
+
+| Clase | Inicio / contenido permitido | Criterio de salida y minimización | Responsable / issue / plazo |
+|---|---|---|---|
+| `R_COLLECTIVE_HISTORY` | El sellado manual de una campaña **cerrada** por DIRECTIVA o ADMINISTRADOR del tenant. Contenido: `CollectiveSeal`, con actor, rol, hora del servidor, modo, política, umbral, cobertura agregada, el booleano de disputas y la huella de revisión, y `CollectiveSealEntry`, con el estado por celda, la referencia a la divulgación mostrada, `pendingChanges` y la marca de retirada de visibilidad. Sin cantidades por aportación, identidades ni datos privados | Consulta histórica autorizada y tendencias descriptivas, con la política **vigente** al leer: puede retirar la visibilidad, nunca añadirla. Inmutable: sin UPDATE ni DELETE, salvo marcar la retirada de visibilidad. No hay purga en este bloque | Roderich1: F07 #107 (política para datos reales), F10 #45 (verificación). Datos sintéticos: se conserva mientras dure el entorno del ensayo. Datos reales: **sin plazo aprobado; no hay datos reales admitidos**. `PERIOD_DELEGATED` no se convierte en una conservación indefinida autorizada |
+
+**Es vinculable.** Cada entrada visible apunta a una divulgación de `R_DISCLOSURE_MEMORY`, que guarda la cantidad de cada aportación con su Member. Conservar el historial es conservar **datos protegidos y vinculables**, no «sólo agregados anónimos». La Directiva sólo accede a las salidas colectivas que la política permite.
+
+**Cambios en las clases existentes:**
+- **`R_CURRENT`:**
+  - la regla no cambia: un valor sustituido o cancelado sale del cálculo y la aportación no guarda un historial de cantidades;
+  - el sellado **no añade versiones** de las aportaciones;
+  - tras el sellado, la aportación vigente se conserva como soporte del vínculo de la memoria, que la referencia con FK `Restrict`, y **no se usa para ningún cálculo nuevo de esa campaña**;
+  - la salida de `R_CURRENT` para una campaña sellada queda subordinada a la de su historial. No se borra por separado.
+- **`R_DISCLOSURE_MEMORY` (§7.1)**, dos precisiones:
+  1. **Nueva finalidad acotada:** la memoria se lee también para saber a qué entradas selladas afecta la retirada (CANCEL) de un aportante después del sellado, y retirar su visibilidad. Es una finalidad de protección. **No** la convierte en analítica: las tendencias y la consulta histórica no leen `CollectiveReleaseItem`.
+  2. **Duración:** la memoria de una campaña sellada se conserva mientras exista su versión sellada.
+- **La propuesta M-2 de BE #159** («sellar y después eliminar de forma conjunta por campaña») se **descarta** por la decisión del 2026-10-23. No se adopta ningún plazo automático (30 días u otro) para borrar o sellar.
+- **`R_CAUSAL` y el journal:** el sellado no añade historial al journal. El rechazo `CAMPAIGN_SEALED` se guarda como cualquier otro rechazo (F05 §8, enmienda del 2026-10-23).
+- **`R_CENTRAL_AUDIT`:** una fila mínima de `AuditLog` por sellado, con actor, acción, entidad, campaña y hora, sin cifras.
+
+**Discrepancia que se declara (regla 3 de CLAUDE.md).**
+- §7.1 dice que «la lectura de una propuesta sólo toma la cifra ya publicada».
+- En `769d441`, la lista, el detalle y el CSV de propuestas ejecutaban `summary.decide()`, que puede crear o retirar divulgaciones. Lo observó la revisión de #159 (hallazgo 3).
+- **Desde esta enmienda,** leer una propuesta aplica la misma decisión en modo de sólo lectura, sin escribir. En una campaña sellada, sirve la versión sellada.
+- Hasta esta fecha, el código contradecía el contrato, y así queda registrado.
+
+**Copias del Central.** No hay un procedimiento documentado de copia y restauración del Central (manual técnico §9.3), y no se verificó si el proveedor hace copias. Una restauración anterior a un sellado o a una divulgación haría «olvidar» cifras ya conocidas. Su tratamiento (fallar cerrado y comprobar antes de reabrir la divulgación) sigue **pendiente** y no se construye en este bloque.
 
 ## 8. Sync y backup
 
