@@ -11,7 +11,7 @@
 | Secretos | Inyectados por `con_b2.ps1` sólo en el proceso de cada paso o sonda. Nada por argv. Los informes salen saneados, y una búsqueda de nombres de campo de clave y de formatos de clave B2 no encontró nada en `f08_b151_f2/4-rep-t1350/` |
 | PostgreSQL | Contenedor desechable nuevo `agro_c_rep_pg` (127.0.0.1:55474, datos en tmpfs). Cada suite creó y borró su base. El contenedor se eliminó al terminar |
 | Datos | Sintéticos. Ítem 6 en **formato 2**: sobres con la cabecera exterior de F08-ADR-003 sobre bytes aleatorios, con `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true` |
-| Informes | `docs/evidence/f08_b151_f2/4-rep-t1350/`: informes de B2, `ejecucion.txt`, `doble/`, `sondas/` (salidas y los dos scripts, lanzados con `con_b2.ps1 -Ruta b151-<perfil>.clixml node <script> [corte|ro]` y `BACKUP_S3_PREFIX` en la subcarpeta de cada sonda) e `inventario-final/` |
+| Informes | `docs/evidence/f08_b151_f2/4-rep-t1350/`: informes de B2, `ejecucion.txt`, `doble/`, `sondas/` (salidas y los dos scripts, lanzados con `con_b2.ps1 -Ruta b151-<perfil>.clixml node <script> <corte o ro>` y `BACKUP_S3_PREFIX` en la subcarpeta de cada sonda) e `inventario-final/` |
 
 **Alcance de H1 y H2.** Son comportamientos **observados en este entorno B2, con estas claves de mínimo privilegio** (primera ejecución y esta). No se afirma que ocurran en todas las configuraciones de B2.
 
