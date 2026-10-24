@@ -669,8 +669,11 @@ describe("#151: what B2 answered with the trial's restricted keys, imitated by t
       const { s3, storage } = setup();
       const name = `${PREFIX}objects/${randomUUID()}`;
       for (const body of ["1", "22", "333"]) s3.putDirect(name, Buffer.from(body));
-      rewrite(s3, "ListObjectVersionsCommand", (out) => ({ ...out, Versions: change((out["Versions"] as Listed[]) ?? []) }));
-      await expect(storage.list()).rejects.toThrow(/S3_LISTING_/);
+      // Only the listing of objects/ (staging/ is empty) is altered.
+      rewrite(s3, "ListObjectVersionsCommand", (out, input) =>
+        input["Prefix"] === `${PREFIX}objects/` ? { ...out, Versions: change(out["Versions"] as Listed[]) } : out,
+      );
+      await expect(storage.list()).rejects.toThrow(/S3_LISTING_INCONSISTENT/);
     });
 
     it("a listing cut by the page limit is reported as incomplete, never as a complete inventory", async () => {
