@@ -4,6 +4,8 @@
 
 **Qué no valida:** **no es Backblaze B2** y no cumple ningún ítem de #151 §A. La ejecución contra B2 real la hace la sesión A con las claves temporales, y su resultado irá en una evidencia aparte.
 
+> **2026-10-24:** lo que sigue es histórico y se conserva tal cual. Las instrucciones vigentes, la trazabilidad de las ejecuciones del 24/10 contra B2 y la retirada de la propuesta de operación están en la nota final, «Nota del 2026-10-24».
+
 **Ficha:**
 - **Fecha real:** 2026-10-20, de 00:04:28 a 00:05:11Z (2026-10-19 en America/La_Paz).
 - **Quién:** la sesión C de Claude Code, por el encargo de la sesión A («F07 y F08», §5).
@@ -130,3 +132,92 @@ Jest: 5 tests passed, con PostgreSQL local `postgres:16-alpine` en 127.0.0.1:554
 > **Nota del 2026-10-20 sobre la revisión del HEAD final.** El mismo agente de revisión de esta sesión volvió a revisar `54eb3e0` y dio «LISTO». Sus dos observaciones menores se aplican aquí:
 > - se cambió el nombre de la revisión, que no es independiente;
 > - se respaldaron la mutación y la re-ejecución de `601cc4c` con su orden y su salida.
+
+## Nota del 2026-10-24 (22:02Z), sobre `8ce0263`. No reescribe lo anterior
+
+Todo lo anterior describe la herramienta hasta el 2026-10-20 y se conserva tal cual. Esta nota recoge lo que cambió desde entonces.
+
+### 1. La ejecución contra B2 real ya se hizo
+
+La sección «Ejecución contra B2 real: **NO EJECUTADA**» queda superada. El 2026-10-24 hubo tres ejecuciones contra Backblaze B2 real, con claves temporales nuevas de la raíz `ensayo-f08/b151-20261024/`.
+
+- **Sus evidencias están en #163** (`feat/f08-respaldo-cifrado-be`), no en esta rama:
+  - `F08_BKP_08_B2_REAL_FORMATO2.md`;
+  - `F08_BKP_08_B2_REAL_REPETICION.md`;
+  - `F08_BKP_08_B2_REAL_ACOTADA.md`.
+- **Sus FAIL y NO_CONCLUYENTE se conservan allí.** Nada pasa a PASS de forma retroactiva.
+- **Claves:** según la sesión A, Roderich revocó las tres claves temporales el 2026-10-24, hacia las 20:42Z. Esta sesión no lo comprobó. Para volver a ejecutar hacen falta claves nuevas (`crear_claves_b151.ps1 -Prefijo`).
+
+### 2. Qué herramienta usó cada medición del 24/10
+
+Ninguna de las tres usó `8ce0263` ni los cambios del §3. **Esos cambios no se atribuyen a ninguna de ellas.**
+
+| Ejecución contra B2 | Hora (UTC) | Herramienta | Código ejecutado (rama local de ensayo, sin publicar) |
+|---|---|---|---|
+| Primera, formato 2 | 15:29–15:37 | `cf6b4d7` y `71ac088`. Según `git patch-id --stable`, son los mismos parches que `51cc7b3` y `c2361d9` de esta rama | `test/f08-b151-formato2`: `50096c0`, el merge de #160 `78840e7` sobre #163 `9255f2c`, más esos dos commits |
+| Repetición | 17:47–17:55 | `1c35562` de esta rama | `test/f08-b151-repeticion`, `62f4fe7`: #163 `353ad31` + #160 `1c35562` |
+| Acotada (5b y H3) | 20:26:03–20:26:41 | `ff8bf7f` de esta rama | `test/f08-b151-repeticion`, `1e5ff10`: `62f4fe7` + #160 `ff8bf7f` + #163 `d673a56` |
+
+Lo comprobé con `git merge-base --is-ancestor`:
+- `1c35562` es ancestro de `62f4fe7` y de `1e5ff10`;
+- `ff8bf7f` es ancestro de `1e5ff10`, pero no de `62f4fe7`.
+
+### 3. Cambios de la herramienta en `8ce0263`, declarados
+
+1. **`F08_B151_RAIZ` es obligatoria y ya no tiene valor por defecto.**
+   - En `b151_ejecutar.ps1` corresponde a `-Raiz`, ahora obligatorio.
+   - Antes valía `ensayo-f08/b151-20261019/`.
+   - Se exige en todos los pasos, también contra el doble. Sin ella, la herramienta se detiene con un error claro antes de tocar nada.
+2. **`F08_B151_FORMATO` es obligatorio para el ítem 6 (`c6`) y ya no tiene valor por defecto.**
+   - En `b151_ejecutar.ps1` corresponde a `-Formato`, ahora obligatorio con `-ConC6`.
+   - Antes valía `1`.
+   - Sin `-ConC6` no se usa ni se fija. La suite sólo lo lee cuando se ejecuta, así que sin variables (como en el `npm test` de la CI) sigue omitiéndose.
+3. **`caso1`, «1-ro: adaptador stage multipart (> 8 MiB)», usa `keptRefusal`, el criterio de H3 del paso `h3`.**
+   - Un `AbortError` del origen en lugar del rechazo de permisos ahora es **FAIL**; antes era NO_CONCLUYENTE.
+   - El NO_CONCLUYENTE de ese caso en la repetición del 24/10 se midió con el criterio anterior y se queda como está.
+
+**Lo demás no cambia.** La raíz se lee al usarse, en lugar de al cargar el módulo, pero el valor y las comprobaciones son los mismos.
+
+### 4. Instrucciones vigentes
+
+Sustituyen a las de «Cómo se ejecuta contra B2 real (sesión A)» y «Para ejecutarla».
+
+```powershell
+# Contra B2 real: la raíz de las claves del ensayo, obligatoria; con el ítem 6, también el formato que se mide.
+powershell -ExecutionPolicy Bypass -File tool\f08_b2\b151_ejecutar.ps1 -Raiz ensayo-f08/b151-<aaaammdd>/ -Subcarpeta <nueva> -Salida <dir> [-ConC6 -Formato 1|2] [-Limpiar]
+
+# Paso a paso o contra el doble: las mismas variables, en el entorno.
+$env:F08_B151_RAIZ = 'ensayo-f08/b151-<aaaammdd>/'   # siempre
+$env:F08_B151_FORMATO = '<1|2>'                      # sólo para c6
+node tool/f08_b2/b151_b2.cjs doble todos todo <salida>
+```
+
+- **La raíz es el `namePrefix` de las claves del ensayo.** Antes de tocar nada, cada paso comprueba con B2 que la clave tiene exactamente esa raíz, como hasta ahora.
+- **Formato:** para datos reales se decidió el formato 2 (F08-ADR-003, #163). El formato 2, y los casos del informe de limpieza de los pasos `h3` y `r5b` (`onStagingCleanup`), necesitan el adaptador y los módulos de #163. Con esta rama sola sobre `main`, esos casos fallan.
+
+### 5. Propuesta de operación retirada
+
+- **Qué se retira:** `docs/architecture/F08_BKP_08_PROPUESTA_OPERACION.md`, la propuesta §B/§C del 2026-10-19, en `c5f8e30`.
+- **Procedencia:**
+  - entró en `c2c1b15`;
+  - cambió por última vez en `8ecded0`;
+  - su texto final se lee con `git show ff8bf7f:docs/architecture/F08_BKP_08_PROPUESTA_OPERACION.md`.
+- **Dónde están ahora las decisiones** sobre cifrado, `.previo` y retención: F08-ADR-003 (#163).
+
+### 6. Comprobaciones sobre `8ce0263` (2026-10-24, sesión C)
+
+| Comprobación | Resultado |
+|---|---|
+| `node tool/f08_b2/b151_b2.cjs doble todos todo <salida>` con `F08_B151_RAIZ=ensayo-f08/b151-20261024/`, que contra el doble es sólo un espacio de nombres en memoria. 22:02:19Z, árbol limpio | **36 PASS, 0 FAIL, 0 NO_CONCLUYENTE**. Salida: [`f08_b151/8ce0263_doble_items1a5.txt`](f08_b151/8ce0263_doble_items1a5.txt) |
+| La misma orden sin `F08_B151_RAIZ` | Error «F08_B151_RAIZ is required…» con código 2. No crea la carpeta de salida |
+| `doble todos c6` con la raíz y sin `F08_B151_FORMATO` | Error «F08_B151_FORMATO is required for the item-6 suite…» con código 2, antes de lanzar Jest |
+| `b151_ejecutar.ps1` sin `-Raiz` (`-NonInteractive`) | PowerShell lo rechaza: falta un parámetro obligatorio |
+| `b151_ejecutar.ps1 -ConC6` sin `-Formato` | Se rechaza antes de llamar a `con_b2.ps1`. Se probó con un `con_b2.ps1` sustituto y archivos de clave vacíos, sin ninguna clave real |
+| `npx jest src/modules/backups/b151-b2-real.postgres.spec.ts` sin variables | 1 suite skipped, 6 tests skipped |
+| `npx tsc --noEmit -p tsconfig.json` (Back) | Sin errores |
+
+**Lo que no prueba el doble:** responde sin E/S, así que no produce el `AbortError`. El PASS de «1-ro: adaptador stage multipart» en el doble no ejercita la rama nueva de FAIL, igual que pasaba con `h3` (`F08_BKP_08_B2_REAL_ACOTADA.md` §4, en #163).
+
+**No se repitieron:**
+- `doble todos c6`, porque necesita PostgreSQL;
+- `doble todos acotada`, porque sus casos del informe de limpieza necesitan #163.
