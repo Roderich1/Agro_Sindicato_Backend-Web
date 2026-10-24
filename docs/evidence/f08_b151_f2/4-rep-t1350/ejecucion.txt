@@ -1,0 +1,245 @@
+﻿
+== preparar · perfil rw · clave rw · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+2026-10-24T17:50:05.715Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T17:50:08.789Z PASS [rw] preparar: copia válida de referencia en c1/objects/ por el adaptador (stage + commit)
+2026-10-24T17:50:08.802Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-preparar-2026-10-24T17-50-05-004Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-preparar-2026-10-24T17-50-05-004Z.txt
+
+== caso1 · perfil ro · clave ro · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+2026-10-24T17:50:10.144Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T17:50:11.373Z PASS [ro] 1-ro: PutObject en crudo
+2026-10-24T17:50:11.575Z PASS [ro] 1-ro: CreateMultipartUpload en crudo
+2026-10-24T17:50:11.719Z PASS [ro] 1-ro: CopyObject en crudo
+2026-10-24T17:50:11.861Z PASS [ro] 1-ro: DeleteObject por versionId en crudo sobre la copia válida
+2026-10-24T17:50:12.001Z PASS [ro] 1-ro: DeleteObject sin versionId (marcador) en crudo sobre la copia válida
+2026-10-24T17:50:12.422Z PASS [ro] 1-ro: adaptador stage (PutObject)
+2026-10-24T17:50:12.850Z NO_CONCLUYENTE [ro] 1-ro: adaptador stage multipart (> 8 MiB)
+2026-10-24T17:50:13.450Z PASS [ro] 1-ro: la copia válida sigue intacta (misma versión, última, sin marcador; bytes iguales; el adaptador la abre)
+2026-10-24T17:50:13.450Z PASS [ro] 1-ro: nada cambió bajo c1/
+2026-10-24T17:50:13.452Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-ro-caso1-2026-10-24T17-50-09-423Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-ro-caso1-2026-10-24T17-50-09-423Z.txt
+
+== caso1 · perfil nodel · clave nodel · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+2026-10-24T17:50:14.816Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T17:50:15.937Z PASS [nodel] 1-nodel: DeleteObject por versionId en crudo sobre la copia válida
+2026-10-24T17:50:16.632Z PASS [nodel] 1-nodel: DeleteObject sin versionId (marcador) en crudo, sobre un objeto de prueba propio
+2026-10-24T17:50:16.919Z PASS [nodel] 1-nodel: adaptador remove de la copia válida
+2026-10-24T17:50:19.734Z PASS [nodel] 1-nodel: adaptador stage + commit (el commit purga el staging por versionId)
+2026-10-24T17:50:20.335Z PASS [nodel] 1-nodel: adaptador discardStaged de esos restos
+2026-10-24T17:50:20.943Z PASS [nodel] 1-nodel: la copia válida sigue intacta (misma versión, última, sin marcador; bytes iguales; el adaptador la abre)
+2026-10-24T17:50:20.949Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-nodel-caso1-2026-10-24T17-50-14-096Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-nodel-caso1-2026-10-24T17-50-14-096Z.txt
+
+== casos2a5 · perfil rw · clave rw · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+2026-10-24T17:50:22.313Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T17:50:23.519Z PASS [rw] 2a: PutObject en crudo con Content-MD5 de otros bytes
+2026-10-24T17:50:24.914Z PASS [rw] 2b: UploadPart en crudo con Content-MD5 de otros bytes
+2026-10-24T17:50:26.072Z PASS [rw] 2c: adaptador stage simple (PutObject) con Content-MD5 alterado por la herramienta
+2026-10-24T17:50:29.731Z PASS [rw] 2d: adaptador stage multipart (UploadPart 1) con Content-MD5 alterado por la herramienta
+2026-10-24T17:50:30.375Z PASS [rw] 2: c2/ limpio al terminar
+2026-10-24T17:50:33.070Z FAIL [rw] 3a: ListObjectVersions en crudo con MaxKeys=1 (4 entradas: 3 versiones y 1 marcador)
+2026-10-24T17:50:33.070Z PASS [rw] 3a-bis: ListObjectVersions con MaxKeys=1, la unión sin IsLatest
+2026-10-24T17:50:33.340Z PASS [rw] 3a: ListObjectVersions en crudo con MaxKeys=2 (4 entradas: 3 versiones y 1 marcador)
+2026-10-24T17:50:33.340Z PASS [rw] 3a-bis: ListObjectVersions con MaxKeys=2, la unión sin IsLatest
+2026-10-24T17:50:33.760Z PASS [rw] 3b: ListMultipartUploads en crudo con MaxUploads=1 (2 multipart sin terminar)
+2026-10-24T17:50:35.107Z PASS [rw] 3c: adaptador list() (inventario) con MaxKeys=1 y MaxUploads=1 inyectados
+2026-10-24T17:50:38.542Z PASS [rw] 3d: purgas del adaptador (remove, discardStaged, removeStagedFile) con la misma paginación inyectada
+2026-10-24T17:50:41.253Z PASS [rw] 4a: CopyObject en crudo de la primera de dos versiones de staging (versionId fijado), con metadatos REPLACE
+2026-10-24T17:50:42.504Z PASS [rw] 4b: control, CopyObject en crudo SIN versionId del mismo staging
+2026-10-24T17:50:46.042Z PASS [rw] 4c: adaptador commit con una versión más reciente de un tercero en el mismo staging
+2026-10-24T17:50:47.296Z PASS [rw] 4: c4/ limpio al terminar
+2026-10-24T17:50:56.298Z PASS [rw] 5a: adaptador stage multipart de 9 MiB observado con ListParts tras cada UploadPart, y completado
+2026-10-24T17:50:57.176Z FAIL [rw] 5b: adaptador stage multipart cortado tras la primera parte, observado con ListParts antes del aborto
+2026-10-24T17:50:58.113Z PASS [rw] 5: c5/ limpio al terminar
+2026-10-24T17:50:58.122Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-casos2a5-2026-10-24T17-50-21-583Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-casos2a5-2026-10-24T17-50-21-583Z.txt
+   paso casos2a5 (rw) terminó con código 1
+
+== c6 · perfil rw · clave rw · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+  console.log
+    2026-10-24T17:51:18.685Z PASS [rw] C2a: borrado del propietario mientras la subida espera en el commit
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:32.041Z PASS [rw] C2b: borrado del propietario durante la transacción de completado
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:32.747Z PASS [rw] C5a: una fila UPLOADING reciente no se cierra
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:35.970Z PASS [rw] C5b: una fila abandonada (> 60 min) se cierra y su staging se purga en B2
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:41.791Z PASS [rw] C5c: una subida cerrada como abandonada mientras esperaba el commit; su commit tardío no cambia nada
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:43.720Z PASS [rw] c6-rw formato 2: B2 guarda la copia cifrada tal como llegó del teléfono
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:44.298Z PASS [rw] c6-rw formato 2: con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true, una subida en formato 1 se rechaza sin llegar a B2
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:44.606Z PASS [rw] c6-rw: en B2 sólo quedan los objetos de copias AVAILABLE (1 versión cada una)
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:48.209Z c6-rw: subcarpeta limpiada por el adaptador (remove de 8 copias); quedan 0 entradas
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:51:48.223Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-c6-2026-10-24T17-51-48-221Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-c6-2026-10-24T17-51-48-221Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+powershell : PASS src/modules/backups/b151-b2-real.postgres.spec.ts (48.931 s)
+En línea: 1 Carácter: 773
++ ...  -Format o; powershell -NoProfile -ExecutionPolicy Bypass -File tool\ ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/module...c.ts (48.931 s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    √ C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock (26171 
+ms)
+    √ C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late 
+completion changes nothing (9750 ms)
+    √ format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching 
+B2 (2504 ms)
+    √ rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all 
+(3912 ms)
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    ○ skipped T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 
+503 and the purges stay pending
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    ○ skipped T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 
+and is reconciled
+
+Test Suites: 1 passed, 1 total
+Tests:       2 skipped, 4 passed, 6 total
+Snapshots:   0 total
+Time:        49.107 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+
+== c6 · perfil nodel · clave nodel · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+  console.log
+    2026-10-24T17:51:58.114Z PASS [nodel] T-R5 preparación: N copias válidas escritas con la clave nodel y descargables por la API
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:02.869Z PASS [nodel] T-R5a: una subida con el proveedor que rechaza borrados
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:03.848Z PASS [nodel] T-R5b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:05.035Z PASS [nodel] T-R5c: el borrado del propietario con el proveedor que rechaza borrados
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:06.993Z PASS [nodel] T-R5d: la cota sigue cerrada y la reconciliación con esta clave no confirma nada
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:07.004Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-nodel-c6-2026-10-24T17-52-07-003Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-nodel-c6-2026-10-24T17-52-07-003Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+PASS src/modules/backups/b151-b2-real.postgres.spec.ts (17.572 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    ○ skipped C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+    ○ skipped C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a 
+late completion changes nothing
+    ○ skipped format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without 
+reaching B2
+    ○ skipped rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes 
+them all
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    √ T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and 
+the purges stay pending (11157 ms)
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    ○ skipped T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 
+and is reconciled
+
+Test Suites: 1 passed, 1 total
+Tests:       5 skipped, 1 passed, 6 total
+Snapshots:   0 total
+Time:        17.756 s, estimated 49 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+
+== c6 · perfil rotacion · clave nodel · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+  console.log
+    2026-10-24T17:52:27.359Z PASS [rw+nodel] T-R5r-a: la subida que rota, con el borrado de la copia retirada enviado con la clave nodel
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:28.162Z PASS [rw+nodel] T-R5r-b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:33.170Z PASS [rw+nodel] T-R5r-c: con la clave con deleteFiles otra vez, la siguiente subida reconcilia
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:34.821Z c6-rotacion: subcarpeta limpiada por el adaptador con rw; quedan 0 entradas
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T17:52:34.842Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rotacion-c6-2026-10-24T17-52-34-833Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rotacion-c6-2026-10-24T17-52-34-833Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+PASS src/modules/backups/b151-b2-real.postgres.spec.ts (25.257 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    ○ skipped C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+    ○ skipped C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a 
+late completion changes nothing
+    ○ skipped format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without 
+reaching B2
+    ○ skipped rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes 
+them all
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    ○ skipped T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 
+503 and the purges stay pending
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    √ T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is 
+reconciled (18257 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 skipped, 1 passed, 6 total
+Snapshots:   0 total
+Time:        25.426 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+
+== inventario · perfil rw · clave rw · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+2026-10-24T17:52:36.353Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T17:52:36.960Z PASS [rw] inventario del prefijo (sólo lectura)
+2026-10-24T17:52:36.961Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-inventario-2026-10-24T17-52-35-626Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-inventario-2026-10-24T17-52-35-626Z.txt
+
+== limpiar · perfil rw · clave rw · prefijo ensayo-f08/b151-20261024/c-rep-20261024t1350/
+2026-10-24T17:52:38.269Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T17:52:40.831Z PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId
+2026-10-24T17:52:40.833Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-limpiar-2026-10-24T17-52-37-547Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350\b151-b2-rw-limpiar-2026-10-24T17-52-37-547Z.txt
+
+Pasos con fallos: 1 de 9. Informes en C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\4-rep-t1350

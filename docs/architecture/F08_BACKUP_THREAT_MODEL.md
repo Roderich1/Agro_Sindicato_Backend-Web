@@ -129,3 +129,12 @@ Cambios en `S3BackupStorage` (Roderich eligió el 2026-10-24 corregir el adaptad
 - **Descarga de un nombre ausente** (nota m2 de B). Con el 403 de H1, `open` de una copia ausente ya no termina en `AccessDenied` sin más: tras un 403 de `GetObject`, el adaptador lista el nombre exacto. Si el listado está completo y no muestra una versión vigente (no hay nada, o hay un marcador encima), lanza `BackupObjectMissingError`, como con un 404. El servicio responde entonces igual que ante un 404 del proveedor: 404 si la copia se borró entretanto y, si no, 500 `BACKUP_INTEGRITY_FAILED`, con su registro. Si el listado se deniega, es inválido o muestra una versión vigente que no se puede leer, se relanza el 403.
 
 **Pruebas:** `s3-backup-storage.spec.ts`, en el bloque «#151: what B2 answered…». El doble imita los dos comportamientos (`quirks.missingAs403`, `quirks.latestPerPage`) y los casos de páginas de 1, 2, 3, 4 y 1 000 entradas dan el mismo resultado lógico. Además, el contrato del almacenamiento se ejecuta con `latestPerPage` y páginas de 1, y con los dos comportamientos a la vez. Con el adaptador anterior, 22 de los casos nuevos fallan. Las regresiones de m2 y m3 fallan con el de `e551c37`: 12 casos, y además la de `ListParts` sin fin, que con ese adaptador no termina. El doble **no es B2**. La repetición contra B2 real tiene su propia evidencia.
+
+**Repetición contra B2 real (2026-10-24, 17:47–17:55 UTC, `docs/evidence/F08_BKP_08_B2_REAL_REPETICION.md`).** Se hizo desde `62f4fe7`, que combina #163 `353ad31` con la herramienta de #160, en una subcarpeta nueva y con las mismas claves de mínimo privilegio. Resultados:
+- **Lo que pasa:** las copias llegan a AVAILABLE; el formato 2 queda en B2 byte a byte, con SSE `AES256`; el inventario del adaptador da una sola versión visible, la última; C2, C5 y T-R5, con la variante de la rotación, pasan; T-R5a pasa por la causa prevista, un `DeleteObject` rechazado tras la copia.
+- **H2 sigue en el proveedor:** el `IsLatest` crudo por página (3a FAIL), del que el adaptador ya no depende.
+- **Dos riesgos residuales nuevos, que fallan cerrado:**
+  - un corte del origen mientras `CreateMultipartUpload` está en vuelo puede dejar en B2 una multiparte sin terminar, cuyo `UploadId` el adaptador no llega a conocer (5b FAIL). La recogen después `discardStaged` y el inventario de F10;
+  - el error del proveedor en una multiparte puede llegar como `AbortError` del propio origen (H3), de modo que se pierde la causa.
+
+  Ninguno expone ni pierde datos. Su corrección queda pendiente de decisión y revisión.

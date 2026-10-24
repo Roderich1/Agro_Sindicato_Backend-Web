@@ -1,0 +1,55 @@
+{
+ "fecha": "2026-10-24T17:54:42.238Z",
+ "modo": "ro",
+ "prefijo": "ensayo-f08/b151-20261024/c-rep-20261024t1350-ro/",
+ "stage": {
+  "name": "AbortError",
+  "code": null,
+  "status": null,
+  "message": "The operation was aborted"
+ },
+ "trazaDelAdaptador": [
+  {
+   "ms": 709,
+   "cmd": "CreateMultipartUpload",
+   "ok": false,
+   "finMs": 1152,
+   "error": {
+    "name": "AccessDenied",
+    "code": "AccessDenied",
+    "status": 403,
+    "message": "not entitled"
+   },
+   "abortadaPorElAdaptador": false
+  },
+  {
+   "ms": 1153,
+   "cmd": "ListObjectVersions",
+   "ok": true,
+   "finMs": 1299
+  },
+  {
+   "ms": 1299,
+   "cmd": "ListObjectVersions",
+   "ok": true,
+   "finMs": 1442
+  }
+ ],
+ "origen": [
+  {
+   "ms": 1155,
+   "evento": "error",
+   "name": "AbortError",
+   "code": "ABORT_ERR",
+   "message": "The operation was aborted"
+  },
+  {
+   "ms": 1155,
+   "evento": "close"
+  }
+ ],
+ "restantes": {
+  "versionesYMarcadores": 0,
+  "multipart": 0
+ }
+}

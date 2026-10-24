@@ -1,0 +1,17 @@
+Back/src/modules/backups/b151-b2-real.postgres.spec.ts · destino b2 · perfil rw+nodel · paso T-R5, variante de la rotación
+Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.
+versión 62f4fe702775142bab8091baf6a7f766ede36540
+configuración {"prefijoAdaptador":"ensayo-f08/b151-20261024/c-rep-20261024t1350/c6-rotacion/","bucket":"agro-backups-roderich","N":3,"formato":2,"exigeCifradoEnElTelefono":true,"clave":{"capacidades":["deleteFiles","listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"},"claveDeLosBorradosDeLaRotacion":{"capacidades":["listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"}}
+
+PASS [rw+nodel] T-R5r-a: la subida que rota, con el borrado de la copia retirada enviado con la clave nodel
+  esperado: 201; la nueva queda AVAILABLE; la más antigua DELETED RETENTION con purga pendiente; B2 rechazó el borrado y su versión sigue; N listadas e íntegras
+  observado: {"subida":201,"estado":"DELETED","motivo":"RETENTION","purgaPendiente":true,"borradosEnviadosConNodel":1,"rechazosDeB2":[{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"not entitled"}],"soloLaRetirada":true,"versionesDeLaRetirada":1,"listadas":3,"availableIntactas":true}
+  nota: La herramienta elige qué clave envía el borrado de objects/; el rechazo lo decide B2 (la clave nodel no tiene deleteFiles).
+PASS [rw+nodel] T-R5r-b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida
+  esperado: 503 BACKUP_STORAGE_UNAVAILABLE, sin fila nueva ni escritura nueva en B2; siguen N listadas
+  observado: {"subida":503,"cuerpo":{"errorCode":"BACKUP_STORAGE_UNAVAILABLE"},"filasNuevas":0,"entradasNuevasEnB2":0,"listadas":3}
+PASS [rw+nodel] T-R5r-c: con la clave con deleteFiles otra vez, la siguiente subida reconcilia
+  esperado: 201; ninguna purga pendiente; la retirada sin versiones en B2; N AVAILABLE con 1 versión cada una
+  observado: {"subida":201,"pendientes":0,"versionesDeLaRetirada":0,"available":3,"availableIntactas":true}
+
+resumen: 3 PASS, 0 FAIL, 0 NO_CONCLUYENTE

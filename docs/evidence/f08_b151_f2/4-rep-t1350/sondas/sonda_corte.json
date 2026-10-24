@@ -1,0 +1,83 @@
+{
+ "fecha": "2026-10-24T17:54:28.364Z",
+ "modo": "corte",
+ "prefijo": "ensayo-f08/b151-20261024/c-rep-20261024t1350-corte/",
+ "stage": {
+  "name": "Error",
+  "code": null,
+  "status": null,
+  "message": "corte simulado del origen"
+ },
+ "trazaDelAdaptador": [
+  {
+   "ms": 741,
+   "cmd": "CreateMultipartUpload",
+   "ok": false,
+   "finMs": 750,
+   "error": {
+    "name": "AbortError",
+    "code": null,
+    "status": null,
+    "message": "Request aborted"
+   },
+   "abortadaPorElAdaptador": true
+  },
+  {
+   "ms": 750,
+   "cmd": "ListObjectVersions",
+   "ok": true,
+   "finMs": 1174
+  },
+  {
+   "ms": 1174,
+   "cmd": "ListObjectVersions",
+   "ok": true,
+   "finMs": 1315
+  },
+  {
+   "ms": 11888,
+   "cmd": "ListMultipartUploads",
+   "ok": true,
+   "finMs": 12030
+  },
+  {
+   "ms": 12030,
+   "cmd": "ListMultipartUploads",
+   "ok": true,
+   "finMs": 12173
+  },
+  {
+   "ms": 12173,
+   "cmd": "ListObjectVersions",
+   "ok": true,
+   "finMs": 12313
+  },
+  {
+   "ms": 12313,
+   "cmd": "ListObjectVersions",
+   "ok": true,
+   "finMs": 12478
+  }
+ ],
+ "origen": [
+  {
+   "ms": 743,
+   "evento": "error",
+   "name": "Error",
+   "code": null,
+   "message": "corte simulado del origen"
+  },
+  {
+   "ms": 743,
+   "evento": "close"
+  }
+ ],
+ "multipartTrasStage": 0,
+ "multipartTras10s": 0,
+ "discardStaged": "ok",
+ "multipartTrasDiscardStaged": 0,
+ "restantes": {
+  "versionesYMarcadores": 0,
+  "multipart": 0
+ }
+}
