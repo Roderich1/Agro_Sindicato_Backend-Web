@@ -1,0 +1,19 @@
+Back/src/modules/backups/b151-b2-real.postgres.spec.ts · destino b2 · perfil rw · paso C2 y C5
+Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.
+versión 71ac088f8ff9d534a86439da6007ec5ed88a54c7
+configuración {"prefijoAdaptador":"ensayo-f08/b151-20261024/c-f2-20261024t1140/c6-rw/","bucket":"agro-backups-roderich","N":3,"formato":2,"exigeCifradoEnElTelefono":true,"clave":{"capacidades":["deleteFiles","listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"}}
+
+PASS [rw] C5a: una fila UPLOADING reciente no se cierra
+  esperado: 409; la fila sigue UPLOADING; su staging sigue en B2
+  observado: {"subida":409,"estado":"UPLOADING","stagingEnB2":1}
+FAIL [rw] C5b: una fila abandonada (> 60 min) se cierra y su staging se purga en B2
+  esperado: 201; la fila FAILED ABANDONED sin purga pendiente; 0 versiones de su staging en B2
+  observado: {"subida":503,"estado":"FAILED","codigo":"ABANDONED","purgaPendiente":false,"stagingEnB2":0}
+FAIL [rw] c6-rw formato 2: B2 guarda la copia cifrada tal como llegó del teléfono
+  esperado: 201; fila AVAILABLE con formatVersion 2; el objeto de B2 empieza por AGROENC\0 y tiene el mismo tamaño y SHA-256; SSE AES256; la descarga por la API es idéntica
+  observado: {"error":{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"Cannot access bucket"}}
+PASS [rw] c6-rw: en B2 sólo quedan los objetos de copias AVAILABLE (1 versión cada una)
+  esperado: 0 entradas ajenas; tantas versiones como copias AVAILABLE; 0 multipart
+  observado: {"available":0,"versiones":0,"ajenas":0,"multipart":0}
+
+resumen: 2 PASS, 2 FAIL, 0 NO_CONCLUYENTE

@@ -34,6 +34,16 @@ export class BackupsConfig {
     );
   }
 
+  /**
+   * F08-ADR-003: `true` refuses new format-1 uploads (not encrypted on the
+   * phone). Off by default for the synthetic environment and the B2 tool; a
+   * condition before admitting real data (threat model §5), not an
+   * admission.
+   */
+  get requireClientEncryption(): boolean {
+    return this.config.get<string>("BACKUP_REQUIRE_CLIENT_ENCRYPTION") === "true";
+  }
+
   get maxBytes(): number {
     return this.config.get<number>("BACKUP_MAX_BYTES") ?? DEFAULT_BACKUP_MAX_BYTES;
   }

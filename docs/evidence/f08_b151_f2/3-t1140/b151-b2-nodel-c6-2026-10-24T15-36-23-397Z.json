@@ -1,0 +1,131 @@
+{
+ "herramienta": "Back/src/modules/backups/b151-b2-real.postgres.spec.ts",
+ "destino": "b2",
+ "perfil": "nodel",
+ "paso": "T-R5",
+ "version": {
+  "sha": "71ac088f8ff9d534a86439da6007ec5ed88a54c7",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijoAdaptador": "ensayo-f08/b151-20261024/c-f2-20261024t1140/c6-nodel/",
+  "bucket": "agro-backups-roderich",
+  "N": 3,
+  "formato": 2,
+  "exigeCifradoEnElTelefono": true,
+  "clave": {
+   "capacidades": [
+    "listFiles",
+    "readFiles",
+    "writeFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  }
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T15:36:23.398Z",
+ "resumen": {
+  "PASS": 5,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "T-R5 preparación: N copias válidas escritas con la clave nodel y descargables por la API",
+   "perfil": "nodel",
+   "esperado": "lista con N copias; cada descarga 200 con sus bytes",
+   "observado": {
+    "listadas": 3,
+    "intactas": [
+     true,
+     true,
+     true
+    ]
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "T-R5a: una subida con el proveedor que rechaza borrados",
+   "perfil": "nodel",
+   "esperado": "503 BACKUP_STORAGE_UNAVAILABLE (el commit no puede purgar el staging); la fila FAILED STORAGE_COMMIT_FAILED con purga pendiente; nada retirado; las N copias siguen listadas e íntegras",
+   "observado": {
+    "subida": 503,
+    "cuerpo": {
+     "errorCode": "BACKUP_STORAGE_UNAVAILABLE"
+    },
+    "estado": "FAILED",
+    "codigo": "STORAGE_COMMIT_FAILED",
+    "purgaPendiente": true,
+    "retention": 0,
+    "listadas": 3,
+    "intactas": [
+     true,
+     true,
+     true
+    ],
+    "restosEnB2": 1
+   },
+   "veredicto": "PASS",
+   "nota": "Los restos en B2 de la subida fallida (objeto final y staging) no se pueden borrar con esta clave: quedan para «limpiar» con rw."
+  },
+  {
+   "caso": "T-R5b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida",
+   "perfil": "nodel",
+   "esperado": "503 BACKUP_STORAGE_UNAVAILABLE sin fila nueva ni escritura nueva en B2",
+   "observado": {
+    "subida": 503,
+    "cuerpo": {
+     "errorCode": "BACKUP_STORAGE_UNAVAILABLE"
+    },
+    "filasNuevas": 0,
+    "entradasNuevasEnB2": 0
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "T-R5c: el borrado del propietario con el proveedor que rechaza borrados",
+   "perfil": "nodel",
+   "esperado": "204 (borrado lógico: deja de listarse y servirse) con la purga pendiente; sus bytes siguen en B2 hasta que una clave con deleteFiles reconcilie; las otras copias íntegras",
+   "observado": {
+    "borrado": 204,
+    "estado": "DELETED",
+    "motivo": "OWNER",
+    "purgaPendiente": true,
+    "descarga": 404,
+    "versionesEnB2": 1,
+    "otrasIntactas": [
+     true,
+     true
+    ]
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "T-R5d: la cota sigue cerrada y la reconciliación con esta clave no confirma nada",
+   "perfil": "nodel",
+   "esperado": "subida 503; purgePending: 0 confirmadas, 2 fallidas (OWNER y FAILED); las filas siguen pendientes",
+   "observado": {
+    "subida": 503,
+    "reconciliacion": {
+     "pending": {
+      "OWNER": 1,
+      "RETENTION": 0,
+      "FAILED": 1
+     },
+     "confirmed": 0,
+     "failed": 2
+    },
+    "filasPendientes": 2
+   },
+   "veredicto": "PASS",
+   "nota": "Con sólo esta clave la purga de la rotación no se alcanza (ningún commit llega a AVAILABLE sin deleteFiles); esa variante es la suite «rotacion» (rw + nodel)."
+  }
+ ],
+ "registro": [
+  "2026-10-24T15:36:16.739Z PASS [nodel] T-R5 preparación: N copias válidas escritas con la clave nodel y descargables por la API",
+  "2026-10-24T15:36:19.589Z PASS [nodel] T-R5a: una subida con el proveedor que rechaza borrados",
+  "2026-10-24T15:36:20.487Z PASS [nodel] T-R5b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida",
+  "2026-10-24T15:36:21.528Z PASS [nodel] T-R5c: el borrado del propietario con el proveedor que rechaza borrados",
+  "2026-10-24T15:36:23.392Z PASS [nodel] T-R5d: la cota sigue cerrada y la reconciliación con esta clave no confirma nada"
+ ]
+}

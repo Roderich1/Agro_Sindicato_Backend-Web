@@ -85,3 +85,95 @@ El texto anterior se conserva como registro de F08. Desde BE #148 (diseño: [F08
   - no hay cupo global por tenant ni por disco (condición 5 del §5);
   - la política de 5 copias es una decisión técnica para la entrega académica, no el período institucional de la condición 4 del §5, que decide Roderich;
   - la producción sigue cerrada.
+
+## 8. Actualización 2026-10-23: cifrado en el teléfono (F08-ADR-003)
+
+El texto anterior se conserva como registro. Diseño: Mobile `docs/adr/F08-ADR-003-respaldo-cifrado-y-previo.md`, revisado por B (LISTO sobre el texto) y por A (interfaces). Decisión de Roderich del 2026-10-23.
+
+- **Qué cambia:**
+  - el teléfono cifra el contenedor antes de subirlo (formato 2: ChaCha20-Poly1305 de RFC 8439 en streaming, con una clave por archivo derivada por HKDF-SHA256 de una clave de recuperación aleatoria de 256 bits del agricultor, biblioteca `cryptography` 2.9.0);
+  - la clave no sale del teléfono: ni el servidor, ni B2, ni la Directiva, ni el operador la tienen; no hay escrow ni recuperación central;
+  - SSE-B2 se mantiene como protección adicional y, por sí sola, no excluye al operador.
+- **Qué comprueba ahora el Backend** (`backup-format.ts`):
+  - `formatVersion` ∈ {1, 2}; cualquier otro, 422 `BACKUP_FORMAT_INVALID` antes de leer el cuerpo;
+  - en el formato 2, la forma exterior (magic, versión, algoritmo, flags y longitud exacta), con 422 `BACKUP_FORMAT_INVALID` y sin bytes guardados;
+  - en el formato 1, sólo que no lleve el magic del 2;
+  - el SHA-256 de transporte, que en el formato 2 es de los bytes cifrados.
+  - **No afirma** haber comprobado el contenido descifrado: no puede. Lo valida el teléfono después de descifrar y antes de sustituir la base.
+- **Efecto en las amenazas:**
+  - **T3:** con el formato 2, quien administra el almacenamiento o el volumen ya no puede leer las copias. Las copias del formato 1, sin cifrar, siguen legibles hasta que se retiren.
+  - **T2:** una sesión robada permite descargar ciphertext, pero no descifrarlo sin la clave.
+  - **T4:** un servidor comprometido ya no puede fabricar una copia que pase la etiqueta sin la clave. Sí puede borrarlas o retenerlas: disponibilidad.
+- **Condición 2 del §5:** cumplida **en el diseño y en las pruebas sintéticas del host**, con dos límites:
+  - no está ensayada contra B2 real ni en el dispositivo;
+  - las subidas del formato 1 siguen admitidas por defecto para el entorno sintético y la herramienta de #160.
+- **Se añade como condición previa a datos reales** (enmienda del §5): `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`, que rechaza el formato 1 con 422 `BACKUP_ENCRYPTION_REQUIRED`. No es una admisión: la admisión productiva sigue cerrada y las demás condiciones no cambian.
+- **Riesgo nuevo, aceptado:** perder a la vez el teléfono y la clave anotada hace irrecuperables las copias cifradas.
+
+## 9. Actualización 2026-10-24: existencia y visibilidad en B2 por listado (#151)
+
+El texto anterior se conserva como registro. En el ensayo de #151 del 2026-10-24 (`docs/evidence/F08_BKP_08_B2_REAL_FORMATO2.md`), **en ese entorno B2 y con las claves temporales de mínimo privilegio**, se observaron dos comportamientos. No se afirma que ocurran en todas las configuraciones de B2:
+
+- **H1:** `HeadObject` y `GetObject` de un nombre inexistente respondieron 403, no 404. El commit del adaptador, que decidía con ese 404 si el nombre final estaba libre, no podía completar ninguna copia.
+- **H2:** al paginar `ListObjectVersions`, B2 marcó `IsLatest` en la primera entrada de cada nombre en cada página, aunque fuera una versión antigua.
+
+Cambios en `S3BackupStorage` (Roderich eligió el 2026-10-24 corregir el adaptador sin ampliar los permisos):
+
+- **Existencia por listado.** El commit comprueba el nombre final con `ListObjectVersions`, con ese nombre como prefijo, dentro del bucket y del prefijo autorizados. Sólo cuenta la **igualdad exacta**: otro nombre que empiece igual no prueba nada. Cualquier versión o marcador del nombre exacto cuenta como existente, y entonces no se copia nada.
+- **Falla cerrado.** Un 403, una página inválida, un listado estancado o un listado que llega al límite de páginas lanzan un error. Nunca se interpretan como «no existe» ni como «no queda nada». No se amplían permisos ni hay alternativa a disco.
+- **No es una reserva atómica.** Si otro escritor del mismo nombre entrara entre el listado y la copia, no se detectaría. Además, las purgas del propio commit borrarían sus versiones: la que deja sólo la versión verificada y, si el commit falla después de pasar la comprobación, la de su recuperación. Que esa ventana quede vacía descansa, como antes, en las claves UUID que genera el servidor para cada copia y en una sola subida en curso por Member (§7). Eso lo hace improbable, pero no lo garantiza: el listado es una comprobación, igual que lo era el `HEAD`.
+- **Visibilidad sin fiarse sólo de `IsLatest`.** El inventario de versiones para purgar (todas las versiones y marcadores, por id de versión) se separa de qué entrada es la vigente. La vigente de cada nombre es la marcada en la primera página donde aparece ese nombre, y las marcas de páginas posteriores se ignoran. Hay incoherencia, y el inventario falla cerrado, cuando ninguna o más de una entrada cumple esa condición, cuando una entrada se repite o cuando otra entrada es más reciente por fecha. Nunca se elige una versión comparando ids como texto, ni se resucita un objeto oculto por un marcador. Las purgas ya no consultan `IsLatest`.
+- **Incompleto no es completo.** Si un listado llega al límite de trabajo (`listPages`) o al plazo, el inventario termina con error y no se presenta como completo.
+- **Un caso que falla cerrado sin necesidad** (observación de la revisión de A). Si en una misma página aparecen el marcador de borrado vigente de un nombre, con su marca legítima, y una versión del mismo nombre marcada por error, hay dos marcas y el inventario da `S3_LISTING_INCONSISTENT`. Se acepta así: falla cerrado y no resucita nada. Con el comportamiento observado en H2 no ocurre, porque B2 marca una sola entrada por nombre y página.
+- **Subidas multiparte** (nota m3 de la revisión de B). `ListMultipartUploads` y `ListParts` reciben las mismas comprobaciones que los listados de versiones. Una entrada sin nombre o sin id de subida, fuera del prefijo, sin `Initiated` válido o una parte sin tamaño hacen la página inválida; ya no se descartan ni se fechan en 1970. Antes, una subida en curso sin `Initiated` podía parecer antigua y abortarse en la limpieza de F10. También fallan cerrado una entrada repetida, unos marcadores que no avanzan y el límite de páginas, ahora también en `ListParts`.
+- **Descarga de un nombre ausente** (nota m2 de B). Con el 403 de H1, `open` de una copia ausente ya no termina en `AccessDenied` sin más: tras un 403 de `GetObject`, el adaptador lista el nombre exacto. Si el listado está completo y no muestra una versión vigente (no hay nada, o hay un marcador encima), lanza `BackupObjectMissingError`, como con un 404. El servicio responde entonces igual que ante un 404 del proveedor: 404 si la copia se borró entretanto y, si no, 500 `BACKUP_INTEGRITY_FAILED`, con su registro. Si el listado se deniega, es inválido o muestra una versión vigente que no se puede leer, se relanza el 403.
+
+**Pruebas:** `s3-backup-storage.spec.ts`, en el bloque «#151: what B2 answered…». El doble imita los dos comportamientos (`quirks.missingAs403`, `quirks.latestPerPage`) y los casos de páginas de 1, 2, 3, 4 y 1 000 entradas dan el mismo resultado lógico. Además, el contrato del almacenamiento se ejecuta con `latestPerPage` y páginas de 1, y con los dos comportamientos a la vez. Con el adaptador anterior, 22 de los casos nuevos fallan. Las regresiones de m2 y m3 fallan con el de `e551c37`: 12 casos, y además la de `ListParts` sin fin, que con ese adaptador no termina. El doble **no es B2**. La repetición contra B2 real tiene su propia evidencia.
+
+**Repetición contra B2 real (2026-10-24, 17:47–17:55 UTC, `docs/evidence/F08_BKP_08_B2_REAL_REPETICION.md`).** Se hizo desde `62f4fe7`, que combina #163 `353ad31` con la herramienta de #160, en una subcarpeta nueva y con las mismas claves de mínimo privilegio. Resultados:
+- **Lo que pasa:** las copias llegan a AVAILABLE; el formato 2 queda en B2 byte a byte, con SSE `AES256`; el inventario del adaptador da una sola versión visible, la última; C2, C5 y T-R5, con la variante de la rotación, pasan; T-R5a pasa por la causa prevista, un `DeleteObject` rechazado tras la copia.
+- **H2 sigue en el proveedor:** el `IsLatest` crudo por página (3a FAIL), del que el adaptador ya no depende.
+- **Dos riesgos residuales nuevos, que fallan cerrado:**
+  - un corte del origen mientras `CreateMultipartUpload` está en vuelo puede dejar en B2 una multiparte sin terminar, cuyo `UploadId` el adaptador no llega a conocer (5b FAIL). La recogen después `discardStaged` y el inventario de F10;
+  - el error del proveedor en una multiparte puede llegar como `AbortError` del propio origen (H3), de modo que se pierde la causa.
+
+  Ninguno expone ni pierde datos. Su corrección queda pendiente de decisión y revisión.
+
+**Corrección de 5b y H3** (Roderich la autorizó el 2026-10-24, con revisión de A y B). El párrafo anterior se conserva como registro: los resultados de la repetición no cambian.
+- **Pertenencia por el nombre del intento (5b).** Cada intento de `stage` sube a un nombre de staging propio, `staging/<clave>.<16 hex aleatorios>.part`. La parte aleatoria sólo la conoce ese intento. Si el intento termina sin conocer el `UploadId`, porque `CreateMultipartUpload` se envió y su respuesta no llegó, la limpieza lista las multipartes con ese **nombre exacto** como prefijo y aplica igualdad exacta. Aborta la subida sólo si hay exactamente una con ese nombre, y después vuelve a listar para comprobar que no queda ninguna.
+- **Lo que nunca se aborta.** No se tocan las subidas de otros nombres: otros intentos de la misma clave, otras claves ni las copias de `objects/`. Tampoco se aborta nada por el prefijo de la clave.
+- **Pendiente de reconciliación.** En estos casos no se aborta nada y la limpieza no se declara completa:
+  - hay dos o más subidas con el nombre del intento (`MULTIPART_OWNERSHIP_AMBIGUOUS`);
+  - el listado falla (`MULTIPART_LISTING_FAILED`);
+  - el listado no encuentra la subida, que aún podría aparecer (`MULTIPART_CREATION_UNKNOWN`);
+  - la subida sigue listada después de abortarla (`MULTIPART_REMAINS`);
+  - no se pudieron purgar las versiones del staging (`STAGING_PURGE_FAILED`).
+
+  Lo pendiente lo recogen después `discardStaged` de la fila FAILED y el inventario de F10.
+- **Un rechazo que no creó nada.** Un rechazo de `CreateMultipartUpload` se toma como que no creó nada, y no se busca ninguna subida, sólo si se cumplen las tres condiciones:
+  - es un 4xx;
+  - no es 408 ni 429, que son reintentables;
+  - llegó en el único intento del SDK (`$metadata.attempts` = 1).
+
+  En cualquier otro caso el resultado es desconocido y se busca por el nombre del intento, como cuando falta la respuesta. Así lo pidió la nota m1 de B: si el primer envío creó la subida y perdió la respuesta, un reintento que terminase en 4xx daría una limpieza «completa» en falso con una multiparte viva.
+- **Causa original (H3).** El primer fallo es la causa: un fallo del proveedor, el plazo propio de la llamada (`S3_DEADLINE_EXCEEDED`) o un fallo del origen, como la desconexión del cliente, el plazo de la subida del servicio o el 413 del medidor. Al salir del bucle tras un fallo del proveedor se destruye el origen, que da un `AbortError` genérico; ese error ya no sustituye la causa. Un 403 sigue llegando como `AccessDenied` con su estado HTTP, y nunca como éxito ni como «objeto inexistente».
+- **Limpieza registrada aparte.** Un segundo error de la limpieza no sustituye la causa. El resultado se registra por separado con `onStagingCleanup` y una línea de registro del módulo. La línea lleva sólo códigos, el nombre del error y el estado HTTP; ni nombres, ni claves, ni mensajes del proveedor.
+- **Riesgos residuales:**
+  - la pertenencia descansa en que la parte aleatoria del nombre (64 bits) no se repita y en que nadie más escriba bajo ese nombre;
+  - todo se basa en que el SDK informe bien de `$metadata.attempts`. Si falta ese dato, el resultado se toma como desconocido y se busca.
+
+**Pruebas:** `s3-backup-storage.spec.ts`, bloque «#151 5b and H3». Son 13 casos y pasan todos con la corrección.
+- **Con el adaptador de `aed8a99` fallan los 13.** Seis fallan por el defecto mismo:
+  - 5b, la multiparte creada sin respuesta que queda en el doble;
+  - H3, el 403 en `CreateMultipartUpload` y en `UploadPart`, la limpieza que falla tras el 403 y el informador que lanza, que llegan como `AbortError`;
+  - el plazo propio de la llamada, que llega como `AbortError`.
+- **Los otros siete fallan sólo porque falta el informe de limpieza, que es nuevo.** Dos de ellos, la desconexión del cliente y el plazo del servicio, ya conservaban la causa con `aed8a99`: sirven de guarda.
+- **Nota m1 de B (6 casos más, 19 en total).** Cinco fallan con `2d5085d` por el defecto mismo: un 4xx tras reintentos (`attempts` 2 y 3) o un 429 con la subida ya creada dejan la multiparte viva, y un 408 o un 429 en el único intento no buscan nada. El sexto, un 403 en el único intento, no busca nada con y sin la nota, y queda de guarda. El doble pone ahora `attempts` en sus errores, como el SDK.
+- **El doble sin E/S no reproducía H3.** El `AbortError` del origen llega en el siguiente tick, después de que `stage` termine. Las pruebas de H3 simulan la latencia de red con `setImmediate`.
+
+**Repetición acotada contra B2 real** (2026-10-24, de 20:26:03 a 20:26:41 UTC, `docs/evidence/F08_BKP_08_B2_REAL_ACOTADA.md`). Se ejecutó desde `1e5ff10`, que combina #163 `d673a56` con la herramienta de #160 `ff8bf7f`, en una subcarpeta nueva y con las mismas claves de mínimo privilegio.
+- **Resultado:** 14 casos, 14 PASS.
+- **H3:** el error de una multiparte con la clave ro es el 403 `AccessDenied` de B2, aunque el origen fallara con `AbortError`.
+- **5b:** B2 creó la multiparte y su respuesta no llegó al adaptador. El adaptador la abortó listando sólo con el nombre exacto de su intento. Otro intento de la misma clave, otra clave, una copia AVAILABLE y una subida concurrente quedaron intactos, y la concurrente y una subida normal se completaron.
+- **Lo anterior no cambia:** los resultados previos quedan como están (5b FAIL y 1-ro NO_CONCLUYENTE en la repetición) y no pasan a PASS. 3a mantiene su FAIL como comportamiento del proveedor (H2).
+- **Limpieza:** la subcarpeta queda en 0 versiones, 0 marcadores y 0 multipart.

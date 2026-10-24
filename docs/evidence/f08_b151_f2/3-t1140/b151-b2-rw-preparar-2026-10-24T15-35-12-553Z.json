@@ -1,0 +1,52 @@
+{
+ "herramienta": "tool/f08_b2/b151_b2.cjs",
+ "destino": "b2",
+ "perfil": "rw",
+ "paso": "preparar",
+ "version": {
+  "sha": "71ac088f8ff9d534a86439da6007ec5ed88a54c7",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijo": "ensayo-f08/b151-20261024/c-f2-20261024t1140/",
+  "bucket": "agro-backups-roderich",
+  "region": "us-east-005",
+  "clave": {
+   "capacidades": [
+    "deleteFiles",
+    "listFiles",
+    "readFiles",
+    "writeFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  },
+  "parteMultipart": 8388608
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T15:35:15.056Z",
+ "resumen": {
+  "PASS": 0,
+  "FAIL": 1,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "preparar: preparar abortado por un error no previsto",
+   "perfil": "rw",
+   "esperado": "sin errores no previstos",
+   "observado": {
+    "error": {
+     "name": "Unknown",
+     "code": null,
+     "status": 403,
+     "message": "UnknownError"
+    }
+   },
+   "veredicto": "FAIL"
+  }
+ ],
+ "registro": [
+  "2026-10-24T15:35:13.339Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)",
+  "2026-10-24T15:35:15.054Z FAIL [rw] preparar: preparar abortado por un error no previsto"
+ ]
+}

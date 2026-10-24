@@ -11,7 +11,12 @@ import {
   BackupStorageInventory,
 } from "./domain/backup-storage.port";
 import { LocalDiskBackupStorage } from "./infrastructure/local-disk-backup-storage";
-import { createS3Client, S3BackupStorage } from "./infrastructure/s3-backup-storage";
+import {
+  createS3Client,
+  S3_LIMITS,
+  S3BackupStorage,
+  S3StagingCleanupReport,
+} from "./infrastructure/s3-backup-storage";
 
 /**
  * Storage only when configured and admitted; otherwise every route is 503.
@@ -29,9 +34,25 @@ export function createBackupStorage(
       logger.error(`Backup storage b2 is not configured (missing ${s3.missing.join(", ")})`);
       return null;
     }
-    return new S3BackupStorage(createS3Client(s3.settings), s3.settings);
+    const cleanupLogger = new Logger("Backups");
+    return new S3BackupStorage(createS3Client(s3.settings), s3.settings, S3_LIMITS, (report) => {
+      const message = describeStagingCleanup(report);
+      if (report.complete) cleanupLogger.log(message);
+      else cleanupLogger.warn(message);
+    });
   }
   return config.storageDir ? new LocalDiskBackupStorage(config.storageDir) : null;
+}
+
+/** One line per cleanup of a failed or discarded staging: codes only, never names or keys. */
+export function describeStagingCleanup(report: S3StagingCleanupReport): string {
+  const cause = report.failure
+    ? ` (${report.failure.origin} ${report.failure.name}${report.failure.status === undefined ? "" : ` ${report.failure.status}`})`
+    : "";
+  const outcome = report.complete
+    ? "complete"
+    : `pending reconciliation: ${report.pending.join(", ")}`;
+  return `Backup staging cleanup after ${report.trigger}${cause}: ${outcome}`;
 }
 
 /**

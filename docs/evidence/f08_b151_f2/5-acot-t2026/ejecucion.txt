@@ -1,0 +1,40 @@
+
+== preparar Â· clave rw Â· prefijo ensayo-f08/b151-20261024/c-acot-20261024t2026/
+2026-10-24T20:26:03.995Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T20:26:07.576Z PASS [rw] preparar: copia válida de referencia en c1/objects/ por el adaptador (stage + commit)
+2026-10-24T20:26:07.586Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-preparar-2026-10-24T20-26-03-247Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-preparar-2026-10-24T20-26-03-247Z.txt
+
+== h3 Â· clave ro Â· prefijo ensayo-f08/b151-20261024/c-acot-20261024t2026/
+2026-10-24T20:26:09.149Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T20:26:10.615Z PASS [ro] H3: adaptador stage multipart (> 8 MiB) con la clave ro, causa conservada
+2026-10-24T20:26:10.615Z PASS [ro] H3: limpieza registrada aparte (onStagingCleanup)
+2026-10-24T20:26:11.201Z PASS [ro] H3: la copia válida sigue intacta (misma versión, sin marcador; bytes iguales; el adaptador la abre)
+2026-10-24T20:26:11.340Z PASS [ro] H3: nada cambió bajo c1/
+2026-10-24T20:26:11.346Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-ro-h3-2026-10-24T20-26-08-367Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-ro-h3-2026-10-24T20-26-08-367Z.txt
+
+== r5b Â· clave rw Â· prefijo ensayo-f08/b151-20261024/c-acot-20261024t2026/
+2026-10-24T20:26:12.714Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T20:26:19.444Z PASS [rw] 5b-r: corte tras crear la multiparte y antes de recibir su UploadId
+2026-10-24T20:26:19.445Z PASS [rw] 5b-r: limpieza registrada aparte (onStagingCleanup)
+2026-10-24T20:26:25.138Z PASS [rw] 5b-r: la subida concurrente del adaptador se completa
+2026-10-24T20:26:25.606Z PASS [rw] 5b-r: la copia AVAILABLE previa sigue intacta
+2026-10-24T20:26:33.195Z PASS [rw] 5b-r: una subida normal completa (multiparte de 9 MiB)
+2026-10-24T20:26:33.972Z PASS [rw] 5b-r: estado de c5r/ al terminar (antes de «limpiar»)
+2026-10-24T20:26:33.976Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-r5b-2026-10-24T20-26-12-012Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-r5b-2026-10-24T20-26-12-012Z.txt
+
+== inventario Â· clave rw Â· prefijo ensayo-f08/b151-20261024/c-acot-20261024t2026/
+2026-10-24T20:26:35.558Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T20:26:36.161Z PASS [rw] inventario del prefijo (sólo lectura)
+2026-10-24T20:26:36.163Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-inventario-2026-10-24T20-26-34-848Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-inventario-2026-10-24T20-26-34-848Z.txt
+
+== limpiar Â· clave rw Â· prefijo ensayo-f08/b151-20261024/c-acot-20261024t2026/
+2026-10-24T20:26:37.595Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T20:26:39.073Z PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId
+2026-10-24T20:26:39.074Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-limpiar-2026-10-24T20-26-36-867Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-limpiar-2026-10-24T20-26-36-867Z.txt
+
+== inventario Â· clave rw Â· prefijo ensayo-f08/b151-20261024/c-acot-20261024t2026/
+2026-10-24T20:26:40.392Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T20:26:40.953Z PASS [rw] inventario del prefijo (sólo lectura)
+2026-10-24T20:26:40.954Z informe: C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-inventario-2026-10-24T20-26-39-699Z.json y C:\Users\MSI\Documents\ProyectoDeGrado\ProyectoAgro\_wt\C-B151-F2\docs\evidence\f08_b151_f2\5-acot-t2026\b151-b2-rw-inventario-2026-10-24T20-26-39-699Z.txt
+
+Pasos con fallos: 0 de 6.

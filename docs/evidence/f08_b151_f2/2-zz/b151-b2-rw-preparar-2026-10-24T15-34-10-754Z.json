@@ -1,0 +1,56 @@
+{
+ "herramienta": "tool/f08_b2/b151_b2.cjs",
+ "destino": "b2",
+ "perfil": "rw",
+ "paso": "preparar",
+ "version": {
+  "sha": "cf6b4d7b0cf30361e485f845f1b78d45874f721e",
+  "cambiosLocales": [
+   "M Back/src/modules/backups/b151-b2-real.postgres.spec.ts",
+   "M tool/f08_b2/b151_b2.cjs",
+   "M tool/f08_b2/b151_ejecutar.ps1"
+  ]
+ },
+ "configuracion": {
+  "prefijo": "ensayo-f08/b151-20261024/zz/",
+  "bucket": "agro-backups-roderich",
+  "region": "us-east-005",
+  "clave": {
+   "capacidades": [
+    "deleteFiles",
+    "listFiles",
+    "readFiles",
+    "writeFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  },
+  "parteMultipart": 8388608
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T15:34:13.570Z",
+ "resumen": {
+  "PASS": 0,
+  "FAIL": 1,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "preparar: preparar abortado por un error no previsto",
+   "perfil": "rw",
+   "esperado": "sin errores no previstos",
+   "observado": {
+    "error": {
+     "name": "Unknown",
+     "code": null,
+     "status": 403,
+     "message": "UnknownError"
+    }
+   },
+   "veredicto": "FAIL"
+  }
+ ],
+ "registro": [
+  "2026-10-24T15:34:11.448Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)",
+  "2026-10-24T15:34:13.562Z FAIL [rw] preparar: preparar abortado por un error no previsto"
+ ]
+}

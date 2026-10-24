@@ -56,6 +56,10 @@ export const envSchema = z.object({
   ),
   // Production stays closed unless explicitly admitted (not authorised yet).
   BACKUP_PRODUCTION_ADMISSION: optionalText(z.enum(["enabled", "disabled"])),
+  // F08-ADR-003: `true` rejects new uploads that are not encrypted on the
+  // phone (format 1). Default `false` keeps the synthetic B2 tool working; it
+  // is a condition before admitting real data, not an admission.
+  BACKUP_REQUIRE_CLIENT_ENCRYPTION: optionalText(z.enum(["true", "false"])),
   BACKUP_MAX_ACTIVE_PER_MEMBER: optionalText(
     z.coerce.number().int().positive().max(100),
   ),
