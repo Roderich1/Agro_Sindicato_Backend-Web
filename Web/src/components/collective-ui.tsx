@@ -2,12 +2,12 @@ import { fmtDateTime, statusReason } from '../lib/collective-text';
 import { fmtDate } from '../lib/format';
 import { formatQuantity, type BaseUnit } from '../lib/quantity';
 import type { Campaign } from '../types/campaigns';
-import type { Coverage, ProposalLineStatus } from '../types/collective';
+import type { AnyStatus, Coverage, SealRef } from '../types/collective';
 import { inputClass, labelClass, Notice } from './app-shell';
 
 /* Estados de una celda o línea (F07-POL-01). Ninguno inventa ni deduce cifras. */
 
-const STATUS_TEXT: Record<ProposalLineStatus, { label: string; cls: string }> = {
+const STATUS_TEXT: Record<AnyStatus, { label: string; cls: string }> = {
   DISCLOSED: { label: 'Publicado', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
   SUPPRESSED_UNDER_THRESHOLD: { label: 'Oculto', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
   SUPPRESSED_REVISION: { label: 'Oculto (revisión)', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
@@ -15,10 +15,13 @@ const STATUS_TEXT: Record<ProposalLineStatus, { label: string; cls: string }> = 
   WITHDRAWN: { label: 'Retirado', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
   SUPERSEDED: { label: 'Sustituido', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
   POLICY_PENDING: { label: 'Política pendiente', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
+  WITHDRAWN_AFTER_SEAL: { label: 'Retirado tras sellar', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
+  NO_DATA: { label: 'Sin dato', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
+  NOT_SEALED: { label: 'Sin sellar', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
 };
 
 
-export function StatusBadge({ status, threshold }: { status: ProposalLineStatus; threshold?: number | null }) {
+export function StatusBadge({ status, threshold }: { status: AnyStatus; threshold?: number | null }) {
   const { label, cls } = STATUS_TEXT[status] ?? STATUS_TEXT.POLICY_PENDING;
   const reason = statusReason(status, threshold);
   return (
@@ -42,7 +45,7 @@ export function QuantityCell({
   unit,
   threshold,
 }: {
-  status: ProposalLineStatus;
+  status: AnyStatus;
   base: string | null;
   serverPresentation: string | null;
   unit: BaseUnit;
@@ -81,11 +84,27 @@ export function PendingChangesNote() {
  * publicada; los aportes de celdas sin cifra no se cuentan (revelarían su
  * número exacto) y sólo se avisa de que existen.
  */
-export function CoverageBanner({ coverage, campaignName, asOf }: { coverage: Coverage; campaignName: string; asOf?: string }) {
+export function CoverageBanner({
+  coverage,
+  campaignName,
+  asOf,
+  sealedAt,
+}: {
+  coverage: Coverage;
+  campaignName: string;
+  asOf?: string;
+  /** Versión sellada: la cobertura es la del sellado y no se recalcula. */
+  sealedAt?: string;
+}) {
+  const title = sealedAt
+    ? `Cobertura al sellar (${fmtDateTime(sealedAt)})`
+    : asOf
+      ? `Cobertura al generar el borrador (${fmtDateTime(asOf)})`
+      : 'Cobertura';
   return (
     <div className="glass-card p-5" data-testid="coverage">
       <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-        {asOf ? `Cobertura al generar el borrador (${fmtDateTime(asOf)})` : 'Cobertura'} · {campaignName}
+        {title} · {campaignName}
       </p>
       <p className="mt-1.5 text-lg font-bold text-slate-900">
         {coverage.basis === 'ALL_CONTRIBUTORS'
@@ -99,9 +118,32 @@ export function CoverageBanner({ coverage, campaignName, asOf }: { coverage: Cov
       )}
       <p className="mt-1 text-xs text-slate-500">
         {asOf && 'No es la cobertura actual: consulte el resumen de la campaña para la de hoy. '}
+        {sealedAt && 'Es la cobertura fijada al sellar; no se recalcula después. '}
         {coverage.suppressed_cells &&
           'Hay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí. '}
         Ausencia de aporte = desconocido, no cero. Las cifras no son el total del sindicato: sólo de quienes están en ellas.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Versión sellada (F07): identifica campaña y versión. «Datos aceptados hasta»
+ * es el instante de la decisión sellada; cada cifra vale por su propia fecha.
+ */
+export function SealBanner({ seal }: { seal: SealRef }) {
+  return (
+    <div className="glass-card border-l-4 border-emerald-600 p-5" data-testid="seal-banner">
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Versión sellada</p>
+      <p className="mt-1.5 text-base font-bold text-slate-900">
+        Versión {seal.version} · sellada el {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} (
+        {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'})
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        Datos aceptados por el servidor hasta {fmtDateTime(seal.accepted_until)}; cada cifra indica su propia fecha y las
+        que tienen cambios pendientes muestran una cifra anterior. El servidor no puede asegurar que todos los teléfonos
+        publicaron todo. Las correcciones privadas posteriores no cambian esta versión. Referencia:{' '}
+        <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>
       </p>
     </div>
   );
