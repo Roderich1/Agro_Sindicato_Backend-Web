@@ -64,6 +64,7 @@ Datos reales: siguen sin admitirse.
 
 ### 3.2 Precondiciones (en el servidor, en este orden)
 
+0. **Antes de todo**, los guardas de rol y de tenant de §3.1: 401, 403 o 404. Así, un AGRICULTOR u otro tenant no pueden saber si la campaña está sellada.
 1. **Ya sellada** → respuesta idempotente con la versión existente (`200`, `created: false`). No escribe nada.
 2. Modo de divulgación `POLICY_PENDING` → `409 POLICY_PENDING`. No se sella una versión sin cifras autorizadas.
 3. Campaña distinta de `CERRADA` → `409 CAMPAIGN_NOT_CLOSED`. Se exige el cierre por dos motivos:
@@ -109,7 +110,7 @@ Cualquier fallo revierte todo: no queda un sellado sin entradas, ni divulgacione
 
 **Garantías:**
 - **Doble toque o dos actores a la vez:** el segundo espera el bloqueo, ve el sellado del primero y lo devuelve con `created: false`. La base lo garantiza también con `@@unique([tenantId, campaignId, version])` y `CHECK (version = 1)`.
-- **Carrera con una publicación** (§7): cada `push` toma el mismo bloqueo en modo **compartido** antes de decidir. El sellado espera a que terminen los `push` en curso y los nuevos esperan al sellado. Cada operación queda claramente **antes** (incluida en la decisión) o **después** (rechazada o tratada según §7). No hay instantánea intermedia.
+- **Carrera con una publicación o una retirada** (§7): cada `push` que llega a decidir toma el mismo bloqueo en modo **compartido** antes de decidir. Vale para **cualquier acción**, también CANCEL (observación O1 de la revisión de A). El sellado espera a que terminen los `push` en curso y los nuevos esperan al sellado. Cada operación queda claramente **antes** (incluida en la decisión) o **después** (rechazada o tratada según §7). No hay instantánea intermedia.
 - **Orden de bloqueos sin ciclos.** El sellado toma `collective-seal` y después `collective`. El `push` toma la operación, después `collective-seal` compartido y después la fila de la aportación. El resumen sólo toma `collective`. Ningún camino toma estos bloqueos en orden inverso.
 
 **Huella de revisión (`review_ref`).** SHA-256 de un JSON canónico con:
@@ -175,7 +176,8 @@ Una entrada sellada `DISCLOSED` se sirve con su cifra sólo si se cumple **todo*
 
 **Retirada del aportante tras el sellado** (`WITHDRAWN_AFTER_SEAL`):
 - Si un agricultor emite un `CANCEL` aceptado (APPLIED) o en conflicto (CONFLICT) sobre una aportación incluida en la divulgación de una entrada sellada, esa entrada pierde la visibilidad.
-- La marca se escribe **en la misma transacción del `push`**, serializada con el sellado.
+- La marca se escribe **en la misma transacción del `push`**, serializada con el sellado. Por eso un CANCEL concurrente con el sellado queda, sin ambigüedad, incluido en la decisión (antes) o como retirada de visibilidad (después).
+- **Por qué también CONFLICT.** Según F05 §6, un CANCEL concurrente con otra intención deja la aportación `CANCELLED` o `CONTESTED` con la disputa abierta. En los dos casos no queda ninguna contribución activa, y el aportante expresó su voluntad de retirarse. Ocultar es la opción conservadora (observación O3 de A).
 - El dato sellado (estado, divulgación y cifra) **no cambia**.
 
 **Cambios de elegibilidad tras el sellado** (baja del Member o de su cuenta, cambio de rol) **no retiran** cifras selladas. Motivo: si lo hicieran, un ADMINISTRADOR podría desactivar a un agricultor y observar qué cifras históricas desaparecen, y así deducir en qué productos participó. La versión sellada recoge la elegibilidad que había al sellar. Las **reasociaciones canónicas** posteriores tampoco afectan a la versión sellada.
@@ -212,6 +214,13 @@ Es la enmienda de F05 (§8) y de la matriz (C16b, C16c). La decisión se toma de
 **Mobile** (lo construye A, no este contrato):
 - trata `CAMPAIGN_SEALED` como «requiere intervención»: fallo terminal, sin backoff infinito ni reasignación a otra campaña;
 - conserva el dato local intacto.
+
+**ACK exacto de `CAMPAIGN_SEALED`** (confirmado a A, observación O4):
+- `outcome = REJECTED`, `code = CAMPAIGN_SEALED`, `disposition = MOVE_TO_TERMINAL_FAILURE`;
+- `serverAcceptedAt = null` y `reconciliationReference = null`;
+- **sin campos nuevos**.
+
+Un reenvío del mismo `operationId` devuelve exactamente ese ACK, guardado en el journal (observación O2).
 
 **Compatibilidad:** una app anterior a ese cambio no conoce el código. Por F05 §8, lo trata como desconocido, no lo retira y reintenta. El servidor responde siempre el mismo rechazo guardado, sin duplicar efectos. Es una limitación declarada del entorno sintético hasta que se integre el cambio Mobile.
 
@@ -300,3 +309,14 @@ Se ejecutan con PostgreSQL desechable y cuentas sintéticas (`collective-seal.po
 - la migración desde la base previa conserva los datos y los disparadores rechazan mutaciones.
 
 La Web prueba estados, confirmación, cobertura y falta de red (Vitest).
+
+## 12. Registro de revisiones
+
+- **2026-10-23, sesión A sobre `de94e83` (§3.5, §5.2, §7):** LISTO para tocar `sync-v1`, con cinco observaciones:
+  - O1: el bloqueo compartido lo toman todas las acciones; la suite prueba la carrera CANCEL ↔ sellado;
+  - O2: el replay de `CAMPAIGN_SEALED` devuelve un ACK idéntico;
+  - O3: citar F05 sobre CONFLICT;
+  - O4: el ACK exacto;
+  - O5: los guardas de rol y tenant van antes de todo.
+
+  Se incorporan en este texto. Es una revisión técnica entre sesiones, no una aprobación.
