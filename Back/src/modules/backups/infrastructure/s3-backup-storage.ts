@@ -168,10 +168,23 @@ function isNotFound(error: unknown): boolean {
   return name === "NoSuchKey" || name === "NotFound" || statusOf(error) === 404;
 }
 
-/** A request the provider answered and refused (4xx): it took no effect. */
-function isRefusal(error: unknown): boolean {
+/**
+ * A CreateMultipartUpload the provider refused on its only attempt (4xx other
+ * than 408 and 429): it created nothing. After an SDK retry, or with a
+ * retryable 408/429, an earlier attempt may have created the upload and lost
+ * its answer, so the outcome stays unknown (#151 5b, note m1 of B).
+ */
+function isDefinitiveRefusal(error: unknown): boolean {
   const status = statusOf(error);
-  return status !== undefined && status >= 400 && status < 500;
+  const attempts = (error as { $metadata?: { attempts?: number } }).$metadata?.attempts;
+  return (
+    status !== undefined &&
+    status >= 400 &&
+    status < 500 &&
+    status !== 408 &&
+    status !== 429 &&
+    attempts === 1
+  );
 }
 
 const DEADLINE_EXCEEDED = "S3_DEADLINE_EXCEEDED";
@@ -415,7 +428,7 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
                 }),
                 controller.signal,
               ).catch((error: unknown) => {
-                if (isRefusal(error)) upload = { state: "none" };
+                if (isDefinitiveRefusal(error)) upload = { state: "none" };
                 throw error;
               });
               if (!created.UploadId) throw new Error("S3_MULTIPART_NOT_CREATED");

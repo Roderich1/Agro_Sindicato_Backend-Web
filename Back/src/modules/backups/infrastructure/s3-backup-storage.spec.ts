@@ -907,6 +907,48 @@ describe("#151 5b and H3: the cleanup of a failed stage, and its original cause 
       expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_REMAINS"] }]);
     });
 
+    describe("a refused CreateMultipartUpload rules the upload out only on its only attempt, and not for 408/429 (note m1 of B)", () => {
+      it.each([
+        ["400 after an SDK retry (attempts 2)", s3Error("InvalidRequest", 400, 2)],
+        ["403 after SDK retries (attempts 3)", s3Error("AccessDenied", 403, 3)],
+        ["429 on its only attempt", s3Error("SlowDown", 429, 1)],
+      ])("%s, the upload created by an earlier attempt: found by this attempt's name and aborted; complete", async (_, refusal) => {
+        const { s3, storage, reports } = reported();
+        // The provider created the upload; the answer the adapter gets is the refusal.
+        s3.after = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(s3.uploads.size).toBe(0);
+        expect(names(s3, "AbortMultipartUploadCommand")).toHaveLength(1);
+        expect(reports).toMatchObject([{ complete: true, pending: [] }]);
+      });
+
+      it.each([
+        ["408", s3Error("RequestTimeout", 408, 1)],
+        ["429", s3Error("SlowDown", 429, 1)],
+      ])("%s on its only attempt and nothing listed: the creation is not ruled out, pending", async (_, refusal) => {
+        const { s3, storage, reports } = reported();
+        s3.before = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(names(s3, "ListMultipartUploadsCommand")).toHaveLength(1);
+        expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_CREATION_UNKNOWN"] }]);
+      });
+
+      it("403 on its only attempt: it created nothing, nothing is listed, complete", async () => {
+        const { s3, storage, reports } = reported();
+        const refusal = s3Error("AccessDenied", 403, 1);
+        s3.before = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(names(s3, "ListMultipartUploadsCommand")).toHaveLength(0);
+        expect(reports).toMatchObject([{ complete: true, pending: [] }]);
+      });
+    });
+
     it("a discarded staging is reported apart, complete once its versions are purged", async () => {
       const { s3, storage, reports } = reported();
       await (await storage.stage(randomUUID(), Readable.from([Buffer.from("x")]))).discard();
