@@ -1,0 +1,257 @@
+
+== preparar ˙ perfil rw ˙ clave rw ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+2026-10-24T15:35:13.339Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:35:15.054Z FAIL [rw] preparar: preparar abortado por un error no previsto
+2026-10-24T15:35:15.067Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-preparar-2026-10-24T15-35-12-553Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-preparar-2026-10-24T15-35-12-553Z.txt
+   paso preparar (rw) termin¢ con c¢digo 1
+
+== caso1 ˙ perfil ro ˙ clave ro ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+2026-10-24T15:35:16.409Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:35:16.834Z FAIL [ro] 1: copia v√°lida de referencia presente (de ¬´preparar¬ª con rw)
+2026-10-24T15:35:16.835Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-ro-caso1-2026-10-24T15-35-15-676Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-ro-caso1-2026-10-24T15-35-15-676Z.txt
+   paso caso1 (ro) termin¢ con c¢digo 1
+
+== caso1 ˙ perfil nodel ˙ clave nodel ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+2026-10-24T15:35:18.217Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:35:18.647Z FAIL [nodel] 1: copia v√°lida de referencia presente (de ¬´preparar¬ª con rw)
+2026-10-24T15:35:18.648Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-nodel-caso1-2026-10-24T15-35-17-430Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-nodel-caso1-2026-10-24T15-35-17-430Z.txt
+   paso caso1 (nodel) termin¢ con c¢digo 1
+
+== casos2a5 ˙ perfil rw ˙ clave rw ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+2026-10-24T15:35:19.946Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:35:21.003Z PASS [rw] 2a: PutObject en crudo con Content-MD5 de otros bytes
+2026-10-24T15:35:21.999Z PASS [rw] 2b: UploadPart en crudo con Content-MD5 de otros bytes
+2026-10-24T15:35:23.402Z PASS [rw] 2c: adaptador stage simple (PutObject) con Content-MD5 alterado por la herramienta
+2026-10-24T15:35:26.904Z PASS [rw] 2d: adaptador stage multipart (UploadPart 1) con Content-MD5 alterado por la herramienta
+2026-10-24T15:35:27.455Z PASS [rw] 2: c2/ limpio al terminar
+2026-10-24T15:35:30.245Z FAIL [rw] 3a: ListObjectVersions en crudo con MaxKeys=1 (4 entradas: 3 versiones y 1 marcador)
+2026-10-24T15:35:30.519Z PASS [rw] 3a: ListObjectVersions en crudo con MaxKeys=2 (4 entradas: 3 versiones y 1 marcador)
+2026-10-24T15:35:30.951Z PASS [rw] 3b: ListMultipartUploads en crudo con MaxUploads=1 (2 multipart sin terminar)
+2026-10-24T15:35:32.261Z FAIL [rw] 3c: adaptador list() (inventario) con MaxKeys=1 y MaxUploads=1 inyectados
+2026-10-24T15:35:35.575Z PASS [rw] 3d: purgas del adaptador (remove, discardStaged, removeStagedFile) con la misma paginaci√≥n inyectada
+2026-10-24T15:35:38.154Z PASS [rw] 4a: CopyObject en crudo de la primera de dos versiones de staging (versionId fijado), con metadatos REPLACE
+2026-10-24T15:35:39.028Z PASS [rw] 4b: control, CopyObject en crudo SIN versionId del mismo staging
+2026-10-24T15:35:40.981Z FAIL [rw] casos2a5: caso4 abortado por un error no previsto
+2026-10-24T15:35:48.806Z FAIL [rw] casos2a5: caso5 abortado por un error no previsto
+2026-10-24T15:35:48.813Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-casos2a5-2026-10-24T15-35-19-254Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-casos2a5-2026-10-24T15-35-19-254Z.txt
+   paso casos2a5 (rw) termin¢ con c¢digo 1
+
+== c6 ˙ perfil rw ˙ clave rw ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+  console.log
+    2026-10-24T15:35:59.335Z PASS [rw] C5a: una fila UPLOADING reciente no se cierra
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:03.276Z FAIL [rw] C5b: una fila abandonada (> 60 min) se cierra y su staging se purga en B2
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:05.534Z FAIL [rw] c6-rw formato 2: B2 guarda la copia cifrada tal como lleg√≥ del tel√©fono
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:05.819Z PASS [rw] c6-rw: en B2 s√≥lo quedan los objetos de copias AVAILABLE (1 versi√≥n cada una)
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:06.090Z c6-rw: subcarpeta limpiada por el adaptador (remove de 0 copias); quedan 0 entradas
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:06.098Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-c6-2026-10-24T15-36-06-096Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-c6-2026-10-24T15-36-06-096Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+FAIL src/modules/backups/b151-b2-real.postgres.spec.ts (16.135 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    √ó C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock (1981 ms)
+    √ó C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing (4515 ms)
+    √ó format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2 (2257 ms)
+    ‚àö rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all (552 ms)
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    ‚óã skipped T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    ‚óã skipped T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled
+
+  ‚óè BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw) ‚Ä∫ C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+
+    Error: setup upload HTTP 503
+
+      304 |     for (let i = 0; i < count; i++) {
+      305 |       const response = await upload(session);
+    > 306 |       if (response.status !== 201) throw new Error(`setup upload HTTP ${response.status}`);
+          |                                          ^
+      307 |       ids.push(response.body.id);
+      308 |     }
+      309 |     return { session, ids };
+
+      at Object.farmerWith (src/modules/backups/b151-b2-real.postgres.spec.ts:306:42)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:330:32
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+  ‚óè BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw) ‚Ä∫ C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "caso": "C5b: una fila abandonada (> 60 min) se cierra y su staging se purga en B2",
+    -   "ok": true,
+    +   "ok": false,
+      }
+
+      253 |     }
+      254 |     s.report.add({ caso, perfil: reportProfile, esperado, observado: result.observado, veredicto: result.ok ? "PASS" : "FAIL", ...(result.nota ? { nota: result.nota } : {}) });
+    > 255 |     expect({ caso, ok: result.ok }).toEqual({ caso, ok: true });
+          |                                     ^
+      256 |   }
+      257 |
+      258 |   const http = () => request(s.server);
+
+      at Object.check (src/modules/backups/b151-b2-real.postgres.spec.ts:255:37)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:427:5
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+  ‚óè BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw) ‚Ä∫ format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "caso": "c6-rw formato 2: B2 guarda la copia cifrada tal como lleg√≥ del tel√©fono",
+    -   "ok": true,
+    +   "ok": false,
+      }
+
+      253 |     }
+      254 |     s.report.add({ caso, perfil: reportProfile, esperado, observado: result.observado, veredicto: result.ok ? "PASS" : "FAIL", ...(result.nota ? { nota: result.nota } : {}) });
+    > 255 |     expect({ caso, ok: result.ok }).toEqual({ caso, ok: true });
+          |                                     ^
+      256 |   }
+      257 |
+      258 |   const http = () => request(s.server);
+
+      at Object.check (src/modules/backups/b151-b2-real.postgres.spec.ts:255:37)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:466:5
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 2 skipped, 1 passed, 6 total
+Snapshots:   0 total
+Time:        16.309 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+   paso c6 (rw) termin¢ con c¢digo 1
+
+== c6 ˙ perfil nodel ˙ clave nodel ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+  console.log
+    2026-10-24T15:36:16.739Z PASS [nodel] T-R5 preparaci√≥n: N copias v√°lidas escritas con la clave nodel y descargables por la API
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:19.589Z PASS [nodel] T-R5a: una subida con el proveedor que rechaza borrados
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:20.487Z PASS [nodel] T-R5b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:21.528Z PASS [nodel] T-R5c: el borrado del propietario con el proveedor que rechaza borrados
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:23.392Z PASS [nodel] T-R5d: la cota sigue cerrada y la reconciliaci√≥n con esta clave no confirma nada
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+  console.log
+    2026-10-24T15:36:23.399Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-nodel-c6-2026-10-24T15-36-23-397Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-nodel-c6-2026-10-24T15-36-23-397Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+PASS src/modules/backups/b151-b2-real.postgres.spec.ts (16.05 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    ‚óã skipped C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+    ‚óã skipped C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing
+    ‚óã skipped format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2
+    ‚óã skipped rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    ‚àö T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending (9056 ms)
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    ‚óã skipped T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled
+
+Test Suites: 1 passed, 1 total
+Tests:       5 skipped, 1 passed, 6 total
+Snapshots:   0 total
+Time:        16.224 s, estimated 17 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+
+== c6 ˙ perfil rotacion ˙ clave nodel ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+  console.log
+    2026-10-24T15:36:35.556Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rotacion-c6-2026-10-24T15-36-35-555Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rotacion-c6-2026-10-24T15-36-35-555Z.txt
+
+      at B151Report.note (src/modules/backups/test-support/b151-b2-real.ts:235:13)
+
+FAIL src/modules/backups/b151-b2-real.postgres.spec.ts (9.664 s)
+  BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)
+    ‚óã skipped C2: an owner deletion before the completion retires nothing more; one during it waits for the Member lock
+    ‚óã skipped C5: a recent UPLOADING row is never closed; an abandoned one is closed and its staging purged in B2; a late completion changes nothing
+    ‚óã skipped format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2
+    ‚óã skipped rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all
+  BE #151 item 6 with the real S3 adapter: T-R5 with a key that cannot delete (nodel)
+    ‚óã skipped T-R5: with real delete refusals no valid copy is lost, nothing becomes AVAILABLE, the bound holds with 503 and the purges stay pending
+  BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel)
+    √ó T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled (2339 ms)
+
+  ‚óè BE #151 item 6 with the real S3 adapter: T-R5, the purge of the rotation refused by B2 (rw + nodel) ‚Ä∫ T-R5 (rotation): a purge refused during the rotation keeps the bounded excess, refuses uploads with 503 and is reconciled
+
+    Error: setup upload HTTP 503
+
+      304 |     for (let i = 0; i < count; i++) {
+      305 |       const response = await upload(session);
+    > 306 |       if (response.status !== 201) throw new Error(`setup upload HTTP ${response.status}`);
+          |                                          ^
+      307 |       ids.push(response.body.id);
+      308 |     }
+      309 |     return { session, ids };
+
+      at Object.farmerWith (src/modules/backups/b151-b2-real.postgres.spec.ts:306:42)
+      at src/modules/backups/b151-b2-real.postgres.spec.ts:643:30
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:85:5)
+      at Object.<anonymous> (src/modules/backups/b151-b2-real.postgres.spec.ts:87:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 5 skipped, 6 total
+Snapshots:   0 total
+Time:        9.833 s, estimated 17 s
+Ran all test suites matching /src\\modules\\backups\\b151-b2-real.postgres.spec.ts/i.
+   paso c6 (rotacion) termin¢ con c¢digo 1
+
+== inventario ˙ perfil rw ˙ clave rw ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+2026-10-24T15:36:37.079Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:36:37.649Z PASS [rw] inventario del prefijo (s√≥lo lectura)
+2026-10-24T15:36:37.656Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-inventario-2026-10-24T15-36-36-378Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-inventario-2026-10-24T15-36-36-378Z.txt
+
+== limpiar ˙ perfil rw ˙ clave rw ˙ prefijo ensayo-f08/b151-20261024/c-f2-20261024t1140/
+2026-10-24T15:36:38.973Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)
+2026-10-24T15:36:40.929Z PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId
+2026-10-24T15:36:40.930Z informe: C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-limpiar-2026-10-24T15-36-38-271Z.json y C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2\b151-b2-rw-limpiar-2026-10-24T15-36-38-271Z.txt
+
+Pasos con fallos: 6 de 9. Informes en C:\Users\MSI\AppData\Local\Temp\b151-f2-b2real-2
+exit=6

@@ -39,7 +39,7 @@ Lo que sí queda medido en B2 real:
 | # | Hora (UTC) | Subcarpeta | Código | Qué pasó |
 |---|---|---|---|---|
 | 0 | 15:29 | `c-f2-20261024t1130/` | `cf6b4d7` | `b151_ejecutar.ps1` no arrancó: en Windows PowerShell 5.1 `$PSScriptRoot` llega vacío al valor por defecto de `-ConB2`. **No se tocó B2.** Defecto corregido en `71ac088` |
-| 1 | 15:30–15:31 | `c-f2-20261024t1130/` | `cf6b4d7` | Primera ejecución real, con `-ConB2` explícito. `preparar` y `casos2a5` abortaron sin escribir su informe, por un defecto de la herramienta: sus PASS y FAIL sólo constan en `1-t1130/ejecucion.log`. El ítem 6 no arrancó (`ZodError` de `BACKUP_S3_PREFIX`, un defecto de la herramienta). `limpiar`: 0 restantes |
+| 1 | 15:30–15:31 | `c-f2-20261024t1130/` | `cf6b4d7` | Primera ejecución real, con `-ConB2` explícito. `preparar` y `casos2a5` abortaron sin escribir su informe, por un defecto de la herramienta: sus PASS y FAIL sólo constan en `1-t1130/ejecucion.txt`. El ítem 6 no arrancó (`ZodError` de `BACKUP_S3_PREFIX`, un defecto de la herramienta). `limpiar`: 0 restantes |
 | — | 15:33 | `c-f2-20261024t1130/sonda/` | sonda | Sonda del commit (§3.1). 0 restantes |
 | 2 | 15:34 | `zz/` | `cf6b4d7` + 3 cambios locales | **Ejecución no prevista**: C quería comprobar sólo cómo el script resolvía la ruta y lanzó la secuencia sin `-ConC6` ni `-Limpiar`. Está dentro de la raíz autorizada y usa las claves b151. El proceso se cortó al cerrarse la tubería durante `casos2a5`, que no tiene informe. El inventario encontró 1 multipart sin terminar; `limpiar` y otro inventario lo dejaron en 0 entradas y 0 multipart |
 | 3 | 15:35–15:37 | `c-f2-20261024t1140/` | `71ac088` (sin cambios locales) | **Ejecución de referencia** (§2), completa y con todos los informes. `limpiar`: 0 restantes |
