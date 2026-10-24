@@ -60,6 +60,7 @@ No son aprobaciones de la Directiva ni del tutor.
 | Suite del sellado y mutaciones M1–M6 y M8 | `8ad60cb` | local, §3 | 2026-10-23 | PASS 19/19; las 7 mutaciones hacen fallar la suite |
 | Unitarias del dominio | `943f578` | local, §4 | 2026-10-23 | PASS 47/47 |
 | Suites corregidas (`sync-v1-journal`, `f06-coll-05`) y `product-reconciliation` | `4a060cc` | CI, runs `40060250490` y `40060250510` (§2.1) | 2026-10-24 | PASS 30/30, 16/16, 5/5 |
+| Recorrido de integración Web↔Backend: 5 recorridos (§7) | código `73f4c82` (árbol `b31bd8b`) | `bash tool/f07_web_seal/run-seal-walk.sh docs/evidence/f07_sellado_web` | 2026-10-24, 22:31:28Z–22:35:53Z | **PASS 48/48** |
 
 **Fallo intermitente corregido en D1 (`73f4c82`).**
 - **Dónde se vio:** en la CI de la rama de F08 #163 (`045ae97`, run `40087793244`, 2026-10-24 10:54:59Z), con la suite del sellado en 18/19. Falló la prueba «sealed reads never write, never recompute, and the CSV carries the same decisions».
@@ -69,7 +70,6 @@ No son aprobaciones de la Directiva ni del tutor.
 
 **Sin ejecutar sobre `73f4c82`:**
 - las mutaciones (última ejecución sobre `8ad60cb`);
-- el recorrido funcional de la Web contra un Backend desechable (pendiente; `NOT_RUN`);
 - la prueba en DEVICE de `CAMPAIGN_SEALED` en Mobile, a cargo de la sesión A, que no forma parte de esta evidencia.
 
 ### 0.c Lo que necesita validación institucional
@@ -269,3 +269,81 @@ No son revisiones del tutor ni aprobaciones institucionales.
 - **Baja tras el sellado:** el aporte de un agricultor dado de baja sigue en las cifras selladas visibles, sin vía de retirada. Depende de la respuesta 2(f) de la hoja institucional.
 - **Copias del Central:** no hay un procedimiento de copia y restauración del Central. Una restauración anterior a un sellado olvidaría cifras ya conocidas; su tratamiento queda pendiente.
 - **Alcance:** nada de esto aprueba F07-POL-01, ni habilita datos reales, ni cambia #107 o GATE-F07. El modo por defecto sigue siendo `POLICY_PENDING`.
+
+## 7. Recorrido de integración Web↔Backend (2026-10-24, de 22:31:28Z a 22:35:53Z)
+
+Es una comprobación **funcional**: la Web compilada contra la API real y una base PostgreSQL. No participan personas, no mide la experiencia de uso y no es una validación institucional.
+
+### 7.1 Qué se ejecutó y con qué
+
+- **Código:** Backend y Web del árbol `b31bd8b` (#162). Su último cambio de código (`Back/src`, `Back/prisma`, `Web/src`) es `73f4c82`. Se compilaron desde ese árbol: `nest build` y `tsc -b && vite build`.
+- **Herramienta:** `tool/f07_web_seal/run-seal-walk.sh` y `walk-seal.mjs`, añadidas en este mismo commit.
+  - Se ejecutaron desde el árbol de trabajo con el contenido que se commitea (SHA-256 `5abf1293…bfd4dc` de `walk-seal.mjs` y `583aeba5…e67a58` de `run-seal-walk.sh`).
+  - Parten de `tool/f07_web_01` y de la semilla `Back/scripts/f07-synthetic-seed.cjs`.
+- **Entorno aislado:**
+  - contenedor desechable propio `agro_b_f07seal_pg` (PostgreSQL 16.13, `127.0.0.1:55471`, sólo local), con una base nueva por ejecución;
+  - API en `localhost:3124` y `vite preview` en `localhost:4177`;
+  - variables `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` y `COLLECTIVE_SEALING=enabled`, sólo en ese proceso. La bandera sigue apagada por defecto (§0.d).
+- **Datos:** el dataset sintético D4 se publica por la API real (`POST /sync/v1/push`). Hay dos campañas, C1 y C2; DIRECTIVA, ADMINISTRADOR y cuatro AGRICULTORES en un tenant; y una DIRECTIVA de otro tenant. Las credenciales se generan en el proceso y no se escriben en ningún archivo.
+- **Versiones:**
+  - node v25.9.0, npm 11.12.1;
+  - Docker 29.4.0;
+  - Chrome 156.0.8078.47 headless;
+  - puppeteer-core 25.12.0 (en `tool/f10_eval_web`, fuera de las dependencias de la aplicación).
+- **Salida:** `docs/evidence/f07_sellado_web/`, con `env.txt`, `walk.json` (48 comprobaciones), 12 capturas y el CSV descargado desde la Web. Los UUID sintéticos se enmascaran en `walk.json`; el CSV se conserva tal como lo descargó la Web. La semilla y los registros quedaron en una carpeta temporal que no se publica y que se borró al terminar.
+- **Memoria:** 4,0 GB libres al recibir el turno y 11,3 GB al compilar, tras reiniciarse el servidor Dart. No hubo interrupciones.
+
+### 7.2 Resultados (ejecución final, 48/48 PASS)
+
+| # | Recorrido | Qué se comprobó (Web y API reales) | Resultado |
+|---|---|---|---|
+| R1 | Permisos por rol | DIRECTIVA y ADMINISTRADOR ven «Resumen colectivo» y «Tendencias», y entran. AGRICULTOR no tiene enlaces colectivos: `/colectivo/tendencias` y `/colectivo/resumen` lo llevan a «Esta Web es para la Directiva y el Administrador». En la API, AGRICULTOR recibe 403 en tendencias y en el estado del sellado, y también al sellar. Una DIRECTIVA de otro tenant recibe 404 | PASS 11/11 |
+| R2 | Sellado manual desde la UI | Con C1 abierta no se puede sellar (`CAMPAIGN_NOT_CLOSED`) y el panel no lo ofrece. Con C1 cerrada (preparación por la API), la DIRECTIVA abre la revisión. «Sellar» sigue deshabilitado hasta marcar la confirmación. El POST de la UI devuelve `SEALED`, `created: true`. El resumen pasa a «Versión 1 · sellada el…» y «Cobertura al sellar», sin panel. En la base queda 1 sellado con umbral 3 y ninguna entrada retirada | PASS 9/9 |
+| R3 | Segundo sellado | El ADMINISTRADOR repite el POST con la misma revisión y obtiene `created: false`; sin confirmación recibe 422, nunca un éxito. Sigue habiendo un solo sellado y el snapshot es idéntico. En la UI, la campaña sellada no ofrece sellar otra vez | PASS 4/4 |
+| R4 | Tendencias, k = 3 y CSV | C1 aparece con su versión sellada y C2 como «Sin sellar: no aporta cifras». Glifosato F06 en C1: `DISCLOSED`, 8250 mL y 3 aportantes. Belator en C1, con 2 aportantes: `SUPPRESSED_UNDER_THRESHOLD`, sin total ni aportantes, y la fila de la UI sólo explica la regla. En C2, `NOT_SEALED` sin cifra. El CSV descargado desde la UI trae 8250 para Glifosato y la celda de Belator suprimida, sin sus cantidades | PASS 12/12 |
+| R5 | Inmutabilidad del snapshot | **Recarga:** el resumen (API y texto de la página) y el snapshot en la base no cambian. **Después del sellado:** un PUBLISH nuevo de F1 en C1 recibe `REJECTED` / `CAMPAIGN_SEALED`; un CANCEL de F1 (Glifosato F06) es `APPLIED`. **Tras el CANCEL:** sellado, entradas y divulgaciones referenciadas siguen idénticos en la base. Sólo esa entrada recibe `visibilityWithdrawnAt`. La tendencia pasa a `WITHDRAWN_AFTER_SEAL` sin cifra («Retirado tras sellar» en la UI), 8250 deja de aparecer en el resumen y la referencia del sellado no cambia | PASS 12/12 |
+
+### 7.3 Ejecuciones anteriores de la misma sesión
+
+Antes de la final hubo seis ejecuciones con fallos. **Todos eran de la herramienta**, no de la aplicación, y se corrigieron en la herramienta. No se cambió ningún archivo de `Back/` ni de `Web/`.
+
+| Ejecución | Fallo | Causa | Corrección |
+|---|---|---|---|
+| 1 | Sin resultados | `MSYS_NO_PATHCONV` dejó una ruta `/tmp` que node no encuentra | La carpeta temporal se pasa con una ruta de Windows |
+| 2 | Puerto 4177 ocupado | La ejecución 1 dejó su `vite preview` | Se detuvo ese proceso propio |
+| 3 | R2–R5 | El clic buscaba «Sellar» por contenido y pulsaba antes «Sellar esta versión…». Además, la sesión que quedaba abierta tras el error rompía los pasos siguientes | Coincidencia exacta del texto; `login` cierra una sesión previa |
+| 4 | 3 comprobaciones | Errores del oráculo: «COBERTURA AL SELLAR» sale en mayúsculas por CSS, y la fila suprimida contiene «Menos de 3» y el año de la campaña. Además, la recarga esperaba `networkidle0` | Comprobación sin distinguir mayúsculas y comprobación por celdas: total sin otra cifra y aportantes y fecha «—» |
+| 5 | R5 | 429 del login, limitado a 5 por minuto (`@Throttle`): es un control correcto | El login espera y reintenta ante un 429 |
+| 6 | R5, texto tras recargar | El script elegía C1 antes de que la página fijara su campaña por defecto, así que se comparaba el resumen de C2 | Se elige la campaña hasta que el selector la mantiene, y se comprueba aparte |
+
+La ejecución 7 dio 48/48. La final (8), que se publica, repitió 48/48 tras enmascarar los UUID de los detalles.
+
+### 7.4 Lo que se reutiliza sin repetir, y por qué
+
+El recorrido no repite lo que ya tiene evidencia suficiente sobre el **mismo código**:
+- **Suite del sellado `f07-collective-seal`, 20/20** en la CI de `73f4c82` (run `40097400361`, §2.2), contra PostgreSQL:
+  - el sellado y sus roles: confirmación, revisión obsoleta, bandera, `POLICY_PENDING`, fallo inyectado sin efecto parcial y concurrencia;
+  - la carrera entre CANCEL y sellado;
+  - las guardas de la base: modificar, borrar o reabrir;
+  - que las lecturas no escriban;
+  - la baja de un aportante;
+  - y la migración.
+
+  Son garantías del servidor que la Web no puede debilitar, y una nueva ejecución por la UI no añade cobertura.
+- **Vitest 88/88** en el mismo run: los mensajes 409 del panel de sellado, las tendencias con celdas suprimidas o retiradas sin cero y la guarda de rutas por rol, con la API simulada.
+
+El recorrido añade lo que ninguna de las dos cubre: la **integración real** entre la Web compilada y la API, con login por rol, el sellado desde la UI, la descarga del CSV y el efecto de un CANCEL real sobre lo que muestra la Web.
+
+### 7.5 Límites y observaciones
+
+- **Alcance:** un único escenario sintético (D4) y un solo navegador (Chrome headless, 1366×900). No se probaron móvil, accesibilidad ni otros navegadores.
+- **Preparación por la API:** el cierre de C1 se hizo por la API, fuera de lo que se evalúa.
+- **Datos de F1:** el token Auth V2 de F1 para el CANCEL y el PUBLISH se creó como lo hace la semilla, no desde la app Mobile.
+- **Observación (sin cambio):** las etiquetas del eje del gráfico de tendencias salen recortadas con nombres de campaña largos («aña Inviern…», captura `r5-tendencias-tras-cancel.png`). Es visual: la tabla de cada serie muestra el nombre completo.
+- **Observación (sin cambio):** la cabecera muestra la campaña activa global («Campaña Invierno 2026») aunque el resumen sea de C1. Viene de antes de F07 y está fuera de este alcance.
+- **Sin defectos bloqueantes:** no se cambió código de la aplicación, así que no hizo falta revisión de código ni repetir checks.
+- **Desmontaje:**
+  - API y `vite preview` detenidos, con los puertos 3124 y 4177 libres;
+  - las 8 bases `f07seal_web_*` borradas;
+  - el contenedor `agro_b_f07seal_pg` detenido;
+  - las carpetas temporales propias borradas.
