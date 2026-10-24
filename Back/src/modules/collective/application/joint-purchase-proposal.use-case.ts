@@ -9,6 +9,7 @@ import {
   CollectiveSummaryUseCase,
   DecidedSummary,
   presentation,
+  SealRef,
 } from "./collective-summary.use-case";
 
 type Tx = Prisma.TransactionClient;
@@ -45,6 +46,8 @@ export interface ProposalView {
   status: "DRAFT";
   basis: "DECLARED_NEED";
   campaign: { campaign_ref: string; name: string; status: CampaignStatus };
+  /** Sealed version of the campaign when read; null if not sealed. */
+  seal: SealRef | null;
   generated_at: string;
   generated_by: { user_ref: string; name: string };
   /** Null whenever a figure of the draft is not served (it would cover it). */
@@ -77,12 +80,17 @@ export const PROPOSAL_NOTICE =
  * F07 #26/#27: draft joint purchase proposal from the DECLARED_NEED cells of
  * the collective summary. It never computes its own totals: each line takes
  * the state the summary decided and, when DISCLOSED, a reference to the
- * release that backs the figure. Every read re-runs the summary decision and
- * a line keeps its figure only while the summary shows that same release for
- * its cell; the proposal, its history and its CSV therefore never serve a
- * figure the summary does not show now, nor any figure when the current mode
- * does not authorize disclosure. Generation writes only the proposal and its lines: no
- * purchase, lot, movement, payable account or payment.
+ * release that backs the figure. Every read takes the summary decision and a
+ * line keeps its figure only while the summary shows that same release for its
+ * cell; the proposal, its history and its CSV therefore never serve a figure
+ * the summary does not show now, nor any figure when the current mode does
+ * not authorize disclosure. Generation writes only the proposal and its lines:
+ * no purchase, lot, movement, payable account or payment.
+ *
+ * F07 (2026-10-23, F06 §7.2): reading never writes. An unsealed campaign is
+ * decided read-only (no release created or withdrawn; a figure that would be
+ * new shows as SUPERSEDED, without value); a sealed one is served from its
+ * sealed version. Only generation runs the writing decision.
  */
 @Injectable()
 export class JointPurchaseProposalUseCase {
@@ -121,10 +129,15 @@ export class JointPurchaseProposalUseCase {
     let rows: Awaited<ReturnType<typeof load>> = [];
     let current: CurrentCells | null = null;
     // 404 for another tenant's campaign comes from the summary itself.
-    const decided = await this.summary.decide(tenantId, campaignId, async (tx, d) => {
-      rows = await load(tx);
-      current = currentCells(d);
-    });
+    const decided = await this.summary.decide(
+      tenantId,
+      campaignId,
+      async (tx, d) => {
+        rows = await load(tx);
+        current = currentCells(d);
+      },
+      READ_ONLY,
+    );
     if (decided.summary.disclosure.mode === "POLICY_PENDING") rows = await load(this.prisma);
     return rows.map((row) => ({
       proposal_ref: row.id,
@@ -144,14 +157,20 @@ export class JointPurchaseProposalUseCase {
     // Another tenant's proposal is indistinguishable from a missing one.
     if (!head) throw new NotFoundException("PROPOSAL_NOT_FOUND");
     if (this.config.mode === "POLICY_PENDING") {
-      return this.render(this.prisma, tenantId, proposalId, null);
+      const seal = await this.summary.sealRef(this.prisma, tenantId, head.campaignId);
+      return this.render(this.prisma, tenantId, proposalId, null, seal);
     }
     // Same decision as the summary, in its lock: a line shows a figure only
     // if the summary shows that very release for its cell right now.
     let result: ProposalView | null = null;
-    await this.summary.decide(tenantId, head.campaignId, async (tx, decided) => {
-      result = await this.render(tx, tenantId, proposalId, currentCells(decided));
-    });
+    await this.summary.decide(
+      tenantId,
+      head.campaignId,
+      async (tx, decided) => {
+        result = await this.render(tx, tenantId, proposalId, currentCells(decided), decided.summary.seal);
+      },
+      READ_ONLY,
+    );
     return result!;
   }
 
@@ -166,7 +185,14 @@ export class JointPurchaseProposalUseCase {
     summary: CollectiveSummary,
     releaseOf: ReadonlyMap<string, string>,
   ): Promise<string> {
-    const cells = summary.cells.filter((cell) => cell.projection_type === "DECLARED_NEED");
+    // A sealed figure withdrawn after the seal is stored as a figure in
+    // revision: a draft never carries it.
+    const cells = summary.cells
+      .filter((cell) => cell.projection_type === "DECLARED_NEED")
+      .map((cell) => ({
+        ...cell,
+        status: cell.status === "WITHDRAWN_AFTER_SEAL" ? ("SUPPRESSED_REVISION" as const) : cell.status,
+      }));
     const coverage = summary.coverage!;
     const fingerprint = proposalFingerprint({
       campaign_ref: summary.campaign.campaign_ref,
@@ -206,6 +232,7 @@ export class JointPurchaseProposalUseCase {
     tenantId: string,
     proposalId: string,
     current: CurrentCells | null,
+    seal: SealRef | null,
   ): Promise<ProposalView> {
     const row = await db.jointPurchaseProposal.findFirstOrThrow({
       where: { id: proposalId, tenantId },
@@ -230,6 +257,7 @@ export class JointPurchaseProposalUseCase {
       status: row.status,
       basis: "DECLARED_NEED",
       campaign: { campaign_ref: row.campaign.id, name: row.campaign.name, status: row.campaign.status },
+      seal,
       generated_at: row.generatedAt.toISOString(),
       generated_by: { user_ref: row.generatedBy.id, name: row.generatedBy.name },
       // The fingerprint covers the figures: hidden whenever one is not served.
@@ -279,6 +307,8 @@ export class JointPurchaseProposalUseCase {
     };
   }
 }
+
+const READ_ONLY = { persist: false } as const;
 
 /** What the summary shows right now for each DECLARED_NEED cell. */
 interface CurrentCells {
@@ -334,7 +364,7 @@ function requireRelease(releaseOf: ReadonlyMap<string, string>, productRef: stri
 export function proposalCsv(view: ProposalView): string {
   const row = (values: (string | number | boolean | null)[]) => values.map(csvField).join(",");
   const lines = [
-    row(["proposal_ref", "status", "basis", "campaign_ref", "campaign", "generated_at", "generated_by", "inputs_fingerprint", "disclosure", "policy", "approved", "linked_members", "members_with_contribution", "coverage_basis"]),
+    row(["proposal_ref", "status", "basis", "campaign_ref", "campaign", "generated_at", "generated_by", "inputs_fingerprint", "disclosure", "policy", "approved", "linked_members", "members_with_contribution", "coverage_basis", "seal_ref", "seal_version", "sealed_at"]),
     row([
       view.proposal_ref,
       view.status,
@@ -350,6 +380,9 @@ export function proposalCsv(view: ProposalView): string {
       view.coverage?.linked_members ?? null,
       view.coverage?.members_with_contribution ?? null,
       view.coverage?.basis ?? null,
+      view.seal?.seal_ref ?? null,
+      view.seal?.version ?? null,
+      view.seal?.sealed_at ?? null,
     ]),
     row(["notice", view.notice]),
     "",

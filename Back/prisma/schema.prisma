@@ -238,6 +238,7 @@ model Tenant {
   collectiveReleases       CollectiveRelease[]
   backupMetadata           BackupMetadata[]
   jointPurchaseProposals   JointPurchaseProposal[]
+  collectiveSeals          CollectiveSeal[]
 }
 
 model User {
@@ -277,6 +278,7 @@ model User {
   productAssociationsMade   ProductCanonicalAssociation[] @relation("ProductAssociationActor")
   productAssociationsClosed ProductCanonicalAssociation[] @relation("ProductAssociationCloser")
   jointPurchaseProposals    JointPurchaseProposal[]       @relation("JointPurchaseProposalAuthor")
+  collectiveSeals           CollectiveSeal[]              @relation("CollectiveSealActor")
 }
 
 model Member {
@@ -398,6 +400,7 @@ model Product {
   canonicalAssociations      ProductCanonicalAssociation[] @relation("ProductAssociationCanonical")
   collectiveReleases         CollectiveRelease[]
   jointPurchaseProposalLines JointPurchaseProposalLine[]
+  collectiveSealEntries      CollectiveSealEntry[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, qrCodeValue])
@@ -455,6 +458,7 @@ model AgriculturalCampaign {
   syncV1Contributions      SyncV1Contribution[]
   collectiveReleases       CollectiveRelease[]
   jointPurchaseProposals   JointPurchaseProposal[]
+  collectiveSeals          CollectiveSeal[]
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -1041,6 +1045,7 @@ model CollectiveRelease {
   canonicalProduct Product                     @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   items            CollectiveReleaseItem[]
   proposalLines    JointPurchaseProposalLine[]
+  sealEntries      CollectiveSealEntry[]
 
   @@index([tenantId, campaignId, canonicalProductId, projectionType, baseUnit, releasedAt])
 }
@@ -1155,4 +1160,67 @@ model JointPurchaseProposalLine {
 
   @@id([proposalId, position])
   @@unique([proposalId, canonicalProductId, baseUnit])
+}
+
+/// F07 (2026-10-23): estado de una celda en la versión sellada; el mismo que
+/// decidió el resumen al sellar.
+enum CollectiveSealEntryStatus {
+  DISCLOSED
+  SUPPRESSED_UNDER_THRESHOLD
+  SUPPRESSED_REVISION
+  OVERFLOW
+}
+
+/// F07 (2026-10-23, `F07_SEALED_HISTORY_CONTRACT.md`): versión sellada del
+/// consolidado de una campaña CERRADA, fijada a mano por DIRECTIVA o
+/// ADMINISTRADOR del tenant (R_COLLECTIVE_HISTORY, contrato F06 §7.2). Guarda
+/// el actor, la hora del servidor, la política aplicada y la cobertura
+/// agregada; ninguna cantidad por aportación ni identidad de agricultor.
+/// Inmutable (disparadores de la migración); este bloque sólo admite la
+/// versión 1.
+model CollectiveSeal {
+  id                      String   @id @default(uuid()) @db.Uuid
+  tenantId                String
+  campaignId              String
+  version                 Int      @default(1)
+  sealedAt                DateTime
+  sealedByUserId          String
+  sealedByRole            UserRole
+  disclosureMode          String   @db.VarChar(32)
+  policy                  String   @db.VarChar(16)
+  threshold               Int
+  linkedMembers           Int
+  membersWithContribution Int
+  suppressedCells         Boolean
+  openDisputes            Boolean
+  reviewRef               String   @db.Char(64)
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign AgriculturalCampaign  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sealedBy User                  @relation("CollectiveSealActor", fields: [sealedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  entries  CollectiveSealEntry[]
+
+  @@unique([tenantId, campaignId, version])
+}
+
+/// Una celda de la versión sellada. La cifra sale de la divulgación
+/// referenciada (inmutable); aquí no se copia. `visibilityWithdrawnAt` sólo
+/// pasa de NULL a una fecha cuando el aportante retira (CANCEL) una aportación
+/// de esa divulgación después del sellado: el dato sellado no cambia.
+model CollectiveSealEntry {
+  sealId                String                    @db.Uuid
+  projectionType        SyncV1ProjectionType
+  canonicalProductId    String
+  baseUnit              SyncV1BaseUnit
+  status                CollectiveSealEntryStatus
+  releaseId             String?                   @db.Uuid
+  pendingChanges        Boolean                   @default(false)
+  visibilityWithdrawnAt DateTime?
+
+  seal             CollectiveSeal     @relation(fields: [sealId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product            @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  release          CollectiveRelease? @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([sealId, projectionType, canonicalProductId, baseUnit])
+  @@index([releaseId])
 }

@@ -85,3 +85,27 @@ El texto anterior se conserva como registro de F08. Desde BE #148 (diseño: [F08
   - no hay cupo global por tenant ni por disco (condición 5 del §5);
   - la política de 5 copias es una decisión técnica para la entrega académica, no el período institucional de la condición 4 del §5, que decide Roderich;
   - la producción sigue cerrada.
+
+## 8. Actualización 2026-10-23: cifrado en el teléfono (F08-ADR-003)
+
+El texto anterior se conserva como registro. Diseño: Mobile `docs/adr/F08-ADR-003-respaldo-cifrado-y-previo.md`, revisado por B (LISTO sobre el texto) y por A (interfaces). Decisión de Roderich del 2026-10-23.
+
+- **Qué cambia:**
+  - el teléfono cifra el contenedor antes de subirlo (formato 2: ChaCha20-Poly1305 de RFC 8439 en streaming, con una clave por archivo derivada por HKDF-SHA256 de una clave de recuperación aleatoria de 256 bits del agricultor, biblioteca `cryptography` 2.9.0);
+  - la clave no sale del teléfono: ni el servidor, ni B2, ni la Directiva, ni el operador la tienen; no hay escrow ni recuperación central;
+  - SSE-B2 se mantiene como protección adicional y, por sí sola, no excluye al operador.
+- **Qué comprueba ahora el Backend** (`backup-format.ts`):
+  - `formatVersion` ∈ {1, 2}; cualquier otro, 422 `BACKUP_FORMAT_INVALID` antes de leer el cuerpo;
+  - en el formato 2, la forma exterior (magic, versión, algoritmo, flags y longitud exacta), con 422 `BACKUP_FORMAT_INVALID` y sin bytes guardados;
+  - en el formato 1, sólo que no lleve el magic del 2;
+  - el SHA-256 de transporte, que en el formato 2 es de los bytes cifrados.
+  - **No afirma** haber comprobado el contenido descifrado: no puede. Lo valida el teléfono después de descifrar y antes de sustituir la base.
+- **Efecto en las amenazas:**
+  - **T3:** con el formato 2, quien administra el almacenamiento o el volumen ya no puede leer las copias. Las copias del formato 1, sin cifrar, siguen legibles hasta que se retiren.
+  - **T2:** una sesión robada permite descargar ciphertext, pero no descifrarlo sin la clave.
+  - **T4:** un servidor comprometido ya no puede fabricar una copia que pase la etiqueta sin la clave. Sí puede borrarlas o retenerlas: disponibilidad.
+- **Condición 2 del §5:** cumplida **en el diseño y en las pruebas sintéticas del host**, con dos límites:
+  - no está ensayada contra B2 real ni en el dispositivo;
+  - las subidas del formato 1 siguen admitidas por defecto para el entorno sintético y la herramienta de #160.
+- **Se añade como condición previa a datos reales** (enmienda del §5): `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`, que rechaza el formato 1 con 422 `BACKUP_ENCRYPTION_REQUIRED`. No es una admisión: la admisión productiva sigue cerrada y las demás condiciones no cambian.
+- **Riesgo nuevo, aceptado:** perder a la vez el teléfono y la clave anotada hace irrecuperables las copias cifradas.

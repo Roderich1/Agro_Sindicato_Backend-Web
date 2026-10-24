@@ -56,6 +56,7 @@ describe("proposal CSV", () => {
       status: "DRAFT",
       basis: "DECLARED_NEED",
       campaign: { campaign_ref: "c", name: "=Campana", status: "ABIERTA" },
+      seal: null,
       generated_at: "2026-10-16T00:00:00.000Z",
       generated_by: { user_ref: "u", name: "Directiva" },
       inputs_fingerprint: "f".repeat(64),
