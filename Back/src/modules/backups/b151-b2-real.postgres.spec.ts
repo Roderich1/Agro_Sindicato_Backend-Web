@@ -11,10 +11,8 @@ import type { Readable } from "node:stream";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
-import { ENVELOPE_TAG_BYTES } from "./application/backup-format";
 import { purgePending } from "./application/backup-retention";
 import { S3BackupStorage, S3Sender } from "./infrastructure/s3-backup-storage";
-import { envelopeHeader } from "./test-support/backup-envelope";
 import { gateCommit, interceptCompletion } from "./test-support/backup-test-hooks";
 import {
   B151_KEY_PREFIX,
@@ -90,6 +88,21 @@ const scrubbed = (fn: () => Promise<void>) => async () => {
 const N = 3;
 const FORMATO = b151Format();
 const MAGIC = Buffer.from("AGROENC\0", "latin1");
+/**
+ * The format-2 envelope helpers of F08-ADR-003 (#163), loaded only with
+ * F08_B151_FORMATO=2: this tool (#160) builds without them, and format 2
+ * runs only on a branch that also has #163.
+ */
+function formatTwo(): { envelopeHeader: (plaintextBytes: number) => Buffer; tagBytes: number } {
+  try {
+    const { envelopeHeader } = require("./test-support/backup-envelope") as { envelopeHeader: (n: number) => Buffer };
+    const { ENVELOPE_TAG_BYTES } = require("./application/backup-format") as { ENVELOPE_TAG_BYTES: number };
+    return { envelopeHeader, tagBytes: ENVELOPE_TAG_BYTES };
+  } catch {
+    throw new Error("F08_B151_FORMATO=2 needs the format 2 of F08-ADR-003 (#163) on this branch");
+  }
+}
+const ENVELOPE = FORMATO === 2 ? formatTwo() : null;
 const sha = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 const md5 = (bytes: Buffer) => createHash("md5").update(bytes).digest("base64"); // NOSONAR: S3 Content-MD5 transport check, not cryptographic
 
@@ -260,7 +273,7 @@ function suite(mode: SuiteMode) {
   const plain = () => Buffer.concat([Buffer.from(`F08-B151-${randomUUID()}`), randomBytes(512)]);
   /** Format 2: the envelope's header, 512 random "encrypted" bytes and a random tag. */
   const payload = () =>
-    FORMATO === 2 ? Buffer.concat([envelopeHeader(512), randomBytes(512), randomBytes(ENVELOPE_TAG_BYTES)]) : plain();
+    ENVELOPE ? Buffer.concat([ENVELOPE.envelopeHeader(512), randomBytes(512), randomBytes(ENVELOPE.tagBytes)]) : plain();
   const upload = (session: TestSession, bytes = payload(), format = FORMATO) =>
     http()
       .post(BASE)
