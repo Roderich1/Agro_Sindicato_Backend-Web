@@ -207,3 +207,27 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER "agricultural_campaign_sealed_guard"
   BEFORE UPDATE ON "AgriculturalCampaign"
   FOR EACH ROW EXECUTE FUNCTION "agricultural_campaign_sealed_guard"();
+
+-- F05 §8, enmienda del 2026-10-23: CAMPAIGN_SEALED es un rechazo final más.
+-- Se amplía el conjunto cerrado del journal; las demás combinaciones no cambian.
+ALTER TABLE "SyncV1OperationJournal" DROP CONSTRAINT "SyncV1Journal_result_check";
+ALTER TABLE "SyncV1OperationJournal"
+  ADD CONSTRAINT "SyncV1Journal_result_check" CHECK ((
+    ("processingState" = 'PROCESSING' AND "outcome" IS NULL AND "disposition" IS NULL
+      AND "resultCode" IS NULL AND "serverAcceptedAt" IS NULL AND "reconciliationReference" IS NULL)
+    OR
+    ("processingState" = 'FINAL' AND (
+      ("outcome" = 'APPLIED' AND "disposition" = 'RETIRE_FROM_OUTBOX' AND "resultCode" = 'OK'
+        AND "serverAcceptedAt" IS NOT NULL AND "reconciliationReference" IS NULL)
+      OR
+      ("outcome" = 'CONFLICT' AND "disposition" = 'KEEP_FOR_RECONCILIATION'
+        AND "resultCode" IN ('CAUSAL_FORK', 'STALE_PREDECESSOR', 'CANCELLED_PREDECESSOR', 'RECONCILIATION_STALE')
+        AND "serverAcceptedAt" IS NULL AND "reconciliationReference" IS NOT NULL)
+      OR
+      ("outcome" = 'REJECTED' AND "disposition" = 'MOVE_TO_TERMINAL_FAILURE'
+        AND "resultCode" IN ('IDEMPOTENCY_MISMATCH', 'CAMPAIGN_NOT_OPEN', 'CAMPAIGN_SEALED', 'REFERENCE_UNAVAILABLE',
+          'UNIT_INCOMPATIBLE', 'QUANTITY_INVALID', 'INVALID_PREDECESSOR', 'INVALID_TRANSITION', 'OWNERSHIP_NOT_PROVEN',
+          'PURPOSE_NOT_AUTHORIZED', 'CAUSAL_FENCED')
+        AND "serverAcceptedAt" IS NULL AND "reconciliationReference" IS NULL)
+    ))
+  ) IS TRUE);
