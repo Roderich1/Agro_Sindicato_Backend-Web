@@ -79,6 +79,34 @@ export class S3ListingError extends Error {
   }
 }
 
+/** What a cleanup of one attempt's staging could not settle; codes only. */
+export type S3StagingPending =
+  /** Listing this attempt's multipart uploads failed: whether one is left is unknown. */
+  | "MULTIPART_LISTING_FAILED"
+  /** More than one upload under this attempt's name: none is aborted. */
+  | "MULTIPART_OWNERSHIP_AMBIGUOUS"
+  /** A CreateMultipartUpload without an answer and nothing listed: it may still appear. */
+  | "MULTIPART_CREATION_UNKNOWN"
+  /** An upload of this attempt is still listed after its abort. */
+  | "MULTIPART_REMAINS"
+  /** The versions of this attempt's staging name could not be purged and checked. */
+  | "STAGING_PURGE_FAILED";
+
+/**
+ * The cleanup of one attempt's staging (#151 5b, H3), reported apart from the
+ * error that `stage` rethrows: codes, an error name and an HTTP status only,
+ * never names, keys or provider messages. `complete` only when nothing of the
+ * attempt is left, checked by listing; otherwise what is pending is left for
+ * reconciliation (`discardStaged`, the F10 inventory).
+ */
+export interface S3StagingCleanupReport {
+  trigger: "STAGE_FAILED" | "DISCARDED";
+  /** The cause of a failed stage: the provider, the adapter's call deadline, or the source. */
+  failure?: { origin: "provider" | "deadline" | "source"; name: string; status?: number };
+  complete: boolean;
+  pending: S3StagingPending[];
+}
+
 /** What the adapter needs from the SDK client; `S3Client` satisfies it. */
 export interface S3Sender {
   send(command: object, options: { abortSignal: AbortSignal }): Promise<unknown>;
@@ -140,10 +168,31 @@ function isNotFound(error: unknown): boolean {
   return name === "NoSuchKey" || name === "NotFound" || statusOf(error) === 404;
 }
 
+/** A request the provider answered and refused (4xx): it took no effect. */
+function isRefusal(error: unknown): boolean {
+  const status = statusOf(error);
+  return status !== undefined && status >= 400 && status < 500;
+}
+
+const DEADLINE_EXCEEDED = "S3_DEADLINE_EXCEEDED";
+
+function failureOf(
+  origin: "provider" | "source",
+  error: unknown,
+): NonNullable<S3StagingCleanupReport["failure"]> {
+  const name = error instanceof Error ? error.name : typeof error;
+  const status = statusOf(error ?? {});
+  const deadline = origin === "provider" && error instanceof Error && error.message === DEADLINE_EXCEEDED;
+  return { origin: deadline ? "deadline" : origin, name, ...(status === undefined ? {} : { status }) };
+}
+
+/** A multipart upload of one attempt: none, its UploadId, or created without an answer. */
+type AttemptUpload = { state: "none" } | { state: "known"; uploadId: string } | { state: "unknown" };
+
 /** Aborts after `ms` (or with `parent`); `clear` must always be called. */
 function deadline(ms: number, parent?: AbortSignal) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new Error("S3_DEADLINE_EXCEEDED")), ms);
+  const timer = setTimeout(() => controller.abort(new Error(DEADLINE_EXCEEDED)), ms);
   timer.unref?.();
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
   return { signal, clear: () => clearTimeout(timer) };
@@ -252,7 +301,8 @@ function currentEntries(entries: StoredVersion[]): Map<string, StoredVersion> {
  * from IsLatest alone (#151); a listing that is denied, invalid or incomplete
  * fails closed.
  *
- * Nothing is logged here; errors are rethrown for the service to close.
+ * Nothing is logged here; errors are rethrown for the service to close, and
+ * the cleanup of a failed or discarded staging goes to `onStagingCleanup`.
  */
 export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
   private readonly bucket: string;
@@ -262,6 +312,7 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
     private readonly s3: S3Sender,
     settings: Pick<S3BackupStorageSettings, "bucket" | "prefix">,
     private readonly limits: S3Limits = S3_LIMITS,
+    private readonly onStagingCleanup?: (report: S3StagingCleanupReport) => void,
   ) {
     this.bucket = settings.bucket;
     this.prefix = settings.prefix;
@@ -298,23 +349,28 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
   }
 
   async stage(key: string, source: Readable): Promise<StagedBackupObject> {
+    // One name per attempt: its random part, which only this attempt knows,
+    // is what proves that an upload listed under it is this attempt's.
     const name = `${this.stagingPrefix(key)}${randomBytes(8).toString("hex")}.part`;
+    // The first failure is the cause, whatever follows it. Leaving the loop
+    // after a provider failure destroys the source, which then fails with a
+    // generic AbortError (#151 H3): that one must not replace the provider's.
+    let failure: { origin: "provider" | "source"; error: unknown } | undefined;
     // Aborts whatever is in flight as soon as the source fails (413 of the
     // meter, client cut, service deadline), so nothing keeps uploading.
     const controller = new AbortController();
-    let sourceError: unknown;
     const onSourceError = (error: unknown) => {
-      sourceError ??= error;
+      failure ??= { origin: "source", error };
       controller.abort(error);
     };
     source.once("error", onSourceError);
     const hash = createHash("sha256");
     let bytes = 0;
-    let uploadId: string | undefined;
+    let upload: AttemptUpload = { state: "none" };
     const parts: { ETag?: string; PartNumber: number }[] = [];
     let versionId: string | undefined;
 
-    const uploadPart = async (body: Buffer) => {
+    const uploadPart = async (uploadId: string, body: Buffer) => {
       const partNumber = parts.length + 1;
       const out = await this.call<{ ETag?: string }>(
         new UploadPartCommand({
@@ -335,36 +391,47 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
       let pending: Buffer[] = [];
       let pendingBytes = 0;
       for await (const chunk of source) {
-        const buffer = chunk as Buffer;
-        hash.update(buffer);
-        bytes += buffer.length;
-        pending.push(buffer);
-        pendingBytes += buffer.length;
-        // Strictly more than one part: the first S3_PART_BYTES are a
-        // non-final part, so a multipart always has at least two parts.
-        while (pendingBytes > S3_PART_BYTES) {
-          const all = Buffer.concat(pending);
-          pending = [all.subarray(S3_PART_BYTES)];
-          pendingBytes = all.length - S3_PART_BYTES;
-          if (uploadId === undefined) {
-            const created = await this.call<{ UploadId?: string }>(
-              new CreateMultipartUploadCommand({
-                Bucket: this.bucket,
-                Key: name,
-                ContentType: CONTENT_TYPE,
-                ServerSideEncryption: "AES256",
-              }),
-              controller.signal,
-            );
-            if (!created.UploadId) throw new Error("S3_MULTIPART_NOT_CREATED");
-            uploadId = created.UploadId;
+        try {
+          const buffer = chunk as Buffer;
+          hash.update(buffer);
+          bytes += buffer.length;
+          pending.push(buffer);
+          pendingBytes += buffer.length;
+          // Strictly more than one part: the first S3_PART_BYTES are a
+          // non-final part, so a multipart always has at least two parts.
+          while (pendingBytes > S3_PART_BYTES) {
+            const all = Buffer.concat(pending);
+            pending = [all.subarray(S3_PART_BYTES)];
+            pendingBytes = all.length - S3_PART_BYTES;
+            if (upload.state !== "known") {
+              // Until its answer arrives, the upload may exist (#151 5b).
+              upload = { state: "unknown" };
+              const created = await this.call<{ UploadId?: string }>(
+                new CreateMultipartUploadCommand({
+                  Bucket: this.bucket,
+                  Key: name,
+                  ContentType: CONTENT_TYPE,
+                  ServerSideEncryption: "AES256",
+                }),
+                controller.signal,
+              ).catch((error: unknown) => {
+                if (isRefusal(error)) upload = { state: "none" };
+                throw error;
+              });
+              if (!created.UploadId) throw new Error("S3_MULTIPART_NOT_CREATED");
+              upload = { state: "known", uploadId: created.UploadId };
+            }
+            await uploadPart(upload.uploadId, all.subarray(0, S3_PART_BYTES));
           }
-          await uploadPart(all.subarray(0, S3_PART_BYTES));
+        } catch (error) {
+          // Here, before the loop exit destroys the source.
+          failure ??= { origin: "provider", error };
+          throw error;
         }
       }
-      if (sourceError) throw sourceError;
+      if (failure) throw failure.error;
       const last = Buffer.concat(pending);
-      if (uploadId === undefined) {
+      if (upload.state !== "known") {
         const out = await this.call<{ VersionId?: string }>(
           new PutObjectCommand({
             Bucket: this.bucket,
@@ -379,24 +446,32 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
         );
         versionId = out.VersionId;
       } else {
-        await uploadPart(last);
+        await uploadPart(upload.uploadId, last);
         const out = await this.call<{ VersionId?: string }>(
           new CompleteMultipartUploadCommand({
             Bucket: this.bucket,
             Key: name,
-            UploadId: uploadId,
+            UploadId: upload.uploadId,
             MultipartUpload: { Parts: parts },
           }),
           controller.signal,
         );
-        uploadId = undefined;
+        upload = { state: "none" };
         versionId = out.VersionId;
       }
       if (!versionId) throw new Error("S3_VERSION_MISSING");
     } catch (error) {
-      controller.abort(error);
-      await this.cleanupStaging(name, uploadId);
-      throw sourceError ?? error;
+      failure ??= { origin: "provider", error };
+      controller.abort(failure.error);
+      // A second error of the cleanup never replaces the cause: it is reported apart.
+      const pending = await this.cleanupStaging(name, upload);
+      this.report({
+        trigger: "STAGE_FAILED",
+        failure: failureOf(failure.origin, failure.error),
+        complete: pending.length === 0,
+        pending,
+      });
+      throw failure.error;
     } finally {
       source.off("error", onSourceError);
     }
@@ -412,24 +487,79 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
       },
       discard: async () => {
         settled = true;
-        await this.cleanupStaging(name, undefined);
+        const pending = await this.cleanupStaging(name, { state: "none" });
+        this.report({ trigger: "DISCARDED", complete: pending.length === 0, pending });
       },
     };
   }
 
-  /** Best effort: the service later calls `discardStaged`, which checks. */
-  private async cleanupStaging(name: string, uploadId: string | undefined): Promise<void> {
-    const limit = deadline(this.limits.purgeMs);
+  /** A reporter that fails never changes the outcome of the operation. */
+  private report(report: S3StagingCleanupReport): void {
     try {
-      if (uploadId !== undefined) {
-        await this.call(
-          new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: name, UploadId: uploadId }),
-          limit.signal,
-        ).catch(() => undefined);
-      }
-      await this.purge((n) => n === name, name, limit.signal).catch(() => undefined);
+      this.onStagingCleanup?.(report);
+    } catch {
+      // Nothing to do: the report is an observation, not part of the result.
+    }
+  }
+
+  /**
+   * Removes what one attempt staged under its own `name`, and says what it
+   * could not settle (empty: nothing left, checked by listing). It never
+   * throws: the service later calls `discardStaged`, and the F10 inventory
+   * reconciles what is pending.
+   */
+  private async cleanupStaging(name: string, upload: AttemptUpload): Promise<S3StagingPending[]> {
+    const limit = deadline(this.limits.purgeMs);
+    const pending: S3StagingPending[] = [];
+    try {
+      if (upload.state !== "none")
+        pending.push(...(await this.abortAttemptUpload(name, upload, limit.signal)));
+      await this.purge((n) => n === name, name, limit.signal).catch(() => {
+        pending.push("STAGING_PURGE_FAILED");
+      });
     } finally {
       limit.clear();
+    }
+    return pending;
+  }
+
+  /**
+   * Aborts the multipart upload of one attempt and checks by listing that
+   * none is left under its name. Without its UploadId (the stage left before
+   * the answer to CreateMultipartUpload, #151 5b) it is looked up by the
+   * attempt's exact name, and aborted only if it is the one upload listed
+   * there. Uploads of other names (other attempts of the same key, other
+   * keys) are never listed as candidates nor aborted; whatever is uncertain
+   * stays, reported as pending.
+   */
+  private async abortAttemptUpload(
+    name: string,
+    upload: Exclude<AttemptUpload, { state: "none" }>,
+    signal: AbortSignal,
+  ): Promise<S3StagingPending[]> {
+    const listed = async () => (await this.uploads(name, signal)).filter((u) => u.name === name);
+    let uploadId: string;
+    if (upload.state === "known") uploadId = upload.uploadId;
+    else {
+      let found;
+      try {
+        found = await listed();
+      } catch {
+        return ["MULTIPART_LISTING_FAILED"];
+      }
+      if (found.length === 0) return ["MULTIPART_CREATION_UNKNOWN"];
+      if (found.length > 1) return ["MULTIPART_OWNERSHIP_AMBIGUOUS"];
+      uploadId = found[0].uploadId;
+    }
+    // A failed abort is seen by the listing that follows.
+    await this.call(
+      new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: name, UploadId: uploadId }),
+      signal,
+    ).catch(() => undefined);
+    try {
+      return (await listed()).length === 0 ? [] : ["MULTIPART_REMAINS"];
+    } catch {
+      return ["MULTIPART_LISTING_FAILED"];
     }
   }
 
@@ -528,7 +658,7 @@ export class S3BackupStorage implements BackupStorage, BackupStorageInventory {
     // socket inactivity timeout, so a long download is not cut.
     const controller = new AbortController();
     const timer = setTimeout(
-      () => controller.abort(new Error("S3_DEADLINE_EXCEEDED")),
+      () => controller.abort(new Error(DEADLINE_EXCEEDED)),
       this.limits.openMs,
     );
     timer.unref?.();
