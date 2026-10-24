@@ -43,6 +43,11 @@ export const envSchema = z.object({
   COLLECTIVE_DISCLOSURE_MODE: optionalText(
     z.enum(["disabled", "provisional-synthetic"]),
   ),
+  // F07 manual seal of a campaign's collective version. Off by default: it is
+  // enabled only with a Mobile build that handles CAMPAIGN_SEALED as a
+  // terminal failure (F07_SEALED_HISTORY_CONTRACT §3.2). Reading sealed
+  // versions does not depend on it.
+  COLLECTIVE_SEALING: optionalText(z.enum(["enabled", "disabled"])),
   // F08 private backups: development disk adapter directory. Without it the
   // `/me/backups` routes answer 503. Not encrypted at rest (declared limit).
   BACKUP_STORAGE_DIR: optionalText(z.string()),
