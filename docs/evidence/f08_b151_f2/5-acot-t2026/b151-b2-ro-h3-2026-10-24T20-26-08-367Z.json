@@ -1,0 +1,98 @@
+{
+ "herramienta": "tool/f08_b2/b151_b2.cjs",
+ "destino": "b2",
+ "perfil": "ro",
+ "paso": "h3",
+ "version": {
+  "sha": "1e5ff105f3fb20e80dcb2f4613e175ce4bb77f56",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijo": "ensayo-f08/b151-20261024/c-acot-20261024t2026/",
+  "bucket": "agro-backups-roderich",
+  "region": "us-east-005",
+  "clave": {
+   "capacidades": [
+    "listFiles",
+    "readFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  },
+  "parteMultipart": 8388608
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T20:26:11.341Z",
+ "resumen": {
+  "PASS": 4,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "H3: adaptador stage multipart (> 8 MiB) con la clave ro, causa conservada",
+   "perfil": "ro",
+   "esperado": "el error de stage es el rechazo de permisos de B2 (403/AccessDenied), no el AbortError del origen; sin éxito aparente",
+   "observado": {
+    "ok": false,
+    "error": {
+     "name": "AccessDenied",
+     "code": "AccessDenied",
+     "status": 403,
+     "message": "not entitled"
+    },
+    "erroresDelOrigen": [
+     "AbortError"
+    ]
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "H3: limpieza registrada aparte (onStagingCleanup)",
+   "perfil": "ro",
+   "esperado": "un informe STAGE_FAILED con la causa del proveedor (403) y la limpieza completa: el rechazo no creó nada",
+   "observado": {
+    "informes": [
+     {
+      "trigger": "STAGE_FAILED",
+      "failure": {
+       "origin": "provider",
+       "name": "AccessDenied",
+       "status": 403
+      },
+      "complete": true,
+      "pending": []
+     }
+    ]
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "H3: la copia válida sigue intacta (misma versión, sin marcador; bytes iguales; el adaptador la abre)",
+   "perfil": "ro",
+   "esperado": "ninguna copia válida perdida",
+   "observado": {
+    "versiones": 1,
+    "mismaVersion": true,
+    "sha256": "ca11a55fb763",
+    "open": "ok"
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "H3: nada cambió bajo c1/",
+   "perfil": "ro",
+   "esperado": "mismas versiones y marcadores que antes",
+   "observado": {
+    "igual": true
+   },
+   "veredicto": "PASS"
+  }
+ ],
+ "registro": [
+  "2026-10-24T20:26:09.149Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles; namePrefix ensayo-f08/b151-20261024/)",
+  "2026-10-24T20:26:10.615Z PASS [ro] H3: adaptador stage multipart (> 8 MiB) con la clave ro, causa conservada",
+  "2026-10-24T20:26:10.615Z PASS [ro] H3: limpieza registrada aparte (onStagingCleanup)",
+  "2026-10-24T20:26:11.201Z PASS [ro] H3: la copia válida sigue intacta (misma versión, sin marcador; bytes iguales; el adaptador la abre)",
+  "2026-10-24T20:26:11.340Z PASS [ro] H3: nada cambió bajo c1/"
+ ]
+}

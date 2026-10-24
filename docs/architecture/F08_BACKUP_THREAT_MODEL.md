@@ -170,3 +170,10 @@ Cambios en `S3BackupStorage` (Roderich eligió el 2026-10-24 corregir el adaptad
 - **Los otros siete fallan sólo porque falta el informe de limpieza, que es nuevo.** Dos de ellos, la desconexión del cliente y el plazo del servicio, ya conservaban la causa con `aed8a99`: sirven de guarda.
 - **Nota m1 de B (6 casos más, 19 en total).** Cinco fallan con `2d5085d` por el defecto mismo: un 4xx tras reintentos (`attempts` 2 y 3) o un 429 con la subida ya creada dejan la multiparte viva, y un 408 o un 429 en el único intento no buscan nada. El sexto, un 403 en el único intento, no busca nada con y sin la nota, y queda de guarda. El doble pone ahora `attempts` en sus errores, como el SDK.
 - **El doble sin E/S no reproducía H3.** El `AbortError` del origen llega en el siguiente tick, después de que `stage` termine. Las pruebas de H3 simulan la latencia de red con `setImmediate`.
+
+**Repetición acotada contra B2 real** (2026-10-24, de 20:26:03 a 20:26:41 UTC, `docs/evidence/F08_BKP_08_B2_REAL_ACOTADA.md`). Se ejecutó desde `1e5ff10`, que combina #163 `d673a56` con la herramienta de #160 `ff8bf7f`, en una subcarpeta nueva y con las mismas claves de mínimo privilegio.
+- **Resultado:** 14 casos, 14 PASS.
+- **H3:** el error de una multiparte con la clave ro es el 403 `AccessDenied` de B2, aunque el origen fallara con `AbortError`.
+- **5b:** B2 creó la multiparte y su respuesta no llegó al adaptador. El adaptador la abortó listando sólo con el nombre exacto de su intento. Otro intento de la misma clave, otra clave, una copia AVAILABLE y una subida concurrente quedaron intactos, y la concurrente y una subida normal se completaron.
+- **Lo anterior no cambia:** los resultados previos quedan como están (5b FAIL y 1-ro NO_CONCLUYENTE en la repetición) y no pasan a PASS. 3a mantiene su FAIL como comportamiento del proveedor (H2).
+- **Limpieza:** la subcarpeta queda en 0 versiones, 0 marcadores y 0 multipart.
