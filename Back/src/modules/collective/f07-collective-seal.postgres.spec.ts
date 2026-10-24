@@ -233,9 +233,25 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     );
   }
 
-  function expectNoNumber(text: string, value: string) {
-    expect(text).not.toMatch(new RegExp(`(^|[^0-9a-f-])${value}([^0-9a-f-]|$)`));
+  // The value is matched literally: unescaped, the "." of "1.2" matched any
+  // character, e.g. ".112Z" in an ISO timestamp (intermittent, by milliseconds).
+  function numberPattern(value: string): RegExp {
+    const literal = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(^|[^0-9a-f-])${literal}([^0-9a-f-]|$)`);
   }
+
+  function expectNoNumber(text: string, value: string) {
+    expect(text).not.toMatch(numberPattern(value));
+  }
+
+  it("expectNoNumber matches the value literally (control for the timestamp false positive)", () => {
+    // Negative control: the hidden presentation value present → detected.
+    expect("product,1.2,L").toMatch(numberPattern("1.2"));
+    expect("1200").toMatch(numberPattern("1200"));
+    // The text that failed in CI run 40087793244: a timestamp, not the figure.
+    expect("data_as_of,2026-10-24T10:56:12.112Z").not.toMatch(numberPattern("1.2"));
+    expect("1x2").not.toMatch(numberPattern("1.2"));
+  });
 
   // State shared by the ordered tests below.
   let proposalBeforeSeal: string;
