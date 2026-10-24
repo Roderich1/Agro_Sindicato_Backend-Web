@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { BackupObjectMissingError } from "../domain/backup-storage.port";
-import { inventoryBackups } from "../application/backup-inventory";
+import { cleanupBackupLeftovers, inventoryBackups, MIN_CLEANUP_AGE_MINUTES } from "../application/backup-inventory";
 import { BackupTooLargeError, Sha256Meter } from "../application/sha256-meter";
 import {
   backupStorageContract,
@@ -608,9 +608,113 @@ describe("#151: what B2 answered with the trial's restricted keys, imitated by t
       expect(s3.totalEntries()).toBe(0);
     });
 
-    it("open of an absent key under the 403 is the provider's error, never a success", async () => {
-      const { storage } = b2();
-      await expect(storage.open(randomUUID())).rejects.toMatchObject({ name: "AccessDenied" });
+    it("open after a 403: absent or hidden by the listing of the exact name is BackupObjectMissingError", async () => {
+      const { s3, storage } = b2(1);
+      const absent = randomUUID();
+      s3.putDirect(`${PREFIX}objects/${absent}-x`, Buffer.from("comparte prefijo"));
+      await expect(storage.open(absent)).rejects.toBeInstanceOf(BackupObjectMissingError);
+      const hidden = randomUUID();
+      s3.putDirect(`${PREFIX}objects/${hidden}`, Buffer.from("antes"));
+      s3.hideDirect(`${PREFIX}objects/${hidden}`);
+      await expect(storage.open(hidden)).rejects.toBeInstanceOf(BackupObjectMissingError);
+    });
+
+    it("open after a 403: a denied or invalid listing, or a current version that cannot be read, keeps the 403", async () => {
+      const { s3, storage } = b2();
+      const absent = randomUUID();
+      s3.before = (c) => {
+        if (c.name === "ListObjectVersionsCommand") throw s3Error("AccessDenied", 403);
+      };
+      await expect(storage.open(absent)).rejects.toMatchObject({ name: "AccessDenied" });
+      s3.before = undefined;
+      rewrite(s3, "ListObjectVersionsCommand", (out) => ({ ...out, IsTruncated: undefined }));
+      await expect(storage.open(absent)).rejects.toMatchObject({ name: "AccessDenied" });
+      const { s3: other, storage: denied } = b2();
+      const present = randomUUID();
+      other.putDirect(`${PREFIX}objects/${present}`, Buffer.from("existe"));
+      other.before = (c) => {
+        if (c.name === "GetObjectCommand") throw s3Error("AccessDenied", 403);
+      };
+      await expect(denied.open(present)).rejects.toMatchObject({ name: "AccessDenied" });
+    });
+  });
+
+  describe("multipart listings are checked like the version listings (fail closed)", () => {
+    const stagingName = () => `${PREFIX}staging/${randomUUID()}.0123456789abcdef.part`;
+    const upload = (s3: InMemoryS3, key = stagingName()) => {
+      s3.uploads.set(randomUUID(), { key, parts: new Map([[1, Buffer.alloc(7)]]), initiated: new Date(Date.UTC(2026, 0, 1)) });
+      return key;
+    };
+    type Upload = { Key?: string; UploadId?: string; Initiated?: Date };
+    const uploadsOf = (out: Record<string, unknown>) => (out["Uploads"] as Upload[] | undefined) ?? [];
+
+    it("an upload without Initiated is never dated 1970: the F10 cleanup aborts nothing and fails", async () => {
+      const { s3, storage } = setup();
+      upload(s3);
+      rewrite(s3, "ListMultipartUploadsCommand", (out) => ({
+        ...out,
+        Uploads: uploadsOf(out).map(({ Initiated: _, ...u }) => u),
+      }));
+      const prisma = {
+        backupMetadata: { findMany: async () => [], findUnique: async () => null },
+      } as unknown as Parameters<typeof cleanupBackupLeftovers>[0];
+      await expect(
+        cleanupBackupLeftovers(prisma, storage, { olderThanMinutes: MIN_CLEANUP_AGE_MINUTES, apply: true }),
+      ).rejects.toThrow("S3_LISTING_INVALID");
+      expect(names(s3, "AbortMultipartUploadCommand")).toHaveLength(0);
+      expect(s3.uploads.size).toBe(1);
+    });
+
+    const invalid: [string, (out: Record<string, unknown>) => unknown][] = [
+      ["an entry without UploadId", (out) => ({ ...out, Uploads: uploadsOf(out).map(({ UploadId: _, ...u }) => u) })],
+      ["an entry without Key", (out) => ({ ...out, Uploads: uploadsOf(out).map(({ Key: _, ...u }) => u) })],
+      ["an entry outside the listed prefix", (out) => ({ ...out, Uploads: [...uploadsOf(out), { Key: "otro/x", UploadId: "u", Initiated: new Date() }] })],
+      ["an invalid Initiated", (out) => ({ ...out, Uploads: uploadsOf(out).map((u) => ({ ...u, Initiated: new Date(Number.NaN) })) })],
+      ["a page without IsTruncated", (out) => ({ ...out, IsTruncated: undefined })],
+    ];
+    it.each(invalid)("%s makes discardStaged and list() fail, never skipped", async (_, change) => {
+      const { s3, storage } = setup();
+      const key = randomUUID();
+      upload(s3, `${PREFIX}staging/${key}.0123456789abcdef.part`);
+      rewrite(s3, "ListMultipartUploadsCommand", change);
+      await expect(storage.discardStaged(key)).rejects.toThrow("S3_LISTING_INVALID");
+      await expect(storage.list()).rejects.toThrow("S3_LISTING_INVALID");
+      expect(s3.uploads.size).toBe(1);
+    });
+
+    it("a repeated upload, or markers that do not advance, fail closed", async () => {
+      const { s3, storage } = setup();
+      upload(s3);
+      rewrite(s3, "ListMultipartUploadsCommand", (out) => ({ ...out, Uploads: [...uploadsOf(out), ...uploadsOf(out)] }));
+      await expect(storage.list()).rejects.toThrow("S3_LISTING_INCONSISTENT");
+      const again = setup();
+      upload(again.s3);
+      rewrite(again.s3, "ListMultipartUploadsCommand", (out, input) => ({
+        ...out,
+        IsTruncated: true,
+        NextKeyMarker: input["KeyMarker"] ?? "k",
+        NextUploadIdMarker: input["UploadIdMarker"] ?? "u",
+      }));
+      await expect(again.storage.list()).rejects.toThrow("S3_PAGINATION_STALLED");
+    });
+
+    it("ListParts: the page limit, a stalled marker or a part without size fail closed, never an undercount", async () => {
+      const endless = setup({ ...S3_LIMITS, listPages: 3 });
+      upload(endless.s3);
+      let n = 0;
+      rewrite(endless.s3, "ListPartsCommand", (out) => ({ ...out, IsTruncated: true, NextPartNumberMarker: String(++n) }));
+      await expect(endless.storage.list()).rejects.toThrow("S3_LISTING_INCOMPLETE");
+      const stalled = setup();
+      upload(stalled.s3);
+      rewrite(stalled.s3, "ListPartsCommand", (out, input) => ({ ...out, IsTruncated: true, NextPartNumberMarker: input["PartNumberMarker"] ?? "1" }));
+      await expect(stalled.storage.list()).rejects.toThrow("S3_PAGINATION_STALLED");
+      const sizeless = setup();
+      upload(sizeless.s3);
+      rewrite(sizeless.s3, "ListPartsCommand", (out) => ({
+        ...out,
+        Parts: ((out["Parts"] as { PartNumber?: number }[]) ?? []).map((p) => ({ PartNumber: p.PartNumber })),
+      }));
+      await expect(sizeless.storage.list()).rejects.toThrow("S3_LISTING_INVALID");
     });
   });
 
@@ -684,6 +788,25 @@ describe("#151: what B2 answered with the trial's restricted keys, imitated by t
       await expect(inventoryBackups(prisma, storage)).rejects.toThrow("S3_LISTING_INCOMPLETE");
     });
   });
+});
+
+backupStorageContract("S3BackupStorage over the double with both #151 behaviours (403 for absent names, per-page IsLatest) and pages of 1", async () => {
+  const { s3, storage } = setup();
+  s3.quirks = { missingAs403: true, latestPerPage: true };
+  s3.pageSize = 1;
+  return {
+    storage,
+    entries: async (area) => entriesOf(s3, area),
+    writeForeign: async (area, name, content) => {
+      s3.putDirect(`${PREFIX}${area}/${name}`, Buffer.from(content));
+    },
+    readForeign: async (area, name) => {
+      const versions = s3.versionsOf(`${PREFIX}${area}/${name}`);
+      return versions[versions.length - 1].body.toString();
+    },
+    isEmpty: async () => s3.totalEntries() === 0,
+    dispose: async () => undefined,
+  };
 });
 
 backupStorageContract("S3BackupStorage over the double with B2's per-page IsLatest and pages of 1", async () => {
