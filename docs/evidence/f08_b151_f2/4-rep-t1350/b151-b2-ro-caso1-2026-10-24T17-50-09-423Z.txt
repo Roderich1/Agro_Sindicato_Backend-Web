@@ -1,0 +1,34 @@
+tool/f08_b2/b151_b2.cjs · destino b2 · perfil ro · paso caso1
+Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.
+versión 62f4fe702775142bab8091baf6a7f766ede36540
+configuración {"prefijo":"ensayo-f08/b151-20261024/c-rep-20261024t1350/","bucket":"agro-backups-roderich","region":"us-east-005","clave":{"capacidades":["listFiles","readFiles"],"namePrefix":"ensayo-f08/b151-20261024/"},"parteMultipart":8388608}
+
+PASS [ro] 1-ro: PutObject en crudo
+  esperado: rechazo de permisos (403), nada escrito
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"not entitled"}}
+PASS [ro] 1-ro: CreateMultipartUpload en crudo
+  esperado: rechazo de permisos (403)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"not entitled"}}
+PASS [ro] 1-ro: CopyObject en crudo
+  esperado: rechazo de permisos (403)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"not entitled"}}
+PASS [ro] 1-ro: DeleteObject por versionId en crudo sobre la copia válida
+  esperado: rechazo de permisos (403)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"not entitled"}}
+PASS [ro] 1-ro: DeleteObject sin versionId (marcador) en crudo sobre la copia válida
+  esperado: rechazo de permisos (403), sin marcador
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"not entitled"}}
+PASS [ro] 1-ro: adaptador stage (PutObject)
+  esperado: rechazo de permisos del proveedor propagado, sin éxito aparente
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":"AccessDenied","status":403,"message":"not entitled"}}
+NO_CONCLUYENTE [ro] 1-ro: adaptador stage multipart (> 8 MiB)
+  esperado: rechazo de permisos del proveedor propagado, sin éxito aparente
+  observado: {"ok":false,"error":{"name":"AbortError","code":null,"status":null,"message":"The operation was aborted"}}
+PASS [ro] 1-ro: la copia válida sigue intacta (misma versión, última, sin marcador; bytes iguales; el adaptador la abre)
+  esperado: ninguna copia válida perdida
+  observado: {"versiones":1,"mismaVersion":true,"sha256":"450069a83b85","open":"ok"}
+PASS [ro] 1-ro: nada cambió bajo c1/
+  esperado: mismas versiones y marcadores que antes
+  observado: {"igual":true}
+
+resumen: 8 PASS, 0 FAIL, 1 NO_CONCLUYENTE

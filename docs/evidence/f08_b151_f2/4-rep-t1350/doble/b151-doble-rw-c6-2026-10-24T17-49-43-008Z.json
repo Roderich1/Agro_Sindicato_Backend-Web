@@ -1,0 +1,157 @@
+{
+ "herramienta": "Back/src/modules/backups/b151-b2-real.postgres.spec.ts",
+ "destino": "doble",
+ "perfil": "rw",
+ "paso": "C2 y C5",
+ "version": {
+  "sha": "62f4fe702775142bab8091baf6a7f766ede36540",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijoAdaptador": "ensayo-f08/b151-20261024/doble-pg/c6-rw/",
+  "bucket": "bucket-sintetico-b151",
+  "N": 3,
+  "formato": 2,
+  "exigeCifradoEnElTelefono": true
+ },
+ "declaracion": "Ejecutado contra el doble S3 en memoria, NO contra Backblaze B2: valida la herramienta, no el proveedor.",
+ "fin": "2026-10-24T17:49:43.009Z",
+ "resumen": {
+  "PASS": 8,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "C2a: borrado del propietario mientras la subida espera en el commit",
+   "perfil": "rw",
+   "esperado": "borrado 204; subida 201; quedan N AVAILABLE; ninguna retirada por RETENTION; la borrada sin versiones en B2; cada AVAILABLE con 1 versión y sin staging",
+   "observado": {
+    "borrado": 204,
+    "subida": 201,
+    "available": 3,
+    "retention": 0,
+    "owner": [
+     true
+    ],
+    "versionesDeLaBorrada": 0,
+    "availableIntactas": true
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "C2b: borrado del propietario durante la transacción de completado",
+   "perfil": "rw",
+   "esperado": "el borrado espera al cerrojo del Member; subida 201 y borrado 204; RETENTION = la más antigua, OWNER = la otra; N-1 AVAILABLE; ambas sin versiones en B2",
+   "observado": {
+    "borradoDentroDelCerrojo": false,
+    "subida": 201,
+    "borrado": 204,
+    "retention": [
+     true
+    ],
+    "owner": [
+     true
+    ],
+    "available": 2,
+    "versionesRetirada": 0,
+    "versionesBorrada": 0,
+    "availableIntactas": true
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "C5a: una fila UPLOADING reciente no se cierra",
+   "perfil": "rw",
+   "esperado": "409; la fila sigue UPLOADING; su staging sigue en B2",
+   "observado": {
+    "subida": 409,
+    "estado": "UPLOADING",
+    "stagingEnB2": 1
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "C5b: una fila abandonada (> 60 min) se cierra y su staging se purga en B2",
+   "perfil": "rw",
+   "esperado": "201; la fila FAILED ABANDONED sin purga pendiente; 0 versiones de su staging en B2",
+   "observado": {
+    "subida": 201,
+    "estado": "FAILED",
+    "codigo": "ABANDONED",
+    "purgaPendiente": false,
+    "stagingEnB2": 0
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "C5c: una subida cerrada como abandonada mientras esperaba el commit; su commit tardío no cambia nada",
+   "perfil": "rw",
+   "esperado": "la otra subida 201; la tardía 503; la fila FAILED ABANDONED sin purga pendiente; ni objeto final ni staging en B2; no aparece en la lista",
+   "observado": {
+    "otra": 201,
+    "tardia": 503,
+    "estado": "FAILED",
+    "codigo": "ABANDONED",
+    "purgaPendiente": false,
+    "entradasEnB2": 0,
+    "listada": false,
+    "availableIntactas": true
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "c6-rw formato 2: B2 guarda la copia cifrada tal como llegó del teléfono",
+   "perfil": "rw",
+   "esperado": "201; fila AVAILABLE con formatVersion 2; el objeto de B2 empieza por AGROENC\\0 y tiene el mismo tamaño y SHA-256; SSE AES256; la descarga por la API es idéntica",
+   "observado": {
+    "subida": 201,
+    "estado": "AVAILABLE",
+    "formatVersion": 2,
+    "cabeceraAgroenc": true,
+    "bytesEnB2": 608,
+    "bytesEnviados": 608,
+    "mismoSha256": true,
+    "sse": null,
+    "descargaIdentica": true
+   },
+   "veredicto": "PASS",
+   "nota": "el doble no simula SSE-B2: el AES256 sólo se comprueba contra B2"
+  },
+  {
+   "caso": "c6-rw formato 2: con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true, una subida en formato 1 se rechaza sin llegar a B2",
+   "perfil": "rw",
+   "esperado": "422 BACKUP_ENCRYPTION_REQUIRED; 0 filas nuevas; 0 entradas nuevas en B2",
+   "observado": {
+    "subida": 422,
+    "codigo": "BACKUP_ENCRYPTION_REQUIRED",
+    "filasNuevas": 0,
+    "entradasNuevasEnB2": 0
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "c6-rw: en B2 sólo quedan los objetos de copias AVAILABLE (1 versión cada una)",
+   "perfil": "rw",
+   "esperado": "0 entradas ajenas; tantas versiones como copias AVAILABLE; 0 multipart",
+   "observado": {
+    "available": 8,
+    "versiones": 8,
+    "ajenas": 0,
+    "multipart": 0
+   },
+   "veredicto": "PASS"
+  }
+ ],
+ "registro": [
+  "2026-10-24T17:49:42.243Z PASS [rw] C2a: borrado del propietario mientras la subida espera en el commit",
+  "2026-10-24T17:49:42.822Z PASS [rw] C2b: borrado del propietario durante la transacción de completado",
+  "2026-10-24T17:49:42.865Z PASS [rw] C5a: una fila UPLOADING reciente no se cierra",
+  "2026-10-24T17:49:42.893Z PASS [rw] C5b: una fila abandonada (> 60 min) se cierra y su staging se purga en B2",
+  "2026-10-24T17:49:42.955Z PASS [rw] C5c: una subida cerrada como abandonada mientras esperaba el commit; su commit tardío no cambia nada",
+  "2026-10-24T17:49:42.993Z PASS [rw] c6-rw formato 2: B2 guarda la copia cifrada tal como llegó del teléfono",
+  "2026-10-24T17:49:43.001Z PASS [rw] c6-rw formato 2: con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true, una subida en formato 1 se rechaza sin llegar a B2",
+  "2026-10-24T17:49:43.003Z PASS [rw] c6-rw: en B2 sólo quedan los objetos de copias AVAILABLE (1 versión cada una)",
+  "2026-10-24T17:49:43.004Z c6-rw: subcarpeta limpiada por el adaptador (remove de 8 copias); quedan 0 entradas"
+ ]
+}
