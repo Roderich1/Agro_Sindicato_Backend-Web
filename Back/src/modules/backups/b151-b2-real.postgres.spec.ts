@@ -1,7 +1,7 @@
 import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, beforeAll } from "@jest/globals";
-import { DeleteObjectCommand, ListMultipartUploadsCommand, ListObjectVersionsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, ListMultipartUploadsCommand, ListObjectVersionsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { Server } from "node:http";
@@ -11,10 +11,14 @@ import type { Readable } from "node:stream";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
+import { ENVELOPE_TAG_BYTES } from "./application/backup-format";
 import { purgePending } from "./application/backup-retention";
 import { S3BackupStorage, S3Sender } from "./infrastructure/s3-backup-storage";
+import { envelopeHeader } from "./test-support/backup-envelope";
 import { gateCommit, interceptCompletion } from "./test-support/backup-test-hooks";
 import {
+  B151_KEY_PREFIX,
+  b151Format,
   B151Connection,
   B151Profile,
   B151Report,
@@ -52,6 +56,11 @@ import {
  * Skipped without `F08_BKP_PG_TEST_URL` and `F08_B151_DESTINO`; not in the
  * CI (the CI's `backups.postgres.spec.ts` pattern does not match this
  * name). Report: `F08_B151_SALIDA` (JSON and text, scrubbed). Synthetic data.
+ *
+ * `F08_B151_FORMATO=2` (F08-ADR-003): every copy is a format-2 envelope (the
+ * outer header of the phone's encryption over random bytes: the server and
+ * B2 see the same as with a real one, and nobody can decrypt it), and the app
+ * runs with `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`. Default: format 1.
  */
 const postgresUrl = process.env["F08_BKP_PG_TEST_URL"];
 const destino = process.env["F08_B151_DESTINO"];
@@ -79,6 +88,8 @@ const scrubbed = (fn: () => Promise<void>) => async () => {
   }
 };
 const N = 3;
+const FORMATO = b151Format();
+const MAGIC = Buffer.from("AGROENC\0", "latin1");
 const sha = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 const md5 = (bytes: Buffer) => createHash("md5").update(bytes).digest("base64"); // NOSONAR: S3 Content-MD5 transport check, not cryptographic
 
@@ -109,7 +120,7 @@ function suite(mode: SuiteMode) {
   s.routed = { sent: 0, keys: [], refused: [] };
 
   beforeAll(scrubbed(async () => {
-    s.conn = destino === "b2" ? B151Connection.b2(settings!) : B151Connection.doble("ensayo-f08/b151-20261019/doble-pg/");
+    s.conn = destino === "b2" ? B151Connection.b2(settings!) : B151Connection.doble(`${B151_KEY_PREFIX}doble-pg/`);
     s.conn.simulated = profile;
     const key = destino === "b2" ? await verifyB2Key(settings!, profile) : null;
     let second: Awaited<ReturnType<typeof verifyB2Key>> | null = null;
@@ -156,6 +167,8 @@ function suite(mode: SuiteMode) {
         prefijoAdaptador: s.base,
         bucket: s.conn.settings.bucket,
         N,
+        formato: FORMATO,
+        exigeCifradoEnElTelefono: FORMATO === 2,
         ...(key ? { clave: { capacidades: key.capabilities, namePrefix: key.namePrefix } } : {}),
         ...(second ? { claveDeLosBorradosDeLaRotacion: { capacidades: second.capabilities, namePrefix: second.namePrefix } } : {}),
       },
@@ -167,6 +180,7 @@ function suite(mode: SuiteMode) {
     process.env["BACKUP_STORAGE_DIR"] = s.diskDir;
     process.env["BACKUP_MAX_BYTES"] = String(64 * 1024);
     process.env["BACKUP_MAX_ACTIVE_PER_MEMBER"] = String(N);
+    process.env["BACKUP_REQUIRE_CLIENT_ENCRYPTION"] = FORMATO === 2 ? "true" : "false";
     const databaseUrl = await createIsolatedDatabase(postgresUrl!, `f08_b151_${mode}`);
     ({ app: s.app, prisma: s.prisma, jwt: s.jwt } = await createSyncV1App(databaseUrl, { backupStorage: s.storage }));
     s.server = s.app.getHttpServer();
@@ -240,14 +254,17 @@ function suite(mode: SuiteMode) {
 
   const http = () => request(s.server);
   const auth = (session: { token: string }) => ({ Authorization: `Bearer ${session.token}` });
-  const payload = () => Buffer.concat([Buffer.from(`F08-B151-${randomUUID()}`), randomBytes(512)]);
-  const upload = (session: TestSession, bytes = payload()) =>
+  const plain = () => Buffer.concat([Buffer.from(`F08-B151-${randomUUID()}`), randomBytes(512)]);
+  /** Format 2: the envelope's header, 512 random "encrypted" bytes and a random tag. */
+  const payload = () =>
+    FORMATO === 2 ? Buffer.concat([envelopeHeader(512), randomBytes(512), randomBytes(ENVELOPE_TAG_BYTES)]) : plain();
+  const upload = (session: TestSession, bytes = payload(), format = FORMATO) =>
     http()
       .post(BASE)
       .set(auth(session))
       .set("Content-Type", "application/octet-stream")
       .set("X-Content-SHA256", sha(bytes))
-      .set("X-Backup-Format-Version", "1")
+      .set("X-Backup-Format-Version", String(format))
       .set("X-Backup-Schema-Version", "9")
       .send(bytes);
   const download = (session: TestSession, id: string) =>
@@ -299,7 +316,7 @@ function suite(mode: SuiteMode) {
     return ok;
   }
 
-  return { s, versions, uploads, entriesOfKey, check, http, auth, payload, upload, download, listIds, rowsOf, newFarmer, farmerWith, availableIntact };
+  return { s, versions, uploads, entriesOfKey, check, http, auth, plain, payload, upload, download, listIds, rowsOf, newFarmer, farmerWith, availableIntact };
 }
 
 describeFor("rw")("BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)", () => {
@@ -381,7 +398,7 @@ describeFor("rw")("BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)",
     const row = await t.s.prisma.backupMetadata.create({
       data: {
         id: randomUUID(), tenantId: t.s.f.tenantA, memberId: session.memberId, storageKey: key,
-        contentType: "application/octet-stream", formatVersion: 1, schemaVersion: 9, sha256: "d".repeat(64),
+        contentType: "application/octet-stream", formatVersion: FORMATO, schemaVersion: 9, sha256: "d".repeat(64),
       },
     });
     const part = randomBytes(64);
@@ -439,6 +456,55 @@ describeFor("rw")("BE #151 item 6 with the real S3 adapter: C2 and C5 (key rw)",
       });
   }), 600000);
 
+  (FORMATO === 2 ? it : it.skip)("format 2: B2 keeps the encrypted copy byte for byte under SSE-B2; a format-1 upload is refused without reaching B2", scrubbed(async () => {
+    const session = await t.newFarmer();
+    const bytes = t.payload();
+    const stored = await t.upload(session, bytes);
+    await t.check("c6-rw formato 2: B2 guarda la copia cifrada tal como llegó del teléfono",
+      "201; fila AVAILABLE con formatVersion 2; el objeto de B2 empieza por AGROENC\\0 y tiene el mismo tamaño y SHA-256; SSE AES256; la descarga por la API es idéntica",
+      async () => {
+        const row = (await t.rowsOf(session)).at(-1)!;
+        const object = (await t.s.conn.sender.send(
+          new GetObjectCommand({ Bucket: t.s.conn.settings.bucket, Key: `${t.s.base}objects/${row.storageKey}` }),
+          { abortSignal: AbortSignal.timeout(120_000) },
+        )) as { Body?: AsyncIterable<Uint8Array>; ServerSideEncryption?: string };
+        const chunks: Buffer[] = [];
+        for await (const chunk of object.Body!) chunks.push(Buffer.from(chunk));
+        const inB2 = Buffer.concat(chunks);
+        const served = await t.download(session, stored.body.id);
+        const observado = {
+          subida: stored.status, estado: row.status, formatVersion: row.formatVersion,
+          cabeceraAgroenc: inB2.subarray(0, MAGIC.length).equals(MAGIC), bytesEnB2: inB2.length, bytesEnviados: bytes.length,
+          mismoSha256: sha(inB2) === sha(bytes), sse: object.ServerSideEncryption ?? null,
+          descargaIdentica: served.status === 200 && sha(served.body as Buffer) === sha(bytes),
+        };
+        // The double does not simulate SSE-B2: there it is only recorded.
+        const sseOk = destino === "doble" || observado.sse === "AES256";
+        return {
+          observado,
+          ok: stored.status === 201 && row.status === "AVAILABLE" && row.formatVersion === 2 && observado.cabeceraAgroenc &&
+            observado.bytesEnB2 === bytes.length && observado.mismoSha256 && sseOk && observado.descargaIdentica,
+          ...(destino === "doble" ? { nota: "el doble no simula SSE-B2: el AES256 sólo se comprueba contra B2" } : {}),
+        };
+      });
+    const rowsBefore = (await t.rowsOf(session)).length;
+    const entriesBefore = (await t.versions("")).length + (await t.uploads("")).length;
+    const refused = await t.upload(session, t.plain(), 1);
+    await t.check("c6-rw formato 2: con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true, una subida en formato 1 se rechaza sin llegar a B2",
+      "422 BACKUP_ENCRYPTION_REQUIRED; 0 filas nuevas; 0 entradas nuevas en B2",
+      async () => {
+        const observado = {
+          subida: refused.status, codigo: refused.body?.errorCode ?? null,
+          filasNuevas: (await t.rowsOf(session)).length - rowsBefore,
+          entradasNuevasEnB2: (await t.versions("")).length + (await t.uploads("")).length - entriesBefore,
+        };
+        return {
+          observado,
+          ok: refused.status === 422 && observado.codigo === "BACKUP_ENCRYPTION_REQUIRED" && observado.filasNuevas === 0 && observado.entradasNuevasEnB2 === 0,
+        };
+      });
+  }), 300000);
+
   it("rw leaves its subfolder clean: every remaining entry belongs to an AVAILABLE copy; the owner deletes them all", scrubbed(async () => {
     const rows = await t.s.prisma.backupMetadata.findMany({ where: { status: "AVAILABLE" } });
     const all = await t.versions("");
@@ -478,7 +544,7 @@ describeFor("nodel")("BE #151 item 6 with the real S3 adapter: T-R5 with a key t
       const row = await t.s.prisma.backupMetadata.create({
         data: {
           id: randomUUID(), tenantId: t.s.f.tenantA, memberId: session.memberId, storageKey: key, status: "AVAILABLE",
-          contentType: "application/octet-stream", formatVersion: 1, schemaVersion: 9, sha256: sha(bytes),
+          contentType: "application/octet-stream", formatVersion: FORMATO, schemaVersion: 9, sha256: sha(bytes),
           sizeBytes: BigInt(bytes.length), completedAt: new Date(), createdAt: new Date(Date.now() - (N - i) * 60_000),
         },
       });

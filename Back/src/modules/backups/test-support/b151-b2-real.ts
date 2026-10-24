@@ -13,10 +13,35 @@ import { InMemoryS3, s3Error } from "./in-memory-s3";
  * Secrets come only from the environment (`BACKUP_S3_*`, injected by
  * `con_b2.ps1`), are never printed, never written and never passed in argv;
  * every report is scrubbed of them before it is written. Nothing runs
- * outside `ensayo-f08/b151-20261019/<subfolder>/`.
+ * outside `<root><subfolder>/`, where the root is the `namePrefix` of the
+ * temporary keys: `ensayo-f08/b151-<yyyymmdd>/`, from `F08_B151_RAIZ`
+ * (`crear_claves_b151.ps1 -Prefijo`; default `ensayo-f08/b151-20261019/`,
+ * the keys of the first preparation).
  */
-export const B151_KEY_PREFIX = "ensayo-f08/b151-20261019/";
-export const B151_PREFIX = /^ensayo-f08\/b151-20261019\/[a-z0-9][a-z0-9-]{0,40}\/$/;
+const B151_ROOT = /^ensayo-f08\/b151-\d{8}\/$/;
+
+/** The trial's root; refuses anything but `ensayo-f08/b151-<yyyymmdd>/`. */
+export function b151KeyPrefix(env = process.env): string {
+  const root = env["F08_B151_RAIZ"] ?? "ensayo-f08/b151-20261019/";
+  if (!B151_ROOT.test(root)) throw new Error("F08_B151_RAIZ must be ensayo-f08/b151-<yyyymmdd>/");
+  return root;
+}
+
+export const B151_KEY_PREFIX = b151KeyPrefix();
+// The root has only [a-z0-9/-], so it can go into the pattern as it is.
+export const B151_PREFIX = new RegExp(`^${B151_KEY_PREFIX}[a-z0-9][a-z0-9-]{0,40}/$`);
+
+/**
+ * Format of the copies the item-6 suite sends through the API (F08-ADR-003):
+ * 1 (the container before client-side encryption, default) or 2 (encrypted
+ * on the phone; the suite then also sets `BACKUP_REQUIRE_CLIENT_ENCRYPTION`).
+ */
+export function b151Format(env = process.env): 1 | 2 {
+  const value = env["F08_B151_FORMATO"] ?? "1";
+  if (value === "1") return 1;
+  if (value === "2") return 2;
+  throw new Error("F08_B151_FORMATO must be 1 or 2");
+}
 
 /** The three temporary keys of `crear_claves_b151.ps1`. */
 export const B151_PROFILES = {
@@ -34,7 +59,7 @@ export function isProfile(value: string | undefined): value is B151Profile {
   return value === "rw" || value === "ro" || value === "nodel";
 }
 
-/** Refuses any prefix other than `ensayo-f08/b151-20261019/<subfolder>/`. */
+/** Refuses any prefix other than `<root><subfolder>/`. */
 export function assertB151Prefix(prefix: string | undefined): string {
   if (!prefix || !B151_PREFIX.test(prefix) || prefix.includes(".."))
     throw new Error(`BACKUP_S3_PREFIX must be ${B151_KEY_PREFIX}<subfolder>/`);

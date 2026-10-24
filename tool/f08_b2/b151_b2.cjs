@@ -6,8 +6,9 @@
 // Secretos: sólo BACKUP_S3_* del entorno (con_b2.ps1). Nunca se imprimen, ni se escriben, ni pasan
 // por argv; el informe se sanea y se rechaza si llevara alguno. Antes de tocar nada pregunta a B2
 // (b2_authorize_account) qué puede hacer la clave y se niega si no es exactamente el perfil declarado,
-// sólo ese bucket y el namePrefix ensayo-f08/b151-20261019/. Exige BACKUP_S3_PREFIX =
-// ensayo-f08/b151-20261019/<subcarpeta>/ y no lee ni escribe fuera. Datos sintéticos (bytes aleatorios).
+// sólo ese bucket y el namePrefix de la raíz (F08_B151_RAIZ, ensayo-f08/b151-<aaaammdd>/; por defecto
+// ensayo-f08/b151-20261019/). Exige BACKUP_S3_PREFIX = <raíz><subcarpeta>/ y no lee ni escribe fuera.
+// Datos sintéticos (bytes aleatorios). F08_B151_FORMATO sólo cambia las copias del ítem 6 (c6).
 //
 //   node b151_b2.cjs b2 <rw|ro|nodel> <paso> <dir-salida> [confirmar]
 //     pasos: preparar (rw) · caso1 (ro o nodel) · casos2a5 (rw) · c6 (rw: C2 y C5; nodel: T-R5;
