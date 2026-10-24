@@ -21,6 +21,7 @@ const conflictCodes = new Set([
 const rejectionCodes = new Set([
   "IDEMPOTENCY_MISMATCH",
   "CAMPAIGN_NOT_OPEN",
+  "CAMPAIGN_SEALED",
   "REFERENCE_UNAVAILABLE",
   "UNIT_INCOMPATIBLE",
   "QUANTITY_INVALID",
