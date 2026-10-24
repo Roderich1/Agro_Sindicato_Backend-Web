@@ -4,6 +4,7 @@ import type {
   Prisma,
   SyncV1BaseUnit,
   SyncV1ProjectionType,
+  UserRole,
 } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import {
@@ -19,13 +20,32 @@ import {
   PriorRelease,
   PROVISIONAL_THRESHOLD,
 } from "../domain/disclosure-policy";
+import { sealedCellStatus } from "../domain/seal";
 import { CollectiveConfig, DisclosureMode } from "./collective-config";
 
+/**
+ * `WITHDRAWN_AFTER_SEAL` only appears in a sealed version: its contributor
+ * withdrew after the seal (F07_SEALED_HISTORY_CONTRACT §5.2).
+ */
 export type CellStatus =
   | "DISCLOSED"
   | "SUPPRESSED_UNDER_THRESHOLD"
   | "SUPPRESSED_REVISION"
-  | "OVERFLOW";
+  | "OVERFLOW"
+  | "WITHDRAWN_AFTER_SEAL";
+
+/**
+ * The sealed version of a campaign (F07_SEALED_HISTORY_CONTRACT §9).
+ * `accepted_until` equals `sealed_at`: Central included what it had accepted
+ * up to that instant, which says nothing about what phones did not publish.
+ */
+export interface SealRef {
+  seal_ref: string;
+  version: number;
+  sealed_at: string;
+  accepted_until: string;
+  sealed_by: { user_ref: string; name: string; role: UserRole };
+}
 
 /** One output cell. Only aggregates derived in Central (F06 §5). */
 export interface SummaryCell {
@@ -46,6 +66,8 @@ export interface SummaryCell {
 export interface CollectiveSummary {
   contractVersion: 1;
   campaign: { campaign_ref: string; name: string; status: CampaignStatus };
+  /** Null while the campaign has no sealed version. */
+  seal: SealRef | null;
   disclosure: {
     mode: DisclosureMode;
     policy: "F07-POL-01";
@@ -53,6 +75,9 @@ export interface CollectiveSummary {
     threshold: number | null;
   };
   /**
+   * In a sealed version, the coverage stored at the seal: never recomputed
+   * (a recount after a withdrawal would reveal the cell's Members).
+   *
    * F10-SEC-02 (#45): `members_with_contribution` counts only the Members
    * inside a published figure («N de M con cifras publicadas»); counting the
    * contributors of suppressed cells revealed their exact count.
@@ -73,6 +98,32 @@ export interface DecidedSummary {
   releaseOf: ReadonlyMap<string, string>;
 }
 
+export interface DecideOptions {
+  /**
+   * `false`: the same decision without any write (no release created nor
+   * withdrawn). A figure that would be published is not computed: its cell is
+   * DISCLOSED without values and `releaseOf` holds `pending:<cellId>`. For
+   * internal consumers only (reading a proposal), never served as a summary.
+   */
+  persist: boolean;
+}
+
+/** Marks, in a read-only decision, a figure that would be published now. */
+export const PENDING_RELEASE_PREFIX = "pending:";
+
+/** What a read of a sealed version loads: never `CollectiveReleaseItem`. */
+export const SEALED_VERSION_INCLUDE = {
+  sealedBy: { select: { id: true, name: true } },
+  entries: {
+    include: {
+      canonicalProduct: { select: { name: true } },
+      release: { select: { totalBase: true, contributorCount: true, dataAsOf: true, releasedAt: true } },
+    },
+  },
+} satisfies Prisma.CollectiveSealInclude;
+
+export type SealedVersion = Prisma.CollectiveSealGetPayload<{ include: typeof SEALED_VERSION_INCLUDE }>;
+
 /**
  * Collective summary of a campaign (F06 #21): read-only over Sync v1
  * contributions, grouped by the current canonical product (F07-REC-01) and
@@ -92,6 +143,16 @@ export class CollectiveSummaryUseCase {
     return (await this.decide(tenantId, campaignId)).summary;
   }
 
+  /** The seal of a campaign, if any. Read-only. */
+  async sealRef(db: Tx | PrismaService, tenantId: string, campaignId: string): Promise<SealRef | null> {
+    const seal = await db.collectiveSeal.findFirst({
+      where: { tenantId, campaignId },
+      orderBy: { version: "desc" },
+      include: { sealedBy: { select: { id: true, name: true } } },
+    });
+    return seal ? toSealRef(seal) : null;
+  }
+
   /**
    * The summary and, for each disclosed cell, the release that backs its
    * figure (internal: never part of the JSON/CSV output). `within` runs in the
@@ -102,6 +163,7 @@ export class CollectiveSummaryUseCase {
     tenantId: string,
     campaignId: string,
     within?: (tx: Tx, decided: DecidedSummary) => Promise<void>,
+    options: DecideOptions = { persist: true },
   ): Promise<DecidedSummary> {
     // Another tenant's campaign and a missing one answer the same 404.
     const campaign = await this.prisma.agriculturalCampaign.findFirst({
@@ -114,9 +176,11 @@ export class CollectiveSummaryUseCase {
       campaign: { campaign_ref: campaign.id, name: campaign.name, status: campaign.status },
     };
     if (this.config.mode === "POLICY_PENDING") {
+      // No figure in any channel, sealed or not (contract §5.2).
       return {
         summary: {
           ...header,
+          seal: await this.sealRef(this.prisma, tenantId, campaignId),
           disclosure: { mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null },
           coverage: null,
           cells: [],
@@ -126,9 +190,11 @@ export class CollectiveSummaryUseCase {
     }
     const decided = await this.prisma.$transaction(async (tx) => {
       // One summary at a time per campaign: releases are decided once.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`collective:${tenantId}:${campaignId}`}, 0))`;
-      const { releaseOf, ...rest } = await this.provisional(tx, tenantId, campaignId);
-      const result: DecidedSummary = { summary: { ...header, ...rest }, releaseOf };
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${summaryLockKey(tenantId, campaignId)}, 0))`;
+      // Checked under the lock: a seal committed meanwhile is seen here, and a
+      // sealed campaign is served from its version, never decided again.
+      const sealed = await this.loadSealed(tx, tenantId, campaignId);
+      const result = sealed ? this.fromSealed(header, sealed) : await this.decideLocked(tx, tenantId, header, options);
       if (within) await within(tx, result);
       return result;
     });
@@ -138,10 +204,48 @@ export class CollectiveSummaryUseCase {
     return decided;
   }
 
+  /**
+   * The disclosure decision of an unsealed campaign, in the caller's
+   * transaction. The caller holds the summary lock (and, when sealing, the
+   * seal lock) and has checked that no seal exists.
+   */
+  async decideLocked(
+    tx: Tx,
+    tenantId: string,
+    header: Pick<CollectiveSummary, "contractVersion" | "campaign">,
+    options: DecideOptions = { persist: true },
+  ): Promise<DecidedSummary> {
+    const { releaseOf, ...rest } = await this.provisional(tx, tenantId, header.campaign.campaign_ref, options.persist);
+    return { summary: { ...header, seal: null, ...rest }, releaseOf };
+  }
+
+  private async loadSealed(tx: Tx, tenantId: string, campaignId: string): Promise<SealedVersion | null> {
+    return tx.collectiveSeal.findFirst({
+      where: { tenantId, campaignId },
+      orderBy: { version: "desc" },
+      include: SEALED_VERSION_INCLUDE,
+    });
+  }
+
+  private fromSealed(header: Pick<CollectiveSummary, "contractVersion" | "campaign">, sealed: SealedVersion): DecidedSummary {
+    const { cells, coverage, releaseOf } = servedSealed(sealed);
+    return {
+      summary: {
+        ...header,
+        seal: toSealRef(sealed),
+        disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: PROVISIONAL_THRESHOLD },
+        coverage,
+        cells,
+      },
+      releaseOf,
+    };
+  }
+
   private async provisional(
     tx: Tx,
     tenantId: string,
     campaignId: string,
+    persist: boolean,
   ): Promise<Pick<CollectiveSummary, "disclosure" | "coverage" | "cells"> & Pick<DecidedSummary, "releaseOf">> {
     const contributions = await this.eligible(tx, tenantId, campaignId);
     const canonicalOf = await this.canonicalMap(tx, tenantId);
@@ -178,7 +282,7 @@ export class CollectiveSummaryUseCase {
     const result: SummaryCell[] = [];
     const releaseOf = new Map<string, string>();
     for (const { key, decision, cell, prior } of output) {
-      if ("withdrawPrior" in decision && decision.withdrawPrior && prior) {
+      if (persist && "withdrawPrior" in decision && decision.withdrawPrior && prior) {
         await tx.collectiveRelease.update({ where: { id: prior.id }, data: { withdrawnAt: now } });
       }
       const base = {
@@ -188,16 +292,15 @@ export class CollectiveSummaryUseCase {
         base_unit: key.baseUnit,
         presentation_unit: key.baseUnit === "ML" ? ("L" as const) : ("KG" as const),
       };
-      const hidden = {
-        total_base: null,
-        total_presentation: null,
-        contributors: null,
-        data_as_of: null,
-        released_at: null,
-        pending_changes: false,
-      };
+      const hidden = HIDDEN;
       switch (decision.kind) {
         case "RELEASE": {
+          if (!persist) {
+            // Read-only: a new figure is neither stored nor computed here.
+            releaseOf.set(cellId(key), `${PENDING_RELEASE_PREFIX}${cellId(key)}`);
+            result.push({ ...base, status: "DISCLOSED", ...hidden });
+            break;
+          }
           const released = await tx.collectiveRelease.create({
             data: {
               tenantId,
@@ -242,13 +345,7 @@ export class CollectiveSummaryUseCase {
           break;
       }
     }
-    result.sort(
-      (a, b) =>
-        a.projection_type.localeCompare(b.projection_type) ||
-        a.product_name.localeCompare(b.product_name) ||
-        a.product_ref.localeCompare(b.product_ref) ||
-        a.base_unit.localeCompare(b.base_unit),
-    );
+    sortCells(result);
     return {
       disclosure: {
         mode: "PROVISIONAL_SYNTHETIC",
@@ -363,6 +460,95 @@ export class CollectiveSummaryUseCase {
   }
 }
 
+const HIDDEN = {
+  total_base: null,
+  total_presentation: null,
+  contributors: null,
+  data_as_of: null,
+  released_at: null,
+  pending_changes: false,
+};
+
+/**
+ * A sealed version served under the policy in force (contract §5): no
+ * decision, no write. Only cells still visible carry a figure and appear in
+ * `releaseOf`; the coverage is the one stored at the seal. The caller handles
+ * POLICY_PENDING (no cells at all). Summary, proposals and trends all use it.
+ */
+export function servedSealed(sealed: SealedVersion): {
+  cells: SummaryCell[];
+  coverage: NonNullable<CollectiveSummary["coverage"]>;
+  releaseOf: Map<string, string>;
+} {
+  const releaseOf = new Map<string, string>();
+  const cells: SummaryCell[] = sealed.entries.map((entry) => {
+    const status = sealedCellStatus(
+      {
+        status: entry.status,
+        contributors: entry.release?.contributorCount ?? null,
+        visibilityWithdrawnAt: entry.visibilityWithdrawnAt,
+      },
+      PROVISIONAL_THRESHOLD,
+    );
+    const base = {
+      projection_type: entry.projectionType,
+      product_ref: entry.canonicalProductId,
+      product_name: entry.canonicalProduct.name,
+      base_unit: entry.baseUnit,
+      presentation_unit: entry.baseUnit === "ML" ? ("L" as const) : ("KG" as const),
+    };
+    if (status !== "DISCLOSED") return { ...base, status, ...HIDDEN };
+    const release = entry.release!;
+    const key = { projectionType: entry.projectionType, canonicalProductId: entry.canonicalProductId, baseUnit: entry.baseUnit };
+    releaseOf.set(cellId(key), entry.releaseId!);
+    return {
+      ...base,
+      status,
+      ...figure(release.totalBase, release.contributorCount, release.dataAsOf, release.releasedAt, entry.pendingChanges),
+    };
+  });
+  return {
+    cells: sortCells(cells),
+    coverage: {
+      linked_members: sealed.linkedMembers,
+      members_with_contribution: sealed.membersWithContribution,
+      suppressed_cells: sealed.suppressedCells || cells.some((cell) => cell.status !== "DISCLOSED"),
+    },
+    releaseOf,
+  };
+}
+
+/** Lock of the summary decision of one campaign. */
+export function summaryLockKey(tenantId: string, campaignId: string): string {
+  return `collective:${tenantId}:${campaignId}`;
+}
+
+function sortCells(cells: SummaryCell[]): SummaryCell[] {
+  return cells.sort(
+    (a, b) =>
+      a.projection_type.localeCompare(b.projection_type) ||
+      a.product_name.localeCompare(b.product_name) ||
+      a.product_ref.localeCompare(b.product_ref) ||
+      a.base_unit.localeCompare(b.base_unit),
+  );
+}
+
+export function toSealRef(seal: {
+  id: string;
+  version: number;
+  sealedAt: Date;
+  sealedByRole: UserRole;
+  sealedBy: { id: string; name: string };
+}): SealRef {
+  return {
+    seal_ref: seal.id,
+    version: seal.version,
+    sealed_at: seal.sealedAt.toISOString(),
+    accepted_until: seal.sealedAt.toISOString(),
+    sealed_by: { user_ref: seal.sealedBy.id, name: seal.sealedBy.name, role: seal.sealedByRole },
+  };
+}
+
 function figure(
   total: bigint,
   contributors: number,
@@ -418,7 +604,7 @@ export function summaryCsv(summary: CollectiveSummary): string {
     return formula || /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
   };
   const lines = [
-    ["campaign_ref", "campaign", "disclosure", "policy", "approved", "threshold", "linked_members", "members_with_contribution", "suppressed_cells"].join(","),
+    ["campaign_ref", "campaign", "disclosure", "policy", "approved", "threshold", "linked_members", "members_with_contribution", "suppressed_cells", "seal_ref", "seal_version", "sealed_at"].join(","),
     [
       summary.campaign.campaign_ref,
       summary.campaign.name,
@@ -429,6 +615,9 @@ export function summaryCsv(summary: CollectiveSummary): string {
       summary.coverage?.linked_members ?? null,
       summary.coverage?.members_with_contribution ?? null,
       summary.coverage?.suppressed_cells ?? null,
+      summary.seal?.seal_ref ?? null,
+      summary.seal?.version ?? null,
+      summary.seal?.sealed_at ?? null,
     ].map(quote).join(","),
     "",
     ["projection_type", "product_ref", "product_name", "base_unit", "presentation_unit", "status", "total_base", "total_presentation", "contributors", "data_as_of", "released_at", "pending_changes"].join(","),

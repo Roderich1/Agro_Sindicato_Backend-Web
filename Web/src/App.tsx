@@ -38,6 +38,9 @@ const JointProposalPage = lazy(() =>
 const CoveragePage = lazy(() =>
   import('./pages/coverage.page').then((module) => ({ default: module.CoveragePage })),
 );
+const CollectiveTrendsPage = lazy(() =>
+  import('./pages/collective-trends.page').then((module) => ({ default: module.CollectiveTrendsPage })),
+);
 const ProductReconciliationPage = lazy(() =>
   import('./pages/product-reconciliation.page').then((module) => ({ default: module.ProductReconciliationPage })),
 );
@@ -90,6 +93,14 @@ function AppRoutes() {
         element={
           <CollectiveRoute>
             <CoveragePage />
+          </CollectiveRoute>
+        }
+      />
+      <Route
+        path={COLLECTIVE_PATHS.trends}
+        element={
+          <CollectiveRoute>
+            <CollectiveTrendsPage />
           </CollectiveRoute>
         }
       />

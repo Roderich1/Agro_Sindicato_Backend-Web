@@ -178,3 +178,36 @@ La regla de combinaciones (§9) necesita recordar cada divulgación con la canti
 - **Datos sintéticos:** la memoria se conserva durante el ensayo y la evaluación; su eliminación se trata de forma conjunta y autorizada, nunca selectiva.
 - **Datos reales:** su finalidad, minimización, duración y salida forman parte de la decisión pendiente de esta política (#107). No hay un plazo aprobado, y `PERIOD_DELEGATED` no es una retención indefinida autorizada.
 - La regla y la cobertura no cambian con esta nota. Esta nota no aprueba la política: sigue siendo una propuesta para datos sintéticos, con k = 3 provisional.
+
+## 11. Nota del 2026-10-23: finalidad histórica, sellado y tendencias
+
+Registrada por la sesión B. Detalle en [`F07_SEALED_HISTORY_CONTRACT.md`](F07_SEALED_HISTORY_CONTRACT.md) y en el contrato F06 §7.2. Sigue siendo una **propuesta para datos sintéticos**, con k = 3 provisional. Producción continúa sin divulgación autorizada (`POLICY_PENDING`).
+
+- **Nueva finalidad: consulta histórica y tendencias descriptivas.** Esta política rige también:
+  - la versión sellada de cada campaña;
+  - las comparaciones entre campañas;
+  - sus gráficos y CSV.
+- **Sellado manual** por DIRECTIVA o ADMINISTRADOR del tenant, sobre una campaña cerrada:
+  - fija las decisiones de la lectura en que se sella;
+  - después no se crean ni se retiran divulgaciones de esa campaña. La base lo impide.
+- **Sellar no concede permisos de lectura nuevos ni anonimato.** Los lectores siguen siendo los de §1.
+- **La política vigente puede retirar la visibilidad de una cifra sellada, nunca añadirla:**
+  - el modo `POLICY_PENDING` oculta todas;
+  - un umbral vigente mayor oculta las que no lo alcanzan;
+  - un CANCEL del aportante, aceptado tras el sellado, oculta las cifras que incluían su aportación.
+  
+  Los cambios de elegibilidad y las reasociaciones posteriores al sellado no alteran la versión sellada, para que no sirvan como vía de inferencia.
+- **Las tendencias:**
+  - sólo muestran cifras de versiones selladas, celda por celda;
+  - nunca suman, restan ni promedian entre campañas, productos, unidades o tipos;
+  - no convierten una ausencia o una supresión en cero.
+  
+  Cada cifra servida ya pasó la regla de combinaciones dentro de su campaña, y las aportaciones de campañas distintas no comparten columnas.
+  
+  Riesgo que se acepta, como en §0: el conocimiento externo de que los demás aportantes no cambiaron entre campañas.
+- **Una docena (§3).** La frase «un tenant piloto tiene del orden de una docena de agricultores» mezcla tres números distintos:
+  - los 12 vinculados del conjunto sintético D4;
+  - las personas del piloto de usabilidad, ninguna confirmada;
+  - el número real de vinculados, no confirmado.
+  
+  La comparación reproducible de k = 3 y k = 5 está en BE #161 (`docs/evidence/F07_POL_01_COMPARACION_K.md`), **pendiente de integrar**. k = 3 sigue provisional y sólo para ensayos sintéticos.

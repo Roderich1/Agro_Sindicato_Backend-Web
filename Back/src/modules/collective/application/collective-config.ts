@@ -14,8 +14,16 @@ export type DisclosureMode = "POLICY_PENDING" | "PROVISIONAL_SYNTHETIC";
 export class CollectiveConfig {
   private readonly logger = new Logger(CollectiveConfig.name);
   readonly mode: DisclosureMode;
+  /**
+   * F07 manual seal (F07_SEALED_HISTORY_CONTRACT §3.2). Off unless
+   * `COLLECTIVE_SEALING=enabled`: a seal makes new publications terminal
+   * (`CAMPAIGN_SEALED`), so it stays off until the Mobile build that handles
+   * that code is the one in use. Reading sealed versions never depends on it.
+   */
+  readonly sealingEnabled: boolean;
 
   constructor(config: ConfigService) {
+    this.sealingEnabled = config.get<string>("COLLECTIVE_SEALING") === "enabled";
     const requested = config.get<string>("COLLECTIVE_DISCLOSURE_MODE");
     const production = config.get<string>("NODE_ENV") === "production";
     if (requested === "provisional-synthetic" && production) {
