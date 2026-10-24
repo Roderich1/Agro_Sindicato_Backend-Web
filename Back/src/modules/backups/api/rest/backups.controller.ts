@@ -79,7 +79,7 @@ export class BackupsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({ summary: "Subir un respaldo privado (cuerpo binario en streaming)" })
   @ApiHeader({ name: "X-Content-SHA256", required: true, description: "SHA-256 hex del cuerpo; el servidor lo recalcula en streaming." })
-  @ApiHeader({ name: "X-Backup-Format-Version", required: true, description: "Versión del contenedor (entero >= 1)." })
+  @ApiHeader({ name: "X-Backup-Format-Version", required: true, description: "1 (contenedor sin cifrar, anterior; rechazado con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true) o 2 (cifrado en el teléfono, F08-ADR-003). Otro valor: 422 BACKUP_FORMAT_INVALID." })
   @ApiHeader({ name: "X-Backup-Schema-Version", required: true, description: "Versión del esquema SQLite (entero >= 0)." })
   @ApiConsumes(BACKUP_CONTENT_TYPE)
   @ApiBody({ required: true, schema: { type: "string", format: "binary" } })
@@ -90,7 +90,7 @@ export class BackupsController {
   @error(409, "BACKUP_UPLOAD_IN_PROGRESS: otra subida del mismo Member sigue en curso.")
   @error(413, "Mayor que BACKUP_MAX_BYTES.")
   @error(415, "Content-Type distinto de application/octet-stream.")
-  @error(422, "El SHA-256 recalculado no coincide con X-Content-SHA256.")
+  @error(422, "BACKUP_SHA256_MISMATCH: el SHA-256 recalculado no coincide con X-Content-SHA256. BACKUP_FORMAT_INVALID: formato desconocido o cuerpo sin la forma exterior de su formato (en el 2: cabecera, versión, algoritmo y longitud exacta; el contenido cifrado no se puede ni se intenta comprobar). BACKUP_ENCRYPTION_REQUIRED: formato 1 con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true.")
   @error(429, "Límite de solicitudes.")
   @error(503, "Almacenamiento privado no disponible, o purgas de copias anteriores aún pendientes por encima del cupo del Member.")
   upload(@Req() request: BackupsRequest) {
