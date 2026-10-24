@@ -138,3 +138,35 @@ Cambios en `S3BackupStorage` (Roderich eligió el 2026-10-24 corregir el adaptad
   - el error del proveedor en una multiparte puede llegar como `AbortError` del propio origen (H3), de modo que se pierde la causa.
 
   Ninguno expone ni pierde datos. Su corrección queda pendiente de decisión y revisión.
+
+**Corrección de 5b y H3** (Roderich la autorizó el 2026-10-24, con revisión de A y B). El párrafo anterior se conserva como registro: los resultados de la repetición no cambian.
+- **Pertenencia por el nombre del intento (5b).** Cada intento de `stage` sube a un nombre de staging propio, `staging/<clave>.<16 hex aleatorios>.part`. La parte aleatoria sólo la conoce ese intento. Si el intento termina sin conocer el `UploadId`, porque `CreateMultipartUpload` se envió y su respuesta no llegó, la limpieza lista las multipartes con ese **nombre exacto** como prefijo y aplica igualdad exacta. Aborta la subida sólo si hay exactamente una con ese nombre, y después vuelve a listar para comprobar que no queda ninguna.
+- **Lo que nunca se aborta.** No se tocan las subidas de otros nombres: otros intentos de la misma clave, otras claves ni las copias de `objects/`. Tampoco se aborta nada por el prefijo de la clave.
+- **Pendiente de reconciliación.** En estos casos no se aborta nada y la limpieza no se declara completa:
+  - hay dos o más subidas con el nombre del intento (`MULTIPART_OWNERSHIP_AMBIGUOUS`);
+  - el listado falla (`MULTIPART_LISTING_FAILED`);
+  - el listado no encuentra la subida, que aún podría aparecer (`MULTIPART_CREATION_UNKNOWN`);
+  - la subida sigue listada después de abortarla (`MULTIPART_REMAINS`);
+  - no se pudieron purgar las versiones del staging (`STAGING_PURGE_FAILED`).
+
+  Lo pendiente lo recogen después `discardStaged` de la fila FAILED y el inventario de F10.
+- **Un rechazo que no creó nada.** Un rechazo de `CreateMultipartUpload` se toma como que no creó nada, y no se busca ninguna subida, sólo si se cumplen las tres condiciones:
+  - es un 4xx;
+  - no es 408 ni 429, que son reintentables;
+  - llegó en el único intento del SDK (`$metadata.attempts` = 1).
+
+  En cualquier otro caso el resultado es desconocido y se busca por el nombre del intento, como cuando falta la respuesta. Así lo pidió la nota m1 de B: si el primer envío creó la subida y perdió la respuesta, un reintento que terminase en 4xx daría una limpieza «completa» en falso con una multiparte viva.
+- **Causa original (H3).** El primer fallo es la causa: un fallo del proveedor, el plazo propio de la llamada (`S3_DEADLINE_EXCEEDED`) o un fallo del origen, como la desconexión del cliente, el plazo de la subida del servicio o el 413 del medidor. Al salir del bucle tras un fallo del proveedor se destruye el origen, que da un `AbortError` genérico; ese error ya no sustituye la causa. Un 403 sigue llegando como `AccessDenied` con su estado HTTP, y nunca como éxito ni como «objeto inexistente».
+- **Limpieza registrada aparte.** Un segundo error de la limpieza no sustituye la causa. El resultado se registra por separado con `onStagingCleanup` y una línea de registro del módulo. La línea lleva sólo códigos, el nombre del error y el estado HTTP; ni nombres, ni claves, ni mensajes del proveedor.
+- **Riesgos residuales:**
+  - la pertenencia descansa en que la parte aleatoria del nombre (64 bits) no se repita y en que nadie más escriba bajo ese nombre;
+  - todo se basa en que el SDK informe bien de `$metadata.attempts`. Si falta ese dato, el resultado se toma como desconocido y se busca.
+
+**Pruebas:** `s3-backup-storage.spec.ts`, bloque «#151 5b and H3». Son 13 casos y pasan todos con la corrección.
+- **Con el adaptador de `aed8a99` fallan los 13.** Seis fallan por el defecto mismo:
+  - 5b, la multiparte creada sin respuesta que queda en el doble;
+  - H3, el 403 en `CreateMultipartUpload` y en `UploadPart`, la limpieza que falla tras el 403 y el informador que lanza, que llegan como `AbortError`;
+  - el plazo propio de la llamada, que llega como `AbortError`.
+- **Los otros siete fallan sólo porque falta el informe de limpieza, que es nuevo.** Dos de ellos, la desconexión del cliente y el plazo del servicio, ya conservaban la causa con `aed8a99`: sirven de guarda.
+- **Nota m1 de B (6 casos más, 19 en total).** Cinco fallan con `2d5085d` por el defecto mismo: un 4xx tras reintentos (`attempts` 2 y 3) o un 429 con la subida ya creada dejan la multiparte viva, y un 408 o un 429 en el único intento no buscan nada. El sexto, un 403 en el único intento, no busca nada con y sin la nota, y queda de guarda. El doble pone ahora `attempts` en sus errores, como el SDK.
+- **El doble sin E/S no reproducía H3.** El `AbortError` del origen llega en el siguiente tick, después de que `stage` termine. Las pruebas de H3 simulan la latencia de red con `setImmediate`.

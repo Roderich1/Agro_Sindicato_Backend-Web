@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { BackupObjectMissingError } from "../domain/backup-storage.port";
 import { cleanupBackupLeftovers, inventoryBackups, MIN_CLEANUP_AGE_MINUTES } from "../application/backup-inventory";
-import { BackupTooLargeError, Sha256Meter } from "../application/sha256-meter";
+import { BackupTooLargeError, BackupTransferIncompleteError, Sha256Meter } from "../application/sha256-meter";
 import {
   backupStorageContract,
   byCode,
@@ -10,7 +10,13 @@ import {
   readAll,
 } from "../test-support/backup-storage.contract";
 import { hang, InMemoryS3, MIN_PART_BYTES, s3Error } from "../test-support/in-memory-s3";
-import { S3_LIMITS, S3_PART_BYTES, S3BackupStorage, S3Limits } from "./s3-backup-storage";
+import {
+  S3_LIMITS,
+  S3_PART_BYTES,
+  S3BackupStorage,
+  S3Limits,
+  S3StagingCleanupReport,
+} from "./s3-backup-storage";
 
 /**
  * F08-BKP-07: the S3 adapter over the «doble S3 en memoria». The double is
@@ -786,6 +792,278 @@ describe("#151: what B2 answered with the trial's restricted keys, imitated by t
       await expect(storage.list()).rejects.toThrow("S3_LISTING_INCOMPLETE");
       const prisma = { backupMetadata: { findMany: async () => [] } } as unknown as Parameters<typeof inventoryBackups>[0];
       await expect(inventoryBackups(prisma, storage)).rejects.toThrow("S3_LISTING_INCOMPLETE");
+    });
+  });
+});
+
+describe("#151 5b and H3: the cleanup of a failed stage, and its original cause (regressions)", () => {
+  function reported(limits: S3Limits = S3_LIMITS) {
+    const s3 = new InMemoryS3(BUCKET);
+    const reports: S3StagingCleanupReport[] = [];
+    const storage = new S3BackupStorage(s3, { bucket: BUCKET, prefix: PREFIX }, limits, (r) => void reports.push(r));
+    return { s3, storage, reports };
+  }
+  /** More than one part, then nothing until the test ends it: the stage waits in the multipart. */
+  function openSource() {
+    const source = new Readable({ read() {} });
+    source.push(randomBytes(S3_PART_BYTES + 10));
+    return source;
+  }
+  const staged = (key: string) => `${PREFIX}staging/${key}.`;
+  const uploadNames = (s3: InMemoryS3) => [...s3.uploads.values()].map((u) => u.key).sort(byCode);
+  const addUpload = (s3: InMemoryS3, key: string) =>
+    s3.uploads.set(randomUUID(), { key, parts: new Map([[1, Buffer.alloc(3)]]), initiated: new Date() });
+
+  describe("5b: a multipart upload created without its UploadId reaching the adapter", () => {
+    it("the cut arrives once the provider created it: the upload is found by this attempt's own name and aborted; the other attempt, the other key and the AVAILABLE copy stay", async () => {
+      const { s3, storage, reports } = reported();
+      const key = randomUUID();
+      const previous = randomUUID();
+      await (await storage.stage(previous, Readable.from([Buffer.from("válida")]))).commit();
+      reports.length = 0;
+      const otherAttempt = `${staged(key)}0123456789abcdef.part`;
+      const otherKey = `${staged(randomUUID())}fedcba9876543210.part`;
+      addUpload(s3, otherAttempt);
+      addUpload(s3, otherKey);
+      s3.putDirect(otherAttempt, Buffer.from("otro intento"));
+      const source = openSource();
+      const cut = new Error("corte del origen");
+      // The provider takes the CreateMultipartUpload; its answer never arrives.
+      s3.after = async (command, signal) => {
+        if (command.name !== "CreateMultipartUploadCommand") return;
+        source.destroy(cut);
+        await hang(signal);
+      };
+      await expect(storage.stage(key, source)).rejects.toBe(cut);
+      expect(uploadNames(s3)).toEqual([otherAttempt, otherKey].sort(byCode));
+      expect(s3.names(`${PREFIX}staging/`)).toEqual([otherAttempt]);
+      expect(entriesOf(s3, "objects")).toEqual([previous]);
+      expect((await readAll((await storage.open(previous)).stream)).toString()).toBe("válida");
+      // Listed by the attempt's exact name only, never by the key's prefix.
+      for (const c of names(s3, "ListMultipartUploadsCommand"))
+        expect(c.input["Prefix"]).toMatch(new RegExp(`^${staged(key)}[0-9a-f]{16}\\.part$`));
+      expect(names(s3, "AbortMultipartUploadCommand")).toHaveLength(1);
+      expect(reports).toEqual([
+        { trigger: "STAGE_FAILED", failure: { origin: "source", name: "Error" }, complete: true, pending: [] },
+      ]);
+    });
+
+    it("two uploads under this attempt's name (e.g. a retried CreateMultipartUpload): ownership is ambiguous, none is aborted, the cleanup is pending", async () => {
+      const { s3, storage, reports } = reported();
+      const source = openSource();
+      s3.after = async (command, signal) => {
+        if (command.name !== "CreateMultipartUploadCommand") return;
+        addUpload(s3, command.input["Key"] as string);
+        source.destroy(new Error("corte"));
+        await hang(signal);
+      };
+      await expect(storage.stage(randomUUID(), source)).rejects.toThrow("corte");
+      expect(s3.uploads.size).toBe(2);
+      expect(names(s3, "AbortMultipartUploadCommand")).toHaveLength(0);
+      expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_OWNERSHIP_AMBIGUOUS"] }]);
+    });
+
+    it("the multipart listing fails: the upload is kept and reported pending; the cut is still the error", async () => {
+      const { s3, storage, reports } = reported();
+      const source = openSource();
+      s3.before = (command) => {
+        if (command.name === "ListMultipartUploadsCommand") throw s3Error("InternalError", 500);
+      };
+      s3.after = async (command, signal) => {
+        if (command.name !== "CreateMultipartUploadCommand") return;
+        source.destroy(new Error("corte"));
+        await hang(signal);
+      };
+      await expect(storage.stage(randomUUID(), source)).rejects.toThrow("corte");
+      expect(s3.uploads.size).toBe(1);
+      expect(names(s3, "AbortMultipartUploadCommand")).toHaveLength(0);
+      expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_LISTING_FAILED"] }]);
+    });
+
+    it("a CreateMultipartUpload cut before it took effect: nothing to abort, but its creation is not ruled out and is reported", async () => {
+      const { s3, storage, reports } = reported();
+      const source = openSource();
+      s3.before = async (command, signal) => {
+        if (command.name !== "CreateMultipartUploadCommand") return;
+        source.destroy(new Error("corte"));
+        await hang(signal);
+      };
+      await expect(storage.stage(randomUUID(), source)).rejects.toThrow("corte");
+      expect(s3.totalEntries()).toBe(0);
+      expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_CREATION_UNKNOWN"] }]);
+    });
+
+    it("with its UploadId, an abort that fails leaves the upload listed and reported (MULTIPART_REMAINS)", async () => {
+      const { s3, storage, reports } = reported();
+      const source = openSource();
+      s3.before = async (command, signal) => {
+        if (command.name === "AbortMultipartUploadCommand") throw s3Error("InternalError", 500);
+        if (command.name !== "UploadPartCommand") return;
+        source.destroy(new Error("corte"));
+        await hang(signal);
+      };
+      await expect(storage.stage(randomUUID(), source)).rejects.toThrow("corte");
+      expect(s3.uploads.size).toBe(1);
+      expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_REMAINS"] }]);
+    });
+
+    describe("a refused CreateMultipartUpload rules the upload out only on its only attempt, and not for 408/429 (note m1 of B)", () => {
+      it.each([
+        ["400 after an SDK retry (attempts 2)", s3Error("InvalidRequest", 400, 2)],
+        ["403 after SDK retries (attempts 3)", s3Error("AccessDenied", 403, 3)],
+        ["429 on its only attempt", s3Error("SlowDown", 429, 1)],
+      ])("%s, the upload created by an earlier attempt: found by this attempt's name and aborted; complete", async (_, refusal) => {
+        const { s3, storage, reports } = reported();
+        // The provider created the upload; the answer the adapter gets is the refusal.
+        s3.after = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(s3.uploads.size).toBe(0);
+        expect(names(s3, "AbortMultipartUploadCommand")).toHaveLength(1);
+        expect(reports).toMatchObject([{ complete: true, pending: [] }]);
+      });
+
+      it.each([
+        ["408", s3Error("RequestTimeout", 408, 1)],
+        ["429", s3Error("SlowDown", 429, 1)],
+      ])("%s on its only attempt and nothing listed: the creation is not ruled out, pending", async (_, refusal) => {
+        const { s3, storage, reports } = reported();
+        s3.before = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(names(s3, "ListMultipartUploadsCommand")).toHaveLength(1);
+        expect(reports).toMatchObject([{ complete: false, pending: ["MULTIPART_CREATION_UNKNOWN"] }]);
+      });
+
+      it.each([
+        ["null", null],
+        ["undefined", undefined],
+        ["a string", "rechazo en texto"],
+      ])("a rejection that is not an object (%s) is propagated as it is, never as a TypeError; the upload stays unknown and is listed", async (_, refusal) => {
+        const { s3, storage, reports } = reported();
+        s3.before = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(names(s3, "ListMultipartUploadsCommand")).toHaveLength(1);
+        expect(reports).toMatchObject([{ failure: { origin: "provider" }, complete: false, pending: ["MULTIPART_CREATION_UNKNOWN"] }]);
+      });
+
+      it("open whose GetObject rejects with null propagates that null, not a TypeError", async () => {
+        const { s3, storage } = reported();
+        s3.before = (command) => {
+          if (command.name === "GetObjectCommand") throw null;
+        };
+        await expect(storage.open(randomUUID())).rejects.toBeNull();
+      });
+
+      it("403 on its only attempt: it created nothing, nothing is listed, complete", async () => {
+        const { s3, storage, reports } = reported();
+        const refusal = s3Error("AccessDenied", 403, 1);
+        s3.before = (command) => {
+          if (command.name === "CreateMultipartUploadCommand") throw refusal;
+        };
+        await expect(storage.stage(randomUUID(), openSource())).rejects.toBe(refusal);
+        expect(names(s3, "ListMultipartUploadsCommand")).toHaveLength(0);
+        expect(reports).toMatchObject([{ complete: true, pending: [] }]);
+      });
+    });
+
+    it("a discarded staging is reported apart, complete once its versions are purged", async () => {
+      const { s3, storage, reports } = reported();
+      await (await storage.stage(randomUUID(), Readable.from([Buffer.from("x")]))).discard();
+      expect(s3.totalEntries()).toBe(0);
+      expect(reports).toEqual([{ trigger: "DISCARDED", complete: true, pending: [] }]);
+    });
+  });
+
+  describe("H3: the provider's error is kept when leaving the stage makes the source fail too", () => {
+    // Without I/O the double answers within one run of microtasks, and the
+    // source's AbortError (emitted on the next tick) only arrives once the
+    // stage has settled: B2 answers over the network, after it.
+    const network = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+    it.each(["CreateMultipartUploadCommand", "UploadPartCommand"])(
+      "403 on %s: stage throws the 403 (AccessDenied), not the source's AbortError; nothing is left",
+      async (refused) => {
+        const { s3, storage, reports } = reported();
+        s3.before = async (command) => {
+          await network();
+          if (command.name === refused) throw s3Error("AccessDenied", 403);
+        };
+        const source = openSource();
+        const seen: string[] = [];
+        source.on("error", (e) => void seen.push(e.name));
+        await expect(storage.stage(randomUUID(), source)).rejects.toMatchObject({
+          name: "AccessDenied",
+          $metadata: { httpStatusCode: 403 },
+        });
+        // The second error did happen: the source failed after the 403.
+        expect(seen).toEqual(["AbortError"]);
+        expect(s3.totalEntries()).toBe(0);
+        expect(reports).toEqual([
+          { trigger: "STAGE_FAILED", failure: { origin: "provider", name: "AccessDenied", status: 403 }, complete: true, pending: [] },
+        ]);
+        // A refused CreateMultipartUpload created nothing: nothing is looked up.
+        if (refused === "CreateMultipartUploadCommand") expect(names(s3, "ListMultipartUploadsCommand")).toHaveLength(0);
+      },
+    );
+
+    it("a cleanup that fails after the 403 keeps the 403 and reports the cleanup apart", async () => {
+      const { s3, storage, reports } = reported();
+      s3.before = async (command) => {
+        await network();
+        if (command.name === "UploadPartCommand") throw s3Error("AccessDenied", 403);
+        if (command.name === "AbortMultipartUploadCommand" || command.name === "ListObjectVersionsCommand")
+          throw s3Error("InternalError", 500);
+      };
+      await expect(storage.stage(randomUUID(), openSource())).rejects.toMatchObject({ name: "AccessDenied" });
+      expect(reports).toMatchObject([
+        { failure: { origin: "provider", name: "AccessDenied", status: 403 }, complete: false, pending: ["MULTIPART_REMAINS", "STAGING_PURGE_FAILED"] },
+      ]);
+    });
+
+    it("the adapter's own call deadline is the cause, not the source's AbortError", async () => {
+      const { s3, storage, reports } = reported({ ...S3_LIMITS, callMs: 40 });
+      s3.before = async (command, signal) => {
+        await network();
+        if (command.name === "UploadPartCommand") await hang(signal);
+      };
+      await expect(storage.stage(randomUUID(), openSource())).rejects.toThrow("S3_DEADLINE_EXCEEDED");
+      expect(s3.totalEntries()).toBe(0);
+      expect(reports).toMatchObject([{ failure: { origin: "deadline", name: "Error" }, complete: true }]);
+    });
+
+    class ServiceDeadline extends Error {}
+    it.each([
+      ["a client that disconnects", () => new BackupTransferIncompleteError()],
+      ["the service's upload deadline", () => new ServiceDeadline("deadline")],
+    ])("%s while a part uploads stays the cause, not the provider call it aborted", async (_, make) => {
+      const { s3, storage, reports } = reported();
+      const source = openSource();
+      const cause = make();
+      s3.before = async (command, signal) => {
+        if (command.name !== "UploadPartCommand") return;
+        source.destroy(cause);
+        await hang(signal);
+      };
+      await expect(storage.stage(randomUUID(), source)).rejects.toBe(cause);
+      expect(s3.totalEntries()).toBe(0);
+      expect(reports).toMatchObject([{ failure: { origin: "source" }, complete: true }]);
+    });
+
+    it("a reporter that throws changes nothing: the 403 is still the error", async () => {
+      const s3 = new InMemoryS3(BUCKET);
+      const storage = new S3BackupStorage(s3, { bucket: BUCKET, prefix: PREFIX }, S3_LIMITS, () => {
+        throw new Error("reporter");
+      });
+      s3.before = async (command) => {
+        await network();
+        if (command.name === "CreateMultipartUploadCommand") throw s3Error("AccessDenied", 403);
+      };
+      await expect(storage.stage(randomUUID(), openSource())).rejects.toMatchObject({ name: "AccessDenied" });
     });
   });
 });

@@ -56,8 +56,9 @@ export type CommandHook = (
   signal: AbortSignal,
 ) => void | Promise<void>;
 
-export function s3Error(name: string, status: number): Error {
-  return Object.assign(new Error(name), { name, $metadata: { httpStatusCode: status } });
+/** As the SDK rejects a service error: with its status and the attempts made (1: no retry). */
+export function s3Error(name: string, status: number, attempts = 1): Error {
+  return Object.assign(new Error(name), { name, $metadata: { httpStatusCode: status, attempts } });
 }
 
 /** What the SDK rejects an aborted call with: a generic AbortError, not the reason. */
