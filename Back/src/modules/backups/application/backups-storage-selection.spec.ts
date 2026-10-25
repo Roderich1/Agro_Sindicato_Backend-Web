@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import { envSchema } from "@/config/env.schema";
 import type { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
-import { createBackupStorage } from "../backups.module";
+import { createBackupStorage, describeStagingCleanup } from "../backups.module";
 import { storageFromEnv } from "../cli/backups-inventory";
 import { LocalDiskBackupStorage } from "../infrastructure/local-disk-backup-storage";
 import { S3BackupStorage } from "../infrastructure/s3-backup-storage";
@@ -121,6 +121,24 @@ describe("Backup storage provider selection", () => {
         createBackupStorage(configWith({ ...values, BACKUP_PRODUCTION_ADMISSION: "enabled" }), logger),
       ).not.toBeNull();
     }
+  });
+});
+
+describe("staging cleanup log line (#151 5b, H3)", () => {
+  it("carries the trigger, the cause and the pending codes only", () => {
+    expect(
+      describeStagingCleanup({
+        trigger: "STAGE_FAILED",
+        failure: { origin: "provider", name: "AccessDenied", status: 403 },
+        complete: false,
+        pending: ["MULTIPART_CREATION_UNKNOWN", "STAGING_PURGE_FAILED"],
+      }),
+    ).toBe(
+      "Backup staging cleanup after STAGE_FAILED (provider AccessDenied 403): pending reconciliation: MULTIPART_CREATION_UNKNOWN, STAGING_PURGE_FAILED",
+    );
+    expect(describeStagingCleanup({ trigger: "DISCARDED", complete: true, pending: [] })).toBe(
+      "Backup staging cleanup after DISCARDED: complete",
+    );
   });
 });
 

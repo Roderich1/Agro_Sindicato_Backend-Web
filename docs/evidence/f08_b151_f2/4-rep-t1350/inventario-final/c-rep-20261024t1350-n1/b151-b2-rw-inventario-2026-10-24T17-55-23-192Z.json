@@ -1,0 +1,48 @@
+{
+ "herramienta": "tool/f08_b2/b151_b2.cjs",
+ "destino": "b2",
+ "perfil": "rw",
+ "paso": "inventario",
+ "version": {
+  "sha": "62f4fe702775142bab8091baf6a7f766ede36540",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijo": "ensayo-f08/b151-20261024/c-rep-20261024t1350-n1/",
+  "bucket": "agro-backups-roderich",
+  "region": "us-east-005",
+  "clave": {
+   "capacidades": [
+    "deleteFiles",
+    "listFiles",
+    "readFiles",
+    "writeFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  },
+  "parteMultipart": 8388608
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T17:55:24.501Z",
+ "resumen": {
+  "PASS": 1,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "inventario del prefijo (sólo lectura)",
+   "perfil": "rw",
+   "esperado": "lectura completada",
+   "observado": {
+    "porSubcarpeta": {},
+    "multipartSinTerminar": 0
+   },
+   "veredicto": "PASS"
+  }
+ ],
+ "registro": [
+  "2026-10-24T17:55:23.904Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)",
+  "2026-10-24T17:55:24.500Z PASS [rw] inventario del prefijo (sólo lectura)"
+ ]
+}

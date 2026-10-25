@@ -1,0 +1,116 @@
+tool/f08_b2/b151_b2.cjs · destino doble · perfil varios (doble) · paso todo
+Ejecutado contra el doble S3 en memoria, NO contra Backblaze B2: valida la herramienta, no el proveedor.
+versión 8ce02639fe855411daf7a2a3d52ebb78b816c181
+configuración {"prefijo":"ensayo-f08/b151-20261024/doble/","bucket":"bucket-sintetico-b151","parteMultipart":8388608}
+
+PASS [rw] preparar: copia válida de referencia en c1/objects/ por el adaptador (stage + commit)
+  esperado: 1 versión, sin staging; bytes y agro-sha256 iguales al SHA-256 enviado
+  observado: {"entradas":1,"sha256":"413a49ead0c7","sse":null,"agroSha256Igual":true}
+PASS [ro] 1-ro: PutObject en crudo
+  esperado: rechazo de permisos (403), nada escrito
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [ro] 1-ro: CreateMultipartUpload en crudo
+  esperado: rechazo de permisos (403)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [ro] 1-ro: CopyObject en crudo
+  esperado: rechazo de permisos (403)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [ro] 1-ro: DeleteObject por versionId en crudo sobre la copia válida
+  esperado: rechazo de permisos (403)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [ro] 1-ro: DeleteObject sin versionId (marcador) en crudo sobre la copia válida
+  esperado: rechazo de permisos (403), sin marcador
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [ro] 1-ro: adaptador stage (PutObject)
+  esperado: rechazo de permisos del proveedor propagado, sin éxito aparente
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [ro] 1-ro: adaptador stage multipart (> 8 MiB)
+  esperado: rechazo de permisos del proveedor propagado, no el AbortError del origen; sin éxito aparente
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [ro] 1-ro: la copia válida sigue intacta (misma versión, última, sin marcador; bytes iguales; el adaptador la abre)
+  esperado: ninguna copia válida perdida
+  observado: {"versiones":1,"mismaVersion":true,"sha256":"413a49ead0c7","open":"ok"}
+PASS [ro] 1-ro: nada cambió bajo c1/
+  esperado: mismas versiones y marcadores que antes
+  observado: {"igual":true}
+PASS [nodel] 1-nodel: DeleteObject por versionId en crudo sobre la copia válida
+  esperado: rechazo de permisos (403)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [nodel] 1-nodel: DeleteObject sin versionId (marcador) en crudo, sobre un objeto de prueba propio
+  esperado: rechazo (403); o, si B2 lo admite como «ocultar» con writeFiles, sólo un marcador sin perder bytes (se registra cuál)
+  observado: {"resultado":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"},"marcadores":0,"versionConservada":true}
+PASS [nodel] 1-nodel: adaptador remove de la copia válida
+  esperado: rechazo de permisos del proveedor propagado (no resuelve)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [nodel] 1-nodel: adaptador stage + commit (el commit purga el staging por versionId)
+  esperado: stage aceptado (writeFiles); commit con error cerrado, sin éxito aparente; quedan restos para «limpiar» con rw
+  observado: {"stage":"ok","commit":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"},"restosEnB2":2}
+PASS [nodel] 1-nodel: adaptador discardStaged de esos restos
+  esperado: rechazo de permisos del proveedor propagado (no resuelve)
+  observado: {"ok":false,"error":{"name":"AccessDenied","code":null,"status":403,"message":"AccessDenied"}}
+PASS [nodel] 1-nodel: la copia válida sigue intacta (misma versión, última, sin marcador; bytes iguales; el adaptador la abre)
+  esperado: ninguna copia válida perdida
+  observado: {"versiones":1,"mismaVersion":true,"sha256":"413a49ead0c7","open":"ok"}
+PASS [rw] 2a: PutObject en crudo con Content-MD5 de otros bytes
+  esperado: rechazo 400 (BadDigest o el código real de B2, registrado tal cual); ninguna versión creada
+  observado: {"error":{"name":"BadDigest","code":null,"status":400,"message":"BadDigest"},"versiones":0}
+PASS [rw] 2b: UploadPart en crudo con Content-MD5 de otros bytes
+  esperado: rechazo 400 (código real registrado); ninguna parte registrada
+  observado: {"error":{"name":"BadDigest","code":null,"status":400,"message":"BadDigest"},"partes":0}
+PASS [rw] 2c: adaptador stage simple (PutObject) con Content-MD5 alterado por la herramienta
+  esperado: error cerrado del adaptador; sin versiones ni multipart del staging
+  observado: {"error":{"name":"BadDigest","code":null,"status":400,"message":"BadDigest"},"restos":0,"llamadas":["PutObjectCommand!BadDigest","ListObjectVersionsCommand","ListObjectVersionsCommand"]}
+PASS [rw] 2d: adaptador stage multipart (UploadPart 1) con Content-MD5 alterado por la herramienta
+  esperado: error cerrado del adaptador; sin versiones ni multipart del staging
+  observado: {"error":{"name":"BadDigest","code":null,"status":400,"message":"BadDigest"},"restos":0,"llamadas":["CreateMultipartUploadCommand","UploadPartCommand!BadDigest","AbortMultipartUploadCommand","ListObjectVersionsCommand","ListObjectVersionsCommand"]}
+PASS [rw] 2: c2/ limpio al terminar
+  esperado: 0 versiones y 0 multipart
+  observado: {"restantes":0}
+PASS [rw] 3a: ListObjectVersions en crudo con MaxKeys=1 (4 entradas: 3 versiones y 1 marcador)
+  esperado: varias páginas de ≤ 1 con IsTruncated y marcadores Next*; la unión es igual al listado sin límite
+  observado: {"paginas":[{"entradas":1,"truncada":true,"nextKey":true,"nextVersion":true},{"entradas":1,"truncada":true,"nextKey":true,"nextVersion":true},{"entradas":1,"truncada":true,"nextKey":true,"nextVersion":true},{"entradas":1,"truncada":false,"nextKey":false,"nextVersion":false}],"unionIgual":true,"estancada":false}
+PASS [rw] 3a-bis: ListObjectVersions con MaxKeys=1, la unión sin IsLatest
+  esperado: las mismas entradas que el listado sin límite, sin duplicados ni faltantes
+  observado: {"paginas":4,"entradas":4,"mismasEntradas":true,"marcasIsLatestEnLaUnion":2,"marcasIsLatestSinLimite":2}
+PASS [rw] 3a: ListObjectVersions en crudo con MaxKeys=2 (4 entradas: 3 versiones y 1 marcador)
+  esperado: varias páginas de ≤ 2 con IsTruncated y marcadores Next*; la unión es igual al listado sin límite
+  observado: {"paginas":[{"entradas":2,"truncada":true,"nextKey":true,"nextVersion":true},{"entradas":2,"truncada":false,"nextKey":false,"nextVersion":false}],"unionIgual":true,"estancada":false}
+PASS [rw] 3a-bis: ListObjectVersions con MaxKeys=2, la unión sin IsLatest
+  esperado: las mismas entradas que el listado sin límite, sin duplicados ni faltantes
+  observado: {"paginas":2,"entradas":4,"mismasEntradas":true,"marcasIsLatestEnLaUnion":2,"marcasIsLatestSinLimite":2}
+PASS [rw] 3b: ListMultipartUploads en crudo con MaxUploads=1 (2 multipart sin terminar)
+  esperado: 2 páginas de 1 con IsTruncated y marcadores Next*; la unión es igual al listado sin límite
+  observado: {"paginas":[{"entradas":1,"truncada":true,"nextKey":true,"nextUpload":true},{"entradas":1,"truncada":false,"nextKey":false,"nextUpload":false}],"unionIgual":true,"estancada":false}
+PASS [rw] 3c: adaptador list() (inventario) con MaxKeys=1 y MaxUploads=1 inyectados
+  esperado: 4 entradas en objects/ (1 marcador, 1 sola visible: la última versión escrita de A) y 2 multipart sin terminar de staging/, recorriendo varias páginas
+  observado: {"objetos":4,"marcadores":1,"visibleEsLaUltimaDeA":true,"multipart":2,"paginasTruncadasVersiones":3,"paginasTruncadasUploads":1}
+PASS [rw] 3d: purgas del adaptador (remove, discardStaged, removeStagedFile) con la misma paginación inyectada
+  esperado: todas resuelven; c3/ queda sin versiones, marcadores ni multipart
+  observado: {"pasos":[{"paso":"remove A (2 versiones)","resultado":"ok"},{"paso":"remove B (versión + marcador)","resultado":"ok"},{"paso":"discardStaged C","resultado":"ok"},{"paso":"removeStagedFile D","resultado":"ok"}],"versiones":0,"multipart":0,"paginasTruncadas":2}
+PASS [rw] 4a: CopyObject en crudo de la primera de dos versiones de staging (versionId fijado), con metadatos REPLACE
+  esperado: el destino tiene los bytes de la primera versión (sha256 X ≠ Y) y agro-sha256/agro-size de X
+  observado: {"versionesStaging":["a10890283c","c755763937"],"sha256Destino":"15abf47e927f","esX":true,"esY":false,"agroSha256EsX":true,"agroSize":"4096","sse":null}
+PASS [rw] 4c: adaptador commit con una versión más reciente de un tercero en el mismo staging
+  esperado: commit copia la versión fijada (X), no la del tercero (Y); 1 versión final; staging purgado (ambas versiones)
+  observado: {"stagingAntesDelCommit":2,"commit":"ok","esX":true,"esY":false,"agroSha256EsX":true,"versionesFinales":1,"stagingDespues":0}
+PASS [rw] 4: c4/ limpio al terminar
+  esperado: 0 versiones y 0 multipart
+  observado: {"restantes":0}
+PASS [rw] 5a: adaptador stage multipart de 9 MiB observado con ListParts tras cada UploadPart, y completado
+  esperado: tras la parte 1: 1 parte de 8388608 B; tras la 2: 2 partes (8388608 y 1048576 B); ETag de ListParts = ETag de UploadPart; sin multipart pendiente; objeto final íntegro
+  observado: {"observaciones":[{"trasParte":1,"etagDevuelto":"\"47b2b8332c94f43970a5b782219b43d2\"","partes":[{"n":1,"size":8388608,"etag":null}]},{"trasParte":2,"etagDevuelto":"\"5f52594398e2d842d80ff155b0983132\"","partes":[{"n":1,"size":8388608,"etag":null},{"n":2,"size":1048576,"etag":null}]}],"etagEsMd5DeLaParte":[true,true],"multipartPendientes":0,"sha256Final":true}
+  nota: El doble no devuelve ETag en ListParts: esa comparación no se aplica al doble.
+PASS [rw] 5b: adaptador stage multipart cortado tras la primera parte, observado con ListParts antes del aborto
+  esperado: antes del aborto: 1 parte de 8388608 B; después: error cerrado, 0 multipart sin terminar y nada en staging
+  observado: {"partesAntesDelAborto":[[[1,8388608]]],"stage":{"name":"Error","code":null,"status":null,"message":"corte simulado del origen"},"multipartPendientes":0,"listPartsTrasAbortar":{"name":"NoSuchUpload","code":null,"status":404,"message":"NoSuchUpload"},"staging":0}
+PASS [rw] 5: c5/ limpio al terminar
+  esperado: 0 versiones y 0 multipart
+  observado: {"restantes":0}
+PASS [rw] inventario del prefijo (sólo lectura)
+  esperado: lectura completada
+  observado: {"porSubcarpeta":{"c1-oculto":{"versiones":1,"marcadores":0},"c1":{"versiones":3,"marcadores":0}},"multipartSinTerminar":0}
+PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId
+  esperado: 0 restantes
+  observado: {"restantes":0}
+
+resumen: 36 PASS, 0 FAIL, 0 NO_CONCLUYENTE

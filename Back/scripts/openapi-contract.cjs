@@ -135,6 +135,11 @@ const f06Required = [
   ["/api/v1/collective/campaigns/{campaignId}/proposals", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/proposals/{proposalId}", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/proposals/{proposalId}/csv", "get", "200", "401", "403", "404"],
+  // F07 (2026-10-23): manual seal and trends over sealed versions.
+  ["/api/v1/collective/campaigns/{campaignId}/seal", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/campaigns/{campaignId}/seal", "post", "200", "400", "401", "403", "404", "409", "422"],
+  ["/api/v1/collective/trends", "get", "200", "401", "403"],
+  ["/api/v1/collective/trends.csv", "get", "200", "401", "403"],
 ];
 assert.deepEqual(
   Object.keys(f06.paths).sort(),
@@ -149,7 +154,7 @@ for (const [path, method, ...statuses] of f06Required) {
 }
 const summary = f06.paths["/api/v1/collective/campaigns/{campaignId}/summary"].get.responses["200"].content["application/json"].schema;
 assert.equal(summary.additionalProperties, false);
-assert.deepEqual(summary.required, ["contractVersion", "campaign", "disclosure", "coverage", "cells"]);
+assert.deepEqual(summary.required, ["contractVersion", "campaign", "seal", "disclosure", "coverage", "cells"]);
 assert.deepEqual(summary.properties.disclosure.properties.approved.enum, [false]);
 const cell = summary.properties.cells.items;
 assert.equal(cell.additionalProperties, false);
@@ -177,6 +182,30 @@ for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "net
 const history = f06.paths["/api/v1/collective/campaigns/{campaignId}/proposals"].get.responses["200"].content["application/json"].schema;
 assert.ok(!("lines" in history.items.properties) && !("quantity_base" in history.items.properties));
 assert.ok(f06.paths["/api/v1/collective/proposals/{proposalId}/csv"].get.responses["200"].content["text/csv"]);
+// F07 (2026-10-23): the sealed version is identified everywhere, sealed only
+// by DIRECTIVA or ADMINISTRADOR, version 1 only; trends carry no per-Member
+// data and mark absence and unsealed campaigns instead of zero.
+for (const shape of [summary, proposal]) {
+  assert.equal(shape.properties.seal.nullable, true);
+  assert.deepEqual(shape.properties.seal.properties.version.enum, [1]);
+  assert.deepEqual(shape.properties.seal.properties.sealed_by.properties.role.enum, ["DIRECTIVA", "ADMINISTRADOR"]);
+}
+assert.ok(cell.properties.status.enum.includes("WITHDRAWN_AFTER_SEAL"));
+const sealBody = f06.paths["/api/v1/collective/campaigns/{campaignId}/seal"].post.requestBody.content["application/json"].schema;
+const sealDto = sealBody.$ref ? spec.components.schemas[sealBody.$ref.split("/").pop()] : sealBody;
+assert.deepEqual([...sealDto.required].sort(), ["confirmed", "review_ref"]);
+const sealState = f06.paths["/api/v1/collective/campaigns/{campaignId}/seal"].get.responses["200"].content["application/json"].schema;
+assert.equal(sealState.additionalProperties, false);
+assert.deepEqual(Object.keys(sealState.properties).sort(), [...sealState.required].sort());
+const trends = f06.paths["/api/v1/collective/trends"].get.responses["200"].content["application/json"].schema;
+assert.equal(trends.additionalProperties, false);
+const point = trends.properties.series.items.properties.points.items;
+assert.equal(point.additionalProperties, false);
+for (const state of ["NO_DATA", "NOT_SEALED", "WITHDRAWN_AFTER_SEAL"]) assert.ok(point.properties.status.enum.includes(state));
+for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "sum", "average", "delta"]) {
+  assert.ok(!(forbidden in point.properties), `Trend point must not expose ${forbidden}`);
+}
+assert.ok(f06.paths["/api/v1/collective/trends.csv"].get.responses["200"].content["text/csv"]);
 process.stdout.write("F06 collective OpenAPI contract assertions passed.\n");
 
 // F08 private backups (#39): owner-scoped routes, closed errors, no owner ids.

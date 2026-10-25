@@ -1,0 +1,132 @@
+{
+ "herramienta": "tool/f08_b2/b151_b2.cjs",
+ "destino": "b2",
+ "perfil": "rw",
+ "paso": "r5b",
+ "version": {
+  "sha": "1e5ff105f3fb20e80dcb2f4613e175ce4bb77f56",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijo": "ensayo-f08/b151-20261024/c-acot-20261024t2026/",
+  "bucket": "agro-backups-roderich",
+  "region": "us-east-005",
+  "clave": {
+   "capacidades": [
+    "deleteFiles",
+    "listFiles",
+    "readFiles",
+    "writeFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  },
+  "parteMultipart": 8388608
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T20:26:33.974Z",
+ "resumen": {
+  "PASS": 6,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "5b-r: corte tras crear la multiparte y antes de recibir su UploadId",
+   "perfil": "rw",
+   "esperado": "error de stage = el corte del origen; B2 creó la multiparte y el adaptador la abortó, buscándola sólo por el nombre exacto de su intento; otro intento de la misma clave, otra clave y la subida concurrente siguen abiertos; nada del intento en staging",
+   "observado": {
+    "stage": {
+     "name": "Error",
+     "code": null,
+     "status": null,
+     "message": "corte simulado del origen tras crear la multiparte"
+    },
+    "causaConservada": true,
+    "b2CreoLaMultiparte": true,
+    "multipartDelIntentoRestantes": 0,
+    "otroIntentoYOtraClaveIntactos": 2,
+    "subidaConcurrenteAbierta": 1,
+    "stagingDelIntento": 0,
+    "listadosMultipart": [
+     "nombre exacto del intento",
+     "nombre exacto del intento"
+    ]
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "5b-r: limpieza registrada aparte (onStagingCleanup)",
+   "perfil": "rw",
+   "esperado": "un informe STAGE_FAILED con la causa del origen y la limpieza completa (nada pendiente)",
+   "observado": {
+    "informes": [
+     {
+      "trigger": "STAGE_FAILED",
+      "failure": {
+       "origin": "source",
+       "name": "Error"
+      },
+      "complete": true,
+      "pending": []
+     }
+    ]
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "5b-r: la subida concurrente del adaptador se completa",
+   "perfil": "rw",
+   "esperado": "commit aceptado; bytes iguales a los enviados",
+   "observado": {
+    "commit": "ok",
+    "sha256Igual": true
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "5b-r: la copia AVAILABLE previa sigue intacta",
+   "perfil": "rw",
+   "esperado": "1 versión, sin marcador; bytes iguales; el adaptador la abre",
+   "observado": {
+    "versiones": 1,
+    "mismaVersion": false,
+    "sha256": "7ee81dbb2b91",
+    "open": "ok"
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "5b-r: una subida normal completa (multiparte de 9 MiB)",
+   "perfil": "rw",
+   "esperado": "commit aceptado; bytes iguales; sin multipart ni staging de esa clave",
+   "observado": {
+    "commit": "ok",
+    "sha256Igual": true,
+    "multipart": 0,
+    "staging": 0
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "5b-r: estado de c5r/ al terminar (antes de «limpiar»)",
+   "perfil": "rw",
+   "esperado": "3 copias en objects/ (la previa, la concurrente y la normal), 0 marcadores, 0 staging, 0 multipart",
+   "observado": {
+    "objetos": 3,
+    "marcadores": 0,
+    "staging": 0,
+    "multipart": 0
+   },
+   "veredicto": "PASS"
+  }
+ ],
+ "registro": [
+  "2026-10-24T20:26:12.714Z destino: Backblaze B2 real; clave verificada (deleteFiles, listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)",
+  "2026-10-24T20:26:19.444Z PASS [rw] 5b-r: corte tras crear la multiparte y antes de recibir su UploadId",
+  "2026-10-24T20:26:19.445Z PASS [rw] 5b-r: limpieza registrada aparte (onStagingCleanup)",
+  "2026-10-24T20:26:25.138Z PASS [rw] 5b-r: la subida concurrente del adaptador se completa",
+  "2026-10-24T20:26:25.606Z PASS [rw] 5b-r: la copia AVAILABLE previa sigue intacta",
+  "2026-10-24T20:26:33.195Z PASS [rw] 5b-r: una subida normal completa (multiparte de 9 MiB)",
+  "2026-10-24T20:26:33.972Z PASS [rw] 5b-r: estado de c5r/ al terminar (antes de «limpiar»)"
+ ]
+}

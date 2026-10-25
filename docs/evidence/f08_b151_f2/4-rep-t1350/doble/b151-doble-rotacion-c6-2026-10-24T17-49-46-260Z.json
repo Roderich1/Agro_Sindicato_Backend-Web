@@ -1,0 +1,86 @@
+{
+ "herramienta": "Back/src/modules/backups/b151-b2-real.postgres.spec.ts",
+ "destino": "doble",
+ "perfil": "rw+nodel",
+ "paso": "T-R5, variante de la rotación",
+ "version": {
+  "sha": "62f4fe702775142bab8091baf6a7f766ede36540",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijoAdaptador": "ensayo-f08/b151-20261024/doble-pg/c6-rotacion/",
+  "bucket": "bucket-sintetico-b151",
+  "N": 3,
+  "formato": 2,
+  "exigeCifradoEnElTelefono": true
+ },
+ "declaracion": "Ejecutado contra el doble S3 en memoria, NO contra Backblaze B2: valida la herramienta, no el proveedor.",
+ "fin": "2026-10-24T17:49:46.260Z",
+ "resumen": {
+  "PASS": 3,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "T-R5r-a: la subida que rota, con el borrado de la copia retirada enviado con la clave nodel",
+   "perfil": "rw+nodel",
+   "esperado": "201; la nueva queda AVAILABLE; la más antigua DELETED RETENTION con purga pendiente; B2 rechazó el borrado y su versión sigue; N listadas e íntegras",
+   "observado": {
+    "subida": 201,
+    "estado": "DELETED",
+    "motivo": "RETENTION",
+    "purgaPendiente": true,
+    "borradosEnviadosConNodel": 1,
+    "rechazosDeB2": [
+     {
+      "name": "AccessDenied",
+      "code": null,
+      "status": 403,
+      "message": "AccessDenied"
+     }
+    ],
+    "soloLaRetirada": true,
+    "versionesDeLaRetirada": 1,
+    "listadas": 3,
+    "availableIntactas": true
+   },
+   "veredicto": "PASS",
+   "nota": "La herramienta elige qué clave envía el borrado de objects/; el rechazo lo decide B2 (la clave nodel no tiene deleteFiles)."
+  },
+  {
+   "caso": "T-R5r-b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida",
+   "perfil": "rw+nodel",
+   "esperado": "503 BACKUP_STORAGE_UNAVAILABLE, sin fila nueva ni escritura nueva en B2; siguen N listadas",
+   "observado": {
+    "subida": 503,
+    "cuerpo": {
+     "errorCode": "BACKUP_STORAGE_UNAVAILABLE"
+    },
+    "filasNuevas": 0,
+    "entradasNuevasEnB2": 0,
+    "listadas": 3
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "T-R5r-c: con la clave con deleteFiles otra vez, la siguiente subida reconcilia",
+   "perfil": "rw+nodel",
+   "esperado": "201; ninguna purga pendiente; la retirada sin versiones en B2; N AVAILABLE con 1 versión cada una",
+   "observado": {
+    "subida": 201,
+    "pendientes": 0,
+    "versionesDeLaRetirada": 0,
+    "available": 3,
+    "availableIntactas": true
+   },
+   "veredicto": "PASS"
+  }
+ ],
+ "registro": [
+  "2026-10-24T17:49:46.140Z PASS [rw+nodel] T-R5r-a: la subida que rota, con el borrado de la copia retirada enviado con la clave nodel",
+  "2026-10-24T17:49:46.186Z PASS [rw+nodel] T-R5r-b: con N AVAILABLE + 1 purga pendiente, la cota rechaza la siguiente subida",
+  "2026-10-24T17:49:46.252Z PASS [rw+nodel] T-R5r-c: con la clave con deleteFiles otra vez, la siguiente subida reconcilia",
+  "2026-10-24T17:49:46.255Z c6-rotacion: subcarpeta limpiada por el adaptador con rw; quedan 0 entradas"
+ ]
+}

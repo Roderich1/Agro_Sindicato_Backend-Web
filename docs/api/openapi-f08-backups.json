@@ -39,7 +39,7 @@
                           "sha256": {
                             "type": "string",
                             "pattern": "^[0-9a-f]{64}$",
-                            "description": "SHA-256 calculado por el servidor al recibir el archivo."
+                            "description": "SHA-256 calculado por el servidor al recibir el archivo (de los bytes cifrados en el formato 2): integridad de transporte, no del contenido descifrado."
                           },
                           "sizeBytes": {
                             "type": "integer",
@@ -53,8 +53,11 @@
                           },
                           "formatVersion": {
                             "type": "integer",
-                            "minimum": 1,
-                            "description": "Versión del contenedor declarada por el cliente (compatibilidad)."
+                            "enum": [
+                              1,
+                              2
+                            ],
+                            "description": "1: contenedor sin cifrar (anterior). 2: cifrado en el teléfono con la clave de recuperación del agricultor (F08-ADR-003); el servidor sólo comprobó su forma exterior y el SHA-256 de los bytes cifrados, nunca su contenido."
                           },
                           "schemaVersion": {
                             "type": "integer",
@@ -96,6 +99,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -130,6 +135,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -164,6 +171,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -198,6 +207,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -235,7 +246,7 @@
           {
             "name": "X-Backup-Format-Version",
             "in": "header",
-            "description": "Versión del contenedor (entero >= 1).",
+            "description": "1 (contenedor sin cifrar, anterior; rechazado con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true) o 2 (cifrado en el teléfono, F08-ADR-003). Otro valor: 422 BACKUP_FORMAT_INVALID.",
             "required": true,
             "schema": {
               "type": "string"
@@ -287,7 +298,7 @@
                     "sha256": {
                       "type": "string",
                       "pattern": "^[0-9a-f]{64}$",
-                      "description": "SHA-256 calculado por el servidor al recibir el archivo."
+                      "description": "SHA-256 calculado por el servidor al recibir el archivo (de los bytes cifrados en el formato 2): integridad de transporte, no del contenido descifrado."
                     },
                     "sizeBytes": {
                       "type": "integer",
@@ -301,8 +312,11 @@
                     },
                     "formatVersion": {
                       "type": "integer",
-                      "minimum": 1,
-                      "description": "Versión del contenedor declarada por el cliente (compatibilidad)."
+                      "enum": [
+                        1,
+                        2
+                      ],
+                      "description": "1: contenedor sin cifrar (anterior). 2: cifrado en el teléfono con la clave de recuperación del agricultor (F08-ADR-003); el servidor sólo comprobó su forma exterior y el SHA-256 de los bytes cifrados, nunca su contenido."
                     },
                     "schemaVersion": {
                       "type": "integer",
@@ -341,6 +355,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -375,6 +391,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -409,6 +427,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -443,6 +463,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -477,6 +499,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -511,6 +535,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -523,7 +549,7 @@
             }
           },
           "422": {
-            "description": "El SHA-256 recalculado no coincide con X-Content-SHA256.",
+            "description": "BACKUP_SHA256_MISMATCH: el SHA-256 recalculado no coincide con X-Content-SHA256. BACKUP_FORMAT_INVALID: formato desconocido o cuerpo sin la forma exterior de su formato (en el 2: cabecera, versión, algoritmo y longitud exacta; el contenido cifrado no se puede ni se intenta comprobar). BACKUP_ENCRYPTION_REQUIRED: formato 1 con BACKUP_REQUIRE_CLIENT_ENCRYPTION=true.",
             "content": {
               "application/json": {
                 "schema": {
@@ -545,6 +571,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -579,6 +607,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -613,6 +643,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -685,6 +717,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -719,6 +753,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -753,6 +789,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -787,6 +825,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -821,6 +861,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -855,6 +897,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -919,6 +963,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -953,6 +999,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -987,6 +1035,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -1021,6 +1071,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -1055,6 +1107,8 @@
                         "BACKUP_TOO_LARGE",
                         "UNSUPPORTED_MEDIA_TYPE",
                         "BACKUP_SHA256_MISMATCH",
+                        "BACKUP_FORMAT_INVALID",
+                        "BACKUP_ENCRYPTION_REQUIRED",
                         "BACKUP_TRANSFER_INCOMPLETE",
                         "RATE_LIMITED",
                         "BACKUP_INTEGRITY_FAILED",
@@ -2294,6 +2348,24 @@
         "required": [
           "clientId",
           "operations"
+        ]
+      },
+      "SealCampaignDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita de quien sella (DIRECTIVA o ADMINISTRADOR)"
+          },
+          "review_ref": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "review_ref de la revisión mostrada (GET …/seal)"
+          }
+        },
+        "required": [
+          "confirmed",
+          "review_ref"
         ]
       },
       "CreateUserDto": {

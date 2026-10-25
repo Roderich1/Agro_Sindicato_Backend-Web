@@ -1,0 +1,10 @@
+tool/f08_b2/b151_b2.cjs · destino b2 · perfil rw · paso inventario
+Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.
+versión cf6b4d7b0cf30361e485f845f1b78d45874f721e + cambios locales: M Back/src/modules/backups/b151-b2-real.postgres.spec.ts; M tool/f08_b2/b151_b2.cjs; M tool/f08_b2/b151_ejecutar.ps1
+configuración {"prefijo":"ensayo-f08/b151-20261024/zz/","bucket":"agro-backups-roderich","region":"us-east-005","clave":{"capacidades":["deleteFiles","listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"},"parteMultipart":8388608}
+
+PASS [rw] inventario del prefijo (sólo lectura)
+  esperado: lectura completada
+  observado: {"porSubcarpeta":{},"multipartSinTerminar":1}
+
+resumen: 1 PASS, 0 FAIL, 0 NO_CONCLUYENTE

@@ -2,6 +2,34 @@ import type { SchemaObject } from "@nestjs/swagger/dist/interfaces/open-api-spec
 
 const nullableString = { type: "string", nullable: true } as const;
 
+/** F07 (2026-10-23): the sealed version of a campaign; null if not sealed. */
+const sealRefSchema: SchemaObject = {
+  type: "object",
+  nullable: true,
+  additionalProperties: false,
+  required: ["seal_ref", "version", "sealed_at", "accepted_until", "sealed_by"],
+  properties: {
+    seal_ref: { type: "string", format: "uuid" },
+    version: { type: "integer", enum: [1], description: "Este bloque no crea versiones posteriores" },
+    sealed_at: { type: "string", format: "date-time", description: "Hora del servidor del sellado" },
+    accepted_until: {
+      type: "string",
+      format: "date-time",
+      description: "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo",
+    },
+    sealed_by: {
+      type: "object",
+      additionalProperties: false,
+      required: ["user_ref", "name", "role"],
+      properties: {
+        user_ref: { type: "string" },
+        name: { type: "string" },
+        role: { type: "string", enum: ["DIRECTIVA", "ADMINISTRADOR"] },
+      },
+    },
+  },
+};
+
 /** One cell: aggregates derived in Central only (F06 §5); never per Member. */
 export const collectiveCellSchema: SchemaObject = {
   type: "object",
@@ -28,7 +56,8 @@ export const collectiveCellSchema: SchemaObject = {
     presentation_unit: { type: "string", enum: ["L", "KG"] },
     status: {
       type: "string",
-      enum: ["DISCLOSED", "SUPPRESSED_UNDER_THRESHOLD", "SUPPRESSED_REVISION", "OVERFLOW"],
+      enum: ["DISCLOSED", "SUPPRESSED_UNDER_THRESHOLD", "SUPPRESSED_REVISION", "OVERFLOW", "WITHDRAWN_AFTER_SEAL"],
+      description: "WITHDRAWN_AFTER_SEAL: sólo en una versión sellada; el aportante retiró su aporte después del sellado",
     },
     total_base: { ...nullableString, description: "Entero exacto en unidad base; null si no se divulga" },
     total_presentation: { ...nullableString, description: "L/KG exactos; null si no se divulga" },
@@ -42,7 +71,7 @@ export const collectiveCellSchema: SchemaObject = {
 export const collectiveSummarySchema: SchemaObject = {
   type: "object",
   additionalProperties: false,
-  required: ["contractVersion", "campaign", "disclosure", "coverage", "cells"],
+  required: ["contractVersion", "campaign", "seal", "disclosure", "coverage", "cells"],
   properties: {
     contractVersion: { type: "integer", enum: [1] },
     campaign: {
@@ -55,6 +84,7 @@ export const collectiveSummarySchema: SchemaObject = {
         status: { type: "string" },
       },
     },
+    seal: sealRefSchema,
     disclosure: {
       type: "object",
       additionalProperties: false,
@@ -200,6 +230,7 @@ export const proposalSchema: SchemaObject = {
     "status",
     "basis",
     "campaign",
+    "seal",
     "generated_at",
     "generated_by",
     "inputs_fingerprint",
@@ -219,6 +250,7 @@ export const proposalSchema: SchemaObject = {
       required: ["campaign_ref", "name", "status"],
       properties: { campaign_ref: { type: "string" }, name: { type: "string" }, status: { type: "string" } },
     },
+    seal: sealRefSchema,
     generated_at: { type: "string", format: "date-time" },
     generated_by: userRefSchema,
     inputs_fingerprint: {
@@ -270,6 +302,138 @@ export const proposalListSchema: SchemaObject = {
       inputs_fingerprint: { type: "string", nullable: true },
       line_count: { type: "integer" },
     },
+  },
+};
+
+const campaignRefSchema: SchemaObject = {
+  type: "object",
+  additionalProperties: false,
+  required: ["campaign_ref", "name", "status"],
+  properties: { campaign_ref: { type: "string" }, name: { type: "string" }, status: { type: "string" } },
+};
+
+const sealedCoverageSchema: SchemaObject = {
+  type: "object",
+  nullable: true,
+  additionalProperties: false,
+  required: ["linked_members", "members_with_contribution", "suppressed_cells"],
+  properties: {
+    linked_members: { type: "integer" },
+    members_with_contribution: { type: "integer" },
+    suppressed_cells: { type: "boolean" },
+  },
+};
+
+/** F07 (2026-10-23): seal state and the review shown before sealing. */
+export const sealStateSchema: SchemaObject = {
+  type: "object",
+  additionalProperties: false,
+  required: ["contractVersion", "campaign", "state", "seal", "can_seal", "blocked_by", "review"],
+  properties: {
+    contractVersion: { type: "integer", enum: [1] },
+    campaign: campaignRefSchema,
+    state: { type: "string", enum: ["SEALED", "NOT_SEALED"] },
+    seal: sealRefSchema,
+    can_seal: { type: "boolean" },
+    blocked_by: {
+      type: "array",
+      items: { type: "string", enum: ["SEALING_DISABLED", "POLICY_PENDING", "CAMPAIGN_NOT_CLOSED"] },
+    },
+    review: {
+      type: "object",
+      nullable: true,
+      additionalProperties: false,
+      required: ["review_ref", "accepted_until", "coverage", "open_disputes", "pending_changes", "cells_without_figure"],
+      properties: {
+        review_ref: { type: "string", pattern: "^[0-9a-f]{64}$", description: "Se envía al confirmar el sellado" },
+        accepted_until: { type: "string", format: "date-time" },
+        coverage: { ...sealedCoverageSchema, nullable: false },
+        open_disputes: { type: "boolean", description: "Alguna aportación tiene una disputa abierta; sin conteo" },
+        pending_changes: { type: "boolean", description: "Alguna cifra se muestra con cambios pendientes" },
+        cells_without_figure: { type: "boolean", description: "Alguna celda no tiene cifra; sin conteo" },
+      },
+    },
+  },
+};
+
+export const sealResultSchema: SchemaObject = {
+  ...sealStateSchema,
+  required: [...(sealStateSchema.required ?? []), "created"],
+  properties: {
+    ...sealStateSchema.properties,
+    created: { type: "boolean", description: "false: la campaña ya estaba sellada (respuesta idempotente)" },
+  },
+};
+
+const trendPointSchema: SchemaObject = {
+  type: "object",
+  additionalProperties: false,
+  required: ["campaign_ref", "status", "total_base", "total_presentation", "contributors", "data_as_of", "pending_changes"],
+  properties: {
+    campaign_ref: { type: "string" },
+    status: {
+      type: "string",
+      enum: [
+        "DISCLOSED",
+        "SUPPRESSED_UNDER_THRESHOLD",
+        "SUPPRESSED_REVISION",
+        "OVERFLOW",
+        "WITHDRAWN_AFTER_SEAL",
+        "NO_DATA",
+        "NOT_SEALED",
+      ],
+      description: "NO_DATA: la versión sellada no tiene esa celda (desconocido, no cero). NOT_SEALED: sin versión sellada",
+    },
+    total_base: nullableString,
+    total_presentation: nullableString,
+    contributors: { type: "integer", nullable: true },
+    data_as_of: { ...nullableString, format: "date-time" },
+    pending_changes: { type: "boolean" },
+  },
+};
+
+/** F07 (2026-10-23): first trends query; only sealed versions, cell by cell. */
+export const trendsSchema: SchemaObject = {
+  type: "object",
+  additionalProperties: false,
+  required: ["contractVersion", "disclosure", "projection_type", "campaigns", "series", "notice"],
+  properties: {
+    contractVersion: { type: "integer", enum: [1] },
+    disclosure: collectiveSummarySchema.properties!["disclosure"],
+    projection_type: { type: "string", nullable: true, enum: ["CONSUMPTION_TOTAL", "DECLARED_NEED", null] },
+    campaigns: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["campaign_ref", "name", "status", "start_date", "seal", "coverage"],
+        properties: {
+          campaign_ref: { type: "string" },
+          name: { type: "string" },
+          status: { type: "string" },
+          start_date: { type: "string", format: "date-time" },
+          seal: sealRefSchema,
+          coverage: sealedCoverageSchema,
+        },
+      },
+    },
+    series: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["projection_type", "product_ref", "product_name", "base_unit", "presentation_unit", "points"],
+        properties: {
+          projection_type: { type: "string", enum: ["CONSUMPTION_TOTAL", "DECLARED_NEED"] },
+          product_ref: { type: "string" },
+          product_name: { type: "string" },
+          base_unit: { type: "string", enum: ["ML", "G"] },
+          presentation_unit: { type: "string", enum: ["L", "KG"] },
+          points: { type: "array", items: trendPointSchema },
+        },
+      },
+    },
+    notice: { type: "string" },
   },
 };
 

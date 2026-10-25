@@ -479,6 +479,7 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
  */
 describePostgres("F07-POL-01: disclosures written before the quantity migration", () => {
   const QUANTITY_MIGRATION = "20261016150500_f07_pol_01_release_item_quantity";
+  const SEAL_MIGRATION = "20261023100000_f07_collective_seal";
   let app: INestApplication;
   let prisma: PrismaService;
   let jwt: JwtService;
@@ -500,6 +501,9 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
   /**
    * A new database migrated up to, but not including, `migration`: later
    * migrations (e.g. F08's) are left out too, so none is applied out of order.
+   * Exception (F07, 2026-10-23): the collective seal migration goes in first,
+   * because every push of this code reads `CollectiveSeal`; it does not depend
+   * on `migration` nor on any later one, and touches no row written here.
    */
   async function databaseBefore(adminUrl: string, migration: string): Promise<string> {
     const admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
@@ -519,7 +523,7 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
         recursive: true,
         filter: (source) => {
           const entry = relative(root, resolve(source)).split(sep)[0] ?? "";
-          return !/^\d{14}_/.test(entry) || entry < migration;
+          return !/^\d{14}_/.test(entry) || entry < migration || entry === SEAL_MIGRATION;
         },
       });
       deploy(url.toString(), join(dir, "schema.prisma"));

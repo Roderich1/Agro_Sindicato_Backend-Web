@@ -1,0 +1,127 @@
+{
+ "herramienta": "tool/f08_b2/b151_b2.cjs",
+ "destino": "b2",
+ "perfil": "nodel",
+ "paso": "caso1",
+ "version": {
+  "sha": "62f4fe702775142bab8091baf6a7f766ede36540",
+  "cambiosLocales": []
+ },
+ "configuracion": {
+  "prefijo": "ensayo-f08/b151-20261024/c-rep-20261024t1350/",
+  "bucket": "agro-backups-roderich",
+  "region": "us-east-005",
+  "clave": {
+   "capacidades": [
+    "listFiles",
+    "readFiles",
+    "writeFiles"
+   ],
+   "namePrefix": "ensayo-f08/b151-20261024/"
+  },
+  "parteMultipart": 8388608
+ },
+ "declaracion": "Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.",
+ "fin": "2026-10-24T17:50:20.946Z",
+ "resumen": {
+  "PASS": 6,
+  "FAIL": 0,
+  "NO_CONCLUYENTE": 0
+ },
+ "casos": [
+  {
+   "caso": "1-nodel: DeleteObject por versionId en crudo sobre la copia válida",
+   "perfil": "nodel",
+   "esperado": "rechazo de permisos (403)",
+   "observado": {
+    "ok": false,
+    "error": {
+     "name": "AccessDenied",
+     "code": "AccessDenied",
+     "status": 403,
+     "message": "not entitled"
+    }
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "1-nodel: DeleteObject sin versionId (marcador) en crudo, sobre un objeto de prueba propio",
+   "perfil": "nodel",
+   "esperado": "rechazo (403); o, si B2 lo admite como «ocultar» con writeFiles, sólo un marcador sin perder bytes (se registra cuál)",
+   "observado": {
+    "resultado": "aceptado",
+    "marcadores": 1,
+    "versionConservada": true
+   },
+   "veredicto": "PASS",
+   "nota": "B2 aceptó el marcador sin deleteFiles: una clave sin borrado puede ocultar un nombre, aunque no borre sus bytes. El adaptador nunca envía un borrado sin versionId."
+  },
+  {
+   "caso": "1-nodel: adaptador remove de la copia válida",
+   "perfil": "nodel",
+   "esperado": "rechazo de permisos del proveedor propagado (no resuelve)",
+   "observado": {
+    "ok": false,
+    "error": {
+     "name": "AccessDenied",
+     "code": "AccessDenied",
+     "status": 403,
+     "message": "not entitled"
+    }
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "1-nodel: adaptador stage + commit (el commit purga el staging por versionId)",
+   "perfil": "nodel",
+   "esperado": "stage aceptado (writeFiles); commit con error cerrado, sin éxito aparente; quedan restos para «limpiar» con rw",
+   "observado": {
+    "stage": "ok",
+    "commit": {
+     "name": "AccessDenied",
+     "code": "AccessDenied",
+     "status": 403,
+     "message": "not entitled"
+    },
+    "restosEnB2": 2
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "1-nodel: adaptador discardStaged de esos restos",
+   "perfil": "nodel",
+   "esperado": "rechazo de permisos del proveedor propagado (no resuelve)",
+   "observado": {
+    "ok": false,
+    "error": {
+     "name": "AccessDenied",
+     "code": "AccessDenied",
+     "status": 403,
+     "message": "not entitled"
+    }
+   },
+   "veredicto": "PASS"
+  },
+  {
+   "caso": "1-nodel: la copia válida sigue intacta (misma versión, última, sin marcador; bytes iguales; el adaptador la abre)",
+   "perfil": "nodel",
+   "esperado": "ninguna copia válida perdida",
+   "observado": {
+    "versiones": 1,
+    "mismaVersion": true,
+    "sha256": "450069a83b85",
+    "open": "ok"
+   },
+   "veredicto": "PASS"
+  }
+ ],
+ "registro": [
+  "2026-10-24T17:50:14.816Z destino: Backblaze B2 real; clave verificada (listFiles, readFiles, writeFiles; namePrefix ensayo-f08/b151-20261024/)",
+  "2026-10-24T17:50:15.937Z PASS [nodel] 1-nodel: DeleteObject por versionId en crudo sobre la copia válida",
+  "2026-10-24T17:50:16.632Z PASS [nodel] 1-nodel: DeleteObject sin versionId (marcador) en crudo, sobre un objeto de prueba propio",
+  "2026-10-24T17:50:16.919Z PASS [nodel] 1-nodel: adaptador remove de la copia válida",
+  "2026-10-24T17:50:19.734Z PASS [nodel] 1-nodel: adaptador stage + commit (el commit purga el staging por versionId)",
+  "2026-10-24T17:50:20.335Z PASS [nodel] 1-nodel: adaptador discardStaged de esos restos",
+  "2026-10-24T17:50:20.943Z PASS [nodel] 1-nodel: la copia válida sigue intacta (misma versión, última, sin marcador; bytes iguales; el adaptador la abre)"
+ ]
+}

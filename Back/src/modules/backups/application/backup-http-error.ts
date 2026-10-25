@@ -10,6 +10,10 @@ export type BackupErrorCode =
   | "BACKUP_TOO_LARGE"
   | "UNSUPPORTED_MEDIA_TYPE"
   | "BACKUP_SHA256_MISMATCH"
+  // F08-ADR-003: unknown format, or a body without the shape of its declared format.
+  | "BACKUP_FORMAT_INVALID"
+  // F08-ADR-003: format 1 (not encrypted on the phone) refused by configuration.
+  | "BACKUP_ENCRYPTION_REQUIRED"
   | "BACKUP_TRANSFER_INCOMPLETE"
   | "RATE_LIMITED"
   | "BACKUP_INTEGRITY_FAILED"

@@ -1,0 +1,7 @@
+Back/src/modules/backups/b151-b2-real.postgres.spec.ts · destino b2 · perfil rw+nodel · paso T-R5, variante de la rotación
+Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.
+versión cf6b4d7b0cf30361e485f845f1b78d45874f721e
+configuración {"prefijoAdaptador":"ensayo-f08/b151-20261024/c-f2-20261024t1130/c6-rotacion/","bucket":"agro-backups-roderich","N":3,"formato":2,"exigeCifradoEnElTelefono":true,"clave":{"capacidades":["deleteFiles","listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"},"claveDeLosBorradosDeLaRotacion":{"capacidades":["listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"}}
+
+
+resumen: 0 PASS, 0 FAIL, 0 NO_CONCLUYENTE

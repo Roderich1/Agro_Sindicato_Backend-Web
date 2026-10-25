@@ -1,0 +1,15 @@
+2026-10-24T20:27:08.412Z destino: doble S3 en memoria (NO es Backblaze B2); perfiles simulados por el doble
+2026-10-24T20:27:08.417Z PASS [rw] preparar: copia válida de referencia en c1/objects/ por el adaptador (stage + commit)
+2026-10-24T20:27:08.429Z PASS [ro] H3: adaptador stage multipart (> 8 MiB) con la clave ro, causa conservada
+2026-10-24T20:27:08.429Z PASS [ro] H3: limpieza registrada aparte (onStagingCleanup)
+2026-10-24T20:27:08.430Z PASS [ro] H3: la copia válida sigue intacta (misma versión, sin marcador; bytes iguales; el adaptador la abre)
+2026-10-24T20:27:08.430Z PASS [ro] H3: nada cambió bajo c1/
+2026-10-24T20:27:08.473Z PASS [rw] 5b-r: corte tras crear la multiparte y antes de recibir su UploadId
+2026-10-24T20:27:08.473Z PASS [rw] 5b-r: limpieza registrada aparte (onStagingCleanup)
+2026-10-24T20:27:08.499Z PASS [rw] 5b-r: la subida concurrente del adaptador se completa
+2026-10-24T20:27:08.499Z PASS [rw] 5b-r: la copia AVAILABLE previa sigue intacta
+2026-10-24T20:27:08.553Z PASS [rw] 5b-r: una subida normal completa (multiparte de 9 MiB)
+2026-10-24T20:27:08.554Z PASS [rw] 5b-r: estado de c5r/ al terminar (antes de «limpiar»)
+2026-10-24T20:27:08.554Z PASS [rw] inventario del prefijo (sólo lectura)
+2026-10-24T20:27:08.554Z PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId
+2026-10-24T20:27:08.555Z informe: docs\evidence\f08_b151_f2\5-acot-t2026\doble\b151-doble-2026-10-24T20-27-08-412Z.json y docs\evidence\f08_b151_f2\5-acot-t2026\doble\b151-doble-2026-10-24T20-27-08-412Z.txt

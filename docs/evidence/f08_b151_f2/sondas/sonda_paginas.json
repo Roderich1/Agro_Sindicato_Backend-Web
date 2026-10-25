@@ -1,0 +1,85 @@
+{
+ "fecha": "2026-10-24T15:37:53.741Z",
+ "prefijo": "ensayo-f08/b151-20261024/c-f2-20261024t1140/sonda-paginas/",
+ "sinLimite": [
+  {
+   "nombre": "objects/a",
+   "version": "2856270110",
+   "marcador": false,
+   "ultima": true
+  },
+  {
+   "nombre": "objects/a",
+   "version": "2856269506",
+   "marcador": false,
+   "ultima": false
+  },
+  {
+   "nombre": "objects/b",
+   "version": "2856270993",
+   "marcador": false,
+   "ultima": false
+  },
+  {
+   "nombre": "objects/b",
+   "version": "2856271326",
+   "marcador": true,
+   "ultima": true
+  }
+ ],
+ "paginasMaxKeys1": [
+  {
+   "entradas": [
+    {
+     "nombre": "objects/a",
+     "version": "2856270110",
+     "marcador": false,
+     "ultima": true
+    }
+   ],
+   "truncada": true,
+   "nextKey": "objects/a",
+   "nextVersion": "2856270110"
+  },
+  {
+   "entradas": [
+    {
+     "nombre": "objects/a",
+     "version": "2856269506",
+     "marcador": false,
+     "ultima": true
+    }
+   ],
+   "truncada": true,
+   "nextKey": "objects/a",
+   "nextVersion": "2856269506"
+  },
+  {
+   "entradas": [
+    {
+     "nombre": "objects/b",
+     "version": "2856271326",
+     "marcador": true,
+     "ultima": true
+    }
+   ],
+   "truncada": true,
+   "nextKey": "objects/b",
+   "nextVersion": "2856271326"
+  },
+  {
+   "entradas": [
+    {
+     "nombre": "objects/b",
+     "version": "2856270993",
+     "marcador": false,
+     "ultima": true
+    }
+   ],
+   "truncada": false,
+   "nextKey": null,
+   "nextVersion": null
+  }
+ ],
+ "restantesTrasLimpiar": 0
+}

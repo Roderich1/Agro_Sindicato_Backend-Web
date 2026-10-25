@@ -1,0 +1,190 @@
+{
+ "fecha": "2026-10-24T17:48:51.996Z",
+ "prefijo": "ensayo-f08/b151-20261024/c-rep-20261024t1350-n1/sonda-n1/",
+ "ListObjectVersions": {
+  "sinLimite": [
+   {
+    "IsTruncated": "boolean",
+    "truncada": false,
+    "versiones": 3,
+    "marcadores": 1,
+    "LastModified": [
+     "Date"
+    ],
+    "Size": [
+     "number"
+    ],
+    "VersionId": [
+     "string"
+    ],
+    "IsLatest": [
+     "boolean"
+    ],
+    "NextKeyMarker": "ausente",
+    "NextVersionIdMarker": "ausente"
+   }
+  ],
+  "MaxKeys1": [
+   {
+    "IsTruncated": "boolean",
+    "truncada": true,
+    "versiones": 1,
+    "marcadores": 0,
+    "LastModified": [
+     "Date"
+    ],
+    "Size": [
+     "number"
+    ],
+    "VersionId": [
+     "string"
+    ],
+    "IsLatest": [
+     "boolean"
+    ],
+    "NextKeyMarker": "string",
+    "NextVersionIdMarker": "string"
+   },
+   {
+    "IsTruncated": "boolean",
+    "truncada": true,
+    "versiones": 1,
+    "marcadores": 0,
+    "LastModified": [
+     "Date"
+    ],
+    "Size": [
+     "number"
+    ],
+    "VersionId": [
+     "string"
+    ],
+    "IsLatest": [
+     "boolean"
+    ],
+    "NextKeyMarker": "string",
+    "NextVersionIdMarker": "string"
+   },
+   {
+    "IsTruncated": "boolean",
+    "truncada": true,
+    "versiones": 0,
+    "marcadores": 1,
+    "LastModified": [
+     "Date"
+    ],
+    "Size": [],
+    "VersionId": [
+     "string"
+    ],
+    "IsLatest": [
+     "boolean"
+    ],
+    "NextKeyMarker": "string",
+    "NextVersionIdMarker": "string"
+   },
+   {
+    "IsTruncated": "boolean",
+    "truncada": false,
+    "versiones": 1,
+    "marcadores": 0,
+    "LastModified": [
+     "Date"
+    ],
+    "Size": [
+     "number"
+    ],
+    "VersionId": [
+     "string"
+    ],
+    "IsLatest": [
+     "boolean"
+    ],
+    "NextKeyMarker": "ausente",
+    "NextVersionIdMarker": "ausente"
+   }
+  ]
+ },
+ "ListMultipartUploads": {
+  "sinLimite": [
+   {
+    "IsTruncated": "boolean",
+    "truncada": false,
+    "subidas": 2,
+    "Initiated": [
+     "Date"
+    ],
+    "UploadId": [
+     "string"
+    ],
+    "NextKeyMarker": "ausente",
+    "NextUploadIdMarker": "ausente"
+   }
+  ],
+  "MaxUploads1": [
+   {
+    "IsTruncated": "boolean",
+    "truncada": true,
+    "subidas": 1,
+    "Initiated": [
+     "Date"
+    ],
+    "UploadId": [
+     "string"
+    ],
+    "NextKeyMarker": "string",
+    "NextUploadIdMarker": "string"
+   },
+   {
+    "IsTruncated": "boolean",
+    "truncada": false,
+    "subidas": 1,
+    "Initiated": [
+     "Date"
+    ],
+    "UploadId": [
+     "string"
+    ],
+    "NextKeyMarker": "ausente",
+    "NextUploadIdMarker": "ausente"
+   }
+  ]
+ },
+ "ListParts": {
+  "sinLimite": [
+   {
+    "IsTruncated": "boolean",
+    "truncada": false,
+    "partes": 2,
+    "Size": [
+     "number"
+    ],
+    "NextPartNumberMarker": "string"
+   }
+  ],
+  "MaxParts1": [
+   {
+    "IsTruncated": "boolean",
+    "truncada": true,
+    "partes": 1,
+    "Size": [
+     "number"
+    ],
+    "NextPartNumberMarker": "string"
+   },
+   {
+    "IsTruncated": "boolean",
+    "truncada": false,
+    "partes": 1,
+    "Size": [
+     "number"
+    ],
+    "NextPartNumberMarker": "string"
+   }
+  ]
+ },
+ "restantesTrasLimpiar": {
+  "versionesYMarcadores": 0,
+  "multipart": 0
+ }
+}

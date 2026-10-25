@@ -13,6 +13,12 @@ import {
 } from "../domain/backup-storage.port";
 import { BackupHttpError, BackupOwnerContext } from "./backup-http-error";
 import { purgePending } from "./backup-retention";
+import {
+  ACCEPTED_FORMATS,
+  ENVELOPE_HEADER_BYTES,
+  FORMAT_PLAIN_CONTAINER,
+  hasDeclaredShape,
+} from "./backup-format";
 import { BACKUP_UPLOAD_ABANDON_MS, BackupsConfig } from "./backups-config";
 import {
   BackupTooLargeError,
@@ -148,7 +154,7 @@ export class BackupsService {
     await this.purgeOwner(storage, owner);
     const row = await this.reserve(owner, declared);
 
-    const meter = new Sha256Meter(this.config.maxBytes);
+    const meter = new Sha256Meter(this.config.maxBytes, ENVELOPE_HEADER_BYTES);
     // `pipe`, not `pipeline`: an oversized body must not destroy the request
     // socket before the 413 is sent. A client that disconnects mid-transfer
     // ends the meter with an error instead of leaving the write pending.
@@ -198,6 +204,13 @@ export class BackupsService {
       await staged.discard();
       await this.fail(row.id, "SHA256_MISMATCH");
       throw new BackupHttpError(422, "BACKUP_SHA256_MISMATCH");
+    }
+    // Outer shape only: the server never has the key and does not claim to
+    // have checked the decrypted content (F08-ADR-003 §5.1).
+    if (!hasDeclaredShape(declared.formatVersion, meter.prefix, meter.bytes)) {
+      await staged.discard();
+      await this.fail(row.id, "FORMAT_INVALID");
+      throw new BackupHttpError(422, "BACKUP_FORMAT_INVALID");
     }
 
     try {
@@ -372,9 +385,15 @@ export class BackupsService {
     ) {
       throw new BackupHttpError(400, "INVALID_REQUEST");
     }
+    const formatVersion = Number(headers.formatVersion);
+    // Decided from the headers, before reading a byte of the body.
+    if (!ACCEPTED_FORMATS.includes(formatVersion))
+      throw new BackupHttpError(422, "BACKUP_FORMAT_INVALID", { Connection: "close" });
+    if (formatVersion === FORMAT_PLAIN_CONTAINER && this.config.requireClientEncryption)
+      throw new BackupHttpError(422, "BACKUP_ENCRYPTION_REQUIRED", { Connection: "close" });
     return {
       sha256,
-      formatVersion: Number(headers.formatVersion),
+      formatVersion,
       schemaVersion: Number(headers.schemaVersion),
     };
   }

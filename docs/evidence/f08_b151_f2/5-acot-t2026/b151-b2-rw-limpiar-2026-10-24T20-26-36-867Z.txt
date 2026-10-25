@@ -1,0 +1,10 @@
+tool/f08_b2/b151_b2.cjs · destino b2 · perfil rw · paso limpiar
+Ejecutado contra Backblaze B2 real, bucket privado, prefijo de ensayo; datos sintéticos.
+versión 1e5ff105f3fb20e80dcb2f4613e175ce4bb77f56
+configuración {"prefijo":"ensayo-f08/b151-20261024/c-acot-20261024t2026/","bucket":"agro-backups-roderich","region":"us-east-005","clave":{"capacidades":["deleteFiles","listFiles","readFiles","writeFiles"],"namePrefix":"ensayo-f08/b151-20261024/"},"parteMultipart":8388608}
+
+PASS [rw] limpiar: todas las versiones, marcadores y multipart del prefijo de ensayo, por versionId
+  esperado: 0 restantes
+  observado: {"restantes":0}
+
+resumen: 1 PASS, 0 FAIL, 0 NO_CONCLUYENTE

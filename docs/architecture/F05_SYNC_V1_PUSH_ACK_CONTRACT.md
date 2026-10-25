@@ -205,6 +205,17 @@ REFERENCE_UNAVAILABLE combina inexistente, ajeno/inactivo sin confirmar existenc
 
 Registro de conflicto mínimo: contexto interno tenant/Member, operationId, projectionType, action, conflictCode, referencia opaca de reconciliación/estado, createdAt y resolvedAt nullable; vínculos causales opacos indispensables. Sin quantities, nombres, snapshots, JSON completo ni secretos. resolvedAt se genera al aceptar una resolución; no cambia retroactivamente el ACK original de la intención en conflicto. Ref nueva tras cambios de disputa invalida resoluciones obsoletas.
 
+**Enmienda del 2026-10-23 (F07, campaña sellada).** Se añade un código al conjunto cerrado de `REJECTED`, sin reescribir la tabla anterior. Detalle en [`F07_SEALED_HISTORY_CONTRACT.md`](F07_SEALED_HISTORY_CONTRACT.md) §7. La redactó la sesión B y la revisa la sesión A.
+
+- **`CAMPAIGN_SEALED`** (`REJECTED`, `MOVE_TO_TERMINAL_FAILURE`):
+  - responde a una intención nueva PUBLISH o SUPERSEDE dirigida a una campaña cuyo consolidado colectivo está sellado;
+  - precede a `CAMPAIGN_NOT_OPEN` y va después de `REFERENCE_UNAVAILABLE`, `UNIT_INCOMPATIBLE` y `QUANTITY_INVALID`;
+  - se persiste como cualquier rechazo, de modo que un reenvío del mismo ID obtiene el mismo resultado.
+- **Replay de una intención ya resuelta:** devuelve su resultado original. El sellado no lo convierte en error.
+- **CANCEL:** sigue la decisión causal de siempre (F06 §6) y no se rechaza por el sellado.
+- **Serialización con el sellado:** la decisión se toma después de un bloqueo compartido por campaña, que el sellado toma en modo exclusivo. Cada intención queda antes o después del sellado.
+- **Compatibilidad:** un cliente que no conozca el código lo trata como desconocido (párrafo anterior) y no retira la intención. Mobile incorpora el código como fallo terminal que requiere intervención, sin backoff infinito ni reasignación a otra campaña.
+
 ## 9. HTTP model y consulta owner-scoped
 
 Todo body de error de request tiene exactamente `{contractVersion, operationId, errorCode, disposition}`: contractVersion 1 del controlador y operationId **siempre null**, sin ACK/outcome/serverAcceptedAt. La correlación la conserva Mobile por el request único, sin reflejar input no autorizado. No demuestra commit ni ausencia de commit. Cache-Control: no-store para ACK/error/GET; sin bodies/headers sensibles en access logs.
