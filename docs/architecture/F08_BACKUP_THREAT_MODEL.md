@@ -110,6 +110,13 @@ El texto anterior se conserva como registro. Diseño: Mobile `docs/adr/F08-ADR-0
 - **Se añade como condición previa a datos reales** (enmienda del §5): `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`, que rechaza el formato 1 con 422 `BACKUP_ENCRYPTION_REQUIRED`. No es una admisión: la admisión productiva sigue cerrada y las demás condiciones no cambian.
 - **Riesgo nuevo, aceptado:** perder a la vez el teléfono y la clave anotada hace irrecuperables las copias cifradas.
 
+> **Nota del 2026-10-24 (no reescribe lo anterior).** El primer límite de la condición 2, «no está ensayada contra B2 real ni en el dispositivo», se matiza en el §9 y en las evidencias del 2026-10-24:
+> - **B2 real**, con sobres sintéticos del formato 2 subidos por la API: el formato 2 queda en B2 byte a byte, con SSE `AES256`, y con `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true` una subida del formato 1 recibe 422 `BACKUP_ENCRYPTION_REQUIRED` sin llegar a B2 (`docs/evidence/F08_BKP_08_B2_REAL_REPETICION.md`; también `…_FORMATO2.md` y `…_ACOTADA.md`).
+> - **Dispositivo:** Mobile `docs/evidence/F01_F08_DEVICE_COMPOSICION_2026-10-24.md`, de A. El teléfono subió una copia cifrada que empieza por `AGROENC\0` y no contiene «SQLite format», y la restauró con la clave del llavero. Con una clave equivocada no cambió nada. La copia quedó en el disco del Backend desechable, **no en B2**.
+> - **Lo que sigue sin ensayar:** una copia cifrada por el teléfono que pase por B2 real y se restaure en el teléfono.
+> - **El segundo límite no cambia:** el formato 1 sigue admitido por defecto.
+> - La admisión de datos reales sigue cerrada y las demás condiciones del §5 no cambian.
+
 ## 9. Actualización 2026-10-24: existencia y visibilidad en B2 por listado (#151)
 
 El texto anterior se conserva como registro. En el ensayo de #151 del 2026-10-24 (`docs/evidence/F08_BKP_08_B2_REAL_FORMATO2.md`), **en ese entorno B2 y con las claves temporales de mínimo privilegio**, se observaron dos comportamientos. No se afirma que ocurran en todas las configuraciones de B2:
