@@ -1,0 +1,16 @@
+{
+  "contractVersion": 1,
+  "campaign": {
+    "campaign_ref": "8755a499",
+    "name": "Verano Demo",
+    "status": "ABIERTA"
+  },
+  "state": "NOT_SEALED",
+  "seal": null,
+  "can_seal": false,
+  "blocked_by": [
+    "SEALING_DISABLED",
+    "CAMPAIGN_NOT_CLOSED"
+  ],
+  "review": null
+}

@@ -1,0 +1,7 @@
+campaign_ref,campaign,disclosure,policy,approved,threshold,linked_members,members_with_contribution,suppressed_cells,seal_ref,seal_version,sealed_at
+8755a499,Verano Demo,PROVISIONAL_SYNTHETIC,F07-POL-01,false,3,6,4,false,,,
+
+projection_type,product_ref,product_name,base_unit,presentation_unit,status,total_base,total_presentation,contributors,data_as_of,released_at,pending_changes
+DECLARED_NEED,0055a481,Belator,ML,L,DISCLOSED,6000,6,3,2026-10-25T01:20:58.053Z,2026-10-25T01:21:01.601Z,false
+DECLARED_NEED,010add71,Bellator,ML,L,DISCLOSED,12000,12,3,2026-10-25T01:20:48.206Z,2026-10-25T01:21:01.601Z,false
+DECLARED_NEED,5b4ca6f2,Glifosato Demo,ML,L,DISCLOSED,150000,150,4,2026-10-25T01:20:38.318Z,2026-10-25T01:21:01.601Z,false

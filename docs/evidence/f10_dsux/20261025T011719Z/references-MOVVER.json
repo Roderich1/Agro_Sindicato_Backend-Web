@@ -1,0 +1,31 @@
+{
+  "contractVersion": 1,
+  "campaigns": [
+    {
+      "campaign_ref": "7c1b06f7",
+      "name": "Verano Demo",
+      "status": "ABIERTA",
+      "start_date": "2026-09-25T04:00:00.000Z",
+      "end_date": null,
+      "accepts_contributions": true
+    }
+  ],
+  "products": [
+    {
+      "product_ref": "8dd9b43c",
+      "name": "Bellator",
+      "unit": "L",
+      "base_unit": "ML",
+      "is_active": true,
+      "linkable": true
+    },
+    {
+      "product_ref": "842bd69f",
+      "name": "Glifosato Demo",
+      "unit": "L",
+      "base_unit": "ML",
+      "is_active": true,
+      "linkable": true
+    }
+  ]
+}

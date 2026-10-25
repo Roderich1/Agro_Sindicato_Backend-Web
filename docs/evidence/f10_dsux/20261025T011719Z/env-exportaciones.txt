@@ -1,0 +1,12 @@
+start=2026-10-25T01:20:21Z
+repo_sha=76a9782ce52d300b53b42b4467b262a561d93f70
+tool_dirty=0 archivos sin commitear
+seed=20261018 session_date=2026-10-25 (America/La_Paz) label=EXP1
+pg_container=agro_b_dsux4bcb_pg pg_port=55476 api_port=3156
+migrations=13
+node_env=development; collective_disclosure_mode=provisional-synthetic; collective_sealing=sin definir (desactivado); cookie_secure=false; throttler intacto
+node=v25.9.0
+db=dsuxexp_20261025_012021
+seed web EXP1 ok 2026-10-25T01:21:01Z
+api_429=0
+end=2026-10-25T01:21:01Z
