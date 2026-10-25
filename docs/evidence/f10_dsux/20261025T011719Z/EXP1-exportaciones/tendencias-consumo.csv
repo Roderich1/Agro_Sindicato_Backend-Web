@@ -1,0 +1,8 @@
+disclosure,policy,approved,threshold,projection_type
+PROVISIONAL_SYNTHETIC,F07-POL-01,false,3,CONSUMPTION_TOTAL
+notice,"Sólo versiones selladas, celda por celda. No suma, resta ni promedia entre campañas, productos, unidades o tipos. Una ausencia o una cifra oculta no es cero. Un cambio de cobertura no prueba un cambio del consumo de cada agricultor. Sin pronósticos ni recomendaciones."
+
+campaign_ref,campaign,campaign_status,start_date,seal_ref,seal_version,sealed_at,linked_members,members_with_contribution,suppressed_cells
+8755a499,Verano Demo,ABIERTA,2026-09-25T04:00:00.000Z,,,,,,
+
+projection_type,product_ref,product_name,base_unit,presentation_unit,campaign_ref,campaign,seal_ref,status,total_base,total_presentation,contributors,data_as_of,pending_changes

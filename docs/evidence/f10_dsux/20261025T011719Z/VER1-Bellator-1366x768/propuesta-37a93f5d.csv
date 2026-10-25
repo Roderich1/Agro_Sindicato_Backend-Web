@@ -1,0 +1,8 @@
+proposal_ref,status,basis,campaign_ref,campaign,generated_at,generated_by,inputs_fingerprint,disclosure,policy,approved,linked_members,members_with_contribution,coverage_basis,seal_ref,seal_version,sealed_at
+37a93f5d,DRAFT,DECLARED_NEED,f398a331,Verano Demo,2026-10-25T01:18:44.771Z,Directiva Demo,41a9d589106a08c96121285a253ba6e02ebc6a58080644efc65b0a3c2d9dc412,PROVISIONAL_SYNTHETIC,F07-POL-01,false,6,4,PUBLISHED_FIGURES,,,
+notice,"Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos."
+
+position,product_ref,product_name,base_unit,presentation_unit,status,quantity_base,quantity_presentation,contributors,data_as_of,released_at,pending_changes
+0,a8e4190b,Belator,ML,L,SUPPRESSED_REVISION,,,,,,false
+1,2cd8eada,Bellator,ML,L,DISCLOSED,18000,18,3,2026-10-25T01:17:57.025Z,2026-10-25T01:18:41.440Z,false
+2,85094843,Glifosato Demo,ML,L,DISCLOSED,150000,150,4,2026-10-25T01:17:37.146Z,2026-10-25T01:18:36.473Z,false

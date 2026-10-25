@@ -1,0 +1,149 @@
+{
+  "label": "EXP1",
+  "api_url": "http://localhost:3156",
+  "at": "2026-10-25T01:21:01.849Z",
+  "passed": 26,
+  "total": 26,
+  "checks": [
+    {
+      "name": "Resumen JSON y CSV: HTTP 200",
+      "ok": true,
+      "detail": "200 200"
+    },
+    {
+      "name": "Resumen JSON: sin versión sellada (seal = null)",
+      "ok": true,
+      "detail": "null"
+    },
+    {
+      "name": "Resumen JSON: Belator = 6000 ML, 3 aportantes",
+      "ok": true,
+      "detail": "DISCLOSED 6000 3"
+    },
+    {
+      "name": "Resumen JSON: Bellator = 12000 ML, 3 aportantes",
+      "ok": true,
+      "detail": "DISCLOSED 12000 3"
+    },
+    {
+      "name": "Resumen JSON: Glifosato Demo = 150000 ML, 4 aportantes",
+      "ok": true,
+      "detail": "DISCLOSED 150000 4"
+    },
+    {
+      "name": "Resumen JSON: cobertura 4 de 6",
+      "ok": true,
+      "detail": "{\"linked_members\":6,\"members_with_contribution\":4,\"suppressed_cells\":false}"
+    },
+    {
+      "name": "Resumen CSV: cabecera con seal_ref, seal_version y sealed_at, vacías",
+      "ok": true,
+      "detail": "campaign_ref,campaign,disclosure,policy,approved,threshold,linked_members,members_with_contribution,suppressed_cells,seal_ref,seal_version,sealed_at"
+    },
+    {
+      "name": "Resumen CSV = JSON: Belator",
+      "ok": true,
+      "detail": "DISCLOSED 6000 3"
+    },
+    {
+      "name": "Resumen CSV = JSON: Bellator",
+      "ok": true,
+      "detail": "DISCLOSED 12000 3"
+    },
+    {
+      "name": "Resumen CSV = JSON: Glifosato Demo",
+      "ok": true,
+      "detail": "DISCLOSED 150000 4"
+    },
+    {
+      "name": "Sellado: NOT_SEALED, no se puede sellar, bloqueado por SEALING_DISABLED y CAMPAIGN_NOT_CLOSED",
+      "ok": true,
+      "detail": "200 NOT_SEALED false [\"SEALING_DISABLED\",\"CAMPAIGN_NOT_CLOSED\"]"
+    },
+    {
+      "name": "Tendencias DECLARED_NEED: HTTP 200 (JSON y CSV)",
+      "ok": true,
+      "detail": "200 200"
+    },
+    {
+      "name": "Tendencias DECLARED_NEED: la campaña figura sin sellar y sin cobertura",
+      "ok": true,
+      "detail": "{\"campaign_ref\":\"8755a499\",\"name\":\"Verano Demo\",\"status\":\"ABIERTA\",\"start_date\":\"2026-09-25T04:00:00.000Z\",\"seal\":null,\"coverage\":null}"
+    },
+    {
+      "name": "Tendencias DECLARED_NEED: ninguna serie",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "Tendencias DECLARED_NEED: CSV sin cifras ni NaN/undefined",
+      "ok": true,
+      "detail": "9 líneas"
+    },
+    {
+      "name": "Tendencias CONSUMPTION_TOTAL: HTTP 200 (JSON y CSV)",
+      "ok": true,
+      "detail": "200 200"
+    },
+    {
+      "name": "Tendencias CONSUMPTION_TOTAL: la campaña figura sin sellar y sin cobertura",
+      "ok": true,
+      "detail": "{\"campaign_ref\":\"8755a499\",\"name\":\"Verano Demo\",\"status\":\"ABIERTA\",\"start_date\":\"2026-09-25T04:00:00.000Z\",\"seal\":null,\"coverage\":null}"
+    },
+    {
+      "name": "Tendencias CONSUMPTION_TOTAL: ninguna serie",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "Tendencias CONSUMPTION_TOTAL: CSV sin cifras ni NaN/undefined",
+      "ok": true,
+      "detail": "9 líneas"
+    },
+    {
+      "name": "Borrador: HTTP 201",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "name": "Borrador CSV: HTTP 200",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "Borrador CSV: cabecera con seal_ref, seal_version y sealed_at, vacías",
+      "ok": true,
+      "detail": "proposal_ref,status,basis,campaign_ref,campaign,generated_at,generated_by,inputs_fingerprint,disclosure,policy,approved,linked_members,members_with_contribution,coverage_basis,seal_ref,seal_version,sealed_at"
+    },
+    {
+      "name": "Borrador CSV: Belator = 6000 ML, 3 aportantes",
+      "ok": true,
+      "detail": "DISCLOSED 6000 3"
+    },
+    {
+      "name": "Borrador CSV: Bellator = 12000 ML, 3 aportantes",
+      "ok": true,
+      "detail": "DISCLOSED 12000 3"
+    },
+    {
+      "name": "Borrador CSV: Glifosato Demo = 150000 ML, 4 aportantes",
+      "ok": true,
+      "detail": "DISCLOSED 150000 4"
+    },
+    {
+      "name": "Borrador CSV: sin NaN ni undefined",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "sha256": {
+    "resumen.json": "f330c1351f6123bf40359af3534f14d0fdcef29650edb0da06abf15c6c9d7f13",
+    "resumen.csv": "b806221d48f565e27dce4ddc9c099e8962abe96c33f458dfddb64ead144dc3f2",
+    "sellado-estado.json": "7e3857d40ed4cb7dffbb0f40c7d526d90cba538a08046a086f6517c36fbadc0e",
+    "tendencias-necesidad.json": "1140909e61eaff5ad4ca84bb82e21053dcb96eaceb3fb2802f9766c643a72355",
+    "tendencias-necesidad.csv": "896c796b81095821cc205db747cd277cab651cd44860060e2d75acadad668c3f",
+    "tendencias-consumo.json": "aaa2031f74dbe68548fd238bf3b9b7ed143cc806b625032d8af98c31f7523d5d",
+    "tendencias-consumo.csv": "968f72dc9c738e6abe1dc9b1dd63567a97b3675e23bad3a6087f174792d3f09c",
+    "propuesta.csv": "dfe02e22f764471a218f932890d781afd03d6b9cf49294c037cd5bb91e2aa7b4"
+  }
+}

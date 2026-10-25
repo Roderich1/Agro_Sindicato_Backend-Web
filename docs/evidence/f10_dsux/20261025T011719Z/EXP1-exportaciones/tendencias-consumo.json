@@ -1,0 +1,22 @@
+{
+  "contractVersion": 1,
+  "disclosure": {
+    "mode": "PROVISIONAL_SYNTHETIC",
+    "policy": "F07-POL-01",
+    "approved": false,
+    "threshold": 3
+  },
+  "projection_type": "CONSUMPTION_TOTAL",
+  "campaigns": [
+    {
+      "campaign_ref": "8755a499",
+      "name": "Verano Demo",
+      "status": "ABIERTA",
+      "start_date": "2026-09-25T04:00:00.000Z",
+      "seal": null,
+      "coverage": null
+    }
+  ],
+  "series": [],
+  "notice": "Sólo versiones selladas, celda por celda. No suma, resta ni promedia entre campañas, productos, unidades o tipos. Una ausencia o una cifra oculta no es cero. Un cambio de cobertura no prueba un cambio del consumo de cada agricultor. Sin pronósticos ni recomendaciones."
+}

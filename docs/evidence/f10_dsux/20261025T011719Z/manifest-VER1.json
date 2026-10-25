@@ -1,0 +1,133 @@
+{
+  "generator": "f10-dsux-central-seed v1",
+  "label": "VER1",
+  "tenant": {
+    "id": "6993d1ff",
+    "slug": "f10ux-web-ver1"
+  },
+  "campaign": {
+    "id": "f398a331",
+    "name": "Verano Demo",
+    "start_date": "2026-09-25T04:00:00.000Z",
+    "end_date": null
+  },
+  "products": {
+    "Glifosato Demo": "85094843",
+    "Bellator": "2cd8eada",
+    "Belator": "a8e4190b"
+  },
+  "accounts": {
+    "directiva": "<correo retirado>",
+    "administrador": "<correo retirado>"
+  },
+  "members": {
+    "M1": "9f00be4c",
+    "M2": "a406266a",
+    "M3": "71a15514",
+    "M4": "f78aad01",
+    "M5": "89d056ef",
+    "M6": "c200c4e1"
+  },
+  "pushes": 10,
+  "dataset": {
+    "target": "web",
+    "seed": "20261018",
+    "session_date": "2026-10-25",
+    "campaign": "Verano Demo",
+    "products": [
+      {
+        "name": "Glifosato Demo",
+        "unit": "L"
+      },
+      {
+        "name": "Bellator",
+        "unit": "L"
+      },
+      {
+        "name": "Belator",
+        "unit": "L"
+      }
+    ],
+    "agricultores": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+    ],
+    "contributions": [
+      {
+        "member": "M1",
+        "product": "Glifosato Demo",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "20000"
+      },
+      {
+        "member": "M2",
+        "product": "Glifosato Demo",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "35000"
+      },
+      {
+        "member": "M3",
+        "product": "Glifosato Demo",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "45000"
+      },
+      {
+        "member": "M4",
+        "product": "Glifosato Demo",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "50000"
+      },
+      {
+        "member": "M1",
+        "product": "Bellator",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "3000"
+      },
+      {
+        "member": "M2",
+        "product": "Bellator",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "4000"
+      },
+      {
+        "member": "M3",
+        "product": "Bellator",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "5000"
+      },
+      {
+        "member": "M1",
+        "product": "Belator",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "1000"
+      },
+      {
+        "member": "M2",
+        "product": "Belator",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "2000"
+      },
+      {
+        "member": "M3",
+        "product": "Belator",
+        "projection_type": "DECLARED_NEED",
+        "base_unit": "ML",
+        "quantity_base": "3000"
+      }
+    ]
+  },
+  "dataset_sha256": "2d05e305a329bd6a3b2a2998ffd6dc99d1d91dff394081acc6a8e52a90713309"
+}

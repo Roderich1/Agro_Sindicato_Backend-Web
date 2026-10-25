@@ -1,0 +1,64 @@
+{
+  "contractVersion": 1,
+  "campaign": {
+    "campaign_ref": "8755a499",
+    "name": "Verano Demo",
+    "status": "ABIERTA"
+  },
+  "seal": null,
+  "disclosure": {
+    "mode": "PROVISIONAL_SYNTHETIC",
+    "policy": "F07-POL-01",
+    "approved": false,
+    "threshold": 3
+  },
+  "coverage": {
+    "linked_members": 6,
+    "members_with_contribution": 4,
+    "suppressed_cells": false
+  },
+  "cells": [
+    {
+      "projection_type": "DECLARED_NEED",
+      "product_ref": "0055a481",
+      "product_name": "Belator",
+      "base_unit": "ML",
+      "presentation_unit": "L",
+      "status": "DISCLOSED",
+      "total_base": "6000",
+      "total_presentation": "6",
+      "contributors": 3,
+      "data_as_of": "2026-10-25T01:20:58.053Z",
+      "released_at": "2026-10-25T01:21:01.601Z",
+      "pending_changes": false
+    },
+    {
+      "projection_type": "DECLARED_NEED",
+      "product_ref": "010add71",
+      "product_name": "Bellator",
+      "base_unit": "ML",
+      "presentation_unit": "L",
+      "status": "DISCLOSED",
+      "total_base": "12000",
+      "total_presentation": "12",
+      "contributors": 3,
+      "data_as_of": "2026-10-25T01:20:48.206Z",
+      "released_at": "2026-10-25T01:21:01.601Z",
+      "pending_changes": false
+    },
+    {
+      "projection_type": "DECLARED_NEED",
+      "product_ref": "5b4ca6f2",
+      "product_name": "Glifosato Demo",
+      "base_unit": "ML",
+      "presentation_unit": "L",
+      "status": "DISCLOSED",
+      "total_base": "150000",
+      "total_presentation": "150",
+      "contributors": 4,
+      "data_as_of": "2026-10-25T01:20:38.318Z",
+      "released_at": "2026-10-25T01:21:01.601Z",
+      "pending_changes": false
+    }
+  ]
+}
