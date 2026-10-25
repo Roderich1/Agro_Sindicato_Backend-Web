@@ -89,7 +89,7 @@ Capturas (datos sintéticos de pantalla; SHA-256 del archivo):
 - **Divulgación provisional y sintética** (k = 3 no da anonimato; F07-POL-01, #107, sigue abierta). Ninguna cifra es real.
 - La fecha de sesión de esta verificación (2026-10-19) es un parámetro; no fija la fecha de ninguna sesión real.
 
-> **Nota del 2026-10-25 (instrumento corregido después).**
+> **Nota del 2026-10-24 (−04:00) (instrumento corregido después).**
 > - **Qué fecha usó esta corrida:** `run-dsux.sh` tomaba entonces el día de sesión de `TZ=America/La_Paz date +%F`. En el Git Bash de este equipo no hay tzdata, y esa orden devuelve la fecha **UTC**.
 > - **Lo que pasó:** esta corrida empezó a las 03:22:54Z, cuando en La Paz era el 2026-10-18 a las 23:22. Usó de verdad la fecha generada, **2026-10-19**, aunque `env.txt` la etiqueta «(America/La_Paz)».
 > - **Qué no cambia:** las cifras, el oráculo y las comprobaciones no dependen de ese día. La huella del dataset y las fechas de la campaña sí lo incluyen.
