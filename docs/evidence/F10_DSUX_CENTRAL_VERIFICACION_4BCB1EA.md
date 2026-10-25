@@ -161,6 +161,10 @@ Capturas (datos sintéticos de pantalla; SHA-256 del archivo):
 - **La corrida del 2026-10-19** (03:22Z, el 2026-10-18 a las 23:22 en La Paz) tomó por la misma razón «2026-10-19», y su `env.txt` lo etiqueta «(America/La_Paz)». No se reescribe; se anota aquí.
 - **Para las sesiones reales:** pasar `F10_UX_SESSION_DATE` de forma explícita, o corregir el valor por defecto con una zona fija `-04:00`. Esto último cambia un instrumento y **no se hizo**: lo decide Roderich.
 
+> **Nota del 2026-10-25 (instrumento corregido después de esta corrida).**
+> - **La decisión:** Roderich Rendón decidió el 2026-10-24 exigir `F10_UX_SESSION_DATE` explícita y válida, sin valor por defecto. El cambio está en `run-dsux.sh` (rama `fix/f10-dsux-fecha-explicita`) y en `run-exportaciones.sh` (esta rama), con el mismo `session-date.sh`.
+> - **Qué fecha usó esta corrida:** la que se generó de verdad, **2026-10-25** (UTC). Las huellas, los manifiestos y `env.txt` de §2–§4 se conservan tal cual, sin recalcular, y esta corrida **no** se presenta como hecha con el instrumento corregido.
+
 ### 5.2 Límites
 
 - Una sola resolución (1366×768) y un solo navegador (Chrome), como el 2026-10-19.

@@ -10,9 +10,12 @@
 #   tool/f10_eval_web/dsux/run-exportaciones.sh <salida>
 #
 # Secretos generados en memoria; nunca se escriben en disco ni en logs.
-# Entorno: PG_CONTAINER, PG_PORT, API_PORT, F10_UX_SESSION_DATE (por defecto,
-# hoy en America/La_Paz), F10_UX_LABEL (por defecto EXP1).
+# Entorno: F10_UX_SESSION_DATE (OBLIGATORIA, AAAA-MM-DD y una fecha real; sin
+# valor por defecto: session-date.sh), PG_CONTAINER, PG_PORT, API_PORT,
+# F10_UX_LABEL (por defecto EXP1).
 set -euo pipefail
+. "$(dirname "$0")/session-date.sh"
+require_session_date
 mkdir -p "${1:?salida}"
 OUT=$(cd "$1" && pwd -W)
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd -W)
@@ -22,7 +25,6 @@ PG_CONTAINER=${PG_CONTAINER:-agro_b_f10ux_pg}
 PG_PORT=${PG_PORT:-55459}
 API_PORT=${API_PORT:-3138}
 LABEL=${F10_UX_LABEL:-EXP1}
-export F10_UX_SESSION_DATE=${F10_UX_SESSION_DATE:-$(TZ=America/La_Paz date +%F)}
 export F10_UX_SEED=20261018
 export API_URL=http://localhost:$API_PORT
 if netstat -ano | grep -qE ":$API_PORT .*LISTEN"; then echo "puerto $API_PORT ocupado"; exit 1; fi
@@ -31,7 +33,7 @@ docker inspect "$PG_CONTAINER" >/dev/null 2>&1 || { echo "falta el contenedor $P
   echo "start=$(date -u +%FT%TZ)"
   echo "repo_sha=$(git -C "$ROOT" rev-parse HEAD)"
   echo "tool_dirty=$(git -C "$ROOT" status --porcelain -- Back/scripts/f10-dsux-central-seed.cjs tool/f10_eval_web/dsux | wc -l) archivos sin commitear"
-  echo "seed=$F10_UX_SEED session_date=$F10_UX_SESSION_DATE (America/La_Paz) label=$LABEL"
+  echo "seed=$F10_UX_SEED session_date=$F10_UX_SESSION_DATE (explícita) label=$LABEL"
   echo "pg_container=$PG_CONTAINER pg_port=$PG_PORT api_port=$API_PORT"
   echo "migrations=$(ls -d "$ROOT"/Back/prisma/migrations/*/ | wc -l)"
   echo "node_env=development; collective_disclosure_mode=provisional-synthetic; collective_sealing=sin definir (desactivado); cookie_secure=false; throttler intacto"
