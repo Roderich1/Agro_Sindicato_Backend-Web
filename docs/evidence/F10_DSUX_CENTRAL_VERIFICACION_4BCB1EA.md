@@ -22,6 +22,21 @@
 - la lectura de un borrador ya no escribe (`F07_SEALED_HISTORY_CONTRACT.md` §10, observación 3);
 - el respaldo F08 en el servidor.
 
+**Preflight Mobile con este Central** (sesión A, 2026-10-25, evidencia **`F10_PREFLIGHT_DSUX_1D77C14.md`** del repositorio Mobile, rama `docs/f10-preflight-1d77c14`):
+- **El Central:** la sesión B levantó una API persistente en el 3156, desde el mismo `dist` de `4bcb1ea` y sobre una base nueva (`movpil_20261025_014659`), con `SYNC_V1_PRODUCTION_ADMISSION=enabled` y el resto como en §1.
+- **La siembra:** el tenant Móvil **MOVPIL** se sembró con el generador `bb01c6c1…` y el día de sesión explícito **S = 2026-10-25**, ya validado con `session-date.sh`. `references-MOVPIL.json` (SHA-256 `e4ca3567…`) tiene `same_tenant_as_accounts: true`.
+- **Lo que hizo la sesión A:**
+  - una APK de preflight `.f10prefin` desde `1d77c14`, SHA-256 `a82f50a6…`, que no es la `.f10ux` del piloto;
+  - activó PROPIA con `x01-movpil` y COMPARTIDA con `p01-movpil`, con esquema 11.
+- **Resultado** (según la sesión A):
+  - `DSUX_RESULT` y `DSUX_ORACLE` coherentes;
+  - la huella de la base es igual en el PC y en el teléfono;
+  - el observador sólo vio la activación, sin ningún `push`;
+  - sin incompatibilidades.
+- **Al terminar** se desmontaron la API, el contenedor `agro_b_dsux4bcb_pg` y su volumen. Las contraseñas de un solo uso las asignó la sesión A por `stdin` y no se escribieron.
+
+Fila de la base en `docs/evaluation/usabilidad/README.md` («Versiones de los instrumentos», «Base de código del piloto»), añadida en esta misma rama.
+
 **`main` avanzó después a `eff4f27`** (merge de BE #161, 2026-10-25 01:20:08Z), sólo con la herramienta de la comparación de k y su evidencia. `git diff --stat 4bcb1ea eff4f27 -- Back/src Back/prisma Web/src` da:
 
 ```
