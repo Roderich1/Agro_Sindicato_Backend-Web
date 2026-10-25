@@ -60,8 +60,21 @@ const LABEL = env.F10_UX_LABEL;
 if (!/^[A-Za-z0-9]{1,12}$/.test(LABEL)) throw new Error("F10_UX_LABEL: 1–12 letters or digits");
 const SEED = env.F10_UX_SEED ?? "20261018";
 const SESSION_DATE = env.F10_UX_SESSION_DATE;
-if (!/^\d{4}-\d{2}-\d{2}$/.test(SESSION_DATE) || Number.isNaN(Date.parse(`${SESSION_DATE}T00:00:00Z`))) {
-  throw new Error("F10_UX_SESSION_DATE must be AAAA-MM-DD");
+/**
+ * A real calendar date AAAA-MM-DD, never normalized: built in UTC, its year,
+ * month and day must come back unchanged (2026-02-31 or 2026-02-29 are
+ * refused, 2024-02-29 is accepted). Checked before any connection or write,
+ * and for every target.
+ */
+function isCalendarDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [year, month, day] = match.slice(1).map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+if (!isCalendarDate(SESSION_DATE)) {
+  throw new Error(`F10_UX_SESSION_DATE must be a real calendar date AAAA-MM-DD (got "${SESSION_DATE}")`);
 }
 if (TARGET === "movil" && !env.F10_UX_REFERENCES) throw new Error("Missing F10_UX_REFERENCES");
 

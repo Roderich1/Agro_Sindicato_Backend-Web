@@ -10,6 +10,7 @@ Herramienta de evaluación del protocolo F10 v1.4 §3.3.1 y de `docs/evaluation/
 | `contraste.mjs` | Contrasta el oráculo con la API y con la Web compiladas en un tenant de **verificación**: lectura de W1/W2, W3 y W4 por la interfaz, y el CSV del borrador |
 | `run-dsux.sh` | Verificación completa en una base nueva del contenedor propio: siembra VER1, VER2 y MOVVER, comprueba que repetir una etiqueta se niega, ejecuta el oráculo y los dos contrastes. Exige `F10_UX_SESSION_DATE` explícita |
 | `session-date.sh`, `test-session-date.sh` | El día de sesión obligatorio (formato AAAA-MM-DD y fecha real, sin valor por defecto) y su prueba mínima, sin PostgreSQL ni Web |
+| `test-seed-session-date.sh` | Prueba mínima, sin PostgreSQL, de la misma validación dentro del generador (destinos `web` y `movil`): una fecha inválida termina antes de conectar o escribir |
 
 ## Composición Web (fijada)
 
@@ -49,6 +50,8 @@ Crea «Verano Demo» (ABIERTA y activa, desde el día de sesión − 30, sin fin
 API con `NODE_ENV=development` y `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` (desviación declarada del protocolo §0.4, porque F07-POL-01, #107, no está aprobada), limitador intacto. `run-dsux.sh` usa por defecto el contenedor `agro_b_f10ux_pg` (127.0.0.1:55459), API 3138 y Web 4179.
 
 **Día de sesión obligatorio** (decisión de Roderich Rendón, 2026-10-24): `F10_UX_SESSION_DATE=AAAA-MM-DD` siempre explícita y una fecha de calendario real; la misma en Central y en Mobile. No hay valor por defecto: ni de la zona horaria ni del reloj del entorno. Si falta o no es válida, `run-dsux.sh` termina con código 2 y un mensaje claro, antes de crear nada. Hasta el 2026-10-24 el valor por defecto era `TZ=America/La_Paz date +%F`, que en el Git Bash sin tzdata daba la fecha UTC (`F10_DSUX_CENTRAL_VERIFICACION_4BCB1EA.md` §5.1).
+
+**El generador valida la fecha por sí mismo** (decisión de Roderich Rendón, 2026-10-25). Exige una fecha de calendario real por ida y vuelta exacta en UTC, sin normalizar: rechaza 2026-02-31 y 2026-02-29, y acepta 2024-02-29. Lo hace para los dos destinos, antes de cualquier conexión o escritura. Hasta el 2026-10-25 usaba `Date.parse`, que aceptaba 2026-02-31 y lo llevaba al 3 de marzo. **Sólo cambia la validación de entrada:** con una fecha válida, el contenido sembrado es el mismo. Las ejecuciones anteriores se sembraron con el blob `bb01c6c1…` y no se regeneran.
 
 ## Lo que no hace
 
