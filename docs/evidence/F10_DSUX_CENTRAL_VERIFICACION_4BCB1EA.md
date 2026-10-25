@@ -22,7 +22,7 @@
 - la lectura de un borrador ya no escribe (`F07_SEALED_HISTORY_CONTRACT.md` §10, observación 3);
 - el respaldo F08 en el servidor.
 
-**Preflight Mobile con este Central** (sesión A, 2026-10-25, evidencia **`F10_PREFLIGHT_DSUX_1D77C14.md`** del repositorio Mobile, rama `docs/f10-preflight-1d77c14`):
+**Preflight Mobile con este Central** (sesión A, 2026-10-24 −04:00, evidencia **`F10_PREFLIGHT_DSUX_1D77C14.md`** del repositorio Mobile, rama `docs/f10-preflight-1d77c14`):
 - **El Central:** la sesión B levantó una API persistente en el 3156, desde el mismo `dist` de `4bcb1ea` y sobre una base nueva (`movpil_20261025_014659`), con `SYNC_V1_PRODUCTION_ADMISSION=enabled` y el resto como en §1.
 - **La siembra:** el tenant Móvil **MOVPIL** se sembró con el generador `bb01c6c1…` y el día de sesión explícito **S = 2026-10-25**, ya validado con `session-date.sh`. `references-MOVPIL.json` (SHA-256 `e4ca3567…`) tiene `same_tenant_as_accounts: true`.
 - **Lo que hizo la sesión A:**
@@ -176,7 +176,7 @@ Capturas (datos sintéticos de pantalla; SHA-256 del archivo):
 - **La corrida del 2026-10-19** (03:22Z, el 2026-10-18 a las 23:22 en La Paz) tomó por la misma razón «2026-10-19», y su `env.txt` lo etiqueta «(America/La_Paz)». No se reescribe; se anota aquí.
 - **Para las sesiones reales:** pasar `F10_UX_SESSION_DATE` de forma explícita, o corregir el valor por defecto con una zona fija `-04:00`. Esto último cambia un instrumento y **no se hizo**: lo decide Roderich.
 
-> **Nota del 2026-10-25 (instrumento corregido después de esta corrida).**
+> **Nota del 2026-10-24 (−04:00) (instrumento corregido después de esta corrida).**
 > - **La decisión:** Roderich Rendón decidió el 2026-10-24 exigir `F10_UX_SESSION_DATE` explícita y válida, sin valor por defecto. El cambio está en `run-dsux.sh` (rama `fix/f10-dsux-fecha-explicita`) y en `run-exportaciones.sh` (esta rama), con el mismo `session-date.sh`.
 > - **Qué fecha usó esta corrida:** la que se generó de verdad, **2026-10-25** (UTC). Las huellas, los manifiestos y `env.txt` de §2–§4 se conservan tal cual, sin recalcular, y esta corrida **no** se presenta como hecha con el instrumento corregido.
 
