@@ -8,7 +8,8 @@ Herramienta de evaluación del protocolo F10 v1.4 §3.3.1 y de `docs/evaluation/
 | `oraculo_web.json` | Oráculo **escrito a mano** con la composición fijada por Roderich Rendón (2026-10-18) y los valores esperados antes de W3, tras W3 (en los dos sentidos de la asociación) y tras W4. El generador no lo lee |
 | `oraculo_check.py` | Recalcula con la biblioteca estándar los valores esperados desde la tabla del oráculo y la regla k = 3; con un manifiesto, comprueba que el generador sembró exactamente esa tabla |
 | `contraste.mjs` | Contrasta el oráculo con la API y con la Web compiladas en un tenant de **verificación**: lectura de W1/W2, W3 y W4 por la interfaz, y el CSV del borrador |
-| `run-dsux.sh` | Verificación completa en una base nueva del contenedor propio: siembra VER1, VER2 y MOVVER, comprueba que repetir una etiqueta se niega, ejecuta el oráculo y los dos contrastes |
+| `run-dsux.sh` | Verificación completa en una base nueva del contenedor propio: siembra VER1, VER2 y MOVVER, comprueba que repetir una etiqueta se niega, ejecuta el oráculo y los dos contrastes. Exige `F10_UX_SESSION_DATE` explícita |
+| `session-date.sh`, `test-session-date.sh` | El día de sesión obligatorio (formato AAAA-MM-DD y fecha real, sin valor por defecto) y su prueba mínima, sin PostgreSQL ni Web |
 
 ## Composición Web (fijada)
 
@@ -46,6 +47,8 @@ Crea «Verano Demo» (ABIERTA y activa, desde el día de sesión − 30, sin fin
 ## Entorno
 
 API con `NODE_ENV=development` y `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic` (desviación declarada del protocolo §0.4, porque F07-POL-01, #107, no está aprobada), limitador intacto. `run-dsux.sh` usa por defecto el contenedor `agro_b_f10ux_pg` (127.0.0.1:55459), API 3138 y Web 4179.
+
+**Día de sesión obligatorio** (decisión de Roderich Rendón, 2026-10-24): `F10_UX_SESSION_DATE=AAAA-MM-DD` siempre explícita y una fecha de calendario real; la misma en Central y en Mobile. No hay valor por defecto: ni de la zona horaria ni del reloj del entorno. Si falta o no es válida, `run-dsux.sh` termina con código 2 y un mensaje claro, antes de crear nada. Hasta el 2026-10-24 el valor por defecto era `TZ=America/La_Paz date +%F`, que en el Git Bash sin tzdata daba la fecha UTC (`F10_DSUX_CENTRAL_VERIFICACION_4BCB1EA.md` §5.1).
 
 ## Lo que no hace
 
