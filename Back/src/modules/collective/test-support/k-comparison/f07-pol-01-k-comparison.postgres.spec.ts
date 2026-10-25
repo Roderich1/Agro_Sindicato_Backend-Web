@@ -24,10 +24,14 @@ import { Projection, Scenario, ScenarioContribution, scenarios } from "./scenari
  *   F07_K_COMPARE_PG_URL   a throwaway PostgreSQL server (one NEW database per
  *                          scenario is created and migrated from zero)
  *   F07_K_COMPARE_K        the threshold of this run (default 3)
- *   F07_K_COMPARE_OUT      directory for k<K>.json (optional)
+ *   F07_K_COMPARE_OUT      directory for k<K>.json (optional); never
+ *                          docs/evidence/f07_k_comparison, whose files are the
+ *                          historical runs on 98375dc and 04fbc9d
  *
- * TEST-ONLY INJECTION of k: the system keeps PROVISIONAL_THRESHOLD = 3 and the
- * PROVISIONAL_SYNTHETIC mode. Only in this file's module registry, the mock
+ * TEST-ONLY INJECTION of k: the system keeps PROVISIONAL_THRESHOLD = 3
+ * (provisional, synthetic trials only) and POLICY_PENDING as its default mode;
+ * this suite turns PROVISIONAL_SYNTHETIC on for itself (2026-10-24 note in
+ * F07_POL_01_COMPARACION_K.md). Only in this file's module registry, the mock
  * below makes `decideCells` use F07_K_COMPARE_K and the summary report it.
  * With k = 3 the mock passes the default through unchanged.
  *

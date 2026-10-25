@@ -179,3 +179,21 @@ Como orientación que debe confirmarse con esos datos: **un k mayor sólo tiene 
 > - **Qué cambia:** sólo `.at(-1)` en `scenarios.ts`, por el aviso de SonarCloud S7755. La semántica es la misma.
 > - **Resultado:** se volvieron a ejecutar k = 3 y k = 5 con el árbol limpio, con 7/7 cada uno.
 > - **Comparación con los `k3.json` y `k5.json` de este directorio:** son idénticos, salvo en `meta` (SHA y horas), en los nombres de las bases y en las marcas `data_as_of` y `released_at`.
+
+> **Nota del 2026-10-24: integración en `main` como herramienta y evidencia histórica.**
+> - **Qué se integra:** la herramienta y esta evidencia. Los resultados (§3, `k3.json`, `k5.json` y `resumen.md`) se midieron sobre `98375dc` y se repitieron sobre `04fbc9d`, en la rama `docs/f07-comparacion-k` sobre `main` `769d441`, anterior al sellado de F07. Quedan atados a esos SHA: no se han vuelto a ejecutar ni se reescriben.
+> - **Qué no es:** no verifica `main` `4bcb1ea` ni ningún código posterior a `c697095`, y no elige k (#107 sigue abierto).
+> - **Integración:** el merge `4052f81` trae `main` `4bcb1ea` sin conflictos. Comprobado sin PostgreSQL el 2026-10-24:
+>   - tipos sin errores, incluidas todas las pruebas;
+>   - lint sin errores en `k-comparison/`, con 2 avisos de imports sin uso que ya estaban;
+>   - la prueba se salta sin `F07_K_COMPARE_PG_URL` (7 omitidas), y ningún workflow de CI la ejecuta con base.
+> - **Qué cambió en `main` desde la medición (lectura del código, sin ejecutarla):**
+>   - **Sellado** (`F07_SEALED_HISTORY_CONTRACT.md`): esta comparación no sella ninguna campaña, así que no cubre versiones selladas ni `WITHDRAWN_AFTER_SEAL`.
+>   - **Propuestas:** leer una propuesta ya no escribe; generarla sigue ejecutando la decisión (contrato §10, observación 3). La secuencia genera justo después de leer el resumen, así que la comprobación «generar la propuesta no decide nada nuevo» conserva su sentido, pero no se ha ejecutado sobre `4bcb1ea`.
+>   - **CSV:** el resumen y la propuesta añaden `seal_ref`, `seal_version` y `sealed_at`. La prueba lee las columnas por nombre.
+>   - Por eso, ejecutarla sobre `main` sería una **medición nueva**, con su propio SHA y en un directorio de salida distinto de `f07_k_comparison/`, para no sobrescribir estos archivos.
+> - **Decisiones vigentes que prevalecen sobre el texto anterior:**
+>   - **Modo:** el modo por defecto es `POLICY_PENDING`, sin cifras. `PROVISIONAL_SYNTHETIC` sólo se activa en entornos sintéticos, como hace esta prueba (`COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`). Así se lee «el modo `PROVISIONAL_SYNTHETIC` quedan como estaban» de la cabecera.
+>   - **Umbral:** k = 3 es provisional y sólo para ensayos sintéticos hasta que se resuelva #107. La recomendación del §5 es la de esta comparación, no una decisión.
+>   - **Conservación:** el histórico colectivo se conserva sin purga, en `R_COLLECTIVE_HISTORY` (F06 §7.2, enmienda del 2026-10-23). La propuesta M-2 de #159, «sellar y después eliminar», se descartó. Esta comparación no trata la conservación.
+> - **Referencias anteriores:** las menciones «BE #161 … pendiente de integrar» de `F07_AGGREGATE_DISCLOSURE_POLICY.md`, `F07_SEALED_HISTORY_CONTRACT.md` §10, `F07_POL_01_PAQUETE_DECISION.md`, `F07_POL_01_REVISION_INSTITUCIONAL.md` y `F07_SELLADO_HISTORICO.md` son anteriores a esta integración y se conservan como historia.
