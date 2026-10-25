@@ -354,6 +354,8 @@ Hay dos tipos. Los dos están en Cuentas › icono de carpeta («Copias de segur
 
 **Crear un respaldo:** «Exportar respaldo» guarda un archivo `agroquimicos_backup_….agrobackup`, con la base de datos y las fotos de las facturas, en la carpeta que indica el mensaje. Si falta alguna foto, la app avisa y guarda todo lo demás.
 
+**Dónde queda el archivo:** en la carpeta de descargas propia de la app (`Android/data/<paquete>/files/Download`), no en las Descargas compartidas del teléfono. **Si desinstala la app o borra sus datos, el archivo exportado se borra con ellos.** Cópielo fuera del teléfono, por ejemplo con un cable a un ordenador: la app no tiene botón para compartirlo. **[Verificar]** en un teléfono: se dedujo del código (`backup_service.dart`, `getDownloadsDirectory`) y del complemento `path_provider_android`.
+
 **Restaurar un respaldo:**
 1. Pulse «Restaurar respaldo» y elija la copia.
 2. La app **comprueba la copia antes de preguntar**:
@@ -402,7 +404,7 @@ Mientras no la confirme, **no se sube nada**: «Falta confirmar la clave de recu
 | Acción | Cómo | Resultado |
 |---|---|---|
 | Subir | «Respaldo en la nube» › «Subir respaldo» › «Subir» | «Respaldo cifrado subido y confirmado por el servidor (N KB).» La copia se prepara en una carpeta privada de la app y se borra al terminar: la subida no deja un respaldo en el teléfono. Para tener uno, use «Exportar respaldo» (§7.1) |
-| Ver | «Ver copias en el servidor» | «Copia del dd/mm/aaaa hh:mm», con tamaño, esquema, si está cifrada y el inicio de su SHA-256. Una copia subida con una versión anterior de la app aparece como «SIN CIFRAR (formato anterior)» |
+| Ver | «Ver copias en el servidor» | «Copia del dd/mm/aaaa hh:mm» y, debajo, «<tamaño> · esquema N · <protección>». La protección es una de estas: «cifrada con su clave actual»; «cifrada con una clave anterior (consérvela)»; «cifrada; pedirá la clave de recuperación con que se subió», para una copia subida desde otro teléfono o antes de reinstalar; «SIN CIFRAR (formato anterior)», para una copia subida con una versión anterior de la app; o «formato desconocido» |
 | Restaurar | Icono «Restaurar» en una copia | §7.3 |
 | Eliminar | Icono «Eliminar del servidor» | «Copia eliminada del servidor.» Las copias del teléfono no se tocan |
 
@@ -426,10 +428,13 @@ Mientras no la confirme, **no se sube nada**: «Falta confirmar la clave de recu
 
 **En un teléfono nuevo** necesita dos cosas: **la cuenta del titular** y **la clave de recuperación anotada**.
 1. Instale la app y actívela con la cuenta del titular (§1).
-2. Vaya a «Respaldo en la nube» › «Ver copias en el servidor» y pulse «Restaurar» en la copia.
+2. **Restaure antes de crear una clave nueva.** Vaya a «Respaldo en la nube» › «Ver copias en el servidor». Sus copias aparecen como «cifrada; pedirá la clave de recuperación con que se subió». Pulse «Restaurar» en la copia.
 3. Escriba la clave anotada cuando la app la pida, y confirme.
-4. Si la app lo pide, use «Recuperar acceso» con la misma cuenta (§1.2).
-5. Configure un PIN nuevo en este teléfono (§1.1): el PIN no viaja en la copia.
+4. Configure un PIN nuevo en este teléfono (§1.1): el PIN no viaja en la copia.
+
+**Por qué importa el orden:**
+- Si el teléfono no tiene ninguna clave, la que escribe al restaurar queda como **su clave**, y las próximas subidas la usan: no hace falta crear otra.
+- Si crea y confirma una clave nueva **antes** de restaurar, la que escribe queda sólo como clave anterior, para descifrar, y las subidas siguientes usan la nueva. Entonces tendrá que conservar anotadas **las dos**.
 
 **[Verificar]** el recorrido completo en un teléfono nuevo con la clave correcta. En el teléfono se probaron por separado:
 - la restauración con la clave guardada en el mismo teléfono;
@@ -451,10 +456,11 @@ Si el sindicato ya los había recibido, no se duplican.
 Si quiere que algo pendiente no salga todavía, no use funciones en línea hasta decidirlo. Una vez restaurada una copia, lo que esta traiga sin confirmar no sale hasta que usted pulse «Liberar».
 
 **Evidencia:**
-- Restauración en instalación limpia, sin publicar, y liberación con un solo envío:
+- Restauración en instalación limpia, sin publicar, y liberación con un solo envío, con copias del formato anterior, **sin cifrar**:
   - contra el almacenamiento de disco, 2026-10-16 (`F08_MOBILE_RESTORE.md` §5);
   - contra Backblaze B2, 2026-10-19 (Backend `docs/evidence/F08_BKP_07_B2_ENSAYO_REAL.md` §2).
 - Copias alteradas, ajenas o dañadas rechazadas, y vuelta atrás si algo falla: `F10_RESTORE_DEVICE.md` (2026-10-16).
+- Una copia **cifrada** subida a Backblaze B2 y restaurada en el teléfono **no se ha ensayado todavía**.
 - Respaldo cifrado, 2026-10-24 (Mobile `F01_F08_DEVICE_COMPOSICION_2026-10-24.md`):
   - crear y confirmar la clave;
   - la pantalla protegida;
@@ -478,6 +484,7 @@ Todos se hicieron en el POCO X5 Pro.
 | «La clave de recuperación no corresponde a esta copia. Sus datos actuales se conservan.» | Revise la clave anotada. Si cambió la clave, esta copia puede necesitar la anterior |
 | «La copia no supera la comprobación del cifrado: está alterada o incompleta. No se usó y sus datos actuales se conservan.» | Use otra copia |
 | «La copia usa un formato de cifrado que esta aplicación no conoce. Actualice la aplicación.» | Actualice la app |
+| La tarjeta «Clave de recuperación» indica que el llavero de claves no se puede leer, con el botón «Empezar un llavero nuevo» | Antes de pulsarlo, tenga a mano su clave anotada. El aviso «¿Empezar un llavero nuevo?» explica que las claves que tenía se pierden, que para restaurar copias antiguas tendrá que escribir su clave de recuperación anotada y que sus copias del servidor no cambian |
 | «No se pudo guardar la copia en el teléfono (¿falta espacio?). …» | Libere espacio |
 
 La app tiene además el mensaje «Ya tiene el máximo de copias en el servidor. Elimine una antes de subir otra.», pero **el servidor ya no envía esa respuesta**: desde la retención de 5 copias, una subida con 5 copias retira la más antigua. **[Verificar]** si conviene retirar ese texto en una versión futura de la app. Hoy no cambia nada.
@@ -506,8 +513,8 @@ Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una co
 **Resolver una restauración sin terminar:** si sus datos actuales están bien, pulse «Mantener los actuales». La app explica: «… la copia se conservará siete días más y después se retirará en la limpieza normal.»
 
 **Otros casos:**
-- **«Copia sin registro»:** una copia de una versión anterior de la app. Sólo se borra si usted lo pide.
-- **«El registro de copias no se puede leer»:** la app no borra ninguna copia ni restaura nada hasta que pulse «Apartar». Apartar no borra copias.
+- **«El registro de copias no se puede leer»:** la app no borra ninguna copia ni restaura nada hasta que pulse «Apartar». «Apartarlo no borra copias: quedan como «antiguas» y sólo se borran una a una si usted lo pide.»
+- **«Copia sin registro»:** una copia que no figura en el registro, de una versión anterior de la app o de un registro apartado. Sólo se borra si usted lo pide.
 
 Las copias previas **no** van cifradas, no se suben a la nube y no salen del teléfono con el respaldo de Google.
 
@@ -764,7 +771,7 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 - **Privacidad de los respaldos en la nube:**
   - Desde esta versión, la app los cifra en el teléfono con la clave de recuperación antes de subirlos (§7.2). El servidor y el proveedor guardan la copia cifrada y no tienen la clave.
   - **Las copias subidas con una versión anterior** aparecen como «SIN CIFRAR (formato anterior)». De ellas sigue valiendo lo que decía la redacción anterior: el proveedor las cifra en reposo, pero quien opera el servidor podría leerlas (manual técnico, §5.2). Puede eliminarlas con «Eliminar del servidor» después de subir una copia cifrada.
-  - El cifrado protege el contenido, **no lo hace anónimo**. El servidor sabe de qué cuenta es cada copia, cuándo se subió y cuánto ocupa.
+  - El cifrado protege el contenido, **no lo hace anónimo**. El servidor sabe de qué cuenta es cada copia, cuándo se subió, cuánto ocupa, la versión de su esquema y un identificador no secreto de la clave, con el que puede saber si dos copias usan la misma clave.
 - **La clave en pantalla y la accesibilidad:** mientras se muestra la clave de recuperación no se pueden hacer capturas ni grabaciones de pantalla, pero los servicios de accesibilidad autorizados, como TalkBack, sí pueden leerla (§7.2).
 - **Sellado y tendencias (Web):** el sellado está desactivado por defecto. Mientras lo esté, no hay versiones selladas ni tendencias con cifras (§9.5 y §9.6).
 - **Equipos probados:**
@@ -784,6 +791,7 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
    - rechazo `CAMPAIGN_SEALED` en el teléfono;
    - restauración completa en un teléfono nuevo con la clave correcta;
    - restauración sin terminar;
+   - dónde queda la exportación local y que se borra al desinstalar;
    - sellado y tendencias en el entorno del piloto.
 5. Capturas nuevas de las pantallas «PIN del titular», «Recuperar acceso», «Operaciones tardías» y «Clave de recuperación». **No** se puede capturar la clave: la pantalla está protegida. Para esa pantalla basta una descripción, sin la clave.
 6. Las sesiones de usabilidad T1–T6 y W1–W5 (#47, MOB #37): sus resultados pueden pedir cambios de redacción.
