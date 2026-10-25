@@ -17,9 +17,12 @@
 # siembran aparte, con su etiqueta, el día de la sesión.
 #
 # Secretos generados en memoria; nunca se escriben en disco ni en logs.
-# Entorno: PG_CONTAINER, PG_PORT, API_PORT, WEB_PORT, F10_UX_SESSION_DATE
-# (por defecto, hoy en America/La_Paz), VIEWPORT.
+# Entorno: F10_UX_SESSION_DATE (OBLIGATORIA, AAAA-MM-DD y una fecha real; sin
+# valor por defecto: session-date.sh), PG_CONTAINER, PG_PORT, API_PORT,
+# WEB_PORT, VIEWPORT.
 set -euo pipefail
+. "$(dirname "$0")/session-date.sh"
+require_session_date
 mkdir -p "${1:?salida}"
 OUT=$(cd "$1" && pwd -W)
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd -W)
@@ -31,7 +34,6 @@ PG_PORT=${PG_PORT:-55459}
 API_PORT=${API_PORT:-3138}
 WEB_PORT=${WEB_PORT:-4179}
 VIEWPORT=${VIEWPORT:-1366x768}
-export F10_UX_SESSION_DATE=${F10_UX_SESSION_DATE:-$(TZ=America/La_Paz date +%F)}
 export F10_UX_SEED=20261018
 export API_URL=http://localhost:$API_PORT WEB_URL=http://localhost:$WEB_PORT
 CHROME="C:/Program Files/Google/Chrome/Application/chrome.exe"
@@ -46,7 +48,7 @@ docker inspect "$PG_CONTAINER" >/dev/null 2>&1 || { echo "falta el contenedor $P
   echo "generator_blob=$(git -C "$ROOT" rev-parse --verify --quiet HEAD:Back/scripts/f10-dsux-central-seed.cjs || echo sin-commit)"
   echo "oracle_blob=$(git -C "$ROOT" rev-parse --verify --quiet HEAD:tool/f10_eval_web/dsux/oraculo_web.json || echo sin-commit)"
   echo "tool_dirty=$(git -C "$ROOT" status --porcelain -- Back/scripts/f10-dsux-central-seed.cjs tool/f10_eval_web/dsux | wc -l) archivos sin commitear"
-  echo "seed=$F10_UX_SEED session_date=$F10_UX_SESSION_DATE (America/La_Paz)"
+  echo "seed=$F10_UX_SEED session_date=$F10_UX_SESSION_DATE (explícita)"
   echo "pg_container=$PG_CONTAINER pg_port=$PG_PORT api_port=$API_PORT web_port=$WEB_PORT"
   echo "pg_image=$(docker inspect -f '{{.Config.Image}}' "$PG_CONTAINER")"
   echo "migrations=$(ls -d "$ROOT"/Back/prisma/migrations/*/ | wc -l)"
