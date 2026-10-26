@@ -4,7 +4,7 @@
 
 **Claude Code no facilita ni observa sesiones** ni produce observaciones humanas.
 
-**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.5** (v1.4: precisión del dataset DS-UX en §3.3.1, 2026-10-18; v1.5: precisión de la consigna de T3, 2026-10-19; umbrales, ayudas y SUS iguales a la v1.3 `9bfcad2` y a la v1.2 `9292425` que citaba este guion). Versión del guion: **GUION-2** (T3 de §6 precisada; el resto como GUION-1). El estado inicial de cada sesión es el de DS-UX (`09_fixture_y_valores_esperados.md`). En cada sesión se anota el SHA de `main` vigente. Las reglas que este guion añade al protocolo (salvo P-5, ya incorporada en v1.2 §3.6) (ayuda a los 60 s, `INCORRECTA` = fallo, doble marca en el SUS = vacía, pregunta «¿Dejó alguna sin marcar a propósito?») son **precisiones propuestas**: se confirman en el piloto y se registran en el protocolo (`README.md`, «Precisiones»). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
+**Protocolo:** `docs/evaluation/F10_PROTOCOLOS_EVALUACION.md` **v1.5** (v1.4: precisión del dataset DS-UX en §3.3.1, 2026-10-18; v1.5: precisión de la consigna de T3, 2026-10-19; umbrales, ayudas y SUS iguales a la v1.3 `9bfcad2` y a la v1.2 `9292425` que citaba este guion). Versión del guion: **GUION-3** (propuesta del 2026-10-26, tras el piloto X01: la pista de T5 en §6 nombra «Enviar al sindicato», el acceso de Inicio de la versión corregida; el resto como GUION-2, que a su vez precisó T3 respecto de GUION-1). La fija Roderich antes de la primera sesión de la muestra (`README.md`, registro de versiones). El estado inicial de cada sesión es el de DS-UX (`09_fixture_y_valores_esperados.md`). En cada sesión se anota el SHA de `main` vigente. Las reglas que este guion añade al protocolo (salvo P-5, ya incorporada en v1.2 §3.6) (ayuda a los 60 s, `INCORRECTA` = fallo, doble marca en el SUS = vacía, pregunta «¿Dejó alguna sin marcar a propósito?») son **precisiones propuestas**: se confirman en el piloto y se registran en el protocolo (`README.md`, «Precisiones»). Este guion sigue las decisiones de cierre del 2026-10-16 cuando difieren del borrador: no se pide marcar 3 en el SUS, se informan los niveles de ayuda por separado y la muestra es 5 + 2 más un piloto excluido.
 
 Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo tono para todas las personas.
 
@@ -104,7 +104,7 @@ Lo que va **entre comillas angulares (« »)** se lee **tal cual**, con el mismo
 
 ## 6. Tareas: condiciones, fin observable y pista específica predefinida
 
-Los enunciados están en las tarjetas (`03_…` y `04_…`). Las pistas de nivel 2 nombran las etiquetas reales de la interfaz en Mobile `dff6802` y Web de `ed069a6`. Si la versión fijada para evaluar cambia esas etiquetas, se actualizan **antes** del piloto.
+Los enunciados están en las tarjetas (`03_…` y `04_…`). Las pistas de nivel 2 nombran las etiquetas reales de la interfaz: Web de `ed069a6`; Mobile `22e4e45` (versión candidata para X02, rama `fix/x01-pagador-productos-inicio`), en la que T1, T2 y T4 conservan las etiquetas de `dff6802` y T5 pasa a «Enviar al sindicato» (GUION-3). Si la versión fijada para evaluar cambia esas etiquetas, se actualizan **antes** del piloto siguiente.
 
 ### Móvil
 
@@ -114,7 +114,7 @@ Los enunciados están en las tarjetas (`03_…` y `04_…`). Las pistas de nivel
 | T2 | Modo avión sigue activo | Aplicación con las 2 líneas (1 L y 200 mL) en la parcela Norte | «Las aplicaciones se registran en Operaciones, en Aplicaciones.» |
 | T3 | Antes de la tarjeta, consultar en silencio el **saldo total** de Bellator y anotarlo en mL y en L; en modalidad compartida, anotar además la parte del titular y la de «Familiar Demo» (`09_…` §2) | Dice ese **saldo total** y señala los movimientos guardados que lo explican (`09_…` §2). «En total» incluye a **todas las personas de la instalación** (en compartida, el titular y «Familiar Demo»). Decir sólo la parte de una persona, si es distinta del total, no completa T3; mostrar esa parte y después identificar el total sí puede completarla | «El saldo está en Inventario; al tocar el producto se ven sus movimientos.» |
 | T4 | Modo avión sigue activo | Necesidad vigente de 20 L de Glifosato Demo | «Las necesidades se declaran en Operaciones, Planificación, "Necesidad declarada al sindicato".» |
-| T5 | **Desactivar el modo avión** antes de leer la tarjeta y decir sólo: «Ya hay Internet» | Encuentra Sincronización y responde según el estado real que muestra la aplicación. Se anota ese estado; la respuesta es correcta si coincide con él, sea el que sea | «Lo que se envía al sindicato está en Inicio, "Sincronización con el sindicato".» |
+| T5 | **Desactivar el modo avión** antes de leer la tarjeta y decir sólo: «Ya hay Internet» | Encuentra Sincronización y responde según el estado real que muestra la aplicación. Se anota ese estado; la respuesta es correcta si coincide con él, sea el que sea | «Lo que se envía al sindicato está en Inicio, "Enviar al sindicato".» (GUION-3; en GUION-2 decía «Sincronización con el sindicato», el botón de Inicio de `1d77c14`) |
 | T6 | — | Explica que no hay saldo suficiente y cómo continuar. Después se comprueba que **no** se guardó una aplicación de 5 L | «Lea el mensaje que muestra la aplicación al guardar.» |
 
 **T3 (GUION-2):** la definición de «en total» es del facilitador para juzgar la tarea; **no se explica al participante**. Si pregunta qué significa, se le vuelve a leer la tarjeta y, si sigue la duda, se aplican las ayudas de §4 tal como están (se anota la más alta). Si el participante dice una cantidad equivalente en otra unidad (1 300 mL = 1,3 L), cuenta como la misma. Si el piloto muestra que el enunciado es ambiguo, se registra como problema del instrumento y su redacción se fija antes de la muestra (`08_…` §4).
@@ -142,6 +142,8 @@ Todo lo que se aparte de este guion se anota en la hoja de registro, en «Desvia
 ## 8. Piloto
 
 La primera sesión, con una persona ajena al desarrollo (código X01), sigue este guion completo y además `08_piloto_comprension.md`. Sus datos se **excluyen**.
+
+**X01 se ejecutó el 2026-10-25** (Móvil, compartida, GUION-2). Lo observado y lo que se ajusta está en `docs/evidence/F10_PILOTO_X01_2026-10-25.md`. Las correcciones producen una versión nueva de la app, que se comprueba en **otro piloto (X02)**, preferentemente con otra persona ajena al desarrollo; los datos de X01 no se recalculan ni se atribuyen a esa versión.
 
 Si el piloto obliga a cambiar una tarjeta, una pista o un instrumento:
 - se cambia;
