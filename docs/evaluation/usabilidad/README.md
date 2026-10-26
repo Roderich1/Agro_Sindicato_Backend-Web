@@ -1,10 +1,11 @@
 # Paquete de usabilidad F10 — Móvil (UX-01, MOB #37) y Web (UX-02, BE #47)
 
 - **Preparado el:** 2026-10-16 (America/La_Paz), por la sesión C de Claude Code, como material para que **Roderich** ejecute la evaluación con personas reales.
-- **Estado: no se ha ejecutado ninguna sesión.**
-  - No hay participantes reclutados ni fechas fijadas.
+- **Estado (2026-10-26): piloto X01 ejecutado el 2026-10-25 (Móvil, compartida), excluido de los resultados; ninguna sesión de la muestra final.**
+  - Registro del piloto: `docs/evidence/F10_PILOTO_X01_2026-10-25.md` (observaciones, lo guardado en el teléfono, defectos, cambio de regla del pagador y ajustes). Sus tiempos, SEQ y SUS no se publican.
+  - Las correcciones (Mobile `22e4e45`, PR pendiente de revisión) se comprueban en otro piloto, **X02**, preferentemente con otra persona ajena al desarrollo. No hay participantes reclutados ni fechas fijadas para X02 ni para la muestra.
   - Nadie fue contactado en nombre de Roderich.
-  - No hay ningún resultado.
+  - No hay ningún resultado de usabilidad.
 
 **Trazabilidad:**
 - RNF-07 (RU-13);
@@ -115,8 +116,10 @@ Se fijan **después del piloto** y **antes** de la primera sesión de la muestra
 | SEQ | SEQ-ES-1 | Propuesta (traducción de trabajo) | | |
 | SUS | SUS-ES-1 (literal + A-1, A-2) | Propuesta | | |
 | Guion y pistas | GUION-1 | Sustituida antes del piloto por GUION-2 | | |
-| Guion y pistas | **GUION-2** | Propuesta (se fija tras el piloto) | | 2026-10-19: T3 de §6 precisada (saldo total, partes por persona aparte, equivalencia L/mL) |
-| Base de código del piloto | Mobile `1d77c14` / Backend/Web `4bcb1ea`; día de sesión del preflight S = 2026-10-25 | Aprobada por Roderich el 2026-10-24; preflights Central/Web y Mobile hechos sin incompatibilidades | 2026-10-24 | Sustituye a Mobile `fd8dc7d` (`lib/` = `27c4654`) / Backend `fd6e957` (código `cab433d`). No cambia tarjetas, tareas, umbrales ni cuestionarios. Evidencias: `F10_DSUX_CENTRAL_VERIFICACION_4BCB1EA.md` (Backend) y `F10_PREFLIGHT_DSUX_1D77C14.md` (Mobile) |
+| Guion y pistas | GUION-2 | Usada en el piloto X01 (2026-10-25); sustituida por GUION-3 | | 2026-10-19: T3 de §6 precisada (saldo total, partes por persona aparte, equivalencia L/mL) |
+| Guion y pistas | **GUION-3** | Propuesta (tras el piloto X01; se fija antes de la muestra) | | 2026-10-26: la pista de T5 nombra «Enviar al sindicato», el acceso de Inicio de la versión candidata X02 (Mobile `22e4e45`). T1, T2, T4 y el resto iguales a GUION-2. Tarjetas, SEQ y SUS sin cambios propuestos desde el registro de X01 |
+| Base de código candidata para X02 | Mobile `22e4e45` (rama `fix/x01-pagador-productos-inicio`; mismo `lib/` que la rama al compilar la APK de comprobación) / Backend/Web `4bcb1ea` | Propuesta del 2026-10-26, tras X01: pendiente de revisión, integración y preflight DS-UX sobre la versión integrada | | Corrige lo observado en X01 (`F10_PILOTO_X01_2026-10-25.md`): regla del pagador (paga el titular), recorrido explícito de productos en la aplicación, Inicio con cuatro accesos y «Más». No cambia tarjetas, tareas, umbrales ni cuestionarios |
+| Base de código del piloto X01 | Mobile `1d77c14` / Backend/Web `4bcb1ea`; día de sesión del preflight S = 2026-10-25 | Aprobada por Roderich el 2026-10-24; preflights Central/Web y Mobile hechos sin incompatibilidades | 2026-10-24 | Sustituye a Mobile `fd8dc7d` (`lib/` = `27c4654`) / Backend `fd6e957` (código `cab433d`). No cambia tarjetas, tareas, umbrales ni cuestionarios. Evidencias: `F10_DSUX_CENTRAL_VERIFICACION_4BCB1EA.md` (Backend) y `F10_PREFLIGHT_DSUX_1D77C14.md` (Mobile) |
 
 ## Diccionario de los CSV
 
