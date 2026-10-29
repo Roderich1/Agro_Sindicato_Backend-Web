@@ -4,8 +4,8 @@
 |---|---|
 | Estado | **Borrador revisable de F11** (BE #53). No es un release. GATE-F11 no se evalúa con este documento |
 | Fecha de redacción | 2026-10-19 |
-| Actualización | 2026-10-24: funciones de F03, RF-13, RF-03, F07 y F08 que ve el usuario (§1.1, §1.2, §2.1, §3, §6, §7, §9.5 y §9.6) |
-| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`) |
+| Actualización | 2026-10-24: funciones de F03, RF-13, RF-03, F07 y F08 que ve el usuario (§1.1, §1.2, §2.1, §3, §6, §7, §9.5 y §9.6). 2026-10-27: bloque 2 (D-03, D-04, E-15, D-07, E-12) en §1, §1.1, §2, §3, §4, §11, §12 y §13. 2026-10-28: D-03 con anulaciones demostradas (§2, §2.1, §3 y §11), referencias de la composición probada `fb331c6` y comprobaciones en EMULADOR del bloque 2 (§1.1, §3, §4.1, §4.2, §12 y §13) |
+| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`). **Sólo las partes marcadas como bloque 2 describen el código del bloque 2**: los PR Mobile #156 (D-03, `323f393`; documentación posterior en `7a56656`), #157 (D-04, `b4b548b`), #158 (E-15, `3f70a48`), #159 (D-07, `0ea59aa`) y #160 (E-12, `f32eb97`; la rama incorpora D-07 con el merge `656c645` y documentación hasta `8718e9e`). Su composición probada es Mobile `fb331c6`. Se integraron el 2026-10-28 en Mobile `main` `186f473`, cuyo código es idéntico al de esa composición. Esas partes son: §1 (párrafo *Crear el PIN al terminar*), §1.1 (apartados *Crear el PIN durante la activación* y *Volver a la operación pendiente*, una fila de la tabla y el párrafo *Olvidé el PIN*), §2 (una viñeta), §2.1 (una viñeta), §3 (apartados de la aplicación con fecha pasada y de la transferencia), §4.1, §4.2, una viñeta de §4.3, tres límites de §11, los puntos 8 y 9 de §12 y cuatro filas de §13. **Todo lo demás sigue describiendo Mobile `1d77c14`.** **Limitación declarada:** los cambios de X01 y del bloque 1 (#149, #150–#154) **todavía no están descritos** en este manual; algunos textos y rutas de las partes no actualizadas ya no coinciden con `fb331c6` |
 | Manual técnico | [`F11_MANUAL_TECNICO.md`](F11_MANUAL_TECNICO.md) (BE #54): instalación, configuración, respaldos del servidor y recuperación |
 | Revisión | Sesión A, el recorrido de usuario. Las decisiones las toma Roderich Rendón |
 
@@ -16,6 +16,11 @@
 - **La versión `463d3ec` se probó en un teléfono el 2026-10-19:** activación, subida y restauración desde la nube, comparación de la copia y liberación de la cola (Backend `docs/evidence/F08_BKP_07_B2_ENSAYO_REAL.md` §2, POCO X5 Pro). Las demás pantallas tienen sus ensayos físicos en versiones anteriores, que se citan en cada sección. Desde `27c4654`, la app sólo cambió los rótulos de las cifras netas, la bitácora del chaco y el CSV.
 - **Las funciones añadidas el 2026-10-24** (PIN del titular, «Recuperar acceso», reversión con motivo y PIN, «Operaciones tardías», respaldo cifrado con clave de recuperación y copias previas a restauraciones) se probaron en el POCO X5 Pro el 2026-10-24, en tres rondas (Mobile `docs/evidence/F01_F08_DEVICE_COMPOSICION_2026-10-24.md`). La tercera ronda usó una composición (`8b53ad8`) cuyo código de la app (`lib/`, `android/` y `pubspec.yaml`) es igual al de `1d77c14`. La segunda difiere sólo en el aviso de «Registrar para revisión» (§2.1). Lo que quedó sin probar en el teléfono se marca **[Verificar]**.
 - **Sesión DEVICE final del 2026-10-24** (POCO X5 Pro, APK de `1d77c14`; Mobile `docs/evidence/F01_F08_DEVICE_FINAL_2026-10-24.md`, todavía sin integrar en `main`): el aviso de «Registrar para revisión» corregido, la compra tardía sin red, la reversión de una compra sin red, el rechazo `CAMPAIGN_SEALED` y la restauración en una instalación nueva con la copia cifrada desde Backblaze B2. Se citan en cada sección.
+- **Bloque 2** (D-03, D-04, E-15, D-07 y E-12): son **decisiones del autor, Roderich Rendón, del 2026-10-27**. La de D-03 se amplió el 2026-10-28 con las anulaciones demostradas, también para las operaciones tardías (decisión del autor del 2026-10-28). Sólo las partes marcadas como bloque 2 están actualizadas (ver la fila *Versión descrita* de la cabecera); el resto del manual sigue en `1d77c14`.
+  - Los textos se copiaron del `lib/` de la composición `fb331c6`.
+  - Comprobaciones: pruebas en el ordenador (Mobile `docs/evidence/F10_BLOQUE2_*.md`) y un recorrido en **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**, con datos sintéticos y un solo operador (Mobile `docs/evidence/F10_BLOQUE2_EMULADOR_2026-10-28.md`). Lo que pasó por el emulador se cita así; lo demás sigue con **[Verificar]**. Salvo las anulaciones demostradas de D-03 (APK de `fb331c6`), el recorrido usó la APK de `e5ba07c`, cuyo código de D-04, E-15, D-07 y E-12 es idéntico al de `fb331c6`.
+  - **No hubo ninguna prueba en teléfono ni evaluación con personas** para el bloque 2.
+  - Estas mejoras no forman parte de los pilotos X01 ni X02.
 
 **Capturas:**
 - **App móvil:** todas las capturas de la app que hay en el repositorio Mobile (`artifacts/ui-audit/`) son del 2026-09-05/06, anteriores a la activación, la modalidad, la sincronización, el respaldo en la nube y las cifras netas. **No se usan en este manual.** Hay que tomar capturas nuevas con datos sintéticos **[Verificar]**.
@@ -53,6 +58,8 @@ La primera vez hay que **activar en línea** con la cuenta que le dio el sindica
 
 Pulse «Confirmar titular».
 
+**Crear el PIN al terminar (bloque 2, E-12).** En una instalación nueva, justo después de «Confirmar titular», la app abre «PIN del titular» y recomienda crear el PIN **sin volver a escribir la contraseña**, porque acaba de confirmarla al activar. Es opcional: puede pulsar «Ahora no». Los pasos y los mensajes están en el primer apartado de §1.1.
+
 **Cambiar la modalidad después:**
 - Se hace en Operaciones › «Modo de uso». No borra ni reasigna registros y no necesita conexión.
 - De propio a compartido se puede siempre.
@@ -88,6 +95,48 @@ Tres cosas distintas, que no se sustituyen entre sí:
 
 Recuperar una no recupera las otras.
 
+#### Crear el PIN durante la activación (bloque 2, E-12)
+
+Decisión del autor, Roderich Rendón, del 2026-10-27. Textos de Mobile `lib/presentation/screens/owner_credential_screen.dart` y `owner_setup_screen.dart` en `fb331c6`.
+
+**Cuándo aparece:** sólo en una instalación nueva, justo después de activar en línea (§1) y de pulsar «Confirmar titular», y sólo si en este teléfono todavía no hay un PIN de ese titular. La pantalla se llama «PIN del titular» y empieza con «Titular vinculado.» y el aviso de la modalidad, por ejemplo: «Titular vinculado. Usa inventario compartido; puede cambiarlo en Operaciones › Más › Modo de uso.»
+
+**Lo que explica la app:**
+- «Le recomendamos crear ahora el PIN del titular. Con él, el titular autoriza en este teléfono, incluso sin conexión, las acciones que sólo él puede aprobar: revertir una operación o revisar una operación tardía.»
+- «Acaba de confirmar su cuenta en línea, así que ahora no hace falta volver a escribir la contraseña. Si lo deja para después, tendrá que confirmar la cuenta en línea con su correo y su contraseña.»
+- «El PIN no se guarda en el respaldo y no sirve para descifrar copias: la clave de recuperación del respaldo es otra. Tampoco reemplaza la contraseña de su cuenta.»
+
+**Crear el PIN:**
+1. «Elija un PIN de 6 dígitos que no sea una secuencia.» Escríbalo en «PIN» y en «Repita el PIN».
+2. Pulse «Crear PIN». Este paso no usa la conexión.
+3. La app confirma: «PIN del titular creado. Funciona sin conexión.» Pulse «Continuar» para ir a Inicio.
+
+Si los dos PIN no coinciden, la app dice «Los dos PIN no coinciden.» y puede volver a escribirlos.
+
+**«Ahora no»** (o el botón Atrás del teléfono): no se crea ningún PIN y la app va a Inicio con este mensaje: «Puede crear el PIN más tarde en Operaciones › Más › PIN del titular. Entonces se le pedirá confirmar su cuenta en línea.» Más tarde, el PIN se crea como se explica abajo, **con el correo, la contraseña y conexión**.
+
+**Si ya no se puede crear aquí,** la pantalla lo dice y ofrece «Continuar»:
+
+| La app dice | Por qué |
+|---|---|
+| «Ya no se puede crear el PIN con la confirmación de la activación: pasó el tiempo, salió de la aplicación o cambió la cuenta, la instalación o el titular. Puede crearlo más tarde en Operaciones › Más › PIN del titular, confirmando su cuenta en línea.» | Pasaron más de 10 minutos desde la activación, salió de la app (pantalla apagada o cambio de app) o cambió algo de la cuenta, la instalación o el titular |
+| «Ya hay un PIN del titular en este teléfono. Para cambiarlo, confirme su cuenta en línea en Operaciones › Más › PIN del titular.» | El titular ya tiene un PIN aquí. La oferta nunca sirve para cambiarlo ni para restablecerlo |
+| «No se pudo guardar el PIN. Puede crearlo más tarde en Operaciones › Más › PIN del titular, confirmando su cuenta en línea.» | Falló el guardado. No queda ningún PIN nuevo |
+
+**No aparece la oferta** si los datos son de una versión anterior y el titular se elige después desde Inicio, ni después de restaurar una copia, de «Recuperar acceso» (§1.2) o de activar con un titular ya vinculado. En esos casos, el PIN se crea con el correo y la contraseña, como siempre.
+
+**La ruta que dice la app.** Los mensajes de la oferta dicen «Operaciones › Más › PIN del titular», que es la ruta de `fb331c6`. Los pasos de abajo («Inicio › «PIN del titular»») describen `1d77c14` y no se han actualizado con X01 (limitación declarada en la cabecera).
+
+**Evidencia:**
+- Pruebas en el ordenador: Mobile `docs/evidence/F10_BLOQUE2_E12_PIN_EN_ACTIVACION.md` (2026-10-27).
+- **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**, Mobile `docs/evidence/F10_BLOQUE2_EMULADOR_2026-10-28.md`:
+  - E1: la oferta, sin campo de contraseña, y «Crear PIN» con el resultado «PIN del titular creado. Funciona sin conexión.»; el servidor no recibió ninguna petición mientras se creaba el PIN. Después, una reversión sin red autorizada con ese PIN;
+  - E2: «Ahora no» entra a Inicio sin PIN; después, configurar el PIN pidió el correo y la contraseña. El mensaje «Puede crear el PIN más tarde…» desapareció antes de poder registrarlo: **[Verificar]** ese texto en pantalla.
+- **[Verificar]** el límite de 10 minutos: puede bajar a 5 según la medición E4, que no se puede hacer sin personas.
+- **[Verificar]** todo en un teléfono.
+
+#### Configurar el PIN más tarde
+
 **Configurar el PIN** (Inicio › «PIN del titular»):
 1. La app explica: «El PIN autoriza en este teléfono, incluso sin conexión, las acciones que sólo puede aprobar el titular: revertir una operación o revisar una operación tardía. No se guarda en el respaldo y no sirve para descifrar copias: la clave de recuperación del respaldo es otra.»
 2. «Primero confirme la cuenta del titular en línea.» Escriba el «Correo» y la «Contraseña» de la cuenta del titular y pulse «Confirmar en línea». Hace falta conexión.
@@ -100,14 +149,41 @@ Recuperar una no recupera las otras.
 
 | La app dice | Qué hacer |
 |---|---|
-| «Esta acción la autoriza sólo el titular con su PIN. Configure el PIN del titular primero.» | Pulse «Configurar PIN» y siga los pasos de arriba |
+| «Esta acción la autoriza sólo el titular con su PIN. Configure el PIN del titular primero.» | Pulse «Configurar PIN» y siga los pasos de arriba. Al volver, la app retoma la operación, sin ejecutarla (ver más abajo el apartado sobre la vuelta a la operación pendiente) |
+| «Esta acción la autoriza sólo el titular con su PIN. Para habilitarla, active la aplicación, elija el titular y configure el PIN.» (bloque 2) | No hay titular vinculado. No hay botón «Configurar PIN»: active la app y elija el titular (§1) |
 | «PIN incorrecto.» | Vuelva a escribirlo |
 | «Demasiados intentos. Espere antes de volver a intentarlo.» | Tras 5 errores seguidos la app hace esperar, cada vez más |
 | «El PIN quedó bloqueado. Restablézcalo acreditando al titular en línea.» | Tras 10 errores. Vuelva a «PIN del titular», confirme la cuenta en línea y elija un PIN nuevo |
 | «No se pudo acreditar al titular en línea. …» | Revise el correo, la contraseña y la conexión, y vuelva a intentarlo |
 | «Para configurar o restablecer el PIN, la instalación debe estar activada con la sesión del titular disponible.» | Active la app o use «Recuperar acceso» (§1.2) |
 
-**Olvidé el PIN:** no hay un botón con ese nombre. Haga lo mismo que para configurarlo: «PIN del titular», «Confirmar en línea» y un PIN nuevo. El PIN anterior deja de valer. **Sin conexión no se puede restablecer.**
+**Olvidé el PIN:** no hay un botón con ese nombre. Haga lo mismo que para configurarlo: «PIN del titular», «Confirmar en línea» y un PIN nuevo. El PIN anterior deja de valer. **Sin conexión no se puede restablecer.** El bloque 2 no cambia esto: restablecer un PIN olvidado o bloqueado **sigue pidiendo el correo y la contraseña** del titular. La oferta de la activación nunca restablece un PIN que ya existe. Al restablecerlo, las autorizaciones dadas con el PIN anterior dejan de valer, también las del PIN creado al activar.
+
+#### Volver a la operación pendiente (bloque 2, E-12)
+
+Si una acción pide el PIN y todavía no lo tiene (por ejemplo, al revertir una compra o al confirmar una operación tardía), la app ofrece «Configurar PIN». Desde el bloque 2, al terminar **la app vuelve a esa operación**, pero **nunca la ejecuta sola**:
+
+1. Pulse «Configurar PIN» y créelo con el correo y la contraseña (pasos de arriba). Después pulse «Volver».
+2. La app comprueba que la operación sigue pendiente y que el titular es el mismo.
+3. Vuelve a mostrar la revisión, encabezada por «PIN del titular configurado. Revise la operación y autorícela con su PIN.»
+   - En una reversión, el motivo que ya había escrito sigue ahí y se puede cambiar.
+   - En una operación tardía, se abre directamente el diálogo del PIN con el mismo encabezado.
+4. Escriba el PIN y pulse «Autorizar». Sólo entonces se hace la operación. Con «Cancelar» no se hace nada.
+
+| La app dice | Qué pasó |
+|---|---|
+| «No se configuró el PIN. La operación no cambió.» | Volvió sin crear el PIN |
+| «Esta operación ya no está pendiente: ya fue revertida. No se hizo ningún cambio.» | Mientras configuraba el PIN, la operación cambió. En lugar de «ya fue revertida», puede decir «ya se resolvió» (operación tardía) o «ya no existe» |
+| «El titular de estos datos cambió. No se hizo ningún cambio.» | El titular ya no es el mismo |
+| «No se pudo comprobar la operación. No se hizo ningún cambio.» | La app no pudo releer la operación. Vuelva a intentarlo desde la lista |
+
+Si cierra la app mientras configura el PIN, la operación no se hace: empiece otra vez desde la lista. Con «Ver la clave» y «Cambiar la clave» del respaldo (§7.2) pasa lo mismo: se vuelve al diálogo del PIN, sin hacer nada antes de «Autorizar».
+
+**Evidencia:**
+- Pruebas en el ordenador: casos W1–W8 de Mobile `F10_BLOQUE2_E12_PIN_EN_ACTIVACION.md`.
+- **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**, caso E3: vuelta a la reversión de una compra. Apareció «PIN del titular configurado. Revise la operación y autorícela con su PIN.» con el motivo conservado, la compra no se revirtió sola y se revirtió después de escribir el PIN y pulsar «Autorizar».
+- **[Verificar]** la vuelta desde una operación tardía (el emulador no tenía ninguna campaña cerrada; sólo hay pruebas en el ordenador) y desde «Ver la clave» o «Cambiar la clave» del respaldo.
+- **[Verificar]** todo en un teléfono.
 
 **El PIN no viaja en los respaldos.** Después de restaurar una copia en otro teléfono hay que configurar un PIN nuevo en ese teléfono.
 
@@ -165,6 +241,7 @@ Al cerrar:
 - No se admiten fechas futuras.
 - Si la fecha cae fuera de la campaña activa, la app **no registra la operación** y explica por qué. Por ejemplo: «La fecha … corresponde a la campaña cerrada «…». Una operación de un período cerrado requiere revisión y no se registra en otra campaña. No se registró nada.»
 - Si la fecha es de una **campaña cerrada**, la app ofrece además registrarla **para revisión** (§2.1).
+- **Aplicaciones con fecha pasada (bloque 2, D-03):** aunque la fecha sea de la campaña activa, una aplicación con fecha anterior a hoy **sólo puede usar el producto que la persona tenía ese día y que no se usó después**. Lo comprado o recibido más tarde no cuenta. Una aplicación o una transferencia anulada por error, con una reversión que la app puede emparejar con ella, ya no lo impide (decisión del autor del 2026-10-28). Si no alcanza, la app no registra nada y explica cuánto había (§3, apartado sobre la aplicación con fecha pasada).
 
 **Lo que no se puede hacer:**
 - registrar directamente una operación en un período cerrado: sólo para revisión (§2.1);
@@ -188,6 +265,7 @@ Una compra o una aplicación que olvidó registrar y cuya fecha cae en una **cam
 - **Confirmar** (icono «Confirmar»): la app pide el PIN del titular (§1.1) en «Confirmar operación tardía». Vuelve a comprobar la campaña y las existencias de esa fecha y aplica la operación **una sola vez**, en la campaña de su fecha. El diálogo lo advierte: «Es una corrección privada: el consolidado del sindicato no cambia.» Al terminar, la app dice, por ejemplo: «Confirmada en «Pasada ensayo». Es una corrección privada de una campaña cerrada: el consolidado del sindicato (sellado o no) no se actualiza con ella.»
 - **Rechazar** (icono «Rechazar»): con el PIN, en «Rechazar operación tardía». «Rechazada sin efectos.»
 - Si no se puede confirmar, el borrador sigue pendiente y explica por qué: «Último intento: las existencias de esa fecha no alcanzan» o «Último intento: la fecha ya no corresponde a esa campaña».
+- **Operaciones anuladas por error (bloque 2, D-03; decisión del autor del 2026-10-28):** al comprobar las existencias de esa fecha, la app deja fuera, igual que en una aplicación con fecha pasada, una aplicación o una transferencia revertida cuya reversión puede emparejar con certeza (§3). Lo usado después sigue descontado y el PIN no permite confirmar si las existencias no alcanzan. **[Verificar]** en el emulador y en un teléfono: sólo hay pruebas en el ordenador.
 
 **Período histórico:** si la fecha no está en ninguna campaña, el botón «Período histórico» crea un período cerrado anterior a hoy, sin solaparse con otros: «Es un período local: nunca se publica al sindicato desde él.» Después la operación sigue el mismo recorrido de revisión.
 
@@ -228,9 +306,75 @@ En modo compartido, **sólo una persona con rol «Administrador» puede pagar al
 - **Si no hay stock suficiente, no se guarda**: «Revise las cantidades: todos los productos deben tener stock suficiente.»
 - Sin campaña activa, la app pide «Active una campaña antes de registrar aplicaciones.»
 
+**Aplicación con fecha pasada (bloque 2, D-03).** Decisión del autor, Roderich Rendón, del 2026-10-27, ampliada el 2026-10-28 para las operaciones anuladas por error.
+- Con la fecha de **hoy**, nada cambia.
+- Con una fecha **anterior a hoy**, también dentro de la campaña activa, la aplicación sólo puede usar lo que la persona **ya tenía ese día y no se usó después**:
+  - cuenta lo comprado o recibido hasta ese mismo día;
+  - no cuenta lo comprado o recibido más tarde;
+  - no cuenta lo que ya usaron aplicaciones o transferencias posteriores.
+- Vale igual para «Aplicar este plan».
+- La cifra «Disponible» del formulario es la de hoy. La existencia de la fecha elegida sólo aparece en el mensaje, al confirmar. Si hoy ya no queda nada, el formulario dice «Esta persona no tiene productos en existencia. Registra primero la compra.»
+
+**Si una operación se anuló por error** (decisión del autor del 2026-10-28). A veces una aplicación o una transferencia se registró por error y después se revirtió. Esa operación en realidad no ocurrió, así que **ya no impide registrar con fecha pasada lo que la persona sí tenía**:
+- Para calcular lo que había en una fecha pasada, la app deja fuera la operación anulada y su reversión, como si no hubieran existido. Sólo lo hace cuando puede comprobar que esa reversión anula exactamente esa operación: el mismo producto del mismo lote, la misma cantidad y la operación marcada como revertida.
+- **Si no lo puede comprobar, no deja fuera nada.** Entonces lo devuelto cuenta desde el día en que se revirtió, no desde antes.
+- La reversión de una **compra** no se deja fuera: lo comprado y revertido no vuelve a contar.
+- **Nada se borra ni se cambia.** La bitácora y los movimientos del producto siguen mostrando la operación y su reversión con sus fechas reales. Los costos ya registrados no cambian.
+- **Lo usado después no vuelve a contar.** Si después de la reversión ya se usó parte de lo devuelto, esa parte sigue descontada. Nunca se puede usar más de lo que queda hoy.
+- **El PIN no sirve para pasar por alto la falta de existencias.** Si no alcanza, no se registra, lo autorice quien lo autorice.
+- **Lo mismo vale al confirmar una operación tardía** (§2.1).
+
+Ejemplo: una aplicación de 5 L del 20/10 se registró por error y hoy se revirtió con el motivo *Registrada por error*. Ahora se puede registrar una aplicación de 5 L con fecha 19/10, con el mismo costo. Una segunda aplicación el 19/10 ya no encuentra existencias, porque esos 5 L ya se usaron.
+
+Si no alcanza, **no se registra nada** y la app nombra el producto, la fecha y lo que había. Texto de Mobile `lib/data/agro_repository.dart` (`fb331c6`); el final es siempre el mismo:
+
+| La app dice | Cuándo |
+|---|---|
+| «Bellator: el 15/10/2026 esa persona no tenía este producto; pidió 0,8 L. Una aplicación con fecha pasada sólo puede usar lo que esa persona ya tenía ese día y no se usó después: no cuenta el producto comprado o recibido más tarde. Revise la fecha o la cantidad. No se registró nada.» | Ese día la persona no tenía nada de ese producto |
+| «Bellator: el 15/10/2026 esa persona tenía 1 L; de eso quedan 0,3 L sin usar en operaciones posteriores; pidió 0,5 L. Una aplicación con fecha pasada sólo puede usar …» | Ese día lo tenía, pero operaciones posteriores ya usaron una parte. También sale cuando se dejó fuera una operación anulada y parte de lo devuelto ya se usó después; por ejemplo: «Glifosato: el 21/01/2026 esa persona tenía 10 L; de eso quedan 6 L sin usar en operaciones posteriores; pidió 8 L. …» |
+| «Bellator: el 15/10/2026 esa persona tenía 1 L; pidió 2 L. …» | Ese día lo tenía y nada posterior lo usó, pero no alcanza |
+
+En el mensaje, «tenía» es lo que había al final de ese día, ya sin las operaciones anuladas por error, y «quedan» es lo que de eso no se usó después. Producto, fechas y cantidades son de ejemplo. Con la fecha de hoy el rechazo sigue siendo «Stock insuficiente para confirmar la aplicación.»
+
+**Qué hacer:** revise la fecha o la cantidad. Si la compra existía, pero se registró con una fecha posterior, la aplicación con fecha anterior no puede usarla.
+
+**Evidencia:**
+- Pruebas en el ordenador: Mobile `docs/evidence/F10_BLOQUE2_D03_EXISTENCIA_HISTORICA.md` (2026-10-27 y, para las anulaciones demostradas, §8–§10 del 2026-10-28).
+- **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**, Mobile `docs/evidence/F10_BLOQUE2_EMULADOR_2026-10-28.md`:
+  - el rechazo «Glifosato Demo: el 15/10/2026 esa persona no tenía este producto; pidió 1 L. …», sin registrar nada. Se vio con la APK anterior a las anulaciones demostradas, cuyo mensaje es el mismo;
+  - con la APK de `fb331c6`, el ejemplo de arriba: la aplicación del 20/10 revertida y la de 5 L del 19/10 aceptada; la bitácora conserva las dos filas con sus fechas, y la segunda aplicación el 19/10 encuentra el formulario sin existencias.
+- **[Verificar]** en pantalla las variantes «tenía …; de eso quedan …» y «tenía …; pidió …»: sólo tienen pruebas en el ordenador.
+- **[Verificar]** todo en un teléfono.
+
 **Plan:**
 - Rellene «Chaco», «Área planificada (ha)» y los productos con su dosis, y pulse «Guardar planificación».
 - Cuando aplique, use «Aplicar este plan». Un plan se aplica una sola vez.
+
+**Transferencia: entrega sin deuda (bloque 2, D-07).** Decisión del autor, Roderich Rendón, del 2026-10-27. Sólo existe en modo compartido.
+- Una transferencia **entrega producto** de una persona a otra. **No crea ningún cargo ni cobro**, ni a un familiar ni a un tercero, tampoco a un tercero al que se le cobra al asignarle compras.
+- Antes de guardar, «Confirmar transferencia» muestra «De: …» y «A: …» y, justo debajo, en negrita: «Esta transferencia entrega producto a [persona], pero no genera una deuda.» Después: «Esta transferencia no registra ningún cargo ni cobro a [persona]. El costo del producto entregado sólo es de referencia, no un precio de venta.» Luego vienen los productos. Pulse «Confirmar», o «Revisar» para volver sin guardar.
+- El costo que se muestra es el de compra del producto (FIFO), **sólo de referencia**: no es un precio de venta.
+- Si quien recibe paga por lo que aplica, el cargo llega cuando aplique ese producto, como cualquier aplicación. La transferencia en sí no le carga nada.
+- No hay forma de vender, prestar ni cobrar una entrega.
+
+**Cómo se ve en el historial** (textos de Mobile `lib/domain/labels.dart`, `transfer_form_screen.dart`, `transfers_screen.dart` e `inventory_detail_screen.dart` en `fb331c6`):
+
+| Dónde | La app dice |
+|---|---|
+| «Nueva transferencia», fila de producto | «… disponibles · N lote(s) · costo de referencia …» |
+| «Transferencias», subtítulo | «Entregas de producto de una persona a otra. No generan deuda; el costo es sólo de referencia.» |
+| «Transferencias», cada fila | La fecha y los productos y, en otra línea, «Entrega sin deuda» |
+| «Transferencias», al abrir una fila | «… producto(s) · … lote(s) · costo de referencia …» y «Es el costo de compra del producto entregado, no un precio de venta. La entrega no genera deuda.» |
+| «¿Revertir esta transferencia?» | «Costo …, sólo de referencia: la transferencia no generó deuda.» y «El stock volverá a la persona de origen y ninguna cuenta cambia. Esta acción no se puede deshacer.» |
+| Detalle de un producto, «Movimientos» | La ayuda dice «Lo que explica el saldo: compras, aplicaciones, pases (entregas sin deuda) y reversiones, del más reciente al más antiguo.» «Pase a …» y «Recibido de …» llevan «· entrega sin deuda» tras la fecha y la persona; «Pase revertido: …» lleva «· sin deuda» |
+
+Ninguna cuenta cambia al transferir ni al revertir una transferencia: Cuentas e Inicio no muestran nada que cobrar por ellas.
+
+**Evidencia:**
+- Pruebas en el ordenador, con un familiar y con un tercero que paga por compra: Mobile `docs/evidence/F10_BLOQUE2_D07_TRANSFERENCIA_SIN_DEUDA.md` (2026-10-27).
+- **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**: una transferencia del titular a un familiar mostró las dos frases del aviso antes de confirmar y la lista dijo «Entrega sin deuda». No se creó ningún asiento de cuenta.
+- **[Verificar]** en pantalla el detalle de la transferencia, el diálogo de reversión y los movimientos del producto, y el caso del tercero: sólo hay pruebas en el ordenador.
+- **[Verificar]** todo en un teléfono.
 
 **Corregir un error:** no se edita ni se borra. Se **revierte**: «Revertir compra», «¿Revertir esta aplicación?», «¿Revertir esta transferencia?». La reversión no se puede deshacer, y lo revertido deja de contar en las cifras netas.
 
@@ -269,21 +413,155 @@ Si se restauró una copia de otro teléfono o se cambió el PIN después, dice �
 
 En modo compartido aparece «Distribución por persona». La «Asignación neta» de cada persona es «lo comprado para esta persona, más lo que recibió y menos lo que entregó por transferencias», y restando su consumido queda su físico. **La parte de una persona no es el total**: el total es la línea «Físico» del producto.
 
+#### 4.1 Cuentas (bloque 2: D-04 y E-15)
+
+Esta parte describe la composición Mobile `fb331c6`. D-04 y E-15 son **decisiones del autor, Roderich Rendón, del 2026-10-27**; el detalle está en Mobile `docs/architecture/D04_E15_CUENTAS_IMPUTACION_Y_COSTO_PROPIO.md`. Los textos se copiaron de Mobile `lib/domain/account_texts.dart`, `lib/presentation/screens/settlements_screen.dart`, `lib/presentation/widgets/account_statement_view.dart`, `lib/presentation/screens/dashboard_screen.dart` y `lib/domain/reports/report_composer.dart`. En los textos, «X» es un importe, por ejemplo «81,00 Bs».
+
 **Cuentas** («Liquidación y cuentas»):
 - Cargos, pagos, adelantos y saldos por persona, sin borrar el historial.
+- Arriba, «Filtrar por campaña»: empieza en la campaña activa; «Todas las campañas» las junta.
 - En el menú de una persona: «Ver detalle cronológico», «Exportar estado de cuenta», «Registrar pago» y «Registrar adelanto».
 - Los pagos al proveedor se registran desde Compras.
-- En modo propio, los pagos son sólo del titular.
+- En modo propio, los pagos son sólo del titular. A las demás personas el menú les muestra «Inventario propio: pagos sólo del titular».
+- **El titular no está en esta lista:** tiene su propia tarjeta, «Consumo y costos propios» (§4.2).
 
-**Reportes** (Operaciones › «Reportes»):
+**Pagos y adelantos sin elegir campaña.**
+- No hace falta elegir campaña para pagar. La campaña del filtro sólo indica **dónde se registra** el pago; no decide qué deuda cancela.
+- El diálogo «Registrar pago» o «Registrar adelanto» muestra:
+  - el nombre de la persona;
+  - dónde se registra: «Se registra en: Invierno 2026», o «Se registra sin campaña» si el filtro está en «Todas las campañas». Si el período de esa campaña ya terminó: «Se registra en: Verano 2026 (cerrada). En el estado cronológico aparecerá por su fecha, …» (con la fecha de hoy);
+  - el saldo de la persona: «Saldo neto · todas las campañas: debe X», «Saldo neto · todas las campañas: a favor X» o «Saldo neto · todas las campañas: al día»;
+  - «Se aplica primero a la deuda más antigua, de cualquier campaña.»
+- Escriba el «Importe BOB» y pulse «Registrar». La app dice qué deuda canceló, por ejemplo: «Pago de 50,00 Bs registrado a Familiar Demo. Imputado: Verano 2026 50,00 Bs.» Si sobra dinero, añade «Sin imputar: X (queda a favor).»
+- Pago y adelanto funcionan igual.
+
+**Imputación a la deuda más antigua.**
+- Cada pago nuevo cancela primero el cargo más antiguo que siga pendiente, de cualquier campaña: por su día y, el mismo día, por orden de registro.
+- Un pago **no** se resta entero en todas las campañas: se reparte entre los cargos que cancela.
+- No cancela cargos revertidos: un cargo revertido ya no es deuda.
+- Las imputaciones guardadas antes no cambian, aunque no sigan este orden.
+
+**Ejemplo** (Familiar Demo; Verano 2026 cerrada, Invierno 2026 activa):
+- Debe 81 Bs de Verano (15/03) y 40 Bs de Invierno (10/08).
+- Paga 50 Bs el 20/10, sin elegir campaña.
+- El pago va a la deuda más antigua: **Verano 31, Invierno 40, total 71.**
+
+| Dónde | Qué muestra |
+|---|---|
+| Cuentas, «Todas las campañas» | «Cargos 121,00 Bs · pagos aplicados 50,00 Bs», «Deuda pendiente 71,00 Bs · a favor (no aplicado a deuda) 0,00 Bs» y, a la derecha, «Saldo neto · todas las campañas» 71,00 Bs |
+| Cuentas, filtro Verano 2026 | «Cargos de Verano 2026 81,00 Bs · pagos aplicados 50,00 Bs», «Saldo neto · todas las campañas 71,00 Bs» y, a la derecha, «Deuda pendiente por origen · Verano 2026» 31,00 Bs |
+| Cuentas, filtro Invierno 2026 | «Cargos de Invierno 2026 40,00 Bs · pagos aplicados 0,00 Bs», «Saldo neto · todas las campañas 71,00 Bs» y «Deuda pendiente por origen · Invierno 2026» 40,00 Bs |
+| Detalle, «Deuda pendiente por origen (a hoy)» | «Verano 2026: cargos 81,00 Bs · pagos aplicados 50,00 Bs · pendiente 31,00 Bs», «Invierno 2026: cargos 40,00 Bs · pagos aplicados 0,00 Bs · pendiente 40,00 Bs», «Deuda pendiente total 71,00 Bs» |
+| Detalle, cronológico de Invierno 2026 | «Saldo al inicio del período (01/07/2026) 81,00 Bs»; el cargo de 40 (acumulado 121,00); el pago de 50, «registrado sin campaña», con «Imputado: Verano 2026 50,00 Bs» (acumulado 71,00); «Saldo a hoy 71,00 Bs» |
+| Inicio | «Familias por cobrar» 71,00 Bs |
+| Resumen de campaña | «Deuda pendiente por origen»: Verano 2026 31,00 Bs; Invierno 2026 40,00 Bs |
+
+Antes del bloque 2, con el filtro de Invierno, la app restaba el pago entero de Invierno y mostraba 10,00 Bs a favor, aunque esa campaña seguía debiendo 40,00 Bs.
+
+**Dos cálculos distintos, con rótulos distintos.** No se suman ni se comparan entre sí:
+
+| | «Deuda pendiente por origen» | «Estado de cuenta cronológico» |
+|---|---|---|
+| Responde a | ¿Cuánto falta pagar **hoy** de lo que se cargó en esa campaña? | ¿Cómo cambió el saldo **durante el período** de esa campaña? |
+| Qué cuenta | Los cargos de esa campaña, sus reversiones y los pagos imputados a ellos | Todos los movimientos **con fecha** dentro del período, sean de la campaña que sean o sin campaña |
+| Saldo inicial | No tiene | Sí: lo acumulado antes del inicio del período |
+| Rótulos | «Deuda pendiente por origen (a hoy)», «Deuda pendiente por origen · Invierno 2026», «Pendiente a hoy X» | «Estado de cuenta cronológico · período de Invierno 2026 (01/07/2026 – hoy)», «Saldo al inicio del período (01/07/2026)», «Saldo al cierre del período (30/06/2026)» o «Saldo a hoy» |
+
+En el cronológico manda la **fecha** del movimiento: un pago registrado en una campaña cerrada aparece en el período que corresponde a su fecha. Una operación tardía confirmada (§2.1) puede cambiar después el «Saldo al cierre del período» de su campaña. **La app no lo advierte con una leyenda.**
+
+**Crédito a favor.** Lo que no cancela ninguna deuda queda «a favor (no aplicado a deuda)», **sin campaña**:
+- lo que sobra de un pago;
+- un adelanto hecho cuando no había deudas;
+- lo que se había imputado a un cargo que después se revirtió.
+
+El crédito a favor **no se aplica solo** a cargos que lleguen después. Por eso una persona puede tener a la vez deuda por origen y crédito a favor: por ejemplo, «Deuda pendiente por origen · Invierno 2026» 300,00 Bs con saldo neto 0,00 Bs. Sólo un pago nuevo cancela deudas.
+
+En el cronológico, cada pago o adelanto dice qué pasó con él:
+
+| La app dice | Qué significa |
+|---|---|
+| «Imputado: Verano 2026 81,00 Bs · Invierno 2026 19,00 Bs» | Qué deudas canceló, por campaña de origen |
+| «sin imputar X (queda a favor, sin campaña)» | Lo que sobró de ese pago |
+| «Sin imputación registrada: X (queda a favor, sin campaña)» | No canceló ninguna deuda. También aparece en pagos antiguos sin imputación guardada: la app no inventa una |
+| «Imputado a un cargo revertido (Verano 2026, 15/03/2026): X. Queda a favor.» | Canceló un cargo que después se revirtió |
+| «Crédito sin cargo de origen registrado: X (queda a favor, sin campaña)» | Un ajuste a favor sin cargo de origen |
+
+Un cargo dice «Pendiente a hoy X», «Pagado» o «Revertido el …», y su reversión, «Revierte el cargo del …».
+
+**Qué ve en cada pantalla:**
+
+| Pantalla | Qué muestra |
+|---|---|
+| **Lista**, «Todas las campañas» | «Cargos X · revertidos X · pagos aplicados X» («revertidos» sólo si hay), «Deuda pendiente X · a favor (no aplicado a deuda) X» y, a la derecha, «Saldo neto · todas las campañas» con su importe. Sin cargos: «Sin cargos.» |
+| **Lista**, una campaña | «Cargos de [campaña] X · revertidos X · pagos aplicados X», «Saldo neto · todas las campañas X», «A favor (no aplicado a deuda) X (sin campaña)» si hay crédito y, a la derecha, «Deuda pendiente por origen · [campaña]» con su importe |
+| **Detalle** («Ver detalle cronológico»), título «Estado de cuenta · [persona]» | Primero «Deuda pendiente por origen (a hoy)»: una línea por campaña, «Deuda pendiente total X», «A favor (no aplicado a deuda) X» con su composición («pagos sin imputar X · liberado por reversión X · otros ajustes X», sólo lo que no es cero) y «Saldo neto · todas las campañas X». Después, el estado cronológico, fila por fila con su «Acumulado». Sin nada: «Sin movimientos.» |
+| **Exportación** («Exportar estado de cuenta», que abre Reportes › «Estado de cuenta») | Columnas: Fecha, Concepto, Chaco, Campaña del asiento, Cargo (Bs), Crédito (Bs), Imputación y Acumulado (Bs). Con una campaña: «Saldo al inicio del período (Bs)», «Total de cargos (Bs)», «Total de créditos (Bs)», «Saldo al cierre del período (Bs)» o «Saldo a hoy (Bs)», «Deuda pendiente por origen · [campaña] (Bs)», «A favor (no aplicado a deuda) (Bs)» y «Saldo neto · todas las campañas (Bs)». Con «Todas las campañas», en lugar de la deuda de una campaña, una fila «Deuda pendiente por origen · [campaña] (Bs)» por campaña y «Deuda pendiente total (Bs)». Ya no existe «Saldo final» |
+| **Inicio** | «Familias por cobrar» y «Terceros por cobrar» suman lo que **debe** cada persona: el crédito de una no se resta de lo que debe otra. Si alguien tiene crédito, debajo aparece «A favor de familias: X» o «A favor de terceros: X». «Pagos recibidos» y «Principales saldos» no incluyen al titular |
+| **Resumen de campaña** (Reportes, y el resumen al cerrar una campaña) | «Deuda pendiente por origen» de esa campaña, sin el titular. Antes decía «Saldo por cobrar» |
+
+**Lo que no hace:**
+- no se puede revertir un pago ni un adelanto de cuenta;
+- no reparte por su cuenta un crédito a favor entre deudas posteriores;
+- no cambia ni borra imputaciones guardadas, ni corrige datos antiguos.
+
+**Evidencia:**
+- Pruebas en el ordenador, con el ejemplo de arriba: Mobile `docs/evidence/F10_BLOQUE2_D04_IMPUTACION.md` (2026-10-27).
+- **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**, con otros datos sintéticos:
+  - la lista filtrada por campaña con «Deuda pendiente por origen · …»;
+  - un pago con «Todas las campañas»: el diálogo dijo «Se registra sin campaña» y «Se aplica primero a la deuda más antigua, de cualquier campaña.», y el mensaje fue «Pago de 10,00 Bs registrado a Familiar Demo. Imputado: Verano Demo 10,00 Bs.». El pago quedó sin campaña y con su imputación;
+  - Inicio: «Familias por cobrar» sin el titular y «Pagos recibidos» con el pago.
+- **[Verificar]** el detalle («Deuda pendiente por origen (a hoy)» y el estado cronológico), los textos del crédito a favor y el ejemplo Verano 81 / Invierno 40 / pago 50 en pantalla.
+- **[Verificar]** la exportación CSV y PDF: no se comprobó en el emulador.
+- **[Verificar]** todo en un teléfono.
+
+#### 4.2 Consumo y costos propios del titular (bloque 2, E-15)
+
+**El titular no es deudor de sí mismo.** No aparece en la lista de Cuentas, ni en «Familias por cobrar», «Pagos recibidos» o «Principales saldos» de Inicio, ni en el resumen de campaña. Sus movimientos no se borran: se muestran aparte.
+
+**Tarjeta «Consumo y costos propios»**, encima de la lista de Cuentas, con el nombre del titular:
+
+| Línea | Ejemplo | Qué es |
+|---|---|---|
+| Consumo | «Consumo aplicado (costo FIFO) · todas las campañas 81,00 Bs» (o el nombre de la campaña filtrada) | El costo de lo que el titular aplicó, sin las aplicaciones revertidas. Se calcula desde las aplicaciones, con cualquier forma de cobro: no desaparece aunque no se le anote ningún cargo. Lo que entregó por transferencia no cuenta |
+| Aplicaciones | «1 aplicación vigente · 1 revertida (81,00 Bs, no cuenta)» | Cuántas aplicaciones cuentan y cuántas se revirtieron. Sin ninguna: «Sin aplicaciones vigentes» |
+| Asientos | «Asientos en su cuenta · todas las campañas (no son deuda): cargos anotados 81,00 Bs · créditos por reversión 0,00 Bs · pagos y ajustes registrados 0,00 Bs» | Lo anotado en su cuenta, como registro. Con una campaña dice «· período de Invierno 2026 (01/07/2026 – hoy)». Sin asientos: «Sin asientos en su cuenta · todas las campañas.» |
+
+**Menú de la tarjeta:** «Ver movimientos propios», «Exportar movimientos propios», «Registrar pago» y «Registrar adelanto». El pago del titular se registra aparte y **no es un cobro**; su diálogo dice «Pago propio: se registra aparte y no es un cobro ni una deuda.» y no habla de deuda más antigua.
+
+**«Movimientos propios · [titular]»:**
+- «Consumo aplicado (costo FIFO)»: una línea por campaña (por ejemplo, «Invierno 2026: 81,00 Bs (1 aplicación)»), las «Aplicaciones revertidas: …» y «Consumo aplicado · todas las campañas X».
+- «Asientos de su cuenta (registro, no deuda)»: los movimientos por fecha, **sin «Acumulado»**, sin «Pendiente a hoy» y sin «Pagado». Un cargo revertido dice «Revertido el …». Lo que no se imputó dice «Sin imputar: X».
+
+**«Exportar movimientos propios»** abre Reportes y genera «Movimientos propios del titular»: columnas Fecha, Concepto, Chaco, Campaña del asiento, Cargo (Bs) y Crédito (Bs); totales «Consumo aplicado, costo FIFO (Bs)», «Cargos anotados (Bs)», «Créditos por reversión (Bs)» y «Pagos y ajustes registrados (Bs)».
+
+**En otras pantallas:**
+- **Personas:** la fila del titular dice «… · titular · …» y «Consumo propio X», no un saldo. Su detalle dice «… · titular · consumo propio X» y «Consumo aplicado (costo FIFO) · todas las campañas». Si una persona fue titular antes, su detalle muestra además «Consumo propio mientras fue titular».
+- **Formulario de aplicación:** para el titular, «Costo propio: X (queda anotado en la cuenta de [titular])» o «Costo propio: X». Para otra persona a la que se cobra al asignar compras: «Esta aplicación no genera cargo a [persona]: su política cobra al asignar compras.»
+- **Modo propio** con sólo el titular: la lista dice «En inventario propio no hay cuentas por cobrar.» y la tarjeta del titular se muestra igual.
+- Familiares y terceros conservan sus reglas de cobro.
+
+**Evidencia:**
+- Pruebas en el ordenador: Mobile `docs/evidence/F10_BLOQUE2_E15_CONSUMO_PROPIO.md` (2026-10-27).
+- **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**:
+  - el formulario de una aplicación del titular dijo «Costo propio: 45,00 Bs (queda anotado en la cuenta de Titular)»;
+  - Cuentas mostró la tarjeta «Consumo y costos propios» con «Consumo aplicado (costo FIFO) · …» y la línea de asientos «(no son deuda)»;
+  - Inicio no sumó al titular en «Familias por cobrar».
+- **[Verificar]** «Movimientos propios», el pago propio, Personas y el modo propio: sólo hay pruebas en el ordenador.
+- **[Verificar]** la exportación «Movimientos propios del titular»: no se comprobó en el emulador.
+- **[Verificar]** todo en un teléfono.
+
+#### 4.3 Reportes
+
+En Operaciones › «Reportes»:
 - Tipos: «Inventario», «Costo por producto», «Costo por chaco», «Resumen de campaña» y «Estado de cuenta».
+- Desde el bloque 2, el «Resumen de campaña» muestra la «Deuda pendiente por origen» y el «Estado de cuenta» tiene las columnas y los totales de §4.1. El del titular se genera como «Movimientos propios del titular» (§4.2).
 - Formatos: «CSV» para hoja de cálculo y «PDF» para imprimir.
 - **El archivo no va cifrado.** La app avisa y pide «Exportar igualmente».
 - El archivo se guarda en el teléfono, en la carpeta que indica el mensaje «Reporte guardado», dentro de `reportes/`.
 - No hay botón para compartirlo.
 - El reporte de inventario muestra físico, comprometido, proyectado y valor, pero **no** las columnas netas.
 
-**Evidencia:**
+**Evidencia del inventario y de los reportes:**
 - **Cifras netas:** hay pruebas en host (MOB #140, `76eea02`). Se vieron en pantalla en el POCO durante la preparación del piloto (2026-10-19), pero **sin evidencia versionada** **[Verificar]**.
 - **Reportes:** capturas de la serie EV2, del 2026-09, anteriores a esta versión **[Verificar]**.
 
@@ -776,7 +1054,10 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
   - envío en segundo plano;
   - cifrado de los reportes, de la exportación local («Exportar respaldo») y de las copias previas a restauraciones (sólo se cifra el respaldo en la nube);
   - recuperar la clave de recuperación del respaldo si se pierde (§7.2);
-  - restablecer el PIN sin conexión (§1.1).
+  - restablecer el PIN sin conexión (§1.1);
+  - vender, prestar o cobrar una entrega hecha por transferencia (§3, bloque 2);
+  - revertir un pago o un adelanto de cuenta, o aplicar sin un pago nuevo un crédito a favor a deudas posteriores (§4.1, bloque 2);
+  - usar, en una aplicación con fecha pasada o en una operación tardía, lo devuelto por una reversión que la app **no puede emparejar con certeza** con su operación, o por la reversión de una compra: eso cuenta desde el día en que se revirtió (§3, bloque 2). Desde la decisión del autor del 2026-10-28, una aplicación o una transferencia anulada por error, con su reversión emparejada, ya no lo impide; lo usado después sigue descontado y el PIN no permite superar las existencias.
 - **En la Web:**
   - detalle por agricultor;
   - estado de sincronización de cada agricultor;
@@ -799,7 +1080,7 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 
 1. Capturas nuevas de la app con datos sintéticos: activación, titular, modalidad, Sincronización, Respaldo en la nube, detalle de inventario con cifras netas y Reportes.
 2. Las cifras netas en un teléfono: tienen prueba en host. Se vieron en pantalla en la preparación del piloto, pero falta la evidencia versionada.
-3. Que los textos citados de la app coincidan en pantalla con la versión que se entregue. Si la APK final no es `1d77c14`, o la Web no es `4bcb1ea`, hay que releer este manual.
+3. Que los textos citados de la app coincidan en pantalla con la versión que se entregue. Si la APK final no es `1d77c14`, o la Web no es `4bcb1ea`, hay que releer este manual. Las partes del bloque 2 citan la composición probada `fb331c6` (PR Mobile #156–#160): están integrados en Mobile `main` `186f473`. Faltan todavía los cambios de X01 y del bloque 1.
 4. Las marcas **[Verificar]** del 2026-10-24:
    - espera y bloqueo del PIN;
    - aplicación tardía;
@@ -811,6 +1092,14 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 5. Capturas nuevas de las pantallas «PIN del titular», «Recuperar acceso», «Operaciones tardías» y «Clave de recuperación». **No** se puede capturar la clave: la pantalla está protegida. Para esa pantalla basta una descripción, sin la clave.
 6. Las sesiones de usabilidad T1–T6 y W1–W5 (#47, MOB #37): sus resultados pueden pedir cambios de redacción.
 7. La relectura del recorrido de usuario por la sesión A, y de las partes F03/F04 (§1.1, §1.2, §2.1 y §3) y F08 (§7) del 2026-10-24 por las sesiones A y C.
+8. Las marcas **[Verificar]** del bloque 2 que quedan después del EMULADOR 2026-10-28 (Pixel_8, sin teléfono). **Todo el bloque 2 sigue sin comprobarse en un teléfono.** En el emulador faltan:
+   - D-03: en pantalla, las variantes «tenía …; de eso quedan …» y «tenía …; pidió …», y la operación tardía con una operación anulada por error;
+   - D-04: el detalle, los textos del crédito a favor, el ejemplo Verano 81 / Invierno 40 / pago 50 y la exportación CSV y PDF;
+   - E-15: «Movimientos propios», el pago propio, Personas, el modo propio y su exportación;
+   - D-07: el detalle de la transferencia, el diálogo de reversión, los movimientos del producto y el caso del tercero;
+   - E-12: el mensaje de «Ahora no», la vuelta desde una operación tardía y desde la clave del respaldo (F08), y la medición E4, que decide si el límite baja de 10 a 5 minutos y necesita personas.
+   - Las familias de rechazo de sincronización tampoco se recorrieron en el emulador del bloque 2; las de §6 conservan sus evidencias anteriores.
+9. Capturas nuevas, con datos sintéticos, de la oferta del PIN, la tarjeta «Consumo y costos propios», el detalle de cuenta y «Confirmar transferencia».
 
 ### 13. Trazabilidad
 
@@ -825,3 +1114,7 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 | 7. Respaldos | `F08_BACKUP_THREAT_MODEL.md`; `F08_BKP_06_RETENCION.md`; Mobile `docs/adr/F08-ADR-003-respaldo-cifrado-y-previo.md` | `F08_MOBILE_RESTORE.md`, `F10_RESTORE_DEVICE.md`; Backend `F08_BKP_07_B2_ENSAYO_REAL.md`; Mobile `F08_RESPALDO_CIFRADO_HOST.md` y `F01_F08_DEVICE_COMPOSICION_2026-10-24.md` (D6–D9) y `F01_F08_DEVICE_FINAL_2026-10-24.md` (D3–D5) |
 | 8–10. Web de la Directiva | ADR-003; `F07_AGGREGATE_DISCLOSURE_POLICY.md` (propuesta); `AUTHORIZATION_MATRIX_VIGENTE.md` | `F07_WEB.md`, `F07_WEB_01.md`, `F10_COMPATIBILIDAD_WEB_S2.md`, `F10_DSUX_CENTRAL_VERIFICACION.md` |
 | 9.5–9.6. Sellado y tendencias | `F07_SEALED_HISTORY_CONTRACT.md`; F06 §7.2 (`R_COLLECTIVE_HISTORY`) | `F07_SELLADO_HISTORICO.md` (§7, recorrido Web 48/48) |
+| 1 y 1.1. PIN en la activación y vuelta a la operación pendiente (bloque 2, E-12; RF-01, RF-13, RF-03, CU-01, RNF-04) | Decisión del autor del 2026-10-27; Mobile `docs/architecture/F03_RECUPERACION_IDENTIDAD_LOCAL.md` §4 bis | Mobile `F10_BLOQUE2_E12_PIN_EN_ACTIVACION.md` (ordenador); `F10_BLOQUE2_EMULADOR_2026-10-28.md` (EMULADOR, E1–E3) |
+| 2, 2.1 y 3. Aplicación con fecha pasada y operaciones anuladas por error (bloque 2, D-03; RF-03, RF-13, CU-09) | Decisiones del autor del 2026-10-27 y del 2026-10-28 (anulaciones demostradas, también en las operaciones tardías); Mobile `F04_RF13_RF03_ACTOR_Y_TARDIAS.md` §2.3 y §2.6; `docs/15_BUSINESS_RULES.md` (precisión de la regla de stock suficiente) | Mobile `F10_BLOQUE2_D03_EXISTENCIA_HISTORICA.md` (ordenador, §8–§10 para las anulaciones demostradas); `F10_BLOQUE2_EMULADOR_2026-10-28.md` (EMULADOR) |
+| 3. Transferencia sin deuda (bloque 2, D-07; RF-11, CU-08) | Decisión del autor del 2026-10-27; Mobile `docs/15_BUSINESS_RULES.md` (regla de transferencias sin efecto contable) | Mobile `F10_BLOQUE2_D07_TRANSFERENCIA_SIN_DEUDA.md` (ordenador); `F10_BLOQUE2_EMULADOR_2026-10-28.md` (EMULADOR) |
+| 4.1–4.3. Cuentas: imputación entre campañas y consumo propio del titular (bloque 2, D-04 y E-15; RF-03, RF-06/CU-05, RF-12/CU-09, RF-13/CU-17, DAT) | Decisiones del autor del 2026-10-27; Mobile `docs/architecture/D04_E15_CUENTAS_IMPUTACION_Y_COSTO_PROPIO.md` | Mobile `F10_BLOQUE2_D04_IMPUTACION.md` y `F10_BLOQUE2_E15_CONSUMO_PROPIO.md` (ordenador); `F10_BLOQUE2_EMULADOR_2026-10-28.md` (EMULADOR) |
