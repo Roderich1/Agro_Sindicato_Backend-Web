@@ -49,11 +49,12 @@ button{font:inherit;color:inherit}
 .tabs button .ic{width:2.2em;height:1.6em;border-radius:999px;display:grid;place-items:center;font-size:1.1em}
 .tabs button[aria-current=page]{color:var(--texto);font-weight:700}
 .tabs button[aria-current=page] .ic{background:var(--primario-suave)}
-.tabs span.lbl{overflow-wrap:normal;hyphens:none;word-break:keep-all;text-align:center;line-height:1.2}
-/* Letra grande en pantalla estrecha: sólo la pestaña activa muestra su
-   etiqueta; las demás la conservan para el lector de pantalla. No se reduce
-   la letra para que quepa. */
-.phone.tight .tabs button:not([aria-current]) .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Letra grande (ajuste del 2026-10-30): las cinco etiquetas siguen visibles y con
+   su tamaño; la barra crece en altura y la etiqueta se parte por sílaba (guiones
+   blandos en el texto visible, nunca por carácter) sólo si no cabe en una línea.
+   El nombre completo va en aria-label del botón; el texto visible va aria-hidden. */
+.tabs button{align-items:center;align-self:stretch;flex:1 1 0;padding-left:1px;padding-right:1px}
+.tabs span.lbl{overflow-wrap:normal;hyphens:manual;word-break:keep-all;text-align:center;line-height:1.2;max-width:100%}
 h2.t{font-size:1.5em;line-height:1.25;margin:4px 0 4px;font-weight:700}
 .sub{color:var(--texto-2);margin:0 0 12px;line-height:1.4}
 h3.s{font-size:1.125em;margin:18px 0 8px;font-weight:700}
@@ -161,7 +162,8 @@ const $ = (s,r=document)=>r.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const chip = (t,c)=>`<span class="chip ${c}">${esc(t)}</span>`;
 
-const TABS = [["inicio","⌂","Inicio"],["productos","▤","Productos"],["cuentas","◎","Cuentas"],["sindicato","⇅","Sindicato"],["mas","⋯","Más"]];
+// [clave, icono, nombre completo (accesible), texto visible con guiones blandos por sílaba]
+const TABS = [["inicio","⌂","Inicio","Ini­cio"],["productos","▤","Productos","Pro­duc­tos"],["cuentas","◎","Cuentas","Cuen­tas"],["sindicato","⇅","Sindicato","Sin­di­ca­to"],["mas","⋯","Más","Más"]];
 
 function go(screen, tab){ st.screen=screen; if(tab) st.tab=tab; st.dlg=null; render(); }
 
@@ -374,11 +376,9 @@ function render(){
     else if (st.screen==="compra-rev") body=M.compra(true);
     else if (st.screen==="form") body=M.form(st.formKind);
     else body=M[st.screen]();
-    // ¿Caben las cinco etiquetas? «Sindicato» es la más larga (≈ 9 caracteres).
-    const slot = (+$("#w").value) / 5, needed = 0.8 * 16 * (+$("#s").value) * 0.56 * 9;
-    $("#stage").innerHTML = `<div class="phone${needed > slot - 4 ? " tight" : ""}" aria-label="Teléfono"><div class="status"><span>10:24</span><span>▮▮▮ 82 %</span></div>
+    $("#stage").innerHTML = `<div class="phone" aria-label="Teléfono"><div class="status"><span>10:24</span><span>▮▮▮ 82 %</span></div>
       <div class="screen" id="scr">${body}</div>
-      <nav class="tabs" aria-label="Pestañas">${TABS.map(t=>`<button data-tab="${t[0]}" ${st.tab===t[0]?'aria-current="page"':""}><span class="ic" aria-hidden="true">${t[1]}</span><span class="lbl">${t[2]}</span></button>`).join("")}</nav>
+      <nav class="tabs" aria-label="Pestañas">${TABS.map(t=>`<button data-tab="${t[0]}" aria-label="${t[2]}" ${st.tab===t[0]?'aria-current="page"':""}><span class="ic" aria-hidden="true">${t[1]}</span><span class="lbl" aria-hidden="true">${t[3]}</span></button>`).join("")}</nav>
       ${st.dlg?payDialog():""}
       ${st.toast?`<div role="status" style="position:absolute;left:12px;right:12px;bottom:76px;background:#1C2B1F;color:#fff;border-radius:12px;padding:12px;font-size:.875em">${esc(st.toast)}</div>`:""}
       </div>${notes}`;
