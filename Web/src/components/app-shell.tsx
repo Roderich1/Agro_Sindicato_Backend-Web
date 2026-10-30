@@ -325,10 +325,10 @@ function Header({ title, section, actions, onMenuClick, isOnline }: { title: str
             }`}
           >
             {isLoading
-              ? 'Campana...'
+              ? 'Campaña...'
               : activeCampaign
                 ? `${activeCampaign.name} · ${fmtDate(activeCampaign.startDate)}`
-                : 'Sin campana activa'}
+                : 'Sin campaña activa'}
           </Link>
           <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
@@ -492,8 +492,8 @@ export function StatusBadge({ status }: { status: string }) {
     ACTUALIZAR: { label: 'Actualizar', cls: 'bg-sky-500/10 text-sky-700 ring-sky-500/20' },
     INACTIVAR: { label: 'Inactivar', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
     ELIMINAR: { label: 'Eliminar', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    ABRIR_CAMPANA: { label: 'Abrir campana', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    CERRAR_CAMPANA: { label: 'Cerrar campana', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
+    ABRIR_CAMPANA: { label: 'Abrir campaña', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
+    CERRAR_CAMPANA: { label: 'Cerrar campaña', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
     AJUSTAR_STOCK: { label: 'Ajustar stock', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
     REGISTRAR_PAGO: { label: 'Registrar pago', cls: 'bg-blue-500/10 text-blue-700 ring-blue-500/20' },
     SINCRONIZAR: { label: 'Sincronizar', cls: 'bg-violet-500/10 text-violet-700 ring-violet-500/20' },

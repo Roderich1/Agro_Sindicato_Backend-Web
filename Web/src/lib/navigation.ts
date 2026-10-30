@@ -47,8 +47,9 @@ export function homePathFor(role: string | null | undefined): string {
 /**
  * Menú congelado de DIRECTIVA/ADMINISTRADOR, en este orden. Las pantallas
  * legacy (inventario, parcelas, aplicaciones, compras, pagos, calendario,
- * reportes, cola offline, bitácora heredada) salen del menú; siguen existiendo
- * para la transición (#81) y su exposición se revisa en F10-SEC-02 (#45).
+ * reportes, cola offline) salen del menú; siguen existiendo para la
+ * transición (#81) y su exposición se revisa en F10-SEC-02 (#45). La Bitácora
+ * (`/audit-logs`) volvió al menú el 2026-10-30 (ver abajo).
  */
 export const COLLECTIVE_MENU: readonly string[] = [
   COLLECTIVE_PATHS.summary,
@@ -65,7 +66,10 @@ export const COLLECTIVE_MENU: readonly string[] = [
   '/audit-logs',
 ];
 
-/** Grupo del menú de la Directiva: una tarea por grupo (docs/ux, §4). */
+/**
+ * Grupo del menú de la Directiva: una tarea por grupo (§4 de
+ * `docs/ux/PROPUESTA_ORGANIZACION_Y_DISENO_2026-10-30.md`, PR #171).
+ */
 export interface MenuGroup {
   title: string | null;
   paths: readonly string[];

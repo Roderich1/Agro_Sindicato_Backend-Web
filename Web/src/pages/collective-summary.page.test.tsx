@@ -149,7 +149,9 @@ describe('Resumen colectivo', () => {
     vi.mocked(collectiveService.summaryCsv).mockResolvedValue(new Blob([csv], { type: 'text/csv' }));
     const createObjectURL = vi.fn(() => 'blob:resumen');
     const revokeObjectURL = vi.fn();
+    // El stub muta el `URL` global: se retira al salir para no afectar a otras pruebas.
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     renderAt(<CollectiveSummaryPage />, { path: PATH });
     await screen.findByTestId('coverage');
     expect(collectiveService.summaryCsv).not.toHaveBeenCalled();
@@ -162,5 +164,9 @@ describe('Resumen colectivo', () => {
     expect(notice).toMatch(/lectura nueva del servidor/);
     // La pantalla no se recalcula sola con el CSV: sigue lo que se cargó.
     expect(collectiveService.summary).toHaveBeenCalledTimes(1);
+    expect(anchorClick).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:resumen'), { timeout: 2000 });
+    anchorClick.mockRestore();
+    vi.unstubAllGlobals();
   });
 });

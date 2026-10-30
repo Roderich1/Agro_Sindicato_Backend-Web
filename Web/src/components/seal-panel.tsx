@@ -63,8 +63,8 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
         <h2 className="text-base font-bold text-slate-900">Sellado de la versión colectiva</h2>
         <p className="mt-0.5 text-xs text-slate-500">
           Sellar fija una versión identificable de estos resultados para consultas históricas. No reabre ni cambia la
-          campaña, no da permisos nuevos de lectura y no hace anónimos los datos. Después de sellar no hay corrección ni
-          nueva versión en este sistema.
+          campaña, no habilita cifras reales, no da permisos nuevos de lectura y no hace anónimos los datos. Después de
+          sellar no hay corrección ni nueva versión en este sistema.
         </p>
       </div>
       {error && <Notice kind="error">{error}</Notice>}

@@ -53,7 +53,7 @@ export function QuantityCell({
 }) {
   if (status === 'POLICY_PENDING') {
     // El motivo ya lo da el aviso de la página: no se repite en cada línea.
-    return <span className="text-slate-400" aria-label={statusReason(status, threshold) ?? undefined}>—</span>;
+    return <span className="text-slate-400" title={statusReason(status, threshold) ?? undefined}>—</span>;
   }
   if (status !== 'DISCLOSED') {
     return <span className="text-xs text-slate-500">{statusReason(status, threshold)}</span>;

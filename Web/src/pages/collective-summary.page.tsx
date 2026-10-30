@@ -65,6 +65,12 @@ export function CollectiveSummaryPage() {
     if (selected) void Promise.resolve().then(() => load(selected));
   }, [selected, load]);
 
+  // El aviso de la última descarga es de una campaña: no se arrastra a otra.
+  const selectCampaign = (campaignId: string) => {
+    setCsvInfo(null);
+    select(campaignId);
+  };
+
   /**
    * Descarga el CSV que genera el servidor con una lectura nueva (misma
    * política y memoria de divulgación que abrir el resumen). No se arma en el
@@ -116,7 +122,7 @@ export function CollectiveSummaryPage() {
       }
     >
       <div className="space-y-6">
-        <CampaignPicker campaigns={campaigns} selected={selected} onSelect={select} />
+        <CampaignPicker campaigns={campaigns} selected={selected} onSelect={selectCampaign} />
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
         {csvInfo && (

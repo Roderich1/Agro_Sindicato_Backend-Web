@@ -25,8 +25,8 @@ const ACTION_OPTIONS: Array<{ value: AuditAction; label: string }> = [
   { value: 'ACTUALIZAR', label: 'Actualizar' },
   { value: 'INACTIVAR', label: 'Inactivar' },
   { value: 'ELIMINAR', label: 'Eliminar' },
-  { value: 'ABRIR_CAMPANA', label: 'Abrir campana' },
-  { value: 'CERRAR_CAMPANA', label: 'Cerrar campana' },
+  { value: 'ABRIR_CAMPANA', label: 'Abrir campaña' },
+  { value: 'CERRAR_CAMPANA', label: 'Cerrar campaña' },
   { value: 'AJUSTAR_STOCK', label: 'Ajustar stock' },
   { value: 'REGISTRAR_PAGO', label: 'Registrar pago' },
   { value: 'SINCRONIZAR', label: 'Sincronizar' },
@@ -140,8 +140,8 @@ export function AuditLogsPage() {
     <AppShell title="Bitácora" section="Trazabilidad">
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard label="Acciones visibles" value={logs.length} color="slate" />
-        <StatCard label="Con campana" value={logs.filter((log) => log.campaignId).length} color="emerald" />
-        <StatCard label="Tipos de accion" value={byAction.length} color="sky" />
+        <StatCard label="Con campaña" value={logs.filter((log) => log.campaignId).length} color="emerald" />
+        <StatCard label="Tipos de acción" value={byAction.length} color="sky" />
       </div>
 
       {error && <div className="mb-4"><Notice kind="error">{error}</Notice></div>}
@@ -206,7 +206,7 @@ export function AuditLogsPage() {
       {loading ? (
         <div className="table-container"><table className="w-full"><tbody>{Array.from({ length: 6 }).map((_, index) => <SkeletonRow key={index} cols={6} />)}</tbody></table></div>
       ) : logs.length === 0 ? (
-        <div className={cardClass}><EmptyState title="Sin acciones registradas" description="No hay datos de bitacora para los filtros seleccionados." /></div>
+        <div className={cardClass}><EmptyState title="Sin acciones registradas" description="No hay datos de bitácora para los filtros seleccionados." /></div>
       ) : (
         <div className="table-container overflow-hidden">
           <div className="overflow-x-auto">
