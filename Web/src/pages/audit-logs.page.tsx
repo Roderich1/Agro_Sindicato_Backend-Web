@@ -137,7 +137,7 @@ export function AuditLogsPage() {
     setFilters((current) => ({ ...current, [field]: value }));
 
   return (
-    <AppShell title="Bitacora" section="Trazabilidad">
+    <AppShell title="Bitácora" section="Trazabilidad">
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard label="Acciones visibles" value={logs.length} color="slate" />
         <StatCard label="Con campana" value={logs.filter((log) => log.campaignId).length} color="emerald" />
@@ -149,7 +149,7 @@ export function AuditLogsPage() {
       <div className={`${cardClass} mb-5 p-4`}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           <div>
-            <label htmlFor="audit-campaign" className={labelClass}>Campana</label>
+            <label htmlFor="audit-campaign" className={labelClass}>Campaña</label>
             <select id="audit-campaign" className={inputClass} value={filters.campaignId} onChange={(event) => setFilter('campaignId', event.target.value)}>
               <option value="">Todas</option>
               {campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
@@ -164,7 +164,7 @@ export function AuditLogsPage() {
             </select>
           </div>
           <div>
-            <label htmlFor="audit-action" className={labelClass}>Accion</label>
+            <label htmlFor="audit-action" className={labelClass}>Acción</label>
             <select id="audit-action" className={inputClass} value={filters.action} onChange={(event) => setFilter('action', event.target.value)}>
               <option value="">Todas</option>
               {ACTION_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
@@ -187,7 +187,7 @@ export function AuditLogsPage() {
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">Se muestran las ultimas 300 acciones importantes segun los filtros.</p>
+          <p className="text-xs text-slate-500">Se muestran las últimas 300 acciones importantes según los filtros.</p>
           <button type="button" className={secondaryButtonClass} onClick={() => void refresh()}>Actualizar</button>
         </div>
       </div>
@@ -214,11 +214,11 @@ export function AuditLogsPage() {
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Fecha</th>
-                  <th className="px-4 py-3">Accion</th>
+                  <th className="px-4 py-3">Acción</th>
                   <th className="px-4 py-3">Resumen</th>
                   <th className="px-4 py-3">Responsable</th>
                   <th className="px-4 py-3">Agricultor</th>
-                  <th className="px-4 py-3">Campana</th>
+                  <th className="px-4 py-3">Campaña</th>
                   <th className="px-4 py-3">Entidad</th>
                   <th className="px-4 py-3 text-right">Detalle</th>
                 </tr>
@@ -229,7 +229,7 @@ export function AuditLogsPage() {
                     <td className="px-4 py-3 text-slate-600">{fmtDate(log.createdAt)}</td>
                     <td className="px-4 py-3"><StatusBadge status={log.action} /></td>
                     <td className="max-w-sm px-4 py-3 text-slate-700">
-                      <p className="font-medium">{log.summary ?? 'Accion registrada'}</p>
+                      <p className="font-medium">{log.summary ?? 'Acción registrada'}</p>
                       <p className="mt-1 text-xs text-slate-400">{jsonPreview(log.metadata)}</p>
                     </td>
                     <td className="px-4 py-3 text-slate-600">{log.actor?.name ?? (log.actorUserId ? userNames.get(log.actorUserId) : null) ?? '-'}</td>
@@ -255,13 +255,13 @@ export function AuditLogsPage() {
           <div className="space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Resumen</p>
-              <p className="mt-1 text-sm text-slate-700">{selected.summary ?? 'Accion registrada'}</p>
+              <p className="mt-1 text-sm text-slate-700">{selected.summary ?? 'Acción registrada'}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><p className="text-xs text-slate-500">Accion</p><p className="font-semibold text-slate-800">{actionLabel(selected.action)}</p></div>
+              <div><p className="text-xs text-slate-500">Acción</p><p className="font-semibold text-slate-800">{actionLabel(selected.action)}</p></div>
               <div><p className="text-xs text-slate-500">Fecha</p><p className="font-semibold text-slate-800">{fmtDate(selected.createdAt)}</p></div>
               <div><p className="text-xs text-slate-500">Responsable</p><p className="font-semibold text-slate-800">{selected.actor?.name ?? '-'}</p></div>
-              <div><p className="text-xs text-slate-500">Campana</p><p className="font-semibold text-slate-800">{selected.campaign?.name ?? '-'}</p></div>
+              <div><p className="text-xs text-slate-500">Campaña</p><p className="font-semibold text-slate-800">{selected.campaign?.name ?? '-'}</p></div>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Antes</p><JsonBlock value={selected.before} /></div>

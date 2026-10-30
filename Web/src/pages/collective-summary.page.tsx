@@ -98,7 +98,7 @@ export function CollectiveSummaryPage() {
       section="Directiva"
       actions={
         selected ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <button type="button" className={secondaryButtonClass} onClick={() => void load(selected)} disabled={loading}>
               Actualizar
             </button>
@@ -121,10 +121,10 @@ export function CollectiveSummaryPage() {
         {error && <Notice kind="error">{error}</Notice>}
         {csvInfo && (
           <Notice kind="info">
-            CSV descargado el {fmtDateTime(csvInfo.at)}
-            {csvInfo.acceptedUntil ? ` · datos aceptados hasta ${fmtDateTime(csvInfo.acceptedUntil)}` : ''}. Es una lectura
-            nueva del servidor, con la misma política de divulgación que esta pantalla; si hubo cambios, puede diferir de
-            lo mostrado: pulse «Actualizar».
+            CSV descargado ({fmtDateTime(csvInfo.at)}
+            {csvInfo.acceptedUntil ? ` · datos aceptados hasta ${fmtDateTime(csvInfo.acceptedUntil)}` : ''}). Es una
+            lectura nueva del servidor, con la misma política de divulgación que esta pantalla; si hubo cambios, puede
+            diferir de lo mostrado: pulse «Actualizar».
           </Notice>
         )}
         {loading && <p className="text-sm text-slate-500">Cargando…</p>}

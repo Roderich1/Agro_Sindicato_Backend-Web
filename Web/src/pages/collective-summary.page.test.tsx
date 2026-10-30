@@ -154,10 +154,10 @@ describe('Resumen colectivo', () => {
     await screen.findByTestId('coverage');
     expect(collectiveService.summaryCsv).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV actualizado' }));
-    expect(await screen.findByText(/CSV descargado el/)).toBeTruthy();
+    expect(await screen.findByText(/CSV descargado \(/)).toBeTruthy();
     expect(collectiveService.summaryCsv).toHaveBeenCalledWith(CAMPAIGN.id);
     expect(createObjectURL).toHaveBeenCalledTimes(1);
-    const notice = screen.getByText(/CSV descargado el/).textContent ?? '';
+    const notice = screen.getByText(/CSV descargado \(/).textContent ?? '';
     expect(notice).toMatch(/datos aceptados hasta 29 oct/);
     expect(notice).toMatch(/lectura nueva del servidor/);
     // La pantalla no se recalcula sola con el CSV: sigue lo que se cargó.
