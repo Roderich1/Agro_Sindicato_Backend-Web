@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
 import { cell, SEAL, sealStateWith, summaryWith } from '../test/fixtures';
@@ -21,6 +21,9 @@ function httpError(status: number) {
 }
 
 describe('Resumen colectivo', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   beforeEach(() => {
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN]);
     vi.mocked(collectiveService.sealState).mockResolvedValue(

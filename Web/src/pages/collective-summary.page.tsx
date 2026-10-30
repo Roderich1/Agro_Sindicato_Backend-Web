@@ -74,6 +74,9 @@ export function CollectiveSummaryPage() {
 
   // El aviso de la última descarga es de una campaña: no se arrastra a otra.
   const selectCampaign = (campaignId: string) => {
+    // También de forma síncrona: una respuesta que llegue entre el cambio y
+    // el efecto ya encuentra la campaña nueva.
+    selectedRef.current = campaignId;
     setCsvInfo(null);
     select(campaignId);
   };
