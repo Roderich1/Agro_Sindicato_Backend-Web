@@ -5,7 +5,7 @@
 | Estado | **Borrador revisable de F11** (BE #53). No es un release. GATE-F11 no se evalúa con este documento |
 | Fecha de redacción | 2026-10-19 |
 | Actualización | 2026-10-24: funciones de F03, RF-13, RF-03, F07 y F08 que ve el usuario (§1.1, §1.2, §2.1, §3, §6, §7, §9.5 y §9.6). 2026-10-27: bloque 2 (D-03, D-04, E-15, D-07, E-12) en §1, §1.1, §2, §3, §4, §11, §12 y §13. 2026-10-28: D-03 con anulaciones demostradas (§2, §2.1, §3 y §11), referencias de la composición probada `fb331c6` y comprobaciones en EMULADOR del bloque 2 (§1.1, §3, §4.1, §4.2, §12 y §13) |
-| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`). **Sólo las partes marcadas como bloque 2 describen el código del bloque 2**: los PR Mobile #156 (D-03, `323f393`; documentación posterior en `7a56656`), #157 (D-04, `b4b548b`), #158 (E-15, `3f70a48`), #159 (D-07, `0ea59aa`) y #160 (E-12, `f32eb97`; la rama incorpora D-07 con el merge `656c645` y documentación hasta `8718e9e`). Su composición probada es Mobile `fb331c6`. Se integraron el 2026-10-28 en Mobile `main` `186f473`, cuyo código es idéntico al de esa composición. Esas partes son: §1 (párrafo *Crear el PIN al terminar*), §1.1 (apartados *Crear el PIN durante la activación* y *Volver a la operación pendiente*, una fila de la tabla y el párrafo *Olvidé el PIN*), §2 (una viñeta), §2.1 (una viñeta), §3 (apartados de la aplicación con fecha pasada y de la transferencia), §4.1, §4.2, una viñeta de §4.3, tres límites de §11, los puntos 8 y 9 de §12 y cuatro filas de §13. **Todo lo demás sigue describiendo Mobile `1d77c14`.** **Limitación declarada:** los cambios de X01 y del bloque 1 (#149, #150–#154) **todavía no están descritos** en este manual; algunos textos y rutas de las partes no actualizadas ya no coinciden con `fb331c6` |
+| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`). **Sólo las partes marcadas como bloque 2 describen el código del bloque 2**: los PR Mobile #156 (D-03, `323f393`; documentación posterior en `7a56656`), #157 (D-04, `b4b548b`), #158 (E-15, `3f70a48`), #159 (D-07, `0ea59aa`) y #160 (E-12, `f32eb97`; la rama incorpora D-07 con el merge `656c645` y documentación hasta `8718e9e`). Su composición probada es Mobile `fb331c6`. Se integraron el 2026-10-28 en Mobile `main` `186f473`, cuyo código es idéntico al de esa composición. Esas partes son: §1 (párrafo *Crear el PIN al terminar*), §1.1 (apartados *Crear el PIN durante la activación* y *Volver a la operación pendiente*, una fila de la tabla y el párrafo *Olvidé el PIN*), §2 (una viñeta), §2.1 (una viñeta), §3 (apartados de la aplicación con fecha pasada y de la transferencia), §4.1, §4.2, una viñeta de §4.3, tres límites de §11, los puntos 8 y 9 de §12 y cuatro filas de §13. **Todo lo demás sigue describiendo Mobile `1d77c14`.** **Bloque de experiencia C1** (PR Mobile #162, integrado el 2026-10-30 en Mobile `main` `7ce98c8`; decisiones del autor del 2026-10-30): sólo lo marcado como C1 lo describe: §3 (detalle de compra y fila revertida de Transferencias), §4.1 (un único «Registrar pago» e «Importe del pago») y §4.2 (menú de la tarjeta del titular). **Limitación declarada:** los cambios de X01 y del bloque 1 (#149, #150–#154) **todavía no están descritos** en este manual; algunos textos y rutas de las partes no actualizadas ya no coinciden con `fb331c6` |
 | Manual técnico | [`F11_MANUAL_TECNICO.md`](F11_MANUAL_TECNICO.md) (BE #54): instalación, configuración, respaldos del servidor y recuperación |
 | Revisión | Sesión A, el recorrido de usuario. Las decisiones las toma Roderich Rendón |
 
@@ -298,6 +298,8 @@ Una compra o una aplicación que olvidó registrar y cuya fecha cae en una **cam
 
 Si todavía no hay ningún proveedor, el selector dice «No hay opciones disponibles.» y la compra no avanza. Cree antes el proveedor en Catálogos › Proveedores.
 
+**Ver una compra (C1).** En Operaciones › «Compras», toque la tarjeta de una compra para abrir «Detalle de compra», de sólo lectura: proveedor, estado («Confirmada» o «Revertida el …» con quién la autorizó y el motivo), «Factura», «Fecha de compra», «Campaña», «Total», «Pagado al proveedor» (o «Pagado y no revertido» si está revertida), «Origen del tipo de cambio» y «Notas»; cada producto con cantidad, «Precio» (en dólares, con el tipo de cambio y su equivalente en Bs), «Subtotal» y «Para <persona>: cantidad · se cobra al aplicar» o «· cargo por compra X»; y «Pagos al proveedor» (o «No hay pagos registrados.»). Consultar no cambia nada; sólo muestra lo guardado. Si hay foto, «Ver foto de la factura».
+
 En modo compartido, **sólo una persona con rol «Administrador» puede pagar al proveedor**. Un titular creado con «Crear el titular» es «Familiar», no «Administrador».
 
 **Aplicación** («Nueva aplicación»):
@@ -364,6 +366,7 @@ En el mensaje, «tenía» es lo que había al final de ese día, ya sin las oper
 | «Nueva transferencia», fila de producto | «… disponibles · N lote(s) · costo de referencia …» |
 | «Transferencias», subtítulo | «Entregas de producto de una persona a otra. No generan deuda; el costo es sólo de referencia.» |
 | «Transferencias», cada fila | La fecha y los productos y, en otra línea, «Entrega sin deuda» |
+| «Transferencias», fila revertida (**C1**) | «Revertida», la fecha y el producto, «Entrega sin deuda» y «Autorizada por el titular con el PIN de este teléfono · <motivo>», todo en el cuerpo de la fila; a la derecha queda sólo la flecha de desplegar |
 | «Transferencias», al abrir una fila | «… producto(s) · … lote(s) · costo de referencia …» y «Es el costo de compra del producto entregado, no un precio de venta. La entrega no genera deuda.» |
 | «¿Revertir esta transferencia?» | «Costo …, sólo de referencia: la transferencia no generó deuda.» y «El stock volverá a la persona de origen y ninguna cuenta cambia. Esta acción no se puede deshacer.» |
 | Detalle de un producto, «Movimientos» | La ayuda dice «Lo que explica el saldo: compras, aplicaciones, pases (entregas sin deuda) y reversiones, del más reciente al más antiguo.» «Pase a …» y «Recibido de …» llevan «· entrega sin deuda» tras la fecha y la persona; «Pase revertido: …» lleva «· sin deuda» |
@@ -420,20 +423,21 @@ Esta parte describe la composición Mobile `fb331c6`. D-04 y E-15 son **decision
 **Cuentas** («Liquidación y cuentas»):
 - Cargos, pagos, adelantos y saldos por persona, sin borrar el historial.
 - Arriba, «Filtrar por campaña»: empieza en la campaña activa; «Todas las campañas» las junta.
-- En el menú de una persona: «Ver detalle cronológico», «Exportar estado de cuenta», «Registrar pago» y «Registrar adelanto».
+- En el menú de una persona: «Ver detalle cronológico», «Exportar estado de cuenta» y «Registrar pago». **C1:** ya no existe «Registrar adelanto»; pago y adelanto tenían la misma mecánica (RN-39). Los adelantos guardados antes siguen en el detalle cronológico como «Adelanto».
 - Los pagos al proveedor se registran desde Compras.
 - En modo propio, los pagos son sólo del titular. A las demás personas el menú les muestra «Inventario propio: pagos sólo del titular».
 - **El titular no está en esta lista:** tiene su propia tarjeta, «Consumo y costos propios» (§4.2).
 
-**Pagos y adelantos sin elegir campaña.**
+**Pagos sin elegir campaña.**
 - No hace falta elegir campaña para pagar. La campaña del filtro sólo indica **dónde se registra** el pago; no decide qué deuda cancela.
-- El diálogo «Registrar pago» o «Registrar adelanto» muestra:
+- El diálogo «Registrar pago» muestra:
   - el nombre de la persona;
   - dónde se registra: «Se registra en: Invierno 2026», o «Se registra sin campaña» si el filtro está en «Todas las campañas». Si el período de esa campaña ya terminó: «Se registra en: Verano 2026 (cerrada). En el estado cronológico aparecerá por su fecha, …» (con la fecha de hoy);
   - el saldo de la persona: «Saldo neto · todas las campañas: debe X», «Saldo neto · todas las campañas: a favor X» o «Saldo neto · todas las campañas: al día»;
-  - «Se aplica primero a la deuda más antigua, de cualquier campaña.»
-- Escriba el «Importe BOB» y pulse «Registrar». La app dice qué deuda canceló, por ejemplo: «Pago de 50,00 Bs registrado a Familiar Demo. Imputado: Verano 2026 50,00 Bs.» Si sobra dinero, añade «Sin imputar: X (queda a favor).»
-- Pago y adelanto funcionan igual.
+  - «Se aplica primero a la deuda más antigua, de cualquier campaña.»;
+  - **C1:** «Si no hay deuda, el pago queda a favor (como un adelanto).»
+- **C1:** escriba el importe en «Importe del pago» (en «Bs»; el campo empieza vacío, sin ningún ejemplo, y sólo admite un número) y pulse «Registrar». La app dice qué deuda canceló, por ejemplo: «Pago de 50,00 Bs registrado a Familiar Demo. Imputado: Verano 2026 50,00 Bs.» Si sobra dinero, añade «Sin imputar: X (queda a favor).»
+- Un adelanto guardado antes de C1 funciona igual que un pago.
 
 **Imputación a la deuda más antigua.**
 - Cada pago nuevo cancela primero el cargo más antiguo que siga pendiente, de cualquier campaña: por su día y, el mismo día, por orden de registro.
@@ -526,7 +530,7 @@ Un cargo dice «Pendiente a hoy X», «Pagado» o «Revertido el …», y su rev
 | Aplicaciones | «1 aplicación vigente · 1 revertida (81,00 Bs, no cuenta)» | Cuántas aplicaciones cuentan y cuántas se revirtieron. Sin ninguna: «Sin aplicaciones vigentes» |
 | Asientos | «Asientos en su cuenta · todas las campañas (no son deuda): cargos anotados 81,00 Bs · créditos por reversión 0,00 Bs · pagos y ajustes registrados 0,00 Bs» | Lo anotado en su cuenta, como registro. Con una campaña dice «· período de Invierno 2026 (01/07/2026 – hoy)». Sin asientos: «Sin asientos en su cuenta · todas las campañas.» |
 
-**Menú de la tarjeta:** «Ver movimientos propios», «Exportar movimientos propios», «Registrar pago» y «Registrar adelanto». El pago del titular se registra aparte y **no es un cobro**; su diálogo dice «Pago propio: se registra aparte y no es un cobro ni una deuda.» y no habla de deuda más antigua.
+**Menú de la tarjeta:** «Ver movimientos propios», «Exportar movimientos propios» y «Registrar pago» (**C1:** sin «Registrar adelanto»). El pago del titular se registra aparte y **no es un cobro**; su diálogo dice «Pago propio: se registra aparte y no es un cobro ni una deuda.» y no habla de deuda más antigua.
 
 **«Movimientos propios · [titular]»:**
 - «Consumo aplicado (costo FIFO)»: una línea por campaña (por ejemplo, «Invierno 2026: 81,00 Bs (1 aplicación)»), las «Aplicaciones revertidas: …» y «Consumo aplicado · todas las campañas X».
