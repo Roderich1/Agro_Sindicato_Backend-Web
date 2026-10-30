@@ -21,6 +21,14 @@ const seg = encodeURIComponent;
 export const collectiveService = {
   summary: (campaignId: string) =>
     api.get<CollectiveSummary>(`/collective/campaigns/${seg(campaignId)}/summary`).then((r) => r.data),
+  /**
+   * El mismo consolidado como CSV. Es una LECTURA NUEVA del servidor, con la
+   * misma política y la misma memoria de divulgación que el JSON (puede
+   * publicar o retirar cifras igual que abrir el resumen). No se construye en
+   * el navegador a partir de lo mostrado.
+   */
+  summaryCsv: (campaignId: string) =>
+    api.get<Blob>(`/collective/campaigns/${seg(campaignId)}/summary.csv`, { responseType: 'blob' }).then((r) => r.data),
   proposals: (campaignId: string) =>
     api.get<ProposalSummary[]>(`/collective/campaigns/${seg(campaignId)}/proposals`).then((r) => r.data),
   generateProposal: (campaignId: string) =>

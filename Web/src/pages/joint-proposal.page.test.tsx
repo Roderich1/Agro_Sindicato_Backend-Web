@@ -100,7 +100,9 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
     const detail = await screen.findByLabelText('Detalle del borrador');
-    expect(detail.textContent).toMatch(/no se muestran cifras/);
+    // El motivo va una vez, en el aviso de la página; cada línea sólo lleva «—».
+    expect(detail.textContent).toMatch(/Sin cifras colectivas/);
+    expect(detail.textContent).not.toMatch(/no se muestran cifras/);
     expect(detail.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
     expect(screen.queryByTestId('coverage')).toBeNull();
   });

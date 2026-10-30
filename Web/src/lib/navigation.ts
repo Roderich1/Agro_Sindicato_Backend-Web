@@ -47,17 +47,40 @@ export function homePathFor(role: string | null | undefined): string {
 /**
  * Menú congelado de DIRECTIVA/ADMINISTRADOR, en este orden. Las pantallas
  * legacy (inventario, parcelas, aplicaciones, compras, pagos, calendario,
- * reportes, cola offline, bitácora heredada) salen del menú; siguen existiendo
- * para la transición (#81) y su exposición se revisa en F10-SEC-02 (#45).
+ * reportes, cola offline) salen del menú; siguen existiendo para la
+ * transición (#81) y su exposición se revisa en F10-SEC-02 (#45). La Bitácora
+ * (`/audit-logs`) volvió al menú el 2026-10-30 (ver abajo).
  */
 export const COLLECTIVE_MENU: readonly string[] = [
   COLLECTIVE_PATHS.summary,
-  COLLECTIVE_PATHS.proposals,
   COLLECTIVE_PATHS.coverage,
+  COLLECTIVE_PATHS.proposals,
   COLLECTIVE_PATHS.trends,
   COLLECTIVE_PATHS.reconciliation,
   '/campaigns',
   '/users',
+  // Bloque de experiencia (2026-10-30, decisión de Roderich): la Bitácora entra
+  // en el menú para los roles que ya la tenían permitida (RoleRoute DIRECTIVA y
+  // ADMINISTRADOR); no se amplía ningún permiso. El Calendario sigue fuera: su
+  // GET crea eventos (docs/ux/NOTA_CALENDARIO_2026-10-30.md).
+  '/audit-logs',
+];
+
+/**
+ * Grupo del menú de la Directiva: una tarea por grupo (§4 de
+ * `docs/ux/PROPUESTA_ORGANIZACION_Y_DISENO_2026-10-30.md`, PR #171).
+ */
+export interface MenuGroup {
+  title: string | null;
+  paths: readonly string[];
+}
+
+export const COLLECTIVE_MENU_GROUPS: readonly MenuGroup[] = [
+  { title: 'Resumen', paths: [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.coverage] },
+  { title: 'Necesidades y propuestas', paths: [COLLECTIVE_PATHS.proposals] },
+  { title: 'Histórico y tendencias', paths: [COLLECTIVE_PATHS.trends] },
+  { title: 'Equivalencias', paths: [COLLECTIVE_PATHS.reconciliation] },
+  { title: 'Administración', paths: ['/campaigns', '/users', '/audit-logs'] },
 ];
 
 /** Rutas legacy del menú del AGRICULTOR; sólo con el flag de rollback. */
@@ -80,4 +103,18 @@ export function menuPathsFor(role: string | null | undefined): readonly string[]
     return COLLECTIVE_MENU.filter((path) => path !== '/users' || role === 'ADMINISTRADOR');
   }
   return legacyFarmerWebEnabled() ? LEGACY_MENU : [];
+}
+
+/**
+ * Menú agrupado de un rol: los mismos caminos que `menuPathsFor`, en grupos
+ * para la Directiva y el Administrador, y en un único grupo sin título para el
+ * menú legacy. Un grupo sin caminos permitidos no se muestra.
+ */
+export function menuGroupsFor(role: string | null | undefined): readonly MenuGroup[] {
+  const allowed = menuPathsFor(role);
+  if (allowed.length === 0) return [];
+  if (!isCollectiveRole(role)) return [{ title: null, paths: allowed }];
+  return COLLECTIVE_MENU_GROUPS.map((group) => ({ ...group, paths: group.paths.filter((path) => allowed.includes(path)) })).filter(
+    (group) => group.paths.length > 0,
+  );
 }

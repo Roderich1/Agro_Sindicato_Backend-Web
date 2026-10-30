@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppShell, EmptyState, Notice, secondaryButtonClass } from '../components/app-shell';
 import {
   CampaignPicker,
@@ -12,6 +12,7 @@ import {
 import { SealPanel } from '../components/seal-panel';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { latestDataAsOf } from '../lib/summary-csv';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveSummary, ProjectionType, SummaryCell } from '../types/collective';
 
@@ -41,6 +42,17 @@ export function CollectiveSummaryPage() {
   const [loading, setLoading] = useState(false);
   // Cambia en cada recarga para que el panel de sellado relea su estado.
   const [reloads, setReloads] = useState(0);
+  const [csvBusy, setCsvBusy] = useState(false);
+  // Última descarga: de qué campaña, cuándo se hizo y la fecha más reciente de
+  // «datos aceptados hasta» entre las cifras del CSV (la descarga es una
+  // lectura nueva). El aviso sólo se muestra para esa campaña.
+  const [csvInfo, setCsvInfo] = useState<{ campaignId: string; at: string; acceptedUntil: string | null } | null>(null);
+  // Campaña en pantalla en cada momento: una respuesta que llega después de
+  // cambiar de campaña no coloca su aviso ni su error en la vista de otra.
+  const selectedRef = useRef(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
 
   const load = useCallback(async (campaignId: string) => {
     setLoading(true);
@@ -60,22 +72,81 @@ export function CollectiveSummaryPage() {
     if (selected) void Promise.resolve().then(() => load(selected));
   }, [selected, load]);
 
+  // El aviso de la última descarga es de una campaña: no se arrastra a otra.
+  const selectCampaign = (campaignId: string) => {
+    // También de forma síncrona: una respuesta que llegue entre el cambio y
+    // el efecto ya encuentra la campaña nueva.
+    selectedRef.current = campaignId;
+    setCsvInfo(null);
+    select(campaignId);
+  };
+
+  /**
+   * Descarga el CSV que genera el servidor con una lectura nueva (misma
+   * política y memoria de divulgación que abrir el resumen). No se arma en el
+   * navegador con lo que hay en pantalla: una cifra retirada no se exporta.
+   */
+  const downloadCsv = async (campaignId: string) => {
+    setCsvBusy(true);
+    setError(null);
+    try {
+      const blob = await collectiveService.summaryCsv(campaignId);
+      const text = await blob.text();
+      // La petición era de otra campaña: se descarta sin tocar la vista actual.
+      if (selectedRef.current !== campaignId) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resumen-colectivo-${campaignId.slice(0, 8)}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setCsvInfo({ campaignId, at: new Date().toISOString(), acceptedUntil: latestDataAsOf(text) });
+    } catch (err) {
+      if (selectedRef.current !== campaignId) return;
+      setError(collectiveError(err, 'No fue posible descargar el CSV.'));
+    } finally {
+      setCsvBusy(false);
+    }
+  };
+
   return (
     <AppShell
       title="Resumen colectivo"
       section="Directiva"
       actions={
         selected ? (
-          <button type="button" className={secondaryButtonClass} onClick={() => void load(selected)} disabled={loading}>
-            Actualizar
-          </button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" className={secondaryButtonClass} onClick={() => void load(selected)} disabled={loading}>
+              Actualizar
+            </button>
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={() => void downloadCsv(selected)}
+              disabled={loading || csvBusy}
+              title="Lectura nueva del servidor, con la misma política de divulgación que esta pantalla"
+            >
+              Descargar CSV actualizado
+            </button>
+          </div>
         ) : undefined
       }
     >
       <div className="space-y-6">
-        <CampaignPicker campaigns={campaigns} selected={selected} onSelect={select} />
+        <CampaignPicker campaigns={campaigns} selected={selected} onSelect={selectCampaign} />
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
+        {csvInfo && csvInfo.campaignId === selected && (
+          <Notice kind="info">
+            CSV descargado ({fmtDateTime(csvInfo.at)}). Es una lectura nueva del servidor, con la misma política de
+            divulgación que esta pantalla; si hubo cambios, puede diferir de lo mostrado: pulse «Actualizar».
+            {csvInfo.acceptedUntil
+              ? ` La cifra más reciente del CSV incluye datos aceptados hasta ${fmtDateTime(csvInfo.acceptedUntil)}; no significa que todos los agricultores hayan publicado hasta esa fecha.`
+              : ''}
+          </Notice>
+        )}
         {loading && <p className="text-sm text-slate-500">Cargando…</p>}
         {summary && !loading && <SummaryBody summary={summary} />}
         {selected && summary && !loading && !summary.seal && (
