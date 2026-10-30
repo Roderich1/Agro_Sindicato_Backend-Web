@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipo Agrocuentas</title>
+<!--
+  Prototipo navegable de la propuesta de organización y diseño (2026-10-30).
+  Datos sintéticos. No se conecta a ningún servidor ni guarda nada.
+  Ver ../PROPUESTA_ORGANIZACION_Y_DISENO_2026-10-30.md
+-->
+<style>
+:root{
+  /* Tokens §5 de la propuesta: los mismos en Mobile y Web. */
+  --primario:#2F6B3A; --primario-oscuro:#0F1D15; --primario-suave:#DCEDD9;
+  --fondo:#F7F7F1; --superficie:#FFFFFF; --texto:#1C2B1F; --texto-2:#4F5D52; --borde:#D5DACF;
+  --ok:#2E7D32; --ok-bg:#E6F2E6; --pend:#7A4F00; --pend-bg:#FFF2D6;
+  --err:#B3261E; --err-bg:#FCE8E6; --info:#1E5A8A; --info-bg:#E5F0FA;
+  --neutro:#4F5D52; --neutro-bg:#ECEFE8;
+  --r-card:16px; --r-ctl:12px;
+  --scale:1; --frame-w:360px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#E9ECE4;color:var(--texto);font-family:Roboto,"Segoe UI",system-ui,sans-serif}
+button{font:inherit;color:inherit}
+.toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;
+  padding:12px 16px;background:var(--primario-oscuro);color:#fff}
+.toolbar h1{font-size:16px;margin:0 8px 0 0;font-weight:700}
+.toolbar label{font-size:14px;display:flex;gap:6px;align-items:center}
+.toolbar select{font:inherit;font-size:14px;padding:4px 6px;border-radius:8px;border:0}
+.seg{display:inline-flex;border:1px solid #ffffff55;border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;color:#fff;padding:6px 14px;font-size:14px;cursor:pointer}
+.seg button[aria-pressed=true]{background:#fff;color:var(--primario-oscuro);font-weight:700}
+.stage{display:flex;flex-wrap:wrap;gap:24px;padding:24px 16px;justify-content:center;align-items:flex-start}
+.notes{max-width:420px;flex:1 1 300px;background:#fff;border-radius:var(--r-card);padding:16px 20px;font-size:15px;line-height:1.5}
+.notes h2{font-size:17px;margin:0 0 8px}
+.notes h3{font-size:14px;margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em;color:var(--texto-2)}
+.notes ul{margin:0;padding-left:18px}
+.notes .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--info-bg);color:var(--info)}
+
+/* ---------- Teléfono ---------- */
+.phone{hyphens:auto;overflow-wrap:break-word;width:var(--frame-w);max-width:100%;height:760px;background:var(--fondo);border:10px solid #1b1f1c;border-radius:34px;
+  overflow:hidden;display:flex;flex-direction:column;position:relative;font-size:calc(16px * var(--scale))}
+.status{height:24px;flex:none;background:var(--fondo);font-size:12px;display:flex;justify-content:space-between;padding:4px 16px;color:var(--texto-2)}
+.screen{flex:1;overflow-y:auto;padding:12px 16px 24px}
+.tabs{flex:none;display:flex;background:#fff;border-top:1px solid var(--borde)}
+.tabs button{flex:1;border:0;background:none;padding:6px 2px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:.8em;min-width:0;cursor:pointer;color:var(--texto-2)}
+.tabs button .ic{width:2.2em;height:1.6em;border-radius:999px;display:grid;place-items:center;font-size:1.1em}
+.tabs button[aria-current=page]{color:var(--texto);font-weight:700}
+.tabs button[aria-current=page] .ic{background:var(--primario-suave)}
+.tabs span.lbl{overflow-wrap:normal;hyphens:none;word-break:keep-all;text-align:center;line-height:1.2}
+/* Letra grande en pantalla estrecha: sólo la pestaña activa muestra su
+   etiqueta; las demás la conservan para el lector de pantalla. No se reduce
+   la letra para que quepa. */
+.phone.tight .tabs button:not([aria-current]) .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h2.t{font-size:1.5em;line-height:1.25;margin:4px 0 4px;font-weight:700}
+.sub{color:var(--texto-2);margin:0 0 12px;line-height:1.4}
+h3.s{font-size:1.125em;margin:18px 0 8px;font-weight:700}
+.card{background:var(--superficie);border-radius:var(--r-card);padding:14px 16px;margin-bottom:12px;border:1px solid transparent}
+.card.tap{cursor:pointer;display:block;width:100%;text-align:left;border:1px solid var(--borde)}
+.card.tap:hover{border-color:var(--primario)}
+.row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.row > .grow{flex:1 1 10em;min-width:0}
+.amt{font-weight:800;font-size:1.25em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.meta{color:var(--texto-2);font-size:.8125em;line-height:1.4}
+.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(9em,1fr));gap:12px;margin:8px 0 4px}
+.btn{border-radius:var(--r-ctl);min-height:48px;padding:10px 16px;border:1px solid var(--borde);background:#fff;cursor:pointer;font-weight:600;font-size:.875em;line-height:1.25}
+.btn.pri{background:var(--primario);border-color:var(--primario);color:#fff}
+.btn.big1{min-height:72px;font-size:1em;display:flex;align-items:center;gap:10px;justify-content:flex-start;text-align:left}
+.btn.txt{border:0;background:none;color:var(--primario)}
+.btn.dan{border-color:var(--err);color:var(--err)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:.8125em;font-weight:600;line-height:1.3}
+.ok{background:var(--ok-bg);color:var(--ok)} .pend{background:var(--pend-bg);color:var(--pend)}
+.err{background:var(--err-bg);color:var(--err)} .info{background:var(--info-bg);color:var(--info)}
+.neu{background:var(--neutro-bg);color:var(--neutro)}
+.notice{border-radius:var(--r-ctl);padding:10px 12px;margin:8px 0 12px;line-height:1.4;font-size:.875em}
+.field{display:block;margin:14px 0}
+.field label{display:block;font-size:.875em;font-weight:600;margin-bottom:4px}
+.input{display:flex;align-items:center;border:1px solid var(--texto-2);border-radius:var(--r-ctl);background:#fff;padding:0 12px;min-height:52px}
+.input input{flex:1;border:0;outline:0;font:inherit;font-size:1em;background:none;min-width:0;padding:12px 0}
+.input .suf{color:var(--texto-2);font-weight:600;padding-left:8px}
+.input:focus-within{border-color:var(--primario);box-shadow:0 0 0 2px var(--primario-suave)}
+.ferr{color:var(--err);font-size:.8125em;margin-top:4px;line-height:1.4}
+.segs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+.segs button{border:1px solid var(--borde);background:#fff;border-radius:999px;padding:6px 14px;font-size:.875em;cursor:pointer}
+.segs button[aria-pressed=true]{background:var(--primario-suave);border-color:var(--primario);font-weight:700}
+.kv{margin:0 0 6px;line-height:1.45}.kv b{font-weight:600}.kv span{color:var(--texto-2)}
+.mv{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--borde)}
+.mv:first-child{border-top:0}
+.mv .q{margin-left:auto;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.back{border:0;background:none;font-size:1em;cursor:pointer;padding:4px 0;color:var(--primario);font-weight:600}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:8px;margin:8px 0}
+.scrim{position:absolute;inset:0;background:#0006;display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.dialog{background:#fff;border-radius:var(--r-card);width:100%;max-height:100%;overflow:auto;padding:18px}
+.dialog h4{font-size:1.25em;margin:0 0 8px}
+.dlgact{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;position:sticky;bottom:-18px;background:#fff;padding:10px 0 0}
+
+/* ---------- Web ---------- */
+.web{width:min(1180px,100%);background:#fff;border-radius:14px;overflow:hidden;display:flex;min-height:720px;
+  font-family:Inter,"Segoe UI",system-ui,sans-serif;font-size:calc(15px * var(--scale));border:1px solid var(--borde)}
+.side{width:15em;flex:none;background:var(--primario-oscuro);color:#DCE6DE;padding:16px 10px}
+.side .brand{font-weight:800;color:#fff;padding:4px 10px 14px;font-size:1.05em}
+.side .grp{font-size:.8125em;text-transform:uppercase;letter-spacing:.06em;color:#9DB3A3;margin:14px 10px 4px}
+.side button{display:block;width:100%;text-align:left;border:0;background:none;color:inherit;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:.9375em}
+.side button[aria-current=page]{background:#ffffff1f;color:#fff;font-weight:700}
+.side button[disabled]{opacity:.55;cursor:default}
+.main{flex:1;min-width:0;background:var(--fondo);padding:20px 24px}
+.main h2{font-size:1.5em;margin:0 0 4px}
+.wcard{background:#fff;border-radius:var(--r-card);padding:16px 18px;margin:12px 0;border:1px solid var(--borde)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{text-align:left;font-size:.8125em;color:var(--texto-2);font-weight:700;padding:8px;border-bottom:1px solid var(--borde)}
+td{padding:10px 8px;border-bottom:1px solid #EEF0EA;vertical-align:top;line-height:1.4}
+.tw{overflow-x:auto}
+@media (max-width:760px){.web{flex-direction:column}.side{width:auto}}
+</style>
+</head>
+<body>
+<div class="toolbar" role="toolbar" aria-label="Controles del prototipo">
+  <h1>Prototipo Agrocuentas</h1>
+  <div class="seg" role="group" aria-label="Plataforma">
+    <button id="vMob" aria-pressed="true">Móvil</button><button id="vWeb" aria-pressed="false">Web Directiva</button>
+  </div>
+  <label>Ancho del teléfono <select id="w"><option>320</option><option selected>360</option><option>412</option></select> dp</label>
+  <label>Letra <select id="s"><option value="1">100 %</option><option value="1.3">130 %</option><option value="2">200 %</option></select></label>
+  <span style="font-size:13px;opacity:.85">Datos sintéticos · no guarda nada</span>
+</div>
+<main class="stage" id="stage"></main>
+
+<script>
+"use strict";
+// ---------------- Datos sintéticos ----------------
+const D = {
+  campaign: "Verano 2026", period: "15/09/2026 – 31/12/2026",
+  products: [
+    {id:"gli", name:"Glifosato Demo", unit:"L", total:"6 L", by:[["Titular · Rosa Mamani","4 L"],["Juan Mamani","2 L"]],
+     mov:[["29/10","Compra · Agroquímicos del Valle","+4 L"],["28/10","Uso en Chaco Norte (Rosa)","−2 L"],
+          ["20/10","Pase a Juan · revertido","±1 L"],["12/10","Compra · Agroquímicos del Valle","+4 L"]]},
+    {id:"bel", name:"Bellator", unit:"L", total:"0,5 L", by:[["Titular · Rosa Mamani","0,5 L"]],
+     mov:[["25/10","Uso en Chaco Sur (Rosa)","−0,5 L"],["12/10","Compra · Agroquímicos del Valle","+1 L"]]},
+    {id:"man", name:"Mancozeb Demo", unit:"kg", total:"3 kg", by:[["Titular · Rosa Mamani","2 kg"],["Don Carlos (tercero)","1 kg"]],
+     mov:[["29/10","Compra · Agroquímicos del Valle (USD)","+3 kg"]]}
+  ],
+  recent: [
+    {k:"Compra", t:"Agroquímicos del Valle · F-1029", m:"29/10 · 2 productos", a:"222,72 Bs", st:["Confirmada","ok"], go:"compra"},
+    {k:"Uso", t:"Chaco Norte · Rosa", m:"28/10 · Glifosato Demo 2 L", a:"90,00 Bs", st:["Confirmada","ok"]},
+    {k:"Pago", t:"Juan Mamani", m:"27/10 · Imputado a Verano 2026", a:"50,00 Bs", st:["Registrado","ok"]},
+    {k:"Pase", t:"Rosa → Juan", m:"20/10 · Glifosato Demo 1 L · entrega sin deuda", a:"", st:["Revertida","neu"]}
+  ],
+  people: [
+    {n:"Juan Mamani", r:"Familiar", line:"Cargos Verano 2026: 131,00 Bs", net:"Debe 81,00 Bs", cls:"pend"},
+    {n:"Don Carlos Gutiérrez", r:"Tercero · cobro por compra", line:"Cargo por compra 30,00 Bs", net:"Debe 30,00 Bs", cls:"pend"},
+    {n:"María Fernanda Quispe Mamani", r:"Familiar", line:"Pago sin deuda", net:"A favor 20,00 Bs", cls:"ok"}
+  ]
+};
+
+// ---------------- Estado y utilidades ----------------
+const st = {view:"mob", tab:"inicio", screen:"inicio", product:"gli", recSeg:"compras", prodSeg:"productos",
+            dlg:null, amount:"", amountErr:"", web:"resumen", toast:""};
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const chip = (t,c)=>`<span class="chip ${c}">${esc(t)}</span>`;
+
+const TABS = [["inicio","⌂","Inicio"],["productos","▤","Productos"],["cuentas","◎","Cuentas"],["sindicato","⇅","Sindicato"],["mas","⋯","Más"]];
+
+function go(screen, tab){ st.screen=screen; if(tab) st.tab=tab; st.dlg=null; render(); }
+
+// ---------------- Pantallas móviles ----------------
+const M = {
+  inicio(){ return `
+    <h2 class="t">Inicio</h2>
+    <p class="sub">${chip("Campaña activa: "+D.campaign,"ok")} <span class="meta">${D.period}</span></p>
+    <div class="big">
+      <button class="btn pri big1" data-act="form:compra"><span aria-hidden="true">＋</span>Registrar compra</button>
+      <button class="btn pri big1" data-act="form:uso"><span aria-hidden="true">＋</span>Registrar uso<br><span style="font-weight:400;font-size:.85em">(aplicación)</span></button>
+    </div>
+    <h3 class="s">Cuánto queda</h3>
+    ${D.products.map(p=>`<button class="card tap" data-go="producto:${p.id}"><div class="row"><div class="grow"><b>${esc(p.name)}</b>
+      <div class="meta">${p.by.map(b=>esc(b[0]+": "+b[1])).join(" · ")}</div></div><div class="amt">${esc(p.total)}</div></div></button>`).join("")}
+    <h3 class="s">Registros recientes</h3>
+    ${D.recent.map(r=>`<${r.go?'button class="card tap" data-go="'+r.go+'"':'div class="card"'}><div class="row"><div class="grow">
+      <div class="meta">${esc(r.k)}</div><b>${esc(r.t)}</b><div class="meta">${esc(r.m)}</div></div>
+      <div style="text-align:right">${r.a?`<div class="amt" style="font-size:1em">${esc(r.a)}</div>`:""}${chip(r.st[0],r.st[1])}</div></div></${r.go?"button":"div"}>`).join("")}
+    `;},
+
+  productos(){
+    const seg = `<div class="segs" role="group" aria-label="Vista">
+      <button aria-pressed="${st.prodSeg==="productos"}" data-pseg="productos">Productos</button>
+      <button aria-pressed="${st.prodSeg==="registros"}" data-pseg="registros">Registros</button></div>`;
+    if (st.prodSeg==="registros") return `<h2 class="t">Productos</h2>${seg}
+      <div class="segs" role="group" aria-label="Tipo de registro">${["compras","aplicaciones","pases","planes"].map(k=>
+        `<button aria-pressed="${st.recSeg===k}" data-rseg="${k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join("")}</div>
+      ${st.recSeg==="compras" ? `
+        <button class="btn" data-act="form:compra">＋ Nueva compra</button><div style="height:12px"></div>
+        <button class="card tap" data-go="compra"><div class="row"><div class="grow"><b>Agroquímicos del Valle · F-1029</b>
+          <div class="meta">Verano 2026 · 29/10/2026 · 2 productos · pagado 100,00 Bs</div></div><div style="text-align:right"><div class="amt" style="font-size:1em">222,72 Bs</div>${chip("Confirmada","ok")}</div></div></button>
+        <button class="card tap" data-go="compra-rev"><div class="row"><div class="grow"><b>Agroquímicos del Valle · F-1012</b>
+          <div class="meta">Verano 2026 · 12/10/2026 · 1 producto</div></div><div style="text-align:right"><div class="amt" style="font-size:1em">45,00 Bs</div>${chip("Revertida","neu")}</div></div></button>
+        <p class="meta">Tocar una compra abre su detalle (sólo lectura). Pagar y revertir siguen en el menú ⋮ de la tarjeta.</p>`
+      : `<div class="card"><p class="meta" style="margin:0">Mismo listado que hoy en Operaciones › ${st.recSeg}. Sin cambios de contenido en el prototipo.</p></div>`}`;
+    return `<h2 class="t">Productos</h2><p class="sub">Lo que hay de cada producto y lo que se hizo con él.</p>${seg}
+      ${D.products.map(p=>`<button class="card tap" data-go="producto:${p.id}"><div class="row"><div class="grow"><b>${esc(p.name)}</b>
+        <div class="meta">${p.by.map(b=>esc(b[0]+": "+b[1])).join(" · ")}</div></div><div class="amt">${esc(p.total)}</div></div></button>`).join("")}`;
+  },
+
+  producto(){
+    const p = D.products.find(x=>x.id===st.product);
+    return `<button class="back" data-go="productos">← Productos</button>
+    <h2 class="t">${esc(p.name)}</h2>
+    <div class="card"><div class="meta">Queda en total</div><div class="amt" style="font-size:1.6em">${esc(p.total)}</div>
+      ${p.by.map(b=>`<div class="kv"><span>${esc(b[0])}:</span> <b>${esc(b[1])}</b></div>`).join("")}</div>
+    <div class="actions">
+      <button class="btn pri" data-act="form:compra:${p.id}">Comprar</button>
+      <button class="btn pri" data-act="form:uso:${p.id}">Registrar uso</button>
+      <button class="btn" data-act="form:pase:${p.id}">Pasar a otra persona</button>
+      <button class="btn" data-act="form:plan:${p.id}">Planificar</button>
+    </div>
+    <p class="meta">El formulario se abre con «Producto: ${esc(p.name)} · Cambiar» a la vista. Nada más se elige solo.</p>
+    <h3 class="s">Movimientos</h3>
+    <div class="card">${p.mov.map(m=>`<div class="mv"><span class="meta" style="min-width:3em">${esc(m[0])}</span><span>${esc(m[1])}</span><span class="q">${esc(m[2])}</span></div>`).join("")}</div>`;
+  },
+
+  compra(rev){ return `<button class="back" data-go="${st.tab==="inicio"?"inicio":"productos"}">← Volver</button>
+    <h2 class="t">Detalle de compra</h2>
+    <div class="card"><div style="font-size:1.25em;font-weight:700">Comercializadora Agroquímica del Valle Alto S.R.L.</div>
+      <p>${rev?chip("↩ Revertida","neu"):chip("✓ Confirmada","ok")}</p>
+      <p class="kv"><span>Factura:</span> <b>${rev?"F-1012":"F-1029"}</b></p>
+      <p class="kv"><span>Fecha de compra:</span> <b>${rev?"12/10/2026":"29/10/2026"}</b></p>
+      <p class="kv"><span>Campaña:</span> <b>Verano 2026</b></p>
+      <p class="kv"><span>Total:</span> <b>${rev?"45,00 Bs":"222,72 Bs"}</b></p>
+      <p class="kv"><span>${rev?"Pagado y no revertido":"Pagado al proveedor"}:</span> <b>${rev?"0,00 Bs":"100,00 Bs"}</b></p>
+      ${rev?`<p class="kv"><span>Revertida el:</span> <b>14/10/2026</b></p>
+      <p class="meta">Autorizada por el titular con el PIN de este teléfono · Factura duplicada: el proveedor la emitió dos veces</p>`
+      :`<p class="kv"><span>Origen del tipo de cambio:</span> <b>Acordado con el proveedor</b></p>
+      <p class="kv"><span>Notas:</span> <b>Entregado en la comunidad</b></p>
+      <button class="btn">Ver foto de la factura</button>`}
+    </div>
+    <div class="card"><h3 class="s" style="margin-top:0">${rev?"1 producto":"2 productos"}</h3>
+      <b>Glifosato Demo · ${rev?"1 L":"4 L"}</b>
+      <p class="kv"><span>Precio:</span> <b>45,00 Bs por L</b></p>
+      <p class="kv"><span>Subtotal:</span> <b>${rev?"45,00 Bs":"180,00 Bs"}</b></p>
+      ${rev?`<p class="kv"><span>Para Titular:</span> <b>1 L · se cobra al aplicar</b></p>`:
+      `<p class="kv"><span>Para Titular:</span> <b>3 L · se cobra al aplicar</b></p>
+      <p class="kv"><span>Para Don Carlos Gutiérrez:</span> <b>1 L · cargo por compra 45,00 Bs</b></p>
+      <hr style="border:0;border-top:1px solid var(--borde);margin:12px 0">
+      <b>Mancozeb Demo · 2 KG</b>
+      <p class="kv"><span>Precio:</span> <b>6,50 US$ por KG · tipo de cambio 6,96 = 45,24 Bs por KG</b></p>
+      <p class="kv"><span>Subtotal:</span> <b>90,48 Bs</b></p>
+      <p class="kv"><span>Para Titular:</span> <b>2 KG · se cobra al aplicar</b></p>`}
+    </div>
+    <div class="card"><h3 class="s" style="margin-top:0">Pagos al proveedor</h3>
+      ${rev?`<p class="meta">No hay pagos registrados.</p>`:`<p>06/11/2026 · Efectivo · pagó Titular · 100,00 Bs</p>`}</div>
+    <p class="meta">Sólo lectura: consultar no cambia nada. Pagar y revertir están en el menú ⋮ de la tarjeta.</p>`;},
+
+  cuentas(){ return `<h2 class="t">Cuentas</h2><p class="sub">Personas, lo que deben y lo que pagaron. Verano 2026.</p>
+    <div class="big" style="grid-template-columns:repeat(auto-fit,minmax(8em,1fr))">
+      <div class="card" style="margin:0"><div class="meta">Familias por cobrar</div><div class="amt">81,00 Bs</div></div>
+      <div class="card" style="margin:0"><div class="meta">Terceros por cobrar</div><div class="amt">30,00 Bs</div></div>
+      <div class="card" style="margin:0"><div class="meta">Pagos recibidos</div><div class="amt">70,00 Bs</div></div></div>
+    <h3 class="s">Consumo y costos propios</h3>
+    <div class="card"><b>Rosa Mamani (titular)</b><div class="meta">Consumo aplicado (costo FIFO) · Verano 2026 112,50 Bs · no es deuda</div></div>
+    <h3 class="s">Personas</h3>
+    ${D.people.map((p,i)=>`<div class="card"><div class="row"><div class="grow"><b>${esc(p.n)}</b><div class="meta">${esc(p.r)} · ${esc(p.line)}</div>
+      ${chip(p.net,p.cls)}</div><button class="btn" data-pay="${i}" aria-label="Registrar pago de ${esc(p.n)}">Registrar pago</button></div></div>`).join("")}
+    <p class="meta">Un único «Registrar pago» (A1): si no hay deuda, queda a favor, que es lo que antes se registraba como adelanto. Los adelantos guardados se siguen viendo como «Adelanto».</p>`;},
+
+  sindicato(){ return `<h2 class="t">Sindicato</h2><p class="sub">Lo que se envía al sindicato y su estado.</p>
+    <div class="card"><div class="row"><div class="grow"><b>Estado de los envíos</b>
+      <div class="meta">Última confirmación: 29/10/2026</div></div><button class="btn pri">Enviar ahora</button></div>
+      <p>${chip("Aceptado por el sindicato: 4","ok")} ${chip("Guardado en el teléfono: 1","neu")} ${chip("Conflicto: 1","err")}</p>
+      <div class="notice err"><b>Glifosato Demo · consumo Verano 2026:</b> hay otra versión en el sindicato. <button class="btn txt">Decidir en Consumo →</button></div></div>
+    ${[["Necesidades declaradas","Lo que necesitará cada producto esta campaña"],["Consumo para el sindicato","Lo usado por el titular, para el resumen colectivo"],
+       ["Vincular con el sindicato","Campañas y productos equivalentes"],["Verificar acceso en línea","Comprueba la cuenta del titular (antes estaba en Inicio)"]].map(x=>
+       `<button class="card tap"><b>${x[0]}</b><div class="meta">${x[1]}</div></button>`).join("")}`;},
+
+  mas(){ return `<h2 class="t">Más</h2>
+    ${[["Respaldos","En este teléfono (exportar, restaurar) y en la nube, en una sola pantalla"],["Reportes","CSV y PDF de inventario, costos, campaña y estado de cuenta"],
+       ["Administrar datos","Productos, proveedores, personas, chacos y campañas"],["PIN del titular","Para revertir y revisar operaciones tardías"],
+       ["Operaciones tardías","Registros de campañas cerradas para revisión"],["Modo de uso","Inventario compartido o propio"],
+       ["Registrar por voz","F09 en pausa: el acceso se conserva como hoy"]].map(x=>`<button class="card tap"><b>${x[0]}</b><div class="meta">${x[1]}</div></button>`).join("")}`;},
+
+  form(kind){ const names={compra:"Nueva compra",uso:"Registrar uso",pase:"Pasar a otra persona",plan:"Nueva planificación"};
+    const p = D.products.find(x=>x.id===st.formProduct);
+    return `<button class="back" data-go="${st.tab}">← Cancelar</button><h2 class="t">${names[kind]}</h2>
+      ${p?`<div class="card"><div class="row"><div class="grow"><div class="meta">Producto</div><b>${esc(p.name)}</b></div><button class="btn txt">Cambiar</button></div></div>
+      <p class="meta">Elegido desde el producto: a la vista y cambiable.</p>`:`<div class="field"><label>Producto</label><div class="input"><input placeholder="" aria-label="Producto"></div></div>`}
+      <p class="meta">El resto del formulario es el actual; el prototipo no lo reproduce.</p>`;}
+};
+
+function payDialog(){ const p=D.people[st.dlg.person]; return `<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="dt"><div class="dialog">
+  <h4 id="dt">Registrar pago</h4><b>${esc(p.n)}</b>
+  <div class="meta">Se registra en Verano 2026</div><div class="meta">Saldo neto · todas las campañas: ${esc(p.net)}</div>
+  <div class="meta">Se aplica primero a la deuda más antigua, de cualquier campaña.</div>
+  <div class="meta">Si no hay deuda, el pago queda a favor (como un adelanto).</div>
+  <div class="field"><label for="amt">Importe del pago</label><div class="input"><input id="amt" inputmode="decimal" value="${esc(st.amount)}" autocomplete="off"><span class="suf">Bs</span></div>
+  ${st.amountErr?`<div class="ferr" role="alert">${esc(st.amountErr)}</div>`:""}</div>
+  <div class="dlgact"><button class="btn txt" data-close>Cancelar</button><button class="btn pri" data-submit>Registrar</button></div></div></div>`; }
+
+function parseAmount(t){
+  t=t.trim(); if(!t) return {err:"Escriba el importe."};
+  if(/^\d{1,3},\d{3}$/.test(t)) return {err:"«"+t+"» es ambiguo: ¿son "+t.replace(",",".")+" Bs o "+t+" Bs con decimales? Escriba 1.500 o 1,5."};
+  if(!/^\d{1,3}(\.\d{3})*(,\d{1,2})?$|^\d+(,\d{1,2})?$/.test(t)) return {err:"Escriba el número con la coma para los decimales y el punto para los miles."};
+  const v=parseFloat(t.replace(/\./g,"").replace(",",".")); if(!(v>0)) return {err:"El importe debe ser mayor a cero."};
+  return {v};
+}
+
+// ---------------- Pantallas Web ----------------
+const W = {
+  resumen(){ return `<div class="meta" style="text-transform:uppercase;letter-spacing:.06em">Resumen</div><h2>Resumen colectivo</h2>
+    <p class="sub">${chip("Verano 2026 · abierta","ok")} Datos aceptados hasta 29/10/2026 10:19</p>
+    <div class="notice info"><b>Datos de prueba.</b> Cifras con datos sintéticos y un umbral provisional de 3 agricultores. No sirven para decisiones reales.</div>
+    <div class="wcard"><b>Cobertura</b> <span class="meta">(antes, página aparte)</span><p style="margin:6px 0 0">5 de 7 agricultores vinculados están en cifras publicadas. Hay filas sin cifra (bajo el umbral o en revisión): sus aportes no se cuentan aquí. Ausencia de aporte = desconocido, no cero.</p></div>
+    <div class="wcard"><h3 style="margin:0 0 8px">Necesidad declarada</h3><div class="tw"><table><thead><tr><th>Producto (canónico)</th><th>Estado</th><th>Total</th><th>Aportantes</th><th>Datos aceptados hasta</th></tr></thead><tbody>
+      <tr><td>Bellator (L)</td><td>${chip("Publicado","ok")}</td><td>17 L</td><td>3</td><td>29/10 10:19</td></tr>
+      <tr><td>Glifosato Demo (L)</td><td>${chip("Publicado","ok")}</td><td>55 L</td><td>3</td><td>29/10 15:53</td></tr>
+      <tr><td>Mancozeb Demo (kg)</td><td>${chip("Publicado","ok")}</td><td>85 kg</td><td>4</td><td>29/10 10:19</td></tr></tbody></table></div></div>
+    <div class="wcard"><h3 style="margin:0 0 8px">Consumo</h3><p class="meta" style="margin:0 0 8px">Consumo confirmado que los agricultores publicaron desde la app. Se muestra aparte: no se resta de la necesidad.</p><div class="tw"><table><thead><tr><th>Producto</th><th>Estado</th><th>Total</th><th>Aportantes</th></tr></thead><tbody>
+      <tr><td>Bellator (L)</td><td>${chip("Oculto (menos de 3)","neu")}</td><td class="meta">Menos de 3 agricultores: no se publica para no revelar aportes.</td><td>—</td></tr>
+      <tr><td>Glifosato Demo (L)</td><td>${chip("Publicado","ok")}</td><td>15 L<div>${chip("Cambios pendientes","pend")}</div><div class="meta">Hay cambios que aún no alcanzan el umbral: se muestra la cifra anterior.</div></td><td>3</td></tr></tbody></table></div></div>
+    <div class="wcard"><h3 style="margin:0 0 6px">Sellado de la versión colectiva</h3>
+      <p class="meta" style="margin:0 0 8px">Sellar fija una versión identificable para consultas históricas. No reabre la campaña y no hace anónimos los datos. Después de sellar no hay corrección.</p>
+      <div class="notice info">Todavía no se puede sellar: sólo se sella una campaña cerrada.</div></div>`;},
+  propuesta(){ return `<div class="meta" style="text-transform:uppercase;letter-spacing:.06em">Necesidades y propuestas</div><h2>Propuesta conjunta</h2>
+    <p class="sub">${chip("Verano 2026","ok")}</p>
+    <div class="notice info"><b>Datos de prueba.</b> Cifras con datos sintéticos y un umbral provisional de 3 agricultores. No sirven para decisiones reales.</div>
+    <button class="btn pri">Generar propuesta (borrador)</button>
+    <div class="wcard"><div class="row"><div class="grow"><b>Borrador · Verano 2026</b><div class="meta">Generado 29/10/2026 16:02 por Directiva Demo · huella 7f3a…c21</div></div><button class="btn">Exportar CSV</button></div>
+      <p class="meta">Borrador para revisión humana. Usa la necesidad declarada: no resta stock y no crea compras, lotes, movimientos, deudas ni pagos.</p>
+      <div class="tw"><table><thead><tr><th>Producto</th><th>Estado</th><th>Necesidad declarada</th><th>Aportantes</th></tr></thead><tbody>
+      <tr><td>Bellator (L)</td><td>${chip("Publicado","ok")}</td><td>17 L</td><td>3</td></tr>
+      <tr><td>Glifosato Demo (L)</td><td>${chip("Publicado","ok")}</td><td>55 L</td><td>3</td></tr>
+      <tr><td>Mancozeb Demo (kg)</td><td>${chip("Publicado","ok")}</td><td>85 kg</td><td>4</td></tr></tbody></table></div></div>
+    <div class="wcard"><b>Historial de borradores</b><div class="tw"><table><tbody>
+      <tr><td>29/10/2026 16:02</td><td>Directiva Demo</td><td>7f3a…c21</td><td>3 líneas</td><td><button class="btn">Ver</button></td></tr>
+      <tr><td>29/10/2026 12:40</td><td>Directiva Demo</td><td>a19e…04b</td><td>2 líneas</td><td><button class="btn">Ver</button></td></tr></tbody></table></div></div>`;}
+};
+const WEBNAV = [["Resumen",[["resumen","Resumen colectivo"]]],["Necesidades y propuestas",[["propuesta","Propuesta conjunta"]]],
+  ["Histórico y tendencias",[["x","Tendencias"]]],["Equivalencias",[["x","Equivalencias de productos"]]],
+  ["Administración",[["x","Campañas"],["x","Usuarios (Administrador)"],["x","Bitácora"]]]];
+
+// ---------------- Notas por pantalla ----------------
+const NOTES = {
+  inicio:["Inicio gira en torno a comprar y usar productos",["Dos acciones grandes: «Registrar compra» y «Registrar uso».","«Cuánto queda» y «Registros recientes» se tocan para ver el detalle.","Las cifras de cuentas pasan a Cuentas; la verificación en línea pasa a Sindicato.","El aviso de sesión sólo aparece si exige una acción."]],
+  productos:["Productos = Inventario + Registros",["«Productos»: saldo total y por persona; tocar abre el detalle.","«Registros»: Compras, Aplicaciones, Pases y Planes (hoy en Operaciones).","Tocar una compra abre su detalle (A2, ya implementado)."]],
+  producto:["Acciones desde el contexto del producto",["«Comprar», «Registrar uso», «Pasar a otra persona», «Planificar».","El producto llega visible y cambiable: ninguna selección silenciosa.","Movimientos con fecha responden «qué explica el saldo» (T3)."]],
+  compra:["Detalle de compra (A2, implementado en Mobile)",["Sólo muestra lo guardado; un campo vacío se omite.","Precio original en USD con su tipo de cambio.","Destinatarios con cómo se cobra; pagos con medio y pagador.","Consultar no escribe nada (prueba con volcado de tablas)."]],
+  "compra-rev":["Detalle de una compra revertida",["Estado «Revertida», fecha y quién la autorizó con su motivo.","Pagos revertidos marcados; nada se oculta."]],
+  cuentas:["Cuentas = Personas y cuentas",["Un único «Registrar pago» (A1).","Campo «Importe del pago» vacío, con Bs y validación (A4).","Pruebe a escribir «1,500»: el error lo explica y no cierra el diálogo."]],
+  sindicato:["Todo lo del sindicato en un lugar",["Estado en palabras: guardado, enviado, aceptado, rechazado, conflicto.","Necesidades, Consumo, Vínculos y Verificar acceso en línea."]],
+  mas:["Más en primer nivel",["Respaldos en una pantalla: sale del icono de carpeta de Cuentas.","Voz (F09) en pausa: el acceso se conserva."]],
+  form:["Formulario abierto desde el contexto",["El producto se ve y se puede cambiar.","El formulario real no cambia."]],
+  resumen:["Web · Resumen con cobertura",["Menú agrupado por tarea de la Directiva.","Cobertura como bloque: una lectura menos que escribe divulgación.","Aviso de alcance sintético una vez por página, sin el código interno en el texto."]],
+  propuesta:["Web · Propuesta conjunta",["El aviso del borrador aparece una vez (el que viaja con el borrador y el CSV).","Historial con huella para reproducir cada borrador."]]
+};
+
+// ---------------- Render ----------------
+function render(){
+  document.documentElement.style.setProperty("--frame-w", $("#w").value+"px");
+  document.documentElement.style.setProperty("--scale", $("#s").value);
+  $("#vMob").setAttribute("aria-pressed", st.view==="mob"); $("#vWeb").setAttribute("aria-pressed", st.view==="web");
+  const key = st.view==="web" ? st.web : st.screen;
+  const n = NOTES[key] || NOTES.inicio;
+  const notes = `<aside class="notes" aria-label="Notas"><span class="tag">Propuesta</span><h2>${esc(n[0])}</h2>
+    <h3>Qué cambia</h3><ul>${n[1].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+    <h3>Mapa completo</h3><p style="margin:0">Cada función actual tiene su lugar en §3 y §4 de la propuesta.</p></aside>`;
+  if (st.view==="web"){
+    $("#stage").innerHTML = `<div class="web"><nav class="side" aria-label="Menú de la Directiva"><div class="brand">Agro · Directiva</div>
+      ${WEBNAV.map(g=>`<div class="grp">${esc(g[0])}</div>${g[1].map(i=>`<button ${i[0]==="x"?"disabled title='Fuera del prototipo'":`data-web="${i[0]}"`} ${st.web===i[0]?'aria-current="page"':""}>${esc(i[1])}</button>`).join("")}`).join("")}
+      </nav><section class="main">${W[st.web]()}</section></div>${notes}`;
+  } else {
+    let body;
+    if (st.screen==="producto") body=M.producto();
+    else if (st.screen==="compra") body=M.compra(false);
+    else if (st.screen==="compra-rev") body=M.compra(true);
+    else if (st.screen==="form") body=M.form(st.formKind);
+    else body=M[st.screen]();
+    // ¿Caben las cinco etiquetas? «Sindicato» es la más larga (≈ 9 caracteres).
+    const slot = (+$("#w").value) / 5, needed = 0.8 * 16 * (+$("#s").value) * 0.56 * 9;
+    $("#stage").innerHTML = `<div class="phone${needed > slot - 4 ? " tight" : ""}" aria-label="Teléfono"><div class="status"><span>10:24</span><span>▮▮▮ 82 %</span></div>
+      <div class="screen" id="scr">${body}</div>
+      <nav class="tabs" aria-label="Pestañas">${TABS.map(t=>`<button data-tab="${t[0]}" ${st.tab===t[0]?'aria-current="page"':""}><span class="ic" aria-hidden="true">${t[1]}</span><span class="lbl">${t[2]}</span></button>`).join("")}</nav>
+      ${st.dlg?payDialog():""}
+      ${st.toast?`<div role="status" style="position:absolute;left:12px;right:12px;bottom:76px;background:#1C2B1F;color:#fff;border-radius:12px;padding:12px;font-size:.875em">${esc(st.toast)}</div>`:""}
+      </div>${notes}`;
+    if (st.dlg) { const i=$("#amt"); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }
+  }
+}
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest("button"); if(!t) return;
+  if (t.id==="vMob"){ st.view="mob"; return render(); }
+  if (t.id==="vWeb"){ st.view="web"; return render(); }
+  if (t.dataset.tab){ st.tab=t.dataset.tab; st.screen=t.dataset.tab; st.dlg=null; st.toast=""; return render(); }
+  if (t.dataset.web){ st.web=t.dataset.web; return render(); }
+  if (t.dataset.pseg){ st.prodSeg=t.dataset.pseg; return render(); }
+  if (t.dataset.rseg){ st.recSeg=t.dataset.rseg; return render(); }
+  if (t.dataset.go){ const [s,id]=t.dataset.go.split(":"); if(id) st.product=id;
+    if (s==="productos") { st.prodSeg = st.screen==="compra"||st.screen==="compra-rev" ? "registros" : "productos"; }
+    return go(s); }
+  if (t.dataset.act){ const [,kind,pid]=t.dataset.act.split(":"); st.formKind=kind; st.formProduct=pid||null; return go("form"); }
+  if (t.dataset.pay!==undefined){ st.dlg={person:+t.dataset.pay}; st.amount=""; st.amountErr=""; return render(); }
+  if (t.hasAttribute("data-close")){ st.dlg=null; return render(); }
+  if (t.hasAttribute("data-submit")){ st.amount=$("#amt").value; const r=parseAmount(st.amount);
+    if (r.err){ st.amountErr=r.err; return render(); }
+    const name=D.people[st.dlg.person].n; st.dlg=null;
+    st.toast=`Pago de ${r.v.toLocaleString("es-BO",{minimumFractionDigits:2})} Bs registrado a ${name}. (Prototipo: no se guarda nada.)`;
+    render(); setTimeout(()=>{st.toast="";render();},3500); }
+});
+document.addEventListener("input", e=>{ if(e.target.id==="amt"){ st.amount=e.target.value; if(st.amountErr){st.amountErr="";} } });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && st.dlg){ st.dlg=null; render(); }
+  if(e.key==="Enter" && e.target.id==="amt"){ $("[data-submit]").click(); } });
+$("#w").addEventListener("change", render); $("#s").addEventListener("change", render);
+// Enlace directo a un estado: #vista=movil|web&pantalla=compra&tab=productos&ancho=320&letra=2&pago=0
+(function fromHash(){
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("vista")==="web"){ st.view="web"; if (W[h.get("pantalla")]) st.web=h.get("pantalla"); }
+  else if (h.get("pantalla")){ st.screen=h.get("pantalla"); st.tab=h.get("tab")||(M[st.screen]?st.screen:"inicio"); }
+  if (h.get("producto")) st.product=h.get("producto");
+  if (h.get("ancho")) $("#w").value=h.get("ancho");
+  if (h.get("letra")) $("#s").value=h.get("letra");
+  if (h.get("pago")!==null) st.dlg={person:+h.get("pago")};
+  if (h.get("importe")){ st.amount=h.get("importe"); const r=parseAmount(st.amount); st.amountErr=r.err||""; }
+})();
+render();
+</script>
+</body>
+</html>
