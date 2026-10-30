@@ -1,10 +1,10 @@
 # Capturas del prototipo: barra de pestañas con letra grande (2026-10-30)
 
-Renderizado de `docs/ux/prototipo/index.html` en Edge sin interfaz (fuente real del navegador), pantallas Inicio y Cuentas, a 320/360/412 dp y letra ×1,0/×1,3/×2,0. Medidas tomadas por script en el DOM (`getBoundingClientRect`, `scrollWidth`, `elementFromPoint`). No es la app Flutter: la verificación en la app es parte de N1.
+Renderizado de `docs/ux/prototipo/index.html` en Edge sin interfaz (fuente real del navegador), pantallas Inicio y Cuentas, a 320/360/412 dp y letra ×1,0/×1,3/×2,0. Cada captura es el marco del teléfono entero (recorte al `getBoundingClientRect()` de `.phone`, a tamaño CSS). Medidas tomadas por script en el DOM (`getBoundingClientRect`, `scrollWidth`, `elementFromPoint`). No es la app Flutter: la verificación en la app es parte de N1.
 
-## Medición vigente (segunda pasada, misma fecha)
+## Medición vigente (segunda pasada, misma fecha; prototipo del commit que incluye este README)
 
-Cambio respecto a la primera pasada: los cortes por sílaba del texto visible son espacios de ancho cero (`​`) en vez de guiones blandos, así el corte no dibuja guion (igual que Flutter) y «Cuen / tas» cabe en su hueco; cinco huecos iguales sin relleno lateral.
+Cambio respecto a la primera pasada: los puntos de corte por sílaba del texto visible son espacios de ancho cero (`U+200B`) en vez de guiones blandos (`U+00AD`), así el corte no dibuja guion (igual que Flutter) y «Cuen / tas» cabe en su hueco; cinco huecos iguales sin relleno lateral.
 
 | Captura | Barra (px de 760) | Contenido (px) | Líneas por pestaña (Inicio · Productos · Cuentas · Sindicato · Más) | Desborde medido | Pestañas pulsables |
 |---|---|---|---|---|---|
@@ -29,10 +29,11 @@ Cambio respecto a la primera pasada: los cortes por sílaba del texto visible so
 
 - Las cinco etiquetas siguen visibles y con su tamaño en todas las combinaciones; el nombre completo va en `aria-label` del botón y el texto visible (con puntos de corte por sílaba) va `aria-hidden`.
 - Ningún desborde medido en ninguna combinación. A ×2,0 la barra ocupa 154 px de 760 (20 %) y el contenido conserva 562 px; los botones del contenido y las pestañas responden al toque en su centro.
+- Dato para N1: con la fuente del navegador, «Cuentas» va en dos líneas a 360 dp ×2,0 e «Inicio» en dos a 320 dp ×2,0; en Flutter se mide con Roboto.
 
 ## Antecedente: primera pasada (commit `bc79aca`, misma fecha)
 
-Con guiones blandos (`­`, que dibujan guion al cortar) y 1 px de relleno lateral:
+Con guiones blandos (`U+00AD`, que dibujan guion al cortar) y 1 px de relleno lateral:
 
 | Captura | Barra (px de 760) | Contenido (px) | Líneas por pestaña (Inicio · Productos · Cuentas · Sindicato · Más) | Desborde medido | Pestañas pulsables |
 |---|---|---|---|---|---|

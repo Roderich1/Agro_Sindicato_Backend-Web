@@ -165,7 +165,7 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const chip = (t,c)=>`<span class="chip ${c}">${esc(t)}</span>`;
 
 // [clave, icono, nombre completo (accesible), texto visible con puntos de corte por sílaba]
-// Los cortes son espacios de ancho cero (​): el texto se parte por sílaba sin dibujar guion,
+// Los cortes son espacios de ancho cero (U+200B): el texto se parte por sílaba sin dibujar guion,
 // igual que lo hará Flutter (su motor no dibuja guiones en los cortes blandos).
 const TABS = [["inicio","⌂","Inicio","Ini​cio"],["productos","▤","Productos","Pro​duc​tos"],["cuentas","◎","Cuentas","Cuen​tas"],["sindicato","⇅","Sindicato","Sin​di​ca​to"],["mas","⋯","Más","Más"]];
 
