@@ -51,9 +51,11 @@ button{font:inherit;color:inherit}
 .tabs button[aria-current=page] .ic{background:var(--primario-suave)}
 /* Letra grande (ajuste del 2026-10-30): las cinco etiquetas siguen visibles y con
    su tamaño; la barra crece en altura y la etiqueta se parte por sílaba (guiones
-   blandos en el texto visible, nunca por carácter) sólo si no cabe en una línea.
+   de ancho cero por sílaba en el texto visible, nunca por carácter) sólo si no cabe en una línea.
    El nombre completo va en aria-label del botón; el texto visible va aria-hidden. */
-.tabs button{align-items:center;align-self:stretch;flex:1 1 0;padding-left:1px;padding-right:1px}
+/* Cinco huecos iguales sin relleno lateral: a 320 dp ×2,0 «Cuen-» en negrita necesita los
+   64 px enteros de su hueco. Nada se encoge ni se oculta. */
+.tabs button{align-items:center;align-self:stretch;flex:1 1 0;min-width:0;padding-left:0;padding-right:0}
 .tabs span.lbl{overflow-wrap:normal;hyphens:manual;word-break:keep-all;text-align:center;line-height:1.2;max-width:100%}
 h2.t{font-size:1.5em;line-height:1.25;margin:4px 0 4px;font-weight:700}
 .sub{color:var(--texto-2);margin:0 0 12px;line-height:1.4}
@@ -162,8 +164,10 @@ const $ = (s,r=document)=>r.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const chip = (t,c)=>`<span class="chip ${c}">${esc(t)}</span>`;
 
-// [clave, icono, nombre completo (accesible), texto visible con guiones blandos por sílaba]
-const TABS = [["inicio","⌂","Inicio","Ini­cio"],["productos","▤","Productos","Pro­duc­tos"],["cuentas","◎","Cuentas","Cuen­tas"],["sindicato","⇅","Sindicato","Sin­di­ca­to"],["mas","⋯","Más","Más"]];
+// [clave, icono, nombre completo (accesible), texto visible con puntos de corte por sílaba]
+// Los cortes son espacios de ancho cero (​): el texto se parte por sílaba sin dibujar guion,
+// igual que lo hará Flutter (su motor no dibuja guiones en los cortes blandos).
+const TABS = [["inicio","⌂","Inicio","Ini​cio"],["productos","▤","Productos","Pro​duc​tos"],["cuentas","◎","Cuentas","Cuen​tas"],["sindicato","⇅","Sindicato","Sin​di​ca​to"],["mas","⋯","Más","Más"]];
 
 function go(screen, tab){ st.screen=screen; if(tab) st.tab=tab; st.dlg=null; render(); }
 
