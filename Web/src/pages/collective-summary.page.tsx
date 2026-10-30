@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppShell, EmptyState, Notice, secondaryButtonClass } from '../components/app-shell';
 import {
   CampaignPicker,
@@ -43,9 +43,16 @@ export function CollectiveSummaryPage() {
   // Cambia en cada recarga para que el panel de sellado relea su estado.
   const [reloads, setReloads] = useState(0);
   const [csvBusy, setCsvBusy] = useState(false);
-  // Última descarga: cuándo se hizo y hasta cuándo aceptó datos el servidor
-  // (del propio CSV), porque la descarga es una lectura nueva.
-  const [csvInfo, setCsvInfo] = useState<{ at: string; acceptedUntil: string | null } | null>(null);
+  // Última descarga: de qué campaña, cuándo se hizo y la fecha más reciente de
+  // «datos aceptados hasta» entre las cifras del CSV (la descarga es una
+  // lectura nueva). El aviso sólo se muestra para esa campaña.
+  const [csvInfo, setCsvInfo] = useState<{ campaignId: string; at: string; acceptedUntil: string | null } | null>(null);
+  // Campaña en pantalla en cada momento: una respuesta que llega después de
+  // cambiar de campaña no coloca su aviso ni su error en la vista de otra.
+  const selectedRef = useRef(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
 
   const load = useCallback(async (campaignId: string) => {
     setLoading(true);
@@ -82,6 +89,8 @@ export function CollectiveSummaryPage() {
     try {
       const blob = await collectiveService.summaryCsv(campaignId);
       const text = await blob.text();
+      // La petición era de otra campaña: se descarta sin tocar la vista actual.
+      if (selectedRef.current !== campaignId) return;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -90,8 +99,9 @@ export function CollectiveSummaryPage() {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setCsvInfo({ at: new Date().toISOString(), acceptedUntil: latestDataAsOf(text) });
+      setCsvInfo({ campaignId, at: new Date().toISOString(), acceptedUntil: latestDataAsOf(text) });
     } catch (err) {
+      if (selectedRef.current !== campaignId) return;
       setError(collectiveError(err, 'No fue posible descargar el CSV.'));
     } finally {
       setCsvBusy(false);
@@ -125,12 +135,13 @@ export function CollectiveSummaryPage() {
         <CampaignPicker campaigns={campaigns} selected={selected} onSelect={selectCampaign} />
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
-        {csvInfo && (
+        {csvInfo && csvInfo.campaignId === selected && (
           <Notice kind="info">
-            CSV descargado ({fmtDateTime(csvInfo.at)}
-            {csvInfo.acceptedUntil ? ` · datos aceptados hasta ${fmtDateTime(csvInfo.acceptedUntil)}` : ''}). Es una
-            lectura nueva del servidor, con la misma política de divulgación que esta pantalla; si hubo cambios, puede
-            diferir de lo mostrado: pulse «Actualizar».
+            CSV descargado ({fmtDateTime(csvInfo.at)}). Es una lectura nueva del servidor, con la misma política de
+            divulgación que esta pantalla; si hubo cambios, puede diferir de lo mostrado: pulse «Actualizar».
+            {csvInfo.acceptedUntil
+              ? ` La cifra más reciente del CSV incluye datos aceptados hasta ${fmtDateTime(csvInfo.acceptedUntil)}; no significa que todos los agricultores hayan publicado hasta esa fecha.`
+              : ''}
           </Notice>
         )}
         {loading && <p className="text-sm text-slate-500">Cargando…</p>}

@@ -161,12 +161,43 @@ describe('Resumen colectivo', () => {
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     const notice = screen.getByText(/CSV descargado \(/).textContent ?? '';
     expect(notice).toMatch(/datos aceptados hasta 29 oct/);
+    expect(notice).toMatch(/no significa que todos los agricultores/);
     expect(notice).toMatch(/lectura nueva del servidor/);
     // La pantalla no se recalcula sola con el CSV: sigue lo que se cargó.
     expect(collectiveService.summary).toHaveBeenCalledTimes(1);
     expect(anchorClick).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:resumen'), { timeout: 2000 });
     anchorClick.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('una descarga pedida para la campaña A que responde después de pasar a B no coloca su aviso en B', async () => {
+    const other = { ...CAMPAIGN, id: '7f1a2b3c-0000-4000-8000-00000000000b', name: 'Otra campaña' };
+    vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN, other]);
+    vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith([cell({ product_name: 'Urea', contributors: 3 })]));
+    let resolveA: (blob: Blob) => void = () => undefined;
+    vi.mocked(collectiveService.summaryCsv).mockImplementation(
+      () =>
+        new Promise<Blob>((resolve) => {
+          resolveA = resolve;
+        }),
+    );
+    const createObjectURL = vi.fn(() => 'blob:resumen');
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+    renderAt(<CollectiveSummaryPage />, { path: PATH });
+    await screen.findByTestId('coverage');
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV actualizado' }));
+    expect(collectiveService.summaryCsv).toHaveBeenCalledWith(CAMPAIGN.id);
+    // Cambia a B mientras la petición de A sigue pendiente.
+    fireEvent.change(screen.getByLabelText('Campaña (filtro aplicado)'), { target: { value: other.id } });
+    await waitFor(() => expect(collectiveService.summary).toHaveBeenCalledWith(other.id));
+    // Llega la respuesta de A.
+    resolveA(new Blob(['projection_type,data_as_of\nDECLARED_NEED,2026-10-29T14:19:00.000Z'], { type: 'text/csv' }));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Descargar CSV actualizado' }) as HTMLButtonElement).disabled).toBe(false),
+    );
+    expect(screen.queryByText(/CSV descargado \(/)).toBeNull();
+    expect(createObjectURL).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 });

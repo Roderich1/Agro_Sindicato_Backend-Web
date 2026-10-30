@@ -1,7 +1,9 @@
 /**
  * Lectura mínima del CSV del resumen (`summaryCsv` del servidor): la fecha
- * más reciente de «datos aceptados hasta» entre las filas de cifras, para
- * mostrarla junto a la descarga. No interpreta cantidades ni estados.
+ * más reciente de `data_as_of` («datos aceptados hasta») entre las filas de
+ * cifras, para mostrarla junto a la descarga. Es la de la cifra más reciente,
+ * no una garantía de que todos los agricultores hayan publicado hasta
+ * entonces. No interpreta cantidades ni estados.
  */
 export function latestDataAsOf(csv: string): string | null {
   const lines = csv.split(/\r?\n/);
