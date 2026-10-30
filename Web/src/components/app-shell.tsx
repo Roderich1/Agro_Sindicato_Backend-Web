@@ -307,7 +307,7 @@ function Header({ title, section, actions, onMenuClick, isOnline }: { title: str
       {/* Sin altura fija: con dos acciones a 390 px la fila se reorganiza en vez de desbordar (2026-10-30). */}
       <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 sm:px-6">
         <div className="flex items-center gap-3">
-          <button onClick={onMenuClick} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden">
+          <button type="button" onClick={onMenuClick} aria-label="Abrir menú" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <div>
