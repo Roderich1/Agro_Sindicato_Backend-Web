@@ -38,7 +38,8 @@ describe('Panel de sellado', () => {
     expect(panel.textContent).toMatch(/se sellará ese valor anterior/);
     expect(panel.textContent).toMatch(/filas no tienen cifra/);
     expect(panel.textContent).toMatch(/no puede asegurar que todos los teléfonos publicaron todo/);
-    expect(panel.textContent).toMatch(/no habilita cifras reales, no da permisos nuevos de lectura y no hace anónimos/);
+    expect(panel.textContent).toMatch(/no da permisos nuevos de lectura y no hace anónimos/);
+    expect(panel.textContent).not.toMatch(/F07-POL-01/);
     expect(collectiveService.seal).not.toHaveBeenCalled();
   });
 
@@ -93,7 +94,7 @@ describe('Panel de sellado', () => {
     renderAt(<SealPanel campaignId={CAMPAIGN.id} onSealed={() => undefined} />);
     const panel = await screen.findByTestId('seal-panel');
     expect(panel.textContent).toMatch(/desactivado en este servidor/);
-    expect(panel.textContent).toMatch(/política de divulgación no está aprobada/);
+    expect(panel.textContent).toMatch(/falta la política de divulgación aprobada/);
     expect(panel.textContent).toMatch(/Sólo se sella una campaña cerrada/);
     expect(screen.queryByRole('button', { name: /Sellar/ })).toBeNull();
   });

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { fmtDate } from '../lib/format';
-import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor } from '../lib/navigation';
+import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuGroupsFor, menuPathsFor } from '../lib/navigation';
 import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
 
 /* ══════════════════════════════════════════
@@ -68,7 +68,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
   },
   {
-    label: 'Reconciliación',
+    label: 'Equivalencias de productos',
     to: COLLECTIVE_PATHS.reconciliation,
     icon: <NavIcon d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />,
   },
@@ -78,7 +78,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
   },
   {
-    label: 'Campanas',
+    label: 'Campañas',
     to: '/campaigns',
     icon: <NavIcon d="M8 7V3m8 4V3M5 11h14M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />,
   },
@@ -108,7 +108,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Bitacora',
+    label: 'Bitácora',
     to: '/audit-logs',
     icon: <NavIcon d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
   },
@@ -139,6 +139,14 @@ function navItemsFor(role: string | null | undefined): NavItem[] {
   return menuPathsFor(role)
     .map((path) => NAV_ITEMS.find((item) => item.to === path))
     .filter((item): item is NavItem => Boolean(item));
+}
+
+/** Los mismos ítems, agrupados por tarea (bloque de experiencia 2026-10-30). */
+function navGroupsFor(role: string | null | undefined): { title: string | null; items: NavItem[] }[] {
+  return menuGroupsFor(role).map((group) => ({
+    title: group.title,
+    items: group.paths.map((path) => NAV_ITEMS.find((item) => item.to === path)).filter((item): item is NavItem => Boolean(item)),
+  }));
 }
 
 /* ══════════════════════════════════════════
@@ -186,7 +194,7 @@ function Sidebar({
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const filteredNav = navItemsFor(user?.role);
+  const navGroups = navGroupsFor(user?.role);
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -206,8 +214,13 @@ function Sidebar({
 
       <div className="mx-4 border-t border-white/8" />
 
-      <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Navegación principal">
-        {filteredNav.map((item) => {
+      <nav className="flex-1 space-y-3 px-3 py-4" aria-label="Navegación principal">
+        {navGroups.map((group) => (
+          <div key={group.title ?? 'menu'} className="space-y-1" role="group" aria-label={group.title ?? undefined}>
+            {group.title && !collapsed && (
+              <p className="px-3 pb-1 pt-2 text-[13px] font-semibold uppercase tracking-wider text-slate-500">{group.title}</p>
+            )}
+            {group.items.map((item) => {
           const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
           const isSync = item.to === '/sync';
           return (
@@ -230,7 +243,9 @@ function Sidebar({
               )}
             </Link>
           );
-        })}
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="mx-4 border-t border-white/8" />

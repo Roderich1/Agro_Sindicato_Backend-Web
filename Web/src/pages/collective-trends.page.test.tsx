@@ -104,7 +104,7 @@ describe('Tendencias entre campañas', () => {
   it('POLICY_PENDING: sin series ni cifras', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida], 'POLICY_PENDING'));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
-    expect(await screen.findByText(/Política de divulgación pendiente/)).toBeTruthy();
+    expect(await screen.findByText(/Sin cifras colectivas/)).toBeTruthy();
     expect(screen.queryByTestId('series-DECLARED_NEED-Herbicida-ML')).toBeNull();
     expect(document.body.textContent).not.toMatch(/6 L/);
   });

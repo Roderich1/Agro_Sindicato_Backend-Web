@@ -53,13 +53,13 @@ export function CoveragePage() {
             {summary.coverage ? (
               <CoverageBanner coverage={summary.coverage} campaignName={summary.campaign.name} />
             ) : (
-              <EmptyState title="Cobertura no disponible" description="Sin política de divulgación aprobada no se publican conteos." />
+              <EmptyState title="Cobertura no disponible" description="El servidor no publica conteos mientras no haya cifras (ver el aviso de arriba)." />
             )}
           </>
         )}
         <Notice kind="info">
-          Por decisión de alcance de F07 no se muestra qué agricultores aportaron ni su última sincronización: sólo el
-          conteo agregado de quienes están en cifras publicadas.
+          Por decisión de alcance del autor no se muestra qué agricultores aportaron ni su última sincronización: sólo
+          el conteo agregado de quienes están en cifras publicadas.
         </Notice>
       </div>
     </AppShell>

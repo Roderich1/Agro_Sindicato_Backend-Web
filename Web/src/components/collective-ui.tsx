@@ -51,6 +51,10 @@ export function QuantityCell({
   unit: BaseUnit;
   threshold?: number | null;
 }) {
+  if (status === 'POLICY_PENDING') {
+    // El motivo ya lo da el aviso de la página: no se repite en cada línea.
+    return <span className="text-slate-400" aria-label={statusReason(status, threshold) ?? undefined}>—</span>;
+  }
   if (status !== 'DISCLOSED') {
     return <span className="text-xs text-slate-500">{statusReason(status, threshold)}</span>;
   }
@@ -149,19 +153,28 @@ export function SealBanner({ seal }: { seal: SealRef }) {
   );
 }
 
+/**
+ * Aviso de alcance, una vez por página (bloque de experiencia 2026-10-30,
+ * aprobado por Roderich). Distingue la validación institucional pendiente
+ * (datos reales) de la demostración con datos sintéticos. Sin códigos de
+ * proyecto en pantalla: la referencia de la política queda en el CSV/JSON
+ * (`policy`) y en la documentación. Ningún bloqueo del servidor cambia.
+ */
 export function DisclosureNotice({ mode, threshold }: { mode: 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC'; threshold?: number | null }) {
   if (mode === 'POLICY_PENDING') {
     return (
       <Notice kind="info">
-        <strong>Política de divulgación pendiente (F07-POL-01).</strong> Mientras no se apruebe, el servidor no publica
-        cifras colectivas. Esta pantalla no calcula ni estima totales.
+        <strong>Sin cifras colectivas.</strong> Mostrar cifras con datos reales requiere una política de divulgación
+        aprobada, y esa validación institucional está pendiente. Hasta entonces el servidor no publica cifras y esta
+        pantalla no calcula ni estima totales.
       </Notice>
     );
   }
   return (
     <Notice kind="warn">
-      <strong>Modo provisional con datos sintéticos.</strong> Política F07-POL-01 no aprobada
-      {threshold ? ` (umbral provisional k = ${threshold})` : ''}. No usar para decisiones reales.
+      <strong>Demostración con datos sintéticos.</strong> Las cifras salen de datos de prueba
+      {threshold ? `, con un umbral provisional de ${threshold} agricultores por cifra` : ', con un umbral provisional'}; la
+      política de divulgación no está aprobada para datos reales. No sirven para decisiones reales.
     </Notice>
   );
 }

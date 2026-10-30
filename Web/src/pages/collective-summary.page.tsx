@@ -12,6 +12,7 @@ import {
 import { SealPanel } from '../components/seal-panel';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { latestDataAsOf } from '../lib/summary-csv';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveSummary, ProjectionType, SummaryCell } from '../types/collective';
 
@@ -41,6 +42,10 @@ export function CollectiveSummaryPage() {
   const [loading, setLoading] = useState(false);
   // Cambia en cada recarga para que el panel de sellado relea su estado.
   const [reloads, setReloads] = useState(0);
+  const [csvBusy, setCsvBusy] = useState(false);
+  // Última descarga: cuándo se hizo y hasta cuándo aceptó datos el servidor
+  // (del propio CSV), porque la descarga es una lectura nueva.
+  const [csvInfo, setCsvInfo] = useState<{ at: string; acceptedUntil: string | null } | null>(null);
 
   const load = useCallback(async (campaignId: string) => {
     setLoading(true);
@@ -60,15 +65,53 @@ export function CollectiveSummaryPage() {
     if (selected) void Promise.resolve().then(() => load(selected));
   }, [selected, load]);
 
+  /**
+   * Descarga el CSV que genera el servidor con una lectura nueva (misma
+   * política y memoria de divulgación que abrir el resumen). No se arma en el
+   * navegador con lo que hay en pantalla: una cifra retirada no se exporta.
+   */
+  const downloadCsv = async (campaignId: string) => {
+    setCsvBusy(true);
+    setError(null);
+    try {
+      const blob = await collectiveService.summaryCsv(campaignId);
+      const text = await blob.text();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resumen-colectivo-${campaignId.slice(0, 8)}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setCsvInfo({ at: new Date().toISOString(), acceptedUntil: latestDataAsOf(text) });
+    } catch (err) {
+      setError(collectiveError(err, 'No fue posible descargar el CSV.'));
+    } finally {
+      setCsvBusy(false);
+    }
+  };
+
   return (
     <AppShell
       title="Resumen colectivo"
       section="Directiva"
       actions={
         selected ? (
-          <button type="button" className={secondaryButtonClass} onClick={() => void load(selected)} disabled={loading}>
-            Actualizar
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={secondaryButtonClass} onClick={() => void load(selected)} disabled={loading}>
+              Actualizar
+            </button>
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={() => void downloadCsv(selected)}
+              disabled={loading || csvBusy}
+              title="Lectura nueva del servidor, con la misma política de divulgación que esta pantalla"
+            >
+              Descargar CSV actualizado
+            </button>
+          </div>
         ) : undefined
       }
     >
@@ -76,6 +119,14 @@ export function CollectiveSummaryPage() {
         <CampaignPicker campaigns={campaigns} selected={selected} onSelect={select} />
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
+        {csvInfo && (
+          <Notice kind="info">
+            CSV descargado el {fmtDateTime(csvInfo.at)}
+            {csvInfo.acceptedUntil ? ` · datos aceptados hasta ${fmtDateTime(csvInfo.acceptedUntil)}` : ''}. Es una lectura
+            nueva del servidor, con la misma política de divulgación que esta pantalla; si hubo cambios, puede diferir de
+            lo mostrado: pulse «Actualizar».
+          </Notice>
+        )}
         {loading && <p className="text-sm text-slate-500">Cargando…</p>}
         {summary && !loading && <SummaryBody summary={summary} />}
         {selected && summary && !loading && !summary.seal && (

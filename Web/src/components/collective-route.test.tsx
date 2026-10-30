@@ -40,24 +40,37 @@ describe('rutas colectivas F07 por rol', () => {
 });
 
 describe('menú congelado (F07-WEB-01)', () => {
-  it('DIRECTIVA: sólo vistas colectivas y campañas, sin pantallas operativas legacy', () => {
+  // Bloque de experiencia (2026-10-30, decisión de Roderich): la Bitácora
+  // institucional entra en el menú de los dos roles que ya la tenían permitida
+  // (RoleRoute); el orden sigue los grupos de `menuGroupsFor`.
+  it('DIRECTIVA: vistas colectivas, campañas y bitácora, sin pantallas operativas legacy', () => {
     expect(menuPathsFor('DIRECTIVA')).toEqual([
       COLLECTIVE_PATHS.summary,
-      COLLECTIVE_PATHS.proposals,
       COLLECTIVE_PATHS.coverage,
+      COLLECTIVE_PATHS.proposals,
       COLLECTIVE_PATHS.trends,
       COLLECTIVE_PATHS.reconciliation,
       '/campaigns',
+      '/audit-logs',
     ]);
   });
 
   it('ADMINISTRADOR: lo mismo más usuarios (ADR-003)', () => {
-    expect(menuPathsFor('ADMINISTRADOR')).toEqual([...menuPathsFor('DIRECTIVA'), '/users']);
+    expect(menuPathsFor('ADMINISTRADOR')).toEqual([
+      COLLECTIVE_PATHS.summary,
+      COLLECTIVE_PATHS.coverage,
+      COLLECTIVE_PATHS.proposals,
+      COLLECTIVE_PATHS.trends,
+      COLLECTIVE_PATHS.reconciliation,
+      '/campaigns',
+      '/users',
+      '/audit-logs',
+    ]);
   });
 
-  it('ningún menú institucional incluye CRUD del agricultor, cola offline ni bitácora heredada', () => {
+  it('ningún menú institucional incluye CRUD del agricultor, cola offline ni el calendario (su GET escribe)', () => {
     for (const role of ['DIRECTIVA', 'ADMINISTRADOR']) {
-      for (const legacy of ['/inventory', '/purchases', '/plots', '/applications', '/sync', '/calendar', '/reports', '/directiva', '/audit-logs', '/dashboard']) {
+      for (const legacy of ['/inventory', '/purchases', '/plots', '/applications', '/sync', '/calendar', '/reports', '/directiva', '/dashboard']) {
         expect(menuPathsFor(role)).not.toContain(legacy);
       }
     }
