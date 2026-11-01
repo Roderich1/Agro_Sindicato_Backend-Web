@@ -21,6 +21,7 @@
   - Comprobaciones: pruebas en el ordenador (Mobile `docs/evidence/F10_BLOQUE2_*.md`) y un recorrido en **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**, con datos sintéticos y un solo operador (Mobile `docs/evidence/F10_BLOQUE2_EMULADOR_2026-10-28.md`). Lo que pasó por el emulador se cita así; lo demás sigue con **[Verificar]**. Salvo las anulaciones demostradas de D-03 (APK de `fb331c6`), el recorrido usó la APK de `e5ba07c`, cuyo código de D-04, E-15, D-07 y E-12 es idéntico al de `fb331c6`.
   - **No hubo ninguna prueba en teléfono ni evaluación con personas** para el bloque 2.
   - Estas mejoras no forman parte de los pilotos X01 ni X02.
+- **F08-PREV-01 (2026-10-31, §7.5):** los textos se copiaron del `lib/` de Mobile `main` `774ae88`. Comprobado sólo en el ordenador y en la integración continua (Mobile `docs/evidence/F08_PREV_01_VERIFICACION_ROLLBACK_2026-10-31.md`). **No se probó en un emulador ni en un teléfono.**
 
 **Capturas:**
 - **App móvil:** todas las capturas de la app que hay en el repositorio Mobile (`artifacts/ui-audit/`) son del 2026-09-05/06, anteriores a la activación, la modalidad, la sincronización, el respaldo en la nube y las cifras netas. **No se usan en este manual.** Hay que tomar capturas nuevas con datos sintéticos **[Verificar]**.
@@ -789,7 +790,7 @@ La app tiene además el mensaje «Ya tiene el máximo de copias en el servidor. 
 
 Fuente: ensayo B2 del 2026-10-19, §1.
 
-#### 7.5 Copias previas a restauraciones (`.previo`)
+#### 7.5 Copias previas a restauraciones (`.previo`, F08-PREV-01)
 
 Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una copia de los datos que había** en una carpeta privada del teléfono (archivos `….previo-…`). Sirve para volver atrás si la restauración falla.
 
@@ -807,7 +808,8 @@ Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una co
 
 **Si una restauración falla y la app no puede confirmar la recuperación**, avisa: «No pudimos confirmar que sus datos anteriores se recuperaron correctamente. Conservamos la copia de seguridad. Antes de restaurar otro respaldo, elija qué hacer en «Copias previas a restauraciones».»
 - Si no había datos que copiar, el aviso no incluye «Conservamos la copia de seguridad».
-- El aviso aparece aunque usted haya salido de la pantalla.
+- Si lo que falla es el propio intento de deshacer la restauración, el aviso puede ser otro, pero la copia queda igual sin resolver.
+- El aviso aparece aunque usted haya salido de la pantalla. Hay una prueba de esto sólo para la restauración desde la nube.
 - La app **no** afirma que sus datos estén bien: eso lo decide usted después de revisarlos.
 
 **Si intenta restaurar otra copia antes de decidir**, la app no lo hace: «Una restauración anterior no terminó o no pudimos confirmar que sus datos anteriores se recuperaron correctamente. Si se guardó una copia de sus datos de entonces, sigue protegida. Antes de restaurar otro respaldo, elija qué hacer en «Copias previas a restauraciones». No se cambiaron sus datos.»
@@ -817,11 +819,11 @@ Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una co
 | Botón | Qué hace | Qué pasa con la copia |
 |---|---|---|
 | «Cancelar» (o tocar fuera del aviso) | Nada | Sigue protegida y sigue bloqueando otra restauración |
-| «Seguir con los actuales» | Puede seguir usando la app y restaurar otro respaldo. **No confirma que sus datos estén bien** | Queda «Recuperación sin confirmar»: sigue protegida y no se borra |
+| «Seguir con los actuales» | Le permite restaurar otro respaldo. **No confirma que sus datos estén bien** | Queda «Recuperación sin confirmar»: sigue protegida y no se borra |
 | «Mis datos están bien» | Confirma que revisó sus datos y están bien. Antes pide una segunda confirmación | Deja de estar protegida y puede retirarse en la próxima limpieza |
 
 **Seguir no es confirmar:**
-- **«Seguir con los actuales»** sirve cuando necesita trabajar o restaurar otro respaldo, pero todavía no ha revisado sus datos o no está seguro de que estén completos. La copia de antes se guarda por si la necesita.
+- **«Seguir con los actuales»** sirve cuando necesita restaurar otro respaldo, pero todavía no ha revisado sus datos o no está seguro de que estén completos. La copia de antes se guarda por si la necesita.
 - **«Mis datos están bien»** es afirmar que los revisó. La app pregunta «¿Sus datos actuales están bien?»: «Hágalo sólo después de revisarlos. La copia de los datos de antes de la restauración del … dejará de estar protegida y puede retirarse en la próxima limpieza (se conservan como máximo dos, durante siete días).» Si no quedó copia en el teléfono, en lugar de «La copia de los datos de antes…» dice «La entrada de la restauración del …, sin copia en este teléfono,». Si cancela, nada cambia.
 
 **Confirmar más tarde:** una copia «Recuperación sin confirmar» tiene su propio botón «Mis datos están bien», que abre la misma confirmación.
@@ -1114,13 +1116,14 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 
 1. Capturas nuevas de la app con datos sintéticos: activación, titular, modalidad, Sincronización, Respaldo en la nube, detalle de inventario con cifras netas y Reportes.
 2. Las cifras netas en un teléfono: tienen prueba en host. Se vieron en pantalla en la preparación del piloto, pero falta la evidencia versionada.
-3. Que los textos citados de la app coincidan en pantalla con la versión que se entregue. Si la APK final no es `1d77c14`, o la Web no es `4bcb1ea`, hay que releer este manual. Las partes del bloque 2 citan la composición probada `fb331c6` (PR Mobile #156–#160): están integrados en Mobile `main` `186f473`. Faltan todavía los cambios de X01 y del bloque 1.
+3. Que los textos citados de la app coincidan en pantalla con la versión que se entregue. Si la APK final no es `1d77c14`, o la Web no es `4bcb1ea`, hay que releer este manual. Las partes del bloque 2 citan la composición probada `fb331c6` (PR Mobile #156–#160): están integrados en Mobile `main` `186f473`. §7.5 cita Mobile `main` `774ae88` (F08-PREV-01). Faltan todavía los cambios de X01 y del bloque 1.
 4. Las marcas **[Verificar]** del 2026-10-24:
    - espera y bloqueo del PIN;
    - aplicación tardía;
    - reversión de una aplicación y de una transferencia;
    - restauración en otro modelo de teléfono;
-   - restauración sin resolver, «Seguir con los actuales» y «Mis datos están bien» (F08-PREV-01, sólo en el ordenador y en la integración continua);
+   - restauración sin terminar;
+   - (2026-10-31) restauración sin resolver, «Seguir con los actuales» y «Mis datos están bien» (F08-PREV-01, sólo en el ordenador y en la integración continua);
    - dónde queda la exportación local y que se borra al desinstalar;
    - sellado y tendencias en el entorno del piloto.
 5. Capturas nuevas de las pantallas «PIN del titular», «Recuperar acceso», «Operaciones tardías» y «Clave de recuperación». **No** se puede capturar la clave: la pantalla está protegida. Para esa pantalla basta una descripción, sin la clave.
