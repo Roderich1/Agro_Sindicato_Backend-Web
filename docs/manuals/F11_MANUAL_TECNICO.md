@@ -3,8 +3,8 @@
 | Campo | Valor |
 |---|---|
 | Estado | **Borrador revisable de F11** (BE #54). No es un release ni una guía de producción aprobada. GATE-F11 no se evalúa con este documento |
-| Fecha de redacción | 2026-10-19. **Actualización del 2026-10-24** (F01–F08, sesión C), marcada en cada apartado |
-| Base descrita | Backend `main` `2a69fe6` (código igual a `f0b55ee`) y Mobile `463d3ec`. **Desde la actualización del 2026-10-24:** Backend `main` `4bcb1ea` y Mobile `main` `1d77c14`. Los nombres de variables, comandos y códigos se comprobaron sobre esos SHA |
+| Fecha de redacción | 2026-10-19. **Actualización del 2026-10-24** (F01–F08, sesión C), marcada en cada apartado. **Actualización del 2026-10-31** (copias previas tras F08-PREV-01: resumen, §6, §9.2 y §12) |
+| Base descrita | Backend `main` `2a69fe6` (código igual a `f0b55ee`) y Mobile `463d3ec`. **Desde la actualización del 2026-10-24:** Backend `main` `4bcb1ea` y Mobile `main` `1d77c14`. **Lo marcado con el 2026-10-31** describe Mobile `main` `774ae88` (F08-PREV-01, PR Mobile #173). Los nombres de variables, comandos y códigos se comprobaron sobre esos SHA |
 | Manual de usuario | [`F11_MANUAL_USUARIO.md`](F11_MANUAL_USUARIO.md) (BE #53): recorrido del agricultor y de la Directiva. Aquí no se repite |
 | Revisión | Sesión B (técnica). Las decisiones las toma Roderich Rendón |
 
@@ -24,6 +24,8 @@
 - la herramienta de #160 y el modo `drop-refresh-response` del arnés Mobile (§7.4);
 - la restauración en un teléfono nuevo, con la cuenta y la clave (§6.1);
 - lo que sigue pendiente para producción, por separado (§7.5).
+
+**Actualización del 2026-10-31** (Mobile `main` `774ae88`, F08-PREV-01): comprobación del estado recuperado tras un rollback, estado `retained`, copias protegidas y excepción a la limpieza normal de `previo/` (§6, §9.2 y §12). Comprobado sólo en HOST y CI; no en un emulador ni en un teléfono.
 
 ---
 
@@ -439,10 +441,48 @@ El uso desde la app está en el manual de usuario. Aquí sólo va lo que necesit
 > - **Clave de recuperación.** Se muestra para anotarla en papel (56 caracteres en Base32 de Crockford, con comprobación) y hay que volver a escribirla entera antes de la primera subida. Se guarda en `flutter_secure_storage` (almacén `agrocuentas_backup_keys_v1`), fuera de SQLite y del respaldo. **No hay escrow:** ni el servidor, ni la Directiva, ni el operador la tienen. Volver a verla o cambiarla exige el PIN del titular.
 > - **Restauración desde el servidor:** sesión del mismo titular; tamaño y SHA-256 de transporte; descifrado con la etiqueta verificada a un `.part` privado; validación interna y comprobación del titular; confirmación de la persona; y `GuardedRestore.restore`. Una clave equivocada o un archivo alterado no tocan la base activa.
 > - **Copias del formato 1** del servidor: se listan como «SIN CIFRAR (formato anterior)» y se restauran con un aviso. No se convierten ni se borran en silencio.
-> - **`.previo`**: van a `<databases>/previo/` con un registro durable (`registro.json`). Se conservan como mucho 2 resueltas y ninguna con más de 7 días. Nunca se retiran una `preparing` ni una `interrupted`, y una `interrupted` bloquea otra restauración. Las `.previo-*.db` heredadas junto a la base no se borran solas.
+> - **`.previo`**: van a `<databases>/previo/` con un registro durable (`registro.json`). Se conservan como mucho 2 resueltas y ninguna con más de 7 días. Nunca se retiran una `preparing` ni una `interrupted`, y una `interrupted` bloquea otra restauración. Las `.previo-*.db` heredadas junto a la base no se borran solas. *2026-10-31:* tampoco se retira una `retained`, y una `rolledBack` exige ahora comprobar el estado recuperado o que el titular confirme la recuperación; ver el apartado siguiente.
 > - **Respaldo de Android:** `backup_rules.xml` y `data_extraction_rules.xml` excluyen los cinco dominios de la app, en la nube y en la transferencia entre dispositivos. Desinstalar o cambiar de teléfono sin un respaldo propio pierde los datos.
 > - **Lo que sigue sin cifrar:** la exportación manual a `Descargas` (EVO-001).
 > - **[Probado]** en el host (Mobile `F08_RESPALDO_CIFRADO_HOST.md`) y en el POCO X5 Pro, en las tres rondas de A (Mobile `F01_F08_DEVICE_COMPOSICION_2026-10-24.md`). En esas rondas la copia cifrada quedó en el disco del Backend desechable, **no en B2**. Lo que sigue pendiente está en F08-ADR-003 §0.4.
+
+> **Actualización del 2026-10-31** (Mobile `main` `774ae88`, F08-PREV-01, Mobile #172; diseño en Mobile F08-ADR-003 §7.1 y §7.2; evidencia en Mobile `docs/evidence/F08_PREV_01_VERIFICACION_ROLLBACK_2026-10-31.md`). Cambia cuándo una copia de `previo/` deja de estar protegida.
+>
+> **Comprobación del estado recuperado.** Antes, una copia quedaba `rolledBack` en cuanto el rollback terminaba sin excepción, y entraba en el plazo y la cota. Ahora `BackupService` comprueba, todavía en exclusiva y con la conexión cerrada, que lo recuperado es lo de antes de restaurar:
+> - ningún `-wal` con contenido; un `-wal` vacío o un `-shm` que siguen ahí no permiten concluir;
+> - el `-journal` que SQLite aplicaría al abrir la base (cabecera válida) es el mismo que había antes, normalmente ninguno;
+> - la base tiene el SHA-256 de la base cerrada que se aseguró, o no existe si no la había;
+> - con el formato contenedor, la carpeta de fotografías: si no había, no debe haberla; si la había, su copia previa conserva los nombres y tamaños anotados al preparar y la carpeta recuperada tiene esos archivos con el SHA-256 de la copia.
+>
+> Nada se borra para pasar la comprobación. Si no coincide o no es concluyente, la entrada queda `interrupted` (protegida y bloqueante), se conserva también la copia de las fotografías y el error es `RestoreRecoveryUnverifiedException` («No pudimos confirmar que sus datos anteriores se recuperaron correctamente…»), que se muestra aunque la pantalla se desmonte. La regla vale también cuando falla la comprobación del estado restaurado (la que daría `finalized`): la entrada sigue en `preparing`, se deshace la restauración y se comprueba igual.
+>
+> **Estados y protección** (`lib/data/restore_safety_copies.dart`, `isProtected`):
+>
+> | Estado | Cuándo | Protegida | Bloquea otra restauración |
+> |---|---|---|---|
+> | `preparing` | Antes de escribir la copia | Sí | Sí, si no es de una restauración en curso en este proceso |
+> | `finalized` | La restauración terminó y se comprobó el estado restaurado | No | No |
+> | `rolledBack` | El rollback terminó **y se comprobó** el estado recuperado, o el titular confirmó la recuperación | No | No |
+> | `interrupted` | Proceso muerto a medias, rollback fallido, o estado recuperado que no coincide o no se pudo comprobar | **Sí** | **Sí** |
+> | `retained` | Era `interrupted` y el titular eligió «Seguir con los actuales» | **Sí** | No |
+>
+> **Seguir no es confirmar.** Son dos acciones expresas y separadas, en «Respaldo en la nube» › «Copias previas a restauraciones»:
+> - «Seguir con los actuales» (`continueWithCurrentData`, sólo desde `interrupted`) pasa la copia a `retained`: deja de bloquear otra restauración, pero **no** la da por recuperada y sigue protegida;
+> - «Mis datos están bien» (`confirmRecovery`, desde `interrupted` o `retained`, siempre tras un diálogo de confirmación) la pasa a `rolledBack` con fecha y la entrega a las reglas normales. Es una afirmación del titular, no una comprobación de la app: en la lista se ve igual que una `rolledBack` comprobada («restauración deshecha»).
+> - Cancelar o cerrar cualquiera de los diálogos no cambia nada. Ninguna de las dos acciones borra archivos. Valen para toda `interrupted`, también la de un proceso muerto, porque no se distinguen con seguridad.
+>
+> **Excepción a la limpieza normal.** El plazo (7 días desde `resolvedAt`) y la cota (2) sólo actúan sobre `finalized` y `rolledBack`. Las `preparing`, `interrupted` y `retained` quedan fuera de los dos hasta que el titular confirma la recuperación:
+> - **No hay purga de `retained`.** Cada una es una base completa más su carpeta de fotografías (`<databases>/previo/<id>.db` y `<id>.facturas`), y se acumulan sin cota. Quien diagnostique un teléfono con poco espacio debe mirar `previo/registro.json` antes de suponer que la retención está rota.
+> - No se añade ninguna forma de borrar una copia protegida desde la app.
+> - Recuperar el contenido de una `interrupted` o `retained` desde la interfaz **no existe**: es un procedimiento técnico, sin guía en este manual (F08-ADR-003 §7.2). **[Sin probar]**.
+>
+> **Compatibilidad hacia atrás.** **[Sin probar]**, deducido del código. Una versión de la app con registro (desde `1d77c14`) y anterior a `774ae88` no conoce `retained` y trata un `registro.json` que la contenga como ilegible: bloquea las restauraciones y ofrece «Apartar», sin borrar copias. Volver a una APK anterior tras usar «Seguir con los actuales» deja la app en ese estado (§9.1). Las versiones anteriores a `1d77c14` no leen `registro.json` (F08-ADR-003 §7, aclaración del 2026-10-24).
+>
+> **Límites declarados** (evidencia §8):
+> - **Comprobado sólo en HOST y CI.** HOST: Windows 11, Flutter 3.47.2, suite completa sobre el código `e82cbde` (igual al de `774ae88`): 2140 correctas, 3 omitidas, 0 fallos (evidencia §5.3). CI de `main` `774ae88`: «2139 tests passed, 4 skipped» (Flutter CI, run 41263618690, push del 2026-11-01 02:03–02:17 UTC, success). **EMULADOR y DEVICE no ejecutados:** el rollback sólo ocurre si la restauración falla después de sustituir la base, y la app no lo puede provocar sin un gancho de prueba. No se observaron en Android el modo de diario de la plataforma, el borrado de `-wal`/`-shm`, la copia en el almacenamiento privado ni los diálogos.
+> - **La copia inicial de las fotografías no se verifica contra el original.** Al prepararla sólo se anotan nombres y tamaños; lo recuperado se compara por SHA-256 con la copia, no con el contenido original. Una copia del mismo tamaño con contenido corrupto pasaría. La base sí se coteja con el SHA-256 del original.
+> - Tras un rollback sin confirmar, `GuardedRestore` reabre la base para recalcular el acceso: si quedaba un `-journal` aplicable o un `-wal` con contenido, SQLite los aplica entonces, antes de que la persona decida. La copia previa sigue protegida.
+> - No cambian el plazo, la cota, el cifrado, la identidad ni la pausa de la outbox. La política de retención de `.previo` sigue abierta en Roderich1/Agro_Sindicato_Backend-Web#151 (punto 10).
 
 ### 6.1 Restauración en un teléfono nuevo: cuenta más clave (2026-10-24)
 
@@ -598,6 +638,8 @@ Ver §6. Es el único procedimiento de recuperación de datos probado de punta a
 
 *2026-10-24:* esas dos pruebas fueron con el **formato 1**, sin cifrar. Con el formato 2, la restauración en el teléfono se probó contra el disco del Backend desechable (§6), no contra B2. En un teléfono nuevo hacen falta la cuenta y la clave (§6.1).
 
+*2026-10-31:* si una restauración falla y la app no puede comprobar que volvió a los datos anteriores, la copia previa queda protegida y bloquea otra restauración hasta que el titular decide (§6, actualización del 2026-10-31). Sólo HOST y CI.
+
 ### 9.3 Base del Central
 
 **[No existe]:**
@@ -693,6 +735,7 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
 | Cifras colectivas | `F07_AGGREGATE_DISCLOSURE_POLICY.md` (propuesta) | `F07_GATE.md`; `F07_WEB.md` |
 | Autorización | `docs/security/AUTHORIZATION_MATRIX_VIGENTE.md` | `F10_SEC_02_ROUTES.md` |
 | *2026-10-24:* formato 2 y `BACKUP_REQUIRE_CLIENT_ENCRYPTION` | Mobile F08-ADR-003 §4–§6; `F08_BACKUP_THREAT_MODEL.md` §8; `backup-format.ts` | `backup-format.spec.ts`; `encrypted-format.backups.postgres.spec.ts`; `F08_BKP_08_B2_REAL_REPETICION.md` |
+| *2026-10-31:* copias previas tras F08-PREV-01 (comprobación del rollback, `retained`, excepción a la limpieza) | Mobile F08-ADR-003 §7.1 y §7.2 en `774ae88`; `restore_safety_copies.dart`, `backup_service.dart` | Mobile `F08_PREV_01_VERIFICACION_ROLLBACK_2026-10-31.md` (HOST y CI; EMULADOR y DEVICE no ejecutados) |
 | *2026-10-24:* adaptador B2 (H1, H2, H3, 5b) y limpieza pendiente | `F08_BACKUP_THREAT_MODEL.md` §9; `s3-backup-storage.ts` | `s3-backup-storage.spec.ts`; `F08_BKP_08_B2_REAL_FORMATO2.md`, `…_REPETICION.md` y `…_ACOTADA.md` |
 | *2026-10-24:* herramienta de #160 | `tool/f08_b2/`; `b151-b2-real.postgres.spec.ts` | `F08_BKP_08_HERRAMIENTA_B151.md` |
 | *2026-10-24:* sellado F07 y su migración | `F07_SEALED_HISTORY_CONTRACT.md` §3–§4 | `F07_SELLADO_HISTORICO.md` |

@@ -4,8 +4,8 @@
 |---|---|
 | Estado | **Borrador revisable de F11** (BE #53). No es un release. GATE-F11 no se evalúa con este documento |
 | Fecha de redacción | 2026-10-19 |
-| Actualización | 2026-10-24: funciones de F03, RF-13, RF-03, F07 y F08 que ve el usuario (§1.1, §1.2, §2.1, §3, §6, §7, §9.5 y §9.6). 2026-10-27: bloque 2 (D-03, D-04, E-15, D-07, E-12) en §1, §1.1, §2, §3, §4, §11, §12 y §13. 2026-10-28: D-03 con anulaciones demostradas (§2, §2.1, §3 y §11), referencias de la composición probada `fb331c6` y comprobaciones en EMULADOR del bloque 2 (§1.1, §3, §4.1, §4.2, §12 y §13) |
-| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`). **Sólo las partes marcadas como bloque 2 describen el código del bloque 2**: los PR Mobile #156 (D-03, `323f393`; documentación posterior en `7a56656`), #157 (D-04, `b4b548b`), #158 (E-15, `3f70a48`), #159 (D-07, `0ea59aa`) y #160 (E-12, `f32eb97`; la rama incorpora D-07 con el merge `656c645` y documentación hasta `8718e9e`). Su composición probada es Mobile `fb331c6`. Se integraron el 2026-10-28 en Mobile `main` `186f473`, cuyo código es idéntico al de esa composición. Esas partes son: §1 (párrafo *Crear el PIN al terminar*), §1.1 (apartados *Crear el PIN durante la activación* y *Volver a la operación pendiente*, una fila de la tabla y el párrafo *Olvidé el PIN*), §2 (una viñeta), §2.1 (una viñeta), §3 (apartados de la aplicación con fecha pasada y de la transferencia), §4.1, §4.2, una viñeta de §4.3, tres límites de §11, los puntos 8 y 9 de §12 y cuatro filas de §13. **Todo lo demás sigue describiendo Mobile `1d77c14`.** **Limitación declarada:** los cambios de X01 y del bloque 1 (#149, #150–#154) **todavía no están descritos** en este manual; algunos textos y rutas de las partes no actualizadas ya no coinciden con `fb331c6` |
+| Actualización | 2026-10-24: funciones de F03, RF-13, RF-03, F07 y F08 que ve el usuario (§1.1, §1.2, §2.1, §3, §6, §7, §9.5 y §9.6). 2026-10-27: bloque 2 (D-03, D-04, E-15, D-07, E-12) en §1, §1.1, §2, §3, §4, §11, §12 y §13. 2026-10-28: D-03 con anulaciones demostradas (§2, §2.1, §3 y §11), referencias de la composición probada `fb331c6` y comprobaciones en EMULADOR del bloque 2 (§1.1, §3, §4.1, §4.2, §12 y §13). 2026-10-31: copias previas a restauraciones tras F08-PREV-01 (§7.5, §12 y §13) |
+| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`). **Sólo las partes marcadas como bloque 2 describen el código del bloque 2**: los PR Mobile #156 (D-03, `323f393`; documentación posterior en `7a56656`), #157 (D-04, `b4b548b`), #158 (E-15, `3f70a48`), #159 (D-07, `0ea59aa`) y #160 (E-12, `f32eb97`; la rama incorpora D-07 con el merge `656c645` y documentación hasta `8718e9e`). Su composición probada es Mobile `fb331c6`. Se integraron el 2026-10-28 en Mobile `main` `186f473`, cuyo código es idéntico al de esa composición. Esas partes son: §1 (párrafo *Crear el PIN al terminar*), §1.1 (apartados *Crear el PIN durante la activación* y *Volver a la operación pendiente*, una fila de la tabla y el párrafo *Olvidé el PIN*), §2 (una viñeta), §2.1 (una viñeta), §3 (apartados de la aplicación con fecha pasada y de la transferencia), §4.1, §4.2, una viñeta de §4.3, tres límites de §11, los puntos 8 y 9 de §12 y cuatro filas de §13. **§7.5 describe Mobile `main` `774ae88`** (F08-PREV-01, PR Mobile #173, integrado el 2026-10-31). **Todo lo demás sigue describiendo Mobile `1d77c14`.** **Limitación declarada:** los cambios de X01 y del bloque 1 (#149, #150–#154) **todavía no están descritos** en este manual; algunos textos y rutas de las partes no actualizadas ya no coinciden con `fb331c6` |
 | Manual técnico | [`F11_MANUAL_TECNICO.md`](F11_MANUAL_TECNICO.md) (BE #54): instalación, configuración, respaldos del servidor y recuperación |
 | Revisión | Sesión A, el recorrido de usuario. Las decisiones las toma Roderich Rendón |
 
@@ -21,6 +21,7 @@
   - Comprobaciones: pruebas en el ordenador (Mobile `docs/evidence/F10_BLOQUE2_*.md`) y un recorrido en **EMULADOR 2026-10-28 (Pixel_8, sin teléfono)**, con datos sintéticos y un solo operador (Mobile `docs/evidence/F10_BLOQUE2_EMULADOR_2026-10-28.md`). Lo que pasó por el emulador se cita así; lo demás sigue con **[Verificar]**. Salvo las anulaciones demostradas de D-03 (APK de `fb331c6`), el recorrido usó la APK de `e5ba07c`, cuyo código de D-04, E-15, D-07 y E-12 es idéntico al de `fb331c6`.
   - **No hubo ninguna prueba en teléfono ni evaluación con personas** para el bloque 2.
   - Estas mejoras no forman parte de los pilotos X01 ni X02.
+- **F08-PREV-01 (2026-10-31, §7.5):** los textos se copiaron del `lib/` de Mobile `main` `774ae88`. Comprobado sólo en el ordenador y en la integración continua (Mobile `docs/evidence/F08_PREV_01_VERIFICACION_ROLLBACK_2026-10-31.md`). **No se probó en un emulador ni en un teléfono.**
 
 **Capturas:**
 - **App móvil:** todas las capturas de la app que hay en el repositorio Mobile (`artifacts/ui-audit/`) son del 2026-09-05/06, anteriores a la activación, la modalidad, la sincronización, el respaldo en la nube y las cifras netas. **No se usan en este manual.** Hay que tomar capturas nuevas con datos sintéticos **[Verificar]**.
@@ -789,22 +790,54 @@ La app tiene además el mensaje «Ya tiene el máximo de copias en el servidor. 
 
 Fuente: ensayo B2 del 2026-10-19, §1.
 
-#### 7.5 Copias previas a restauraciones (`.previo`)
+#### 7.5 Copias previas a restauraciones (`.previo`, F08-PREV-01)
 
 Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una copia de los datos que había** en una carpeta privada del teléfono (archivos `….previo-…`). Sirve para volver atrás si la restauración falla.
 
 **Dónde se ven:** «Respaldo en la nube» › «Copias previas a restauraciones».
 
-**Cuánto duran:** «Se guardan en este teléfono. Se conservan hasta dos, siete días, cuando se abre esta sección o se restaura otra copia; no hay limpieza con la aplicación cerrada. La de una restauración sin terminar no se borra.»
+**Cuánto duran:** «Se guardan en este teléfono. Se conservan hasta dos, siete días, cuando se abre esta sección o se restaura otra copia; no hay limpieza con la aplicación cerrada. La de una restauración sin resolver, o cuya recuperación no se confirmó, no se borra.»
 
 | Estado | Qué significa |
 |---|---|
 | «restauración terminada» | La restauración salió bien |
-| «restauración deshecha» | Algo falló y la app volvió a los datos anteriores |
+| «restauración deshecha» | Algo falló, la app volvió a los datos anteriores y comprobó que son los que había antes de restaurar. También aparece así una copia que estaba sin resolver o «Recuperación sin confirmar» después de que usted pulsara «Mis datos están bien»: en ese caso lo confirmó usted, no la app |
 | «en uso por una restauración» | Hay una restauración en marcha |
-| «RESTAURACIÓN SIN TERMINAR: copia protegida» | Una restauración se cortó. La copia no se borra y **no se puede restaurar otra** hasta resolverlo |
+| «RESTAURACIÓN SIN RESOLVER: copia protegida; bloquea otra restauración» | Una restauración se cortó, o falló y la app no pudo confirmar que volvió a los datos anteriores. La copia no se borra y **no se puede restaurar otra** hasta que usted decida |
+| «Recuperación sin confirmar: copia protegida» | Usted eligió seguir con los datos actuales sin confirmar que estén bien. Ya puede restaurar otra copia, pero esta no se borra |
 
-**Resolver una restauración sin terminar:** si sus datos actuales están bien, pulse «Mantener los actuales». La app explica: «… la copia se conservará siete días más y después se retirará en la limpieza normal.»
+**Si una restauración falla y la app no puede confirmar la recuperación**, avisa: «No pudimos confirmar que sus datos anteriores se recuperaron correctamente. Conservamos la copia de seguridad. Antes de restaurar otro respaldo, elija qué hacer en «Copias previas a restauraciones».»
+- Si no había datos que copiar, el aviso no incluye «Conservamos la copia de seguridad».
+- Si lo que falla es el propio intento de deshacer la restauración, el aviso puede ser otro, pero la copia queda igual sin resolver.
+- El aviso aparece aunque usted haya salido de la pantalla. Hay una prueba de esto sólo para la restauración desde la nube.
+- La app **no** afirma que sus datos estén bien: eso lo decide usted después de revisarlos.
+
+**Si intenta restaurar otra copia antes de decidir**, la app no lo hace: «Una restauración anterior no terminó o no pudimos confirmar que sus datos anteriores se recuperaron correctamente. Si se guardó una copia de sus datos de entonces, sigue protegida. Antes de restaurar otro respaldo, elija qué hacer en «Copias previas a restauraciones». No se cambiaron sus datos.»
+
+**Decidir qué hacer con una restauración sin resolver:** pulse «Decidir» en la copia. La app abre «Restauración sin resolver», explica si quedó o no una copia de los datos de entonces y ofrece tres botones:
+
+| Botón | Qué hace | Qué pasa con la copia |
+|---|---|---|
+| «Cancelar» (o tocar fuera del aviso) | Nada | Sigue protegida y sigue bloqueando otra restauración |
+| «Seguir con los actuales» | Le permite restaurar otro respaldo. **No confirma que sus datos estén bien** | Queda «Recuperación sin confirmar»: sigue protegida y no se borra |
+| «Mis datos están bien» | Confirma que revisó sus datos y están bien. Antes pide una segunda confirmación | Deja de estar protegida y puede retirarse en la próxima limpieza |
+
+**Seguir no es confirmar:**
+- **«Seguir con los actuales»** sirve cuando necesita restaurar otro respaldo, pero todavía no ha revisado sus datos o no está seguro de que estén completos. La copia de antes se guarda por si la necesita.
+- **«Mis datos están bien»** es afirmar que los revisó. La app pregunta «¿Sus datos actuales están bien?»: «Hágalo sólo después de revisarlos. La copia de los datos de antes de la restauración del … dejará de estar protegida y puede retirarse en la próxima limpieza (se conservan como máximo dos, durante siete días).» Si no quedó copia en el teléfono, en lugar de «La copia de los datos de antes…» dice «La entrada de la restauración del …, sin copia en este teléfono,». Si cancela, nada cambia.
+
+**Confirmar más tarde:** una copia «Recuperación sin confirmar» tiene su propio botón «Mis datos están bien», que abre la misma confirmación.
+
+**Excepción a la limpieza normal:**
+- La limpieza (hasta dos copias, siete días) sólo retira copias terminadas, deshechas o cuya recuperación usted confirmó.
+- Las copias sin resolver y las «Recuperación sin confirmar» **no se retiran por antigüedad ni por el límite de dos**.
+- Por eso pueden acumularse y ocupar espacio en el teléfono. Para que se retiren, pulse «Mis datos están bien» cuando haya revisado sus datos.
+
+**Qué comprueba la app tras deshacer una restauración:**
+- que la base de datos sea la misma que había antes de restaurar (SHA-256), sin cambios pendientes de aplicar distintos de los que ya había;
+- que las fotografías recuperadas coincidan con la copia que guardó al empezar. Si antes no había carpeta de fotografías, no la trata como una carpeta vacía.
+
+Si algo no coincide, o no puede comprobarlo, no la da por recuperada. **Límite:** la copia de las fotografías no se compara con las fotografías originales; sólo se compara lo recuperado con esa copia.
 
 **Otros casos:**
 - **«El registro de copias no se puede leer»:** la app no borra ninguna copia ni restaura nada hasta que pulse «Apartar». «Apartarlo no borra copias: quedan como «antiguas» y sólo se borran una a una si usted lo pide.»
@@ -812,7 +845,10 @@ Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una co
 
 Las copias previas **no** van cifradas, no se suben a la nube y no salen del teléfono con el respaldo de Google.
 
-**Evidencia:** la copia previa tras una restauración, en el POCO X5 Pro el 2026-10-24 (D8). **[Verificar]** en un teléfono la restauración sin terminar y la limpieza a los siete días: sólo tienen pruebas en el ordenador (Mobile `F08_RESPALDO_CIFRADO_HOST.md`).
+**Evidencia:**
+- La copia previa tras una restauración, en el POCO X5 Pro el 2026-10-24 (D8).
+- La comprobación del estado recuperado, el aviso y los botones «Decidir», «Seguir con los actuales» y «Mis datos están bien»: sólo en el ordenador y en la integración continua (Mobile `docs/evidence/F08_PREV_01_VERIFICACION_ROLLBACK_2026-10-31.md`, PR Mobile #173). **No se probaron en un emulador ni en un teléfono.**
+- **[Verificar]** en un teléfono: la restauración sin resolver, los tres botones, el aviso y la limpieza a los siete días (Mobile `F08_RESPALDO_CIFRADO_HOST.md` y la evidencia de F08-PREV-01).
 
 ---
 
@@ -1080,13 +1116,14 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 
 1. Capturas nuevas de la app con datos sintéticos: activación, titular, modalidad, Sincronización, Respaldo en la nube, detalle de inventario con cifras netas y Reportes.
 2. Las cifras netas en un teléfono: tienen prueba en host. Se vieron en pantalla en la preparación del piloto, pero falta la evidencia versionada.
-3. Que los textos citados de la app coincidan en pantalla con la versión que se entregue. Si la APK final no es `1d77c14`, o la Web no es `4bcb1ea`, hay que releer este manual. Las partes del bloque 2 citan la composición probada `fb331c6` (PR Mobile #156–#160): están integrados en Mobile `main` `186f473`. Faltan todavía los cambios de X01 y del bloque 1.
+3. Que los textos citados de la app coincidan en pantalla con la versión que se entregue. Si la APK final no es `1d77c14`, o la Web no es `4bcb1ea`, hay que releer este manual. Las partes del bloque 2 citan la composición probada `fb331c6` (PR Mobile #156–#160): están integrados en Mobile `main` `186f473`. §7.5 cita Mobile `main` `774ae88` (F08-PREV-01). Faltan todavía los cambios de X01 y del bloque 1.
 4. Las marcas **[Verificar]** del 2026-10-24:
    - espera y bloqueo del PIN;
    - aplicación tardía;
    - reversión de una aplicación y de una transferencia;
    - restauración en otro modelo de teléfono;
    - restauración sin terminar;
+   - (2026-10-31) restauración sin resolver, «Seguir con los actuales» y «Mis datos están bien» (F08-PREV-01, sólo en el ordenador y en la integración continua);
    - dónde queda la exportación local y que se borra al desinstalar;
    - sellado y tendencias en el entorno del piloto.
 5. Capturas nuevas de las pantallas «PIN del titular», «Recuperar acceso», «Operaciones tardías» y «Clave de recuperación». **No** se puede capturar la clave: la pantalla está protegida. Para esa pantalla basta una descripción, sin la clave.
@@ -1111,7 +1148,7 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 | 2.1 y 3. Operaciones tardías (RF-03) y reversión con motivo y PIN (RF-13) | Mobile `docs/architecture/F04_RF13_RF03_ACTOR_Y_TARDIAS.md` | Mobile `F01_F08_DEVICE_COMPOSICION_2026-10-24.md` (D4, D5) y `F01_F08_DEVICE_FINAL_2026-10-24.md` (A1–A3, B2–B4); `F03_F04_RECUPERAR_ACCESO_RF13_RF03_HOST.md` |
 | 3–4. Registro, inventario y cuentas | ADR-001 | `F10_PREFLIGHT_DSUX.md`; Mobile `REC_CONCILIACION_2026-10-19.md` en `b0d169b` (cifras netas, host) |
 | 5–6. Necesidad, consumo y sincronización | `F05_SYNC_V1_PUSH_ACK_CONTRACT.md`; `F06_COLLECTIVE_PROJECTION_CONTRACT.md`; `F07_SEALED_HISTORY_CONTRACT.md` §7 (`CAMPAIGN_SEALED`) | `F05_MOBILE_SYNC_DEVICE.md`, `F05_SYNC_06_DEVICE_F10.md`, `F06_D4_DEVICE.md`; `CAMPAIGN_SEALED`: Mobile `caca66c` (ordenador) y `F01_F08_DEVICE_FINAL_2026-10-24.md` (teléfono, C3–C5) |
-| 7. Respaldos | `F08_BACKUP_THREAT_MODEL.md`; `F08_BKP_06_RETENCION.md`; Mobile `docs/adr/F08-ADR-003-respaldo-cifrado-y-previo.md` | `F08_MOBILE_RESTORE.md`, `F10_RESTORE_DEVICE.md`; Backend `F08_BKP_07_B2_ENSAYO_REAL.md`; Mobile `F08_RESPALDO_CIFRADO_HOST.md` y `F01_F08_DEVICE_COMPOSICION_2026-10-24.md` (D6–D9) y `F01_F08_DEVICE_FINAL_2026-10-24.md` (D3–D5) |
+| 7. Respaldos | `F08_BACKUP_THREAT_MODEL.md`; `F08_BKP_06_RETENCION.md`; Mobile `docs/adr/F08-ADR-003-respaldo-cifrado-y-previo.md` | `F08_MOBILE_RESTORE.md`, `F10_RESTORE_DEVICE.md`; Backend `F08_BKP_07_B2_ENSAYO_REAL.md`; Mobile `F08_RESPALDO_CIFRADO_HOST.md` y `F01_F08_DEVICE_COMPOSICION_2026-10-24.md` (D6–D9) y `F01_F08_DEVICE_FINAL_2026-10-24.md` (D3–D5); Mobile `F08_PREV_01_VERIFICACION_ROLLBACK_2026-10-31.md` (HOST y CI) |
 | 8–10. Web de la Directiva | ADR-003; `F07_AGGREGATE_DISCLOSURE_POLICY.md` (propuesta); `AUTHORIZATION_MATRIX_VIGENTE.md` | `F07_WEB.md`, `F07_WEB_01.md`, `F10_COMPATIBILIDAD_WEB_S2.md`, `F10_DSUX_CENTRAL_VERIFICACION.md` |
 | 9.5–9.6. Sellado y tendencias | `F07_SEALED_HISTORY_CONTRACT.md`; F06 §7.2 (`R_COLLECTIVE_HISTORY`) | `F07_SELLADO_HISTORICO.md` (§7, recorrido Web 48/48) |
 | 1 y 1.1. PIN en la activación y vuelta a la operación pendiente (bloque 2, E-12; RF-01, RF-13, RF-03, CU-01, RNF-04) | Decisión del autor del 2026-10-27; Mobile `docs/architecture/F03_RECUPERACION_IDENTIDAD_LOCAL.md` §4 bis | Mobile `F10_BLOQUE2_E12_PIN_EN_ACTIVACION.md` (ordenador); `F10_BLOQUE2_EMULADOR_2026-10-28.md` (EMULADOR, E1–E3) |
