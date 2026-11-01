@@ -800,7 +800,7 @@ Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una co
 | Estado | Qué significa |
 |---|---|
 | «restauración terminada» | La restauración salió bien |
-| «restauración deshecha» | Algo falló, la app volvió a los datos anteriores y comprobó que son los que había antes de restaurar |
+| «restauración deshecha» | Algo falló, la app volvió a los datos anteriores y comprobó que son los que había antes de restaurar. También aparece así una copia que estaba sin resolver o «Recuperación sin confirmar» después de que usted pulsara «Mis datos están bien»: en ese caso lo confirmó usted, no la app |
 | «en uso por una restauración» | Hay una restauración en marcha |
 | «RESTAURACIÓN SIN RESOLVER: copia protegida; bloquea otra restauración» | Una restauración se cortó, o falló y la app no pudo confirmar que volvió a los datos anteriores. La copia no se borra y **no se puede restaurar otra** hasta que usted decida |
 | «Recuperación sin confirmar: copia protegida» | Usted eligió seguir con los datos actuales sin confirmar que estén bien. Ya puede restaurar otra copia, pero esta no se borra |
@@ -822,7 +822,7 @@ Antes de restaurar una copia, del teléfono o de la nube, la app guarda **una co
 
 **Seguir no es confirmar:**
 - **«Seguir con los actuales»** sirve cuando necesita trabajar o restaurar otro respaldo, pero todavía no ha revisado sus datos o no está seguro de que estén completos. La copia de antes se guarda por si la necesita.
-- **«Mis datos están bien»** es afirmar que los revisó. La app pregunta «¿Sus datos actuales están bien?»: «Hágalo sólo después de revisarlos. La copia de los datos de antes de la restauración del … dejará de estar protegida y puede retirarse en la próxima limpieza (se conservan como máximo dos, durante siete días).» Si cancela, nada cambia.
+- **«Mis datos están bien»** es afirmar que los revisó. La app pregunta «¿Sus datos actuales están bien?»: «Hágalo sólo después de revisarlos. La copia de los datos de antes de la restauración del … dejará de estar protegida y puede retirarse en la próxima limpieza (se conservan como máximo dos, durante siete días).» Si no quedó copia en el teléfono, en lugar de «La copia de los datos de antes…» dice «La entrada de la restauración del …, sin copia en este teléfono,». Si cancela, nada cambia.
 
 **Confirmar más tarde:** una copia «Recuperación sin confirmar» tiene su propio botón «Mis datos están bien», que abre la misma confirmación.
 
