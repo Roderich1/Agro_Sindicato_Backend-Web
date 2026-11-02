@@ -121,7 +121,6 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     setCopyBackend({ ...memory, put: (copy) => new Promise<void>((done) => (release = () => void memory.put(copy).then(done))) });
     const context = openContext(A)!;
     const pending = saveCopy(context.id, A, download());
-    await vi.waitFor(() => expect(release).not.toBe(undefined));
     await new Promise((r) => setTimeout(r, 5));
     closeContext();
     release();
@@ -150,7 +149,7 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     expect(await readableCopies(null)).toHaveLength(1);
   });
 
-  it('un 404 revoca la copia de esa campaña aunque su borrado falle', async () => {
+  it('un 404 revoca la copia de esa campaña mientras la página sigue abierta, aunque su borrado falle', async () => {
     await saveAs(A);
     await saveAs(A, download({}, 'c-2'));
     setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
@@ -185,6 +184,13 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     });
     expect(openContext(A)).toBeNull();
     expect(await readableCopies(null)).toEqual([]);
+  });
+
+  it('en localStorage sólo van identificadores validados y el rol; un identificador con otra forma no abre contexto', async () => {
+    openContext(A);
+    expect(Object.keys(JSON.parse(localStorage.getItem('agro_estimacion_contexto_v1')!)).sort()).toEqual(['id', 'opened_at', 'role', 'tenantId', 'userId', 'version']);
+    expect(openContext({ ...A, userId: '<script>' })).toBeNull();
+    expect(currentContext()).toBeNull();
   });
 
   it('ni la copia ni el contexto contienen credenciales', async () => {

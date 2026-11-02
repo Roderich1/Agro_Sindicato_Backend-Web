@@ -21,7 +21,8 @@ import type { InstitutionalDownload } from '../types/estimation';
  * **Invalidación inmediata, independiente del borrado.** Cerrar la sesión,
  * cambiar de identidad o sindicato, o recibir un rechazo de sesión o de
  * permiso cierran el contexto. Un rechazo de política lo renueva, con otro
- * `id`, y un 404 revoca esa campaña. Después se intenta borrar físicamente:
+ * `id`, y un 404 revoca esa campaña mientras la página siga abierta (y se
+ * borra su copia). Después se intenta borrar físicamente:
  * - si el borrado falla o sigue pendiente, la copia ya es inaccesible;
  * - el fallo queda marcado (`purgePending`) y se reintenta en la siguiente
  *   sesión o carga.
@@ -37,7 +38,9 @@ import type { InstitutionalDownload } from '../types/estimation';
 export const COPY_FORMAT_VERSION = 1;
 const CONTEXT_KEY = 'agro_estimacion_contexto_v1';
 const PURGE_KEY = 'agro_estimacion_purga_pendiente_v1';
-const INSTITUTIONAL_ROLES = ['DIRECTIVA', 'ADMINISTRADOR'];
+const INSTITUTIONAL_ROLES = new Set(['DIRECTIVA', 'ADMINISTRADOR']);
+/** Forma admitida de los identificadores que se escriben en `localStorage`. */
+const STORED_ID = /^[A-Za-z0-9-]{1,64}$/;
 
 export interface CopyIdentity {
   userId: string;
@@ -56,13 +59,16 @@ export interface CopyOwner extends CopyIdentity {
   role: string;
 }
 
-/** El contexto local autorizado: la sesión propietaria de las copias de este navegador. */
-export interface LocalContext extends CopyOwner {
+/**
+ * El contexto local autorizado: la sesión propietaria de las copias de este
+ * navegador. En `localStorage` sólo van identificadores validados y un rol de
+ * la lista institucional; nada que venga de la URL ni nombres.
+ */
+export interface LocalContext extends CopyIdentity {
   version: 1;
   id: string;
+  role: 'DIRECTIVA' | 'ADMINISTRADOR';
   opened_at: string;
-  /** Campañas cuya copia el servidor retiró (404) en este contexto. */
-  revoked: string[];
 }
 
 export interface StoredCopy {
@@ -90,9 +96,11 @@ const STORE = 'copias';
 function request<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(asError(req.error));
   });
 }
+
+const asError = (cause: DOMException | null) => new Error(`IndexedDB: ${cause?.message ?? 'error desconocido'}`);
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -101,7 +109,7 @@ function open(): Promise<IDBDatabase> {
       if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE, { keyPath: 'key' });
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(asError(req.error));
   });
 }
 
@@ -111,8 +119,8 @@ async function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStor
     const tx = db.transaction(STORE, mode);
     const done = new Promise<void>((resolve, reject) => {
       tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(asError(tx.error));
+      tx.onabort = () => reject(asError(tx.error));
     });
     const result = await request(run(tx.objectStore(STORE)));
     await done;
@@ -136,16 +144,24 @@ export const indexedDbBackend: CopyBackend = {
 export function memoryBackend(): CopyBackend {
   const rows = new Map<string, StoredCopy>();
   return {
-    get: async (key) => (rows.has(key) ? structuredClone(rows.get(key)!) : undefined),
-    put: async (copy) => void rows.set(copy.key, structuredClone(copy)),
-    list: async () => [...rows.values()].map((copy) => structuredClone(copy)),
-    delete: async (key) => void rows.delete(key),
+    get: (key) => Promise.resolve(rows.has(key) ? structuredClone(rows.get(key)!) : undefined),
+    put: (copy) => {
+      rows.set(copy.key, structuredClone(copy));
+      return Promise.resolve();
+    },
+    list: () => Promise.resolve([...rows.values()].map((copy) => structuredClone(copy))),
+    delete: (key) => {
+      rows.delete(key);
+      return Promise.resolve();
+    },
   };
 }
 
 let backend: CopyBackend = indexedDbBackend;
 /** Contextos cerrados en esta página: no vuelven a valer aunque `localStorage` no se pudiera escribir. */
 const closedIds = new Set<string>();
+/** Campañas retiradas por un 404, por contexto, mientras la página siga abierta. */
+const revokedTargets = new Map<string, Set<string>>();
 
 /** Sólo para pruebas: otro almacén. */
 export function setCopyBackend(next: CopyBackend) {
@@ -155,7 +171,7 @@ export function setCopyBackend(next: CopyBackend) {
 export const sameIdentity = (a: CopyIdentity | null, b: CopyIdentity | null) =>
   a !== null && b !== null && a.userId === b.userId && a.tenantId === b.tenantId;
 
-export const isInstitutional = (role: string | null | undefined) => INSTITUTIONAL_ROLES.includes(role ?? '');
+export const isInstitutional = (role: string | null | undefined) => INSTITUTIONAL_ROLES.has(role ?? '');
 
 function newId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -190,7 +206,8 @@ export function currentContext(): LocalContext | null {
       typeof value.userId === 'string' &&
       typeof value.tenantId === 'string' &&
       typeof value.role === 'string' &&
-      Array.isArray(value.revoked) &&
+      STORED_ID.test(value.userId) &&
+      STORED_ID.test(value.tenantId) &&
       isInstitutional(value.role) &&
       !closedIds.has(value.id);
     return valid ? (value as LocalContext) : null;
@@ -210,12 +227,18 @@ export function openContext(owner: CopyOwner): LocalContext | null {
     closeContext();
     return null;
   }
+  // Sólo identificadores con forma válida y un rol de la lista: nada más llega a `localStorage`.
+  const role = owner.role === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'DIRECTIVA';
+  if (!STORED_ID.test(owner.userId) || !STORED_ID.test(owner.tenantId)) {
+    closeContext();
+    return null;
+  }
   const existing = currentContext();
-  const base = { userId: owner.userId, tenantId: owner.tenantId, name: owner.name, tenantName: owner.tenantName, role: owner.role };
+  const base = { userId: owner.userId, tenantId: owner.tenantId, role } as const;
   const context: LocalContext =
     existing && sameIdentity(existing, owner)
       ? { ...existing, ...base }
-      : { version: 1, id: newId(), opened_at: new Date().toISOString(), revoked: [], ...base };
+      : { version: 1, id: newId(), opened_at: new Date().toISOString(), ...base };
   if (existing && existing.id !== context.id) closedIds.add(existing.id);
   return writeContext(context) ? context : null;
 }
@@ -236,14 +259,20 @@ export function rotateContext() {
   const existing = currentContext();
   if (!existing) return;
   closedIds.add(existing.id);
-  if (!writeContext({ ...existing, id: newId(), opened_at: new Date().toISOString(), revoked: [] })) closeContext();
+  if (!writeContext({ ...existing, id: newId(), opened_at: new Date().toISOString() })) closeContext();
 }
 
-/** 404 de una campaña: su copia deja de ser legible en este contexto. */
+/**
+ * 404 de una campaña: su copia deja de ser legible en este contexto mientras
+ * la página siga abierta, y se borra. No se escribe en `localStorage`: la
+ * referencia viene de la URL.
+ */
 export function revokeTarget(targetRef: string) {
   const existing = currentContext();
-  if (!existing || existing.revoked.includes(targetRef)) return;
-  if (!writeContext({ ...existing, revoked: [...existing.revoked, targetRef] })) closeContext();
+  if (!existing) return;
+  const revoked = revokedTargets.get(existing.id) ?? new Set<string>();
+  revoked.add(targetRef);
+  revokedTargets.set(existing.id, revoked);
 }
 
 function admissible(context: LocalContext | null, session: SessionIdentity | null): context is LocalContext {
@@ -257,7 +286,7 @@ function readable(copy: StoredCopy, context: LocalContext): boolean {
     copy.context_id === context.id &&
     sameIdentity(copy.owner, context) &&
     copy.download?.scope?.tenant_ref === context.tenantId &&
-    !context.revoked.includes(copy.download.target.campaign_ref)
+    !revokedTargets.get(context.id)?.has(copy.download.target.campaign_ref)
   );
 }
 
