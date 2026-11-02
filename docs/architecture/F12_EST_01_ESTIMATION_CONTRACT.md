@@ -140,11 +140,13 @@ La serie solo usa cifras ya publicadas y selladas (§3).
    - Un cambio de asociaciones, de cifras o de clasificaciones (una corrección) crea una **versión nueva** de la serie (`version + 1`, `previousSeriesId`).
    - Cada punto cita la versión de la clasificación que usó (`classificationId`), y la base solo admite la vigente al construir.
    - La anterior se conserva con las ejecuciones que la usaron.
-5. **Política pendiente.** Si la política de divulgación está en `POLICY_PENDING`, no hay cifras publicadas:
+5. **Política pendiente (EST-D-10, decidida).** Si la política de divulgación está en `POLICY_PENDING`, no hay cifras publicadas:
    - **no se encola ni se registra** nada: **409 `POLICY_PENDING`**, el mismo código que ya usan las propuestas;
    - si pasa a pendiente con un trabajo en cola, el trabajo termina `NOT_EXECUTED` con `POLICY_PENDING`, sin ejecución;
    - **ninguna lectura entrega cifras:** también 409 (§4.3);
-   - la base rechaza una ejecución con `disclosureMode = POLICY_PENDING`.
+   - la base rechaza una ejecución con `disclosureMode = POLICY_PENDING`;
+   - un trabajo no se reanuda sin volver a comprobar las condiciones: cada intento, también el que retoma un trabajo tras un error transitorio o un plazo vencido, vuelve a observar el permiso, la política y la campaña antes de calcular (§4.2);
+   - esta regla no es la aprobación institucional de la política (GOV-02, #107).
 6. **Cobertura (EST-D-09).** La cobertura «N de M» que exige RN-25 se define en el §3.1.
 
 ### 3.1 Cobertura del consumo (EST-D-09)
@@ -610,10 +612,10 @@ F12-EST-08 solo podrá mostrarla en una columna separada (RN-29).
 Para un resultado de la ejecución *E* (campaña objetivo *T*, producto *P*, unidad *U*), en este orden:
 
 1. **`NOT_USABLE`:** *E* es `FAILED` (`RUN_FAILED`) o el resultado no es `ESTIMATED` (`NO_FIGURE`).
-2. **`SUPERSEDED`:** existe una ejecución posterior `CALCULATED` del mismo sindicato y campaña *T* que incluye un resultado de (*P*, *U*), de cualquier estado (`LATER_RUN`) (EST-D-08). Una ejecución posterior `FAILED` **no** sustituye.
+2. **`SUPERSEDED`:** existe una ejecución posterior `CALCULATED` del mismo sindicato y campaña *T* que incluye un resultado de (*P*, *U*), de cualquier estado (`LATER_RUN`) (EST-D-08, decidida). Una ejecución posterior `FAILED` **no** sustituye.
 3. **`OUTDATED`:** cambiaron de forma conocida las cifras, asociaciones o clasificaciones que la sustentan.
    - `CLASSIFICATION_CORRECTED`: la clasificación de la campaña objetivo, o la de alguna campaña de la serie, ya no es la versión que se usó (EST-D-14).
-   - `SOURCES_CHANGED`: las fuentes de la serie de (*P*, *U*, temporada), reunidas ahora sin escribir nada, tienen otra huella que la `sourceHash` de la serie que usó el resultado (EST-D-12, fijado en F12-EST-05). La huella incluye las campañas clasificadas, sus versiones, sellados, divulgaciones, visibilidad, cobertura y asociaciones (§5): por ejemplo, una campaña nueva clasificada en la temporada lo produce.
+   - `SOURCES_CHANGED`: las fuentes de la serie de (*P*, *U*, temporada), reunidas ahora sin escribir nada, tienen otra huella que la `sourceHash` de la serie que usó el resultado (EST-D-12, decidida). La huella incluye las campañas clasificadas, sus versiones, sellados, divulgaciones, visibilidad, cobertura y asociaciones (§5): por ejemplo, una campaña nueva clasificada en la temporada lo produce.
    - Si se cumplen varias, el motivo es el primero de esta lista: `SOURCES_WITHDRAWN`, `CLASSIFICATION_CORRECTED`, `SOURCES_CHANGED`.
    - **Retirada.** Un punto comprobado sigue divulgado si su entrada sellada es `DISCLOSED`, visible, con la misma divulgación sin retirar y un número de aportantes no menor que el umbral vigente. El número de aportantes solo se usa para esta comprobación y no se entrega.
    - `SOURCES_WITHDRAWN`: alguna cifra usada ya no se divulga; en ese caso, además, **no se entregan sus cifras** (§4.3).
@@ -670,6 +672,9 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | EST-D-05 | 2026-11-01 | El Agricultor consulta la estimación sin naive, cobertura ni serie; puede coincidir con una cifra histórica; la proyección debe estar en la política institucional; no se habilitan datos reales ni se declara aprobada la política | §2 |
 | EST-D-06 | 2026-11-02 (UTC) | Campaña objetivo admisible: del mismo sindicato, clasificada y `PLANIFICADA` o `ABIERTA`, al pedir el trabajo y antes de empezar el cálculo. Si se cierra después de empezar, la ejecución se completa y se conserva como histórica; la campaña no se reabre ni se modifica, y la consulta sigue sujeta a los permisos y a la divulgación vigentes | §4.2; base: alta del trabajo y parada `TARGET_CAMPAIGN_NOT_ELIGIBLE`; la ejecución no exige el estado |
 | EST-D-07 | 2026-11-02 (UTC) | Cálculo sin redondeos intermedios; α y la comparación de errores, antes de redondear; estimación SES y naive finales con 6 decimales de la unidad base y `ROUND_HALF_UP`; se conservan los parámetros y la versión del método. Seis decimales son una decisión de representación, no una garantía de exactitud | §3.3; `Parameters` del OpenAPI |
+| EST-D-08 | 2026-11-02 (UTC) | Una ejecución posterior calculada sustituye a la anterior; una fallida, no. El resultado anterior solo se entrega conforme a su vigencia, sus fuentes y los permisos actuales. No se reutilizan cifras anteriores como si pertenecieran a una ejecución nueva con datos insuficientes | §4.3, §8 |
+| EST-D-10 | 2026-11-02 (UTC) | Mientras la política requerida esté pendiente se bloquean con 409 las solicitudes, las lecturas de cifras y la descarga. Los trabajos en cola detienen su procesamiento conforme al contrato, y antes de reanudarlos se vuelven a comprobar las condiciones aplicables. **No es la aprobación institucional de GOV-02** | §3 (punto 5), §4.2, §4.3, §9 |
+| EST-D-12 | 2026-11-02 (UTC) | Los cambios de fuentes, de clasificación o de la composición de la temporada desactualizan los resultados, incluida una campaña clasificada después. Si una fuente pierde la autorización, además no se entregan las cifras afectadas, SES y naive incluidos | §4.3, §8 |
 | EST-D-09 | 2026-11-01 y 2026-11-02 (UTC) | Ampliación mínima de F07: cobertura de participación del consumo en los sellados futuros, en la misma transacción e inmutable; no aceptar la cobertura general; no reconstruir los sellados anteriores; misma población en N y M; participación distinta de integridad; ningún mínimo nuevo | §3.1; F07 §5.3 |
 | EST-D-11 | 2026-11-02 (UTC) | Conservar los registros durante la construcción y la evaluación académica; la retención institucional definitiva, pendiente en GOV-02, sin declarar aprobada una conservación perpetua | §6.5 |
 | EST-D-13 | 2026-11-01 | Autorización existente por roles, con identidad, pertenencia y cuenta activa; ningún segundo sistema | §2, §6.3 |
@@ -682,9 +687,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 
 | Id | Decisión | Propuesta | Compatibilidad | Quién o cuándo |
 |---|---|---|---|---|
-| EST-D-08 | Qué sustituye a un resultado | Una ejecución posterior `CALCULATED` que incluya el producto; una `FAILED`, no | Compatible: con lotes, «posterior» es el orden de la cadena. Una ejecución `FAILED` con `RETRIES_EXHAUSTED` tampoco sustituye. **Implementado así en F12-EST-05**, sin decisión del autor | Roderich |
-| EST-D-10 | Política pendiente | 409 al pedir y al leer; un trabajo en cola termina `NOT_EXECUTED` | Compatible con EST-D-15. **Implementado así en F12-EST-05**, sin decisión del autor | Roderich |
-| EST-D-12 | Detección de `OUTDATED` | Huella de las fuentes vigentes frente a `sourceHash`; `CLASSIFICATION_CORRECTED` si cambió una versión de clasificación usada | Compatible. La huella incluye las versiones de clasificación y la cobertura del sellado (§5). **Implementado así en F12-EST-05 (§8)**, sin decisión del autor | Roderich |
+| — | Ninguna | Desde el 2026-11-02 (UTC) no queda ninguna decisión del autor pendiente en INT-09: EST-D-08, EST-D-10 y EST-D-12 pasaron a §11.1. Los límites que quedan están en §11.3 | — | — |
 
 ### 11.3 Incompatibilidades y límites que quedan
 
@@ -727,7 +730,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | Lista de ejecuciones (`GET /estimation/runs`) con cursor | **Implementado y comprobado por HTTP contra PostgreSQL** | `f12-est-05-runs.postgres.spec.ts` |
 | El trabajador como proceso real: `node dist/main.js` recibe la petición, su trabajador toma el trabajo, registra la ejecución y la API la entrega; dos procesos sobre la misma base; sin trabajador, el trabajo espera | **Comprobado en un ensayo reproducible (HOST, PostgreSQL desechable, datos sintéticos)** | `docs/evidence/f12_est_05/ensayo-proceso-trabajador.cjs`. Acredita integración y operación, no producción ni precisión |
 | Temporadas y clasificación inicial con su lista | **Implementado y comprobado por HTTP contra PostgreSQL en el PR de continuación de #190** (Refs #175); no en `main` ni en #190 | `f12-est-seasons.postgres.spec.ts`. Fuera del alcance de #178; ningún issue las incluía, y su asignación a #175 es una propuesta |
-| Descarga (`GET /estimation/download`) y clientes | **Solo especificado** | Copias de F12-EST-07 (#180, Mobile #164) y pantallas de F12-EST-06 (#179). La descarga depende además de EST-D-08, 10 y 12 (§11.2) |
+| Descarga (`GET /estimation/download`) y clientes | **Solo especificado** | Copias de F12-EST-07 (#180, Mobile #164) y pantallas de F12-EST-06 (#179). EST-D-08, 10 y 12 ya están decididas (§11.1); la descarga sigue sin implementarse |
 | Preparación de fuentes, construcción de series con versiones y lectura del tramo para una campaña objetivo (§3.2) | **Implementado y comprobado contra PostgreSQL**, sin rutas | `consumption-series.use-case.ts` y `domain/series.ts`; `series.spec.ts` (9) y `f12-est-02-series.postgres.spec.ts` (4, con sellados reales F07 por la API) |
 | Motor SES/naive (§3.3): rejilla de α, empates, criterio constante, naive y redondeo final | **Implementado y comprobado**, sin rutas ni ejecuciones | `domain/ses-naive.ts`; `ses-naive.spec.ts` (11, con casos calculados a mano y una referencia decimal independiente) y el tramo `READY` de sellados reales en `f12-est-02-series.postgres.spec.ts` |
 | Clientes Mobile y Web | **No construido** | F12-EST-06 y F12-EST-07 |
@@ -793,4 +796,5 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), quinta | EST-D-07 decidida por el autor (§11.1). F12-EST-04 (#177): motor SES/naive implementado como función pura, sin rutas ni ejecuciones (§3.3); `Parameters` del OpenAPI añade `arithmetic`, `result_scale` y `rounding` |
 | 2026-11-02 (UTC), sexta | F12-EST-05 (#178): trabajos, trabajador por lotes, ejecuciones y resultados solo por inserción y vigencia derivada, con seis rutas implementadas (§4); titularidad del trabajo en la base con una migración aditiva (`jobAttempt`); huella de contenido fijada (§5); detección de `SOURCES_CHANGED` fijada (§8); etapa `PARTIALLY_IMPLEMENTED` comparada con el código (§12). EST-D-08, 10 y 12 se implementan como estaban propuestas y siguen pendientes de decisión del autor |
 | 2026-11-02 (UTC), séptima | F12-EST-05 (#178): `GET /estimation/runs` implementado (§4.3); configuración del trabajador validada al arrancar y su funcionamiento como proceso descrito (§4.2); ensayo con el proceso real (§12); temporadas, clasificación inicial y descarga asignadas a sus bloques (§12). Corrige el recuento de operaciones especificadas de la revisión anterior |
-| 2026-11-02 (UTC), octava | Continuación de #190 (Refs #175): temporadas y clasificación inicial con su lista implementadas (§4.1); `openapi:check` compara once operaciones; solo la descarga sigue especificada |
+| 2026-11-02 (UTC), octava | EST-D-08, EST-D-10 y EST-D-12 decididas por el autor, con sus precisiones (§11.1); §11.2 queda sin pendientes. Contraste con el código y las pruebas: coincidían; se añaden dos pruebas que faltaban (una ejecución nueva con datos insuficientes no reutiliza la cifra anterior; un trabajo retomado tras un error transitorio vuelve a comprobar la política antes de calcular). La decisión EST-D-10 no aprueba GOV-02 |
+| 2026-11-02 (UTC), novena | Continuación de #190 (Refs #175): temporadas y clasificación inicial con su lista implementadas (§4.1); `openapi:check` compara once operaciones; solo la descarga sigue especificada |
