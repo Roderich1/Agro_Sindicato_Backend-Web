@@ -7,7 +7,7 @@ import { PrivateRoute } from './components/private-route';
 import { AuthProvider } from './contexts/auth.context';
 import { CampaignProvider } from './contexts/campaign.context';
 import { useAuth } from './hooks/use-auth';
-import { COLLECTIVE_PATHS, homePathFor, WEB_NOT_FOR_FARMERS_PATH } from './lib/navigation';
+import { COLLECTIVE_PATHS, ESTIMATION_COPY_PATH, homePathFor, WEB_NOT_FOR_FARMERS_PATH } from './lib/navigation';
 import { CampaignsPage } from './pages/campaigns.page';
 import { DashboardPage } from './pages/dashboard.page';
 import { InventoryPage } from './pages/inventory.page';
@@ -43,6 +43,9 @@ const CollectiveTrendsPage = lazy(() =>
 );
 const EstimationPage = lazy(() =>
   import('./pages/estimation.page').then((module) => ({ default: module.EstimationPage })),
+);
+const EstimationCopyPage = lazy(() =>
+  import('./pages/estimation-copy.page').then((module) => ({ default: module.EstimationCopyPage })),
 );
 const ProductReconciliationPage = lazy(() =>
   import('./pages/product-reconciliation.page').then((module) => ({ default: module.ProductReconciliationPage })),
@@ -124,6 +127,8 @@ function AppRoutes() {
           </CollectiveRoute>
         }
       />
+      {/* F12-EST-07-WEB (#180): copia descargada, legible sin conexión y sin llamar al servidor */}
+      <Route path={ESTIMATION_COPY_PATH} element={<EstimationCopyPage />} />
       {/* F07-WEB-01 (#23): otro rol no recibe menú ni datos, sólo este aviso */}
       <Route path={WEB_NOT_FOR_FARMERS_PATH} element={<WebNotForFarmersPage />} />
       <Route

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { discardAllCopies, setActiveIdentity } from './estimation-copy';
 
 let _accessToken: string | null = null;
 
@@ -65,6 +66,10 @@ api.interceptors.response.use(
         failedQueue.forEach((p) => p.reject(refreshError));
         failedQueue = [];
         clearAccessToken();
+        // F12-EST-07-WEB (#180): sin sesión no se guarda ninguna descarga en curso, y si
+        // el servidor la rechaza se retira la copia (al recargar se comprueba de nuevo).
+        setActiveIdentity(null);
+        if (axios.isAxiosError(refreshError) && refreshError.response?.status === 401) await discardAllCopies().catch(() => undefined);
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
