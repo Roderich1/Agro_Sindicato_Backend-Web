@@ -1,0 +1,448 @@
+[
+  {
+    "id": "S1",
+    "name": "Nivel estable",
+    "rule": "x_t = 100000 + U[-10000, 10000] mL",
+    "seed": "1001",
+    "baseUnit": "ML",
+    "campaigns": [
+      {
+        "position": 1,
+        "campaignId": "S1-C01",
+        "startDate": "2010-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "92599"
+      },
+      {
+        "position": 2,
+        "campaignId": "S1-C02",
+        "startDate": "2011-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "92947"
+      },
+      {
+        "position": 3,
+        "campaignId": "S1-C03",
+        "startDate": "2012-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "107785"
+      },
+      {
+        "position": 4,
+        "campaignId": "S1-C04",
+        "startDate": "2013-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "103424"
+      },
+      {
+        "position": 5,
+        "campaignId": "S1-C05",
+        "startDate": "2014-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "90615"
+      },
+      {
+        "position": 6,
+        "campaignId": "S1-C06",
+        "startDate": "2015-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "109750"
+      },
+      {
+        "position": 7,
+        "campaignId": "S1-C07",
+        "startDate": "2016-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "104472"
+      },
+      {
+        "position": 8,
+        "campaignId": "S1-C08",
+        "startDate": "2017-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "96329"
+      },
+      {
+        "position": 9,
+        "campaignId": "S1-C09",
+        "startDate": "2018-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "99557"
+      },
+      {
+        "position": 10,
+        "campaignId": "S1-C10",
+        "startDate": "2019-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "93719"
+      }
+    ]
+  },
+  {
+    "id": "S2",
+    "name": "Cambio de nivel",
+    "rule": "x_t = 80000 + U[-6000, 6000] mL para t ≤ 5; x_t = 140000 + U[-6000, 6000] mL para t ≥ 6",
+    "seed": "1002",
+    "baseUnit": "ML",
+    "campaigns": [
+      {
+        "position": 1,
+        "campaignId": "S2-C01",
+        "startDate": "2010-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "85954"
+      },
+      {
+        "position": 2,
+        "campaignId": "S2-C02",
+        "startDate": "2011-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "85145"
+      },
+      {
+        "position": 3,
+        "campaignId": "S2-C03",
+        "startDate": "2012-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "82426"
+      },
+      {
+        "position": 4,
+        "campaignId": "S2-C04",
+        "startDate": "2013-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "81991"
+      },
+      {
+        "position": 5,
+        "campaignId": "S2-C05",
+        "startDate": "2014-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "82512"
+      },
+      {
+        "position": 6,
+        "campaignId": "S2-C06",
+        "startDate": "2015-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "135730"
+      },
+      {
+        "position": 7,
+        "campaignId": "S2-C07",
+        "startDate": "2016-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "135262"
+      },
+      {
+        "position": 8,
+        "campaignId": "S2-C08",
+        "startDate": "2017-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "141470"
+      },
+      {
+        "position": 9,
+        "campaignId": "S2-C09",
+        "startDate": "2018-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "141489"
+      },
+      {
+        "position": 10,
+        "campaignId": "S2-C10",
+        "startDate": "2019-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "135711"
+      }
+    ]
+  },
+  {
+    "id": "S3",
+    "name": "Tendencia",
+    "rule": "x_t = 40000 + 6000·t + U[-4000, 4000] g",
+    "seed": "1003",
+    "baseUnit": "G",
+    "campaigns": [
+      {
+        "position": 1,
+        "campaignId": "S3-C01",
+        "startDate": "2010-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "46927"
+      },
+      {
+        "position": 2,
+        "campaignId": "S3-C02",
+        "startDate": "2011-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "55699"
+      },
+      {
+        "position": 3,
+        "campaignId": "S3-C03",
+        "startDate": "2012-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "54080"
+      },
+      {
+        "position": 4,
+        "campaignId": "S3-C04",
+        "startDate": "2013-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "64394"
+      },
+      {
+        "position": 5,
+        "campaignId": "S3-C05",
+        "startDate": "2014-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "66768"
+      },
+      {
+        "position": 6,
+        "campaignId": "S3-C06",
+        "startDate": "2015-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "79504"
+      },
+      {
+        "position": 7,
+        "campaignId": "S3-C07",
+        "startDate": "2016-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "85421"
+      },
+      {
+        "position": 8,
+        "campaignId": "S3-C08",
+        "startDate": "2017-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "90676"
+      },
+      {
+        "position": 9,
+        "campaignId": "S3-C09",
+        "startDate": "2018-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "91908"
+      },
+      {
+        "position": 10,
+        "campaignId": "S3-C10",
+        "startDate": "2019-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "99144"
+      }
+    ]
+  },
+  {
+    "id": "S4",
+    "name": "Paseo aleatorio",
+    "rule": "x_1 = 100000 mL; x_t = max(0, x_(t-1) + U[-20000, 20000]) mL",
+    "seed": "1004",
+    "baseUnit": "ML",
+    "campaigns": [
+      {
+        "position": 1,
+        "campaignId": "S4-C01",
+        "startDate": "2010-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "100000"
+      },
+      {
+        "position": 2,
+        "campaignId": "S4-C02",
+        "startDate": "2011-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "102843"
+      },
+      {
+        "position": 3,
+        "campaignId": "S4-C03",
+        "startDate": "2012-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "84255"
+      },
+      {
+        "position": 4,
+        "campaignId": "S4-C04",
+        "startDate": "2013-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "76570"
+      },
+      {
+        "position": 5,
+        "campaignId": "S4-C05",
+        "startDate": "2014-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "59428"
+      },
+      {
+        "position": 6,
+        "campaignId": "S4-C06",
+        "startDate": "2015-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "52679"
+      },
+      {
+        "position": 7,
+        "campaignId": "S4-C07",
+        "startDate": "2016-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "61646"
+      },
+      {
+        "position": 8,
+        "campaignId": "S4-C08",
+        "startDate": "2017-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "63079"
+      },
+      {
+        "position": 9,
+        "campaignId": "S4-C09",
+        "startDate": "2018-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "82425"
+      },
+      {
+        "position": 10,
+        "campaignId": "S4-C10",
+        "startDate": "2019-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "70535"
+      }
+    ]
+  },
+  {
+    "id": "S5",
+    "name": "Hueco, dato oculto y cero comprobado",
+    "rule": "x_t = 60000 + U[-8000, 8000] mL; posición 2 sin registro, 3 oculta por la política y 8 cero comprobado",
+    "seed": "1005",
+    "baseUnit": "ML",
+    "campaigns": [
+      {
+        "position": 1,
+        "campaignId": "S5-C01",
+        "startDate": "2010-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "63660"
+      },
+      {
+        "position": 2,
+        "campaignId": "S5-C02",
+        "startDate": "2011-03-01T00:00:00.000Z",
+        "kind": "NO_RECORD",
+        "quantityBase": null
+      },
+      {
+        "position": 3,
+        "campaignId": "S5-C03",
+        "startDate": "2012-03-01T00:00:00.000Z",
+        "kind": "HIDDEN",
+        "quantityBase": null
+      },
+      {
+        "position": 4,
+        "campaignId": "S5-C04",
+        "startDate": "2013-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "53303"
+      },
+      {
+        "position": 5,
+        "campaignId": "S5-C05",
+        "startDate": "2014-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "63047"
+      },
+      {
+        "position": 6,
+        "campaignId": "S5-C06",
+        "startDate": "2015-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "52140"
+      },
+      {
+        "position": 7,
+        "campaignId": "S5-C07",
+        "startDate": "2016-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "63877"
+      },
+      {
+        "position": 8,
+        "campaignId": "S5-C08",
+        "startDate": "2017-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "0"
+      },
+      {
+        "position": 9,
+        "campaignId": "S5-C09",
+        "startDate": "2018-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "63131"
+      },
+      {
+        "position": 10,
+        "campaignId": "S5-C10",
+        "startDate": "2019-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "65220"
+      }
+    ]
+  },
+  {
+    "id": "S6",
+    "name": "Menos de tres campañas comprobadas",
+    "rule": "x_t = 30000 + U[-3000, 3000] g; posiciones 1 y 4 sin registro, 3 y 6 ocultas: solo 2 y 5 comprobadas",
+    "seed": "1006",
+    "baseUnit": "G",
+    "campaigns": [
+      {
+        "position": 1,
+        "campaignId": "S6-C01",
+        "startDate": "2010-03-01T00:00:00.000Z",
+        "kind": "NO_RECORD",
+        "quantityBase": null
+      },
+      {
+        "position": 2,
+        "campaignId": "S6-C02",
+        "startDate": "2011-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "32196"
+      },
+      {
+        "position": 3,
+        "campaignId": "S6-C03",
+        "startDate": "2012-03-01T00:00:00.000Z",
+        "kind": "HIDDEN",
+        "quantityBase": null
+      },
+      {
+        "position": 4,
+        "campaignId": "S6-C04",
+        "startDate": "2013-03-01T00:00:00.000Z",
+        "kind": "NO_RECORD",
+        "quantityBase": null
+      },
+      {
+        "position": 5,
+        "campaignId": "S6-C05",
+        "startDate": "2014-03-01T00:00:00.000Z",
+        "kind": "VERIFIED_CONSUMPTION",
+        "quantityBase": "32912"
+      },
+      {
+        "position": 6,
+        "campaignId": "S6-C06",
+        "startDate": "2015-03-01T00:00:00.000Z",
+        "kind": "HIDDEN",
+        "quantityBase": null
+      }
+    ]
+  }
+]
