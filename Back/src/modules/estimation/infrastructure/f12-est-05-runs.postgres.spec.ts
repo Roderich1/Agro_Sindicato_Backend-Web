@@ -662,6 +662,63 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     demo["retries"] = { recovered_attempts: 2, exhausted: { attempts: 3, failure_code: failed.failureCode } };
   });
 
+  it("EST-D-08: a later run with insufficient data replaces the estimate and never reuses its figure", async () => {
+    const product = (await prisma.product.create({ data: { tenantId: f.tenantA, name: "Fungicida para EST-D-08", unit: "L" } })).id;
+    const sources = await sealedConsumptionCampaigns(prisma, {
+      tenantId: f.tenantA, sealedByUserId: directorUser, canonicalProductId: product, baseUnit: "ML", firstYear: 2020,
+      quantities: [4000n, 5000n, 6000n], namePrefix: "Campaña sellada EST-D-08", coverage: { status: "IDENTIFIED", membersInPublishedFigures: 3 },
+    });
+    sources.forEach((source, i) => (campaigns[`D${i + 1}`] = source.campaignId));
+    await plannedCampaign("TD8", 2024);
+    await season("EST-D-08");
+    await classify("EST-D-08", ["D1", "D2", "D3", "TD8"]);
+    const first = await queue("TD8", [product]);
+    await worker.processNext();
+    const firstRun = (await runOf(first)).id;
+    const pick = (body: { results: ResultBody[] }) => body.results.find((r) => r.product.product_ref === product)!;
+    expect(pick((await http().get(`/api/v1/estimation/results?target_campaign_ref=${campaigns["TD8"]}`).set(auth(director))).body)).toMatchObject({
+      run_ref: firstRun, status: "ESTIMATED", estimate_base: "6000.000000", naive_base: "6000", validity: "CURRENT",
+    });
+    // A campaign without a seal is classified between the sources and the target: the last relevant campaign has no verified figure.
+    await plannedCampaign("GAP8", 2023);
+    await classify("EST-D-08", ["GAP8"]);
+    const second = await queue("TD8", [product]);
+    await worker.processNext();
+    const secondRun = (await runOf(second)).id;
+    const read = pick((await http().get(`/api/v1/estimation/results?target_campaign_ref=${campaigns["TD8"]}`).set(auth(director))).body);
+    // The result delivered is the new run's: no figure, never the earlier 6000.
+    expect(read).toMatchObject({
+      run_ref: secondRun, status: "INSUFFICIENT_DATA", reason_code: "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED", estimate_base: null, naive_base: null,
+      validity: "NOT_USABLE", validity_reason: "NO_FIGURE",
+    });
+    // The earlier result is still readable in its own run, as SUPERSEDED.
+    const earlier = pick((await http().get(`/api/v1/estimation/runs/${firstRun}`).set(auth(director))).body);
+    expect(earlier).toMatchObject({ run_ref: firstRun, validity: "SUPERSEDED", validity_reason: "LATER_RUN", estimate_base: "6000.000000" });
+    demo["est_d_08"] = { earlier: { run: firstRun, validity: earlier.validity }, later: { run: secondRun, status: read["status"], estimate_base: read.estimate_base } };
+  });
+
+  it("EST-D-10: a job retaken after a transient error checks the policy again and stops without calculating", async () => {
+    await plannedCampaign("U13", 2019);
+    await classify("VERANO", ["U13"]);
+    const jobId = await queue("U13", [products["Herbicida"]!]);
+    const spy = jest.spyOn(series, "assessIn").mockImplementationOnce(async () => {
+      // The policy becomes pending while the first attempt fails transiently.
+      (collective as { mode: string }).mode = "POLICY_PENDING";
+      throw new Prisma.PrismaClientKnownRequestError("write conflict or deadlock (synthetic)", { code: "P2034", clientVersion: Prisma.prismaVersion.client });
+    });
+    try {
+      expect(await worker.processNext()).toMatchObject({ jobId, status: "NOT_EXECUTED", stopCode: "POLICY_PENDING", attempt: 2 });
+      // Only the first attempt reached the calculation; the second stopped before it.
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+      (collective as { mode: string }).mode = "PROVISIONAL_SYNTHETIC";
+    }
+    const stored = await job(jobId);
+    expect(stored).toMatchObject({ status: "NOT_EXECUTED", stopCode: "POLICY_PENDING", attempts: 2, run: null });
+    expect(stored.stopEvidence).toMatchObject({ disclosure_mode: "POLICY_PENDING" });
+  });
+
   it("recovers a job whose worker stopped, and a worker that lost the job cannot register its run", async () => {
     const slow = workerWith(300);
     const fresh = workerWith(config.leaseMs);
