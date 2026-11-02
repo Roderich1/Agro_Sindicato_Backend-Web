@@ -37,6 +37,12 @@ import type {
 export const POLL_MS = 2000;
 const ELIGIBLE = ['PLANIFICADA', 'ABIERTA'];
 
+/** Orden por unidades de código, independiente del idioma: la misma elección da la misma clave de solicitud. */
+function byCodeUnits(a: string, b: string): number {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+}
+
 /**
  * F12-EST-06 (#179): «Estimación del consumo» para DIRECTIVA y ADMINISTRADOR
  * (INT-09, perfil institucional). La Web pide y presenta: el SES/naive lo
@@ -167,7 +173,7 @@ export function EstimationPage() {
 
   const request = async () => {
     if (!selected) return;
-    const key = `${selected}|${[...chosen].sort().join(',')}`;
+    const key = `${selected}|${[...chosen].sort(byCodeUnits).join(',')}`;
     if (pendingRequest.current?.key !== key) pendingRequest.current = { id: newRequestId(), key };
     setBusy(true);
     setError(null);
