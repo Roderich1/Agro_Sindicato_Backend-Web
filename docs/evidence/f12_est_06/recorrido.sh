@@ -58,5 +58,5 @@ sleep 2
 start_api "" "$OUT/api-pending.log"
 node docs/evidence/f12_est_06/recorrido-web.mjs pending "$OUT" || status=1
 # Sólo las líneas del trabajador y de las series quedan como registro del proceso.
-grep -h -E '\[(F12 WORKER|F12 SERIES)\]' "$OUT"/api-*.log | sed -E 's/\x1b\[[0-9;]*m//g' > "$OUT/worker.log" || true
+grep -h -E '\[(F12 WORKER|F12 SERIES)\]' "$OUT"/api-*.log | sed -E 's/\x1b\[[0-9;]*m//g' > "$OUT/worker-log.txt" || true
 exit "$status"
