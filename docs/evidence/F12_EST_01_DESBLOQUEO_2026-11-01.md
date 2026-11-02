@@ -143,3 +143,29 @@ Otro agente de esta sesión hizo una lectura de contraste **antes del commit**. 
 - **Lo que no está implementado:** el motor, las rutas, el trabajador y los clientes (contrato §12).
 - **Ninguna campaña ya sellada podrá estimarse:** su cobertura de consumo es desconocida y no se reconstruye. El primer resultado real exige tres campañas consecutivas selladas después de la migración.
 - La base PostgreSQL es desechable y se elimina al terminar.
+
+## 6. Ajuste EST-D-06 (decisión del autor, 2026-11-02 UTC), sobre `97a95c0`
+
+**Qué cambia:**
+- `estimation_job_insert_guard` exige una campaña objetivo `PLANIFICADA` o `ABIERTA` al crear el trabajo.
+- Antes de calcular, la cubre la parada verificable `TARGET_CAMPAIGN_NOT_ELIGIBLE`, que ya existía.
+- La ejecución no exige el estado: si la campaña se cierra después de empezar, se completa y se conserva.
+- El contrato registra la decisión en §4.2, §6.3 y §11.1.
+- La migración F12 no está integrada todavía, así que el cambio va en el mismo archivo.
+
+**Resultados:**
+
+```text
+npx prisma migrate diff --from-migrations … --to-schema-datamodel … --exit-code → «No difference detected.»
+node scripts/openapi-f12-estimation.cjs → «openapi-f12-estimation: 10 rutas, 41 esquemas, 41 referenciados; etapa SPECIFIED_NOT_IMPLEMENTED: especificado, no implementado»
+F12_EST_PG_TEST_URL=<desechable> npx jest src/modules/estimation → «Tests: 13 passed, 13 total»
+```
+
+**Pruebas añadidas:**
+- un trabajo para una campaña CERRADA y clasificada se rechaza («no es admisible»);
+- una ejecución cuya campaña objetivo se cierra después de empezar se registra.
+
+**Alteración:** retirar la comprobación del estado al crear el trabajo hace fallar la suite (`1 failed, 12 passed`).
+
+**Entorno:** PostgreSQL 16.13 desechable `agro_f12_est01d_pg`, con datos sintéticos.
+
