@@ -131,6 +131,14 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     expect(await readableCopies(null)).toEqual([]);
   });
 
+  it('un registro manipulado con el id del contexto vigente pero de otro propietario no se lee', async () => {
+    await saveAs(A);
+    const [stored] = await memory.list();
+    await memory.put({ ...stored!, key: 'u-b|t-1|c-9', owner: { ...B }, download: { ...stored!.download, target: { ...stored!.download.target, campaign_ref: 'c-9' } } });
+    expect((await readableCopies(null)).map((c) => c.owner.userId)).toEqual(['u-a']);
+    expect(await readCopy(null, 'c-9')).toBeNull();
+  });
+
   it('una descarga pedida en un contexto que ya cambió no se guarda', async () => {
     const before = openContext(A)!;
     openContext(B);
@@ -186,9 +194,12 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     expect(await readableCopies(null)).toEqual([]);
   });
 
-  it('en localStorage sólo van identificadores validados y el rol; un identificador con otra forma no abre contexto', async () => {
+  it('en localStorage sólo van un id aleatorio, la huella de la identidad, el rol y la fecha; un identificador con otra forma no abre contexto', async () => {
     openContext(A);
-    expect(Object.keys(JSON.parse(localStorage.getItem('agro_estimacion_contexto_v1')!)).sort()).toEqual(['id', 'opened_at', 'role', 'tenantId', 'userId', 'version']);
+    const stored = localStorage.getItem('agro_estimacion_contexto_v1')!;
+    expect(Object.keys(JSON.parse(stored)).sort()).toEqual(['id', 'opened_at', 'owner_hash', 'role', 'version']);
+    expect(stored).not.toContain('u-a');
+    expect(stored).not.toContain('Directiva sintética');
     expect(openContext({ ...A, userId: '<script>' })).toBeNull();
     expect(currentContext()).toBeNull();
   });

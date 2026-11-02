@@ -8,6 +8,9 @@ import type { InstitutionalDownload } from '../types/estimation';
  * guardó:
  * - El contexto lo abre una sesión que el servidor reconoce con rol
  *   institucional (Directiva o Administrador), al iniciarla o al recuperarla.
+ * - En `localStorage` sólo guarda un `id` aleatorio, la huella de la identidad
+ *   (FNV-1a de 64 bits de usuario y sindicato), el rol de la lista y la fecha:
+ *   ningún dato tal como llega del servidor ni de la URL.
  * - Identifica a esa sesión (usuario, sindicato y rol), **no** a la persona
  *   física que está frente al navegador.
  * - Vive en `localStorage`, para invalidarlo de forma síncrona y para que
@@ -61,12 +64,12 @@ export interface CopyOwner extends CopyIdentity {
 
 /**
  * El contexto local autorizado: la sesión propietaria de las copias de este
- * navegador. En `localStorage` sólo van identificadores validados y un rol de
- * la lista institucional; nada que venga de la URL ni nombres.
+ * navegador. La identidad se guarda como huella (`owner_hash`), no como texto.
  */
-export interface LocalContext extends CopyIdentity {
+export interface LocalContext {
   version: 1;
   id: string;
+  owner_hash: string;
   role: 'DIRECTIVA' | 'ADMINISTRADOR';
   opened_at: string;
 }
@@ -203,11 +206,9 @@ export function currentContext(): LocalContext | null {
     const valid =
       value.version === 1 &&
       typeof value.id === 'string' &&
-      typeof value.userId === 'string' &&
-      typeof value.tenantId === 'string' &&
+      typeof value.owner_hash === 'string' &&
+      /^[0-9a-f]{16}$/.test(value.owner_hash) &&
       typeof value.role === 'string' &&
-      STORED_ID.test(value.userId) &&
-      STORED_ID.test(value.tenantId) &&
       isInstitutional(value.role) &&
       !closedIds.has(value.id);
     return valid ? (value as LocalContext) : null;
@@ -234,9 +235,9 @@ export function openContext(owner: CopyOwner): LocalContext | null {
     return null;
   }
   const existing = currentContext();
-  const base = { userId: owner.userId, tenantId: owner.tenantId, role } as const;
+  const base = { owner_hash: identityHash(owner), role } as const;
   const context: LocalContext =
-    existing && sameIdentity(existing, owner)
+    existing && contextBelongsTo(existing, owner)
       ? { ...existing, ...base }
       : { version: 1, id: newId(), opened_at: new Date().toISOString(), ...base };
   if (existing && existing.id !== context.id) closedIds.add(existing.id);
@@ -277,20 +278,39 @@ export function revokeTarget(targetRef: string) {
 
 function admissible(context: LocalContext | null, session: SessionIdentity | null): context is LocalContext {
   if (!context || !isInstitutional(context.role)) return false;
-  return session === null || (sameIdentity(session, context) && isInstitutional(session.role));
+  return session === null || (contextBelongsTo(context, session) && isInstitutional(session.role));
 }
 
 function readable(copy: StoredCopy, context: LocalContext): boolean {
   return (
     copy.format_version === COPY_FORMAT_VERSION &&
     copy.context_id === context.id &&
-    sameIdentity(copy.owner, context) &&
-    copy.download?.scope?.tenant_ref === context.tenantId &&
+    contextBelongsTo(context, copy.owner) &&
+    copy.download?.scope?.tenant_ref === copy.owner.tenantId &&
     !revokedTargets.get(context.id)?.has(copy.download.target.campaign_ref)
   );
 }
 
 const keyOf = (identity: CopyIdentity, targetRef: string) => `${identity.userId}|${identity.tenantId}|${targetRef}`;
+
+/**
+ * Huella de la identidad (FNV-1a de 64 bits sobre «usuario|sindicato»). Los
+ * identificadores los asigna el servidor; la huella sólo sirve para comprobar
+ * que el contexto es de esa identidad sin guardarla como texto.
+ */
+export function identityHash(identity: CopyIdentity): string {
+  const text = `${identity.userId}|${identity.tenantId}`;
+  let hash = 0xcbf29ce484222325n;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= BigInt(text.charCodeAt(i));
+    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return hash.toString(16).padStart(16, '0');
+}
+
+/** `true` si el contexto es de esa identidad y sindicato. */
+export const contextBelongsTo = (context: LocalContext | null, identity: CopyIdentity | null) =>
+  context !== null && identity !== null && context.owner_hash === identityHash(identity);
 
 export type SaveOutcome = 'SAVED' | 'KEPT_NEWER' | 'CONTEXT_CHANGED' | 'NOT_INSTITUTIONAL' | 'OTHER_SCOPE' | 'UNSUPPORTED';
 
@@ -303,7 +323,7 @@ export type SaveOutcome = 'SAVED' | 'KEPT_NEWER' | 'CONTEXT_CHANGED' | 'NOT_INST
 export async function saveCopy(contextId: string, owner: CopyOwner, download: InstitutionalDownload): Promise<SaveOutcome> {
   const stillValid = () => {
     const context = currentContext();
-    return context !== null && context.id === contextId && sameIdentity(context, owner) ? context : null;
+    return context !== null && context.id === contextId && contextBelongsTo(context, owner) ? context : null;
   };
   if (!stillValid()) return 'CONTEXT_CHANGED';
   if (download.contract_version !== 1 || download.kind !== 'ESTIMATION_DOWNLOAD' || download.may_be_outdated !== true) return 'UNSUPPORTED';
@@ -329,7 +349,10 @@ export async function saveCopy(contextId: string, owner: CopyOwner, download: In
 export async function readCopy(session: SessionIdentity | null, targetRef: string): Promise<StoredCopy | null> {
   const context = currentContext();
   if (!admissible(context, session)) return null;
-  const copy = await backend.get(keyOf(context, targetRef));
+  // Con sesión, su clave; sin ella (recarga sin conexión), la copia de esa campaña dentro del contexto.
+  const copy = session
+    ? await backend.get(keyOf(session, targetRef))
+    : (await backend.list()).find((c) => c.download?.target?.campaign_ref === targetRef && readable(c, context));
   // El contexto pudo cerrarse mientras se leía.
   if (currentContext()?.id !== context.id) return null;
   return copy && readable(copy, context) ? copy : null;

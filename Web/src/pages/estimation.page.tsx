@@ -23,13 +23,13 @@ import { Figure, ValidityBadge } from '../components/estimation-figure';
 import { EstimationCopyView } from '../components/estimation-copy-view';
 import {
   closeContext,
+  contextBelongsTo,
   currentContext,
   purgeInaccessibleCopies,
   readCopy,
   revokeTarget,
   rotateContext,
   saveCopy,
-  sameIdentity,
   type SaveOutcome,
   type SessionIdentity,
   type StoredCopy,
@@ -311,7 +311,7 @@ export function EstimationPage() {
     // El contexto local vigente al pedirla: si al responder ya no es este, no se guarda.
     const context = currentContext();
     setCopyNote(null);
-    if (!context || !sameIdentity(context, identity)) {
+    if (!context || !contextBelongsTo(context, identity)) {
       setCopyNote('No hay un acceso local vigente para esta sesión: vuelva a iniciar sesión para descargar una copia.');
       return;
     }
