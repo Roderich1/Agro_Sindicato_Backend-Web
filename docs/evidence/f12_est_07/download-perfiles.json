@@ -4,22 +4,22 @@
     "kind": "ESTIMATION_DOWNLOAD",
     "profile": "INSTITUTIONAL",
     "scope": {
-      "tenant_ref": "3aa86fc1-002d-46c7-9a92-3b9ead534322"
+      "tenant_ref": "d10e470a-9c8d-49de-9266-3dbc92dd70af"
     },
     "subject": {
-      "member_ref": "774ef069-ddba-4777-b6a3-c41408b29ba5",
+      "member_ref": "9ffaca2f-d7bc-4b39-aa27-f1fa6eec4dd9",
       "role": "DIRECTIVA"
     },
-    "downloaded_at": "2026-11-02T20:44:02.555Z",
+    "downloaded_at": "2026-11-02T20:56:46.450Z",
     "target": {
-      "campaign_ref": "f5b80329-47f5-4480-8441-f6dae410d5d4",
+      "campaign_ref": "6556168b-b520-4e53-aad1-08b79f2ab595",
       "name": "Objetivo sintético invierno 2019",
       "status": "PLANIFICADA",
       "start_date": "2019-09-01T00:00:00.000Z",
       "end_date": null
     },
     "season": {
-      "season_ref": "1c7e86e3-e8a4-47a7-988a-157eef7e4bc7",
+      "season_ref": "0fb16c10-4b40-488c-af9a-c3d36da91525",
       "key": "INVIERNO",
       "definition": "Temporada sintética INVIERNO",
       "duration_days": 180
@@ -27,7 +27,7 @@
     "results": [
       {
         "product": {
-          "product_ref": "513f12b1-474e-4fc4-bc3c-11fab47f4d19",
+          "product_ref": "024d398e-cf21-4345-a902-54a7166f9971",
           "name": "Herbicida de ensayo"
         },
         "base_unit": "ML",
@@ -35,8 +35,8 @@
         "status": "ESTIMATED",
         "reason_code": null,
         "method": "SES_NAIVE",
-        "run_ref": "a74d9013-980b-4805-bb27-e363ad3af12d",
-        "generated_at": "2026-11-02T20:43:53.379Z",
+        "run_ref": "50e9ff33-49e2-4920-862e-97fc624b9e05",
+        "generated_at": "2026-11-02T20:56:37.682Z",
         "span_length": 4,
         "estimate_base": "111000.000000",
         "naive_base": "116000",
@@ -44,7 +44,7 @@
           "status": "IDENTIFIED",
           "campaigns": [
             {
-              "campaign_ref": "6dc8b2d7-772b-4dbb-8f1c-0dacbd703465",
+              "campaign_ref": "91993e82-0dc3-4434-95ce-4ea6dc5ede11",
               "coverage": {
                 "status": "IDENTIFIED",
                 "unknown_reason": null,
@@ -54,7 +54,7 @@
               }
             },
             {
-              "campaign_ref": "9fee651c-8444-415a-b54e-bae48a28be50",
+              "campaign_ref": "f6fc7465-7b66-4d53-b360-5f20597d3333",
               "coverage": {
                 "status": "IDENTIFIED",
                 "unknown_reason": null,
@@ -64,7 +64,7 @@
               }
             },
             {
-              "campaign_ref": "5c5ba708-eb42-4bbb-a298-5fdbea59d969",
+              "campaign_ref": "798d8284-b5e8-40ee-88c0-4a92cc783b5c",
               "coverage": {
                 "status": "IDENTIFIED",
                 "unknown_reason": null,
@@ -74,7 +74,7 @@
               }
             },
             {
-              "campaign_ref": "9aba3964-ce5f-440b-a7c9-6088a8706dc5",
+              "campaign_ref": "23681be6-b840-4ee4-b9a2-4bbd6f77a227",
               "coverage": {
                 "status": "IDENTIFIED",
                 "unknown_reason": null,
@@ -105,22 +105,22 @@
     "kind": "ESTIMATION_DOWNLOAD",
     "profile": "FARMER",
     "scope": {
-      "tenant_ref": "3aa86fc1-002d-46c7-9a92-3b9ead534322"
+      "tenant_ref": "d10e470a-9c8d-49de-9266-3dbc92dd70af"
     },
     "subject": {
-      "member_ref": "497e175b-754d-4faf-95f7-558cd96b94ae",
+      "member_ref": "4b3f4227-fa27-43ad-9bbe-2d1c6ef02b05",
       "role": "AGRICULTOR"
     },
-    "downloaded_at": "2026-11-02T20:44:02.624Z",
+    "downloaded_at": "2026-11-02T20:56:46.745Z",
     "target": {
-      "campaign_ref": "f5b80329-47f5-4480-8441-f6dae410d5d4",
+      "campaign_ref": "6556168b-b520-4e53-aad1-08b79f2ab595",
       "name": "Objetivo sintético invierno 2019",
       "status": "PLANIFICADA",
       "start_date": "2019-09-01T00:00:00.000Z",
       "end_date": null
     },
     "season": {
-      "season_ref": "1c7e86e3-e8a4-47a7-988a-157eef7e4bc7",
+      "season_ref": "0fb16c10-4b40-488c-af9a-c3d36da91525",
       "key": "INVIERNO",
       "definition": "Temporada sintética INVIERNO",
       "duration_days": 180
@@ -128,7 +128,7 @@
     "results": [
       {
         "product": {
-          "product_ref": "513f12b1-474e-4fc4-bc3c-11fab47f4d19",
+          "product_ref": "024d398e-cf21-4345-a902-54a7166f9971",
           "name": "Herbicida de ensayo"
         },
         "base_unit": "ML",
@@ -136,8 +136,8 @@
         "status": "ESTIMATED",
         "reason_code": null,
         "method": "SES_NAIVE",
-        "run_ref": "a74d9013-980b-4805-bb27-e363ad3af12d",
-        "generated_at": "2026-11-02T20:43:53.379Z",
+        "run_ref": "50e9ff33-49e2-4920-862e-97fc624b9e05",
+        "generated_at": "2026-11-02T20:56:37.682Z",
         "span_length": 4,
         "estimate_base": "111000.000000",
         "validity_reason": null,

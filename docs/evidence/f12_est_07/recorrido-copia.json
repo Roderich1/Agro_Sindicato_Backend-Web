@@ -1,6 +1,6 @@
 {
   "phase": "copia",
-  "at": "2026-11-02T20:45:14.124Z",
+  "at": "2026-11-02T20:57:59.142Z",
   "checks": [
     {
       "name": "genera invierno (trabajador real)",
@@ -15,7 +15,7 @@
     {
       "name": "API: Directiva → 200 INSTITUTIONAL con subject, fechas, vigencia al descargar y storage",
       "ok": true,
-      "detail": "{\"product\":{\"product_ref\":\"513f12b1-474e-4fc4-bc3c-11fab47f4d19\",\"name\":\"Herbicida de ensayo\"},\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":null,\"method\":\"SES_NAIVE\",\"run_ref\":\"a74d9013-980b-4805-bb27-e363ad3af12d\",\"generated_at\":\"2026-11-02T20:43:53.379Z\",\"span_length\":4,\"estimate_base\":\"111000.000000\",\"naive_base\":\"116000\",\"coverage\":{\"status\":\"IDENTIFIED\",\"campaigns\":[{\"campaign_ref\":\"6dc8b2d7-772b-4dbb-8f1c-0dacbd703465\",\"coverage\":{\"status\":\"IDENTIFIED\",\"unkno"
+      "detail": "{\"product\":{\"product_ref\":\"024d398e-cf21-4345-a902-54a7166f9971\",\"name\":\"Herbicida de ensayo\"},\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":null,\"method\":\"SES_NAIVE\",\"run_ref\":\"50e9ff33-49e2-4920-862e-97fc624b9e05\",\"generated_at\":\"2026-11-02T20:56:37.682Z\",\"span_length\":4,\"estimate_base\":\"111000.000000\",\"naive_base\":\"116000\",\"coverage\":{\"status\":\"IDENTIFIED\",\"campaigns\":[{\"campaign_ref\":\"91993e82-0dc3-4434-95ce-4ea6dc5ede11\",\"coverage\":{\"status\":\"IDENTIFIED\",\"unkno"
     },
     {
       "name": "API: la copia es la misma selección que /results (salvo la vigencia, que es la de la descarga)",
@@ -25,7 +25,7 @@
     {
       "name": "API: Agricultor → 200 FARMER sin naive, cobertura, puntos ni serie",
       "ok": true,
-      "detail": "{\"product\":{\"product_ref\":\"513f12b1-474e-4fc4-bc3c-11fab47f4d19\",\"name\":\"Herbicida de ensayo\"},\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":null,\"method\":\"SES_NAIVE\",\"run_ref\":\"a74d9013-980b-4805-bb27-e363ad3af12d\",\"generated_at\":\"2026-11-02T20:43:53.379Z\",\"span_length\":4,\"estimate_base\":\"111000.000000\",\"validity_reason\":null,\"validity_at_download\":\"CURRENT\"}"
+      "detail": "{\"product\":{\"product_ref\":\"024d398e-cf21-4345-a902-54a7166f9971\",\"name\":\"Herbicida de ensayo\"},\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":null,\"method\":\"SES_NAIVE\",\"run_ref\":\"50e9ff33-49e2-4920-862e-97fc624b9e05\",\"generated_at\":\"2026-11-02T20:56:37.682Z\",\"span_length\":4,\"estimate_base\":\"111000.000000\",\"validity_reason\":null,\"validity_at_download\":\"CURRENT\"}"
     },
     {
       "name": "descarga invierno: guardada",
@@ -40,7 +40,7 @@
     {
       "name": "IndexedDB: dos copias de la Directiva A en el sindicato A",
       "ok": true,
-      "detail": "30de47e1-10cc-46f1-ab04-28052aeac13e|3aa86fc1-002d-46c7-9a92-3b9ead534322|ae6dc3d4-d1f9-4f0c-9a1f-83a205f43060, 30de47e1-10cc-46f1-ab04-28052aeac13e|3aa86fc1-002d-46c7-9a92-3b9ead534322|f5b80329-47f5-4480-8441-f6dae410d5d4"
+      "detail": "c935fabd-5d3b-4d1e-9bc4-efe90c4311be|d10e470a-9c8d-49de-9266-3dbc92dd70af|2021587d-5d66-4d20-9eba-dabfbbee71f2, c935fabd-5d3b-4d1e-9bc4-efe90c4311be|d10e470a-9c8d-49de-9266-3dbc92dd70af|6556168b-b520-4e53-aad1-08b79f2ab595"
     },
     {
       "name": "IndexedDB: la copia de verano es la respuesta exacta de GET /download",
@@ -53,9 +53,9 @@
       "detail": ""
     },
     {
-      "name": "contexto local: abierto por la sesión institucional de la Directiva A; cada copia lleva su id; sin credenciales",
+      "name": "contexto local: abierto por la sesión institucional de la Directiva A (huella, sin identificadores en claro); cada copia lleva su id; sin credenciales",
       "ok": true,
-      "detail": "{\"version\":1,\"id\":\"7a17565d\",\"opened_at\":\"2026-11-02T20:43:51.701Z\",\"userId\":\"30de47e1-10cc-46f1-ab04-28052aeac13e\",\"tenantId\":\"3aa86fc1-002d-46c7-9a92-3b9ead534322\",\"role\":\"DIRECTIVA\"}"
+      "detail": "{\"version\":1,\"id\":\"86af9666\",\"opened_at\":\"2026-11-02T20:56:35.312Z\",\"owner_hash\":\"7d3db8522a9345de\",\"role\":\"DIRECTIVA\"}"
     },
     {
       "name": "Cache Storage: sólo el app-shell, ninguna respuesta /api/",

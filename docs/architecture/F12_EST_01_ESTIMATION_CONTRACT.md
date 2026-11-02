@@ -660,9 +660,9 @@ Desconectado, el cliente no conoce revocaciones ni cambios de fuentes: la copia 
     - si el servidor rechaza la sesión, el permiso o la política;
     - si la sesión se recupera sin un rol institucional.
   - **Service worker:** no pasa ni cachea respuestas del API.
-- **Lectura sin conexión, también tras recargar** (`/estimacion/copia-sin-conexion`): solo dentro del **contexto local** que una sesión aceptada por el servidor con rol institucional abrió en ese navegador (usuario, sindicato, rol e `id`, en `localStorage`). Cada copia lleva el `id` del contexto.
+- **Lectura sin conexión, también tras recargar** (`/estimacion/copia-sin-conexion`): solo dentro del **contexto local** que una sesión aceptada por el servidor con rol institucional abrió en ese navegador (en `localStorage`: `id` aleatorio, huella de usuario y sindicato, rol y fecha; ningún identificador en claro). Cada copia lleva el `id` del contexto.
   - **Sin contexto**, o con otra identidad, sindicato o rol, no se enumera ni se lee nada.
-  - **El contexto se cierra de forma síncrona** al cerrar la sesión, con otra identidad o sindicato, con un 401, con un 403 o al perder el rol. Un 409 de política lo renueva, y un 404 revoca la campaña en memoria y borra su copia. En `localStorage` solo van identificadores validados y el rol.
+  - **El contexto se cierra de forma síncrona** al cerrar la sesión, con otra identidad o sindicato, con un 401, con un 403 o al perder el rol. Un 409 de política lo renueva, y un 404 revoca la campaña en memoria y borra su copia. La identidad se compara por su huella.
   - **El borrado físico va después:** si falla, queda pendiente y se reintenta.
   - **El contexto identifica la sesión propietaria**, no a la persona frente al navegador.
   - Detalle y pruebas en `F12_EST_07_WEB_2026-11-02.md` §6.
