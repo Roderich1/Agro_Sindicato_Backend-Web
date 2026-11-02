@@ -53,7 +53,10 @@ async function seed(out) {
   const f = await seedFixture(db);
   const director = await db.member.findUniqueOrThrow({ where: { id: f.members.directorA }, include: { user: true } });
   if (!process.env.WALK_PASSWORD) throw new Error("WALK_PASSWORD");
-  await db.user.update({ where: { id: director.userId }, data: { passwordHash: await bcrypt.hash(process.env.WALK_PASSWORD, 10) } });
+  // El Administrador sintético del mismo sindicato (ADMINISTRADOR con funciones de Directiva) usa la misma contraseña de un solo uso.
+  const administrator = await db.member.findUniqueOrThrow({ where: { id: f.members.adminA }, include: { user: true } });
+  const walkHash = await bcrypt.hash(process.env.WALK_PASSWORD, 10);
+  for (const userId of [director.userId, administrator.userId]) await db.user.update({ where: { id: userId }, data: { passwordHash: walkHash } });
   const herbicide = (await db.product.create({ data: { tenantId: f.tenantA, name: "Herbicida de ensayo", unit: "L" } })).id;
   const fungicide = (await db.product.create({ data: { tenantId: f.tenantA, name: "Fungicida de ensayo", unit: "L" } })).id;
   const common = { tenantId: f.tenantA, sealedByUserId: director.userId, baseUnit: "ML", coverage: { status: "IDENTIFIED", membersInPublishedFigures: 3 } };
@@ -64,6 +67,8 @@ async function seed(out) {
     (await db.agriculturalCampaign.create({ data: { tenantId: f.tenantA, name: label, status: "PLANIFICADA", startDate: new Date("2019-09-01T00:00:00.000Z") } })).id;
   const t1 = await planned("Objetivo sintético invierno 2019");
   const t2 = await planned("Objetivo sintético verano 2019");
+  // Objetivo propio del recorrido del Administrador: sus ejecuciones no se mezclan con el historial de T1.
+  const t3 = await planned("Objetivo sintético invierno 2019 (Administrador)");
   const season = async (key) =>
     (await db.comparabilitySeason.create({ data: { tenantId: f.tenantA, key, definition: `Temporada sintética ${key}`, durationDays: 180, createdByUserId: director.userId, createdByRole: "DIRECTIVA" } })).id;
   const seasons = { INVIERNO: await season("INVIERNO"), VERANO: await season("VERANO") };
@@ -71,11 +76,13 @@ async function seed(out) {
     db.campaignSeasonClassification.create({ data: { tenantId: f.tenantA, campaignId, version: 1, seasonId, classifiedByUserId: director.userId, classifiedByRole: "DIRECTIVA" } });
   for (const s of winter) await classify(s.campaignId, seasons.INVIERNO);
   await classify(t1, seasons.INVIERNO);
+  await classify(t3, seasons.INVIERNO);
   for (const s of summer) await classify(s.campaignId, seasons.VERANO);
   await classify(t2, seasons.VERANO);
   const ids = {
     database: name, tenant: f.tenantA, directorEmail: director.user.email, directorMember: director.id, directorUser: director.userId,
-    products: { herbicide, fungicide }, seasons, t1, t2, winterCampaigns: winter.map((s) => s.campaignId), winterSeals: winter.map((s) => s.sealId), summerCampaigns: summer.map((s) => s.campaignId),
+    adminEmail: administrator.user.email,
+    products: { herbicide, fungicide }, seasons, t1, t2, t3, winterCampaigns: winter.map((s) => s.campaignId), winterSeals: winter.map((s) => s.sealId), summerCampaigns: summer.map((s) => s.campaignId),
   };
   writeFileSync(out, `${JSON.stringify(ids, null, 2)}\n`);
   await db.$disconnect();

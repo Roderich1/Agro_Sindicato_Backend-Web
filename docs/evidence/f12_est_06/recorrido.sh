@@ -8,7 +8,8 @@
 # Desde la raíz del repositorio, con `npm ci` hecho en Back/ y Web/. Compila
 # ambos, siembra una base nueva, arranca `node dist/main.js` (con su
 # trabajador, modo provisional sintético) y `vite preview` con proxy a esa API,
-# y ejecuta la fase «provisional». Después reinicia el backend sin el modo
+# y ejecuta las fases «admin» (cuenta sintética de Administrador, con su propio
+# objetivo T3) y «provisional» (Directiva). Después reinicia el backend sin el modo
 # provisional (política pendiente) y ejecuta la fase «pending».
 # La contraseña de un solo uso vive sólo en este proceso; los secretos JWT son
 # efímeros. Nada de esto toca datos reales.
@@ -52,6 +53,7 @@ pids+=("$!")
 for _ in $(seq 1 60); do curl -sf "$WEB_URL/login" > /dev/null && break; sleep 1; done
 
 status=0
+node docs/evidence/f12_est_06/recorrido-web.mjs admin "$OUT" || status=1
 node docs/evidence/f12_est_06/recorrido-web.mjs provisional "$OUT" || status=1
 kill "$API_PID" 2>/dev/null || true
 sleep 2
