@@ -239,6 +239,8 @@ model Tenant {
   backupMetadata           BackupMetadata[]
   jointPurchaseProposals   JointPurchaseProposal[]
   collectiveSeals          CollectiveSeal[]
+  consumptionSeries        ConsumptionSeries[]
+  estimationRuns           EstimationRun[]
 }
 
 model User {
@@ -279,6 +281,7 @@ model User {
   productAssociationsClosed ProductCanonicalAssociation[] @relation("ProductAssociationCloser")
   jointPurchaseProposals    JointPurchaseProposal[]       @relation("JointPurchaseProposalAuthor")
   collectiveSeals           CollectiveSeal[]              @relation("CollectiveSealActor")
+  estimationRuns            EstimationRun[]               @relation("EstimationRunRequester")
 }
 
 model Member {
@@ -401,6 +404,8 @@ model Product {
   collectiveReleases         CollectiveRelease[]
   jointPurchaseProposalLines JointPurchaseProposalLine[]
   collectiveSealEntries      CollectiveSealEntry[]
+  consumptionSeries          ConsumptionSeries[]
+  estimationResults          EstimationResult[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, qrCodeValue])
@@ -459,6 +464,8 @@ model AgriculturalCampaign {
   collectiveReleases       CollectiveRelease[]
   jointPurchaseProposals   JointPurchaseProposal[]
   collectiveSeals          CollectiveSeal[]
+  seriesPoints             SeriesPoint[]
+  estimationRuns           EstimationRun[]
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -1046,6 +1053,7 @@ model CollectiveRelease {
   items            CollectiveReleaseItem[]
   proposalLines    JointPurchaseProposalLine[]
   sealEntries      CollectiveSealEntry[]
+  seriesPoints     SeriesPoint[]
 
   @@index([tenantId, campaignId, canonicalProductId, projectionType, baseUnit, releasedAt])
 }
@@ -1199,6 +1207,7 @@ model CollectiveSeal {
   campaign AgriculturalCampaign  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   sealedBy User                  @relation("CollectiveSealActor", fields: [sealedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   entries  CollectiveSealEntry[]
+  seriesPoints SeriesPoint[]
 
   @@unique([tenantId, campaignId, version])
 }
@@ -1223,4 +1232,160 @@ model CollectiveSealEntry {
 
   @@id([sealId, projectionType, canonicalProductId, baseUnit])
   @@index([releaseId])
+}
+
+/// F12-EST-01 (#174, `F12_EST_01_ESTIMATION_CONTRACT.md`): clase de una
+/// posición de la serie de consumo (RN-26, DAT-18). Un cero comprobado es
+/// VERIFIED_CONSUMPTION con cantidad 0; NO_RECORD y HIDDEN no llevan cantidad
+/// y nunca se tratan como cero.
+enum SeriesPointKind {
+  VERIFIED_CONSUMPTION
+  NO_RECORD
+  HIDDEN
+}
+
+/// F12-EST-01: resultado de una ejecución de estimación, registrado una vez.
+enum EstimationRunOutcome {
+  CALCULATED
+  FAILED
+}
+
+/// F12-EST-01: estado de un producto dentro de una ejecución. Sólo ESTIMATED
+/// lleva cifras; los demás informan la condición sin cifras (RN-28).
+enum EstimationResultStatus {
+  ESTIMATED
+  INSUFFICIENT_DATA
+  INCOMPATIBLE_DATA
+  CALCULATION_FAILED
+}
+
+/// F12-EST-01 (consumption_series): serie de consumo autorizado por producto
+/// canónico, unidad base y clave de comparabilidad, derivada sólo de cifras
+/// publicadas. Se escribe una vez; si cambian las cifras o las asociaciones se
+/// crea una versión nueva y la anterior se conserva con sus ejecuciones.
+/// Inmutable (disparadores de la migración). Sin cantidades por agricultor.
+model ConsumptionSeries {
+  id                 String         @id @default(uuid()) @db.Uuid
+  tenantId           String
+  canonicalProductId String
+  baseUnit           SyncV1BaseUnit
+  /// Temporada institucional y definición comparables; su origen se fija en
+  /// F12-EST-02 (decisión pendiente del contrato, §11).
+  comparabilityKey   String         @db.VarChar(64)
+  version            Int
+  previousSeriesId   String?        @db.Uuid
+  /// SHA-256 en hexadecimal de las fuentes y sus versiones (§5 del contrato).
+  sourceHash         String         @db.Char(64)
+  sources            Json
+  builtAt            DateTime       @default(now())
+
+  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product             @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previousSeries   ConsumptionSeries?  @relation("ConsumptionSeriesVersion", fields: [previousSeriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  nextSeries       ConsumptionSeries?  @relation("ConsumptionSeriesVersion")
+  points           SeriesPoint[]
+  results          EstimationResult[]
+
+  @@unique([tenantId, canonicalProductId, baseUnit, comparabilityKey, version], map: "ConsumptionSeries_scope_version_key")
+  @@unique([previousSeriesId])
+}
+
+/// F12-EST-01 (series_point): una campaña comparable de la serie, en orden
+/// cronológico. La cantidad existe exactamente cuando es consumo comprobado.
+model SeriesPoint {
+  seriesId         String          @db.Uuid
+  position         Int
+  campaignId       String
+  kind             SeriesPointKind
+  quantityBase     BigInt?
+  /// Cobertura «N de M» de la cifra publicada; distinta del número de
+  /// aportantes de una fila, que no se guarda.
+  coverageReported Int?
+  coverageExpected Int?
+  sourceSealId     String?         @db.Uuid
+  sourceReleaseId  String?         @db.Uuid
+
+  series        ConsumptionSeries    @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign      AgriculturalCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceSeal    CollectiveSeal?      @relation(fields: [sourceSealId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceRelease CollectiveRelease?   @relation(fields: [sourceReleaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([seriesId, position])
+  @@unique([seriesId, campaignId])
+  @@index([sourceReleaseId])
+}
+
+/// F12-EST-01 (estimation_run): una solicitud de estimación de DIRECTIVA o
+/// ADMINISTRADOR (ADR-003) para una campaña objetivo, con método, parámetros,
+/// política de divulgación aplicada y resultado (calculada o fallida),
+/// registrado una vez. Referencia a la ejecución anterior sin modificarla. Sin
+/// columna de vigencia (se deriva al consultar) ni campos de aprobación.
+/// Una sola cadena por campaña objetivo: índice único parcial de la migración
+/// (una sola ejecución sin anterior por tenant y campaña objetivo).
+model EstimationRun {
+  id                String               @id @default(uuid()) @db.Uuid
+  tenantId          String
+  requestId         String               @db.Uuid
+  /// SHA-256 de la petición canónica (campaña objetivo y productos pedidos):
+  /// el mismo `requestId` con otra huella es REQUEST_ID_REUSED.
+  requestHash       String               @db.Char(64)
+  requestedByUserId String
+  requestedByRole   UserRole
+  targetCampaignId  String
+  comparabilityKey  String               @db.VarChar(64)
+  contractVersion   Int
+  method            String               @db.VarChar(32)
+  methodVersion     String               @db.VarChar(32)
+  parameters        Json
+  horizon           Int
+  disclosureMode    String               @db.VarChar(32)
+  policy            String               @db.VarChar(16)
+  threshold         Int
+  outcome           EstimationRunOutcome
+  failureCode       String?              @db.VarChar(48)
+  previousRunId     String?              @db.Uuid
+  contentHash       String               @db.Char(64)
+  generatedAt       DateTime             @default(now())
+
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy    User                 @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetCampaign AgriculturalCampaign @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previousRun    EstimationRun?       @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  nextRun        EstimationRun?       @relation("EstimationRunSuccession")
+  results        EstimationResult[]
+
+  @@unique([tenantId, requestId])
+  @@unique([previousRunId])
+  @@index([tenantId, targetCampaignId, generatedAt])
+}
+
+/// F12-EST-01 (estimation_result): estimación SES y línea base naive de un
+/// producto en una ejecución, o la condición sin cifras. Se inserta en la
+/// misma transacción que su ejecución y no se modifica.
+model EstimationResult {
+  runId              String                 @db.Uuid
+  canonicalProductId String
+  baseUnit           SyncV1BaseUnit
+  seriesId           String?                @db.Uuid
+  status             EstimationResultStatus
+  reasonCode         String?                @db.VarChar(48)
+  /// Estimación SES en la unidad base (h = 1).
+  estimateBase       Decimal?               @db.Decimal(30, 6)
+  /// Línea base naive: el último valor comprobado del tramo.
+  naiveBase          BigInt?
+  alpha              Decimal?               @db.Decimal(3, 2)
+  fitInformative     Boolean?
+  fitCriterion       Decimal?               @db.Decimal(38, 6)
+  spanFirstPosition  Int?
+  spanLastPosition   Int?
+  exclusions         Json
+  validations        Json
+  metrics            Json?
+
+  run              EstimationRun      @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product            @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  series           ConsumptionSeries? @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([runId, canonicalProductId, baseUnit])
+  @@index([seriesId])
 }

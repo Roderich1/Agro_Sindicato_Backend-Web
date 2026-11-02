@@ -796,6 +796,10 @@ describePostgres("F07 seal migration from the previous base", () => {
       cpSync(resolve("prisma/schema.prisma"), join(previous, "schema.prisma"));
       cpSync(resolve("prisma/migrations"), join(previous, "migrations"), { recursive: true });
       rmSync(join(previous, "migrations", SEAL_MIGRATION), { recursive: true });
+      // La base previa no tiene nada posterior (F12-EST-01 añadió una migración detrás).
+      for (const entry of readdirSync(join(previous, "migrations"))) {
+        if (/^\d{14}_/.test(entry) && entry > SEAL_MIGRATION) rmSync(join(previous, "migrations", entry), { recursive: true });
+      }
       expect(readdirSync(join(previous, "migrations"))).not.toContain(SEAL_MIGRATION);
       expect(deploy(previous).status).toBe(0);
     } finally {
