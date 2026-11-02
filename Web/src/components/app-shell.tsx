@@ -68,6 +68,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
   },
   {
+    label: 'Estimación del consumo',
+    to: COLLECTIVE_PATHS.estimation,
+    icon: <NavIcon d="M4 19h16M4 15l4-4 3 3 5-6 4 4M16 8h4v4" />,
+  },
+  {
     label: 'Reconciliación',
     to: COLLECTIVE_PATHS.reconciliation,
     icon: <NavIcon d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />,

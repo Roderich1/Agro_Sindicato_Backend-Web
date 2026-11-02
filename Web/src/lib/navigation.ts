@@ -13,6 +13,8 @@ export const COLLECTIVE_PATHS = {
   reconciliation: '/colectivo/reconciliacion',
   /** F07 (2026-10-23): tendencias entre versiones selladas. */
   trends: '/colectivo/tendencias',
+  /** F12-EST-06 (#179): estimación del consumo (INT-09, perfil institucional). */
+  estimation: '/colectivo/estimacion',
 } as const;
 
 /**
@@ -55,6 +57,7 @@ export const COLLECTIVE_MENU: readonly string[] = [
   COLLECTIVE_PATHS.proposals,
   COLLECTIVE_PATHS.coverage,
   COLLECTIVE_PATHS.trends,
+  COLLECTIVE_PATHS.estimation,
   COLLECTIVE_PATHS.reconciliation,
   '/campaigns',
   '/users',

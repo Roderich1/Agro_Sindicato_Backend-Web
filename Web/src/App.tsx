@@ -41,6 +41,9 @@ const CoveragePage = lazy(() =>
 const CollectiveTrendsPage = lazy(() =>
   import('./pages/collective-trends.page').then((module) => ({ default: module.CollectiveTrendsPage })),
 );
+const EstimationPage = lazy(() =>
+  import('./pages/estimation.page').then((module) => ({ default: module.EstimationPage })),
+);
 const ProductReconciliationPage = lazy(() =>
   import('./pages/product-reconciliation.page').then((module) => ({ default: module.ProductReconciliationPage })),
 );
@@ -101,6 +104,15 @@ function AppRoutes() {
         element={
           <CollectiveRoute>
             <CollectiveTrendsPage />
+          </CollectiveRoute>
+        }
+      />
+      {/* F12-EST-06 (#179): estimación del consumo; el servidor autoriza (INT-09) */}
+      <Route
+        path={COLLECTIVE_PATHS.estimation}
+        element={
+          <CollectiveRoute>
+            <EstimationPage />
           </CollectiveRoute>
         }
       />
