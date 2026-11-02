@@ -532,6 +532,81 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     demo["association_changed"] = { run: runId, validity: "OUTDATED", reason: "SOURCES_CHANGED" };
   });
 
+  it("#175: a canonical association corrected over F06 builds a new series version; regrouping sealed figures afterwards is refused; earlier series and runs stay intact", async () => {
+    const canonical = (await prisma.product.create({ data: { tenantId: f.tenantA, name: "Herbicida corrección de asociación", unit: "L" } })).id;
+    const mistaken = (await prisma.product.create({ data: { tenantId: f.tenantA, name: "Denominación asociada por error", unit: "L" } })).id;
+    const sealedAlias = (await prisma.product.create({ data: { tenantId: f.tenantA, name: "Denominación con cifra sellada", unit: "L" } })).id;
+    const sealedBy = { tenantId: f.tenantA, sealedByUserId: directorUser, baseUnit: "ML" as const, coverage: { status: "IDENTIFIED" as const, membersInPublishedFigures: 3 } };
+    // B1 (2001) has a sealed figure of the other denomination only; K1–K3 (2002–2004) of the canonical product.
+    const [b1] = await sealedConsumptionCampaigns(prisma, { ...sealedBy, canonicalProductId: sealedAlias, firstYear: 2001, quantities: [5000n], namePrefix: "Campaña sellada de la denominación" });
+    const own = await sealedConsumptionCampaigns(prisma, { ...sealedBy, canonicalProductId: canonical, firstYear: 2002, quantities: [3000n, 4000n, 5000n], namePrefix: "Campaña sellada del canónico" });
+    campaigns["B1"] = b1!.campaignId;
+    own.forEach((source, i) => (campaigns[`K${i + 1}`] = source.campaignId));
+    await plannedCampaign("TK", 2005);
+    await season("CORRECCION");
+    await classify("CORRECCION", ["B1", "K1", "K2", "K3", "TK"]);
+    const associate = (productId: string, reason: string) =>
+      http().post("/api/v1/collective/product-associations").set(auth(director)).send({ productId, canonicalProductId: canonical, reason, confirmed: true });
+    const dump = (value: unknown) => JSON.stringify(value, (_k, v: unknown) => (typeof v === "bigint" ? v.toString() : v));
+    const versions = () =>
+      prisma.consumptionSeries.findMany({ where: { canonicalProductId: canonical }, orderBy: { version: "asc" }, include: { points: { orderBy: { position: "asc" } } } });
+    const results = () => prisma.estimationResult.findMany({ where: { canonicalProductId: canonical }, orderBy: { runId: "asc" } });
+    const read = async (runId: string) =>
+      ((await http().get(`/api/v1/estimation/runs/${runId}`).set(auth(director))).body as { results: ResultBody[] }).results.find((r) => r.product.product_ref === canonical)!;
+    const calculate = async () => {
+      const jobId = await queue("TK", [canonical]);
+      expect(await worker.processNext()).toMatchObject({ jobId, status: "COMPLETED", outcome: "CALCULATED" });
+      return (await runOf(jobId)).id;
+    };
+
+    // 1. An association made by mistake: the denomination has no sealed figure, so the series is built with it in its scope.
+    expect((await associate(mistaken, "Asociación sintética que resultará equivocada")).status).toBe(200);
+    const r1 = await calculate();
+    const [v1] = await versions();
+    expect(v1).toMatchObject({ version: 1, previousSeriesId: null });
+    expect((v1!.sources as { type: string; associations?: { product_ref: string }[] }[])[0]!.associations).toEqual([expect.objectContaining({ product_ref: mistaken })]);
+    const first = await read(r1);
+    expect(first).toMatchObject({ status: "ESTIMATED", validity: "CURRENT" });
+    const figure = first.estimate_base;
+    expect(figure).toMatch(/^[0-9]+\.[0-9]{6}$/);
+    const v1Before = dump(v1);
+    const r1Before = dump((await results()).find((r) => r.runId === r1));
+
+    // 2. The correction over F06: the association is closed, with its reason, and stays in the history.
+    const closed = await http().post(`/api/v1/collective/product-associations/${mistaken}/close`).set(auth(director)).send({ reason: "Corrección: no es la misma sustancia", confirmed: true });
+    expect(closed.status).toBe(200);
+    expect(await read(r1)).toMatchObject({ validity: "OUTDATED", validity_reason: "SOURCES_CHANGED", estimate_base: figure });
+    const r2 = await calculate();
+    const afterCorrection = await versions();
+    expect(afterCorrection.map((s) => [s.version, s.previousSeriesId])).toEqual([[1, null], [2, v1!.id]]);
+    expect((afterCorrection[1]!.sources as { associations?: unknown[] }[])[0]!.associations).toEqual([]);
+    // The earlier version, its points and the run that used it are unchanged; that run now reads SUPERSEDED.
+    expect(dump(afterCorrection[0])).toBe(v1Before);
+    expect(dump((await results()).find((r) => r.runId === r1))).toBe(r1Before);
+    expect((await results()).find((r) => r.runId === r1)!.seriesId).toBe(v1!.id);
+    expect((await results()).find((r) => r.runId === r2)!.seriesId).toBe(afterCorrection[1]!.id);
+    expect((await prisma.estimationRun.findUniqueOrThrow({ where: { id: r2 } })).previousRunId).toBe(r1);
+    expect(await read(r1)).toMatchObject({ validity: "SUPERSEDED", validity_reason: "LATER_RUN" });
+    expect(await read(r2)).toMatchObject({ status: "ESTIMATED", validity: "CURRENT" });
+
+    // 3. Associating a denomination whose figure was already sealed apart: the sealed figures are never regrouped
+    //    afterwards (CANONICAL_CHANGED_AFTER_SEAL). No version is written and nothing earlier changes.
+    const before = dump(await versions());
+    const resultsBefore = dump(await results());
+    expect((await associate(sealedAlias, "Misma sustancia, asociada después del sellado")).status).toBe(200);
+    expect(await series.build(f.tenantA, seasons["CORRECCION"]!, canonical)).toEqual({ refused: "CANONICAL_CHANGED_AFTER_SEAL", campaignId: campaigns["B1"] });
+    expect(await read(r2)).toMatchObject({ validity: "OUTDATED", validity_reason: "SOURCES_CHANGED", estimate_base: figure });
+    const r3 = await calculate();
+    expect(dump(await versions())).toBe(before);
+    expect(dump((await results()).filter((r) => r.runId !== r3))).toBe(resultsBefore);
+    expect(await read(r3)).toMatchObject({ status: "INCOMPATIBLE_DATA", reason_code: "NO_COMPARABLE_CAMPAIGNS", estimate_base: null, validity: "NOT_USABLE" });
+    expect((await results()).find((r) => r.runId === r3)!.seriesId).toBeNull();
+    demo["association_corrected"] = {
+      versions: afterCorrection.map((s) => ({ version: s.version, previous: s.previousSeriesId, associations: (s.sources as { associations?: unknown[] }[])[0]!.associations })),
+      runs: { r1: "SUPERSEDED", r2: "OUTDATED after the later association", r3: "INCOMPATIBLE_DATA / NO_COMPARABLE_CAMPAIGNS" },
+    };
+  });
+
   it("does not deliver a result to an identity that lost its permission, nor to another tenant", async () => {
     const second = await person("DIRECTIVA");
     const path = `/api/v1/estimation/runs/${runs["T1b"]}`;
