@@ -85,3 +85,5 @@ jobs:
       - run: F10_SEC_PG_TEST_URL="$DATABASE_URL" npx jest f10-sec-02-disclosure-gaps.postgres.spec.ts --runInBand
       # F12-EST-01 (#174): esquema de la estimación desde la base previa; crea su propia base.
       - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-01-estimation-schema.postgres.spec.ts --runInBand
+      # F12-EST-02/03 (#175, #176): series from real F07 seals; builds its own base in two steps.
+      - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-02-series.postgres.spec.ts --runInBand
