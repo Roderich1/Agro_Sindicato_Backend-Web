@@ -6,7 +6,8 @@ import {
   type ReactNode,
 } from 'react';
 import { api, clearAccessToken, setAccessToken } from '../lib/axios';
-import { discardAllCopies, retainOnly, setActiveIdentity } from '../lib/estimation-copy';
+import { discardAllCopies, discardCopies, retainOnly, setActiveIdentity } from '../lib/estimation-copy';
+import { COLLECTIVE_ROLES } from '../lib/navigation';
 
 export interface TenantInfo {
   id: string;
@@ -40,12 +41,17 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 /**
  * F12-EST-07-WEB (#180): la copia de la estimación pertenece a la identidad de
  * la sesión. Al empezar una sesión se borran las copias de cualquier otra
- * identidad o sindicato; al cerrarla, o si el servidor la rechaza, todas.
+ * identidad o sindicato, y también las propias si el servidor ya no le da un
+ * rol institucional (la copia es del perfil institucional); al cerrarla, o si
+ * el servidor la rechaza, todas.
  */
 function beginSession(next: AuthUser) {
   const identity = { userId: next.id, tenantId: next.tenantId };
   setActiveIdentity(identity);
-  void retainOnly(identity).catch(() => undefined);
+  const institutional = (COLLECTIVE_ROLES as readonly string[]).includes(next.role);
+  void retainOnly(identity)
+    .then(() => (institutional ? undefined : discardCopies(identity)))
+    .catch(() => undefined);
 }
 
 function endSession() {
