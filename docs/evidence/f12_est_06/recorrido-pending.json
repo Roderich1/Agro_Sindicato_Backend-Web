@@ -1,0 +1,26 @@
+{
+  "phase": "pending",
+  "at": "2026-11-02T15:54:25.637Z",
+  "checks": [
+    {
+      "name": "política pendiente: aviso",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: sin resultados",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: sin solicitud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sin conexión: aviso de conexión",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

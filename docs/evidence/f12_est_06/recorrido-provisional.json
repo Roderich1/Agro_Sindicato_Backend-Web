@@ -1,0 +1,141 @@
+{
+  "phase": "provisional",
+  "at": "2026-11-02T15:54:14.294Z",
+  "checks": [
+    {
+      "name": "menú: «Estimación del consumo»",
+      "ok": true,
+      "detail": "Resumen colectivo, Necesidades y propuesta, Cobertura, Tendencias, Estimación del consumo, Reconciliación, Campanas, Resumen colectivo, Necesidades y propuesta, Cobertura, Tendencias, Estimación del consumo, Reconciliación, Campanas"
+    },
+    {
+      "name": "sin ejecuciones: ninguna cifra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "organización a la vista",
+      "ok": true,
+      "detail": "Sintético A"
+    },
+    {
+      "name": "el trabajo termina por el trabajador del proceso",
+      "ok": true,
+      "detail": "Terminado"
+    },
+    {
+      "name": "SES 111 L (111.000 mL en unidad base)",
+      "ok": true,
+      "detail": "111 L111.000 mL"
+    },
+    {
+      "name": "naive 116 L (116.000 mL en unidad base)",
+      "ok": true,
+      "detail": "116 L116.000 mL"
+    },
+    {
+      "name": "α 0.50 del detalle de la ejecución",
+      "ok": true,
+      "detail": "0.50"
+    },
+    {
+      "name": "campañas observadas: 4",
+      "ok": true,
+      "detail": "4: Invierno sintético 2015 a Invierno sintético 2018"
+    },
+    {
+      "name": "vigencia: Vigente",
+      "ok": true,
+      "detail": "Vigente"
+    },
+    {
+      "name": "exportación = respuesta de GET /results",
+      "ok": true,
+      "detail": "estimacion-objetivo-sintético-invierno-2019.csv: [{\"target_campaign_ref\":\"f13c4cd3-e355-49f5-8c56-838eecbf46f4\",\"target_name\":\"Objetivo sintético invierno 2019\",\"season_key\":\"INVIERNO\",\"evaluated_at\":\"2026-11-02T15:53:44.142Z\",\"product_ref\":\"130b730d-c4b8-4f28-84e7-8011eff67cbd\",\"product_name\":\"Herbicida de ensayo\",\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":\"\",\"met"
+    },
+    {
+      "name": "campaña clasificada después: Desactualizado",
+      "ok": true,
+      "detail": "DesactualizadoLas cifras, las campañas o las asociaciones de la serie cambiaron desde el cálculo."
+    },
+    {
+      "name": "la cifra desactualizada se sigue mostrando (no retirada)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "segunda solicitud termina",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "historial con 2 ejecuciones",
+      "ok": true,
+      "detail": "2"
+    },
+    {
+      "name": "la ejecución anterior: Sustituido en su detalle",
+      "ok": true,
+      "detail": "Ejecución del 2 nov de 2026, 11:53 a. m.Calculada · método SES_NAIVE F12-EST-04/1 · temporada INVIERNO. Las cifras de esta sección son las de esta ejecución.Cerrar detalleHerbicida de ensayo (L) · Est"
+    },
+    {
+      "name": "su serie: 96, 120, 104 y 116 L",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ejecución fallida en el historial (trabajo 14b6fa73…)",
+      "ok": true,
+      "detail": "Fallida. Se agotaron los reintentos ante errores transitorios. La ejecución queda registrada, sin cifras."
+    },
+    {
+      "name": "la fallida no sustituye: el resultado sigue Vigente con su cifra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "fuente retirada: SES oculto",
+      "ok": true,
+      "detail": "Cifra retirada"
+    },
+    {
+      "name": "fuente retirada: naive oculto",
+      "ok": true,
+      "detail": "Cifra retirada"
+    },
+    {
+      "name": "fuente retirada: motivo",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "datos insuficientes: termina",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "datos insuficientes: motivo",
+      "ok": true,
+      "detail": "Hay menos de tres campañas comparables consecutivas con consumo comprobado."
+    },
+    {
+      "name": "datos insuficientes: sin cifra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "permiso perdido: aviso de permiso",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "permiso perdido: sin resultados ni historial",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "permiso perdido: sin solicitud",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
