@@ -1,6 +1,6 @@
 {
   "phase": "provisional",
-  "at": "2026-11-02T15:54:14.294Z",
+  "at": "2026-11-02T16:03:39.064Z",
   "checks": [
     {
       "name": "menú: «Estimación del consumo»",
@@ -50,7 +50,7 @@
     {
       "name": "exportación = respuesta de GET /results",
       "ok": true,
-      "detail": "estimacion-objetivo-sintético-invierno-2019.csv: [{\"target_campaign_ref\":\"f13c4cd3-e355-49f5-8c56-838eecbf46f4\",\"target_name\":\"Objetivo sintético invierno 2019\",\"season_key\":\"INVIERNO\",\"evaluated_at\":\"2026-11-02T15:53:44.142Z\",\"product_ref\":\"130b730d-c4b8-4f28-84e7-8011eff67cbd\",\"product_name\":\"Herbicida de ensayo\",\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":\"\",\"met"
+      "detail": "estimacion-objetivo-sintético-invierno-2019.csv: [{\"target_campaign_ref\":\"fae9487a-a49e-4c4d-b95f-414eb4d11c87\",\"target_name\":\"Objetivo sintético invierno 2019\",\"season_key\":\"INVIERNO\",\"evaluated_at\":\"2026-11-02T16:03:11.218Z\",\"product_ref\":\"cbd40ae7-55fc-45e0-b5bb-51cf331c6d58\",\"product_name\":\"Herbicida de ensayo\",\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":\"\",\"met"
     },
     {
       "name": "campaña clasificada después: Desactualizado",
@@ -75,7 +75,7 @@
     {
       "name": "la ejecución anterior: Sustituido en su detalle",
       "ok": true,
-      "detail": "Ejecución del 2 nov de 2026, 11:53 a. m.Calculada · método SES_NAIVE F12-EST-04/1 · temporada INVIERNO. Las cifras de esta sección son las de esta ejecución.Cerrar detalleHerbicida de ensayo (L) · Est"
+      "detail": "Ejecución del 2 nov de 2026, 12:03 p. m.Calculada · método SES_NAIVE F12-EST-04/1 · temporada INVIERNO. Las cifras de esta sección son las de esta ejecución.Cerrar detalleHerbicida de ensayo (L) · Est"
     },
     {
       "name": "su serie: 96, 120, 104 y 116 L",
@@ -83,7 +83,7 @@
       "detail": ""
     },
     {
-      "name": "ejecución fallida en el historial (trabajo 14b6fa73…)",
+      "name": "ejecución fallida en el historial (trabajo 99ced397…)",
       "ok": true,
       "detail": "Fallida. Se agotaron los reintentos ante errores transitorios. La ejecución queda registrada, sin cifras."
     },
