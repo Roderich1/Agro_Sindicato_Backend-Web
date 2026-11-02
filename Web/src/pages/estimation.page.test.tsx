@@ -2,17 +2,28 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { AxiosError, AxiosHeaders } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CollectiveRoute } from '../components/collective-route';
+import {
+  closeContext,
+  currentContext,
+  memoryBackend,
+  openContext,
+  purgePending,
+  readableCopies,
+  saveCopy,
+  setCopyBackend,
+  type CopyBackend,
+} from '../lib/estimation-copy';
 import { WEB_NOT_FOR_FARMERS_PATH } from '../lib/navigation';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
 import { estimationService } from '../services/estimation.service';
 import { CAMPAIGN, renderAt } from '../test/render';
 import type { Campaign } from '../types/campaigns';
-import type { InstitutionalResult, InstitutionalResults, Job, ResultDetail, Run, RunSummary } from '../types/estimation';
+import type { InstitutionalDownload, InstitutionalResult, InstitutionalResults, Job, ResultDetail, Run, RunSummary } from '../types/estimation';
 import { EstimationPage, POLL_MS } from './estimation.page';
 
 vi.mock('../services/estimation.service', () => ({
-  estimationService: { request: vi.fn(), job: vi.fn(), results: vi.fn(), runs: vi.fn(), run: vi.fn() },
+  estimationService: { request: vi.fn(), job: vi.fn(), results: vi.fn(), runs: vi.fn(), run: vi.fn(), download: vi.fn() },
 }));
 vi.mock('../services/collective.service', () => ({
   collectiveService: { catalog: vi.fn(), associations: vi.fn() },
@@ -102,8 +113,27 @@ function serve(results: InstitutionalResults, runs: Run[], list: RunSummary[] = 
   vi.mocked(estimationService.run).mockImplementation(async (id: string) => runs.find((r) => r.run_ref === id) ?? Promise.reject(httpError(404, 'RUN_NOT_FOUND')));
 }
 
+/** La copia que entregaría `GET /download` para esas respuestas. */
+function downloadOf(read: InstitutionalResults, downloadedAt = '2026-11-02T16:00:00.000Z'): InstitutionalDownload {
+  return {
+    contract_version: 1, kind: 'ESTIMATION_DOWNLOAD', profile: 'INSTITUTIONAL', scope: read.scope, subject: { member_ref: 'm-1', role: 'DIRECTIVA' },
+    downloaded_at: downloadedAt, target: read.target, season: read.season,
+    results: read.results.map(({ validity, ...rest }) => ({ ...rest, validity_at_download: validity })),
+    may_be_outdated: true, notice: read.notice,
+    storage: { backup: 'EXCLUDED_FROM_PRIVATE_BACKUP', discard_on: ['IDENTITY_CHANGE', 'SIGN_OUT'], replace_only_with: 'NEWER_SAME_SUBJECT_AND_SCOPE' },
+  };
+}
+const SESSION = { userId: 'u-1', tenantId: 't-1', name: 'Usuario sintético', tenantName: 'Sindicato sintético', role: 'DIRECTIVA' };
+let memory: CopyBackend;
+/** Guarda en el contexto local vigente de la sesión simulada. */
+const saveForSession = (body: InstitutionalDownload) => saveCopy(currentContext()!, SESSION, body);
+
 describe('Estimación del consumo (F12-EST-06, #179)', () => {
   beforeEach(() => {
+    localStorage.clear();
+    memory = memoryBackend();
+    setCopyBackend(memory);
+    openContext(SESSION);
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN, CLOSED]);
     vi.mocked(collectiveService.catalog).mockResolvedValue([
       { product_ref: 'p-Herbicida', product_name: 'Herbicida', unit: 'L', base_unit: 'ML', is_active: true },
@@ -362,5 +392,171 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect(within(panel).getByTestId('point-C2').textContent).toMatch(/120 L/);
     expect(within(panel).getByTestId('point-T').textContent).toMatch(/Sin cifra.*no es anterior al objetivo/);
     expect(within(panel).getByText(/Sustituido/)).toBeTruthy();
+  });
+  describe('copia para consultar sin conexión (F12-EST-07-WEB, #180)', () => {
+    const offline = () => {
+      vi.mocked(estimationService.results).mockRejectedValue(httpError(null));
+      vi.mocked(estimationService.runs).mockRejectedValue(httpError(null));
+    };
+    const copyRead = () =>
+      resultsWith([
+        result('Herbicida'),
+        result('Fungicida', { status: 'INSUFFICIENT_DATA', reason_code: 'SPAN_TOO_SHORT', estimate_base: null, naive_base: null, span_length: 2, validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' }),
+        result('Insecticida', { estimate_base: null, naive_base: null, validity: 'OUTDATED', validity_reason: 'SOURCES_WITHDRAWN' }),
+      ]);
+
+    it('se descarga a petición, se guarda para la sesión y no es el CSV', async () => {
+      const read = resultsWith([result('Herbicida')]);
+      serve(read, [run('run-1', [detail('Herbicida')])]);
+      vi.mocked(estimationService.download).mockResolvedValue(downloadOf(read));
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('result-Herbicida');
+      expect(screen.getByTestId('copy-status').textContent).toMatch(/No hay una copia de esta campaña/);
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      expect((await screen.findByTestId('copy-note')).textContent).toBe('Copia guardada en este navegador.');
+      await waitFor(() => expect(screen.getByTestId('copy-status').textContent).toMatch(/Hay una copia de esta campaña en este navegador, descargada el/));
+      expect(estimationService.download).toHaveBeenCalledWith(CAMPAIGN.id);
+      const stored = await readableCopies(null);
+      expect(stored.map((c) => [c.owner.userId, c.owner.tenantId, c.download.target.campaign_ref])).toEqual([['u-1', 't-1', CAMPAIGN.id]]);
+      expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toBeTruthy();
+    });
+
+    it('sin conexión y con copia: fechas, período, vigencia al descargar, vigencia actual desconocida y aviso; ausencias sin cifra', async () => {
+      await saveForSession(downloadOf(copyRead()));
+      offline();
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('error-offline');
+      const view = await screen.findByTestId(`copy-${CAMPAIGN.id}`);
+      expect(within(view).getByTestId('copy-downloaded').textContent).toMatch(/Descargada el .* \(hora del servidor\) por Usuario sintético \(Directiva\), Sindicato sintético/);
+      expect(within(view).getByTestId('copy-period').textContent).toMatch(/Período objetivo: Campaña sintética.*Temporada INVIERNO/);
+      expect(within(view).getByTestId('copy-outdated').textContent).toMatch(/Puede estar desactualizada.*vigencia actual es desconocida/);
+      const herbicide = within(view).getByTestId('copy-result-Herbicida');
+      expect(within(herbicide).getByTestId('copy-estimate').textContent).toBe('111 L111.000 mL');
+      expect(within(herbicide).getByTestId('copy-naive').textContent).toBe('116 L116.000 mL');
+      expect(within(herbicide).getByTestId('copy-validity').textContent).toBe('Vigente');
+      expect(within(herbicide).getByTestId('copy-current').textContent).toBe('Desconocida sin conexión');
+      expect(within(herbicide).getByTestId('copy-generated').textContent).not.toBe('');
+      const short = within(view).getByTestId('copy-result-Fungicida');
+      expect(within(short).getByTestId('copy-estimate').textContent).toBe('Sin cifra');
+      expect(within(short).getByTestId('copy-reason').textContent).toMatch(/menos de tres campañas/);
+      expect(short.textContent).not.toMatch(/\b0 L\b/);
+      expect(within(within(view).getByTestId('copy-result-Insecticida')).getByTestId('copy-estimate').textContent).toBe('Cifra retirada');
+      expect(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' })).toHaveProperty('disabled', true);
+    });
+
+    it('sin conexión y sin copia de esta identidad: el aviso y ninguna cifra (la copia de otra identidad no se ve)', async () => {
+      const other = { ...SESSION, userId: 'u-otra', name: 'Otra identidad sintética' };
+      await saveCopy(openContext(other)!, other, downloadOf(copyRead()));
+      openContext(SESSION);
+      offline();
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('error-offline');
+      await waitFor(() => expect(screen.getByTestId('copy-status').textContent).toMatch(/No hay una estimación descargada de esta campaña.*ninguna cifra/));
+      expect(screen.queryByTestId(`copy-${CAMPAIGN.id}`)).toBeNull();
+      expect(screen.queryByText(/111 L/)).toBeNull();
+    });
+
+    it.each([
+      [401, 'Unauthorized', 'session'],
+      [403, 'No tienes permisos para esta acción', 'forbidden'],
+      [409, 'POLICY_PENDING', 'policy'],
+    ])('un rechazo %i retira la copia de esta identidad y no la ofrece como alternativa (%s)', async (status, message, kind) => {
+      await saveForSession(downloadOf(copyRead()));
+      vi.mocked(estimationService.results).mockRejectedValue(httpError(status, message));
+      vi.mocked(estimationService.runs).mockRejectedValue(httpError(status, message));
+      renderAt(<EstimationPage />, { path: PATH });
+      expect(await screen.findByTestId(`error-${kind}`)).toBeTruthy();
+      expect(await readableCopies(null)).toEqual([]);
+      await waitFor(async () => expect(await memory.list()).toEqual([]));
+      expect(screen.queryByTestId('copy-panel')).toBeNull();
+      expect(screen.queryByTestId(`copy-${CAMPAIGN.id}`)).toBeNull();
+    });
+
+    it('un perfil de Agricultor en /results o en /download es un permiso perdido: sin cifras y sin copia', async () => {
+      await saveForSession(downloadOf(copyRead()));
+      serve({ ...resultsWith([result('Herbicida')]), profile: 'FARMER' } as unknown as InstitutionalResults, []);
+      const first = renderAt(<EstimationPage />, { path: PATH });
+      expect((await screen.findByTestId('error-forbidden')).textContent).toMatch(/ya no tiene acceso/);
+      expect(await readableCopies(null)).toEqual([]);
+      await waitFor(async () => expect(await memory.list()).toEqual([]));
+      expect(screen.queryByTestId('result-Herbicida')).toBeNull();
+      first.unmount();
+      // Nueva sesión institucional: el servidor la acepta y se abre otro contexto local.
+      openContext(SESSION);
+
+      const read = resultsWith([result('Herbicida')]);
+      serve(read, [run('run-1', [detail('Herbicida')])]);
+      vi.mocked(estimationService.download).mockResolvedValue({ ...downloadOf(read), profile: 'FARMER' } as unknown as InstitutionalDownload);
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('result-Herbicida');
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      expect(await screen.findByTestId('error-forbidden')).toBeTruthy();
+      expect(await memory.list()).toEqual([]);
+    });
+
+    it('una descarga que responde cuando la sesión ya es otra no se guarda', async () => {
+      const read = resultsWith([result('Herbicida')]);
+      serve(read, [run('run-1', [detail('Herbicida')])]);
+      vi.mocked(estimationService.download).mockImplementation(async () => {
+        openContext({ ...SESSION, userId: 'u-2' });
+        return downloadOf(read);
+      });
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('result-Herbicida');
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      expect((await screen.findByTestId('copy-note')).textContent).toMatch(/La sesión cambió o se retiró el acceso durante la descarga/);
+      expect(await memory.list()).toEqual([]);
+    });
+
+    it('cerrar la sesión mientras una descarga está en curso: la respuesta no se guarda', async () => {
+      const read = resultsWith([result('Herbicida')]);
+      serve(read, [run('run-1', [detail('Herbicida')])]);
+      vi.mocked(estimationService.download).mockImplementation(async () => {
+        closeContext();
+        return downloadOf(read);
+      });
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('result-Herbicida');
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      expect((await screen.findByTestId('copy-note')).textContent).toMatch(/La sesión cambió o se retiró el acceso/);
+      expect(await memory.list()).toEqual([]);
+    });
+
+    it('un rechazo retira el acceso al instante aunque el borrado físico falle; no se afirma borrada', async () => {
+      await saveForSession(downloadOf(copyRead()));
+      setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
+      vi.mocked(estimationService.results).mockRejectedValue(httpError(403, 'No tienes permisos para esta acción'));
+      vi.mocked(estimationService.runs).mockRejectedValue(httpError(403, 'No tienes permisos para esta acción'));
+      renderAt(<EstimationPage />, { path: PATH });
+      expect(await screen.findByTestId('error-forbidden')).toBeTruthy();
+      expect(await readableCopies(null)).toEqual([]);
+      await waitFor(() => expect(purgePending()).toBe(true));
+      expect(await memory.list()).toHaveLength(1);
+    });
+
+    it('un 404 retira la copia de esa campaña en el contexto local (persiste) aunque su borrado falle', async () => {
+      await saveForSession(downloadOf(copyRead()));
+      setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
+      vi.mocked(estimationService.results).mockRejectedValue(httpError(404, 'TARGET_NOT_FOUND'));
+      vi.mocked(estimationService.runs).mockRejectedValue(httpError(404, 'TARGET_NOT_FOUND'));
+      renderAt(<EstimationPage />, { path: PATH });
+      expect(await screen.findByTestId('error-not-found')).toBeTruthy();
+      expect(await readableCopies(null)).toEqual([]);
+      expect(Object.keys(currentContext()?.revoked ?? {})).toHaveLength(1);
+      expect(localStorage.getItem('agro_estimacion_contexto_v1')).not.toContain(CAMPAIGN.id);
+      await waitFor(() => expect(purgePending()).toBe(true));
+      expect(await memory.list()).toHaveLength(1);
+    });
+
+    it('sin acceso local vigente no se descarga una copia', async () => {
+      const read = resultsWith([result('Herbicida')]);
+      serve(read, [run('run-1', [detail('Herbicida')])]);
+      closeContext();
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('result-Herbicida');
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      expect((await screen.findByTestId('copy-note')).textContent).toMatch(/No hay un acceso local vigente/);
+      expect(estimationService.download).not.toHaveBeenCalled();
+    });
   });
 });

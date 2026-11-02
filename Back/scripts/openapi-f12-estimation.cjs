@@ -254,8 +254,15 @@ const implemented = Object.entries(generated.paths)
   .sort();
 if (stage === "SPECIFIED_NOT_IMPLEMENTED") {
   assert.deepEqual(implemented, [], "Etapa SPECIFIED_NOT_IMPLEMENTED: hay rutas de estimación implementadas");
-} else if (stage === "PARTIALLY_IMPLEMENTED") {
+} else if (stage === "PARTIALLY_IMPLEMENTED" || stage === "IMPLEMENTED") {
   const declared = [...(spec.info["x-implemented-operations"] ?? [])].sort();
+  if (stage === "IMPLEMENTED") {
+    // F12-EST-07-WEB (#180): con la descarga, todas las operaciones especificadas existen en el código.
+    const specified = Object.entries(spec.paths)
+      .flatMap(([path, methods]) => Object.keys(methods).filter((key) => ["get", "post", "put", "patch", "delete"].includes(key)).map((method) => `${method.toUpperCase()} ${path}`))
+      .sort();
+    assert.deepEqual(declared, specified, "Etapa IMPLEMENTED: no todas las operaciones especificadas se declaran implementadas");
+  }
   assert.deepEqual(implemented, declared, "Las operaciones de estimación del código no son las declaradas implementadas");
   for (const operation of declared) {
     const [method, path] = operation.split(" ");

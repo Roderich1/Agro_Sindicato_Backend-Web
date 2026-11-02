@@ -4,6 +4,12 @@
  * endpoint colectivo comprueba rol y tenant en el servidor, y las rutas nuevas
  * usan `CollectiveRoute`.
  */
+/**
+ * F12-EST-07-WEB (#180): lectura sin conexión de la copia de la estimación. Fuera
+ * del menú y de `/colectivo`: no exige una sesión comprobada ni llama al servidor.
+ */
+export const ESTIMATION_COPY_PATH = '/estimacion/copia-sin-conexion';
+
 export const COLLECTIVE_ROLES = ['DIRECTIVA', 'ADMINISTRADOR'] as const;
 
 export const COLLECTIVE_PATHS = {

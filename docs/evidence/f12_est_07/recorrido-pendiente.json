@@ -1,0 +1,36 @@
+{
+  "phase": "pendiente",
+  "at": "2026-11-02T22:06:39.465Z",
+  "checks": [
+    {
+      "name": "perfil persistente: la copia de la Directiva A sigue antes de consultar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: aviso, sin cifras ni panel de copia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: el contexto local se renueva (las copias anteriores dejan de leerse)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: la copia se retira de IndexedDB",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: el servidor respondió 409 POLICY_PENDING",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: tampoco sin conexión queda copia que leer",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

@@ -1,7 +1,9 @@
 import axios from 'axios';
-import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
+import { readableCopies } from '../lib/estimation-copy';
+import { ESTIMATION_COPY_PATH } from '../lib/navigation';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -12,6 +14,18 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // F12-EST-07-WEB (#180): si hay un contexto local vigente con copias (sin conexión no se pudo comprobar la sesión), se ofrece leerlas.
+  const [hasCopy, setHasCopy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    readableCopies(null)
+      .then((copies) => alive && setHasCopy(copies.length > 0))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -220,6 +234,14 @@ export function LoginPage() {
                 )}
               </button>
             </form>
+            {hasCopy && (
+              <p className="mt-4 text-sm text-slate-600" data-testid="offline-copy-link">
+                Hay una estimación descargada en este navegador.{' '}
+                <Link className="font-semibold text-emerald-700 underline" to={ESTIMATION_COPY_PATH}>
+                  Consultarla sin conexión
+                </Link>
+              </p>
+            )}
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400">

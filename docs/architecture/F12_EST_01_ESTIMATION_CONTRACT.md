@@ -1,10 +1,10 @@
 # F12-EST-01 — Contrato INT-09: estimación del consumo (v1)
 
 - **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado dos veces el 2026-11-02 (UTC) con las decisiones del autor del §11.
-- **Estado:** **parcialmente implementado**. El contrato es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
+- **Estado:** **implementado en el servicio**; falta el cliente Mobile de la copia (#164). El contrato es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
   - **Rutas implementadas desde F12-EST-05 (#178):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST /estimation/campaign-classifications/{campaignId}/corrections` y `GET /estimation/campaign-classifications/{campaignId}/history`.
   - **Temporadas y clasificación inicial** (`POST`/`GET /estimation/seasons`, `POST`/`GET /estimation/campaign-classifications`): implementadas en la continuación de #190, con Refs #175 (§12).
-  - **Sigue solo especificada:** la descarga (§12).
+  - **Descarga** (`GET /estimation/download`): implementada en F12-EST-07-WEB, con Refs #180 (§9 y §12). Con ella existen en el código las doce operaciones especificadas.
   - **Lo construido:**
     - el esquema de datos (§6), con su migración aditiva;
     - la cobertura de consumo de los sellados F07 nuevos (§3.1), implementada en el caso de uso del sellado;
@@ -306,7 +306,7 @@ Todas las rutas están bajo `/api/v1/estimation`, con bearer y respuestas JSON c
 
 No existen `PUT`, `PATCH` ni `DELETE` en INT-09, y lo comprueba `openapi:check` (§12).
 
-**Implementadas (F12-EST-05):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST …/corrections` y `GET …/history`. `openapi:check` compara esas siete operaciones con el OpenAPI generado desde el código (`x-implemented-operations`). La continuación de #190 (Refs #175) añade las dos de temporadas y las dos de clasificación inicial: once en total. Solo la descarga sigue especificada.
+**Implementadas (F12-EST-05):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST …/corrections` y `GET …/history`. `openapi:check` compara esas siete operaciones con el OpenAPI generado desde el código (`x-implemented-operations`). La continuación de #190 (Refs #175) añade las dos de temporadas y las dos de clasificación inicial: once en total. F12-EST-07-WEB (#180) añade la descarga: doce, todas las especificadas, y `openapi:check` pasa a la etapa `IMPLEMENTED`.
 
 ### 4.1 Temporadas, clasificaciones y correcciones (EST-D-02, EST-D-14)
 
@@ -647,6 +647,28 @@ No contiene puntos de la serie, aportes ni información privada de otros agricul
 
 Desconectado, el cliente no conoce revocaciones ni cambios de fuentes: la copia **no es una autorización vigente**.
 
+**Implementación (F12-EST-07-WEB, #180):**
+- **Servicio:** `download` es `results` en la misma petición (selección, perfil, política y autorización), con `subject`, `downloaded_at` (hora del servidor), `validity_at_download`, `may_be_outdated` y `storage`.
+- **PWA:** la copia se guarda en IndexedDB (`lib/estimation-copy.ts`), por usuario, sindicato y campaña objetivo, sin credenciales.
+  - **Descarga:** solo a petición y con conexión.
+  - **Respuestas que no se guardan:**
+    - la que llega cuando la sesión ya es otra;
+    - la de un perfil que no sea el institucional;
+    - la de otro sindicato.
+  - **Cuándo se borra:**
+    - al cerrar la sesión;
+    - al entrar con otra identidad o sindicato;
+    - si el servidor rechaza la sesión, el permiso o la política;
+    - si la sesión se recupera sin un rol institucional.
+  - **Service worker:** no pasa ni cachea respuestas del API.
+- **Lectura sin conexión, también tras recargar** (`/estimacion/copia-sin-conexion`): solo dentro del **contexto local** que una sesión aceptada por el servidor con rol institucional abrió en ese navegador (en `localStorage`: `id` aleatorio, huella de usuario y sindicato, rol y fecha; ningún identificador en claro). Cada copia lleva el `id` del contexto.
+  - **Sin contexto**, o con otra identidad, sindicato o rol, no se enumera ni se lee nada.
+  - **El contexto se cierra de forma síncrona** al cerrar la sesión, con otra identidad o sindicato, con un 401, con un 403 o al perder el rol. Un 409 de política lo renueva. Un 404 **retira la campaña en el propio contexto** (huella de la campaña y generación, en `localStorage`), así que la retirada sobrevive a una recarga aunque el borrado falle; solo una descarga pedida después y autorizada por el servidor vuelve a habilitar una copia de esa campaña. La identidad y la campaña se comparan por su huella (FNV-1a, que no es cifrado ni anonimización).
+  - **El borrado físico va después:** si falla, queda pendiente y se reintenta.
+  - **El contexto identifica la sesión propietaria**, no a la persona frente al navegador.
+  - Detalle y pruebas en `F12_EST_07_WEB_2026-11-02.md` §6 y §7.
+- **Mobile (#164):** el contrato que usará está en [`F12_EST_07_COPIA_MOBILE.md`](F12_EST_07_COPIA_MOBILE.md). Todavía no está implementado.
+
 ## 10. Coherencia con el diseño aprobado
 
 | Exigencia | Dónde queda en el contrato |
@@ -732,11 +754,12 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | Lista de ejecuciones (`GET /estimation/runs`) con cursor | **Implementado y comprobado por HTTP contra PostgreSQL** | `f12-est-05-runs.postgres.spec.ts` |
 | El trabajador como proceso real: `node dist/main.js` recibe la petición, su trabajador toma el trabajo, registra la ejecución y la API la entrega; dos procesos sobre la misma base; sin trabajador, el trabajo espera | **Comprobado en un ensayo reproducible (HOST, PostgreSQL desechable, datos sintéticos)** | `docs/evidence/f12_est_05/ensayo-proceso-trabajador.cjs`. Acredita integración y operación, no producción ni precisión |
 | Temporadas y clasificación inicial con su lista | **Implementado y comprobado por HTTP contra PostgreSQL en el PR de continuación de #190** (Refs #175); no en `main` ni en #190 | `f12-est-seasons.postgres.spec.ts`. Fuera del alcance de #178; ningún issue las incluía, y su asignación a #175 es una propuesta |
-| Descarga (`GET /estimation/download`) y clientes | **Solo especificado** | Copias de F12-EST-07 (#180, Mobile #164) y pantallas de F12-EST-06 (#179). EST-D-08, 10 y 12 ya están decididas (§11.1); la descarga sigue sin implementarse |
+| Descarga (`GET /estimation/download`) | **Implementado y comprobado contra PostgreSQL** (F12-EST-07-WEB, Refs #180): perfiles, misma selección que `/results`, 400, 401, 404 y 409, y rol degradado | `estimation-reads.use-case.ts` (`download`); caso de `f12-est-05-runs.postgres.spec.ts`; `docs/evidence/F12_EST_07_WEB_2026-11-02.md` |
 | Preparación de fuentes, construcción de series con versiones y lectura del tramo para una campaña objetivo (§3.2) | **Implementado y comprobado contra PostgreSQL**, sin rutas | `consumption-series.use-case.ts` y `domain/series.ts`; `series.spec.ts` (9) y `f12-est-02-series.postgres.spec.ts` (4, con sellados reales F07 por la API) |
 | Motor SES/naive (§3.3): rejilla de α, empates, criterio constante, naive y redondeo final | **Implementado y comprobado**, sin rutas ni ejecuciones | `domain/ses-naive.ts`; `ses-naive.spec.ts` (11, con casos calculados a mano y una referencia decimal independiente) y el tramo `READY` de sellados reales en `f12-est-02-series.postgres.spec.ts` |
 | Pantalla Web institucional «Estimación del consumo» (F12-EST-06): solicitud, estado del trabajo, resultados del perfil institucional con su vigencia, ejecuciones anteriores con su detalle y exportación de la consulta | **Implementado** (F12-EST-06, Refs #179); comprobado con pruebas de componentes y con un recorrido de navegador contra el backend real y PostgreSQL desechable, con la Directiva y el Administrador, y contrastado con el prototipo W4 | `Web/src/pages/estimation.page.tsx`; `docs/evidence/F12_EST_06_WEB_2026-11-02.md`. La Web no calcula: presenta lo que entrega el servicio |
-| Copia descargada (Web y Mobile) y cliente Mobile | **No construido** | F12-EST-07 (#180, Mobile #164) |
+| Copia descargada en la PWA (IndexedDB) | **Implementado** (F12-EST-07-WEB, Refs #180). Comprobado con pruebas de componentes y con un recorrido de navegador real contra el backend: lectura sin conexión, también tras recargar, aislamiento, borrado y rechazos | `Web/src/lib/estimation-copy.ts`; `docs/evidence/F12_EST_07_WEB_2026-11-02.md` |
+| Copia descargada en Mobile (SQLite) y cliente Mobile | **No construido** | Mobile #164; contrato en `F12_EST_07_COPIA_MOBILE.md` |
 
 **Lo que comprueba el script** sobre la especificación:
 - OpenAPI 3.0.3, referencias resueltas y ningún `$ref` con hermanos;
@@ -802,4 +825,6 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), octava | EST-D-08, EST-D-10 y EST-D-12 decididas por el autor, con sus precisiones (§11.1); §11.2 queda sin pendientes. Contraste con el código y las pruebas: coincidían; se añaden dos pruebas que faltaban (una ejecución nueva con datos insuficientes no reutiliza la cifra anterior; un trabajo retomado tras un error transitorio vuelve a comprobar la política antes de calcular). La decisión EST-D-10 no aprueba GOV-02 |
 | 2026-11-02 (UTC), novena | Continuación de #190 (Refs #175): temporadas y clasificación inicial con su lista implementadas (§4.1); `openapi:check` compara once operaciones; solo la descarga sigue especificada |
 | 2026-11-02 (UTC), décima | F12-EST-06 (#179): pantalla Web institucional sobre las rutas de #190 (§12), contrastada con el prototipo W4 y recorrida con la Directiva y el Administrador; sin descarga ni copia |
+| 2026-11-02 (UTC), undécima | F12-EST-07-WEB (#180): `GET /estimation/download` implementada y la copia de la PWA en IndexedDB (§9, §12); `openapi:check` en etapa `IMPLEMENTED`; contrato de la copia Mobile documentado para #164, sin implementar |
 | 2026-11-02 (UTC), precisión de #175 | EST-D-17 decidida por el autor: la agrupación de denominaciones se limita a asociaciones admisibles anteriores al sellado; sin reagrupación retrospectiva (§3.2, §11.1) |
+| 2026-11-02 (UTC), duodécima | F12-EST-07-WEB (#180): la retirada por un 404 se guarda en el contexto local y persiste tras recargar aunque el borrado falle; una descarga posterior autorizada habilita otra copia (§9) |

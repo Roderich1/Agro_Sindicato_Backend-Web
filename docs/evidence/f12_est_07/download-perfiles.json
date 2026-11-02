@@ -1,0 +1,158 @@
+{
+  "institutional": {
+    "contract_version": 1,
+    "kind": "ESTIMATION_DOWNLOAD",
+    "profile": "INSTITUTIONAL",
+    "scope": {
+      "tenant_ref": "e4bd9ad9-3c16-4f01-82d7-8f988e6969e9"
+    },
+    "subject": {
+      "member_ref": "689f0588-a71a-45a5-8494-f9eefa29d0ea",
+      "role": "DIRECTIVA"
+    },
+    "downloaded_at": "2026-11-02T22:04:34.722Z",
+    "target": {
+      "campaign_ref": "f49b2e87-9df7-44f9-b5e7-bdcf67ce1278",
+      "name": "Objetivo sintético invierno 2019",
+      "status": "PLANIFICADA",
+      "start_date": "2019-09-01T00:00:00.000Z",
+      "end_date": null
+    },
+    "season": {
+      "season_ref": "b9859fb1-e52d-4c0e-ba1f-5908faf111df",
+      "key": "INVIERNO",
+      "definition": "Temporada sintética INVIERNO",
+      "duration_days": 180
+    },
+    "results": [
+      {
+        "product": {
+          "product_ref": "42f481eb-ab63-4ffb-b99d-f13334c72021",
+          "name": "Herbicida de ensayo"
+        },
+        "base_unit": "ML",
+        "presentation_unit": "L",
+        "status": "ESTIMATED",
+        "reason_code": null,
+        "method": "SES_NAIVE",
+        "run_ref": "1ae8469f-bc94-479b-a337-86b4ee7e7224",
+        "generated_at": "2026-11-02T22:04:26.082Z",
+        "span_length": 4,
+        "estimate_base": "111000.000000",
+        "naive_base": "116000",
+        "coverage": {
+          "status": "IDENTIFIED",
+          "campaigns": [
+            {
+              "campaign_ref": "8693ea9b-7203-4dfc-b8f8-dd3ba6ce1bcd",
+              "coverage": {
+                "status": "IDENTIFIED",
+                "unknown_reason": null,
+                "members_in_published_figures": 3,
+                "linked_members": 5,
+                "measures": "PARTICIPATION_NOT_COMPLETENESS"
+              }
+            },
+            {
+              "campaign_ref": "226a7558-8c4f-4d16-a346-f6f48b9f3ff6",
+              "coverage": {
+                "status": "IDENTIFIED",
+                "unknown_reason": null,
+                "members_in_published_figures": 3,
+                "linked_members": 5,
+                "measures": "PARTICIPATION_NOT_COMPLETENESS"
+              }
+            },
+            {
+              "campaign_ref": "793c0c58-5f8f-447f-9e6b-3ec1348c4be4",
+              "coverage": {
+                "status": "IDENTIFIED",
+                "unknown_reason": null,
+                "members_in_published_figures": 3,
+                "linked_members": 5,
+                "measures": "PARTICIPATION_NOT_COMPLETENESS"
+              }
+            },
+            {
+              "campaign_ref": "14db8748-ce64-458c-9d20-d7bf89ab9a59",
+              "coverage": {
+                "status": "IDENTIFIED",
+                "unknown_reason": null,
+                "members_in_published_figures": 3,
+                "linked_members": 5,
+                "measures": "PARTICIPATION_NOT_COMPLETENESS"
+              }
+            }
+          ]
+        },
+        "validity_reason": null,
+        "validity_at_download": "CURRENT"
+      }
+    ],
+    "may_be_outdated": true,
+    "notice": "Referencia calculada a partir de cifras publicadas; no es una necesidad ni una propuesta, no se suma a ellas y puede no estar actualizada.",
+    "storage": {
+      "backup": "EXCLUDED_FROM_PRIVATE_BACKUP",
+      "discard_on": [
+        "IDENTITY_CHANGE",
+        "SIGN_OUT"
+      ],
+      "replace_only_with": "NEWER_SAME_SUBJECT_AND_SCOPE"
+    }
+  },
+  "farmer": {
+    "contract_version": 1,
+    "kind": "ESTIMATION_DOWNLOAD",
+    "profile": "FARMER",
+    "scope": {
+      "tenant_ref": "e4bd9ad9-3c16-4f01-82d7-8f988e6969e9"
+    },
+    "subject": {
+      "member_ref": "60f96015-96fc-4b7e-98e7-6fabacab2cb9",
+      "role": "AGRICULTOR"
+    },
+    "downloaded_at": "2026-11-02T22:04:34.800Z",
+    "target": {
+      "campaign_ref": "f49b2e87-9df7-44f9-b5e7-bdcf67ce1278",
+      "name": "Objetivo sintético invierno 2019",
+      "status": "PLANIFICADA",
+      "start_date": "2019-09-01T00:00:00.000Z",
+      "end_date": null
+    },
+    "season": {
+      "season_ref": "b9859fb1-e52d-4c0e-ba1f-5908faf111df",
+      "key": "INVIERNO",
+      "definition": "Temporada sintética INVIERNO",
+      "duration_days": 180
+    },
+    "results": [
+      {
+        "product": {
+          "product_ref": "42f481eb-ab63-4ffb-b99d-f13334c72021",
+          "name": "Herbicida de ensayo"
+        },
+        "base_unit": "ML",
+        "presentation_unit": "L",
+        "status": "ESTIMATED",
+        "reason_code": null,
+        "method": "SES_NAIVE",
+        "run_ref": "1ae8469f-bc94-479b-a337-86b4ee7e7224",
+        "generated_at": "2026-11-02T22:04:26.082Z",
+        "span_length": 4,
+        "estimate_base": "111000.000000",
+        "validity_reason": null,
+        "validity_at_download": "CURRENT"
+      }
+    ],
+    "may_be_outdated": true,
+    "notice": "Referencia calculada a partir de cifras publicadas; no es una necesidad ni una propuesta, no se suma a ellas y puede no estar actualizada.",
+    "storage": {
+      "backup": "EXCLUDED_FROM_PRIVATE_BACKUP",
+      "discard_on": [
+        "IDENTITY_CHANGE",
+        "SIGN_OUT"
+      ],
+      "replace_only_with": "NEWER_SAME_SUBJECT_AND_SCOPE"
+    }
+  }
+}

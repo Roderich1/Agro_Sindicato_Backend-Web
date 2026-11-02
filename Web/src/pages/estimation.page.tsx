@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AppShell, buttonClass, EmptyState, labelClass, Notice, secondaryButtonClass } from '../components/app-shell';
 import { CampaignPicker } from '../components/collective-ui';
 import { useAuth } from '../hooks/use-auth';
@@ -15,11 +16,25 @@ import {
   REASON_TEXT,
   RESULT_STATUS_TEXT,
   STOP_TEXT,
-  VALIDITY_REASON_TEXT,
-  VALIDITY_TEXT,
   type EstimationError,
 } from '../lib/estimation-text';
-import { formatBaseValue, formatDecimalQuantity, formatQuantity, groupDecimal, toPresentation } from '../lib/quantity';
+import { formatQuantity, groupDecimal, toPresentation } from '../lib/quantity';
+import { Figure, ValidityBadge } from '../components/estimation-figure';
+import { EstimationCopyView } from '../components/estimation-copy-view';
+import {
+  closeContext,
+  contextBelongsTo,
+  currentContext,
+  purgeInaccessibleCopies,
+  readCopy,
+  revokeTarget,
+  rotateContext,
+  saveCopy,
+  type SaveOutcome,
+  type SessionIdentity,
+  type StoredCopy,
+} from '../lib/estimation-copy';
+import { ESTIMATION_COPY_PATH } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
 import { estimationService } from '../services/estimation.service';
 import type { CatalogEntry } from '../types/collective';
@@ -31,12 +46,24 @@ import type {
   Run,
   RunSummary,
   SeriesPoint,
-  Validity,
 } from '../types/estimation';
 
 /** Cada cuánto se consulta un trabajo en cola o en proceso. */
 export const POLL_MS = 2000;
 const ELIGIBLE = ['PLANIFICADA', 'ABIERTA'];
+
+/** Un perfil que no es el institucional: el rol ya no es de la Directiva ni del Administrador. */
+const LOST_ROLE: EstimationError = { kind: 'forbidden', message: 'Su rol ya no tiene acceso a la estimación institucional.' };
+
+const SAVE_TEXT: Record<SaveOutcome, string> = {
+  SAVED: 'Copia guardada en este navegador.',
+  KEPT_NEWER: 'Ya había una copia igual o más reciente de esta campaña: se conserva.',
+  CONTEXT_CHANGED: 'La sesión cambió o se retiró el acceso durante la descarga: la copia no se guardó.',
+  TARGET_REVOKED: 'La campaña dejó de estar disponible durante la descarga: la copia no se guardó.',
+  NOT_INSTITUTIONAL: 'La respuesta no es del perfil institucional: no se guardó.',
+  OTHER_SCOPE: 'La respuesta no es de su sindicato: no se guardó.',
+  UNSUPPORTED: 'El formato de la respuesta no es el esperado: no se guardó.',
+};
 
 /** Orden por unidades de código, independiente del idioma: la misma elección da la misma clave de solicitud. */
 function byCodeUnits(a: string, b: string): number {
@@ -73,6 +100,15 @@ export function EstimationPage() {
   const [chosen, setChosen] = useState<string[]>([]);
   /** Se conserva tras un fallo de red: reintentar con el mismo id no duplica el trabajo. */
   const pendingRequest = useRef<{ id: string; key: string } | null>(null);
+  /** F12-EST-07-WEB (#180): la copia de esta identidad para la campaña elegida. */
+  const [copy, setCopy] = useState<StoredCopy | null>(null);
+  const [copyNote, setCopyNote] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const identity = useMemo<SessionIdentity | null>(() => (user ? { userId: user.id, tenantId: user.tenantId, role: user.role } : null), [user]);
+  const targetRef = useRef<string | null>(null);
+  useEffect(() => {
+    targetRef.current = selected;
+  }, [selected]);
 
   const campaign = campaigns.find((c) => c.id === selected) ?? null;
   const eligible = campaign ? ELIGIBLE.includes(campaign.status) : false;
@@ -87,23 +123,40 @@ export function EstimationPage() {
     setStale(false);
   }, []);
 
-  /** Un error que retira el acceso borra lo mostrado; un fallo de red lo deja marcado como no actualizado. */
-  const fail = useCallback(
-    (err: unknown, fallback: string) => {
-      const problem = estimationError(err, fallback);
+  /**
+   * Un error que retira el acceso borra lo mostrado y la copia afectada (la de
+   * esta identidad; con un 404, la de esa campaña): no sirve para eludir el
+   * rechazo. Un fallo de red deja lo mostrado marcado como no actualizado.
+   */
+  const apply = useCallback(
+    (problem: EstimationError) => {
       setError(problem);
-      if (clearsInstitutionalData(problem.kind)) clearAll();
-      else if (problem.kind === 'offline') setStale(true);
+      if (clearsInstitutionalData(problem.kind)) {
+        clearAll();
+        setCopy(null);
+        // El acceso local se retira ya, de forma síncrona; el borrado físico va después y puede quedar pendiente.
+        if (problem.kind === 'policy') rotateContext();
+        else if (problem.kind === 'not-found') {
+          if (targetRef.current) revokeTarget(targetRef.current);
+        } else closeContext();
+        void purgeInaccessibleCopies();
+      } else if (problem.kind === 'offline') setStale(true);
       return problem;
     },
     [clearAll],
   );
+  const fail = useCallback((err: unknown, fallback: string) => apply(estimationError(err, fallback)), [apply]);
 
   const load = useCallback(
     async (target: string) => {
       setLoading(true);
       try {
         const [read, list] = await Promise.all([estimationService.results(target), estimationService.runs(target)]);
+        // Un rol degradado a Agricultor recibe el perfil FARMER: para esta pantalla es un permiso perdido.
+        if (read.profile !== 'INSTITUTIONAL') {
+          apply(LOST_ROLE);
+          return;
+        }
         // α y las campañas observadas vienen del detalle de la ejecución de cada resultado.
         const ids = [...new Set(read.results.map((r) => r.run_ref))];
         const loaded = await Promise.all(ids.map((id) => estimationService.run(id)));
@@ -119,8 +172,19 @@ export function EstimationPage() {
         setLoading(false);
       }
     },
-    [fail],
+    [fail, apply],
   );
+
+  useEffect(() => {
+    if (!selected || !identity) return;
+    let alive = true;
+    readCopy(identity, selected)
+      .then((found) => alive && setCopy(found))
+      .catch(() => alive && setCopy(null));
+    return () => {
+      alive = false;
+    };
+  }, [selected, identity]);
 
   useEffect(() => {
     if (!selected) return;
@@ -241,6 +305,35 @@ export function EstimationPage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  /** RF-40: descarga explícita, con conexión; se guarda sólo si la sesión sigue siendo la que la pidió. */
+  const downloadCopy = async () => {
+    if (!selected || !user || !identity) return;
+    const owner = { ...identity, name: user.name, tenantName: user.tenant?.name ?? '' };
+    // El contexto local vigente al pedirla: si al responder ya no es este, no se guarda.
+    const context = currentContext();
+    setCopyNote(null);
+    if (!context || !contextBelongsTo(context, identity)) {
+      setCopyNote('No hay un acceso local vigente para esta sesión: vuelva a iniciar sesión para descargar una copia.');
+      return;
+    }
+    setDownloading(true);
+    try {
+      const body = await estimationService.download(selected);
+      if (body.profile !== 'INSTITUTIONAL') {
+        apply(LOST_ROLE);
+        return;
+      }
+      const outcome = await saveCopy(context, owner, body);
+      setCopyNote(SAVE_TEXT[outcome]);
+      if (outcome === 'SAVED' || outcome === 'KEPT_NEWER') setCopy(await readCopy(identity, selected));
+    } catch (err) {
+      fail(err, 'No fue posible descargar la copia.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const offline = error?.kind === 'offline';
   const blocked = error?.kind === 'policy' || error?.kind === 'forbidden' || error?.kind === 'session';
   return (
     <AppShell
@@ -276,8 +369,7 @@ export function EstimationPage() {
         {stale && (
           <p className="text-xs text-amber-700" data-testid="stale">
             Lo que se muestra es de la última consulta que respondió; puede no estar actualizado. Sin conexión no se
-            exporta, y generar o actualizar también requieren conexión: esta pantalla no guarda una copia para consultar
-            sin conexión.
+            exporta, y generar, actualizar o descargar también requieren conexión.
           </p>
         )}
 
@@ -299,8 +391,73 @@ export function EstimationPage() {
           <HistorySection runs={runs} hasMore={cursor !== null} onMore={() => void moreRuns()} onOpen={(id) => void openRun(id)} openedId={opened?.run_ref ?? null} />
         )}
         {opened && <RunDetail run={opened} onClose={() => setOpened(null)} />}
+        {!blocked && selected && (
+          <CopyPanel
+            copy={copy}
+            offline={offline}
+            downloading={downloading}
+            note={copyNote}
+            onDownload={() => void downloadCopy()}
+          />
+        )}
+        {!blocked && offline && copy && <EstimationCopyView copy={copy} />}
       </div>
     </AppShell>
+  );
+}
+
+/**
+ * F12-EST-07-WEB (#180): la copia para consultar sin conexión. Se descarga a
+ * petición y con conexión; es distinta del CSV de la consulta.
+ */
+function CopyPanel({
+  copy,
+  offline,
+  downloading,
+  note,
+  onDownload,
+}: {
+  copy: StoredCopy | null;
+  offline: boolean;
+  downloading: boolean;
+  note: string | null;
+  onDownload: () => void;
+}) {
+  return (
+    <section className="glass-card space-y-3 p-5" aria-label="Copia para consultar sin conexión" data-testid="copy-panel">
+      <div>
+        <h2 className="text-base font-bold text-slate-900">Copia para consultar sin conexión</h2>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Guarda en este navegador la última estimación permitida de esta campaña, con sus fechas y la vigencia que tenía al
+          descargarse. Sin conexión puede estar desactualizada. Sólo la lee esta sesión, también sin conexión tras recargar; al cerrarla deja de poder leerse, y después se borra (si falla, se reintenta). No es el CSV de la
+          consulta.
+        </p>
+      </div>
+      <p className="text-sm text-slate-700" data-testid="copy-status">
+        {copy
+          ? `Hay una copia de esta campaña en este navegador, descargada el ${fmtDateTime(copy.download.downloaded_at)}.`
+          : offline
+            ? 'No hay una estimación descargada de esta campaña en este navegador. Sin conexión no se muestra ninguna cifra.'
+            : 'No hay una copia de esta campaña en este navegador.'}
+        {copy && (
+          <>
+            {' '}
+            <Link className="font-semibold text-emerald-700 underline" to={ESTIMATION_COPY_PATH}>
+              Ver las copias descargadas
+            </Link>
+          </>
+        )}
+      </p>
+      {note && (
+        <p className="text-xs text-slate-600" data-testid="copy-note">
+          {note}
+        </p>
+      )}
+      <button type="button" className={secondaryButtonClass} onClick={onDownload} disabled={downloading || offline}>
+        {downloading ? 'Descargando…' : 'Descargar copia para consultar sin conexión'}
+      </button>
+      {offline && <p className="text-xs text-slate-500">Descargar requiere conexión.</p>}
+    </section>
   );
 }
 
@@ -390,46 +547,6 @@ function JobPanel({ job, polling, onRecheck }: { job: Job; polling: boolean; onR
         Consultar estado ahora
       </button>
     </section>
-  );
-}
-
-const VALIDITY_CLASS: Record<Validity, string> = {
-  CURRENT: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-  OUTDATED: 'bg-amber-50 text-amber-800 ring-amber-600/20',
-  SUPERSEDED: 'bg-slate-100 text-slate-600 ring-slate-500/20',
-  NOT_USABLE: 'bg-red-50 text-red-700 ring-red-600/20',
-};
-
-function ValidityBadge({ validity, reason }: { validity: Validity; reason: string | null }) {
-  return (
-    <div>
-      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${VALIDITY_CLASS[validity]}`}>
-        {VALIDITY_TEXT[validity]}
-      </span>
-      {reason && <p className="mt-1 text-[11px] text-slate-500">{VALIDITY_REASON_TEXT[reason as keyof typeof VALIDITY_REASON_TEXT]}</p>}
-    </div>
-  );
-}
-
-/** La cifra o por qué no hay: nunca un cero en lugar de una ausencia. */
-function Figure({ value, unit, kind, status, validityReason }: {
-  value: string | null;
-  unit: 'ML' | 'G';
-  kind: 'estimate' | 'naive';
-  status: InstitutionalResult['status'];
-  validityReason: string | null;
-}) {
-  if (status !== 'ESTIMATED') return <span className="text-slate-400">Sin cifra</span>;
-  if (value === null) {
-    return <span className="text-amber-700">{validityReason === 'SOURCES_WITHDRAWN' ? 'Cifra retirada' : 'Sin cifra'}</span>;
-  }
-  const shown = kind === 'estimate' ? formatDecimalQuantity(value, unit) : formatQuantity(value, unit);
-  if (shown === null) return <span className="text-red-700">Cifra no válida</span>;
-  return (
-    <span className="tabular-nums">
-      <span className="font-semibold text-slate-900">{shown}</span>
-      <span className="block text-[11px] text-slate-500">{formatBaseValue(value, unit)}</span>
-    </span>
   );
 }
 

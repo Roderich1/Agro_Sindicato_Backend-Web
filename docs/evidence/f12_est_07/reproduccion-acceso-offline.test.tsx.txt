@@ -1,0 +1,92 @@
+// Reproducción del defecto de acceso sin conexión de #195, ejecutada sobre 67856c0 (2026-11-02, ~20:15Z).
+// Para repetirla: copiar como Web/src/repro-acceso-offline.test.tsx en 67856c0 y ejecutar npx vitest run src/repro-acceso-offline.test.tsx.
+// No compila sobre la corrección: setActiveIdentity y listCopies ya no existen. Sus casos están en las pruebas nuevas (§6.3).
+// Salida obtenida:
+//        × a) acceso directo sin contexto propietario: no muestra copias aunque existan 1054ms
+//        × b) sesión cerrada con borrado fallido: la copia deja de ser accesible 94ms
+//        × c) rol degradado mientras la copia aún existe: no accede 1015ms
+//        × d) una escritura tardía no reactiva una copia invalidada 12ms
+//   ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+//         Tests  4 failed (4)
+
+// Reproducción TEMPORAL (no se versiona) del acceso offline de #195 sobre 67856c0:
+// cada caso describe el comportamiento exigido y debe FALLAR con el código actual.
+import { act, render, screen, waitFor } from '@testing-library/react';
+import axios from 'axios';
+import { useContext, useEffect } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthContext, AuthProvider, type AuthContextValue } from './contexts/auth.context';
+import { listCopies, memoryBackend, saveCopy, setActiveIdentity, setCopyBackend, type CopyBackend } from './lib/estimation-copy';
+import { api } from './lib/axios';
+import { EstimationCopyPage } from './pages/estimation-copy.page';
+import { renderAt, userWith } from './test/render';
+import type { InstitutionalDownload } from './types/estimation';
+
+const A = { userId: 'u-1', tenantId: 't-1', name: 'Usuario sintético', tenantName: 'Sindicato sintético', role: 'DIRECTIVA' };
+const copy: InstitutionalDownload = {
+  contract_version: 1, kind: 'ESTIMATION_DOWNLOAD', profile: 'INSTITUTIONAL', scope: { tenant_ref: 't-1' }, subject: { member_ref: 'm-1', role: 'DIRECTIVA' },
+  downloaded_at: '2026-11-02T16:00:00.000Z',
+  target: { campaign_ref: 'c-1', name: 'Objetivo sintético', status: 'PLANIFICADA', start_date: '2019-09-01T00:00:00.000Z', end_date: null },
+  season: null,
+  results: [{ product: { product_ref: 'p-1', name: 'Herbicida' }, base_unit: 'ML', presentation_unit: 'L', status: 'ESTIMATED', reason_code: null, method: 'SES_NAIVE', run_ref: 'r-1', generated_at: '2026-11-02T15:00:00.000Z', span_length: 4, estimate_base: '111000.000000', naive_base: '116000', coverage: { status: 'IDENTIFIED', campaigns: [] }, validity_at_download: 'CURRENT', validity_reason: null }],
+  may_be_outdated: true, notice: 'Aviso.', storage: { backup: 'EXCLUDED_FROM_PRIVATE_BACKUP', discard_on: ['IDENTITY_CHANGE', 'SIGN_OUT'], replace_only_with: 'NEWER_SAME_SUBJECT_AND_SCOPE' },
+};
+let auth: AuthContextValue | null = null;
+function Probe() {
+  const value = useContext(AuthContext);
+  useEffect(() => {
+    auth = value;
+  });
+  return null;
+}
+const failingDeletes = (base: CopyBackend): CopyBackend => ({ ...base, delete: async () => Promise.reject(new Error('IndexedDB no disponible')) });
+
+describe('reproducción del acceso offline (#195)', () => {
+  beforeEach(() => setCopyBackend(memoryBackend()));
+
+  it('a) acceso directo sin contexto propietario: no muestra copias aunque existan', async () => {
+    setActiveIdentity(A);
+    await saveCopy(A, copy);
+    setActiveIdentity(null);
+    renderAt(<EstimationCopyPage />, { role: '', path: '/estimacion/copia-sin-conexion' });
+    expect(await screen.findByTestId('copy-none')).toBeTruthy();
+  });
+
+  it('b) sesión cerrada con borrado fallido: la copia deja de ser accesible', async () => {
+    const memory = memoryBackend();
+    setCopyBackend(failingDeletes(memory));
+    setActiveIdentity(A);
+    await saveCopy(A, copy);
+    vi.spyOn(axios, 'post').mockResolvedValue({ data: { accessToken: 'x', user: userWith('DIRECTIVA') } });
+    vi.spyOn(api, 'post').mockResolvedValue({ data: {} });
+    const view = render(<AuthProvider><Probe /></AuthProvider>);
+    await waitFor(() => expect(auth?.user?.id).toBe('u-1'));
+    await act(async () => {
+      await auth!.logout();
+    });
+    view.unmount();
+    expect(await listCopies(null)).toEqual([]);
+  });
+
+  it('c) rol degradado mientras la copia aún existe: no accede', async () => {
+    const memory = memoryBackend();
+    setCopyBackend({ ...memory, delete: () => new Promise(() => undefined) });
+    setActiveIdentity(A);
+    await saveCopy(A, copy);
+    renderAt(<EstimationCopyPage />, { role: 'AGRICULTOR', path: '/estimacion/copia-sin-conexion' });
+    expect(await screen.findByTestId('copy-none')).toBeTruthy();
+  });
+
+  it('d) una escritura tardía no reactiva una copia invalidada', async () => {
+    const memory = memoryBackend();
+    let release: () => void = () => undefined;
+    setCopyBackend({ ...memory, put: (c) => new Promise<void>((done) => { release = () => void memory.put(c).then(done); }) });
+    setActiveIdentity(A);
+    const pending = saveCopy(A, copy);
+    await new Promise((r) => setTimeout(r, 10));
+    setActiveIdentity(null);
+    release();
+    await pending;
+    expect(await listCopies(null)).toEqual([]);
+  });
+});

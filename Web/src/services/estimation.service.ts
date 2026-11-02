@@ -1,5 +1,5 @@
 import { api } from '../lib/axios';
-import type { InstitutionalResults, Job, Run, RunList } from '../types/estimation';
+import type { EstimationDownload, InstitutionalResults, Job, Run, RunList } from '../types/estimation';
 
 /** Cada identificador se codifica antes de componer la ruta. */
 const seg = encodeURIComponent;
@@ -8,7 +8,8 @@ const seg = encodeURIComponent;
  * F12-EST-06 (#179): INT-09 desde la Web institucional (DIRECTIVA y
  * ADMINISTRADOR; el servidor autoriza rol y sindicato en cada petición). La Web
  * sólo pide y presenta: el cálculo ocurre en el servidor, por lotes. Online: sin
- * cola offline, sin copia descargada (RF-40 es de F12-EST-07).
+ * cola offline. La copia para consultar sin conexión (RF-40, F12-EST-07) se pide
+ * con `download` y la guarda `lib/estimation-copy`.
  */
 export const estimationService = {
   /** Encola un trabajo. El `request_id` hace idempotente la petición: un reintento con el mismo id devuelve el mismo trabajo. */
@@ -29,4 +30,7 @@ export const estimationService = {
       .get<RunList>('/estimation/runs', { params: { target_campaign_ref: targetCampaignId, limit: 10, ...(cursor ? { cursor } : {}) } })
       .then((r) => r.data),
   run: (runId: string) => api.get<Run>(`/estimation/runs/${seg(runId)}`).then((r) => r.data),
+  /** RF-40: la última versión permitida, con fechas y vigencia al descargar. Sólo con conexión. */
+  download: (targetCampaignId: string) =>
+    api.get<EstimationDownload>('/estimation/download', { params: { target_campaign_ref: targetCampaignId } }).then((r) => r.data),
 };

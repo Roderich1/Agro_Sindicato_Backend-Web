@@ -219,4 +219,18 @@ export class EstimationController {
   results(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ResultsQueryDto) {
     return this.reads.results(user, query.target_campaign_ref);
   }
+
+  @Get("download")
+  @Roles(UserRole.AGRICULTOR, UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "RF-40: copia de la última versión permitida para consultar sin conexión" })
+  @ApiResponse({ status: 200, description: "Perfil INSTITUTIONAL o FARMER según el rol, con fechas, vigencia al descargar y aviso" })
+  @Invalid("Parámetros inválidos")
+  @Unauthenticated
+  @Forbidden
+  @ApiResponse({ status: 404, description: "TARGET_CAMPAIGN_NOT_FOUND" })
+  @PolicyPending
+  download(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ResultsQueryDto) {
+    return this.reads.download(user, query.target_campaign_ref);
+  }
 }

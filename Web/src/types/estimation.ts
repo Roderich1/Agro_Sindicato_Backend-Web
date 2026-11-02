@@ -174,3 +174,32 @@ export interface RunList {
   items: RunSummary[];
   next_cursor: string | null;
 }
+
+/** `InstitutionalDownloadedResult`: un resultado de la copia, con la vigencia que tenía al descargarse. */
+export type InstitutionalDownloadedResult = Omit<InstitutionalResult, 'validity'> & { validity_at_download: Validity };
+
+/**
+ * `InstitutionalDownload` (RF-40, contrato §9): la copia para consultar sin
+ * conexión. La Web es institucional: una respuesta de otro perfil no se guarda.
+ */
+export interface InstitutionalDownload {
+  contract_version: 1;
+  kind: 'ESTIMATION_DOWNLOAD';
+  profile: 'INSTITUTIONAL';
+  scope: { tenant_ref: string };
+  subject: { member_ref: string; role: 'AGRICULTOR' | 'DIRECTIVA' | 'ADMINISTRADOR' };
+  downloaded_at: string;
+  target: CampaignRef;
+  season: SeasonRef | null;
+  results: InstitutionalDownloadedResult[];
+  may_be_outdated: true;
+  notice: string;
+  storage: {
+    backup: 'EXCLUDED_FROM_PRIVATE_BACKUP';
+    discard_on: ('IDENTITY_CHANGE' | 'SIGN_OUT')[];
+    replace_only_with: 'NEWER_SAME_SUBJECT_AND_SCOPE';
+  };
+}
+
+/** Lo que devuelve `GET /download`: el perfil lo decide el servidor según el rol vigente. */
+export type EstimationDownload = InstitutionalDownload | (Omit<InstitutionalDownload, 'profile' | 'results'> & { profile: 'FARMER'; results: unknown[] });

@@ -31,6 +31,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // F12-EST-07-WEB (#180): ninguna respuesta del API pasa por el service worker ni
+        // se cachea; la única copia institucional es la de IndexedDB (lib/estimation-copy).
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],

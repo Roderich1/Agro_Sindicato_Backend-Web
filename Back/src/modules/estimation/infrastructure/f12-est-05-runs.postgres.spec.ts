@@ -673,6 +673,65 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     demo["runs_list"] = { first_page: first.body.items.map((r: { run_ref: string; outcome: string }) => [r.run_ref, r.outcome]), pages_cover_all: seen.length };
   });
 
+  it("F12-EST-07: GET /download is /results with subject, dates, validity at download and the copy rules; the Farmer profile has no naive, coverage nor series", async () => {
+    const target = campaigns["T1"]!;
+    const path = `/api/v1/estimation/download?target_campaign_ref=${target}`;
+    const read = await http().get(`/api/v1/estimation/results?target_campaign_ref=${target}`).set(auth(director));
+    const copy = await http().get(path).set(auth(director));
+    expect(copy.status).toBe(200);
+    expect(copy.headers["cache-control"]).toBe("no-store");
+    shaped("InstitutionalDownload", copy.body);
+    expect(copy.body).toMatchObject({
+      contract_version: 1, kind: "ESTIMATION_DOWNLOAD", profile: "INSTITUTIONAL", scope: { tenant_ref: f.tenantA },
+      subject: { member_ref: f.members.directorA, role: "DIRECTIVA" }, target: read.body.target, season: read.body.season, may_be_outdated: true,
+      notice: read.body.notice, storage: { backup: "EXCLUDED_FROM_PRIVATE_BACKUP", discard_on: ["IDENTITY_CHANGE", "SIGN_OUT"], replace_only_with: "NEWER_SAME_SUBJECT_AND_SCOPE" },
+    });
+    // The same selection as /results at the same moment: every field but the validity, which is the one at download.
+    expect(copy.body.results.length).toBeGreaterThan(0);
+    expect(copy.body.results).toEqual(read.body.results.map(({ validity, ...rest }: { validity: string }) => ({ ...rest, validity_at_download: validity })));
+    expect(Date.parse(copy.body.downloaded_at)).toBeGreaterThanOrEqual(Date.parse(read.body.evaluated_at));
+    // No series point, contribution nor private figure.
+    expect(JSON.stringify(copy.body)).not.toMatch(/"points"|"quantity_base"|"series"|"alpha"|"fit_criterion"|"members"/);
+
+    const asFarmer = await http().get(path).set(auth(farmer));
+    expect(asFarmer.status).toBe(200);
+    shaped("FarmerDownload", asFarmer.body);
+    expect(asFarmer.body).toMatchObject({ profile: "FARMER", subject: { member_ref: f.members.farmerA, role: "AGRICULTOR" } });
+    for (const result of asFarmer.body.results as Record<string, unknown>[]) {
+      expect(result).not.toHaveProperty("naive_base");
+      expect(result).not.toHaveProperty("coverage");
+    }
+    expect(JSON.stringify(asFarmer.body)).not.toMatch(/"naive_base"|"coverage"|"points"|"series"/);
+
+    // The permission is the caller's at this request: a demoted Directiva gets the Farmer profile, an inactive one nothing.
+    const second = await person("DIRECTIVA");
+    expect((await http().get(path).set(auth(second))).body.profile).toBe("INSTITUTIONAL");
+    await prisma.member.update({ where: { id: second.memberId }, data: { role: "AGRICULTOR" } });
+    const demoted = await http().get(path).set(auth(second));
+    expect([demoted.body.profile, JSON.stringify(demoted.body).includes("naive_base")]).toEqual(["FARMER", false]);
+    await prisma.member.update({ where: { id: second.memberId }, data: { isActive: false } });
+    expect((await http().get(path).set(auth(second))).status).toBe(401);
+
+    const other = await person("DIRECTIVA", f.tenantB);
+    for (const [session, route, status, message] of [
+      [other, path, 404, "TARGET_CAMPAIGN_NOT_FOUND"],
+      [director, `/api/v1/estimation/download?target_campaign_ref=${randomUUID()}`, 404, "TARGET_CAMPAIGN_NOT_FOUND"],
+    ] as const) {
+      const res = await http().get(route).set(auth(session));
+      expect([res.status, res.body.message]).toEqual([status, message]);
+    }
+    expect((await http().get("/api/v1/estimation/download?target_campaign_ref=no-uuid").set(auth(director))).status).toBe(400);
+    expect((await http().get(path)).status).toBe(401);
+    (collective as { mode: string }).mode = "POLICY_PENDING";
+    try {
+      const pending = await http().get(path).set(auth(director));
+      expect([pending.status, pending.body.message]).toEqual([409, "POLICY_PENDING"]);
+    } finally {
+      (collective as { mode: string }).mode = "PROVISIONAL_SYNTHETIC";
+    }
+    demo["download"] = { institutional: copy.body, farmer: asFarmer.body };
+  });
+
   it("stops before calculating, without a run, on lost permission, pending policy or an ineligible target", async () => {
     const revoked = await person("DIRECTIVA");
     const byRevoked = await queue("U3", [products["Herbicida"]!], revoked);
