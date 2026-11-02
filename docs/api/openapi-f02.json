@@ -8003,6 +8003,286 @@
         ]
       }
     },
+    "/api/v1/estimation/campaign-classifications/{campaignId}/corrections": {
+      "post": {
+        "operationId": "EstimationController_correct",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectClassificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Versión nueva; las anteriores, y las series y ejecuciones que las usaron, no cambian"
+          },
+          "400": {
+            "description": "Cuerpo inválido"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "CAMPAIGN_NOT_FOUND, SEASON_NOT_FOUND o CLASSIFICATION_NOT_FOUND (inexistente o de otro sindicato)"
+          },
+          "409": {
+            "description": "CLASSIFICATION_STALE: la versión citada ya no es la vigente"
+          },
+          "422": {
+            "description": "CLASSIFICATION_UNCHANGED: la corrección no cambia la temporada"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "EST-D-14: corregir la clasificación de una campaña con una versión nueva y su motivo",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
+    "/api/v1/estimation/campaign-classifications/{campaignId}/history": {
+      "get": {
+        "operationId": "EstimationController_history",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Versiones, de la primera a la vigente"
+          },
+          "400": {
+            "description": "Identificador inválido"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "CAMPAIGN_NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Todas las versiones de la clasificación de una campaña, con sus motivos",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
+    "/api/v1/estimation/jobs": {
+      "post": {
+        "operationId": "EstimationController_request",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateEstimationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Repetición del mismo request_id con la misma petición: el mismo trabajo"
+          },
+          "202": {
+            "description": "Trabajo en cola (QUEUED)"
+          },
+          "400": {
+            "description": "Cuerpo inválido, o más productos que ESTIMATION_MAX_PRODUCTS"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "TARGET_CAMPAIGN_NOT_FOUND o PRODUCT_NOT_FOUND (inexistente o de otro sindicato)"
+          },
+          "409": {
+            "description": "REQUEST_ID_REUSED o POLICY_PENDING: no se encola nada"
+          },
+          "422": {
+            "description": "TARGET_CAMPAIGN_NOT_ELIGIBLE, TARGET_CAMPAIGN_NOT_CLASSIFIED o PRODUCT_NOT_ESTIMABLE"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "CU-20: pedir la estimación de una campaña objetivo; se calcula por lotes",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
+    "/api/v1/estimation/jobs/{jobId}": {
+      "get": {
+        "operationId": "EstimationController_job",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trabajo"
+          },
+          "400": {
+            "description": "Identificador inválido"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "JOB_NOT_FOUND (inexistente o de otro sindicato)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Estado operativo de un trabajo (sin cifras)",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
+    "/api/v1/estimation/runs/{runId}": {
+      "get": {
+        "operationId": "EstimationController_run",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ejecución conservada"
+          },
+          "400": {
+            "description": "Identificador inválido"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "RUN_NOT_FOUND (inexistente o de otro sindicato)"
+          },
+          "409": {
+            "description": "POLICY_PENDING: no hay política de divulgación en vigor; no se entrega ninguna cifra"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Una ejecución con sus resultados, la serie y la vigencia derivada, con la política vigente",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
+    "/api/v1/estimation/results": {
+      "get": {
+        "operationId": "EstimationController_results",
+        "parameters": [
+          {
+            "name": "target_campaign_ref",
+            "required": true,
+            "in": "query",
+            "description": "Campaña objetivo (período) dentro del sindicato autenticado",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Perfil INSTITUTIONAL o FARMER según el rol"
+          },
+          "400": {
+            "description": "Parámetros inválidos"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "TARGET_CAMPAIGN_NOT_FOUND"
+          },
+          "409": {
+            "description": "POLICY_PENDING: no hay política de divulgación en vigor; no se entrega ninguna cifra"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "CU-21: resultados permitidos para la identidad y el ámbito, con vigencia derivada",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
     "/api/v1/me/backups": {
       "get": {
         "operationId": "BackupsController_list",
@@ -10551,6 +10831,73 @@
         "required": [
           "confirmed",
           "review_ref"
+        ]
+      },
+      "CorrectClassificationDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "previous_classification_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Versión vigente que se corrige"
+          },
+          "season_ref": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Temporada nueva; null deja la campaña sin clasificar"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Motivo de la corrección"
+          }
+        },
+        "required": [
+          "contract_version",
+          "previous_classification_ref",
+          "season_ref",
+          "reason"
+        ]
+      },
+      "GenerateEstimationDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Idempotencia: el mismo identificador con la misma petición devuelve el mismo trabajo"
+          },
+          "target_campaign_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Campaña objetivo del sindicato autenticado"
+          },
+          "product_refs": {
+            "description": "Productos canónicos; sin ellos, los estimables con consumo publicado en la temporada (ESTIMATION_MAX_PRODUCTS)",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "contract_version",
+          "request_id",
+          "target_campaign_ref"
         ]
       },
       "CreateUserDto": {

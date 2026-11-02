@@ -1,16 +1,27 @@
 import { Module } from "@nestjs/common";
 import { CollectiveModule } from "../collective/collective.module";
+import { EstimationController } from "./api/rest/estimation.controller";
 import { ConsumptionSeriesUseCase } from "./application/consumption-series.use-case";
+import { EstimationClassificationsUseCase } from "./application/estimation-classifications.use-case";
+import { EstimationConfig } from "./application/estimation-config";
+import { EstimationJobsUseCase } from "./application/estimation-jobs.use-case";
+import { EstimationReadsUseCase } from "./application/estimation-reads.use-case";
+import { EstimationWorker } from "./application/estimation-worker";
 
 /**
- * F12 estimation (INT-09, F12_EST_01_ESTIMATION_CONTRACT.md). F12-EST-02 and
- * F12-EST-03 (#175, #176): sources and consumption series, and their reading
- * for a target campaign. No controllers, worker, SES/naive engine or clients
- * yet (F12-EST-04 to F12-EST-07): nothing here is reachable over HTTP.
+ * F12 estimation (INT-09, F12_EST_01_ESTIMATION_CONTRACT.md):
+ * - F12-EST-02 and F12-EST-03 (#175, #176): sources, consumption series and
+ *   their reading for a target campaign;
+ * - F12-EST-04 (#177): the SES/naive engine (domain/ses-naive.ts);
+ * - F12-EST-05 (#178): jobs, the batch worker, insert-only runs and results,
+ *   the reading with derived validity and the correction of classifications,
+ *   over six INT-09 routes.
+ * No clients (F12-EST-06, F12-EST-07).
  */
 @Module({
   imports: [CollectiveModule],
-  providers: [ConsumptionSeriesUseCase],
+  controllers: [EstimationController],
+  providers: [ConsumptionSeriesUseCase, EstimationConfig, EstimationJobsUseCase, EstimationReadsUseCase, EstimationClassificationsUseCase, EstimationWorker],
   exports: [ConsumptionSeriesUseCase],
 })
 export class EstimationModule {}

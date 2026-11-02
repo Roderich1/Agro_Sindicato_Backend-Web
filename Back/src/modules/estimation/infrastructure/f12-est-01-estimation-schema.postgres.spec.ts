@@ -355,8 +355,8 @@ describePostgres("F12-EST-01 estimation schema", () => {
     });
   };
   /** Datos de la ejecución de un trabajo en curso (mismo solicitante y campaña objetivo). */
-  const runOf = (job: { id: string; targetCampaignId: string; requestedByUserId: string; requestedByRole: "AGRICULTOR" | "DIRECTIVA" | "ADMINISTRADOR" }, data: Record<string, unknown> = {}) => ({
-    tenantId: f.tenantA, jobId: job.id, requestedByUserId: job.requestedByUserId, requestedByRole: job.requestedByRole,
+  const runOf = (job: { id: string; attempts: number; targetCampaignId: string; requestedByUserId: string; requestedByRole: "AGRICULTOR" | "DIRECTIVA" | "ADMINISTRADOR" }, data: Record<string, unknown> = {}) => ({
+    tenantId: f.tenantA, jobId: job.id, jobAttempt: job.attempts, requestedByUserId: job.requestedByUserId, requestedByRole: job.requestedByRole,
     targetCampaignId: job.targetCampaignId, seasonId: winter, targetClassificationId: cls[job.targetCampaignId], contractVersion: 1, method: "SES_NAIVE",
     methodVersion: "F12-EST-04/1", parameters: { horizon: 1 }, horizon: 1, disclosureMode: "PROVISIONAL_SYNTHETIC",
     policy: "F07-POL-01", threshold: 3, outcome: "CALCULATED" as const, contentHash: HASH, ...data,
@@ -693,7 +693,7 @@ describePostgres("F12-EST-01 estimation schema", () => {
     for (const attempts of [2, 3]) {
       await db.estimationJob.update({ where: { id: transient.id }, data: { attempts, startedAt: new Date(), leaseExpiresAt: new Date(Date.now() + 300000) } });
     }
-    expect((await db.estimationRun.create({ data: runOf(transient, exhausted) })).failureCode).toBe("RETRIES_EXHAUSTED");
+    expect((await db.estimationRun.create({ data: runOf(transient, { ...exhausted, jobAttempt: 3 }) })).failureCode).toBe("RETRIES_EXHAUSTED");
     await expect(db.estimationRun.create({ data: runOf(await runningJob({ targetCampaignId: targets[13]! }), { outcome: "FAILED", failureCode: "SOURCES_UNAVAILABLE" }) })).rejects.toThrow(
       /EstimationRun_values/,
     );
