@@ -1,0 +1,2255 @@
+{
+  "evaluationVersion": "F12-EST-09/1",
+  "setsVersion": "F12-EST-09/1",
+  "methodVersion": "F12-EST-04/1",
+  "sets": [
+    {
+      "id": "S1",
+      "name": "Nivel estable",
+      "baseUnit": "ML",
+      "presentationUnit": "L",
+      "origins": [
+        {
+          "origin": 3,
+          "reservedPosition": 4,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3
+            ],
+            "values": [
+              "92599",
+              "92947",
+              "107785"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 4,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "107785.000000",
+          "naive": "107785",
+          "status": "EVALUATED",
+          "reserved": "103424",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "4361.000000",
+          "errorNaive": "4361.000000"
+        },
+        {
+          "origin": 4,
+          "reservedPosition": 5,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "values": [
+              "92599",
+              "92947",
+              "107785",
+              "103424"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.75",
+          "fitInformative": true,
+          "ses": "103581.437500",
+          "naive": "103424",
+          "status": "EVALUATED",
+          "reserved": "90615",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "12966.437500",
+          "errorNaive": "12809.000000"
+        },
+        {
+          "origin": 5,
+          "reservedPosition": 6,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "values": [
+              "92599",
+              "92947",
+              "107785",
+              "103424",
+              "90615"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.20",
+          "fitInformative": true,
+          "ses": "95913.643200",
+          "naive": "90615",
+          "status": "EVALUATED",
+          "reserved": "109750",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "13836.356800",
+          "errorNaive": "19135.000000"
+        },
+        {
+          "origin": 6,
+          "reservedPosition": 7,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "values": [
+              "92599",
+              "92947",
+              "107785",
+              "103424",
+              "90615",
+              "109750"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.30",
+          "fitInformative": true,
+          "ses": "100506.640840",
+          "naive": "109750",
+          "status": "EVALUATED",
+          "reserved": "104472",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "3965.359160",
+          "errorNaive": "5278.000000"
+        },
+        {
+          "origin": 7,
+          "reservedPosition": 8,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "values": [
+              "92599",
+              "92947",
+              "107785",
+              "103424",
+              "90615",
+              "109750",
+              "104472"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.35",
+          "fitInformative": true,
+          "ses": "102366.414878",
+          "naive": "104472",
+          "status": "EVALUATED",
+          "reserved": "96329",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "6037.414878",
+          "errorNaive": "8143.000000"
+        },
+        {
+          "origin": 8,
+          "reservedPosition": 9,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "values": [
+              "92599",
+              "92947",
+              "107785",
+              "103424",
+              "90615",
+              "109750",
+              "104472",
+              "96329"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.30",
+          "fitInformative": true,
+          "ses": "100086.074012",
+          "naive": "96329",
+          "status": "EVALUATED",
+          "reserved": "99557",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "529.074012",
+          "errorNaive": "3228.000000"
+        },
+        {
+          "origin": 9,
+          "reservedPosition": 10,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "values": [
+              "92599",
+              "92947",
+              "107785",
+              "103424",
+              "90615",
+              "109750",
+              "104472",
+              "96329",
+              "99557"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.30",
+          "fitInformative": true,
+          "ses": "99927.351808",
+          "naive": "99557",
+          "status": "EVALUATED",
+          "reserved": "93719",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "6208.351808",
+          "errorNaive": "5838.000000"
+        }
+      ],
+      "next": {
+        "assessment": {
+          "status": "READY",
+          "reason": null
+        },
+        "ses": "98196.490250",
+        "naive": "93719",
+        "alpha": "0.25"
+      },
+      "evaluated": 7,
+      "notEstimable": 0,
+      "notEvaluable": 0,
+      "mae": {
+        "ses": {
+          "value": "6843.427737"
+        },
+        "naive": {
+          "value": "8398.857143"
+        },
+        "sesPresentation": "6.843427737",
+        "naivePresentation": "8.398857143"
+      },
+      "wape": {
+        "ses": {
+          "value": "0.068644",
+          "percent": "6.8644"
+        },
+        "naive": {
+          "value": "0.084245",
+          "percent": "8.4245"
+        }
+      },
+      "comparison": "SES menor"
+    },
+    {
+      "id": "S2",
+      "name": "Cambio de nivel",
+      "baseUnit": "ML",
+      "presentationUnit": "L",
+      "origins": [
+        {
+          "origin": 3,
+          "reservedPosition": 4,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3
+            ],
+            "values": [
+              "85954",
+              "85145",
+              "82426"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 4,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "82426.000000",
+          "naive": "82426",
+          "status": "EVALUATED",
+          "reserved": "81991",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "435.000000",
+          "errorNaive": "435.000000"
+        },
+        {
+          "origin": 4,
+          "reservedPosition": 5,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "values": [
+              "85954",
+              "85145",
+              "82426",
+              "81991"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "81991.000000",
+          "naive": "81991",
+          "status": "EVALUATED",
+          "reserved": "82512",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "521.000000",
+          "errorNaive": "521.000000"
+        },
+        {
+          "origin": 5,
+          "reservedPosition": 6,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "values": [
+              "85954",
+              "85145",
+              "82426",
+              "81991",
+              "82512"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "82512.000000",
+          "naive": "82512",
+          "status": "EVALUATED",
+          "reserved": "135730",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "53218.000000",
+          "errorNaive": "53218.000000"
+        },
+        {
+          "origin": 6,
+          "reservedPosition": 7,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "values": [
+              "85954",
+              "85145",
+              "82426",
+              "81991",
+              "82512",
+              "135730"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.00",
+          "fitInformative": true,
+          "ses": "85954.000000",
+          "naive": "135730",
+          "status": "EVALUATED",
+          "reserved": "135262",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "49308.000000",
+          "errorNaive": "468.000000"
+        },
+        {
+          "origin": 7,
+          "reservedPosition": 8,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "values": [
+              "85954",
+              "85145",
+              "82426",
+              "81991",
+              "82512",
+              "135730",
+              "135262"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "135262.000000",
+          "naive": "135262",
+          "status": "EVALUATED",
+          "reserved": "141470",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "6208.000000",
+          "errorNaive": "6208.000000"
+        },
+        {
+          "origin": 8,
+          "reservedPosition": 9,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "values": [
+              "85954",
+              "85145",
+              "82426",
+              "81991",
+              "82512",
+              "135730",
+              "135262",
+              "141470"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "141470.000000",
+          "naive": "141470",
+          "status": "EVALUATED",
+          "reserved": "141489",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "19.000000",
+          "errorNaive": "19.000000"
+        },
+        {
+          "origin": 9,
+          "reservedPosition": 10,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "values": [
+              "85954",
+              "85145",
+              "82426",
+              "81991",
+              "82512",
+              "135730",
+              "135262",
+              "141470",
+              "141489"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "141489.000000",
+          "naive": "141489",
+          "status": "EVALUATED",
+          "reserved": "135711",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "5778.000000",
+          "errorNaive": "5778.000000"
+        }
+      ],
+      "next": {
+        "assessment": {
+          "status": "READY",
+          "reason": null
+        },
+        "ses": "135711.000000",
+        "naive": "135711",
+        "alpha": "1.00"
+      },
+      "evaluated": 7,
+      "notEstimable": 0,
+      "notEvaluable": 0,
+      "mae": {
+        "ses": {
+          "value": "16498.142857"
+        },
+        "naive": {
+          "value": "9521.000000"
+        },
+        "sesPresentation": "16.498142857",
+        "naivePresentation": "9.521"
+      },
+      "wape": {
+        "ses": {
+          "value": "0.135205",
+          "percent": "13.5205"
+        },
+        "naive": {
+          "value": "0.078026",
+          "percent": "7.8026"
+        }
+      },
+      "comparison": "naive menor"
+    },
+    {
+      "id": "S3",
+      "name": "Tendencia",
+      "baseUnit": "G",
+      "presentationUnit": "KG",
+      "origins": [
+        {
+          "origin": 3,
+          "reservedPosition": 4,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3
+            ],
+            "values": [
+              "46927",
+              "55699",
+              "54080"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 4,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.80",
+          "fitInformative": true,
+          "ses": "54052.920000",
+          "naive": "54080",
+          "status": "EVALUATED",
+          "reserved": "64394",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "10341.080000",
+          "errorNaive": "10314.000000"
+        },
+        {
+          "origin": 4,
+          "reservedPosition": 5,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "values": [
+              "46927",
+              "55699",
+              "54080",
+              "64394"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.90",
+          "fitInformative": true,
+          "ses": "63370.018000",
+          "naive": "64394",
+          "status": "EVALUATED",
+          "reserved": "66768",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "3397.982000",
+          "errorNaive": "2374.000000"
+        },
+        {
+          "origin": 5,
+          "reservedPosition": 6,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "values": [
+              "46927",
+              "55699",
+              "54080",
+              "64394",
+              "66768"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "66768.000000",
+          "naive": "66768",
+          "status": "EVALUATED",
+          "reserved": "79504",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "12736.000000",
+          "errorNaive": "12736.000000"
+        },
+        {
+          "origin": 6,
+          "reservedPosition": 7,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "values": [
+              "46927",
+              "55699",
+              "54080",
+              "64394",
+              "66768",
+              "79504"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "79504.000000",
+          "naive": "79504",
+          "status": "EVALUATED",
+          "reserved": "85421",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "5917.000000",
+          "errorNaive": "5917.000000"
+        },
+        {
+          "origin": 7,
+          "reservedPosition": 8,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "values": [
+              "46927",
+              "55699",
+              "54080",
+              "64394",
+              "66768",
+              "79504",
+              "85421"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "85421.000000",
+          "naive": "85421",
+          "status": "EVALUATED",
+          "reserved": "90676",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "5255.000000",
+          "errorNaive": "5255.000000"
+        },
+        {
+          "origin": 8,
+          "reservedPosition": 9,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "values": [
+              "46927",
+              "55699",
+              "54080",
+              "64394",
+              "66768",
+              "79504",
+              "85421",
+              "90676"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "90676.000000",
+          "naive": "90676",
+          "status": "EVALUATED",
+          "reserved": "91908",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "1232.000000",
+          "errorNaive": "1232.000000"
+        },
+        {
+          "origin": 9,
+          "reservedPosition": 10,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "values": [
+              "46927",
+              "55699",
+              "54080",
+              "64394",
+              "66768",
+              "79504",
+              "85421",
+              "90676",
+              "91908"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "91908.000000",
+          "naive": "91908",
+          "status": "EVALUATED",
+          "reserved": "99144",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "7236.000000",
+          "errorNaive": "7236.000000"
+        }
+      ],
+      "next": {
+        "assessment": {
+          "status": "READY",
+          "reason": null
+        },
+        "ses": "99144.000000",
+        "naive": "99144",
+        "alpha": "1.00"
+      },
+      "evaluated": 7,
+      "notEstimable": 0,
+      "notEvaluable": 0,
+      "mae": {
+        "ses": {
+          "value": "6587.866000"
+        },
+        "naive": {
+          "value": "6437.714286"
+        },
+        "sesPresentation": "6.587866",
+        "naivePresentation": "6.437714286"
+      },
+      "wape": {
+        "ses": {
+          "value": "0.079809",
+          "percent": "7.9809"
+        },
+        "naive": {
+          "value": "0.077990",
+          "percent": "7.7990"
+        }
+      },
+      "comparison": "naive menor"
+    },
+    {
+      "id": "S4",
+      "name": "Paseo aleatorio",
+      "baseUnit": "ML",
+      "presentationUnit": "L",
+      "origins": [
+        {
+          "origin": 3,
+          "reservedPosition": 4,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3
+            ],
+            "values": [
+              "100000",
+              "102843",
+              "84255"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 4,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.00",
+          "fitInformative": true,
+          "ses": "100000.000000",
+          "naive": "84255",
+          "status": "EVALUATED",
+          "reserved": "76570",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "23430.000000",
+          "errorNaive": "7685.000000"
+        },
+        {
+          "origin": 4,
+          "reservedPosition": 5,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "values": [
+              "100000",
+              "102843",
+              "84255",
+              "76570"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "76570.000000",
+          "naive": "76570",
+          "status": "EVALUATED",
+          "reserved": "59428",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "17142.000000",
+          "errorNaive": "17142.000000"
+        },
+        {
+          "origin": 5,
+          "reservedPosition": 6,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "values": [
+              "100000",
+              "102843",
+              "84255",
+              "76570",
+              "59428"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "59428.000000",
+          "naive": "59428",
+          "status": "EVALUATED",
+          "reserved": "52679",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "6749.000000",
+          "errorNaive": "6749.000000"
+        },
+        {
+          "origin": 6,
+          "reservedPosition": 7,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "values": [
+              "100000",
+              "102843",
+              "84255",
+              "76570",
+              "59428",
+              "52679"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "52679.000000",
+          "naive": "52679",
+          "status": "EVALUATED",
+          "reserved": "61646",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "8967.000000",
+          "errorNaive": "8967.000000"
+        },
+        {
+          "origin": 7,
+          "reservedPosition": 8,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "values": [
+              "100000",
+              "102843",
+              "84255",
+              "76570",
+              "59428",
+              "52679",
+              "61646"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "61646.000000",
+          "naive": "61646",
+          "status": "EVALUATED",
+          "reserved": "63079",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "1433.000000",
+          "errorNaive": "1433.000000"
+        },
+        {
+          "origin": 8,
+          "reservedPosition": 9,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "values": [
+              "100000",
+              "102843",
+              "84255",
+              "76570",
+              "59428",
+              "52679",
+              "61646",
+              "63079"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "63079.000000",
+          "naive": "63079",
+          "status": "EVALUATED",
+          "reserved": "82425",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "19346.000000",
+          "errorNaive": "19346.000000"
+        },
+        {
+          "origin": 9,
+          "reservedPosition": 10,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "values": [
+              "100000",
+              "102843",
+              "84255",
+              "76570",
+              "59428",
+              "52679",
+              "61646",
+              "63079",
+              "82425"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "1.00",
+          "fitInformative": true,
+          "ses": "82425.000000",
+          "naive": "82425",
+          "status": "EVALUATED",
+          "reserved": "70535",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "11890.000000",
+          "errorNaive": "11890.000000"
+        }
+      ],
+      "next": {
+        "assessment": {
+          "status": "READY",
+          "reason": null
+        },
+        "ses": "70535.000000",
+        "naive": "70535",
+        "alpha": "1.00"
+      },
+      "evaluated": 7,
+      "notEstimable": 0,
+      "notEvaluable": 0,
+      "mae": {
+        "ses": {
+          "value": "12708.142857"
+        },
+        "naive": {
+          "value": "10458.857143"
+        },
+        "sesPresentation": "12.708142857",
+        "naivePresentation": "10.458857143"
+      },
+      "wape": {
+        "ses": {
+          "value": "0.190747",
+          "percent": "19.0747"
+        },
+        "naive": {
+          "value": "0.156985",
+          "percent": "15.6985"
+        }
+      },
+      "comparison": "naive menor"
+    },
+    {
+      "id": "S5",
+      "name": "Hueco, dato oculto y cero comprobado",
+      "baseUnit": "ML",
+      "presentationUnit": "L",
+      "origins": [
+        {
+          "origin": 3,
+          "reservedPosition": 4,
+          "assessment": {
+            "status": "INSUFFICIENT_DATA",
+            "reason": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED"
+          },
+          "fit": null,
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 2,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 4,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": null,
+          "fitInformative": null,
+          "ses": null,
+          "naive": null,
+          "status": "NOT_ESTIMABLE",
+          "reserved": "53303",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": null,
+          "errorNaive": null
+        },
+        {
+          "origin": 4,
+          "reservedPosition": 5,
+          "assessment": {
+            "status": "INSUFFICIENT_DATA",
+            "reason": "SPAN_TOO_SHORT"
+          },
+          "fit": null,
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 2,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": null,
+          "fitInformative": null,
+          "ses": null,
+          "naive": null,
+          "status": "NOT_ESTIMABLE",
+          "reserved": "63047",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": null,
+          "errorNaive": null
+        },
+        {
+          "origin": 5,
+          "reservedPosition": 6,
+          "assessment": {
+            "status": "INSUFFICIENT_DATA",
+            "reason": "SPAN_TOO_SHORT"
+          },
+          "fit": null,
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 2,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": null,
+          "fitInformative": null,
+          "ses": null,
+          "naive": null,
+          "status": "NOT_ESTIMABLE",
+          "reserved": "52140",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": null,
+          "errorNaive": null
+        },
+        {
+          "origin": 6,
+          "reservedPosition": 7,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              4,
+              5,
+              6
+            ],
+            "values": [
+              "53303",
+              "63047",
+              "52140"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 2,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 7,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.00",
+          "fitInformative": true,
+          "ses": "53303.000000",
+          "naive": "52140",
+          "status": "EVALUATED",
+          "reserved": "63877",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "10574.000000",
+          "errorNaive": "11737.000000"
+        },
+        {
+          "origin": 7,
+          "reservedPosition": 8,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              4,
+              5,
+              6,
+              7
+            ],
+            "values": [
+              "53303",
+              "63047",
+              "52140",
+              "63877"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 2,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 8,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.25",
+          "fitInformative": true,
+          "ses": "57098.687500",
+          "naive": "63877",
+          "status": "EVALUATED",
+          "reserved": "0",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "57098.687500",
+          "errorNaive": "63877.000000"
+        },
+        {
+          "origin": 8,
+          "reservedPosition": 9,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "values": [
+              "53303",
+              "63047",
+              "52140",
+              "63877",
+              "0"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 2,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 9,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.00",
+          "fitInformative": true,
+          "ses": "53303.000000",
+          "naive": "0",
+          "status": "EVALUATED",
+          "reserved": "63131",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "9828.000000",
+          "errorNaive": "63131.000000"
+        },
+        {
+          "origin": 9,
+          "reservedPosition": 10,
+          "assessment": {
+            "status": "READY",
+            "reason": null
+          },
+          "fit": {
+            "positions": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "values": [
+              "53303",
+              "63047",
+              "52140",
+              "63877",
+              "0",
+              "63131"
+            ]
+          },
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 2,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 10,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": "0.00",
+          "fitInformative": true,
+          "ses": "53303.000000",
+          "naive": "63131",
+          "status": "EVALUATED",
+          "reserved": "65220",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": "11917.000000",
+          "errorNaive": "2089.000000"
+        }
+      ],
+      "next": {
+        "assessment": {
+          "status": "READY",
+          "reason": null
+        },
+        "ses": "53303.000000",
+        "naive": "65220",
+        "alpha": "0.00"
+      },
+      "evaluated": 4,
+      "notEstimable": 3,
+      "notEvaluable": 0,
+      "mae": {
+        "ses": {
+          "value": "22354.421875"
+        },
+        "naive": {
+          "value": "35208.500000"
+        },
+        "sesPresentation": "22.354421875",
+        "naivePresentation": "35.2085"
+      },
+      "wape": {
+        "ses": {
+          "value": "0.465165",
+          "percent": "46.5165"
+        },
+        "naive": {
+          "value": "0.732640",
+          "percent": "73.2640"
+        }
+      },
+      "comparison": "SES menor"
+    },
+    {
+      "id": "S6",
+      "name": "Menos de tres campañas comprobadas",
+      "baseUnit": "G",
+      "presentationUnit": "KG",
+      "origins": [
+        {
+          "origin": 3,
+          "reservedPosition": 4,
+          "assessment": {
+            "status": "INSUFFICIENT_DATA",
+            "reason": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED"
+          },
+          "fit": null,
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 2,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 4,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": null,
+          "fitInformative": null,
+          "ses": null,
+          "naive": null,
+          "status": "NOT_ESTIMABLE",
+          "reserved": null,
+          "reservedKind": "NO_RECORD",
+          "errorSes": null,
+          "errorNaive": null
+        },
+        {
+          "origin": 4,
+          "reservedPosition": 5,
+          "assessment": {
+            "status": "INSUFFICIENT_DATA",
+            "reason": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED"
+          },
+          "fit": null,
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 2,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 4,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 5,
+              "reason": "NOT_BEFORE_TARGET"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": null,
+          "fitInformative": null,
+          "ses": null,
+          "naive": null,
+          "status": "NOT_ESTIMABLE",
+          "reserved": "32912",
+          "reservedKind": "VERIFIED_CONSUMPTION",
+          "errorSes": null,
+          "errorNaive": null
+        },
+        {
+          "origin": 5,
+          "reservedPosition": 6,
+          "assessment": {
+            "status": "INSUFFICIENT_DATA",
+            "reason": "SPAN_TOO_SHORT"
+          },
+          "fit": null,
+          "exclusions": [
+            {
+              "position": 1,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 2,
+              "reason": "BEFORE_GAP"
+            },
+            {
+              "position": 3,
+              "reason": "HIDDEN"
+            },
+            {
+              "position": 4,
+              "reason": "NO_RECORD"
+            },
+            {
+              "position": 6,
+              "reason": "NOT_BEFORE_TARGET"
+            }
+          ],
+          "alpha": null,
+          "fitInformative": null,
+          "ses": null,
+          "naive": null,
+          "status": "NOT_ESTIMABLE",
+          "reserved": null,
+          "reservedKind": "HIDDEN",
+          "errorSes": null,
+          "errorNaive": null
+        }
+      ],
+      "next": {
+        "assessment": {
+          "status": "INSUFFICIENT_DATA",
+          "reason": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED"
+        },
+        "ses": null,
+        "naive": null,
+        "alpha": null
+      },
+      "evaluated": 0,
+      "notEstimable": 3,
+      "notEvaluable": 0,
+      "mae": {
+        "ses": {
+          "value": "SIN ORÍGENES EVALUABLES"
+        },
+        "naive": {
+          "value": "SIN ORÍGENES EVALUABLES"
+        },
+        "sesPresentation": null,
+        "naivePresentation": null
+      },
+      "wape": {
+        "ses": {
+          "value": "SIN ORÍGENES EVALUABLES"
+        },
+        "naive": {
+          "value": "SIN ORÍGENES EVALUABLES"
+        }
+      },
+      "comparison": "sin orígenes evaluables"
+    }
+  ]
+}
