@@ -1,7 +1,8 @@
 -- F12-EST-01 (#174, docs/architecture/F12_EST_01_ESTIMATION_CONTRACT.md §6):
 -- modelo de datos de la estimación del consumo (INT-09, DAT-18, DAT-19), con
 -- las decisiones EST-D-02 (temporadas), EST-D-03 (fuente sellada), EST-D-04
--- (trabajos por lotes) y EST-D-09 (sin cobertura sin fuente).
+-- (trabajos por lotes), EST-D-09 (sin cobertura sin fuente), EST-D-14
+-- (correcciones de clasificación) y EST-D-15/16 (paradas y reintentos).
 -- Aditiva: crea tipos, tablas, índices, restricciones y disparadores nuevos;
 -- no modifica ninguna tabla existente ni DemandForecast, que no se reutiliza.
 
@@ -33,14 +34,18 @@ CREATE TABLE "ComparabilitySeason" (
 
 -- CreateTable
 CREATE TABLE "CampaignSeasonClassification" (
-    "campaignId" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "tenantId" TEXT NOT NULL,
-    "seasonId" UUID NOT NULL,
+    "campaignId" TEXT NOT NULL,
+    "version" INTEGER NOT NULL,
+    "previousClassificationId" UUID,
+    "seasonId" UUID,
+    "reason" VARCHAR(500),
     "classifiedByUserId" TEXT NOT NULL,
     "classifiedByRole" "UserRole" NOT NULL,
     "classifiedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "CampaignSeasonClassification_pkey" PRIMARY KEY ("campaignId")
+    CONSTRAINT "CampaignSeasonClassification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -64,6 +69,7 @@ CREATE TABLE "SeriesPoint" (
     "seriesId" UUID NOT NULL,
     "position" INTEGER NOT NULL,
     "campaignId" TEXT NOT NULL,
+    "classificationId" UUID NOT NULL,
     "kind" "SeriesPointKind" NOT NULL,
     "quantityBase" BIGINT,
     "sourceSealId" UUID,
@@ -84,11 +90,13 @@ CREATE TABLE "EstimationJob" (
     "productRefs" JSONB,
     "status" "EstimationJobStatus" NOT NULL DEFAULT 'QUEUED',
     "attempts" INTEGER NOT NULL DEFAULT 0,
+    "maxAttempts" INTEGER NOT NULL,
     "enqueuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "startedAt" TIMESTAMP(3),
     "leaseExpiresAt" TIMESTAMP(3),
     "finishedAt" TIMESTAMP(3),
     "stopCode" VARCHAR(48),
+    "stopEvidence" JSONB,
 
     CONSTRAINT "EstimationJob_pkey" PRIMARY KEY ("id")
 );
@@ -102,6 +110,7 @@ CREATE TABLE "EstimationRun" (
     "requestedByRole" "UserRole" NOT NULL,
     "targetCampaignId" TEXT NOT NULL,
     "seasonId" UUID NOT NULL,
+    "targetClassificationId" UUID NOT NULL,
     "contractVersion" INTEGER NOT NULL,
     "method" VARCHAR(32) NOT NULL,
     "methodVersion" VARCHAR(32) NOT NULL,
@@ -146,6 +155,12 @@ CREATE UNIQUE INDEX "ComparabilitySeason_tenantId_key_key" ON "ComparabilitySeas
 
 -- CreateIndex
 CREATE INDEX "CampaignSeasonClassification_tenantId_seasonId_idx" ON "CampaignSeasonClassification"("tenantId", "seasonId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CampaignSeasonClassification_campaignId_version_key" ON "CampaignSeasonClassification"("campaignId", "version");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CampaignSeasonClassification_previousClassificationId_key" ON "CampaignSeasonClassification"("previousClassificationId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ConsumptionSeries_scope_version_key" ON "ConsumptionSeries"("tenantId", "canonicalProductId", "baseUnit", "seasonId", "version");
@@ -196,6 +211,9 @@ ALTER TABLE "CampaignSeasonClassification" ADD CONSTRAINT "CampaignSeasonClassif
 ALTER TABLE "CampaignSeasonClassification" ADD CONSTRAINT "CampaignSeasonClassification_classifiedByUserId_fkey" FOREIGN KEY ("classifiedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
+ALTER TABLE "CampaignSeasonClassification" ADD CONSTRAINT "CampaignSeasonClassification_previousClassificationId_fkey" FOREIGN KEY ("previousClassificationId") REFERENCES "CampaignSeasonClassification"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- AddForeignKey
 ALTER TABLE "ConsumptionSeries" ADD CONSTRAINT "ConsumptionSeries_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
@@ -212,6 +230,9 @@ ALTER TABLE "SeriesPoint" ADD CONSTRAINT "SeriesPoint_seriesId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "SeriesPoint" ADD CONSTRAINT "SeriesPoint_campaignId_fkey" FOREIGN KEY ("campaignId") REFERENCES "AgriculturalCampaign"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- AddForeignKey
+ALTER TABLE "SeriesPoint" ADD CONSTRAINT "SeriesPoint_classificationId_fkey" FOREIGN KEY ("classificationId") REFERENCES "CampaignSeasonClassification"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
 ALTER TABLE "SeriesPoint" ADD CONSTRAINT "SeriesPoint_sourceSealId_fkey" FOREIGN KEY ("sourceSealId") REFERENCES "CollectiveSeal"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
@@ -244,6 +265,9 @@ ALTER TABLE "EstimationRun" ADD CONSTRAINT "EstimationRun_targetCampaignId_fkey"
 ALTER TABLE "EstimationRun" ADD CONSTRAINT "EstimationRun_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "ComparabilitySeason"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
+ALTER TABLE "EstimationRun" ADD CONSTRAINT "EstimationRun_targetClassificationId_fkey" FOREIGN KEY ("targetClassificationId") REFERENCES "CampaignSeasonClassification"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- AddForeignKey
 ALTER TABLE "EstimationRun" ADD CONSTRAINT "EstimationRun_previousRunId_fkey" FOREIGN KEY ("previousRunId") REFERENCES "EstimationRun"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
@@ -274,9 +298,16 @@ ALTER TABLE "ComparabilitySeason"
     AND "createdByRole" IN ('DIRECTIVA', 'ADMINISTRADOR')
   );
 
+-- EST-D-14: la versión 1 asigna una temporada sin motivo; una corrección
+-- referencia la versión anterior, lleva motivo y puede dejar la campaña sin
+-- clasificar.
 ALTER TABLE "CampaignSeasonClassification"
   ADD CONSTRAINT "CampaignSeasonClassification_values" CHECK (
     "classifiedByRole" IN ('DIRECTIVA', 'ADMINISTRADOR')
+    AND "version" >= 1
+    AND (("version" = 1) = ("previousClassificationId" IS NULL))
+    AND ("version" > 1 OR ("seasonId" IS NOT NULL AND "reason" IS NULL))
+    AND ("version" = 1 OR ("reason" IS NOT NULL AND btrim("reason") <> ''))
   );
 
 -- Una serie nueva es la versión 1; una reconstrucción referencia la anterior.
@@ -304,17 +335,23 @@ ALTER TABLE "SeriesPoint"
 
 -- EST-D-04: estado operativo de un trabajo. Quién lo pidió (DIRECTIVA o
 -- ADMINISTRADOR) y qué pidió no cambian; cada estado lleva sólo sus campos.
+-- EST-D-15: NOT_EXECUTED lleva su motivo cerrado y lo observado. EST-D-16: los
+-- intentos no superan el máximo fijado al encolar.
 ALTER TABLE "EstimationJob"
   ADD CONSTRAINT "EstimationJob_values" CHECK (
     "requestedByRole" IN ('DIRECTIVA', 'ADMINISTRADOR')
     AND "requestHash" ~ '^[0-9a-f]{64}$'
     AND ("productRefs" IS NULL OR jsonb_typeof("productRefs") = 'array')
     AND "attempts" >= 0
+    AND "maxAttempts" >= 1
+    AND "attempts" <= "maxAttempts"
+    AND (("status" = 'NOT_EXECUTED') = ("stopEvidence" IS NOT NULL))
+    AND ("stopEvidence" IS NULL OR jsonb_typeof("stopEvidence") = 'object')
     AND ("status" <> 'QUEUED' OR ("attempts" = 0 AND "startedAt" IS NULL AND "leaseExpiresAt" IS NULL AND "finishedAt" IS NULL AND "stopCode" IS NULL))
     AND ("status" <> 'RUNNING' OR ("attempts" >= 1 AND "startedAt" IS NOT NULL AND "leaseExpiresAt" IS NOT NULL AND "finishedAt" IS NULL AND "stopCode" IS NULL))
     AND ("status" <> 'COMPLETED' OR ("attempts" >= 1 AND "finishedAt" IS NOT NULL AND "leaseExpiresAt" IS NULL AND "stopCode" IS NULL))
     AND ("status" <> 'NOT_EXECUTED' OR ("attempts" >= 1 AND "finishedAt" IS NOT NULL AND "leaseExpiresAt" IS NULL AND "stopCode" IS NOT NULL))
-    AND ("stopCode" IS NULL OR "stopCode" IN ('POLICY_PENDING', 'REQUESTER_NOT_AUTHORIZED', 'TARGET_CAMPAIGN_NOT_ELIGIBLE', 'ATTEMPTS_EXHAUSTED'))
+    AND ("stopCode" IS NULL OR "stopCode" IN ('POLICY_PENDING', 'REQUESTER_NOT_AUTHORIZED', 'TARGET_CAMPAIGN_NOT_ELIGIBLE'))
   );
 
 -- Sólo DIRECTIVA o ADMINISTRADOR (ADR-003) generan; contrato v1, h = 1,
@@ -333,7 +370,7 @@ ALTER TABLE "EstimationRun"
     AND "contentHash" ~ '^[0-9a-f]{64}$'
     AND jsonb_typeof("parameters") = 'object'
     AND (("outcome" = 'FAILED') = ("failureCode" IS NOT NULL))
-    AND ("failureCode" IS NULL OR "failureCode" IN ('CALCULATION_FAILED', 'SOURCES_UNAVAILABLE'))
+    AND ("failureCode" IS NULL OR "failureCode" IN ('CALCULATION_FAILED', 'RETRIES_EXHAUSTED'))
   );
 
 -- RN-28: sólo ESTIMATED lleva cifras (estimación, naive, α, ajuste y
@@ -407,7 +444,18 @@ CREATE TRIGGER "comparability_season_insert_guard"
   BEFORE INSERT ON "ComparabilitySeason"
   FOR EACH ROW EXECUTE FUNCTION "comparability_season_insert_guard"();
 
--- Una clasificación une una campaña y una temporada del mismo tenant.
+-- La clasificación vigente de una campaña es la versión sin sucesora.
+CREATE FUNCTION "estimation_is_current_classification"(classification UUID, campaign TEXT, season UUID) RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM "CampaignSeasonClassification" k
+    WHERE k."id" = classification AND k."campaignId" = campaign AND k."seasonId" = season
+      AND NOT EXISTS (SELECT 1 FROM "CampaignSeasonClassification" n WHERE n."previousClassificationId" = k."id")
+  );
+$$ LANGUAGE sql STABLE;
+
+-- Una clasificación une una campaña y una temporada del mismo tenant. Una
+-- corrección sucede a la versión vigente de la misma campaña (un solo
+-- sucesor) y cambia de verdad la temporada.
 CREATE FUNCTION "campaign_season_classification_insert_guard"() RETURNS trigger AS $$
 BEGIN
   IF NOT EXISTS (
@@ -415,10 +463,17 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'CampaignSeasonClassification: la campaña no es del tenant';
   END IF;
-  IF NOT EXISTS (
+  IF NEW."seasonId" IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM "ComparabilitySeason" s WHERE s."id" = NEW."seasonId" AND s."tenantId" = NEW."tenantId"
   ) THEN
     RAISE EXCEPTION 'CampaignSeasonClassification: la temporada no es del tenant';
+  END IF;
+  IF NEW."previousClassificationId" IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM "CampaignSeasonClassification" p
+    WHERE p."id" = NEW."previousClassificationId" AND p."campaignId" = NEW."campaignId"
+      AND p."version" = NEW."version" - 1 AND p."seasonId" IS DISTINCT FROM NEW."seasonId"
+  ) THEN
+    RAISE EXCEPTION 'CampaignSeasonClassification: la corrección no sucede a la versión anterior de la campaña o no cambia la temporada';
   END IF;
   IF NOT "estimation_is_active_member"(NEW."tenantId", NEW."classifiedByUserId", NEW."classifiedByRole") THEN
     RAISE EXCEPTION 'CampaignSeasonClassification: quien clasifica no es miembro activo del tenant con ese rol';
@@ -463,7 +518,8 @@ CREATE TRIGGER "consumption_series_insert_guard"
   FOR EACH ROW EXECUTE FUNCTION "consumption_series_insert_guard"();
 
 -- Los puntos se escriben en la misma transacción que crea su serie, con una
--- campaña del tenant clasificada en la temporada de la serie (EST-D-02).
+-- campaña del tenant cuya clasificación vigente, citada, es la temporada de la
+-- serie (EST-D-02, EST-D-14).
 -- EST-D-03: un consumo comprobado es de una campaña CERRADA y copia
 -- exactamente la cifra de la divulgación vigente de consumo de esa celda, que
 -- es la entrada DISCLOSED y visible del sellado citado. Un dato oculto que
@@ -488,11 +544,8 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'SeriesPoint: la campaña no es del tenant de la serie';
   END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM "CampaignSeasonClassification" k
-    WHERE k."campaignId" = NEW."campaignId" AND k."seasonId" = series."seasonId"
-  ) THEN
-    RAISE EXCEPTION 'SeriesPoint: la campaña no está clasificada en la temporada de la serie';
+  IF NOT "estimation_is_current_classification"(NEW."classificationId", NEW."campaignId", series."seasonId") THEN
+    RAISE EXCEPTION 'SeriesPoint: la campaña no está clasificada en la temporada de la serie con esa versión vigente';
   END IF;
   IF NEW."sourceSealId" IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM "CollectiveSeal" x WHERE x."id" = NEW."sourceSealId" AND x."tenantId" = series."tenantId" AND x."campaignId" = NEW."campaignId"
@@ -573,7 +626,9 @@ BEGIN
     RAISE EXCEPTION 'EstimationJob: la campaña objetivo no es del tenant';
   END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM "CampaignSeasonClassification" k WHERE k."campaignId" = NEW."targetCampaignId" AND k."tenantId" = NEW."tenantId"
+    SELECT 1 FROM "CampaignSeasonClassification" k
+    WHERE k."campaignId" = NEW."targetCampaignId" AND k."tenantId" = NEW."tenantId" AND k."seasonId" IS NOT NULL
+      AND "estimation_is_current_classification"(k."id", k."campaignId", k."seasonId")
   ) THEN
     RAISE EXCEPTION 'EstimationJob: la campaña objetivo no está clasificada';
   END IF;
@@ -589,7 +644,9 @@ CREATE TRIGGER "estimation_job_insert_guard"
   FOR EACH ROW EXECUTE FUNCTION "estimation_job_insert_guard"();
 
 -- Sólo cambia el estado operativo, hacia delante: QUEUED → RUNNING;
--- RUNNING → RUNNING (otro intento tras vencer el plazo, con más intentos),
+-- RUNNING → RUNNING (otro intento, con más intentos; el trabajador lo toma
+-- al vencer el plazo o tras un error transitorio, y la base no comprueba el
+-- plazo: `jobId` único impide dos ejecuciones),
 -- COMPLETED o NOT_EXECUTED. Un estado final no cambia. COMPLETED exige su
 -- ejecución, y un trabajo con ejecución sólo puede pasar a COMPLETED.
 CREATE FUNCTION "estimation_job_update_guard"() RETURNS trigger AS $$
@@ -602,7 +659,8 @@ BEGIN
      OR NEW."requestedByRole" IS DISTINCT FROM OLD."requestedByRole"
      OR NEW."targetCampaignId" IS DISTINCT FROM OLD."targetCampaignId"
      OR NEW."productRefs" IS DISTINCT FROM OLD."productRefs"
-     OR NEW."enqueuedAt" IS DISTINCT FROM OLD."enqueuedAt" THEN
+     OR NEW."enqueuedAt" IS DISTINCT FROM OLD."enqueuedAt"
+     OR NEW."maxAttempts" IS DISTINCT FROM OLD."maxAttempts" THEN
     RAISE EXCEPTION 'EstimationJob: la petición no cambia';
   END IF;
   IF OLD."status" IN ('COMPLETED', 'NOT_EXECUTED') THEN
@@ -617,6 +675,28 @@ BEGIN
   END IF;
   IF OLD."status" = 'RUNNING' AND NEW."status" = 'RUNNING' AND NEW."attempts" <= OLD."attempts" THEN
     RAISE EXCEPTION 'EstimationJob: otro intento aumenta los intentos';
+  END IF;
+  -- EST-D-15: una parada antes de calcular se comprueba contra la base cuando
+  -- la base puede verla; la política es configuración y queda en la evidencia.
+  IF NEW."status" = 'NOT_EXECUTED' THEN
+    IF NEW."stopCode" = 'REQUESTER_NOT_AUTHORIZED'
+       AND "estimation_is_active_member"(NEW."tenantId", NEW."requestedByUserId", NEW."requestedByRole") THEN
+      RAISE EXCEPTION 'EstimationJob: el solicitante sigue autorizado';
+    END IF;
+    IF NEW."stopCode" = 'TARGET_CAMPAIGN_NOT_ELIGIBLE' AND EXISTS (
+      SELECT 1 FROM "AgriculturalCampaign" c
+      WHERE c."id" = NEW."targetCampaignId" AND c."status" IN ('PLANIFICADA', 'ABIERTA')
+        AND EXISTS (
+          SELECT 1 FROM "CampaignSeasonClassification" k
+          WHERE k."campaignId" = c."id" AND k."seasonId" IS NOT NULL
+            AND "estimation_is_current_classification"(k."id", k."campaignId", k."seasonId")
+        )
+    ) THEN
+      RAISE EXCEPTION 'EstimationJob: la campaña objetivo sigue siendo admisible';
+    END IF;
+    IF NEW."stopCode" = 'POLICY_PENDING' AND NEW."stopEvidence"->>'disclosure_mode' IS DISTINCT FROM 'POLICY_PENDING' THEN
+      RAISE EXCEPTION 'EstimationJob: la evidencia no registra el modo POLICY_PENDING';
+    END IF;
   END IF;
   IF EXISTS (SELECT 1 FROM "EstimationRun" r WHERE r."jobId" = NEW."id") THEN
     IF NEW."status" <> 'COMPLETED' THEN
@@ -635,9 +715,9 @@ CREATE TRIGGER "estimation_job_update_guard"
 
 -- Una ejecución pertenece a un tenant y la produce un trabajo en curso con la
 -- misma campaña objetivo y el mismo solicitante, que sigue siendo Member
--- activo con ese rol al registrarla. La campaña objetivo está clasificada en
--- la temporada de la ejecución, y la ejecución anterior que referencia es de
--- la misma campaña objetivo y no posterior.
+-- activo con ese rol al registrarla. Cita la clasificación vigente de la
+-- campaña objetivo en la temporada de la ejecución, y la ejecución anterior que
+-- referencia es de la misma campaña objetivo y no posterior.
 CREATE FUNCTION "estimation_run_insert_guard"() RETURNS trigger AS $$
 BEGIN
   IF NOT EXISTS (
@@ -656,11 +736,14 @@ BEGIN
   IF NOT "estimation_is_active_member"(NEW."tenantId", NEW."requestedByUserId", NEW."requestedByRole") THEN
     RAISE EXCEPTION 'EstimationRun: quien la pidió no es miembro activo del tenant con ese rol';
   END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM "CampaignSeasonClassification" k
-    WHERE k."campaignId" = NEW."targetCampaignId" AND k."seasonId" = NEW."seasonId" AND k."tenantId" = NEW."tenantId"
+  IF NOT "estimation_is_current_classification"(NEW."targetClassificationId", NEW."targetCampaignId", NEW."seasonId") THEN
+    RAISE EXCEPTION 'EstimationRun: la campaña objetivo no está clasificada en esa temporada con esa versión vigente';
+  END IF;
+  -- EST-D-16: sólo tras agotar los intentos de errores transitorios.
+  IF NEW."failureCode" = 'RETRIES_EXHAUSTED' AND NOT EXISTS (
+    SELECT 1 FROM "EstimationJob" j WHERE j."id" = NEW."jobId" AND j."attempts" >= j."maxAttempts"
   ) THEN
-    RAISE EXCEPTION 'EstimationRun: la campaña objetivo no está clasificada en esa temporada';
+    RAISE EXCEPTION 'EstimationRun: los reintentos no están agotados';
   END IF;
   IF NEW."previousRunId" IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM "EstimationRun" p

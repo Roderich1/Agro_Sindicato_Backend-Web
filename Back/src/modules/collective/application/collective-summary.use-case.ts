@@ -96,6 +96,19 @@ type Tx = Prisma.TransactionClient;
 export interface DecidedSummary {
   summary: CollectiveSummary;
   releaseOf: ReadonlyMap<string, string>;
+  /** Only for a decision of an unsealed campaign; never served. */
+  population?: DecisionPopulation;
+}
+
+/**
+ * Who the decision counted (internal, never served): the linked Members (the
+ * coverage denominator) and, per projection type, the Members inside a figure
+ * shown by this decision. The seal derives its consumption coverage from it
+ * (F07_SEALED_HISTORY_CONTRACT §5.3).
+ */
+export interface DecisionPopulation {
+  linked: ReadonlySet<string>;
+  published: ReadonlyMap<SyncV1ProjectionType, ReadonlySet<string>>;
 }
 
 export interface DecideOptions {
@@ -215,8 +228,8 @@ export class CollectiveSummaryUseCase {
     header: Pick<CollectiveSummary, "contractVersion" | "campaign">,
     options: DecideOptions = { persist: true },
   ): Promise<DecidedSummary> {
-    const { releaseOf, ...rest } = await this.provisional(tx, tenantId, header.campaign.campaign_ref, options.persist);
-    return { summary: { ...header, seal: null, ...rest }, releaseOf };
+    const { releaseOf, population, ...rest } = await this.provisional(tx, tenantId, header.campaign.campaign_ref, options.persist);
+    return { summary: { ...header, seal: null, ...rest }, releaseOf, population };
   }
 
   private async loadSealed(tx: Tx, tenantId: string, campaignId: string): Promise<SealedVersion | null> {
@@ -246,7 +259,7 @@ export class CollectiveSummaryUseCase {
     tenantId: string,
     campaignId: string,
     persist: boolean,
-  ): Promise<Pick<CollectiveSummary, "disclosure" | "coverage" | "cells"> & Pick<DecidedSummary, "releaseOf">> {
+  ): Promise<Pick<CollectiveSummary, "disclosure" | "coverage" | "cells"> & Required<Pick<DecidedSummary, "releaseOf" | "population">>> {
     const contributions = await this.eligible(tx, tenantId, campaignId);
     const canonicalOf = await this.canonicalMap(tx, tenantId);
     const cells = consolidate(contributions, canonicalOf);
@@ -346,6 +359,7 @@ export class CollectiveSummaryUseCase {
       }
     }
     sortCells(result);
+    const linked = await this.linkedMembers(tx, tenantId);
     return {
       disclosure: {
         mode: "PROVISIONAL_SYNTHETIC",
@@ -354,12 +368,21 @@ export class CollectiveSummaryUseCase {
         threshold: PROVISIONAL_THRESHOLD,
       },
       coverage: {
-        linked_members: await this.linkedMembers(tx, tenantId),
+        linked_members: linked.size,
         members_with_contribution: publishedMembers(output).size,
         suppressed_cells: output.some(({ decision }) => decision.kind !== "RELEASE" && decision.kind !== "SHOW_PRIOR"),
       },
       cells: result,
       releaseOf,
+      population: {
+        linked,
+        published: new Map(
+          (["DECLARED_NEED", "CONSUMPTION_TOTAL"] as const).map((type) => [
+            type,
+            publishedMembers(output.filter(({ key }) => key.projectionType === type)),
+          ]),
+        ),
+      },
     };
   }
 
@@ -453,10 +476,12 @@ export class CollectiveSummaryUseCase {
   }
 
   /** Active farmers of the tenant: who could contribute (coverage). */
-  private async linkedMembers(tx: Tx, tenantId: string): Promise<number> {
-    return tx.member.count({
+  private async linkedMembers(tx: Tx, tenantId: string): Promise<Set<string>> {
+    const rows = await tx.member.findMany({
       where: { tenantId, role: "AGRICULTOR", isActive: true, user: { isActive: true } },
+      select: { id: true },
     });
+    return new Set(rows.map((row) => row.id));
   }
 }
 

@@ -9,11 +9,14 @@ import { URL } from "node:url";
 
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { Fixture, seedFixture } from "../../sync-v1/test-support/sync-v1-test-app";
+import { SyntheticSource, sealedConsumptionCampaigns } from "../test-support/synthetic-sources";
 
 /**
  * F12-EST-01 (#174, F12_EST_01_ESTIMATION_CONTRACT.md §6): esquema de la
- * estimación del consumo, con temporadas explícitas (EST-D-02), fuente sellada
- * (EST-D-03) y trabajos por lotes (EST-D-04). Sólo el esquema: no hay rutas,
+ * estimación del consumo, con temporadas explícitas y sus correcciones
+ * (EST-D-02, EST-D-14), fuente sellada (EST-D-03), trabajos por lotes con
+ * paradas verificables y reintentos limitados (EST-D-04, 15, 16) y fuentes
+ * con cobertura de consumo conocida o desconocida (EST-D-09). Sólo el esquema: no hay rutas,
  * trabajador ni cálculo, y las cifras de las filas son ilustrativas (el
  * cálculo es de F12-EST-04). La base se crea con las migraciones anteriores,
  * recibe datos sintéticos (campañas, divulgaciones y sellados) y después la
@@ -22,6 +25,7 @@ import { Fixture, seedFixture } from "../../sync-v1/test-support/sync-v1-test-ap
 const postgresUrl = process.env["F12_EST_PG_TEST_URL"];
 const describePostgres = postgresUrl ? describe : describe.skip;
 const MIGRATION = "20261101233651_f12_est_01_estimation";
+const COVERAGE_MIGRATION = "20261102020000_f07_seal_consumption_coverage";
 const HASH = "a".repeat(64);
 const TABLES = [
   "ComparabilitySeason", "CampaignSeasonClassification", "ConsumptionSeries", "SeriesPoint",
@@ -62,6 +66,15 @@ describePostgres("F12-EST-01 estimation schema", () => {
   let catalogBefore: string;
   let catalogAfter: string;
   let classificationsRightAfter: number;
+  let coverageMigrationOutput: string;
+  let coverageRowsRightAfter: number;
+  /** Campaña cerrada sin sellar que se corrige en la prueba de EST-D-14. */
+  let reclassified: string;
+  /** Fuentes selladas antes de la cobertura (desconocida) y después (conocida). */
+  let legacySources: SyntheticSource[];
+  let coveredSources: SyntheticSource[];
+  /** Versión vigente de la clasificación de cada campaña clasificada en beforeAll. */
+  const cls: Record<string, string> = {};
 
   /** Columnas, restricciones, índices y disparadores de las tablas dadas. */
   const catalog = async (tables: string[]) =>
@@ -118,21 +131,22 @@ describePostgres("F12-EST-01 estimation schema", () => {
         encoding: "utf8",
         timeout: 120000,
       });
-    // La base previa: todas las migraciones anteriores a la nueva.
-    const previous = mkdtempSync(join(tmpdir(), "f12-prev-"));
-    try {
-      cpSync(resolve("prisma/schema.prisma"), join(previous, "schema.prisma"));
-      cpSync(resolve("prisma/migrations"), join(previous, "migrations"), { recursive: true });
-      rmSync(join(previous, "migrations", MIGRATION), { recursive: true });
-      // La base previa no tiene nada posterior (F12-EST-01 añadió una migración detrás).
-      for (const entry of readdirSync(join(previous, "migrations"))) {
-        if (/^\d{14}_/.test(entry) && entry > MIGRATION) rmSync(join(previous, "migrations", entry), { recursive: true });
+    /** Despliega sólo las migraciones que cumplen `keep`, desde un esquema temporal. */
+    const deployOnly = (keep: (migration: string) => boolean) => {
+      const dir = mkdtempSync(join(tmpdir(), "f12-mig-"));
+      try {
+        cpSync(resolve("prisma/schema.prisma"), join(dir, "schema.prisma"));
+        cpSync(resolve("prisma/migrations"), join(dir, "migrations"), { recursive: true });
+        for (const entry of readdirSync(join(dir, "migrations"))) {
+          if (/^\d{14}_/.test(entry) && !keep(entry)) rmSync(join(dir, "migrations", entry), { recursive: true });
+        }
+        return deploy(dir);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
       }
-      expect(readdirSync(join(previous, "migrations"))).not.toContain(MIGRATION);
-      expect(deploy(previous).status).toBe(0);
-    } finally {
-      rmSync(previous, { recursive: true, force: true });
-    }
+    };
+    // La base previa: todas las migraciones anteriores a la nueva.
+    expect(deployOnly((migration) => migration < MIGRATION).status).toBe(0);
     db = new PrismaClient({ datasources: { db: { url: url.toString() } } });
 
     // Datos sintéticos anteriores: dos sindicatos, roles, campañas, productos,
@@ -142,7 +156,8 @@ describePostgres("F12-EST-01 estimation schema", () => {
     olderCampaigns = [randomUUID(), randomUUID()];
     unclassifiedCampaign = randomUUID();
     unsealedClosedCampaign = randomUUID();
-    targets = Array.from({ length: 10 }, () => randomUUID());
+    reclassified = randomUUID();
+    targets = Array.from({ length: 14 }, () => randomUUID());
     const closed = (id: string, year: number, name: string) => ({
       id, tenantId: f.tenantA, name, status: "CERRADA" as const, isActive: false,
       startDate: new Date(`${year}-09-01T00:00:00.000Z`), closedAt: new Date(`${year + 1}-03-01T00:00:00.000Z`),
@@ -152,6 +167,7 @@ describePostgres("F12-EST-01 estimation schema", () => {
         ...olderCampaigns.map((id, i) => closed(id, 2023 + i, `Campaña sintética ${2023 + i}`)),
         closed(unclassifiedCampaign, 2021, "Campaña antigua sin clasificar"),
         closed(unsealedClosedCampaign, 2022, "Campaña cerrada sin sellar"),
+        closed(reclassified, 2020, "Campaña que se reclasifica"),
         ...targets.map((id, i) => ({
           id, tenantId: f.tenantA, name: `Objetivo sintético ${i}`, status: "PLANIFICADA" as const, isActive: false,
           startDate: new Date("2027-09-01T00:00:00.000Z"),
@@ -242,6 +258,11 @@ describePostgres("F12-EST-01 estimation schema", () => {
       where: { sealId_projectionType_canonicalProductId_baseUnit: { sealId: seals.older0, projectionType: "CONSUMPTION_TOTAL", canonicalProductId: f.products.solidA, baseUnit: "G" } },
       data: { visibilityWithdrawnAt: new Date() },
     });
+    // Fuentes selladas antes de la cobertura de consumo: la tendrán desconocida.
+    legacySources = await sealedConsumptionCampaigns(db, {
+      tenantId: f.tenantA, sealedByUserId: directorUser, canonicalProductId: f.products.liquidA, baseUnit: "ML",
+      firstYear: 2015, quantities: [50000n, 60000n], namePrefix: "Campaña sintética sellada antes",
+    });
     await db.demandForecast.create({
       data: { tenantId: f.tenantA, productId: f.products.liquidA, campaignName: "heredada", predictedDemand: "12.5", metadata: { origen: "sintético" } },
     });
@@ -254,12 +275,24 @@ describePostgres("F12-EST-01 estimation schema", () => {
     expect(previousTables).not.toContain("EstimationRun");
     before = await dump();
     catalogBefore = await catalog(previousTables);
-    const result = deploy(resolve("prisma"));
+    const result = deployOnly((migration) => migration <= MIGRATION);
     migrationOutput = `${result.stdout}\n${result.stderr}`;
     expect(result.status).toBe(0);
     after = await dump();
     catalogAfter = await catalog(previousTables);
     classificationsRightAfter = await db.campaignSeasonClassification.count();
+    // Después, la cobertura de consumo de los sellados nuevos (F07 §5.3): los
+    // anteriores no reciben ninguna.
+    const full = deploy(resolve("prisma"));
+    coverageMigrationOutput = `${full.stdout}\n${full.stderr}`;
+    expect(full.status).toBe(0);
+    coverageRowsRightAfter = await db.collectiveSealConsumptionCoverage.count();
+    // Fuentes selladas después: llevan su cobertura de consumo conocida.
+    coveredSources = await sealedConsumptionCampaigns(db, {
+      tenantId: f.tenantA, sealedByUserId: directorUser, canonicalProductId: f.products.liquidA, baseUnit: "ML",
+      firstYear: 2017, quantities: [70000n, 0n, 90000n], namePrefix: "Campaña sintética sellada después",
+      coverage: { status: "IDENTIFIED", membersInPublishedFigures: 3 },
+    });
 
     // Después de la migración, la Directiva define dos temporadas y clasifica
     // explícitamente las campañas que conoce; la campaña antigua sin
@@ -269,15 +302,15 @@ describePostgres("F12-EST-01 estimation schema", () => {
     foreignSeason = (
       await db.comparabilitySeason.create({ data: { ...seasonData("INVIERNO"), tenantId: f.tenantB, createdByUserId: directorBUser } })
     ).id;
-    for (const campaignId of [...olderCampaigns, f.campaigns.closedA, unsealedClosedCampaign, ...targets]) {
-      await db.campaignSeasonClassification.create({ data: classification(campaignId, winter) });
+    for (const campaignId of [...olderCampaigns, f.campaigns.closedA, unsealedClosedCampaign, reclassified, ...targets]) {
+      cls[campaignId] = (await db.campaignSeasonClassification.create({ data: classification(campaignId, winter) })).id;
     }
     // Una campaña de otra temporada, para que VERANO no esté vacía.
     const summerCampaign = randomUUID();
     await db.agriculturalCampaign.create({
       data: { id: summerCampaign, tenantId: f.tenantA, name: "Campaña sintética de verano", status: "PLANIFICADA", startDate: new Date("2027-01-01T00:00:00.000Z") },
     });
-    await db.campaignSeasonClassification.create({ data: classification(summerCampaign, summer) });
+    cls[summerCampaign] = (await db.campaignSeasonClassification.create({ data: classification(summerCampaign, summer) })).id;
   }, 300000);
 
   afterAll(async () => {
@@ -290,8 +323,11 @@ describePostgres("F12-EST-01 estimation schema", () => {
       createdByUserId: directorUser, createdByRole: "DIRECTIVA" as const, ...data,
     };
   }
-  function classification(campaignId: string, seasonId: string, data: Record<string, unknown> = {}) {
-    return { campaignId, tenantId: f.tenantA, seasonId, classifiedByUserId: directorUser, classifiedByRole: "DIRECTIVA" as const, ...data };
+  function classification(campaignId: string, seasonId: string | null, data: Record<string, unknown> = {}) {
+    return {
+      campaignId, tenantId: f.tenantA, version: 1, seasonId, classifiedByUserId: directorUser,
+      classifiedByRole: "DIRECTIVA" as const, ...data,
+    };
   }
   /**
    * Datos de una serie: la versión siguiente del ámbito (tenant, producto,
@@ -308,7 +344,7 @@ describePostgres("F12-EST-01 estimation schema", () => {
   };
   const jobData = (data: Record<string, unknown> = {}) => ({
     tenantId: f.tenantA, requestId: randomUUID(), requestHash: HASH, requestedByUserId: directorUser, requestedByRole: "DIRECTIVA" as const,
-    targetCampaignId: targets[0]!, ...data,
+    targetCampaignId: targets[0]!, maxAttempts: 3, ...data,
   });
   /** Un trabajo en cola que el trabajador ya tomó (primer intento, con plazo). */
   const runningJob = async (data: Record<string, unknown> = {}) => {
@@ -321,7 +357,7 @@ describePostgres("F12-EST-01 estimation schema", () => {
   /** Datos de la ejecución de un trabajo en curso (mismo solicitante y campaña objetivo). */
   const runOf = (job: { id: string; targetCampaignId: string; requestedByUserId: string; requestedByRole: "AGRICULTOR" | "DIRECTIVA" | "ADMINISTRADOR" }, data: Record<string, unknown> = {}) => ({
     tenantId: f.tenantA, jobId: job.id, requestedByUserId: job.requestedByUserId, requestedByRole: job.requestedByRole,
-    targetCampaignId: job.targetCampaignId, seasonId: winter, contractVersion: 1, method: "SES_NAIVE",
+    targetCampaignId: job.targetCampaignId, seasonId: winter, targetClassificationId: cls[job.targetCampaignId], contractVersion: 1, method: "SES_NAIVE",
     methodVersion: "F12-EST-04/1", parameters: { horizon: 1 }, horizon: 1, disclosureMode: "PROVISIONAL_SYNTHETIC",
     policy: "F07-POL-01", threshold: 3, outcome: "CALCULATED" as const, contentHash: HASH, ...data,
   });
@@ -338,9 +374,9 @@ describePostgres("F12-EST-01 estimation schema", () => {
         ...(await series()),
         points: {
           create: [
-            { position: 1, campaignId: olderCampaigns[0]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 120000n, sourceReleaseId: olderReleases[0]!, sourceSealId: seals.older0 },
-            { position: 2, campaignId: olderCampaigns[1]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 104000n, sourceReleaseId: olderReleases[1]!, sourceSealId: seals.older1 },
-            { position: 3, campaignId: f.campaigns.closedA, kind: "VERIFIED_CONSUMPTION", quantityBase: 0n, sourceReleaseId: zeroRelease, sourceSealId: seals.closedA },
+            { position: 1, campaignId: olderCampaigns[0]!, classificationId: cls[olderCampaigns[0]!]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 120000n, sourceReleaseId: olderReleases[0]!, sourceSealId: seals.older0 },
+            { position: 2, campaignId: olderCampaigns[1]!, classificationId: cls[olderCampaigns[1]!]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 104000n, sourceReleaseId: olderReleases[1]!, sourceSealId: seals.older1 },
+            { position: 3, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 0n, sourceReleaseId: zeroRelease, sourceSealId: seals.closedA },
           ],
         },
       },
@@ -349,7 +385,10 @@ describePostgres("F12-EST-01 estimation schema", () => {
   it("is additive: keeps every earlier row, seal, column, constraint, index and trigger, classifies nothing and does not touch DemandForecast", () => {
     expect(migrationOutput).toContain(MIGRATION);
     expect(after).toBe(before);
-    expect(JSON.parse(after).seals).toHaveLength(4);
+    expect(JSON.parse(after).seals).toHaveLength(6);
+    // La migración F07 posterior no da cobertura a ningún sellado anterior.
+    expect(coverageMigrationOutput).toContain(COVERAGE_MIGRATION);
+    expect(coverageRowsRightAfter).toBe(0);
     expect(JSON.parse(after).forecasts).toHaveLength(1);
     expect(catalogAfter).toBe(catalogBefore);
     expect(JSON.parse(catalogAfter).columns.some((c: { table_name: string }) => c.table_name === "DemandForecast")).toBe(true);
@@ -396,7 +435,7 @@ describePostgres("F12-EST-01 estimation schema", () => {
       [`DELETE FROM "ComparabilitySeason" WHERE "id" = '${autumn.id}'`, /ComparabilitySeason es inmutable/],
       [`UPDATE "CampaignSeasonClassification" SET "seasonId" = '${summer}' WHERE "campaignId" = '${olderCampaigns[0]}'`, /CampaignSeasonClassification es inmutable/],
       [`DELETE FROM "CampaignSeasonClassification" WHERE "campaignId" = '${olderCampaigns[0]}'`, /CampaignSeasonClassification es inmutable/],
-      [`TRUNCATE "CampaignSeasonClassification"`, /CampaignSeasonClassification es inmutable/],
+      [`TRUNCATE "CampaignSeasonClassification" CASCADE`, /es inmutable/],
       [`TRUNCATE "ComparabilitySeason" CASCADE`, /es inmutable/],
     ] as const;
     for (const [sql, message] of statements) {
@@ -411,9 +450,9 @@ describePostgres("F12-EST-01 estimation schema", () => {
         ...(await series()),
         points: {
           create: [
-            { position: 1, campaignId: unsealedClosedCampaign, kind: "NO_RECORD" },
-            { position: 2, campaignId: olderCampaigns[1]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 104000n, sourceReleaseId: olderReleases[1]!, sourceSealId: seals.older1 },
-            { position: 3, campaignId: f.campaigns.closedA, kind: "VERIFIED_CONSUMPTION", quantityBase: 0n, sourceReleaseId: zeroRelease, sourceSealId: seals.closedA },
+            { position: 1, campaignId: unsealedClosedCampaign, classificationId: cls[unsealedClosedCampaign]!, kind: "NO_RECORD" },
+            { position: 2, campaignId: olderCampaigns[1]!, classificationId: cls[olderCampaigns[1]!]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 104000n, sourceReleaseId: olderReleases[1]!, sourceSealId: seals.older1 },
+            { position: 3, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 0n, sourceReleaseId: zeroRelease, sourceSealId: seals.closedA },
           ],
         },
       },
@@ -424,9 +463,9 @@ describePostgres("F12-EST-01 estimation schema", () => {
         ...(await series(solid)),
         points: {
           create: [
-            { position: 1, campaignId: olderCampaigns[0]!, kind: "HIDDEN", sourceSealId: seals.older0 },
-            { position: 2, campaignId: olderCampaigns[1]!, kind: "HIDDEN", sourceSealId: seals.older1 },
-            { position: 3, campaignId: f.campaigns.closedA, kind: "NO_RECORD", sourceSealId: seals.closedA },
+            { position: 1, campaignId: olderCampaigns[0]!, classificationId: cls[olderCampaigns[0]!]!, kind: "HIDDEN", sourceSealId: seals.older0 },
+            { position: 2, campaignId: olderCampaigns[1]!, classificationId: cls[olderCampaigns[1]!]!, kind: "HIDDEN", sourceSealId: seals.older1 },
+            { position: 3, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "NO_RECORD", sourceSealId: seals.closedA },
           ],
         },
       },
@@ -441,8 +480,12 @@ describePostgres("F12-EST-01 estimation schema", () => {
       ["NO_RECORD", null],
     ]);
     type Point = Prisma.SeriesPointUncheckedCreateWithoutSeriesInput;
-    const bad = async (point: Partial<Point> & Pick<Point, "kind">, data: Record<string, unknown> = {}) =>
-      db.consumptionSeries.create({ data: { ...(await series(data)), points: { create: [{ position: 1, campaignId: f.campaigns.closedA, ...point }] } } });
+    const bad = async (point: Partial<Point> & Pick<Point, "kind">, data: Record<string, unknown> = {}) => {
+      // Sin versión propia, la de una campaña clasificada: el disparador la rechaza si no es la de esa campaña.
+      const campaignId = point.campaignId ?? f.campaigns.closedA;
+      const classificationId = cls[campaignId] ?? cls[f.campaigns.closedA]!;
+      return db.consumptionSeries.create({ data: { ...(await series(data)), points: { create: [{ position: 1, campaignId, classificationId, ...point }] } } });
+    };
     // Una ausencia o un dato oculto con cantidad (por ejemplo, cero) se rechaza.
     await expect(bad({ campaignId: unsealedClosedCampaign, kind: "NO_RECORD", quantityBase: 0n })).rejects.toThrow(/SeriesPoint_values/);
     // Una campaña sellada no admite una ausencia que no cite su sellado.
@@ -478,32 +521,32 @@ describePostgres("F12-EST-01 estimation schema", () => {
     const solid = { canonicalProductId: f.products.solidA, baseUnit: "G" };
     // Sin sellado no hay consumo comprobado, aunque la divulgación sea la vigente.
     await expect(
-      one({ position: 1, campaignId: f.campaigns.closedA, kind: "VERIFIED_CONSUMPTION", quantityBase: 0n, sourceReleaseId: zeroRelease }),
+      one({ position: 1, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 0n, sourceReleaseId: zeroRelease }),
     ).rejects.toThrow(/SeriesPoint_values/);
     // La divulgación tiene que ser la entrada DISCLOSED y visible de ese sellado.
     await expect(
-      one({ position: 1, campaignId: f.campaigns.closedA, kind: "VERIFIED_CONSUMPTION", quantityBase: 5000n, sourceReleaseId: unsealedRelease, sourceSealId: seals.closedA }, solid),
+      one({ position: 1, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 5000n, sourceReleaseId: unsealedRelease, sourceSealId: seals.closedA }, solid),
     ).rejects.toThrow(/entrada visible de ese sellado/);
     await expect(
-      one({ position: 1, campaignId: olderCampaigns[0]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 7000n, sourceReleaseId: withdrawnRelease, sourceSealId: seals.older0 }, solid),
+      one({ position: 1, campaignId: olderCampaigns[0]!, classificationId: cls[olderCampaigns[0]!]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 7000n, sourceReleaseId: withdrawnRelease, sourceSealId: seals.older0 }, solid),
     ).rejects.toThrow(/entrada visible de ese sellado/);
     // El sellado de otra campaña tampoco vale.
     await expect(
-      one({ position: 1, campaignId: olderCampaigns[0]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 120000n, sourceReleaseId: olderReleases[0]!, sourceSealId: seals.closedA }),
+      one({ position: 1, campaignId: olderCampaigns[0]!, classificationId: cls[olderCampaigns[0]!]!, kind: "VERIFIED_CONSUMPTION", quantityBase: 120000n, sourceReleaseId: olderReleases[0]!, sourceSealId: seals.closedA }),
     ).rejects.toThrow(/sellado no es de esa campaña/);
     // Un dato oculto exige el sellado que lo oculta: suprimido o con la
     // visibilidad retirada; nunca una celda visible ni una ausente.
-    await expect(one({ position: 1, campaignId: olderCampaigns[1]!, kind: "HIDDEN" }, solid)).rejects.toThrow(/SeriesPoint_values/);
-    const suppressed = await one({ position: 1, campaignId: olderCampaigns[1]!, kind: "HIDDEN", sourceSealId: seals.older1 }, solid);
+    await expect(one({ position: 1, campaignId: olderCampaigns[1]!, classificationId: cls[olderCampaigns[1]!]!, kind: "HIDDEN" }, solid)).rejects.toThrow(/SeriesPoint_values/);
+    const suppressed = await one({ position: 1, campaignId: olderCampaigns[1]!, classificationId: cls[olderCampaigns[1]!]!, kind: "HIDDEN", sourceSealId: seals.older1 }, solid);
     expect(suppressed.points[0]).toMatchObject({ kind: "HIDDEN", quantityBase: null, sourceSealId: seals.older1, sourceReleaseId: null });
-    const withdrawn = await one({ position: 1, campaignId: olderCampaigns[0]!, kind: "HIDDEN", sourceSealId: seals.older0 }, solid);
+    const withdrawn = await one({ position: 1, campaignId: olderCampaigns[0]!, classificationId: cls[olderCampaigns[0]!]!, kind: "HIDDEN", sourceSealId: seals.older0 }, solid);
     expect(withdrawn.points[0]!.kind).toBe("HIDDEN");
-    await expect(one({ position: 1, campaignId: f.campaigns.closedA, kind: "HIDDEN", sourceSealId: seals.closedA })).rejects.toThrow(/no oculta esa celda/);
-    await expect(one({ position: 1, campaignId: f.campaigns.closedA, kind: "HIDDEN", sourceSealId: seals.closedA }, solid)).rejects.toThrow(/no oculta esa celda/);
+    await expect(one({ position: 1, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "HIDDEN", sourceSealId: seals.closedA })).rejects.toThrow(/no oculta esa celda/);
+    await expect(one({ position: 1, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "HIDDEN", sourceSealId: seals.closedA }, solid)).rejects.toThrow(/no oculta esa celda/);
     // Una ausencia que cita un sellado corresponde a ninguna entrada de esa celda.
-    await expect(one({ position: 1, campaignId: f.campaigns.closedA, kind: "NO_RECORD", sourceSealId: seals.closedA })).rejects.toThrow(/tiene una entrada de consumo/);
-    await expect(one({ position: 1, campaignId: olderCampaigns[1]!, kind: "NO_RECORD", sourceSealId: seals.older1 }, solid)).rejects.toThrow(/tiene una entrada de consumo/);
-    const absent = await one({ position: 1, campaignId: f.campaigns.closedA, kind: "NO_RECORD", sourceSealId: seals.closedA }, solid);
+    await expect(one({ position: 1, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "NO_RECORD", sourceSealId: seals.closedA })).rejects.toThrow(/tiene una entrada de consumo/);
+    await expect(one({ position: 1, campaignId: olderCampaigns[1]!, classificationId: cls[olderCampaigns[1]!]!, kind: "NO_RECORD", sourceSealId: seals.older1 }, solid)).rejects.toThrow(/tiene una entrada de consumo/);
+    const absent = await one({ position: 1, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "NO_RECORD", sourceSealId: seals.closedA }, solid);
     expect(absent.points[0]!.sourceSealId).toBe(seals.closedA);
     // La serie completa conserva sellado y divulgación de cada cifra.
     const full = await fullSeries();
@@ -519,7 +562,7 @@ describePostgres("F12-EST-01 estimation schema", () => {
     const v1 = await db.consumptionSeries.create({ data: await series({ canonicalProductId: f.products.otherUnitA }) });
     const scope = { canonicalProductId: f.products.otherUnitA };
     await expect(
-      db.seriesPoint.create({ data: { seriesId: v1.id, position: 1, campaignId: f.campaigns.closedA, kind: "NO_RECORD" } }),
+      db.seriesPoint.create({ data: { seriesId: v1.id, position: 1, campaignId: f.campaigns.closedA, classificationId: cls[f.campaigns.closedA]!, kind: "NO_RECORD" } }),
     ).rejects.toThrow(/no admite puntos posteriores/);
     await expect(db.consumptionSeries.create({ data: await series({ ...scope, version: 2, previousSeriesId: null }) })).rejects.toThrow(/ConsumptionSeries_values/);
     await expect(
@@ -557,17 +600,33 @@ describePostgres("F12-EST-01 estimation schema", () => {
     await expect(set(queued.id, { status: "RUNNING" })).rejects.toThrow(/EstimationJob_values/);
     const lease = () => new Date(Date.now() + 300000);
     await set(queued.id, { status: "RUNNING", attempts: 1, startedAt: new Date(), leaseExpiresAt: lease() });
-    // Otro intento tras vencer el plazo; los intentos no disminuyen.
+    // Otro intento (el trabajador lo toma al vencer el plazo o tras un error transitorio); los intentos no disminuyen.
     await set(queued.id, { attempts: 2, startedAt: new Date(), leaseExpiresAt: lease() });
     await expect(set(queued.id, { attempts: 1 })).rejects.toThrow(/no disminuyen/);
     await expect(set(queued.id, { startedAt: new Date(), leaseExpiresAt: lease() })).rejects.toThrow(/otro intento aumenta los intentos/);
     await expect(set(queued.id, { status: "QUEUED", attempts: 0, startedAt: null, leaseExpiresAt: null })).rejects.toThrow(/transición no admitida de RUNNING a QUEUED/);
     // COMPLETED exige su ejecución.
     await expect(set(queued.id, { status: "COMPLETED", finishedAt: new Date(), leaseExpiresAt: null })).rejects.toThrow(/exige su ejecución/);
-    await expect(set(queued.id, { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode: "OTRO" })).rejects.toThrow(/EstimationJob_values/);
+    // Los intentos no superan el máximo fijado al encolar (EST-D-16).
+    await expect(set(queued.id, { attempts: 4, startedAt: new Date(), leaseExpiresAt: lease() })).rejects.toThrow(/EstimationJob_values/);
+    // El máximo se fija al encolar: ni subirlo para reintentar sin límite ni bajarlo para agotar antes.
+    await expect(set(queued.id, { maxAttempts: 10 })).rejects.toThrow(/la petición no cambia/);
+    await expect(set(queued.id, { maxAttempts: 2 })).rejects.toThrow(/la petición no cambia/);
+    // EST-D-15: una parada lleva su motivo cerrado y lo observado, y la base
+    // comprueba lo que puede ver.
+    const stop = (stopCode: string, stopEvidence?: object) =>
+      set(queued.id, { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode, ...(stopEvidence ? { stopEvidence } : {}) });
+    await expect(stop("OTRO", { observed: true })).rejects.toThrow(/EstimationJob_values/);
     await expect(set(queued.id, { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null })).rejects.toThrow(/EstimationJob_values/);
-    const stopped = await set(queued.id, { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode: "ATTEMPTS_EXHAUSTED" });
-    expect(stopped.status).toBe("NOT_EXECUTED");
+    await expect(stop("OTRO")).rejects.toThrow(/EstimationJob_values/);
+    await expect(stop("POLICY_PENDING")).rejects.toThrow(/no registra el modo POLICY_PENDING/);
+    await expect(stop("POLICY_PENDING", { disclosure_mode: "PROVISIONAL_SYNTHETIC" })).rejects.toThrow(/no registra el modo POLICY_PENDING/);
+    await expect(stop("REQUESTER_NOT_AUTHORIZED", { member_active: false })).rejects.toThrow(/el solicitante sigue autorizado/);
+    await expect(stop("TARGET_CAMPAIGN_NOT_ELIGIBLE", { campaign_status: "CERRADA" })).rejects.toThrow(/sigue siendo admisible/);
+    // ATTEMPTS_EXHAUSTED ya no es una parada: es una ejecución FAILED (RETRIES_EXHAUSTED).
+    await expect(stop("ATTEMPTS_EXHAUSTED", { attempts: 2 })).rejects.toThrow(/EstimationJob_values/);
+    const stopped = await stop("POLICY_PENDING", { disclosure_mode: "POLICY_PENDING", observed_at: new Date().toISOString() });
+    expect(stopped).toMatchObject({ status: "NOT_EXECUTED", stopCode: "POLICY_PENDING", stopEvidence: { disclosure_mode: "POLICY_PENDING" } });
     // Un trabajo terminado no cambia ni se borra.
     await expect(set(queued.id, { attempts: 3 })).rejects.toThrow(/terminado no cambia/);
     await expect(db.$executeRawUnsafe(`DELETE FROM "EstimationJob" WHERE "id" = '${queued.id}'`)).rejects.toThrow(/EstimationJob no se borra/);
@@ -588,7 +647,9 @@ describePostgres("F12-EST-01 estimation schema", () => {
     const root = await db.estimationRun.findUniqueOrThrow({ where: { jobId: job.id } });
     await db.estimationRun.create({ data: runOf(withRun, { previousRunId: root.id }) });
     await expect(set(withRun.id, { attempts: 2, startedAt: new Date(), leaseExpiresAt: lease() })).rejects.toThrow(/sólo pasa a COMPLETED/);
-    await expect(set(withRun.id, { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode: "ATTEMPTS_EXHAUSTED" })).rejects.toThrow(/sólo pasa a COMPLETED/);
+    await expect(
+      set(withRun.id, { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode: "POLICY_PENDING", stopEvidence: { disclosure_mode: "POLICY_PENDING" } }),
+    ).rejects.toThrow(/sólo pasa a COMPLETED/);
     expect((await set(withRun.id, { status: "COMPLETED", finishedAt: new Date(), leaseExpiresAt: null })).status).toBe("COMPLETED");
   });
 
@@ -618,15 +679,148 @@ describePostgres("F12-EST-01 estimation schema", () => {
     await expect(db.estimationRun.create({ data: runOf(pending) })).rejects.toThrow(/no es miembro activo del tenant con ese rol/);
     const stopped = await db.estimationJob.update({
       where: { id: pending.id },
-      data: { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode: "REQUESTER_NOT_AUTHORIZED" },
+      data: { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode: "REQUESTER_NOT_AUTHORIZED", stopEvidence: { member_active: false } },
     });
     expect(stopped.stopCode).toBe("REQUESTER_NOT_AUTHORIZED");
     expect(await db.estimationRun.count({ where: { jobId: pending.id } })).toBe(0);
+    // EST-D-16: una ejecución iniciada que agota sus reintentos transitorios es
+    // FAILED con RETRIES_EXHAUSTED, distinta de una parada antes de calcular.
+    const transient = await runningJob({ targetCampaignId: targets[12]! });
+    const exhausted = { outcome: "FAILED" as const, failureCode: "RETRIES_EXHAUSTED" };
+    await expect(db.estimationRun.create({ data: runOf(transient, exhausted) })).rejects.toThrow(/los reintentos no están agotados/);
+    for (const attempts of [2, 3]) {
+      await db.estimationJob.update({ where: { id: transient.id }, data: { attempts, startedAt: new Date(), leaseExpiresAt: new Date(Date.now() + 300000) } });
+    }
+    expect((await db.estimationRun.create({ data: runOf(transient, exhausted) })).failureCode).toBe("RETRIES_EXHAUSTED");
+    await expect(db.estimationRun.create({ data: runOf(await runningJob({ targetCampaignId: targets[13]! }), { outcome: "FAILED", failureCode: "SOURCES_UNAVAILABLE" }) })).rejects.toThrow(
+      /EstimationRun_values/,
+    );
     // Lo mismo si se desactiva la cuenta y el Member sigue activo.
     const disabled = await person("Directiva con cuenta desactivada después");
     const waiting = await runningJob({ requestedByUserId: disabled, targetCampaignId: targets[8]! });
     await db.user.update({ where: { id: disabled }, data: { isActive: false } });
     await expect(db.estimationRun.create({ data: runOf(waiting) })).rejects.toThrow(/no es miembro activo del tenant con ese rol/);
+  });
+
+  it("corrects a classification with a reason, as a new version, and keeps the version that earlier series and runs used (EST-D-14)", async () => {
+    // La versión 1 asigna una temporada; sin temporada sólo cabe una corrección.
+    await expect(db.campaignSeasonClassification.create({ data: classification(f.campaigns.openA, null) })).rejects.toThrow(/CampaignSeasonClassification_values/);
+    const v1 = cls[reclassified]!;
+    const before = await db.consumptionSeries.create({
+      data: { ...(await series({ canonicalProductId: f.products.solidA, baseUnit: "G" })), points: { create: [{ position: 1, campaignId: reclassified, classificationId: v1, kind: "NO_RECORD" }] } },
+    });
+    const correction = (data: Record<string, unknown>) =>
+      db.campaignSeasonClassification.create({ data: classification(reclassified, summer, { version: 2, previousClassificationId: v1, ...data }) });
+    await expect(correction({})).rejects.toThrow(/CampaignSeasonClassification_values/);
+    await expect(correction({ reason: "   " })).rejects.toThrow(/CampaignSeasonClassification_values/);
+    await expect(correction({ reason: "Misma temporada", seasonId: winter })).rejects.toThrow(/no cambia la temporada/);
+    await expect(correction({ reason: "Otra campaña", previousClassificationId: cls[olderCampaigns[0]!] })).rejects.toThrow(/no sucede a la versión anterior/);
+    await expect(correction({ reason: "Salto de versión", version: 3 })).rejects.toThrow(/no sucede a la versión anterior/);
+    await expect(correction({ reason: "Sin anterior", previousClassificationId: null })).rejects.toThrow(/CampaignSeasonClassification_values/);
+    const v2 = await correction({ reason: "La campaña de 2020 se sembró en verano, no en invierno" });
+    expect(v2).toMatchObject({ version: 2, previousClassificationId: v1, seasonId: summer });
+    // Sólo se corrige la vigente: otra corrección de la versión 1 sobra.
+    await expect(correction({ reason: "Corrección concurrente", seasonId: null })).rejects.toThrow(/Unique constraint failed/);
+
+    // La serie anterior conserva la versión que usó; una serie nueva cita la vigente.
+    expect((await db.seriesPoint.findFirstOrThrow({ where: { seriesId: before.id } })).classificationId).toBe(v1);
+    const solidSummer = { canonicalProductId: f.products.solidA, baseUnit: "G" };
+    const point = (classificationId: string) => ({ position: 1, campaignId: reclassified, classificationId, kind: "NO_RECORD" as const });
+    await expect(
+      db.consumptionSeries.create({ data: { ...(await series({ canonicalProductId: f.products.solidA, baseUnit: "G" })), points: { create: [point(v1)] } } }),
+    ).rejects.toThrow(/esa versión vigente/);
+    await expect(
+      db.consumptionSeries.create({ data: { ...(await series({ canonicalProductId: f.products.solidA, baseUnit: "G" })), points: { create: [point(v2.id)] } } }),
+    ).rejects.toThrow(/esa versión vigente/);
+    const after = await db.consumptionSeries.create({ data: { ...(await series({ ...solidSummer, seasonId: summer })), points: { create: [point(v2.id)] } } });
+    expect(after.seasonId).toBe(summer);
+
+    // Una corrección puede dejar la campaña sin clasificar; deja de servir para series.
+    const v3 = await db.campaignSeasonClassification.create({
+      data: classification(reclassified, null, { version: 3, previousClassificationId: v2.id, reason: "No es comparable con ninguna temporada" }),
+    });
+    expect(v3.seasonId).toBeNull();
+    await expect(
+      db.consumptionSeries.create({ data: { ...(await series({ ...solidSummer, seasonId: summer })), points: { create: [point(v2.id)] } } }),
+    ).rejects.toThrow(/esa versión vigente/);
+    const history = await db.campaignSeasonClassification.findMany({ where: { campaignId: reclassified }, orderBy: { version: "asc" } });
+    expect(history.map((k) => [k.version, k.seasonId, k.reason !== null])).toEqual([
+      [1, winter, false],
+      [2, summer, true],
+      [3, null, true],
+    ]);
+
+    // Ejecuciones: la anterior conserva la versión de su campaña objetivo; la
+    // siguiente cita la vigente y su temporada.
+    const target = targets[10]!;
+    const first = await db.estimationRun.create({ data: runOf(await runningJob({ targetCampaignId: target })) });
+    const moved = await db.campaignSeasonClassification.create({
+      data: classification(target, summer, { version: 2, previousClassificationId: cls[target], reason: "Objetivo de verano" }),
+    });
+    expect((await db.estimationRun.findUniqueOrThrow({ where: { id: first.id } })).targetClassificationId).toBe(cls[target]);
+    const next = await runningJob({ targetCampaignId: target });
+    await expect(db.estimationRun.create({ data: runOf(next, { previousRunId: first.id }) })).rejects.toThrow(/esa versión vigente/);
+    await expect(db.estimationRun.create({ data: runOf(next, { previousRunId: first.id, targetClassificationId: moved.id }) })).rejects.toThrow(/esa versión vigente/);
+    const second = await db.estimationRun.create({
+      data: runOf(next, { previousRunId: first.id, targetClassificationId: moved.id, seasonId: summer }),
+    });
+    expect(second).toMatchObject({ seasonId: summer, targetClassificationId: moved.id });
+
+    // Un objetivo que queda sin clasificar no admite trabajos, y uno en curso
+    // termina sin ejecutarse con un motivo que la base comprueba.
+    const declassified = targets[11]!;
+    const waiting = await runningJob({ targetCampaignId: declassified });
+    const stopWaiting = () =>
+      db.estimationJob.update({
+        where: { id: waiting.id },
+        data: { status: "NOT_EXECUTED", finishedAt: new Date(), leaseExpiresAt: null, stopCode: "TARGET_CAMPAIGN_NOT_ELIGIBLE", stopEvidence: { classified: false, campaign_status: "PLANIFICADA" } },
+      });
+    await expect(stopWaiting()).rejects.toThrow(/sigue siendo admisible/);
+    await db.campaignSeasonClassification.create({
+      data: classification(declassified, null, { version: 2, previousClassificationId: cls[declassified], reason: "Sin temporada comparable" }),
+    });
+    await expect(db.estimationJob.create({ data: jobData({ targetCampaignId: declassified }) })).rejects.toThrow(/campaña objetivo no está clasificada/);
+    expect((await stopWaiting()).stopCode).toBe("TARGET_CAMPAIGN_NOT_ELIGIBLE");
+  });
+
+  it("serves synthetic sources sealed before the consumption coverage as unknown and those sealed after as identified (EST-D-09)", async () => {
+    const autumn = (await db.comparabilitySeason.create({ data: seasonData("COBERTURA") })).id;
+    const sources = [...legacySources, ...coveredSources];
+    const versions: Record<string, string> = {};
+    for (const source of sources) {
+      versions[source.campaignId] = (await db.campaignSeasonClassification.create({ data: classification(source.campaignId, autumn) })).id;
+    }
+    const built = await db.consumptionSeries.create({
+      data: {
+        ...(await series({ seasonId: autumn })),
+        points: {
+          create: sources.map((source, index) => ({
+            position: index + 1, campaignId: source.campaignId, classificationId: versions[source.campaignId]!,
+            kind: "VERIFIED_CONSUMPTION" as const, quantityBase: source.quantityBase, sourceReleaseId: source.releaseId, sourceSealId: source.sealId,
+          })),
+        },
+      },
+      include: { points: { orderBy: { position: "asc" }, include: { sourceSeal: { include: { consumptionCoverage: true } } } } },
+    });
+    // La cobertura no está en el punto: se lee de su sellado. Los anteriores
+    // no tienen fila (desconocida); los nuevos, N de M de participación.
+    expect(built.points.map((p) => [p.quantityBase, p.sourceSeal!.consumptionCoverage])).toEqual([
+      [50000n, null],
+      [60000n, null],
+      [70000n, { sealId: coveredSources[0]!.sealId, status: "IDENTIFIED", linkedMembers: 5, membersInPublishedFigures: 3 }],
+      [0n, { sealId: coveredSources[1]!.sealId, status: "IDENTIFIED", linkedMembers: 5, membersInPublishedFigures: 3 }],
+      [90000n, { sealId: coveredSources[2]!.sealId, status: "IDENTIFIED", linkedMembers: 5, membersInPublishedFigures: 3 }],
+    ]);
+    // Un sellado sintético con POPULATION_MISMATCH no lleva fracción: también desconocida.
+    const [mismatch] = await sealedConsumptionCampaigns(db, {
+      tenantId: f.tenantA, sealedByUserId: directorUser, canonicalProductId: f.products.liquidA, baseUnit: "ML",
+      firstYear: 2020, quantities: [65000n], namePrefix: "Campaña sintética con poblaciones distintas", coverage: { status: "POPULATION_MISMATCH" },
+    });
+    expect(await db.collectiveSealConsumptionCoverage.findUniqueOrThrow({ where: { sealId: mismatch!.sealId } })).toEqual({
+      sealId: mismatch!.sealId, status: "POPULATION_MISMATCH", linkedMembers: null, membersInPublishedFigures: null,
+    });
+    // Los sellados de esta suite anteriores a la cobertura tampoco la tienen.
+    expect(await db.collectiveSealConsumptionCoverage.count({ where: { sealId: { in: Object.values(seals) } } })).toBe(0);
   });
 
   it("stores figures only for ESTIMATED results, never in a failed run, and only with their run (RN-28)", async () => {

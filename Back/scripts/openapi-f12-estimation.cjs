@@ -20,6 +20,8 @@ const migrationDir = readdirSync(resolve(__dirname, "../prisma/migrations")).fin
 assert.ok(migrationDir, "Falta la migración f12_est_01_estimation");
 const migration = read(`../prisma/migrations/${migrationDir}/migration.sql`);
 const schemas = spec.components.schemas;
+/** El enum de un esquema, también anulable. */
+const enumOfNullable = (schema) => schema.enum ?? schema.allOf?.[0]?.enum;
 
 // 1. Documento y estado declarado.
 assert.equal(spec.openapi, "3.0.3");
@@ -61,6 +63,8 @@ const expected = {
     post: op(DIR, ["201", "400", "401", "403", "404", "409"]),
     get: op(DIR, ["200", "400", "401", "403", "404"]),
   },
+  "/api/v1/estimation/campaign-classifications/{campaignId}/corrections": { post: op(DIR, ["201", "400", "401", "403", "404", "409", "422"]) },
+  "/api/v1/estimation/campaign-classifications/{campaignId}/history": { get: op(DIR, ["200", "400", "401", "403", "404"]) },
   "/api/v1/estimation/runs": { get: op(DIR, ["200", "400", "401", "403", "404", "409"], true) },
   "/api/v1/estimation/runs/{runId}": { get: op(DIR, ["200", "400", "401", "403", "404", "409"], true) },
   "/api/v1/estimation/results": { get: op(ALL, ["200", "400", "401", "403", "404", "409"], true) },
@@ -91,7 +95,8 @@ assert.match(generate.responses["403"].description, /No se ejecuta ni se registr
 assert.match(generate.responses["422"].description, /TARGET_CAMPAIGN_NOT_CLASSIFIED/);
 assert.deepEqual(schemas.GenerateRequest.required, ["contract_version", "request_id", "target_campaign_ref"]);
 assert.deepEqual(schemas.ErrorCode.enum.slice().sort(), [
-  "CAMPAIGN_ALREADY_CLASSIFIED", "CAMPAIGN_NOT_FOUND", "JOB_NOT_FOUND", "POLICY_PENDING", "PRODUCT_NOT_ESTIMABLE",
+  "CAMPAIGN_ALREADY_CLASSIFIED", "CAMPAIGN_NOT_FOUND", "CLASSIFICATION_NOT_FOUND", "CLASSIFICATION_STALE", "CLASSIFICATION_UNCHANGED",
+  "JOB_NOT_FOUND", "POLICY_PENDING", "PRODUCT_NOT_ESTIMABLE",
   "PRODUCT_NOT_FOUND", "REQUEST_ID_REUSED", "RUN_NOT_FOUND", "SEASON_KEY_TAKEN", "SEASON_NOT_FOUND",
   "TARGET_CAMPAIGN_NOT_CLASSIFIED", "TARGET_CAMPAIGN_NOT_ELIGIBLE", "TARGET_CAMPAIGN_NOT_FOUND",
 ]);
@@ -100,9 +105,28 @@ assert.deepEqual(schemas.ErrorCode.enum.slice().sort(), [
 assert.deepEqual(schemas.SeasonCreateRequest.required, ["contract_version", "key", "definition", "duration_days"]);
 assert.deepEqual(schemas.SeasonRef.required, ["season_ref", "key", "definition", "duration_days"]);
 for (const name of ["RunSummary", "Run"]) assert.equal(schemas[name].properties.season.$ref, "#/components/schemas/SeasonRef", `${name}.season`);
-// EST-D-09: sin fuente verificable, la cobertura es siempre desconocida y sin cifras.
-assert.deepEqual(schemas.Coverage.properties.status.enum, ["UNKNOWN"]);
-assert.deepEqual(Object.keys(schemas.Coverage.properties), ["status"]);
+// EST-D-14: una corrección es una versión nueva con motivo; ejecuciones y
+// puntos citan la versión que usaron.
+assert.deepEqual(schemas.ClassificationCorrectionRequest.required, ["contract_version", "previous_classification_ref", "season_ref", "reason"]);
+for (const key of ["classification_ref", "version", "previous_classification_ref", "reason", "current"]) assert.ok(key in schemas.Classification.properties, `Classification.${key}`);
+for (const name of ["RunSummary", "Run"]) assert.ok("target_classification_ref" in schemas[name].properties, `${name}.target_classification_ref`);
+assert.ok("classification_ref" in schemas.SeriesPoint.properties, "SeriesPoint.classification_ref");
+// EST-D-09: la cobertura es la que registró el sellado (IDENTIFIED con N y M,
+// o UNKNOWN con su motivo), mide participación y no se compara con ningún mínimo.
+assert.deepEqual(schemas.Coverage.properties.status.enum, ["IDENTIFIED", "UNKNOWN"]);
+assert.deepEqual(enumOfNullable(schemas.Coverage.properties.unknown_reason), ["SEALED_BEFORE_COVERAGE", "POPULATION_MISMATCH", "NOT_SEALED"]);
+assert.deepEqual(schemas.Coverage.properties.measures.enum, ["PARTICIPATION_NOT_COMPLETENESS"]);
+for (const name of ["Coverage", "SpanCoverage", "CampaignCoverage"]) {
+  for (const key of Object.keys(schemas[name].properties)) assert.ok(!/percent|ratio|minimum|threshold|share/i.test(key), `${name}.${key}: sin mínimo ni porcentaje`);
+}
+assert.equal(schemas.InstitutionalResult.properties.coverage.$ref, "#/components/schemas/SpanCoverage");
+// EST-D-15 y 16: una parada lleva lo observado; los intentos tienen máximo.
+assert.ok(schemas.Job.properties.stop_evidence, "Job.stop_evidence");
+assert.equal(schemas.Job.properties.stop_evidence.allOf?.[0]?.$ref, "#/components/schemas/StopEvidence");
+assert.ok("max_attempts" in schemas.Job.properties, "Job.max_attempts");
+// Retención: la del período académico, con la institucional pendiente en GOV-02.
+assert.match(spec.info["x-retention"] ?? "", /GOV-02/);
+assert.match(spec.info["x-retention"] ?? "", /no hay una conservación perpetua aprobada/);
 // EST-D-05: el perfil del Agricultor declara la exigencia de política institucional.
 for (const route of ["/api/v1/estimation/results", "/api/v1/estimation/download"]) {
   assert.match(spec.paths[route].get["x-policy-requirement"] ?? "", /política\s+institucional/, `${route}: exigencia de política`);
@@ -192,6 +216,9 @@ for (const name of ["ResultDetail", "InstitutionalResult", "FarmerResult", "Inst
 }
 for (const name of ["RunSummary", "Run"]) assert.deepEqual(schemas[name].properties.outcome.enum, prismaEnum("EstimationRunOutcome"), `${name}.outcome`);
 assert.deepEqual(schemas.Job.properties.status.enum, prismaEnum("EstimationJobStatus"), "Job.status");
+// La cobertura que guarda el sellado: IDENTIFIED se sirve igual; POPULATION_MISMATCH, como UNKNOWN con ese motivo.
+assert.deepEqual(prismaEnum("ConsumptionCoverageStatus"), ["IDENTIFIED", "POPULATION_MISMATCH"]);
+assert.ok(schemas.Coverage.properties.unknown_reason.enum.includes("POPULATION_MISMATCH"));
 const checkList = (column) => {
   const match = migration.match(new RegExp(`"${column}" IN \\(([^)]*)\\)`));
   assert.ok(match, `Migración: falta la lista cerrada de ${column}`);

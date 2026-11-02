@@ -1,9 +1,9 @@
 # F12-EST-01 — Contrato INT-09: estimación del consumo (v1)
 
-- **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado el 2026-11-02 (UTC) con las decisiones del autor del §11.
+- **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado dos veces el 2026-11-02 (UTC) con las decisiones del autor del §11.
 - **Estado:** **especificación**. Es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
   - **Ninguna ruta está implementada:** no hay controladores, casos de uso, trabajador por lotes ni motor de cálculo.
-  - **Lo único construido** en este bloque es el esquema de datos (§6), con su migración aditiva.
+  - **Lo construido** es el esquema de datos (§6), con su migración aditiva, y la cobertura de consumo de los sellados F07 nuevos (§3.1), que sí está implementada en el caso de uso del sellado.
 - **Issue:** [#174](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/174) (F12-EST-01), entregable E7.1 de 3.13.2. Lo siguen F12-EST-02 a F12-EST-08.
 - **Bases:**
   - Backend `main` `b81ff23`.
@@ -28,10 +28,11 @@ La discrepancia EST-D-01 queda resuelta por [ADR-004](../adr/ADR-004-estimacion-
   - recomendaciones y decisiones automáticas;
   - sumar la estimación a necesidades, propuestas, compras o inventarios (RN-29).
 - **Textos alineados:** `CURRENT_SCOPE.md` §11, `AGENTS.md`, `Back/AGENTS.md` y `Web/AGENTS.md`. La ADR conserva el texto anterior.
-- **Textos no modificados** porque esta decisión no los autorizó. ADR-004 los lista:
-  - `F06_COLLECTIVE_PROJECTION_CONTRACT.md` §1 («No hay … forecasting, IA, recomendación»), sobre la proyección colectiva F06;
-  - `F07_SEALED_HISTORY_CONTRACT.md` §8 («No incluye forecasting»), sobre las tendencias F07.
-  La estimación no forma parte de esa proyección ni de esas tendencias: solo lee sus cifras publicadas. Aun así, el texto general de F06 puede leerse como contrario y queda pendiente (§11.3).
+- **F06 acotado** (decisión del autor del 2026-11-02, UTC). `F06_COLLECTIVE_PROJECTION_CONTRACT.md` §1 ya no excluye el pronóstico en general:
+  - F06 conserva su responsabilidad de proyección colectiva y no calcula pronósticos;
+  - F12 calcula SES/naive en un módulo aparte, solo con cifras publicadas y selladas permitidas;
+  - no se amplía el acceso a datos privados ni las reglas de divulgación.
+- **No cambia** `F07_SEALED_HISTORY_CONTRACT.md` §8 («No incluye forecasting»): las tendencias F07 siguen sin estimación.
 
 ## 1. Conceptos que no se confunden
 
@@ -112,9 +113,10 @@ La serie solo usa cifras ya publicadas y selladas (§3).
    - Un producto cuya unidad central no es enlazable (`baseUnitForCentralUnit` = null), o que no es canónico, **no es estimable**:
      - si se pide en `product_refs`, la respuesta es **422 `PRODUCT_NOT_ESTIMABLE`**;
      - por defecto no se incluye, porque Sync v1 solo publica consumo de unidades enlazables.
-2. **Comparabilidad (EST-D-02).** Son comparables las campañas **clasificadas explícitamente** en la misma temporada.
+2. **Comparabilidad (EST-D-02, EST-D-14).** Son comparables las campañas cuya clasificación **vigente** es la misma temporada.
    - La Directiva define la temporada (`ComparabilitySeason`): clave de comparabilidad, definición y duración nominal en días.
-   - Después clasifica cada campaña en una temporada (`CampaignSeasonClassification`), una sola vez.
+   - Después clasifica cada campaña en una temporada (`CampaignSeasonClassification`, versión 1).
+   - **Corrección:** una clasificación equivocada se corrige con una **versión nueva**, que exige un motivo y referencia a la vigente. Puede cambiar la temporada o dejar la campaña sin clasificar. Ninguna versión se reescribe (§4.1).
    - **Nada se infiere** de nombres ni de fechas.
    - Las campañas anteriores sin clasificación comprobada **quedan sin clasificar**: la migración no crea ninguna clasificación, y una campaña sin clasificar no entra en ninguna serie ni admite trabajos como campaña objetivo. La base lo garantiza; el 422 de la API está solo especificado.
    - Clasificar una campaña ya sellada **no altera** su sellado: la clasificación vive en otra tabla.
@@ -128,38 +130,68 @@ La serie solo usa cifras ya publicadas y selladas (§3).
      - una campaña clasificada pero sin sellar da `NO_RECORD`, sin sellado. Nunca da consumo comprobado. La base no admite un `NO_RECORD` sin sellado en una campaña sellada.
    - **Al consultar se vuelve a comprobar la divulgación** (§4.3): una cifra que ya no se divulga se entrega oculta, y sus resultados, sin cifras.
 4. **Canónico.** El producto canónico es el vigente según `ProductCanonicalAssociation`, como en la consolidación F06; la base rechaza una denominación asociada.
-   - Un cambio de asociaciones, de cifras o de clasificaciones crea una **versión nueva** de la serie (`version + 1`, `previousSeriesId`).
+   - Un cambio de asociaciones, de cifras o de clasificaciones (una corrección) crea una **versión nueva** de la serie (`version + 1`, `previousSeriesId`).
+   - Cada punto cita la versión de la clasificación que usó (`classificationId`), y la base solo admite la vigente al construir.
    - La anterior se conserva con las ejecuciones que la usaron.
 5. **Política pendiente.** Si la política de divulgación está en `POLICY_PENDING`, no hay cifras publicadas:
    - **no se encola ni se registra** nada: **409 `POLICY_PENDING`**, el mismo código que ya usan las propuestas;
    - si pasa a pendiente con un trabajo en cola, el trabajo termina `NOT_EXECUTED` con `POLICY_PENDING`, sin ejecución;
    - **ninguna lectura entrega cifras:** también 409 (§4.3);
    - la base rechaza una ejecución con `disclosureMode = POLICY_PENDING`.
-6. **Cobertura (EST-D-09).** La cobertura «N de M» exigida por RN-25 se trata en el punto 7.
+6. **Cobertura (EST-D-09).** La cobertura «N de M» que exige RN-25 se define en el §3.1.
 
-### 3.1 Cobertura: lo que hay en F07 y lo que falta (EST-D-09)
+### 3.1 Cobertura del consumo (EST-D-09)
 
-**Comprobado en el código y el esquema F07** (`collective-summary.use-case.ts`, `collective-seal.use-case.ts` y la migración `20261023100000_f07_collective_seal`). `CollectiveSeal` guarda una sola cobertura **por campaña**, fijada al sellar y nunca recalculada:
+**Lo que había.** `CollectiveSeal` guarda una cobertura general por campaña (F07 §5.2):
+- M = `linkedMembers`;
+- N = `membersWithContribution`, los Members de **alguna** cifra publicada, de **necesidad o de consumo**.
 
-| Campo | Significado comprobado |
+Es la «cobertura general» de 3.12.6.3, y **no se acepta** para la estimación porque mezcla necesidades y consumo (decisión del autor).
+
+**Lo que hay ahora (implementado).** Desde la migración `20261102020000_f07_seal_consumption_coverage`, cada **sellado nuevo** guarda `CollectiveSealConsumptionCoverage`, en la misma transacción e inmutable. Definición exacta (F07 §5.3):
+
+| Elemento | Definición |
 |---|---|
-| `linkedMembers` (M) | Members `AGRICULTOR` activos, con cuenta activa, del sindicato **en el momento del sellado** (`linkedMembers()`) |
-| `membersWithContribution` (N) | Members distintos que forman parte de **alguna** cifra publicada de la campaña (`publishedMembers()`), de **necesidad o de consumo**. Incluye a los Members de una cifra anterior que se sigue mostrando (`SHOW_PRIOR`), que pueden no estar ya en M. Desde F10-SEC-02 (2026-10-16) no cuenta los aportantes de celdas suprimidas; el sellado existe desde el 2026-10-23, así que todos los sellados usan esta regla |
+| **M** (`linkedMembers`) | Members `AGRICULTOR` activos, con cuenta activa, del sindicato, leídos en la misma decisión del sellado. Igual a `CollectiveSeal.linkedMembers`, y la base lo exige |
+| **N** (`membersInPublishedFigures`) | Members distintos con un aporte dentro de alguna cifra de `CONSUMPTION_TOTAL` **mostrada** por esa decisión: nueva (`RELEASE`) o anterior que se sigue mostrando (`SHOW_PRIOR`). Sin necesidades ni aportantes de celdas sin cifra |
+| **Estado** | `IDENTIFIED`, con N y M y 0 ≤ N ≤ M, o `POPULATION_MISMATCH`, sin fracción |
 
-Es la «cobertura general» de 3.12.6.3. Su numerador **mezcla** necesidades y consumo: no identifica cuántos agricultores forman parte del consumo publicado. **No hay** en F07 una cobertura del consumo por campaña ni por cifra.
+**Misma población, comprobada en el código F07.**
+- La regla 3 de F07-POL-01 retira una cifra en cuanto un Member de ella sale de la celda (`decideCell` y `decideCellWithRelated`). Por eso `SHOW_PRIOR` solo se da si **ningún** Member de la cifra anterior ha salido, y sus Members están en M.
+- La advertencia anterior de este contrato, según la cual `SHOW_PRIOR` podía incluir a agricultores inactivos, era **incorrecta**.
+- La cifra de quien se fue no se excluye en silencio: se retira y queda rotulada `SUPPRESSED_*`.
+- Como la decisión lee en `READ COMMITTED`, una baja entre dos lecturas podría dejar un Member de N fuera de M. En ese caso no se registra ninguna fracción (`POPULATION_MISMATCH`), y F12 la trata como desconocida.
+
+**Lo que acredita:** cuántos agricultores vinculados al sellar forman parte de alguna cifra de consumo publicada de esa campaña. Es **participación**.
+
+**Lo que no acredita:**
+- **Integridad:** que esos N registraran todo su consumo.
+- **Consumo de los demás:** la ausencia de publicación de los M − N es desconocida, **nunca cero**.
+- **Un mínimo:** no se introduce ningún porcentaje mínimo. RN-25 exige cobertura **identificada**, no un umbral, y fijar uno sería una regla nueva sin justificación en el documento.
 
 **Lo que no se usa como sustituto:**
-- el número de aportantes de una fila (`CollectiveRelease.contributorCount`), que es otra cosa y la política no lo entrega;
-- la membresía actual, que no es la de la fecha de corte.
+- el número de aportantes de una fila (`contributorCount`);
+- la membresía actual;
+- la cobertura general.
 
-**Consecuencia en v1.** La base **no guarda** ninguna cobertura de punto: no hay columnas para ella, porque no existe una fuente verificable que copiar. El cálculo (F12-EST-03) informa `INCOMPATIBLE_DATA` con `COVERAGE_UNKNOWN`, sin cifras, cuando RN-25 exige la cobertura. Ninguna cifra histórica se reconstruye.
+**Cómo la usa F12** (F12-EST-03, especificado):
+- **Por punto.** Cada punto lee la cobertura de su sellado por `sourceSealId`, sin copiarla. El punto no tiene columnas de cobertura.
+  - Sellado con fila `IDENTIFIED`: N de M.
+  - Sellado anterior a la migración: `UNKNOWN`, `SEALED_BEFORE_COVERAGE`.
+  - `POPULATION_MISMATCH`: `UNKNOWN`, `POPULATION_MISMATCH`.
+  - Campaña sin sellar: `UNKNOWN`, `NOT_SEALED`.
+- **Por resultado.** Un resultado solo puede ser `ESTIMATED` si **todas** las campañas de su tramo tienen la cobertura identificada; si no, `INCOMPATIBLE_DATA` con `COVERAGE_UNKNOWN`, sin cifras.
+- **Entrega.** La cobertura de cada campaña del tramo se entrega por separado, sin agregarla (`SpanCoverage`), solo en el perfil institucional.
+  - **Es una salida nueva:** F07 no sirve la N de consumo. Junto con la N general, deja saber cuántos Members están solo en cifras de necesidad.
+  - No da cantidades ni toca celdas suprimidas, pero se declara para revisarla con F07-POL-01 y F10-SEC-02 antes de usar datos reales (F07 §5.3).
 
-**Modificación mínima para fuentes futuras (propuesta, no construida):**
-1. Una tabla aditiva del sellado, por ejemplo `CollectiveSealCoverage(sealId, projectionType, membersInPublishedFigures, linkedMembers)`, escrita en la misma transacción que el sellado y con la misma inmutabilidad.
-2. Para `CONSUMPTION_TOTAL`, N cuenta los Members distintos dentro de alguna cifra de consumo **publicada** de la campaña; M es el mismo `linkedMembers` del sellado.
-3. Un punto la leería a través de su `sourceSealId`, sin copiarla. Los sellados anteriores quedarían con cobertura desconocida.
+**Sellados anteriores.** No reciben fila ni se recalculan. Su cobertura de consumo sigue desconocida y no se reconstruye.
 
-Esto cambia F07 (el caso de uso del sellado y una migración), así que va en un issue propio.
+**Datos sintéticos.** `Back/src/modules/estimation/test-support/synthetic-sources.ts` crea campañas cerradas y selladas:
+- con la cobertura conocida, después de la migración;
+- sin ella, antes de la migración.
+
+La suite F12 las usa (§12).
 
 ## 4. Rutas (v1) y semántica
 
@@ -169,8 +201,10 @@ Todas las rutas están bajo `/api/v1/estimation`, con bearer y respuestas JSON c
 |---|---|---|---|
 | `POST /estimation/seasons` | DIRECTIVA, ADMINISTRADOR | Una temporada, una vez | EST-D-02 |
 | `GET /estimation/seasons` | DIRECTIVA, ADMINISTRADOR | No | Temporadas del sindicato |
-| `POST /estimation/campaign-classifications` | DIRECTIVA, ADMINISTRADOR | Una clasificación, una vez | EST-D-02 |
-| `GET /estimation/campaign-classifications` | DIRECTIVA, ADMINISTRADOR | No | Clasificaciones; una campaña ausente está sin clasificar |
+| `POST /estimation/campaign-classifications` | DIRECTIVA, ADMINISTRADOR | La versión 1 de una clasificación | EST-D-02 |
+| `GET /estimation/campaign-classifications` | DIRECTIVA, ADMINISTRADOR | No | Clasificación vigente de cada campaña; una campaña ausente está sin clasificar |
+| `POST /estimation/campaign-classifications/{campaignId}/corrections` | DIRECTIVA, ADMINISTRADOR | Una versión nueva, con motivo | EST-D-14 |
+| `GET /estimation/campaign-classifications/{campaignId}/history` | DIRECTIVA, ADMINISTRADOR | No | Todas las versiones de la clasificación, con sus motivos |
 | `POST /estimation/jobs` | DIRECTIVA, ADMINISTRADOR | Un trabajo en cola | CU-20, por lotes (EST-D-04) |
 | `GET /estimation/jobs/{jobId}` | DIRECTIVA, ADMINISTRADOR | No | Estado operativo, sin cifras |
 | `GET /estimation/runs` | DIRECTIVA, ADMINISTRADOR | No | Ejecuciones anteriores, paginadas con un cursor opaco |
@@ -180,7 +214,7 @@ Todas las rutas están bajo `/api/v1/estimation`, con bearer y respuestas JSON c
 
 No existen `PUT`, `PATCH` ni `DELETE` en INT-09, y lo comprueba `openapi:check` (§12).
 
-### 4.1 Temporadas y clasificaciones (EST-D-02)
+### 4.1 Temporadas, clasificaciones y correcciones (EST-D-02, EST-D-14)
 
 - **`POST /estimation/seasons`:** `{ contract_version: 1, key, definition, duration_days }`.
   - La clave no lleva espacios al principio ni al final.
@@ -188,9 +222,17 @@ No existen `PUT`, `PATCH` ni `DELETE` en INT-09, y lo comprueba `openapi:check` 
   - Una clave repetida en el sindicato da **409 `SEASON_KEY_TAKEN`**.
 - **`POST /estimation/campaign-classifications`:** `{ contract_version: 1, campaign_ref, season_ref }`.
   - **404 `CAMPAIGN_NOT_FOUND`** o **`SEASON_NOT_FOUND`** si no son del sindicato.
-  - **409 `CAMPAIGN_ALREADY_CLASSIFIED`** si la campaña ya tiene temporada: no se reemplaza.
-- Ninguna de las dos se modifica ni se borra. Otra definición es otra temporada con otra clave.
-- Corregir una clasificación equivocada **no tiene ruta en v1** (§11, EST-D-14).
+  - **409 `CAMPAIGN_ALREADY_CLASSIFIED`** si la campaña ya tiene clasificación: se corrige con la ruta siguiente.
+- **`POST /estimation/campaign-classifications/{campaignId}/corrections`:** `{ contract_version: 1, previous_classification_ref, season_ref | null, reason }`.
+  - Crea la **versión siguiente**, que lleva el motivo, quién corrige, su rol y la hora. `season_ref: null` deja la campaña sin clasificar.
+  - **409 `CLASSIFICATION_STALE`** si la versión citada ya no es la vigente: dos correcciones simultáneas no se pisan.
+  - **422 `CLASSIFICATION_UNCHANGED`** si no cambia la temporada.
+  - **404 `CLASSIFICATION_NOT_FOUND`** si la versión citada no es de esa campaña.
+- **Lo que conserva:**
+  - Las versiones anteriores no cambian.
+  - Las series y ejecuciones ya construidas siguen citando la versión que usaron (`SeriesPoint.classificationId`, `EstimationRun.targetClassificationId`).
+  - Lo siguiente que se construya usa la vigente: una serie nueva crea **otra versión de la serie**, y los resultados anteriores pasan a `OUTDATED` con `CLASSIFICATION_CORRECTED` (§8).
+- Las temporadas no se modifican ni se borran. Otra definición es otra temporada con otra clave.
 
 ### 4.2 Pedir una estimación: trabajo por lotes (EST-D-04)
 
@@ -198,14 +240,14 @@ Como prevé 3.12.7, el cálculo ocurre **fuera de la petición interactiva**. La
 
 **Petición:** `{ contract_version: 1, request_id, target_campaign_ref, product_refs? }`.
 - Sin `product_refs`, se estiman los productos canónicos estimables con consumo publicado en la temporada de la campaña objetivo.
-- Como mucho 200 productos: es un límite técnico propuesto, no una decisión del autor.
+- Como mucho 200 productos por trabajo: es un **límite técnico inicial, configurable** (`ESTIMATION_MAX_PRODUCTS`, 200 por defecto; EST-D-16). Por encima, 400.
 
 **Validación síncrona.** Si falla, **no se escribe nada**:
 - rol: 403 (§2);
 - campaña objetivo:
   - del sindicato, o **404 `TARGET_CAMPAIGN_NOT_FOUND`**;
   - `PLANIFICADA` o `ABIERTA`, o **422 `TARGET_CAMPAIGN_NOT_ELIGIBLE`** (EST-D-06);
-  - clasificada en una temporada, o **422 `TARGET_CAMPAIGN_NOT_CLASSIFIED`**;
+  - con clasificación vigente en una temporada, o **422 `TARGET_CAMPAIGN_NOT_CLASSIFIED`**;
 - `product_refs`:
   - inexistente o de otro sindicato: **404 `PRODUCT_NOT_FOUND`**;
   - no canónico o con unidad no enlazable: **422 `PRODUCT_NOT_ESTIMABLE`**;
@@ -214,7 +256,11 @@ Como prevé 3.12.7, el cálculo ocurre **fuera de la petición interactiva**. La
   - el mismo identificador con la misma huella devuelve **200** con el mismo trabajo, sin encolar otro;
   - con otra huella devuelve **409 `REQUEST_ID_REUSED`**.
 
-**Respuesta: 202** con el trabajo en `QUEUED`. El cliente consulta `GET /estimation/jobs/{jobId}` hasta `COMPLETED`, que lleva `run_ref`, o `NOT_EXECUTED`, que lleva `stop_code`.
+**Respuesta: 202** con el trabajo en `QUEUED` y su `max_attempts`. El cliente consulta `GET /estimation/jobs/{jobId}` hasta:
+- `COMPLETED`, que lleva `run_ref`;
+- `NOT_EXECUTED`, que lleva `stop_code` y `stop_evidence`.
+
+El trabajo y su desenlace se conservan (§6.5).
 
 **Mecanismo mínimo, sin plataforma de colas:**
 - **Trabajador.** Es un proveedor del propio Backend NestJS, que arranca con la aplicación. No añade dependencias ni servicios.
@@ -226,22 +272,42 @@ Como prevé 3.12.7, el cálculo ocurre **fuera de la petición interactiva**. La
   ```
 
   Con varias instancias, `SKIP LOCKED` y el plazo evitan que dos tomen el mismo trabajo. Si una instancia cae, el plazo vence y otra lo retoma.
-- **Comprobaciones al ejecutar** (propuesta del contrato; extiende EST-D-13 y la política al momento del lote, §11.2). El trabajo termina `NOT_EXECUTED`, sin ejecución, si:
-  - la política está pendiente (`POLICY_PENDING`);
-  - el solicitante ya no es Member activo con cuenta activa y el mismo rol (`REQUESTER_NOT_AUTHORIZED`);
-  - la campaña objetivo ya no es `PLANIFICADA` ni `ABIERTA` (`TARGET_CAMPAIGN_NOT_ELIGIBLE`).
+- **Paradas antes de calcular (EST-D-15, decisión del autor).** El trabajo termina `NOT_EXECUTED`, **sin ejecución**, si antes de calcular:
+  - desapareció el permiso: el solicitante ya no es Member activo con cuenta activa y el mismo rol (`REQUESTER_NOT_AUTHORIZED`);
+  - la política dejó de permitirlo (`POLICY_PENDING`);
+  - la campaña objetivo dejó de ser admisible: ya no es `PLANIFICADA` ni `ABIERTA`, o no tiene clasificación vigente (`TARGET_CAMPAIGN_NOT_ELIGIBLE`).
+
+  **Motivo verificable.** `stop_evidence` guarda lo observado (`member_active`, `account_active`, `role`, `campaign_status`, `classified`, `disclosure_mode` y `observed_at`), con las mismas claves en la API y en la base.
+  - La base comprueba al cerrar el trabajo que el permiso o la campaña **de verdad** fallan. Rechaza un `REQUESTER_NOT_AUTHORIZED` con el solicitante autorizado o un `TARGET_CAMPAIGN_NOT_ELIGIBLE` con la campaña admisible.
+  - El modo de divulgación es configuración y la base no lo ve: solo exige que la evidencia registre `POLICY_PENDING`.
+  - Si el permiso desaparece **durante** el cálculo, la base rechaza la ejecución y el trabajo termina igual, con `REQUESTER_NOT_AUTHORIZED`.
+  - **No se reintenta** una parada.
 - **Cálculo y registro:**
   1. Leer las fuentes (§3).
   2. Construir o reutilizar las series (F12-EST-02).
   3. Clasificar las posiciones y el tramo (F12-EST-03).
   4. Calcular SES y naive (F12-EST-04).
   5. Registrar **en una sola transacción** la ejecución, sus resultados, las series nuevas y el paso del trabajo a `COMPLETED`. La base exige que el trabajo esté `RUNNING` y que un `COMPLETED` tenga su ejecución.
-- **Intentos agotados.** Pasado el máximo de intentos sin terminar, el trabajo queda `NOT_EXECUTED` con `ATTEMPTS_EXHAUSTED`.
-- **Configuración.** El intervalo, el plazo y el máximo de intentos son parámetros de despliegue, no reglas de negocio; se fijan en F12-EST-05.
+- **Reintentos limitados, solo de errores transitorios (EST-D-16, decisión del autor):**
+  - **Errores transitorios y recuperables:**
+    - pérdida de conexión con la base;
+    - fallo de serialización o interbloqueo;
+    - conflicto de sucesión con otra ejecución de la misma campaña objetivo;
+    - plazo vencido porque el proceso cayó.
+
+    Liberan el trabajo, que se retoma con un intento más (`attempts`), hasta `max_attempts`. El máximo se fija al encolar y es configurable (`ESTIMATION_MAX_ATTEMPTS`, 3 por defecto); la base impide superarlo.
+  - **No se reintentan:**
+    - los rechazos de permiso o de política, que son paradas;
+    - los problemas de datos, que son resultados por producto `INSUFFICIENT_DATA` o `INCOMPATIBLE_DATA`;
+    - un error determinista del cálculo, que es `FAILED` con `CALCULATION_FAILED`.
+  - **Al agotar los intentos** con errores transitorios, el cálculo ya se inició y falló: se registra una ejecución `FAILED` con `RETRIES_EXHAUSTED`, sin cifras. La base solo la admite con los intentos agotados.
+  - **Sin duplicados:** una sola ejecución por trabajo (`jobId` único).
+- **Parada frente a fallo.** `NOT_EXECUTED` significa que no se calculó nada y no hay ejecución. `FAILED` significa que una ejecución empezó y falló, y queda registrada (RN-27).
+- **Configuración.** El intervalo y el plazo son parámetros de despliegue; el máximo de productos y de intentos, límites técnicos configurables. Ninguno es una regla de negocio.
 - **Límite del despliegue.** El trabajador necesita un proceso del Backend en marcha. Si el servicio se suspende, los trabajos esperan en cola.
 
 **Resultado de la ejecución:**
-- La ejecución lleva `outcome: CALCULATED` o, si el cálculo falla, `outcome: FAILED` con `failure_code` (`CALCULATION_FAILED` o `SOURCES_UNAVAILABLE`). En ese caso no hay ninguna cifra, pero la ejecución **sí se registra** (RN-27, RN-28).
+- La ejecución lleva `outcome: CALCULATED` o, si el cálculo falla, `outcome: FAILED` con `failure_code` (`CALCULATION_FAILED` o `RETRIES_EXHAUSTED`). En ese caso no hay ninguna cifra, pero la ejecución **sí se registra** (RN-27, RN-28).
 - **Datos insuficientes:** menos de 3 campañas consecutivas comprobadas, o la última campaña pertinente sin consumo comprobado. Se informa **por producto** con `status: INSUFFICIENT_DATA` y su `reason_code`, sin cifras.
 - **Datos incompatibles:** `INCOMPATIBLE_DATA`, con `MIXED_UNITS`, `NO_COMPARABLE_CAMPAIGNS` o `COVERAGE_UNKNOWN` (§3.1).
 - **Fallo del cálculo** en un producto: `CALCULATION_FAILED`, con `CALCULATION_ERROR`.
@@ -250,7 +316,7 @@ Como prevé 3.12.7, el cálculo ocurre **fuera de la petición interactiva**. La
 **Sucesión: una sola cadena por campaña objetivo.**
 - La primera ejecución no tiene anterior, y cada una de las siguientes referencia la anterior (`previousRunId`) sin modificarla.
 - La base admite **una sola raíz y un solo sucesor por ejecución**, y **una sola ejecución por trabajo**.
-- Si dos trabajos de la misma campaña objetivo terminan a la vez, la transacción perdedora se deshace y el trabajador la repite sobre la nueva anterior (propuesta del contrato). Esto ya no llega al cliente como error.
+- Si dos trabajos de la misma campaña objetivo terminan a la vez, la transacción perdedora se deshace y el trabajador la repite sobre la nueva anterior, como error transitorio que consume un intento. Esto no llega al cliente como error.
 
 ### 4.3 Consulta, ejecuciones anteriores y política vigente
 
@@ -276,9 +342,9 @@ Sin ejecuciones, la lista va vacía. **Nunca hay cifras fabricadas.**
 ## 5. Procedencia, versiones y huellas
 
 - **`ConsumptionSeries.sourceHash`:** SHA-256 en hexadecimal de la lista canónica de fuentes.
-  - Cubre la temporada y, en orden, cada campaña con su clasificación, su sellado, su divulgación, el estado de visibilidad de la entrada y las asociaciones canónicas usadas con su `validFrom`.
+  - Cubre la temporada y, en orden, cada campaña con la **versión** de su clasificación, su sellado, su divulgación, el estado de visibilidad de la entrada, la cobertura de consumo del sellado y las asociaciones canónicas usadas con su `validFrom`.
   - **`sources`** guarda esa lista (JSON) para poder auditarla.
-- **`EstimationRun`:** guarda el trabajo que la produjo (`jobId`), el solicitante y su rol, la campaña objetivo y la temporada.
+- **`EstimationRun`:** guarda el trabajo que la produjo (`jobId`), el solicitante y su rol, la campaña objetivo, la versión de su clasificación (`targetClassificationId`) y la temporada.
   - También el método (`SES_NAIVE`), `methodVersion`, los parámetros, el horizonte (1) y la política de divulgación aplicada (`disclosureMode`, `policy`, `threshold`).
   - Y `generatedAt`, que fija el trabajador con la hora del servidor. La base no la impone: solo exige que no sea anterior a la de la ejecución precedente.
   - La huella de la petición queda en el trabajo (`requestHash`).
@@ -287,7 +353,7 @@ Sin ejecuciones, la lista va vacía. **Nunca hay cifras fabricadas.**
   - La conservación depende además de que no haya rutas de modificación y de los disparadores (§6.3).
 - **Cada resultado** referencia la versión de la serie que usó (`seriesId`). Así quedan identificadas las fuentes y sus versiones de cada cifra (RF-37, DAT-19).
 
-## 6. Modelo de datos (migración `20261101233651_f12_est_01_estimation`)
+## 6. Modelo de datos (migración `20261101233651_f12_est_01_estimation`; cobertura en `20261102020000_f07_seal_consumption_coverage`)
 
 ### 6.1 Tablas
 
@@ -296,11 +362,11 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 | Nombre del diseño (3.12.3.4) | Tabla | Contenido |
 |---|---|---|
 | (EST-D-02) | `ComparabilitySeason` | Tenant, `key`, `definition`, `durationDays`, quién la define y su rol, `createdAt` |
-| (EST-D-02) | `CampaignSeasonClassification` | Campaña (clave primaria), tenant, temporada, quién clasifica y su rol, `classifiedAt` |
+| (EST-D-02, EST-D-14) | `CampaignSeasonClassification` | Versión de la clasificación de una campaña: id, campaña, tenant, `version`, `previousClassificationId`, temporada (nula si una corrección la deja sin clasificar), `reason` (obligatorio en una corrección), quién clasifica y su rol, `classifiedAt` |
 | `consumption_series` | `ConsumptionSeries` | Tenant, producto canónico, unidad base, temporada, `version`, `previousSeriesId`, `sourceHash`, `sources`, `builtAt` |
-| `series_point` | `SeriesPoint` | Serie, `position`, campaña, `kind`, `quantityBase` (solo comprobado), `sourceSealId`, `sourceReleaseId`. **Sin cobertura** (§3.1) |
-| (EST-D-04) | `EstimationJob` | Tenant, `requestId`, `requestHash`, solicitante y rol, campaña objetivo, `productRefs`, y el estado operativo: `status`, `attempts`, `enqueuedAt`, `startedAt`, `leaseExpiresAt`, `finishedAt`, `stopCode` |
-| `estimation_run` | `EstimationRun` | Tenant, `jobId` (único), solicitante y rol, campaña objetivo, temporada, contrato, método y versión, parámetros, `horizon`, política aplicada, `outcome`, `failureCode`, `previousRunId`, `contentHash`, `generatedAt` |
+| `series_point` | `SeriesPoint` | Serie, `position`, campaña, `classificationId` (versión usada), `kind`, `quantityBase` (solo comprobado), `sourceSealId`, `sourceReleaseId`. La cobertura se lee del sellado (§3.1) |
+| (EST-D-04, 15, 16) | `EstimationJob` | Tenant, `requestId`, `requestHash`, solicitante y rol, campaña objetivo, `productRefs`, `maxAttempts`, y el estado operativo: `status`, `attempts`, `enqueuedAt`, `startedAt`, `leaseExpiresAt`, `finishedAt`, `stopCode`, `stopEvidence` |
+| `estimation_run` | `EstimationRun` | Tenant, `jobId` (único), solicitante y rol, campaña objetivo, `targetClassificationId` (versión usada), temporada, contrato, método y versión, parámetros, `horizon`, política aplicada, `outcome`, `failureCode`, `previousRunId`, `contentHash`, `generatedAt` |
 | `estimation_result` | `EstimationResult` | Ejecución, producto canónico, unidad base, serie, `status`, `reasonCode`, `estimateBase`, `naiveBase`, `alpha`, `fitInformative`, `fitCriterion`, tramo (`spanFirstPosition`, `spanLastPosition`), `exclusions`, `validations`, `metrics` |
 
 `estimation_cache` del diseño no es una tabla del servicio: es la copia del cliente, en SQLite o IndexedDB (§9).
@@ -312,7 +378,10 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 - definición no vacía y duración positiva;
 - rol DIRECTIVA o ADMINISTRADOR.
 
-**`CampaignSeasonClassification_values`:** rol DIRECTIVA o ADMINISTRADOR.
+**`CampaignSeasonClassification_values`:**
+- rol DIRECTIVA o ADMINISTRADOR;
+- la versión 1 no tiene anterior, lleva temporada y no lleva motivo;
+- una corrección (versión > 1) tiene anterior y un motivo no vacío.
 
 **`SeriesPoint_values` (RN-26, EST-D-03):**
 - `VERIFIED_CONSUMPTION` ⇔ hay cantidad ⇔ hay divulgación de origen. La cantidad es ≥ 0, de modo que **el cero es válido**.
@@ -325,7 +394,8 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
   - `QUEUED`: sin intentos ni fechas;
   - `RUNNING`: con intento, inicio y plazo;
   - `COMPLETED`: con fin y sin plazo;
-  - `NOT_EXECUTED`: con fin y `stopCode` de la lista cerrada.
+  - `NOT_EXECUTED`: con fin, `stopCode` de la lista cerrada (`POLICY_PENDING`, `REQUESTER_NOT_AUTHORIZED`, `TARGET_CAMPAIGN_NOT_ELIGIBLE`) y `stopEvidence` (objeto);
+- `1 ≤ maxAttempts` y `attempts ≤ maxAttempts`.
 
 **`EstimationResult_values` (RN-28):**
 - **Solo `ESTIMATED`** lleva cifras: estimación, naive, α, `fitInformative`, `fitCriterion` y, si existen, `metrics`. Además exige una serie y un tramo de **al menos tres** posiciones.
@@ -340,14 +410,14 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 - contrato 1, `horizon` = 1 y método `SES_NAIVE`;
 - `requestedByRole` es DIRECTIVA o ADMINISTRADOR;
 - `disclosureMode` no vacío ni `POLICY_PENDING`;
-- `failureCode` de la lista cerrada, si y solo si la ejecución es `FAILED`;
+- `failureCode` de la lista cerrada (`CALCULATION_FAILED`, `RETRIES_EXHAUSTED`), si y solo si la ejecución es `FAILED`;
 - huella hexadecimal de 64 caracteres.
 
 **`ConsumptionSeries_values`:** la versión 1 no tiene serie anterior y las siguientes sí; la huella es hexadecimal; `sources` es una lista.
 
 **Unicidad:**
 - una clave de temporada por tenant;
-- una clasificación por campaña;
+- una versión por (campaña, número) y un solo sucesor por versión: una sola cadena de clasificación por campaña;
 - una serie por (tenant, producto, unidad, temporada, versión), con un solo sucesor;
 - un `requestId` por tenant (en el trabajo);
 - una ejecución por trabajo;
@@ -359,15 +429,21 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 
 ### 6.3 Inmutabilidad, estado operativo y pertenencia (disparadores)
 
-**Inmutabilidad.** `ComparabilitySeason`, `CampaignSeasonClassification`, `ConsumptionSeries`, `SeriesPoint`, `EstimationRun` y `EstimationResult` **rechazan UPDATE, DELETE y TRUNCATE**, con «… es inmutable».
+**Inmutabilidad.** `ComparabilitySeason`, `CampaignSeasonClassification`, `ConsumptionSeries`, `SeriesPoint`, `EstimationRun` y `EstimationResult` **rechazan UPDATE, DELETE y TRUNCATE**, con «… es inmutable». Una corrección de clasificación **inserta** una versión; no modifica ninguna.
 
 **Estado operativo.** `EstimationJob` es la única tabla que cambia, y solo en su estado:
 - la petición (`requestId`, `requestHash`, solicitante, rol, campaña objetivo, productos y `enqueuedAt`) no cambia;
+- `maxAttempts` tampoco cambia: se fija al encolar;
 - las transiciones son `QUEUED` → `RUNNING`, `RUNNING` → `RUNNING` (otro intento, con más intentos), `COMPLETED` o `NOT_EXECUTED`, y los intentos no disminuyen;
+- la base no comprueba que el plazo haya vencido para tomar otro intento: eso es del trabajador, y `jobId` único impide dos ejecuciones;
 - la campaña objetivo de un trabajo nuevo está clasificada;
 - un trabajo cuya ejecución ya está registrada solo puede pasar a `COMPLETED`;
 - un estado final no cambia;
 - `COMPLETED` exige su ejecución;
+- `NOT_EXECUTED` comprueba su motivo:
+  - `REQUESTER_NOT_AUTHORIZED` solo si el solicitante ya no es Member activo con cuenta activa y el rol;
+  - `TARGET_CAMPAIGN_NOT_ELIGIBLE` solo si la campaña ya no es `PLANIFICADA` ni `ABIERTA` o no tiene clasificación vigente;
+  - `POLICY_PENDING` solo con esa evidencia;
 - **no se borra** ni se vacía.
 
 **Misma transacción.** Los puntos y los resultados solo se insertan en la misma transacción que crea su serie o su ejecución, con la comparación `xmin` frente a `pg_current_xact_id()` del sellado F07. Una serie o una ejecución **no admite añadidos posteriores**.
@@ -375,13 +451,15 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 **Pertenencia:**
 - la campaña, la temporada, el producto, la divulgación y el sellado de cada fila son del mismo tenant;
 - quien define, clasifica o pide es Member **activo**, con **cuenta activa**, del tenant y con el rol registrado (`estimation_is_active_member`), también al registrar la ejecución;
-- la campaña de un punto está **clasificada en la temporada de la serie**;
+- el punto cita la **versión vigente** de la clasificación de su campaña, y esa versión es la temporada de la serie (`estimation_is_current_classification`);
+- una corrección sucede a la versión anterior de la **misma** campaña (número + 1) y **cambia** la temporada;
 - un consumo comprobado es de una campaña **CERRADA**, y su divulgación es la **vigente** de `CONSUMPTION_TOTAL` de esa celda, **con la misma cifra**, y la entrada `DISCLOSED` y visible del sellado citado;
 - un `HIDDEN` que cita un sellado corresponde a una entrada no visible de ese sellado; un `NO_RECORD` que cita un sellado, a ninguna entrada de consumo de esa celda;
 - el producto es **canónico**: no es hoy denominación de otro;
 - la serie anterior es del mismo ámbito y de la versión inmediatamente anterior;
 - una ejecución procede de un trabajo `RUNNING` con la misma campaña objetivo y el mismo solicitante;
-- la campaña objetivo de una ejecución está clasificada en su temporada;
+- la ejecución cita la versión vigente de la clasificación de su campaña objetivo, que es su temporada;
+- una ejecución `FAILED` con `RETRIES_EXHAUSTED` solo existe si el trabajo agotó sus intentos;
 - la ejecución anterior es de la misma campaña objetivo y no posterior;
 - una ejecución `FAILED` no admite resultados `ESTIMATED`;
 - la serie de un resultado es del mismo producto, unidad y temporada.
@@ -394,10 +472,16 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 
 - **Ninguna columna de vigencia.** Se deriva al consultar (§8).
 - **Ningún campo de aprobación manual** (§7).
-- **Ninguna columna de cobertura**, mientras no exista la fuente de §3.1.
+- **Ninguna columna de cobertura en F12.** La cobertura vive en el sellado F07 (§3.1).
 - **Ninguna ruta de modificación o borrado.**
 - **Ninguna clasificación inicial.** La migración no clasifica campañas ni toca sellados.
 - **`DemandForecast`** no se toca: la migración no lo menciona, y la prueba de §12 compara las columnas, restricciones, índices y disparadores de **todas** las tablas previas antes y después. Su retiro sigue en el epic #81.
+
+### 6.5 Retención
+
+- **Durante la construcción y la evaluación académica** se conservan temporadas, versiones de clasificación, series, trabajos con su desenlace, ejecuciones y resultados. Los disparadores impiden borrarlos y no hay ruta de borrado.
+- **La retención institucional definitiva está pendiente** en GOV-02 ([#185](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/185)). Este contrato **no declara aprobada una conservación perpetua**: la imposibilidad de borrar es una garantía técnica de esta etapa, con datos sintéticos.
+- Cuando GOV-02 fije plazos para datos reales, hará falta un mecanismo de depuración controlado y auditado. Será una migración y una decisión aparte, sin reescribir lo que quede.
 
 ## 7. Sin aprobación por resultado; separación de conceptos
 
@@ -416,6 +500,7 @@ Para un resultado de la ejecución *E* (campaña objetivo *T*, producto *P*, uni
 1. **`NOT_USABLE`:** *E* es `FAILED` (`RUN_FAILED`) o el resultado no es `ESTIMATED` (`NO_FIGURE`).
 2. **`SUPERSEDED`:** existe una ejecución posterior `CALCULATED` del mismo sindicato y campaña *T* que incluye un resultado de (*P*, *U*), de cualquier estado (`LATER_RUN`) (EST-D-08). Una ejecución posterior `FAILED` **no** sustituye.
 3. **`OUTDATED`:** cambiaron de forma conocida las cifras, asociaciones o clasificaciones que la sustentan.
+   - `CLASSIFICATION_CORRECTED`: la clasificación de la campaña objetivo, o la de alguna campaña de la serie, ya no es la versión que se usó (EST-D-14).
    - `SOURCES_CHANGED`: por ejemplo, la serie vigente de (*P*, *U*, temporada) tiene otra `sourceHash`. Cómo se detecta exactamente se fija en F12-EST-05 (EST-D-12).
    - `SOURCES_WITHDRAWN`: alguna cifra usada ya no se divulga; en ese caso, además, **no se entregan sus cifras** (§4.3).
 4. **`CURRENT`:** en los demás casos.
@@ -460,56 +545,71 @@ Desconectado, el cliente no conoce revocaciones ni cambios de fuentes: la copia 
 
 Los identificadores llevan el prefijo `EST-D` para no confundirse con otras decisiones publicadas (D-03, D-04 y D-07 del bloque 2).
 
-### 11.1 Decididas por el autor (2026-11-01, Bolivia)
+### 11.1 Decididas por el autor
 
-| Id | Decisión | Dónde queda |
-|---|---|---|
-| EST-D-01 | Incluir la estimación exploratoria SES/naive, reconociendo que SES es pronóstico estadístico; mantener excluidos ARIMA, Prophet, redes neuronales, variables externas y recomendaciones automáticas | ADR-004; `CURRENT_SCOPE.md` §11 y los tres `AGENTS.md` |
-| EST-D-02 | Clave de comparabilidad explícita, asignada por la Directiva y asociada a una definición de temporada y una duración; nada inferido de nombres ni fechas; las campañas antiguas sin clasificación comprobada quedan sin clasificar | §3 (punto 2), §4.1, §6 |
-| EST-D-03 | Campañas cerradas con fuente sellada para el consumo comprobado; procedencia exacta; divulgación comprobada de nuevo al consultar | §3 (punto 3), §4.3, §6 |
-| EST-D-04 | Cálculo por lotes fuera de la petición, con el mecanismo mínimo, sin plataforma de colas; ejecuciones finales inmutables y estado operativo aparte | §4.2, §6 |
-| EST-D-05 | El Agricultor consulta la estimación sin naive, cobertura ni serie; puede coincidir con una cifra histórica; la proyección debe estar en la política institucional; no se habilitan datos reales ni se declara aprobada la política | §2 |
-| EST-D-09 | Comprobar la cobertura F07; sin fuente verificable del consumo, `COVERAGE_UNKNOWN` y la modificación mínima propuesta | §3.1 |
-| EST-D-13 | Autorización existente por roles, con identidad, pertenencia y cuenta activa; ningún segundo sistema | §2, §6.3 |
+| Id | Fecha | Decisión | Dónde queda |
+|---|---|---|---|
+| EST-D-01 | 2026-11-01 | Incluir la estimación exploratoria SES/naive, reconociendo que SES es pronóstico estadístico; mantener excluidos ARIMA, Prophet, redes neuronales, variables externas y recomendaciones automáticas | ADR-004; `CURRENT_SCOPE.md` §11 y los tres `AGENTS.md` |
+| EST-D-02 | 2026-11-01 | Clave de comparabilidad explícita, asignada por la Directiva y asociada a una definición de temporada y una duración; nada inferido de nombres ni fechas; las campañas antiguas sin clasificación comprobada quedan sin clasificar | §3 (punto 2), §4.1, §6 |
+| EST-D-03 | 2026-11-01 | Campañas cerradas con fuente sellada para el consumo comprobado; procedencia exacta; divulgación comprobada de nuevo al consultar | §3 (punto 3), §4.3, §6 |
+| EST-D-04 | 2026-11-01 | Cálculo por lotes fuera de la petición, con el mecanismo mínimo, sin plataforma de colas; ejecuciones finales inmutables y estado operativo aparte | §4.2, §6 |
+| EST-D-05 | 2026-11-01 | El Agricultor consulta la estimación sin naive, cobertura ni serie; puede coincidir con una cifra histórica; la proyección debe estar en la política institucional; no se habilitan datos reales ni se declara aprobada la política | §2 |
+| EST-D-09 | 2026-11-01 y 2026-11-02 (UTC) | Ampliación mínima de F07: cobertura de participación del consumo en los sellados futuros, en la misma transacción e inmutable; no aceptar la cobertura general; no reconstruir los sellados anteriores; misma población en N y M; participación distinta de integridad; ningún mínimo nuevo | §3.1; F07 §5.3 |
+| EST-D-11 | 2026-11-02 (UTC) | Conservar los registros durante la construcción y la evaluación académica; la retención institucional definitiva, pendiente en GOV-02, sin declarar aprobada una conservación perpetua | §6.5 |
+| EST-D-13 | 2026-11-01 | Autorización existente por roles, con identidad, pertenencia y cuenta activa; ningún segundo sistema | §2, §6.3 |
+| EST-D-14 | 2026-11-02 (UTC) | Corregir una clasificación equivocada con motivo y trazabilidad, como versión nueva; conservar las versiones que usaron series y ejecuciones anteriores | §3 (punto 2), §4.1, §6, §8 |
+| EST-D-15 | 2026-11-02 (UTC) | Si antes de calcular desaparece el permiso, la política deja de permitirlo o la campaña deja de ser admisible: `NOT_EXECUTED` con motivo verificable, conservando la solicitud y su desenlace; distinto de una ejecución iniciada que falla | §4.2, §6 |
+| EST-D-16 | 2026-11-02 (UTC) | 200 productos como límite técnico inicial configurable; reintentos limitados, solo de errores transitorios recuperables, sin duplicar ejecuciones ni reintentar rechazos de permiso, política o datos | §4.2, §6 |
+| F06 | 2026-11-02 (UTC) | Acotar la exclusión de pronóstico de F06: F06 mantiene la proyección colectiva y F12 calcula SES/naive aparte con fuentes permitidas, sin ampliar el acceso a datos privados ni la divulgación | §0; F06 §1 |
 
 ### 11.2 Pendientes y compatibilidad con lo decidido
 
 | Id | Decisión | Propuesta | Compatibilidad | Quién o cuándo |
 |---|---|---|---|---|
-| EST-D-06 | Campaña objetivo admisible | Del sindicato, `PLANIFICADA` o `ABIERTA` | Compatible. EST-D-02 añade que esté clasificada (`TARGET_CAMPAIGN_NOT_CLASSIFIED`) | F12-EST-05 |
+| EST-D-06 | Campaña objetivo admisible | Del sindicato, `PLANIFICADA` o `ABIERTA`, con clasificación vigente | **Ya aplicada provisionalmente en la base** para verificar la parada `TARGET_CAMPAIGN_NOT_ELIGIBLE` (EST-D-15). El alta de un trabajo y el registro de la ejecución solo exigen la clasificación vigente, no el estado: una campaña que se cierra durante el cálculo no se rechaza. Confirmar la definición o cambiarla | F12-EST-05 |
 | EST-D-07 | Redondeo de la estimación | 6 decimales en la unidad base; el modo, en F12-EST-04 | Compatible | F12-EST-04 |
-| EST-D-08 | Qué sustituye a un resultado | Una ejecución posterior `CALCULATED` que incluya el producto; una `FAILED`, no | Compatible: con lotes, «posterior» es el orden de la cadena | F12-EST-05 |
-| EST-D-10 | Política pendiente | 409 al pedir y al leer | Compatible. EST-D-04 añade el caso del trabajo en cola: `NOT_EXECUTED` con `POLICY_PENDING` | F12-EST-05 |
-| EST-D-11 | Retención | Sin borrado; la política, en GOV-02 | **Se amplía:** ahora también crecen los trabajos (`EstimationJob`), que la base no deja borrar | Roderich |
-| EST-D-12 | Detección de `OUTDATED` | Huella de las fuentes vigentes frente a `sourceHash` | Compatible. La huella incluye temporada, clasificaciones, sellados y visibilidad (§5) | F12-EST-05 |
-| EST-D-14 | Corregir una clasificación o una temporada equivocadas | Ninguna en v1: son inmutables y no hay ruta | Nueva, derivada de EST-D-02: una clasificación errónea no se puede corregir. Si se quiere corregir, haría falta una sucesión de clasificaciones sin sobrescribir, como las series | Roderich |
-| EST-D-15 | Paradas sin ejecución al ejecutar el lote: solicitante sin permiso, política pendiente o campaña objetivo ya no admisible | `NOT_EXECUTED` con su `stopCode`, sin ejecución (§4.2). Es una propuesta del contrato: extiende EST-D-13 y la política al momento del lote | **Regla nueva del contrato, no decidida por el autor.** Deja peticiones sin ejecución registrada, como `ATTEMPTS_EXHAUSTED` (§11.3) | Roderich, antes de F12-EST-05 |
-| EST-D-16 | Límites del lote: hasta 200 productos por trabajo y repetición automática de una ejecución en conflicto | Los del §4.2 | Propuestas técnicas del contrato, no decisiones del autor | F12-EST-05 |
+| EST-D-08 | Qué sustituye a un resultado | Una ejecución posterior `CALCULATED` que incluya el producto; una `FAILED`, no | Compatible: con lotes, «posterior» es el orden de la cadena. Una ejecución `FAILED` con `RETRIES_EXHAUSTED` tampoco sustituye | F12-EST-05 |
+| EST-D-10 | Política pendiente | 409 al pedir y al leer; un trabajo en cola termina `NOT_EXECUTED` | Compatible con EST-D-15 | F12-EST-05 |
+| EST-D-12 | Detección de `OUTDATED` | Huella de las fuentes vigentes frente a `sourceHash`; `CLASSIFICATION_CORRECTED` si cambió una versión de clasificación usada | Compatible. La huella incluye las versiones de clasificación y la cobertura del sellado (§5) | F12-EST-05 |
 
-### 11.3 Incompatibilidades concretas detectadas
+### 11.3 Incompatibilidades y límites que quedan
 
-1. **RN-25 frente a EST-D-09.** RN-25 no estima una serie sin cobertura identificada, y ningún sellado tiene una cobertura del consumo (§3.1). Con las fuentes actuales, **todo resultado será `INCOMPATIBLE_DATA` con `COVERAGE_UNKNOWN`**, también con datos sintéticos que pasen por F07.
-   - Para obtener un `ESTIMATED` hace falta la modificación de §3.1 y al menos tres campañas consecutivas selladas con ella.
-   - La alternativa sería aceptar como «cobertura identificada» la cobertura general por campaña del sellado. Mezcla necesidades y consumo, y este contrato no la adopta.
-   - **Bloquea F12-EST-03 y F12-EST-04.**
+1. **RN-25 con los datos anteriores.** La cobertura de consumo existe solo en los sellados posteriores a la migración. Para un `ESTIMATED` hacen falta al menos tres campañas consecutivas comprobadas, todas selladas con cobertura identificada.
+   - Con las campañas ya selladas, **ningún resultado puede ser `ESTIMATED`**: serían `INCOMPATIBLE_DATA` con `COVERAGE_UNKNOWN`. Es la consecuencia de no reconstruir.
+   - Con **datos sintéticos** sí se puede probar todo el recorrido (`synthetic-sources.ts`).
+   - Ya no bloquea F12-EST-02 a F12-EST-04, pero el primer resultado real llegaría tras tres temporadas selladas con cobertura.
 2. **EST-D-05 sin soporte en la política.** La política vigente (`F07-POL-01`, `PROVISIONAL_SYNTHETIC`, no aprobada) no contempla la proyección de la estimación al Agricultor. El contrato la conserva solo con datos sintéticos. Cuando GOV-02 la defina, F12-EST-06 debe comprobarla. Hoy no hay un indicador técnico para ello, y este bloque no lo crea.
 3. **EST-D-03 frente al sellado desactivado.** Si un despliegue tiene el sellado desactivado (`SEALING_DISABLED` en F07), ninguna campaña aporta consumo comprobado.
-4. **Paradas sin ejecución frente a RN-27.** Un trabajo que agota sus intentos, o que se detiene por permiso, política o campaña (EST-D-15), termina `NOT_EXECUTED` sin ejecución, porque ningún cálculo concluyó. RN-27 conserva las ejecuciones «calculadas o fallidas». Si estas paradas deben quedar también como ejecución `FAILED`, hay que decidirlo antes de F12-EST-05.
-5. **Exclusión general en F06.** `F06_COLLECTIVE_PROJECTION_CONTRACT.md` §1 dice «No hay … forecasting, IA, recomendación» para lo que custodia Central en la proyección colectiva. La estimación es un módulo aparte que solo lee cifras publicadas, pero el texto no lo distingue. Según las reglas del proyecto, ante una contradicción gana el contrato. Acotar ese texto, como se hizo con `CURRENT_SCOPE`, necesita una autorización que este bloque no tiene.
+4. **`POPULATION_MISMATCH`.** Con la regla F07 vigente no debería ocurrir: solo una baja confirmada entre dos lecturas del sellado, en `READ COMMITTED`, lo produce. Si ocurre, la campaña queda con cobertura desconocida para siempre, porque no se reconstruye. Evitarlo del todo exigiría que el sellado leyera en `REPEATABLE READ`, que es un cambio de F07 que este bloque no hace.
+5. **La política no se puede comprobar en la base.** De las tres paradas, la base verifica el permiso y la campaña. La política es configuración del proceso y solo queda como evidencia registrada.
+
+### 11.4 Trabajo adicional y su vínculo
+
+- **La ampliación de F07 (cobertura de consumo de los sellados nuevos) se entrega en este mismo PR (#187)**, porque es una dependencia directa de F12-EST-02 y F12-EST-03:
+  - [#175](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/175) prevé la cobertura N de M de cada posición;
+  - [#176](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/176), `COVERAGE_UNKNOWN`.
+
+  No se abre un issue nuevo para no duplicar.
+- **Lo que esos issues deben añadir a su alcance, sin tarea nueva:**
+  - #175 cita en cada punto la versión vigente de la clasificación y lee la cobertura del sellado;
+  - #176 decide la cobertura del tramo (§3.1);
+  - #178 (F12-EST-05) implementa el trabajador con paradas verificables y reintentos limitados, las rutas de corrección y `CLASSIFICATION_CORRECTED`.
+- **La retención institucional** sigue en GOV-02 ([#185](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/185)).
 
 ## 12. Especificado, construido y comprobado
 
 | Afirmación | Estado | Cómo |
 |---|---|---|
-| Rutas, peticiones, respuestas, perfiles, errores, trabajo por lotes, vigencia, política al leer y copia descargada | **Especificado** | `docs/api/openapi-f12-estimation.json` |
+| Rutas, peticiones, respuestas, perfiles, errores, correcciones, trabajo por lotes, vigencia, política al leer y copia descargada | **Especificado** | `docs/api/openapi-f12-estimation.json` |
 | La especificación es coherente y completa (detalle debajo) | **Comprobado por script** | `Back/scripts/openapi-f12-estimation.cjs`, dentro de `npm run openapi:check` |
 | Que no hay rutas `/api/v1/estimation` implementadas | **Comprobación de esta etapa** | El mismo script, contra `openapi-f02.json`, que se genera desde el código, mientras la especificación diga `SPECIFIED_NOT_IMPLEMENTED`. **No prohíbe implementar INT-09:** F12-EST-05 cambia ese estado y sustituye la comprobación por la comparación con el OpenAPI generado; con otro estado, el script falla y lo pide |
-| Esquema: temporadas, clasificaciones, series, puntos, trabajos, ejecuciones y resultados | **Construido** | Migración `20261101233651_f12_est_01_estimation` |
-| Rechazos de la base (detalle debajo) | **Comprobado contra PostgreSQL** | `f12-est-01-estimation-schema.postgres.spec.ts` (11 pruebas) |
-| La migración es aditiva: conserva las filas, sellados, columnas, restricciones, índices y disparadores de todas las tablas previas, no clasifica ninguna campaña y no cambia `DemandForecast` | **Comprobado contra PostgreSQL** | La misma suite, desde la base previa (13 migraciones) con datos sintéticos |
-| Rechazo HTTP 403 de una identidad sin permiso; 409 en `POLICY_PENDING`; 202 al encolar; selección de la consulta; perfiles; retirada de cifras al leer | **Solo especificado** | No hay controlador. Se probará en F12-EST-05 y F12-EST-06 |
-| Trabajador por lotes: toma con `SKIP LOCKED`, plazo, intentos y comprobaciones al ejecutar | **Solo especificado** | La base sí prueba las transiciones y que una ejecución exige un trabajo en curso |
-| SES, naive, series, tramo, vigencia, cobertura futura y clientes | **No construido** | F12-EST-02 a F12-EST-07, y el issue de §3.1 |
+| Esquema: temporadas, versiones de clasificación, series, puntos, trabajos, ejecuciones y resultados | **Construido** | Migración `20261101233651_f12_est_01_estimation` |
+| **Cobertura de consumo de los sellados F07 nuevos** | **Implementado y comprobado contra PostgreSQL** | Caso de uso del sellado, `consumption-coverage.ts` y migración `20261102020000_f07_seal_consumption_coverage`. Pruebas en `f07-collective-seal.postgres.spec.ts` (sellado real por la API, migración desde la base previa) y `consumption-coverage.spec.ts` |
+| Rechazos de la base F12 (detalle debajo) | **Comprobado contra PostgreSQL** | `f12-est-01-estimation-schema.postgres.spec.ts` (13 pruebas) |
+| La migración F12 es aditiva y no cambia `DemandForecast` ni los sellados; la F07 nueva no da cobertura a los sellados anteriores | **Comprobado contra PostgreSQL** | La misma suite, desde la base previa (13 migraciones) con datos sintéticos, y la prueba de migración F07 |
+| Rechazo HTTP 403 de una identidad sin permiso; 409 en `POLICY_PENDING`; 202 al encolar; correcciones por HTTP; selección de la consulta; perfiles; retirada de cifras al leer | **Solo especificado** | No hay controlador. Se probará en F12-EST-05 y F12-EST-06 |
+| Trabajador por lotes: toma con `SKIP LOCKED`, plazo, clasificación de errores transitorios, reintentos y paradas | **Solo especificado** | La base prueba las transiciones, el máximo de intentos, que una parada sea verificable y que `RETRIES_EXHAUSTED` exija los intentos agotados |
+| SES, naive, construcción de series, tramo, cobertura del tramo, vigencia y clientes | **No construido** | F12-EST-02 a F12-EST-07 |
 
 **Lo que comprueba el script** sobre la especificación:
 - OpenAPI 3.0.3, referencias resueltas y ningún `$ref` con hermanos;
@@ -518,28 +618,44 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 - roles anotados por operación (`x-roles`; no hay `@Roles` con qué contrastarlos), y 409 `POLICY_PENDING` en las operaciones con cifras;
 - que pedir una estimación encola un trabajo (202, `Job`) y no calcula en la petición;
 - la temporada explícita en peticiones y ejecuciones;
-- la cobertura solo `UNKNOWN` y sin cifras;
+- las correcciones con motivo y la versión citada por puntos y ejecuciones;
+- la cobertura (`IDENTIFIED` con N y M o `UNKNOWN` con su motivo), sin porcentaje ni mínimo, y su relación con el enum de Prisma;
+- la cobertura por campaña del tramo en el perfil institucional;
+- la evidencia de parada y el máximo de intentos;
+- la retención pendiente en GOV-02;
 - la exigencia de política en las rutas del Agricultor;
 - perfiles, con el del Agricultor sin naive, cobertura ni serie;
 - enums iguales a los del esquema Prisma, y códigos cerrados (`reasonCode`, `failureCode`, `stopCode`) iguales a los de la migración;
-- ningún campo de aportes ni de aprobación en esquemas y parámetros, y ninguna columna de vigencia, aprobación ni cobertura en los modelos;
+- ningún campo de aportes ni de aprobación en esquemas y parámetros, y ninguna columna de vigencia, aprobación ni cobertura en los modelos F12;
 - la copia descargada con sus campos obligatorios.
 
 **Lo que rechaza la base:**
 - solicitantes, clasificadores o autores de temporadas AGRICULTOR, inactivos, con la cuenta desactivada o de otro sindicato;
 - temporadas sin clave, definición o duración válidas; claves repetidas;
-- clasificaciones repetidas o entre sindicatos;
-- puntos de campañas sin clasificar o de otra temporada;
+- versiones 1 repetidas o sin temporada, clasificaciones entre sindicatos;
+- correcciones sin motivo, que no cambian la temporada, de otra campaña, que saltan una versión o que no corrigen la vigente;
+- puntos que no citan la versión vigente de su campaña en la temporada de la serie;
 - consumo comprobado sin sellado, con una entrada no visible o ajena, o con una cifra distinta de la divulgada vigente;
 - datos ocultos que el sellado no oculta, ausencias que el sellado sí tiene y ausencias sin sellado en una campaña sellada;
 - mezclar cero, ausencia y dato oculto;
 - un producto no canónico;
-- trabajos que no nacen en cola o cuya campaña objetivo no está clasificada, cambios de la petición, transiciones hacia atrás o desde un estado final, intentos que disminuyen o no aumentan, `COMPLETED` sin ejecución, cualquier estado distinto de `COMPLETED` con ejecución, y borrados;
-- ejecuciones sin trabajo en curso, de otra petición, de un solicitante que perdió el permiso, de una campaña objetivo sin clasificar o con la política pendiente;
+- en los trabajos:
+  - que no nazcan en cola o que su campaña objetivo no tenga clasificación vigente;
+  - cambios de la petición;
+  - transiciones hacia atrás o desde un estado final;
+  - intentos que disminuyen, que no aumentan o que superan el máximo;
+  - `COMPLETED` sin ejecución y cualquier estado distinto de `COMPLETED` con ejecución;
+  - paradas sin evidencia, con un código ajeno o con un motivo que la base ve falso;
+  - borrados;
+- ejecuciones sin trabajo en curso, de otra petición, de un solicitante que perdió el permiso, que no citan la clasificación vigente de su objetivo, con la política pendiente, o `RETRIES_EXHAUSTED` sin los intentos agotados;
 - cifras fuera de `ESTIMATED` y motivos de otro estado;
 - dos raíces, dos sucesores, dos ejecuciones por trabajo o un antecesor posterior;
 - UPDATE, DELETE y TRUNCATE de las tablas inmutables;
-- añadidos fuera de su transacción.
+- añadidos fuera de su transacción;
+- **en F07:**
+  - un sellado nuevo sin cobertura de consumo;
+  - una cobertura escrita después de su sellado, con otro M, con N > M o con una fracción en `POPULATION_MISMATCH`;
+  - cualquier cambio de ella.
 
 `npm run openapi:check` **sin** el script nuevo solo comparaba los cuatro archivos generados desde el código (`openapi-f02`, `-f05-sync-v1`, `-f06-collective` y `-f08-backups`). Un archivo nuevo en `docs/api/` habría pasado sin leerse.
 
@@ -550,3 +666,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-01 | Versión inicial (F12-EST-01, #174) |
 | 2026-11-01 | Tras una lectura de contraste de otro agente de la sesión, antes del primer commit, se corrigieron cinco bloqueantes: el perfil del Agricultor sin naive ni cobertura, la política vigente al leer, la selección de la consulta frente a la vigencia, las unidades no enlazables como 422 y los CHECK de las cifras. También se corrigieron menores: una sola cadena por campaña objetivo, la cifra igual a la divulgada, la entrada sellada, el Member activo, el producto canónico, los códigos cerrados, `TRUNCATE`, `requestHash`, `$ref` anulables y los textos de 401 y 403 |
 | 2026-11-02 (UTC) | Conciliación con las decisiones del autor EST-D-01 a 05, 09 y 13 (§11.1). Cambios: ADR-004; temporadas y clasificaciones explícitas en lugar de `comparabilityKey`; fuente sellada obligatoria; trabajos por lotes en lugar del cálculo en la petición, de modo que `POST /runs` pasa a `POST /jobs` y desaparece `RUN_SUCCESSION_CONFLICT`; cobertura retirada del esquema y `UNKNOWN` en la API; cuenta activa en la defensa de la base; la comprobación de ausencia de rutas pasa a ser de etapa. La migración, sin publicar en `main`, se reescribió en el mismo archivo. Una lectura de contraste de otro agente de la sesión, antes del commit, encontró dos bloqueantes, corregidos: un trabajo con ejecución podía pasar a `NOT_EXECUTED`, y una campaña sellada admitía `NO_RECORD` sin sellado. También se corrigieron menores: motivo emparejado con su estado, otro intento con más intentos, trabajo solo para campañas clasificadas, reglas propias declaradas como EST-D-15 y EST-D-16, textos de F06 y F07 sin tocar declarados, redacción de `CURRENT_SCOPE` y del 409, y pruebas de cuenta desactivada y de otro sindicato |
+| 2026-11-02 (UTC), segunda | Decisiones del autor EST-D-09 (cobertura), 11, 14, 15, 16 y F06 (§11.1). Cambios: cobertura de participación del consumo en los sellados F07 nuevos, implementada (F07 §5.3), con la advertencia sobre `SHOW_PRIOR` corregida tras leer `decideCell`; versiones de clasificación con corrección motivada, citadas por puntos y ejecuciones; paradas `NOT_EXECUTED` con evidencia verificable; `RETRIES_EXHAUSTED` en lugar de `ATTEMPTS_EXHAUSTED` y `SOURCES_UNAVAILABLE`; máximo de intentos y de productos configurables; retención académica con la institucional en GOV-02; F06 §1 acotado; fuentes sintéticas con cobertura conocida y desconocida |

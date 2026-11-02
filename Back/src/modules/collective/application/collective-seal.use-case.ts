@@ -10,6 +10,7 @@ import { Prisma, UserRole } from "@prisma/client";
 import type { CampaignStatus } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { cellId } from "../domain/consolidation";
+import { consumptionCoverage } from "../domain/consumption-coverage";
 import { reviewFingerprint, sealLockKey } from "../domain/seal";
 import { CollectiveConfig } from "./collective-config";
 import {
@@ -157,6 +158,14 @@ export class CollectiveSealUseCase {
             };
           }),
         });
+        // F07 §5.3: participation coverage of the consumption figures, from the
+        // same decision. Required at commit for every new seal (database).
+        if (!decided.population) throw new Error("Unsealed decision without its population");
+        const coverage = consumptionCoverage(
+          decided.population.published.get("CONSUMPTION_TOTAL") ?? new Set<string>(),
+          decided.population.linked,
+        );
+        await tx.collectiveSealConsumptionCoverage.create({ data: { sealId: seal.id, ...coverage } });
         await tx.auditLog.create({
           data: {
             tenantId,

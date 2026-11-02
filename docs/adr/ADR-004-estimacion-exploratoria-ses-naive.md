@@ -45,9 +45,15 @@ El contrato F12-EST-01 dejó la contradicción abierta como EST-D-01.
 
 Los cuatro textos de la tabla del contexto se sustituyen por la delimitación del punto 3 y enlazan esta ADR. El texto anterior queda aquí, literal, y en el historial de Git.
 
+**Acotado el 2026-11-02 (UTC)**, por decisión posterior del autor en el mismo bloque F12-EST-01:
+- `docs/architecture/F06_COLLECTIVE_PROJECTION_CONTRACT.md` §1. Antes decía «No hay réplica de SQLite, sincronización financiera, forecasting, IA, recomendación…».
+  - Ahora F06 conserva su responsabilidad de proyección colectiva y no calcula pronósticos.
+  - F12 calcula SES/naive en un módulo aparte, solo con cifras publicadas y selladas permitidas.
+  - No se amplía el acceso a datos privados ni las reglas de divulgación.
+  - El párrafo de F06 conserva la referencia al texto anterior.
+
 **No cambian**, porque esta decisión no los autorizó:
 - `docs/scope/CAPABILITY_DISPOSITION_MATRIX.md`, fila `demand-forecasting` («No implementar forecasting»). Trata del modelo heredado `DemandForecast`, que sigue fuera del alcance Live.
-- `docs/architecture/F06_COLLECTIVE_PROJECTION_CONTRACT.md` §1 («No hay réplica de SQLite, sincronización financiera, forecasting, IA, recomendación…»). Trata de lo que custodia la proyección colectiva F06; la estimación es otro módulo que solo lee sus cifras publicadas. El texto no lo distingue, y acotarlo queda pendiente.
 - `docs/architecture/F07_SEALED_HISTORY_CONTRACT.md` §8 («No incluye forecasting…»). Trata de las tendencias F07, que siguen sin estimación.
 - `docs/architecture/F01_INTEGRATION_DECISIONS.md`: la necesidad declarada «no es forecasting». Sigue siendo cierto.
 

@@ -453,9 +453,9 @@ model AgriculturalCampaign {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  tenant                   Tenant                        @relation(fields: [tenantId], references: [id])
-  createdBy                User?                         @relation("CampaignCreator", fields: [createdById], references: [id])
-  closedBy                 User?                         @relation("CampaignCloser", fields: [closedById], references: [id])
+  tenant                   Tenant                         @relation(fields: [tenantId], references: [id])
+  createdBy                User?                          @relation("CampaignCreator", fields: [createdById], references: [id])
+  closedBy                 User?                          @relation("CampaignCloser", fields: [closedById], references: [id])
   plotCropAssignments      PlotCropAssignment[]
   inventoryLots            InventoryLot[]
   stockMovements           StockMovement[]
@@ -472,7 +472,7 @@ model AgriculturalCampaign {
   collectiveSeals          CollectiveSeal[]
   seriesPoints             SeriesPoint[]
   estimationRuns           EstimationRun[]
-  seasonClassification     CampaignSeasonClassification?
+  seasonClassifications    CampaignSeasonClassification[]
   estimationJobs           EstimationJob[]
 
   @@unique([tenantId, name])
@@ -1211,11 +1211,12 @@ model CollectiveSeal {
   openDisputes            Boolean
   reviewRef               String   @db.Char(64)
 
-  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign     AgriculturalCampaign  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sealedBy     User                  @relation("CollectiveSealActor", fields: [sealedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  entries      CollectiveSealEntry[]
-  seriesPoints SeriesPoint[]
+  tenant              Tenant                             @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign            AgriculturalCampaign               @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sealedBy            User                               @relation("CollectiveSealActor", fields: [sealedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  entries             CollectiveSealEntry[]
+  seriesPoints        SeriesPoint[]
+  consumptionCoverage CollectiveSealConsumptionCoverage?
 
   @@unique([tenantId, campaignId, version])
 }
@@ -1240,6 +1241,30 @@ model CollectiveSealEntry {
 
   @@id([sealId, projectionType, canonicalProductId, baseUnit])
   @@index([releaseId])
+}
+
+/// F07 §5.3 (2026-11-02, para F12): estado de la cobertura del consumo de un
+/// sellado. POPULATION_MISMATCH: algún Member de una cifra de consumo mostrada
+/// no estaba entre los vinculados leídos; no se registra ninguna fracción.
+enum ConsumptionCoverageStatus {
+  IDENTIFIED
+  POPULATION_MISMATCH
+}
+
+/// F07 §5.3 (2026-11-02, para F12): cobertura de participación del consumo de
+/// un sellado nuevo, escrita en la misma transacción que el sellado e
+/// inmutable. N = Members distintos con un aporte dentro de alguna cifra de
+/// CONSUMPTION_TOTAL mostrada al sellar; M = Members AGRICULTOR activos con
+/// cuenta activa leídos en esa decisión (igual a `CollectiveSeal.linkedMembers`).
+/// Mide participación, no integridad del consumo. Los sellados anteriores no
+/// tienen fila: su cobertura de consumo es desconocida y no se reconstruye.
+model CollectiveSealConsumptionCoverage {
+  sealId                    String                    @id @db.Uuid
+  status                    ConsumptionCoverageStatus
+  linkedMembers             Int?
+  membersInPublishedFigures Int?
+
+  seal CollectiveSeal @relation(fields: [sealId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 /// F12-EST-01 (#174, `F12_EST_01_ESTIMATION_CONTRACT.md`): clase de una
@@ -1292,23 +1317,36 @@ model ComparabilitySeason {
   @@unique([tenantId, key])
 }
 
-/// F12-EST-01 (EST-D-02): clasificación explícita de una campaña en una
-/// temporada, hecha por DIRECTIVA o ADMINISTRADOR. Una campaña sin fila está
-/// sin clasificar: no entra en ninguna serie ni puede ser campaña objetivo.
-/// No se rellena para campañas antiguas y no toca sus sellados. Inmutable.
+/// F12-EST-01 (EST-D-02, EST-D-14): versión de la clasificación explícita de
+/// una campaña en una temporada, hecha por DIRECTIVA o ADMINISTRADOR. La
+/// versión 1 asigna una temporada; una corrección es la versión siguiente, con
+/// motivo, y puede dejar la campaña sin clasificar (`seasonId` nulo). La
+/// vigente es la que no tiene sucesora. Una campaña sin filas está sin
+/// clasificar. No se rellena para campañas antiguas ni toca sus sellados.
+/// Inmutable: las series y ejecuciones conservan la versión que usaron.
 model CampaignSeasonClassification {
-  campaignId         String   @id
-  tenantId           String
-  seasonId           String   @db.Uuid
-  classifiedByUserId String
-  classifiedByRole   UserRole
-  classifiedAt       DateTime @default(now())
+  id                       String   @id @default(uuid()) @db.Uuid
+  tenantId                 String
+  campaignId               String
+  version                  Int
+  previousClassificationId String?  @db.Uuid
+  seasonId                 String?  @db.Uuid
+  reason                   String?  @db.VarChar(500)
+  classifiedByUserId       String
+  classifiedByRole         UserRole
+  classifiedAt             DateTime @default(now())
 
-  campaign     AgriculturalCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  season       ComparabilitySeason  @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  classifiedBy User                 @relation("CampaignSeasonClassifier", fields: [classifiedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign               AgriculturalCampaign          @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant                 Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  season                 ComparabilitySeason?          @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  classifiedBy           User                          @relation("CampaignSeasonClassifier", fields: [classifiedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previousClassification CampaignSeasonClassification? @relation("CampaignSeasonCorrection", fields: [previousClassificationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  nextClassification     CampaignSeasonClassification? @relation("CampaignSeasonCorrection")
+  seriesPoints           SeriesPoint[]
+  runs                   EstimationRun[]
 
+  @@unique([campaignId, version])
+  @@unique([previousClassificationId])
   @@index([tenantId, seasonId])
 }
 
@@ -1344,23 +1382,26 @@ model ConsumptionSeries {
 }
 
 /// F12-EST-01 (series_point): una campaña clasificada en la temporada de la
-/// serie, en orden cronológico. La cantidad existe exactamente cuando es
+/// serie, con la versión de la clasificación usada, en orden cronológico. La cantidad existe exactamente cuando es
 /// consumo comprobado, que exige una campaña cerrada y su versión sellada
 /// (EST-D-03). Sin columnas de cobertura: no hay una fuente verificable de la
 /// cobertura del consumo (EST-D-09).
 model SeriesPoint {
-  seriesId        String          @db.Uuid
-  position        Int
-  campaignId      String
-  kind            SeriesPointKind
-  quantityBase    BigInt?
-  sourceSealId    String?         @db.Uuid
-  sourceReleaseId String?         @db.Uuid
+  seriesId         String          @db.Uuid
+  position         Int
+  campaignId       String
+  /// Versión vigente de la clasificación al construir la serie (EST-D-14).
+  classificationId String          @db.Uuid
+  kind             SeriesPointKind
+  quantityBase     BigInt?
+  sourceSealId     String?         @db.Uuid
+  sourceReleaseId  String?         @db.Uuid
 
-  series        ConsumptionSeries    @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign      AgriculturalCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sourceSeal    CollectiveSeal?      @relation(fields: [sourceSealId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sourceRelease CollectiveRelease?   @relation(fields: [sourceReleaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  series         ConsumptionSeries            @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign       AgriculturalCampaign         @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  classification CampaignSeasonClassification @relation(fields: [classificationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceSeal     CollectiveSeal?              @relation(fields: [sourceSealId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceRelease  CollectiveRelease?           @relation(fields: [sourceReleaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@id([seriesId, position])
   @@unique([seriesId, campaignId])
@@ -1395,11 +1436,17 @@ model EstimationJob {
   productRefs       Json?
   status            EstimationJobStatus @default(QUEUED)
   attempts          Int                 @default(0)
+  /// Máximo de intentos configurado al encolar; sólo los errores transitorios
+  /// consumen un intento nuevo (EST-D-16).
+  maxAttempts       Int
   enqueuedAt        DateTime            @default(now())
   startedAt         DateTime?
   leaseExpiresAt    DateTime?
   finishedAt        DateTime?
+  /// NOT_EXECUTED: motivo cerrado y lo observado al comprobarlo, antes de
+  /// calcular (EST-D-15).
   stopCode          String?             @db.VarChar(48)
+  stopEvidence      Json?
 
   tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   requestedBy    User                 @relation("EstimationJobRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1418,35 +1465,38 @@ model EstimationJob {
 /// aprobación. Una sola cadena por campaña objetivo: índice único parcial de la
 /// migración (una sola ejecución sin anterior por tenant y campaña objetivo).
 model EstimationRun {
-  id                String               @id @default(uuid()) @db.Uuid
-  tenantId          String
-  jobId             String               @unique @db.Uuid
-  requestedByUserId String
-  requestedByRole   UserRole
-  targetCampaignId  String
-  seasonId          String               @db.Uuid
-  contractVersion   Int
-  method            String               @db.VarChar(32)
-  methodVersion     String               @db.VarChar(32)
-  parameters        Json
-  horizon           Int
-  disclosureMode    String               @db.VarChar(32)
-  policy            String               @db.VarChar(16)
-  threshold         Int
-  outcome           EstimationRunOutcome
-  failureCode       String?              @db.VarChar(48)
-  previousRunId     String?              @db.Uuid
-  contentHash       String               @db.Char(64)
-  generatedAt       DateTime             @default(now())
+  id                     String               @id @default(uuid()) @db.Uuid
+  tenantId               String
+  jobId                  String               @unique @db.Uuid
+  requestedByUserId      String
+  requestedByRole        UserRole
+  targetCampaignId       String
+  seasonId               String               @db.Uuid
+  /// Versión vigente de la clasificación de la campaña objetivo al registrar.
+  targetClassificationId String               @db.Uuid
+  contractVersion        Int
+  method                 String               @db.VarChar(32)
+  methodVersion          String               @db.VarChar(32)
+  parameters             Json
+  horizon                Int
+  disclosureMode         String               @db.VarChar(32)
+  policy                 String               @db.VarChar(16)
+  threshold              Int
+  outcome                EstimationRunOutcome
+  failureCode            String?              @db.VarChar(48)
+  previousRunId          String?              @db.Uuid
+  contentHash            String               @db.Char(64)
+  generatedAt            DateTime             @default(now())
 
-  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  job            EstimationJob        @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  requestedBy    User                 @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  targetCampaign AgriculturalCampaign @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  season         ComparabilitySeason  @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  previousRun    EstimationRun?       @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  nextRun        EstimationRun?       @relation("EstimationRunSuccession")
-  results        EstimationResult[]
+  tenant               Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  job                  EstimationJob                @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy          User                         @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetCampaign       AgriculturalCampaign         @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  season               ComparabilitySeason          @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetClassification CampaignSeasonClassification @relation(fields: [targetClassificationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previousRun          EstimationRun?               @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  nextRun              EstimationRun?               @relation("EstimationRunSuccession")
+  results              EstimationResult[]
 
   @@unique([previousRunId])
   @@index([tenantId, targetCampaignId, generatedAt])
