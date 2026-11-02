@@ -1,0 +1,22 @@
+[
+  {
+    "at": "2026-11-02T16:43:55.174Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 409,
+    "body": {
+      "message": "POLICY_PENDING",
+      "statusCode": 409
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:55.182Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 409,
+    "body": {
+      "message": "POLICY_PENDING",
+      "statusCode": 409
+    }
+  }
+]

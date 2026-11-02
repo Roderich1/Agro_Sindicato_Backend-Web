@@ -1,6 +1,6 @@
 {
   "phase": "pending",
-  "at": "2026-11-02T16:03:47.704Z",
+  "at": "2026-11-02T16:43:57.827Z",
   "checks": [
     {
       "name": "política pendiente: aviso",
@@ -14,6 +14,11 @@
     },
     {
       "name": "política pendiente: sin solicitud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: el servidor responde 409 POLICY_PENDING",
       "ok": true,
       "detail": ""
     },

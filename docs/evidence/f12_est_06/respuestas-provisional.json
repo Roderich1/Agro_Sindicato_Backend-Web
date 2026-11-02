@@ -1,0 +1,870 @@
+[
+  {
+    "at": "2026-11-02T16:43:15.625Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 200,
+    "body": {
+      "items": []
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:15.634Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": []
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:17.265Z",
+    "method": "POST",
+    "path": "/api/v1/estimation/jobs",
+    "status": 202,
+    "body": {
+      "job_ref": "8f332770-0b8d-4761-bce3-4267ddcadee1",
+      "status": "QUEUED",
+      "requested_by_role": "DIRECTIVA",
+      "attempts": 0,
+      "stop_code": null,
+      "run_ref": null
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:19.292Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/jobs/8f332770-0b8d-4761-bce3-4267ddcadee1",
+    "status": 200,
+    "body": {
+      "job_ref": "8f332770-0b8d-4761-bce3-4267ddcadee1",
+      "status": "COMPLETED",
+      "requested_by_role": "DIRECTIVA",
+      "attempts": 1,
+      "stop_code": null,
+      "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0"
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:19.308Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:19.360Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "validity_reason": null
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:19.413Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+    "status": 200,
+    "body": {
+      "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": "0.50",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "116000"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:23.896Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:23.929Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_CHANGED"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:23.971Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+    "status": 200,
+    "body": {
+      "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": "0.50",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "OUTDATED",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "116000"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:25.145Z",
+    "method": "POST",
+    "path": "/api/v1/estimation/jobs",
+    "status": 202,
+    "body": {
+      "job_ref": "f9c091d3-5bd4-47e3-a356-422f84633671",
+      "status": "QUEUED",
+      "requested_by_role": "DIRECTIVA",
+      "attempts": 0,
+      "stop_code": null,
+      "run_ref": null
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:27.165Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/jobs/f9c091d3-5bd4-47e3-a356-422f84633671",
+    "status": 200,
+    "body": {
+      "job_ref": "f9c091d3-5bd4-47e3-a356-422f84633671",
+      "status": "COMPLETED",
+      "requested_by_role": "DIRECTIVA",
+      "attempts": 1,
+      "stop_code": null,
+      "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef"
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:27.178Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        },
+        {
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:27.211Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "validity_reason": null
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:27.252Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+    "status": 200,
+    "body": {
+      "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": "0.50",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "116000"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:28.950Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+    "status": 200,
+    "body": {
+      "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": "0.50",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "SUPERSEDED",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "116000"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:32.172Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "6785254f-1c44-4bb3-9b2c-d1b9051dd0cf",
+          "outcome": "FAILED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 0,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 1
+          }
+        },
+        {
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        },
+        {
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:32.235Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "validity_reason": null
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:32.293Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+    "status": 200,
+    "body": {
+      "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": "0.50",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "116000"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:35.066Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "6785254f-1c44-4bb3-9b2c-d1b9051dd0cf",
+          "outcome": "FAILED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 0,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 1
+          }
+        },
+        {
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        },
+        {
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:35.097Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "estimate_base": null,
+          "naive_base": null,
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_WITHDRAWN"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:35.134Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+    "status": 200,
+    "body": {
+      "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": null,
+          "estimate_base": null,
+          "naive_base": null,
+          "validity": "OUTDATED",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "HIDDEN",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:36.644Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=a62b9dcf-c5b2-4478-ac30-cb5e310986dc&limit=10",
+    "status": 200,
+    "body": {
+      "items": []
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:36.644Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=a62b9dcf-c5b2-4478-ac30-cb5e310986dc",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": []
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:37.208Z",
+    "method": "POST",
+    "path": "/api/v1/estimation/jobs",
+    "status": 202,
+    "body": {
+      "job_ref": "b84fdab2-950c-4f94-ab56-3575397113f2",
+      "status": "QUEUED",
+      "requested_by_role": "DIRECTIVA",
+      "attempts": 0,
+      "stop_code": null,
+      "run_ref": null
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:39.226Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/jobs/b84fdab2-950c-4f94-ab56-3575397113f2",
+    "status": 200,
+    "body": {
+      "job_ref": "b84fdab2-950c-4f94-ab56-3575397113f2",
+      "status": "COMPLETED",
+      "requested_by_role": "DIRECTIVA",
+      "attempts": 1,
+      "stop_code": null,
+      "run_ref": "ce953e2b-ab8a-4758-87d4-6056e1b603b4"
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:39.238Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=a62b9dcf-c5b2-4478-ac30-cb5e310986dc&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "ce953e2b-ab8a-4758-87d4-6056e1b603b4",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 0,
+            "insufficient_data": 1,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:39.263Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=a62b9dcf-c5b2-4478-ac30-cb5e310986dc",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "SPAN_TOO_SHORT",
+          "run_ref": "ce953e2b-ab8a-4758-87d4-6056e1b603b4",
+          "estimate_base": null,
+          "naive_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:39.297Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/ce953e2b-ab8a-4758-87d4-6056e1b603b4",
+    "status": 200,
+    "body": {
+      "run_ref": "ce953e2b-ab8a-4758-87d4-6056e1b603b4",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": null,
+          "estimate_base": null,
+          "naive_base": null,
+          "validity": "NOT_USABLE",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "300"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "600"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:42.556Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "6785254f-1c44-4bb3-9b2c-d1b9051dd0cf",
+          "outcome": "FAILED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 0,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 1
+          }
+        },
+        {
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        },
+        {
+          "run_ref": "b121fdc1-d25b-486b-b5ae-190cd1a284c0",
+          "outcome": "CALCULATED",
+          "requested_by_role": "DIRECTIVA",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:42.612Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=693a17fc-4b22-4fd4-b66e-21fd448caa98",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+          "estimate_base": null,
+          "naive_base": null,
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_WITHDRAWN"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:42.661Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+    "status": 200,
+    "body": {
+      "run_ref": "ac3681ee-5a54-4444-ad79-dd3bcb2286ef",
+      "outcome": "CALCULATED",
+      "requested_by_role": "DIRECTIVA",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": null,
+          "estimate_base": null,
+          "naive_base": null,
+          "validity": "OUTDATED",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "HIDDEN",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:46.308Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/6785254f-1c44-4bb3-9b2c-d1b9051dd0cf",
+    "status": 403,
+    "body": {
+      "message": "No tienes permisos para esta acción",
+      "statusCode": 403
+    }
+  }
+]
