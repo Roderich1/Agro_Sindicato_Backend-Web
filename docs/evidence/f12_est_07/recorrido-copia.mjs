@@ -154,6 +154,38 @@ const copies = () =>
         };
       }),
   );
+/** El contexto local de la copia (localStorage), o null. */
+const localContext = () => page.evaluate(() => JSON.parse(localStorage.getItem('agro_estimacion_contexto_v1') ?? 'null'));
+/**
+ * Simula un borrado físico fallido o pendiente: vuelve a escribir en IndexedDB
+ * una copia ya guardada, con el contexto que se indique. Sólo sirve para
+ * comprobar que, aunque la copia siga en el navegador, no se lee.
+ */
+const leftover = (copy, contextId, key = `${copy.key}|resto`) =>
+  page.evaluate(
+    (record) =>
+      new Promise((resolveWrite, reject) => {
+        const req = indexedDB.open('agrocuentas-estimacion', 1);
+        req.onupgradeneeded = () => req.result.objectStoreNames.contains('copias') || req.result.createObjectStore('copias', { keyPath: 'key' });
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction('copias', 'readwrite');
+          tx.objectStore('copias').put(record);
+          tx.oncomplete = () => {
+            db.close();
+            resolveWrite(true);
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    { ...copy, key, context_id: contextId },
+  );
+async function readerShowsNothing() {
+  await page.goto(`${WEB_URL}/estimacion/copia-sin-conexion`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-testid="copy-none"], [data-testid^="copy-result-"]', { timeout: 15000 });
+  return (await page.$('[data-testid^="copy-result-"]')) === null && (await page.$('[data-testid="copy-none"]')) !== null;
+}
 /** Lo que el service worker tiene en Cache Storage: nunca una respuesta del API. */
 const cachedUrls = () =>
   page.evaluate(async () => {
@@ -205,6 +237,10 @@ try {
     check('IndexedDB: dos copias de la Directiva A en el sindicato A', stored.length === 2 && stored.every((c) => c.owner.userId === ids.directorUser && c.owner.tenantId === ids.tenant), stored.map((c) => c.key).join(', '));
     check('IndexedDB: la copia de verano es la respuesta exacta de GET /download', JSON.stringify(stored.find((c) => c.download.target.campaign_ref === ids.t2)?.download) === JSON.stringify(lastDownload));
     check('IndexedDB: formato v1, identidad y fechas; ninguna credencial', winterCopy?.format_version === 1 && winterCopy.download.downloaded_at && winterCopy.saved_at && noSecrets(stored));
+    const contextA = await localContext();
+    check('contexto local: abierto por la sesión institucional de la Directiva A; cada copia lleva su id; sin credenciales',
+      contextA?.userId === ids.directorUser && contextA?.tenantId === ids.tenant && contextA?.role === 'DIRECTIVA' &&
+      stored.every((c) => c.context_id === contextA.id) && noSecrets(contextA), JSON.stringify({ ...contextA, id: contextA?.id?.slice(0, 8) }));
     const cached = await cachedUrls();
     check('Cache Storage: sólo el app-shell, ninguna respuesta /api/', cached.length > 0 && !cached.some((u) => u.includes('/api/')), `${cached.length} entradas`);
     await shot('01-copia-descargada');
@@ -235,7 +271,7 @@ try {
     await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => undefined);
     await page.waitForFunction(() => location.pathname === '/login', { timeout: 20000 });
     await page.waitForSelector('[data-testid="offline-copy-link"]', { timeout: 10000 });
-    check('recarga sin conexión: el login ofrece la copia', true);
+    check('recarga sin conexión: el login ofrece la copia del contexto local vigente', (await localContext())?.id === contextA.id);
     const [link] = await page.$$('xpath/.//a[normalize-space(.)="Consultarla sin conexión"]');
     await link.click();
     await page.waitForSelector(`[data-testid="copy-${ids.t1}"]`, { timeout: 10000 });
@@ -258,8 +294,13 @@ try {
     await page.waitForFunction(() => location.pathname !== '/colectivo/estimacion', { timeout: 15000 });
     await sleep(1500);
     check('rol perdido al recuperar la sesión: fuera de la pantalla institucional', (await page.evaluate(() => location.pathname)) !== '/colectivo/estimacion', await page.evaluate(() => location.pathname));
+    check('rol perdido al recuperar la sesión: el contexto local se cierra', (await localContext()) === null);
     check('rol perdido al recuperar la sesión: las copias se retiran de IndexedDB', (await copies()).length === 0);
     await shot('05a-rol-perdido-al-recargar');
+    // Borrado no completado (simulado): la copia vuelve a estar en IndexedDB con el contexto anterior.
+    await leftover(winterCopy, contextA.id);
+    const physicalDemoted = (await copies()).length;
+    check('rol degradado con la copia aún en IndexedDB: no se lee (sólo se impidió el acceso)', (await readerShowsNothing()) && physicalDemoted === 1, `copias físicas antes de leer: ${physicalDemoted}`);
     control('promote');
 
     // 7b. Rol perdido con la pantalla abierta: la consulta siguiente devuelve el perfil de Agricultor → sin cifras y sin copia.
@@ -285,12 +326,20 @@ try {
     await logout();
     check('cierre de sesión: ninguna copia en IndexedDB', (await copies()).length === 0);
     check('cierre de sesión: el login no ofrece copia', (await page.$('[data-testid="offline-copy-link"]')) === null);
+    check('cierre de sesión: el contexto local se cierra', (await localContext()) === null);
     await shot('06-sesion-cerrada');
+    // Acceso directo sin contexto propietario, con una copia que sigue en IndexedDB (borrado fallido o pendiente, simulado).
+    await leftover(winterCopy, contextA.id);
+    const physicalSignedOut = (await copies()).length;
+    check('acceso directo sin contexto, con una copia en IndexedDB: no se muestra nada', (await readerShowsNothing()) && physicalSignedOut === 1, `copias físicas: ${physicalSignedOut}`);
+    await shot('06b-acceso-directo-sin-contexto');
 
     // 9. Respuesta tardía: la descarga de la Directiva A responde cuando la sesión ya es del Administrador A.
     await login(ids.directorEmail);
     await open(ids.t1);
     await page.waitForSelector('[data-testid="result-Herbicida de ensayo"]', { timeout: 20000 });
+    check('nueva sesión de la Directiva A: contexto nuevo y el borrado pendiente se completa', (await localContext())?.id !== contextA.id && (await copies()).length === 0);
+    const contextA2 = await localContext();
     await page.setRequestInterception(true);
     let held = null;
     const hold = (request) => {
@@ -309,6 +358,13 @@ try {
     await page.setRequestInterception(false);
     const afterLate = await copies();
     check('respuesta tardía: la descarga de A llegó (200) pero no se guardó para nadie', afterLate.length === 0 && served.some((r) => r.path.endsWith('/download') && r.status === 200), JSON.stringify(afterLate.map((c) => c.owner.userId)));
+    check('respuesta tardía: el contexto local es ahora del Administrador A', (await localContext())?.userId === ids.adminUser && (await localContext())?.id !== contextA2.id);
+    // Una escritura de A que terminara tarde (simulada) lleva el contexto antiguo: el Administrador no la lee.
+    await leftover(winterCopy, contextA2.id);
+    check('escritura tardía de A en IndexedDB: el Administrador A no la ve', await readerShowsNothing());
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await sleep(2500);
+    check('la siguiente carga borra lo inaccesible', (await copies()).length === 0);
 
     // 10. Cambio de identidad y de sindicato: el Administrador A descarga; sin conexión recarga; vuelve la conexión y entra la Directiva B.
     await open(ids.t1);
@@ -323,6 +379,7 @@ try {
     await sleep(1500);
     const afterB = await copies();
     check('otra identidad de otro sindicato: la copia del Administrador A se borra', afterB.length === 0, JSON.stringify(afterB.map((c) => c.owner.tenantId)));
+    check('otra identidad de otro sindicato: el contexto local es de la Directiva B', (await localContext())?.userId === ids.directorBUser && (await localContext())?.tenantId === ids.tenantB);
     await page.goto(`${WEB_URL}/estimacion/copia-sin-conexion`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="copy-none"]', { timeout: 10000 });
     check('Directiva B: no ve ninguna copia', (await page.$('[data-testid^="copy-result-"]')) === null);
@@ -337,16 +394,28 @@ try {
     await page.waitForSelector('[data-testid="result-Herbicida de ensayo"]', { timeout: 20000 });
     await downloadCopy();
     check('antes de la política pendiente: una copia de la Directiva A', (await copies()).length === 1);
+    // Una escritura tardía de una sesión anterior de la misma identidad no se reactiva al volver a entrar.
+    const verano = { ...winterCopy, key: `${winterCopy.key.split('|').slice(0, 2).join('|')}|${ids.t2}`, download: { ...winterCopy.download, target: { ...winterCopy.download.target, campaign_ref: ids.t2 } } };
+    await leftover(verano, contextA2.id, verano.key);
+    await page.goto(`${WEB_URL}/estimacion/copia-sin-conexion`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector(`[data-testid="copy-${ids.t1}"]`, { timeout: 15000 });
+    check('misma identidad en una sesión nueva: sólo ve su copia de este contexto, no la escritura tardía anterior',
+      (await page.$(`[data-testid="copy-${ids.t2}"]`)) === null);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await sleep(2500);
+    check('y la siguiente carga la borra', (await copies()).length === 1);
   } else {
     // 12. Política pendiente (backend reiniciado sin modo provisional), mismo perfil de navegador y misma sesión.
     // La lectura sin conexión no llama a la estimación: sirve para ver la IndexedDB antes de consultar.
     await page.goto(`${WEB_URL}/estimacion/copia-sin-conexion`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector(`[data-testid="copy-${ids.t1}"]`, { timeout: 15000 });
     check('perfil persistente: la copia de la Directiva A sigue antes de consultar', (await copies()).length === 1);
+    const contextBeforePolicy = await localContext();
     await open(ids.t1);
     await page.waitForSelector('[data-testid="error-policy"]', { timeout: 20000 });
     await sleep(1000);
     check('política pendiente: aviso, sin cifras ni panel de copia', (await page.$('[data-testid^="result-"]')) === null && (await page.$('[data-testid="copy-panel"]')) === null);
+    check('política pendiente: el contexto local se renueva (las copias anteriores dejan de leerse)', (await localContext())?.id !== contextBeforePolicy?.id && (await localContext())?.userId === ids.directorUser);
     check('política pendiente: la copia se retira de IndexedDB', (await copies()).length === 0);
     check('política pendiente: el servidor respondió 409 POLICY_PENDING', served.some((r) => r.status === 409 && r.message === 'POLICY_PENDING'));
     await page.goto(`${WEB_URL}/estimacion/copia-sin-conexion`, { waitUntil: 'domcontentloaded' });
