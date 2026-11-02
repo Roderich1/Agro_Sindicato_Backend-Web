@@ -5,7 +5,15 @@ import type { Response } from "express";
 import { CurrentUser } from "../../../iam/api/rest/decorators/current-user.decorator";
 import { Roles } from "../../../iam/api/rest/decorators/roles.decorator";
 import { AuthenticatedPrincipal } from "../../../iam/application/types/authenticated-principal.type";
-import { CorrectClassificationDto, GenerateEstimationDto, ResultsQueryDto, RunsQueryDto } from "../../application/dto/estimation.dto";
+import {
+  ClassificationsQueryDto,
+  ClassifyCampaignDto,
+  CorrectClassificationDto,
+  CreateSeasonDto,
+  GenerateEstimationDto,
+  ResultsQueryDto,
+  RunsQueryDto,
+} from "../../application/dto/estimation.dto";
 import { EstimationClassificationsUseCase } from "../../application/estimation-classifications.use-case";
 import { EstimationJobsUseCase } from "../../application/estimation-jobs.use-case";
 import { EstimationReadsUseCase } from "../../application/estimation-reads.use-case";
@@ -22,8 +30,8 @@ const PolicyPending = ApiResponse({ status: 409, description: "POLICY_PENDING: n
  * the request. Reading runs and results applies the policy and the
  * permissions in force. There is no route that modifies or deletes a job, a
  * run or a result. Correcting a classification inserts a new version
- * (EST-D-14). Seasons, the first classification and its list, and the
- * download remain specified, not implemented here.
+ * (EST-D-14). Seasons and the first classification of a campaign
+ * (EST-D-02) are registered once. The download remains specified.
  */
 @ApiTags("estimation")
 @ApiBearerAuth()
@@ -34,6 +42,59 @@ export class EstimationController {
     private readonly reads: EstimationReadsUseCase,
     private readonly classifications: EstimationClassificationsUseCase,
   ) {}
+
+  @Post("seasons")
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @HttpCode(201)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "EST-D-02: registrar una temporada de comparabilidad (no se modifica)" })
+  @ApiResponse({ status: 201, description: "Temporada registrada; no se modifica" })
+  @Invalid("Cuerpo inválido")
+  @Unauthenticated
+  @Forbidden
+  @ApiResponse({ status: 409, description: "SEASON_KEY_TAKEN: la clave ya existe en el sindicato" })
+  createSeason(@CurrentUser() user: AuthenticatedPrincipal, @Body() body: CreateSeasonDto) {
+    return this.classifications.createSeason(user, { key: body.key, definition: body.definition, durationDays: body.duration_days });
+  }
+
+  @Get("seasons")
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Temporadas del sindicato" })
+  @ApiResponse({ status: 200, description: "Lista" })
+  @Unauthenticated
+  @Forbidden
+  seasons(@CurrentUser() user: AuthenticatedPrincipal) {
+    return this.classifications.seasons(user.tenantId);
+  }
+
+  @Post("campaign-classifications")
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @HttpCode(201)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "EST-D-02: clasificar una campaña en una temporada (versión 1)" })
+  @ApiResponse({ status: 201, description: "Clasificación registrada; no se modifica" })
+  @Invalid("Cuerpo inválido")
+  @Unauthenticated
+  @Forbidden
+  @ApiResponse({ status: 404, description: "CAMPAIGN_NOT_FOUND o SEASON_NOT_FOUND (inexistente o de otro sindicato)" })
+  @ApiResponse({ status: 409, description: "CAMPAIGN_ALREADY_CLASSIFIED: se corrige con /corrections" })
+  classify(@CurrentUser() user: AuthenticatedPrincipal, @Body() body: ClassifyCampaignDto) {
+    return this.classifications.classify(user, { campaignId: body.campaign_ref, seasonId: body.season_ref });
+  }
+
+  @Get("campaign-classifications")
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Clasificación vigente de cada campaña; una campaña ausente está sin clasificar" })
+  @ApiResponse({ status: 200, description: "Lista" })
+  @Invalid("Parámetros inválidos")
+  @Unauthenticated
+  @Forbidden
+  @ApiResponse({ status: 404, description: "SEASON_NOT_FOUND" })
+  classificationList(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ClassificationsQueryDto) {
+    return this.classifications.classifications(user.tenantId, query.season_ref);
+  }
 
   @Post("campaign-classifications/:campaignId/corrections")
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)

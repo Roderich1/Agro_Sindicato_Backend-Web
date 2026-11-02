@@ -8003,6 +8003,158 @@
         ]
       }
     },
+    "/api/v1/estimation/seasons": {
+      "post": {
+        "operationId": "EstimationController_createSeason",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSeasonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Temporada registrada; no se modifica"
+          },
+          "400": {
+            "description": "Cuerpo inválido"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "409": {
+            "description": "SEASON_KEY_TAKEN: la clave ya existe en el sindicato"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "EST-D-02: registrar una temporada de comparabilidad (no se modifica)",
+        "tags": [
+          "estimation"
+        ]
+      },
+      "get": {
+        "operationId": "EstimationController_seasons",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Temporadas del sindicato",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
+    "/api/v1/estimation/campaign-classifications": {
+      "post": {
+        "operationId": "EstimationController_classify",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassifyCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Clasificación registrada; no se modifica"
+          },
+          "400": {
+            "description": "Cuerpo inválido"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "CAMPAIGN_NOT_FOUND o SEASON_NOT_FOUND (inexistente o de otro sindicato)"
+          },
+          "409": {
+            "description": "CAMPAIGN_ALREADY_CLASSIFIED: se corrige con /corrections"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "EST-D-02: clasificar una campaña en una temporada (versión 1)",
+        "tags": [
+          "estimation"
+        ]
+      },
+      "get": {
+        "operationId": "EstimationController_classificationList",
+        "parameters": [
+          {
+            "name": "season_ref",
+            "required": false,
+            "in": "query",
+            "description": "Solo las campañas cuya clasificación vigente es esta temporada",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista"
+          },
+          "400": {
+            "description": "Parámetros inválidos"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "SEASON_NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clasificación vigente de cada campaña; una campaña ausente está sin clasificar",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
     "/api/v1/estimation/campaign-classifications/{campaignId}/corrections": {
       "post": {
         "operationId": "EstimationController_correct",
@@ -10897,6 +11049,63 @@
         "required": [
           "confirmed",
           "review_ref"
+        ]
+      },
+      "CreateSeasonDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^\\S(.*\\S)?$",
+            "description": "Clave de comparabilidad, única en el sindicato"
+          },
+          "definition": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Definición de la temporada"
+          },
+          "duration_days": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Duración nominal en días"
+          }
+        },
+        "required": [
+          "contract_version",
+          "key",
+          "definition",
+          "duration_days"
+        ]
+      },
+      "ClassifyCampaignDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "campaign_ref": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "season_ref": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "contract_version",
+          "campaign_ref",
+          "season_ref"
         ]
       },
       "CorrectClassificationDto": {
