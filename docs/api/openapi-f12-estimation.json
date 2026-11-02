@@ -1766,6 +1766,27 @@
             "enum": [
               1
             ]
+          },
+          "arithmetic": {
+            "type": "string",
+            "enum": [
+              "EXACT_RATIONAL"
+            ],
+            "description": "Cálculo con fracciones exactas, sin redondeos intermedios (EST-D-07)."
+          },
+          "result_scale": {
+            "type": "integer",
+            "enum": [
+              6
+            ],
+            "description": "Decimales de la unidad base de la estimación SES y del criterio (EST-D-07)."
+          },
+          "rounding": {
+            "type": "string",
+            "enum": [
+              "ROUND_HALF_UP"
+            ],
+            "description": "Redondeo aplicado solo a las cifras finales (EST-D-07)."
           }
         },
         "required": [
@@ -1775,9 +1796,12 @@
           "tie_tolerance",
           "tie_break",
           "minimum_span",
-          "horizon"
+          "horizon",
+          "arithmetic",
+          "result_scale",
+          "rounding"
         ],
-        "description": "Parámetros del método (3.12.4.8); el período reservado para evaluación nunca interviene."
+        "description": "Parámetros del método (3.12.4.8 y EST-D-07): α se elige y los errores se comparan antes de redondear; solo la estimación final y el criterio se redondean. Seis decimales son una representación, no una garantía de exactitud. El período reservado para evaluación nunca interviene."
       },
       "Disclosure": {
         "type": "object",
