@@ -103,6 +103,14 @@ describePostgres("F12 seasons and first classifications (EST-D-02)", () => {
     seasons["INVIERNO"] = (created.body["season"] as { season_ref: string }).season_ref;
     const taken = await post(admin, "seasons", { ...body, definition: "Otra definición con la misma clave" });
     expect([taken.status, taken.body.message]).toEqual([409, "SEASON_KEY_TAKEN"]);
+    // If the check above does not see the first one (two requests at once), the base refuses it too: still 409.
+    const unseenKey = jest.spyOn(prisma.comparabilitySeason, "count").mockResolvedValueOnce(0);
+    try {
+      const raced = await post(admin, "seasons", body);
+      expect([raced.status, raced.body.message]).toEqual([409, "SEASON_KEY_TAKEN"]);
+    } finally {
+      unseenKey.mockRestore();
+    }
     // Another tenant may use the same key: keys are unique per tenant.
     expect((await post(otherDirector, "seasons", body)).status).toBe(201);
     // Two registrations of a new key at once: one wins.
@@ -143,6 +151,13 @@ describePostgres("F12 seasons and first classifications (EST-D-02)", () => {
     expect(first.body).toMatchObject({ version: 1, previous_classification_ref: null, reason: null, current: true, season: { key: "INVIERNO" }, campaign: { campaign_ref: campaigns["P1"] } });
     const again = await classify(admin, campaigns["P1"]!, seasons["VERANO"]!);
     expect([again.status, again.body.message]).toEqual([409, "CAMPAIGN_ALREADY_CLASSIFIED"]);
+    const unseenVersion = jest.spyOn(prisma.campaignSeasonClassification, "count").mockResolvedValueOnce(0);
+    try {
+      const raced = await classify(admin, campaigns["P1"]!, seasons["VERANO"]!);
+      expect([raced.status, raced.body.message]).toEqual([409, "CAMPAIGN_ALREADY_CLASSIFIED"]);
+    } finally {
+      unseenVersion.mockRestore();
+    }
     const race = await Promise.all([seasons["INVIERNO"]!, seasons["VERANO"]!].map((season) => classify(director, campaigns["P2"]!, season)));
     expect(race.map((r) => r.status).sort()).toEqual([201, 409]);
     expect(await prisma.campaignSeasonClassification.count({ where: { campaignId: campaigns["P2"] } })).toBe(1);
