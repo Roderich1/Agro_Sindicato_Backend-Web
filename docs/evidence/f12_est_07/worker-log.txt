@@ -1,0 +1,4 @@
+[Nest] 33712  - 02/11/2026, 2:22:14 p.m.     LOG [ConsumptionSeriesUseCase] [F12 SERIES] tenant=1bdb25f6-cc2d-46e4-99d7-234f122288b8 product=0cd7d4a6-f38d-4323-8afd-279cca8f472e unit=ML season=6bda5548-2071-485e-981c-95dc76c5d2a1 version=1 points=6
+[Nest] 33712  - 02/11/2026, 2:22:14 p.m.     LOG [EstimationWorker] [F12 WORKER] job=2f9b4d8b-853a-43d0-b1ac-4f2751162fdf attempt=1 run=f86d2e41-0f5d-4a9f-a9bc-1cb4f765a0f9 CALCULATED results=1
+[Nest] 33712  - 02/11/2026, 2:22:20 p.m.     LOG [ConsumptionSeriesUseCase] [F12 SERIES] tenant=1bdb25f6-cc2d-46e4-99d7-234f122288b8 product=d010f9df-634e-444c-85f7-8cf4c5f7c615 unit=ML season=1cdd5afb-9465-450a-be04-7dbd18947dd2 version=1 points=3
+[Nest] 33712  - 02/11/2026, 2:22:20 p.m.     LOG [EstimationWorker] [F12 WORKER] job=210b5e19-93b1-40dc-b3ef-ec2225e96184 attempt=1 run=a813ceed-76b8-4941-8b14-a8660fd89ff8 CALCULATED results=1
