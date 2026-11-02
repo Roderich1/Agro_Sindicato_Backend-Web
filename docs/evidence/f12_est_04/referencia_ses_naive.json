@@ -1,0 +1,290 @@
+{
+ "tesis_3.12.5_L": {
+  "entradas": [
+   96,
+   120,
+   104,
+   116
+  ],
+  "alpha": "0.50",
+  "alpha_minimo_estricto": "0.50",
+  "ajuste_informativo": true,
+  "ses": "111.000000",
+  "ses_exacto": "111",
+  "ses_half_even": "111.000000",
+  "ses_redondeando_cada_paso": "111.000000",
+  "naive": 116,
+  "criterio_ses": "116.000000",
+  "criterio_naive": "400.000000"
+ },
+ "tesis_3.12.5_mL": {
+  "entradas": [
+   96000,
+   120000,
+   104000,
+   116000
+  ],
+  "alpha": "0.50",
+  "alpha_minimo_estricto": "0.50",
+  "ajuste_informativo": true,
+  "ses": "111000.000000",
+  "ses_exacto": "111000",
+  "ses_half_even": "111000.000000",
+  "ses_redondeando_cada_paso": "111000.000000",
+  "naive": 116000,
+  "criterio_ses": "116000000.000000",
+  "criterio_naive": "400000000.000000"
+ },
+ "constante": {
+  "entradas": [
+   500,
+   500,
+   500,
+   500
+  ],
+  "alpha": "1.00",
+  "alpha_minimo_estricto": "1.00",
+  "ajuste_informativo": false,
+  "ses": "500.000000",
+  "ses_exacto": "500",
+  "ses_half_even": "500.000000",
+  "ses_redondeando_cada_paso": "500.000000",
+  "naive": 500,
+  "criterio_ses": "0.000000",
+  "criterio_naive": "0.000000"
+ },
+ "ceros_comprobados": {
+  "entradas": [
+   0,
+   0,
+   0
+  ],
+  "alpha": "1.00",
+  "alpha_minimo_estricto": "1.00",
+  "ajuste_informativo": false,
+  "ses": "0.000000",
+  "ses_exacto": "0",
+  "ses_half_even": "0.000000",
+  "ses_redondeando_cada_paso": "0.000000",
+  "naive": 0,
+  "criterio_ses": "0.000000",
+  "criterio_naive": "0.000000"
+ },
+ "dos_ceros_y_cifra": {
+  "entradas": [
+   0,
+   0,
+   900
+  ],
+  "alpha": "1.00",
+  "alpha_minimo_estricto": "1.00",
+  "ajuste_informativo": false,
+  "ses": "900.000000",
+  "ses_exacto": "900",
+  "ses_half_even": "900.000000",
+  "ses_redondeando_cada_paso": "900.000000",
+  "naive": 900,
+  "criterio_ses": "810000.000000",
+  "criterio_naive": "810000.000000"
+ },
+ "inicio_plano": {
+  "entradas": [
+   700,
+   700,
+   50
+  ],
+  "alpha": "1.00",
+  "alpha_minimo_estricto": "1.00",
+  "ajuste_informativo": false,
+  "ses": "50.000000",
+  "ses_exacto": "50",
+  "ses_half_even": "50.000000",
+  "ses_redondeando_cada_paso": "50.000000",
+  "naive": 50,
+  "criterio_ses": "422500.000000",
+  "criterio_naive": "422500.000000"
+ },
+ "extremo_alpha_0": {
+  "entradas": [
+   100,
+   1000,
+   100,
+   100
+  ],
+  "alpha": "0.00",
+  "alpha_minimo_estricto": "0.00",
+  "ajuste_informativo": true,
+  "ses": "100.000000",
+  "ses_exacto": "100",
+  "ses_half_even": "100.000000",
+  "ses_redondeando_cada_paso": "100.000000",
+  "naive": 100,
+  "criterio_ses": "0.000000",
+  "criterio_naive": "810000.000000"
+ },
+ "extremo_alpha_1_tendencia": {
+  "entradas": [
+   100,
+   200,
+   300,
+   400
+  ],
+  "alpha": "1.00",
+  "alpha_minimo_estricto": "1.00",
+  "ajuste_informativo": true,
+  "ses": "400.000000",
+  "ses_exacto": "400",
+  "ses_half_even": "400.000000",
+  "ses_redondeando_cada_paso": "400.000000",
+  "naive": 400,
+  "criterio_ses": "20000.000000",
+  "criterio_naive": "20000.000000"
+ },
+ "empate_exacto": {
+  "entradas": [
+   0,
+   40,
+   21
+  ],
+  "alpha": "0.55",
+  "alpha_minimo_estricto": "0.55",
+  "ajuste_informativo": true,
+  "ses": "21.450000",
+  "ses_exacto": "429/20",
+  "ses_half_even": "21.450000",
+  "ses_redondeando_cada_paso": "21.450000",
+  "naive": 21,
+  "criterio_ses": "1.000000",
+  "criterio_naive": "361.000000"
+ },
+ "empate_dentro_de_tolerancia": {
+  "entradas": [
+   0,
+   400000000000,
+   209999999999
+  ],
+  "alpha": "0.55",
+  "alpha_minimo_estricto": "0.50",
+  "ajuste_informativo": true,
+  "ses": "214499999999.450000",
+  "ses_exacto": "4289999999989/20",
+  "ses_half_even": "214499999999.450000",
+  "ses_redondeando_cada_paso": "214499999999.450000",
+  "naive": 209999999999,
+  "criterio_ses": "100000000020000000001.000000",
+  "criterio_naive": "36100000000380000000001.000000"
+ },
+ "fuera_de_tolerancia": {
+  "entradas": [
+   0,
+   4000000000,
+   2099999999
+  ],
+  "alpha": "0.50",
+  "alpha_minimo_estricto": "0.50",
+  "ajuste_informativo": true,
+  "ses": "2049999999.500000",
+  "ses_exacto": "4099999999/2",
+  "ses_half_even": "2049999999.500000",
+  "ses_redondeando_cada_paso": "2049999999.500000",
+  "naive": 2099999999,
+  "criterio_ses": "9999999800000001.000000",
+  "criterio_naive": "3610000003800000001.000000"
+ },
+ "empate_decimal_half_up": {
+  "entradas": [
+   0,
+   0,
+   2,
+   1,
+   0,
+   0
+  ],
+  "alpha": "0.15",
+  "alpha_minimo_estricto": "0.15",
+  "ajuste_informativo": true,
+  "ses": "0.292613",
+  "ses_exacto": "23409/80000",
+  "ses_half_even": "0.292612",
+  "ses_redondeando_cada_paso": "0.292613",
+  "naive": 0,
+  "criterio_ses": "4.772533",
+  "criterio_naive": "6.000000"
+ },
+ "redondeo_por_pasos_distinto": {
+  "entradas": [
+   0,
+   0,
+   1,
+   0,
+   0,
+   8,
+   0
+  ],
+  "alpha": "0.05",
+  "alpha_minimo_estricto": "0.05",
+  "ajuste_informativo": true,
+  "ses": "0.420725",
+  "ses_exacto": "1346321/3200000",
+  "ses_half_even": "0.420725",
+  "ses_redondeando_cada_paso": "0.420726",
+  "naive": 0,
+  "criterio_ses": "64.480925",
+  "criterio_naive": "130.000000"
+ },
+ "tramo_F07_C7_C9_mL": {
+  "entradas": [
+   2400,
+   3300,
+   900
+  ],
+  "alpha": "0.00",
+  "alpha_minimo_estricto": "0.00",
+  "ajuste_informativo": true,
+  "ses": "2400.000000",
+  "ses_exacto": "2400",
+  "ses_half_even": "2400.000000",
+  "ses_redondeando_cada_paso": "2400.000000",
+  "naive": 900,
+  "criterio_ses": "2250000.000000",
+  "criterio_naive": "5760000.000000"
+ },
+ "reservado_incluido_0": {
+  "entradas": [
+   96,
+   120,
+   104,
+   116,
+   0
+  ],
+  "alpha": "0.00",
+  "alpha_minimo_estricto": "0.00",
+  "ajuste_informativo": true,
+  "ses": "96.000000",
+  "ses_exacto": "96",
+  "ses_half_even": "96.000000",
+  "ses_redondeando_cada_paso": "96.000000",
+  "naive": 0,
+  "criterio_ses": "9680.000000",
+  "criterio_naive": "13856.000000"
+ },
+ "reservado_incluido_1e9": {
+  "entradas": [
+   96,
+   120,
+   104,
+   116,
+   1000000000
+  ],
+  "alpha": "1.00",
+  "alpha_minimo_estricto": "1.00",
+  "ajuste_informativo": true,
+  "ses": "1000000000.000000",
+  "ses_exacto": "1000000000",
+  "ses_half_even": "1000000000.000000",
+  "ses_redondeando_cada_paso": "1000000000.000000",
+  "naive": 1000000000,
+  "criterio_ses": "999999768000013856.000000",
+  "criterio_naive": "999999768000013856.000000"
+ }
+}

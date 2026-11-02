@@ -2,11 +2,12 @@
 
 - **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado dos veces el 2026-11-02 (UTC) con las decisiones del autor del §11.
 - **Estado:** **especificación**. Es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
-  - **Ninguna ruta está implementada:** no hay controladores, casos de uso, trabajador por lotes ni motor de cálculo.
+  - **Ninguna ruta está implementada:** no hay controladores, trabajador por lotes ni registro de ejecuciones.
   - **Lo construido:**
     - el esquema de datos (§6), con su migración aditiva;
     - la cobertura de consumo de los sellados F07 nuevos (§3.1), implementada en el caso de uso del sellado;
-    - desde F12-EST-02 y F12-EST-03 (#175, #176), la preparación de fuentes, la construcción de series y su lectura para una campaña objetivo (§3.2), sin rutas.
+    - desde F12-EST-02 y F12-EST-03 (#175, #176), la preparación de fuentes, la construcción de series y su lectura para una campaña objetivo (§3.2), sin rutas;
+    - desde F12-EST-04 (#177), el motor SES/naive como función pura sobre el tramo `READY` (§3.3), sin rutas ni ejecuciones.
 - **Issue:** [#174](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/174) (F12-EST-01), entregable E7.1 de 3.13.2. Lo siguen F12-EST-02 a F12-EST-08.
 - **Bases:**
   - Backend `main` `b81ff23`.
@@ -241,9 +242,41 @@ La suite F12 las usa (§12).
 5. Ningún motivo lleva cifras, y no se aplica ningún mínimo de participación.
 
 **Lo que no hace:**
-- no calcula SES ni naive;
+- no calcula SES ni naive, que es del motor (§3.3);
 - no registra ejecuciones ni resultados;
 - no comprueba la admisibilidad del objetivo para un trabajo, que es de EST-D-06 y F12-EST-05;
+- no expone nada por HTTP.
+
+### 3.3 Motor SES/naive (F12-EST-04, implementado sin rutas)
+
+`Back/src/modules/estimation/domain/ses-naive.ts` (`estimateSesNaive`). Es una función pura: sin base, sin HTTP y sin trabajador. Ningún controlador la alcanza.
+
+**Entrada.** Solo el tramo `READY` de F12-EST-03 (§3.2): enteros no negativos de la unidad base, en al menos tres posiciones consecutivas.
+- El motor no selecciona campañas, no rellena huecos y no ve nada fuera del tramo.
+- Cualquier otra entrada es un contrato roto, no un resultado: `SesNaiveInputError` con `NOT_READY`, `SPAN_TOO_SHORT`, `SPAN_MISMATCH`, `NOT_AN_INTEGER` o `NEGATIVE_VALUE`.
+
+**Reglas (3.12.4.8):**
+- horizonte de una campaña;
+- nivel inicial igual a la primera observación del tramo, y después *L*ₜ = α·*y*ₜ + (1 − α)·*L*ₜ₋₁; la estimación es el último nivel;
+- naive: la última observación del mismo tramo;
+- α en los 21 valores de 0,00 a 1,00, con paso 0,05;
+- criterio: suma de errores cuadráticos a un paso desde la tercera observación, porque el error de la segunda no depende de α;
+- empates: empatan los α cuyo criterio *C* cumple *C* − *C*ₘᵢₙ ≤ 10⁻⁹·*C*ₘᵢₙ, y se elige el mayor; con *C*ₘᵢₙ = 0 solo empatan los ceros exactos;
+- criterio constante: si los 21 α empatan, α = 1 y `fitInformative = false`.
+
+**SES frente a naive.** Se entregan siempre los dos, y el motor nunca cambia de método.
+- Dentro del tramo, el criterio del SES nunca supera al del naive, porque α = 1 es el naive y está en la rejilla. Coinciden cuando se elige α = 1.
+- Fuera del tramo el SES puede ser peor que el naive. Es un resultado válido (RN-28), y medirlo es de la evaluación de RNF-13.
+
+**Aritmética y redondeo (EST-D-07):**
+- **Sin redondeos intermedios.** Con α = *k*/20 y entradas enteras, cada nivel es un entero sobre 20ᵗ. El cálculo usa esas fracciones exactas en `bigint`: α se elige y los criterios se comparan antes de redondear.
+- **Redondeo final.** Solo la estimación SES y los criterios se redondean, a 6 decimales de la unidad base con `ROUND_HALF_UP`, el modo de `Prisma.Decimal` que ya usa el backend. El naive es un entero y no cambia. La cifra redondeada no vuelve a entrar en el cálculo.
+- **Alcance.** Seis decimales son una decisión de representación, no una garantía de exactitud del pronóstico.
+- **Reproducibilidad.** El resultado lleva `method = SES_NAIVE`, `methodVersion = F12-EST-04/1` y los parámetros (`Parameters` del OpenAPI, con `arithmetic`, `result_scale` y `rounding`). Las mismas cifras dan el mismo resultado.
+
+**Lo que no hace:**
+- no registra ejecuciones ni resultados (F12-EST-05);
+- no evalúa la precisión (RNF-13); el período reservado para esa evaluación no interviene al elegir α, porque el motor solo ve el tramo que recibe;
 - no expone nada por HTTP.
 
 ## 4. Rutas (v1) y semántica
@@ -610,6 +643,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | EST-D-04 | 2026-11-01 | Cálculo por lotes fuera de la petición, con el mecanismo mínimo, sin plataforma de colas; ejecuciones finales inmutables y estado operativo aparte | §4.2, §6 |
 | EST-D-05 | 2026-11-01 | El Agricultor consulta la estimación sin naive, cobertura ni serie; puede coincidir con una cifra histórica; la proyección debe estar en la política institucional; no se habilitan datos reales ni se declara aprobada la política | §2 |
 | EST-D-06 | 2026-11-02 (UTC) | Campaña objetivo admisible: del mismo sindicato, clasificada y `PLANIFICADA` o `ABIERTA`, al pedir el trabajo y antes de empezar el cálculo. Si se cierra después de empezar, la ejecución se completa y se conserva como histórica; la campaña no se reabre ni se modifica, y la consulta sigue sujeta a los permisos y a la divulgación vigentes | §4.2; base: alta del trabajo y parada `TARGET_CAMPAIGN_NOT_ELIGIBLE`; la ejecución no exige el estado |
+| EST-D-07 | 2026-11-02 (UTC) | Cálculo sin redondeos intermedios; α y la comparación de errores, antes de redondear; estimación SES y naive finales con 6 decimales de la unidad base y `ROUND_HALF_UP`; se conservan los parámetros y la versión del método. Seis decimales son una decisión de representación, no una garantía de exactitud | §3.3; `Parameters` del OpenAPI |
 | EST-D-09 | 2026-11-01 y 2026-11-02 (UTC) | Ampliación mínima de F07: cobertura de participación del consumo en los sellados futuros, en la misma transacción e inmutable; no aceptar la cobertura general; no reconstruir los sellados anteriores; misma población en N y M; participación distinta de integridad; ningún mínimo nuevo | §3.1; F07 §5.3 |
 | EST-D-11 | 2026-11-02 (UTC) | Conservar los registros durante la construcción y la evaluación académica; la retención institucional definitiva, pendiente en GOV-02, sin declarar aprobada una conservación perpetua | §6.5 |
 | EST-D-13 | 2026-11-01 | Autorización existente por roles, con identidad, pertenencia y cuenta activa; ningún segundo sistema | §2, §6.3 |
@@ -622,7 +656,6 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 
 | Id | Decisión | Propuesta | Compatibilidad | Quién o cuándo |
 |---|---|---|---|---|
-| EST-D-07 | Redondeo de la estimación | 6 decimales en la unidad base; el modo, en F12-EST-04 | Compatible | F12-EST-04 |
 | EST-D-08 | Qué sustituye a un resultado | Una ejecución posterior `CALCULATED` que incluya el producto; una `FAILED`, no | Compatible: con lotes, «posterior» es el orden de la cadena. Una ejecución `FAILED` con `RETRIES_EXHAUSTED` tampoco sustituye | F12-EST-05 |
 | EST-D-10 | Política pendiente | 409 al pedir y al leer; un trabajo en cola termina `NOT_EXECUTED` | Compatible con EST-D-15 | F12-EST-05 |
 | EST-D-12 | Detección de `OUTDATED` | Huella de las fuentes vigentes frente a `sourceHash`; `CLASSIFICATION_CORRECTED` si cambió una versión de clasificación usada | Compatible. La huella incluye las versiones de clasificación y la cobertura del sellado (§5) | F12-EST-05 |
@@ -665,7 +698,8 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | Rechazo HTTP 403 de una identidad sin permiso; 409 en `POLICY_PENDING`; 202 al encolar; correcciones por HTTP; selección de la consulta; perfiles; retirada de cifras al leer | **Solo especificado** | No hay controlador. Se probará en F12-EST-05 y F12-EST-06 |
 | Trabajador por lotes: toma con `SKIP LOCKED`, plazo, clasificación de errores transitorios, reintentos y paradas | **Solo especificado** | La base prueba las transiciones, el máximo de intentos, que una parada sea verificable y que `RETRIES_EXHAUSTED` exija los intentos agotados |
 | Preparación de fuentes, construcción de series con versiones y lectura del tramo para una campaña objetivo (§3.2) | **Implementado y comprobado contra PostgreSQL**, sin rutas | `consumption-series.use-case.ts` y `domain/series.ts`; `series.spec.ts` (9) y `f12-est-02-series.postgres.spec.ts` (4, con sellados reales F07 por la API) |
-| SES, naive, ejecuciones, vigencia y clientes | **No construido** | F12-EST-04 a F12-EST-07 |
+| Motor SES/naive (§3.3): rejilla de α, empates, criterio constante, naive y redondeo final | **Implementado y comprobado**, sin rutas ni ejecuciones | `domain/ses-naive.ts`; `ses-naive.spec.ts` (11, con casos calculados a mano y una referencia decimal independiente) y el tramo `READY` de sellados reales en `f12-est-02-series.postgres.spec.ts` |
+| Ejecuciones, resultados, vigencia y clientes | **No construido** | F12-EST-05 a F12-EST-07 |
 
 **Lo que comprueba el script** sobre la especificación:
 - OpenAPI 3.0.3, referencias resueltas y ningún `$ref` con hermanos;
@@ -725,3 +759,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), segunda | Decisiones del autor EST-D-09 (cobertura), 11, 14, 15, 16 y F06 (§11.1). Cambios: cobertura de participación del consumo en los sellados F07 nuevos, implementada (F07 §5.3), con la advertencia sobre `SHOW_PRIOR` corregida tras leer `decideCell`; versiones de clasificación con corrección motivada, citadas por puntos y ejecuciones; paradas `NOT_EXECUTED` con evidencia verificable; `RETRIES_EXHAUSTED` en lugar de `ATTEMPTS_EXHAUSTED` y `SOURCES_UNAVAILABLE`; máximo de intentos y de productos configurables; retención académica con la institucional en GOV-02; F06 §1 acotado; fuentes sintéticas con cobertura conocida y desconocida |
 | 2026-11-02 (UTC), tercera | EST-D-06 decidida por el autor: admisible al pedir y antes de calcular; la base lo exige al crear el trabajo, y una ejecución iniciada se completa aunque la campaña se cierre |
 | 2026-11-02 (UTC), cuarta | F12-EST-02 y F12-EST-03 (#175, #176): construcción de series y lectura del tramo, implementadas sin rutas (§3.2); se añade la distinción de representatividad a la cobertura y el límite sintético de su exposición |
+| 2026-11-02 (UTC), quinta | EST-D-07 decidida por el autor (§11.1). F12-EST-04 (#177): motor SES/naive implementado como función pura, sin rutas ni ejecuciones (§3.3); `Parameters` del OpenAPI añade `arithmetic`, `result_scale` y `rounding` |

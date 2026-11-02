@@ -16,6 +16,7 @@ import { CollectiveConfig } from "../../collective/application/collective-config
 import { createSession, createSyncV1App, Fixture, seedFixture, TestSession, unusablePasswordHash } from "../../sync-v1/test-support/sync-v1-test-app";
 import { BuiltSeries, ConsumptionSeriesUseCase, TargetAssessment } from "../application/consumption-series.use-case";
 import { assessSpan } from "../domain/series";
+import { estimateSesNaive, ReadySpan, SesNaiveInputError } from "../domain/ses-naive";
 import { sealedConsumptionCampaigns } from "../test-support/synthetic-sources";
 
 /**
@@ -27,7 +28,8 @@ import { sealedConsumptionCampaigns } from "../test-support/synthetic-sources";
  * the seal (F07 §5.3). Earlier sources are sealed on the base before
  * 20261102020000_f07_seal_consumption_coverage, so their coverage is unknown;
  * a POPULATION_MISMATCH seal can only be inserted directly (the race that
- * produces it cannot be forced). No SES, naive, run or route is involved.
+ * produces it cannot be forced). The READY span is fed to the F12-EST-04
+ * SES/naive engine; no run, worker or route is involved.
  *
  * With F12_DEMO_OUT set, the built series are written there as JSON (demo).
  */
@@ -287,7 +289,23 @@ describePostgres("F12-EST-02/03 consumption series from real F07 seals", () => {
     ]);
     // A target right after C5 reads C5 as the last relevant campaign, after the C4 gap: too short.
     expect(assessSpanFor(built, "C5")).toMatchObject({ status: "INSUFFICIENT_DATA", reason: "SPAN_TOO_SHORT", span: { length: 1 } });
-    demo["INVIERNO_v1"] = { series: { version: built.version, sourceHash: built.sourceHash }, positions: table(built), assessment: assessed.assessment };
+
+    // F12-EST-04 on that span, by hand: e3 = 900 − (2400 + 900α) is smallest in absolute value at α = 0,
+    // criterion 1500² = 2 250 000; SES = L3 = 2400 mL; naive = 900 mL with criterion (900 − 3300)² = 5 760 000.
+    expect(assessed.assessment.status).toBe("READY");
+    const estimate = estimateSesNaive(assessed.assessment as ReadySpan);
+    expect(estimate).toMatchObject({
+      method: "SES_NAIVE",
+      methodVersion: "F12-EST-04/1",
+      span: { firstPosition: 9, lastPosition: 11, length: 3 },
+      alpha: "0.00",
+      fitInformative: true,
+      fitCriterion: "2250000.000000",
+      naiveFitCriterion: "5760000.000000",
+      estimateBase: "2400.000000",
+      naiveBase: 900n,
+    });
+    demo["INVIERNO_v1"] = { series: { version: built.version, sourceHash: built.sourceHash }, positions: table(built), assessment: assessed.assessment, estimate };
   });
 
   it("gives no figures when the span comes from seals without consumption coverage or with a population mismatch", async () => {
@@ -302,6 +320,7 @@ describePostgres("F12-EST-02/03 consumption series from real F07 seals", () => {
     ]);
     expect(legacy.assessment).toMatchObject({ status: "INCOMPATIBLE_DATA", reason: "COVERAGE_UNKNOWN", span: { length: 3 } });
     expect("values" in (legacy.assessment.span ?? {})).toBe(false);
+    expect(() => estimateSesNaive(legacy.assessment as ReadySpan)).toThrow(SesNaiveInputError);
 
     await season("DESAJUSTE");
     const sources = [
@@ -350,6 +369,7 @@ describePostgres("F12-EST-02/03 consumption series from real F07 seals", () => {
     // Now the span ends at C8: C7–C8 is too short, without figures.
     const assessed = expectAssessed(await useCase.assess(f.tenantA, campaigns["T"]!, products["Herbicida"]!));
     expect(assessed.assessment).toMatchObject({ status: "INSUFFICIENT_DATA", reason: "SPAN_TOO_SHORT", span: { length: 2 } });
+    expect(() => estimateSesNaive(assessed.assessment as ReadySpan)).toThrow(SesNaiveInputError);
     // In its new season, C9 cites the new version.
     const summer = expectBuilt(await useCase.build(f.tenantA, seasons["VERANO"]!, products["Herbicida"]!));
     expect(summer.points.map((p) => [keyOf(p.campaignId), p.classificationId])).toEqual([["C9", v2.id]]);
