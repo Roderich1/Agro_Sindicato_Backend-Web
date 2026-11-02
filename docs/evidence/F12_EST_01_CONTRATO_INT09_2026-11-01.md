@@ -1,5 +1,7 @@
 # F12-EST-01 (#174): contrato INT-09, permisos y esquema de la estimación — evidencia
 
+> **Registro histórico de `acc04fa`.** La conciliación posterior, del mismo PR y antes de integrar, cambió el contrato, la especificación y la migración: temporadas en lugar de `comparabilityKey`, fuente sellada obligatoria, trabajos por lotes en lugar de `POST /runs` y ninguna columna de cobertura. Lo vigente y su verificación están en [`F12_EST_01_CONCILIACION_2026-11-01.md`](F12_EST_01_CONCILIACION_2026-11-01.md). Este registro no se reescribe.
+
 | Campo | Valor |
 |---|---|
 | Fecha real | Del 2026-11-01 a las 23:00Z al 2026-11-02 a las 00:25Z (UTC); tarde del 2026-11-01 en Bolivia |

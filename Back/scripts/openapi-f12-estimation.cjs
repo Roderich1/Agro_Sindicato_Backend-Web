@@ -5,6 +5,9 @@
 // no se leería. Esto valida la ESPECIFICACIÓN y su coherencia con el esquema
 // y la migración, no un comportamiento: ningún rechazo HTTP queda probado
 // aquí, y `x-roles` es una anotación (no hay @Roles todavía que contrastar).
+// El bloque 8 es una comprobación de ESTA ETAPA (especificado, no
+// implementado), no una prohibición de implementar INT-09: F12-EST-05 la
+// sustituye por la comparación con el OpenAPI generado desde el código.
 const assert = require("node:assert/strict");
 const { readFileSync, readdirSync } = require("node:fs");
 const { resolve } = require("node:path");
@@ -21,7 +24,6 @@ const schemas = spec.components.schemas;
 // 1. Documento y estado declarado.
 assert.equal(spec.openapi, "3.0.3");
 assert.equal(spec.info["x-contract-version"], 1);
-assert.equal(spec.info["x-implementation-status"], "SPECIFIED_NOT_IMPLEMENTED");
 assert.deepEqual(spec.components.securitySchemes.bearer, { type: "http", scheme: "bearer", bearerFormat: "JWT" });
 
 // 2. Toda referencia resuelve; ningún $ref lleva hermanos (OAS 3.0.3 los
@@ -45,12 +47,24 @@ const walk = (node, at) => {
 };
 walk(spec, "#");
 
-// 3. Rutas, métodos y roles exactos. Ninguna operación de modificación.
+// 3. Rutas, métodos, roles y respuestas exactos. Ninguna operación de
+// modificación. Las operaciones que calculan o entregan cifras responden 409
+// POLICY_PENDING: la política vigente se aplica también al consultar.
+const DIR = ["DIRECTIVA", "ADMINISTRADOR"];
+const ALL = ["AGRICULTOR", "DIRECTIVA", "ADMINISTRADOR"];
+const op = (roles, statuses, figures = false) => ({ roles, statuses, figures });
 const expected = {
-  "/api/v1/estimation/runs": { post: ["DIRECTIVA", "ADMINISTRADOR"], get: ["DIRECTIVA", "ADMINISTRADOR"] },
-  "/api/v1/estimation/runs/{runId}": { get: ["DIRECTIVA", "ADMINISTRADOR"] },
-  "/api/v1/estimation/results": { get: ["AGRICULTOR", "DIRECTIVA", "ADMINISTRADOR"] },
-  "/api/v1/estimation/download": { get: ["AGRICULTOR", "DIRECTIVA", "ADMINISTRADOR"] },
+  "/api/v1/estimation/jobs": { post: op(DIR, ["200", "202", "400", "401", "403", "404", "409", "422"], true) },
+  "/api/v1/estimation/jobs/{jobId}": { get: op(DIR, ["200", "400", "401", "403", "404"]) },
+  "/api/v1/estimation/seasons": { post: op(DIR, ["201", "400", "401", "403", "409"]), get: op(DIR, ["200", "401", "403"]) },
+  "/api/v1/estimation/campaign-classifications": {
+    post: op(DIR, ["201", "400", "401", "403", "404", "409"]),
+    get: op(DIR, ["200", "400", "401", "403", "404"]),
+  },
+  "/api/v1/estimation/runs": { get: op(DIR, ["200", "400", "401", "403", "404", "409"], true) },
+  "/api/v1/estimation/runs/{runId}": { get: op(DIR, ["200", "400", "401", "403", "404", "409"], true) },
+  "/api/v1/estimation/results": { get: op(ALL, ["200", "400", "401", "403", "404", "409"], true) },
+  "/api/v1/estimation/download": { get: op(ALL, ["200", "400", "401", "403", "404", "409"], true) },
 };
 assert.deepEqual(Object.keys(spec.paths).sort(), Object.keys(expected).sort());
 const operationIds = new Set();
@@ -59,25 +73,40 @@ for (const [path, methods] of Object.entries(spec.paths)) {
   for (const forbidden of ["put", "patch", "delete"]) assert.ok(!(forbidden in methods), `${path}: ${forbidden} no admitido`);
   for (const [method, operation] of Object.entries(methods)) {
     const where = `${method.toUpperCase()} ${path}`;
+    const want = expected[path][method];
     assert.ok(operation.operationId && !operationIds.has(operation.operationId), `${where}: operationId`);
     operationIds.add(operation.operationId);
     assert.deepEqual(operation.security, [{ bearer: [] }], `${where}: bearer`);
-    assert.deepEqual(operation["x-roles"], expected[path][method], `${where}: roles`);
-    for (const status of ["400", "401", "403", "404", "409"]) assert.ok(operation.responses[status], `${where}: falta ${status}`);
-    // La política de divulgación vigente se aplica también al consultar.
-    assert.match(operation.responses["409"].description, /POLICY_PENDING/, `${where}: 409 sin POLICY_PENDING`);
+    assert.deepEqual(operation["x-roles"], want.roles, `${where}: roles`);
+    assert.deepEqual(Object.keys(operation.responses).sort(), want.statuses.slice().sort(), `${where}: respuestas`);
+    if (want.figures) assert.match(operation.responses["409"].description, /POLICY_PENDING/, `${where}: 409 sin POLICY_PENDING`);
   }
 }
-const generate = spec.paths["/api/v1/estimation/runs"].post;
-for (const status of ["200", "201", "422"]) assert.ok(generate.responses[status], `POST runs: falta ${status}`);
+// EST-D-04: pedir una estimación encola un trabajo (202); no calcula en la petición.
+const generate = spec.paths["/api/v1/estimation/jobs"].post;
 assert.equal(generate.requestBody.content["application/json"].schema.$ref, "#/components/schemas/GenerateRequest");
+for (const status of ["200", "202"]) assert.equal(generate.responses[status].content["application/json"].schema.$ref, "#/components/schemas/Job");
 assert.match(generate.responses["403"].description, /No tienes permisos para esta acción/);
 assert.match(generate.responses["403"].description, /No se ejecuta ni se registra/);
+assert.match(generate.responses["422"].description, /TARGET_CAMPAIGN_NOT_CLASSIFIED/);
 assert.deepEqual(schemas.GenerateRequest.required, ["contract_version", "request_id", "target_campaign_ref"]);
 assert.deepEqual(schemas.ErrorCode.enum.slice().sort(), [
-  "POLICY_PENDING", "PRODUCT_NOT_ESTIMABLE", "PRODUCT_NOT_FOUND", "REQUEST_ID_REUSED", "RUN_NOT_FOUND",
-  "RUN_SUCCESSION_CONFLICT", "TARGET_CAMPAIGN_NOT_ELIGIBLE", "TARGET_CAMPAIGN_NOT_FOUND",
+  "CAMPAIGN_ALREADY_CLASSIFIED", "CAMPAIGN_NOT_FOUND", "JOB_NOT_FOUND", "POLICY_PENDING", "PRODUCT_NOT_ESTIMABLE",
+  "PRODUCT_NOT_FOUND", "REQUEST_ID_REUSED", "RUN_NOT_FOUND", "SEASON_KEY_TAKEN", "SEASON_NOT_FOUND",
+  "TARGET_CAMPAIGN_NOT_CLASSIFIED", "TARGET_CAMPAIGN_NOT_ELIGIBLE", "TARGET_CAMPAIGN_NOT_FOUND",
 ]);
+// EST-D-02: una temporada es explícita (clave, definición y duración) y
+// las ejecuciones la identifican; ninguna operación la modifica.
+assert.deepEqual(schemas.SeasonCreateRequest.required, ["contract_version", "key", "definition", "duration_days"]);
+assert.deepEqual(schemas.SeasonRef.required, ["season_ref", "key", "definition", "duration_days"]);
+for (const name of ["RunSummary", "Run"]) assert.equal(schemas[name].properties.season.$ref, "#/components/schemas/SeasonRef", `${name}.season`);
+// EST-D-09: sin fuente verificable, la cobertura es siempre desconocida y sin cifras.
+assert.deepEqual(schemas.Coverage.properties.status.enum, ["UNKNOWN"]);
+assert.deepEqual(Object.keys(schemas.Coverage.properties), ["status"]);
+// EST-D-05: el perfil del Agricultor declara la exigencia de política institucional.
+for (const route of ["/api/v1/estimation/results", "/api/v1/estimation/download"]) {
+  assert.match(spec.paths[route].get["x-policy-requirement"] ?? "", /política\s+institucional/, `${route}: exigencia de política`);
+}
 
 // 4. Sin aportes individuales, identificadores de tenant del cliente ni
 // aprobación manual, en esquemas y en parámetros. `member_ref` sólo
@@ -162,6 +191,7 @@ for (const name of ["ResultDetail", "InstitutionalResult", "FarmerResult", "Inst
   assert.deepEqual(schemas[name].properties.status.enum, prismaEnum("EstimationResultStatus"), `${name}.status`);
 }
 for (const name of ["RunSummary", "Run"]) assert.deepEqual(schemas[name].properties.outcome.enum, prismaEnum("EstimationRunOutcome"), `${name}.outcome`);
+assert.deepEqual(schemas.Job.properties.status.enum, prismaEnum("EstimationJobStatus"), "Job.status");
 const checkList = (column) => {
   const match = migration.match(new RegExp(`"${column}" IN \\(([^)]*)\\)`));
   assert.ok(match, `Migración: falta la lista cerrada de ${column}`);
@@ -169,21 +199,33 @@ const checkList = (column) => {
 };
 assert.deepEqual(enumOf(schemas.ResultDetail.properties.reason_code), checkList("reasonCode"));
 assert.deepEqual(enumOf(schemas.RunSummary.properties.failure_code), checkList("failureCode"));
+assert.deepEqual(enumOf(schemas.Job.properties.stop_code), checkList("stopCode"));
 const validity = ["NOT_USABLE", "SUPERSEDED", "OUTDATED", "CURRENT"];
 for (const [schema, key] of [["ResultDetail", "validity"], ["InstitutionalResult", "validity"], ["FarmerResult", "validity"], ["InstitutionalDownloadedResult", "validity_at_download"], ["FarmerDownloadedResult", "validity_at_download"]]) {
   assert.deepEqual(schemas[schema].properties[key].enum, validity, `${schema}.${key}`);
 }
-for (const model of ["ConsumptionSeries", "SeriesPoint", "EstimationRun", "EstimationResult"]) {
+const models = ["ComparabilitySeason", "CampaignSeasonClassification", "ConsumptionSeries", "SeriesPoint", "EstimationJob", "EstimationRun", "EstimationResult"];
+for (const model of models) {
   const block = prisma.match(new RegExp(`model ${model} \\{([^}]*)\\}`));
   assert.ok(block, `Prisma: falta model ${model}`);
   const fields = block[1].split("\n").map((line) => line.trim().split(/\s+/)[0]).filter((name) => /^[a-z]/.test(name ?? ""));
   for (const field of fields) assert.ok(!/validity|vigencia|approv/i.test(field), `${model}.${field}: no se almacena`);
+  // EST-D-09: ninguna cobertura sin fuente verificable.
+  for (const field of fields) assert.ok(!/coverage|cobertura/i.test(field), `${model}.${field}: cobertura sin fuente`);
 }
 
-// 8. Especificado, no implementado: el documento generado desde el código no
-// tiene rutas de estimación. Al implementarlas, este bloque debe cambiar.
-// Depende de que `openapi.cjs --check` haya pasado antes (orden de openapi:check).
+// 8. Comprobación de esta etapa (F12-EST-01: especificado, no implementado),
+// no una prohibición de implementar INT-09. Mientras la especificación se
+// declare SPECIFIED_NOT_IMPLEMENTED, el documento generado desde el código no
+// tiene rutas de estimación. F12-EST-05, al implementarlas, cambia el estado y
+// sustituye este bloque por la comparación con el OpenAPI generado. Depende de
+// que `openapi.cjs --check` haya pasado antes (orden de openapi:check).
+const stage = spec.info["x-implementation-status"];
 const implemented = Object.keys(generated.paths).filter((path) => path.startsWith("/api/v1/estimation"));
-assert.deepEqual(implemented, [], "Hay rutas de estimación implementadas: actualizar F12 y este script");
+if (stage === "SPECIFIED_NOT_IMPLEMENTED") {
+  assert.deepEqual(implemented, [], "Etapa F12-EST-01: hay rutas de estimación implementadas; al implementarlas, cambie x-implementation-status y esta comprobación");
+} else {
+  assert.fail(`Etapa ${stage}: F12-EST-05 debe sustituir esta comprobación por la comparación con el OpenAPI generado`);
+}
 
-process.stdout.write(`openapi-f12-estimation: ${Object.keys(spec.paths).length} rutas, ${Object.keys(schemas).length} esquemas, ${refs.size} referenciados; especificado, no implementado\n`);
+process.stdout.write(`openapi-f12-estimation: ${Object.keys(spec.paths).length} rutas, ${Object.keys(schemas).length} esquemas, ${refs.size} referenciados; etapa ${stage}: especificado, no implementado\n`);

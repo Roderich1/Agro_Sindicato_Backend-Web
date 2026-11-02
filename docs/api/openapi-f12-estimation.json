@@ -3,7 +3,7 @@
   "info": {
     "title": "Agrocuentas — Estimación del consumo (INT-09)",
     "version": "1.0.0-draft",
-    "description": "Contrato v1 de INT-09, ESPECIFICADO Y NO IMPLEMENTADO (F12-EST-01, Roderich1/Agro_Sindicato_Backend-Web#174). No hay controladores: ninguna respuesta descrita aquí está probada contra el servicio. Documento rector: docs/architecture/F12_EST_01_ESTIMATION_CONTRACT.md.",
+    "description": "Contrato v1 de INT-09, ESPECIFICADO Y NO IMPLEMENTADO (F12-EST-01, Roderich1/Agro_Sindicato_Backend-Web#174). No hay controladores ni trabajador: ninguna respuesta descrita aquí está probada contra el servicio. SPECIFIED_NOT_IMPLEMENTED es el estado de esta etapa; F12-EST-05 lo cambia al implementar las rutas. Documento rector: docs/architecture/F12_EST_01_ESTIMATION_CONTRACT.md.",
     "x-implementation-status": "SPECIFIED_NOT_IMPLEMENTED",
     "x-contract-version": 1
   },
@@ -14,13 +14,13 @@
     }
   ],
   "paths": {
-    "/api/v1/estimation/runs": {
+    "/api/v1/estimation/jobs": {
       "post": {
         "tags": [
           "estimation"
         ],
-        "operationId": "generateEstimation",
-        "summary": "CU-20: generar la estimación del consumo de una campaña objetivo",
+        "operationId": "requestEstimation",
+        "summary": "CU-20: pedir la estimación del consumo de una campaña objetivo; se calcula por lotes",
         "security": [
           {
             "bearer": []
@@ -42,21 +42,21 @@
         },
         "responses": {
           "200": {
-            "description": "Repetición del mismo request_id con la misma petición: la misma ejecución, sin calcular de nuevo.",
+            "description": "Repetición del mismo request_id con la misma petición: el mismo trabajo, sin encolar otro.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Run"
+                  "$ref": "#/components/schemas/Job"
                 }
               }
             }
           },
-          "201": {
-            "description": "Ejecución registrada una vez, CALCULATED o FAILED. Datos insuficientes o incompatibles se informan por producto, sin cifras.",
+          "202": {
+            "description": "Trabajo en cola (QUEUED). El cálculo ocurre fuera de la petición; la ejecución se registra una vez y se consulta en run_ref.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Run"
+                  "$ref": "#/components/schemas/Job"
                 }
               }
             }
@@ -102,7 +102,7 @@
             }
           },
           "409": {
-            "description": "REQUEST_ID_REUSED, POLICY_PENDING (no se calcula ni se registra) o RUN_SUCCESSION_CONFLICT (otra ejecución simultánea; reintentar).",
+            "description": "REQUEST_ID_REUSED, o POLICY_PENDING (modo de divulgación POLICY_PENDING): no se encola ni se registra nada.",
             "content": {
               "application/json": {
                 "schema": {
@@ -112,7 +112,168 @@
             }
           },
           "422": {
-            "description": "TARGET_CAMPAIGN_NOT_ELIGIBLE (no PLANIFICADA ni ABIERTA) o PRODUCT_NOT_ESTIMABLE (no canónico o unidad no enlazable).",
+            "description": "TARGET_CAMPAIGN_NOT_ELIGIBLE (no PLANIFICADA ni ABIERTA), TARGET_CAMPAIGN_NOT_CLASSIFIED (sin temporada asignada) o PRODUCT_NOT_ESTIMABLE (no canónico o unidad no enlazable).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/estimation/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "estimation"
+        ],
+        "operationId": "getEstimationJob",
+        "summary": "Estado operativo de un trabajo de estimación (sin cifras)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-roles": [
+          "DIRECTIVA",
+          "ADMINISTRADOR"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trabajo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Identificador inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos (JwtAuthGuard global con revalidación en la base).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR (RolesGuard global, mensaje «No tienes permisos para esta acción»).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "JOB_NOT_FOUND: inexistente o de otro sindicato (indistinguibles).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/estimation/seasons": {
+      "post": {
+        "tags": [
+          "estimation"
+        ],
+        "operationId": "createSeason",
+        "summary": "EST-D-02: definir una temporada institucional comparable",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-roles": [
+          "DIRECTIVA",
+          "ADMINISTRADOR"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeasonCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Temporada registrada; no se modifica.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Season"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cuerpo inválido (ValidationPipe).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos (JwtAuthGuard global con revalidación en la base).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR (RolesGuard global, mensaje «No tienes permisos para esta acción»).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SEASON_KEY_TAKEN: la clave ya existe en el sindicato.",
             "content": {
               "application/json": {
                 "schema": {
@@ -123,6 +284,225 @@
           }
         }
       },
+      "get": {
+        "tags": [
+          "estimation"
+        ],
+        "operationId": "listSeasons",
+        "summary": "Temporadas del sindicato",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-roles": [
+          "DIRECTIVA",
+          "ADMINISTRADOR"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos (JwtAuthGuard global con revalidación en la base).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR (RolesGuard global, mensaje «No tienes permisos para esta acción»).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/estimation/campaign-classifications": {
+      "post": {
+        "tags": [
+          "estimation"
+        ],
+        "operationId": "classifyCampaign",
+        "summary": "EST-D-02: clasificar explícitamente una campaña en una temporada",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-roles": [
+          "DIRECTIVA",
+          "ADMINISTRADOR"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassificationCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Clasificación registrada; no se modifica.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Classification"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cuerpo inválido (ValidationPipe).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos (JwtAuthGuard global con revalidación en la base).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR (RolesGuard global, mensaje «No tienes permisos para esta acción»).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAMPAIGN_NOT_FOUND o SEASON_NOT_FOUND: inexistente o de otro sindicato (indistinguibles).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CAMPAIGN_ALREADY_CLASSIFIED: la campaña ya tiene temporada; no se reemplaza.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "estimation"
+        ],
+        "operationId": "listCampaignClassifications",
+        "summary": "Clasificaciones del sindicato; una campaña ausente está sin clasificar",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-roles": [
+          "DIRECTIVA",
+          "ADMINISTRADOR"
+        ],
+        "parameters": [
+          {
+            "name": "season_ref",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassificationList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos (JwtAuthGuard global con revalidación en la base).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR (RolesGuard global, mensaje «No tienes permisos para esta acción»).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SEASON_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/estimation/runs": {
       "get": {
         "tags": [
           "estimation"
@@ -222,7 +602,7 @@
             }
           },
           "409": {
-            "description": "POLICY_PENDING: la política de divulgación no está aprobada; no se entrega ninguna cifra.",
+            "description": "POLICY_PENDING: el modo de divulgación es POLICY_PENDING (no hay política en vigor); no se entrega ninguna cifra.",
             "content": {
               "application/json": {
                 "schema": {
@@ -313,7 +693,7 @@
             }
           },
           "409": {
-            "description": "POLICY_PENDING: la política de divulgación no está aprobada; no se entrega ninguna cifra.",
+            "description": "POLICY_PENDING: el modo de divulgación es POLICY_PENDING (no hay política en vigor); no se entrega ninguna cifra.",
             "content": {
               "application/json": {
                 "schema": {
@@ -342,7 +722,7 @@
           "DIRECTIVA",
           "ADMINISTRADOR"
         ],
-        "x-pending-decision": "EST-D-05 (perfil del Agricultor)",
+        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (GOV-02, #107) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
         "parameters": [
           {
             "name": "target_campaign_ref",
@@ -421,7 +801,7 @@
             }
           },
           "409": {
-            "description": "POLICY_PENDING: la política de divulgación no está aprobada; no se entrega ninguna cifra.",
+            "description": "POLICY_PENDING: el modo de divulgación es POLICY_PENDING (no hay política en vigor); no se entrega ninguna cifra.",
             "content": {
               "application/json": {
                 "schema": {
@@ -450,7 +830,7 @@
           "DIRECTIVA",
           "ADMINISTRADOR"
         ],
-        "x-pending-decision": "EST-D-05 (perfil del Agricultor)",
+        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (GOV-02, #107) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
         "parameters": [
           {
             "name": "target_campaign_ref",
@@ -529,7 +909,7 @@
             }
           },
           "409": {
-            "description": "POLICY_PENDING: la política de divulgación no está aprobada; no se entrega ninguna cifra.",
+            "description": "POLICY_PENDING: el modo de divulgación es POLICY_PENDING (no hay política en vigor); no se entrega ninguna cifra.",
             "content": {
               "application/json": {
                 "schema": {
@@ -563,12 +943,17 @@
         "enum": [
           "TARGET_CAMPAIGN_NOT_FOUND",
           "RUN_NOT_FOUND",
+          "JOB_NOT_FOUND",
           "PRODUCT_NOT_FOUND",
+          "CAMPAIGN_NOT_FOUND",
+          "SEASON_NOT_FOUND",
           "TARGET_CAMPAIGN_NOT_ELIGIBLE",
+          "TARGET_CAMPAIGN_NOT_CLASSIFIED",
           "PRODUCT_NOT_ESTIMABLE",
           "REQUEST_ID_REUSED",
           "POLICY_PENDING",
-          "RUN_SUCCESSION_CONFLICT"
+          "SEASON_KEY_TAKEN",
+          "CAMPAIGN_ALREADY_CLASSIFIED"
         ],
         "description": "Códigos propios de INT-09 (en `message`)."
       },
@@ -688,20 +1073,48 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "reported": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "expected": {
-            "type": "integer",
-            "minimum": 0
+          "status": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN"
+            ]
           }
         },
         "required": [
-          "reported",
-          "expected"
+          "status"
         ],
-        "description": "Cobertura «N de M» de la cifra publicada; no es el número de aportantes."
+        "description": "Cobertura «N de M» del consumo publicado (RN-25). En v1 es siempre UNKNOWN y sin cifras: ningún sellado F07 registra una cobertura verificable del consumo (EST-D-09). No es el número de aportantes de una fila ni la membresía actual. Otro estado exige antes la fuente del §3.1 del contrato."
+      },
+      "SeasonRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "season_ref": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Clave de comparabilidad asignada por la Directiva (EST-D-02)."
+          },
+          "definition": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "duration_days": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Duración nominal de una campaña de la temporada, en días."
+          }
+        },
+        "required": [
+          "season_ref",
+          "key",
+          "definition",
+          "duration_days"
+        ],
+        "description": "Temporada institucional explícita; nunca se infiere de nombres ni de fechas."
       },
       "SeriesRef": {
         "type": "object",
@@ -783,7 +1196,7 @@
               "NO_RECORD",
               "HIDDEN"
             ],
-            "description": "VERIFIED_CONSUMPTION incluye el cero comprobado; NO_RECORD y HIDDEN nunca son cero. Una cifra cuya visibilidad se retiró después se entrega como HIDDEN."
+            "description": "VERIFIED_CONSUMPTION incluye el cero comprobado y procede siempre de la versión sellada de una campaña cerrada; NO_RECORD y HIDDEN nunca son cero. Una cifra que ya no se divulga al consultar se entrega como HIDDEN."
           },
           "quantity_base": {
             "type": "string",
@@ -791,13 +1204,14 @@
             "description": "Sólo en VERIFIED_CONSUMPTION y si la política vigente la divulga.",
             "nullable": true
           },
-          "coverage": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Coverage"
-              }
-            ],
+          "seal_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Versión sellada F07 de la que procede la posición, si la hay.",
             "nullable": true
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
           },
           "in_span": {
             "type": "boolean"
@@ -818,6 +1232,7 @@
           "campaign",
           "kind",
           "quantity_base",
+          "seal_ref",
           "coverage",
           "in_span",
           "exclusion_reason"
@@ -1118,7 +1533,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "request_id": {
+          "job_ref": {
             "type": "string",
             "format": "uuid"
           },
@@ -1135,8 +1550,8 @@
           "target": {
             "$ref": "#/components/schemas/CampaignRef"
           },
-          "comparability_key": {
-            "type": "string"
+          "season": {
+            "$ref": "#/components/schemas/SeasonRef"
           },
           "method": {
             "type": "string",
@@ -1207,11 +1622,11 @@
         "required": [
           "contract_version",
           "run_ref",
-          "request_id",
+          "job_ref",
           "scope",
           "requested_by_role",
           "target",
-          "comparability_key",
+          "season",
           "method",
           "method_version",
           "outcome",
@@ -1233,7 +1648,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "request_id": {
+          "job_ref": {
             "type": "string",
             "format": "uuid"
           },
@@ -1250,8 +1665,8 @@
           "target": {
             "$ref": "#/components/schemas/CampaignRef"
           },
-          "comparability_key": {
-            "type": "string"
+          "season": {
+            "$ref": "#/components/schemas/SeasonRef"
           },
           "method": {
             "type": "string",
@@ -1334,11 +1749,11 @@
         "required": [
           "contract_version",
           "run_ref",
-          "request_id",
+          "job_ref",
           "scope",
           "requested_by_role",
           "target",
-          "comparability_key",
+          "season",
           "method",
           "method_version",
           "outcome",
@@ -1388,7 +1803,7 @@
           "request_id": {
             "type": "string",
             "format": "uuid",
-            "description": "Idempotencia: el mismo identificador con la misma petición devuelve la misma ejecución."
+            "description": "Idempotencia: el mismo identificador con la misma petición devuelve el mismo trabajo."
           },
           "target_campaign_ref": {
             "type": "string",
@@ -1403,7 +1818,7 @@
             "minItems": 1,
             "maxItems": 200,
             "uniqueItems": true,
-            "description": "Opcional: productos canónicos a estimar; por defecto, los que tienen consumo publicado en la temporada."
+            "description": "Opcional: productos canónicos a estimar; por defecto, los productos canónicos estimables con consumo publicado en la temporada de la campaña objetivo."
           }
         },
         "required": [
@@ -1487,12 +1902,7 @@
             "nullable": true
           },
           "coverage": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Coverage"
-              }
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/Coverage"
           },
           "validity": {
             "type": "string",
@@ -1636,7 +2046,7 @@
           "validity",
           "validity_reason"
         ],
-        "description": "Perfil del Agricultor: sin línea base naive ni cobertura (cifras colectivas que la política no le entrega). Pendiente de EST-D-05: la estimación puede igualar la última cifra publicada (α = 1)."
+        "description": "Perfil del Agricultor (EST-D-05): sólo la estimación, sin línea base naive, cobertura ni serie. La estimación puede coincidir con una cifra publicada de una campaña anterior (por ejemplo, con α = 1 o un criterio constante). Entregarla al Agricultor proyecta información colectiva, y la política institucional debe contemplarlo antes de usar datos reales (contrato §2)."
       },
       "InstitutionalResults": {
         "type": "object",
@@ -1656,6 +2066,14 @@
           },
           "target": {
             "$ref": "#/components/schemas/CampaignRef"
+          },
+          "season": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeasonRef"
+              }
+            ],
+            "nullable": true
           },
           "evaluated_at": {
             "type": "string",
@@ -1677,6 +2095,7 @@
           "profile",
           "scope",
           "target",
+          "season",
           "evaluated_at",
           "results",
           "notice"
@@ -1701,6 +2120,14 @@
           "target": {
             "$ref": "#/components/schemas/CampaignRef"
           },
+          "season": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeasonRef"
+              }
+            ],
+            "nullable": true
+          },
           "evaluated_at": {
             "type": "string",
             "format": "date-time",
@@ -1721,6 +2148,7 @@
           "profile",
           "scope",
           "target",
+          "season",
           "evaluated_at",
           "results",
           "notice"
@@ -1861,12 +2289,7 @@
             "nullable": true
           },
           "coverage": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Coverage"
-              }
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/Coverage"
           },
           "validity_reason": {
             "type": "string",
@@ -1938,6 +2361,14 @@
           "target": {
             "$ref": "#/components/schemas/CampaignRef"
           },
+          "season": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeasonRef"
+              }
+            ],
+            "nullable": true
+          },
           "results": {
             "type": "array",
             "items": {
@@ -1965,6 +2396,7 @@
           "subject",
           "downloaded_at",
           "target",
+          "season",
           "results",
           "may_be_outdated",
           "notice",
@@ -2108,6 +2540,14 @@
           "target": {
             "$ref": "#/components/schemas/CampaignRef"
           },
+          "season": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeasonRef"
+              }
+            ],
+            "nullable": true
+          },
           "results": {
             "type": "array",
             "items": {
@@ -2135,12 +2575,272 @@
           "subject",
           "downloaded_at",
           "target",
+          "season",
           "results",
           "may_be_outdated",
           "notice",
           "storage"
         ],
         "description": "Copia para consulta sin conexión (RF-40). Sin serie, aportes ni información privada de otros agricultores."
+      },
+      "Job": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "job_ref": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/Scope"
+          },
+          "requested_by_role": {
+            "type": "string",
+            "enum": [
+              "DIRECTIVA",
+              "ADMINISTRADOR"
+            ]
+          },
+          "target": {
+            "$ref": "#/components/schemas/CampaignRef"
+          },
+          "product_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETED",
+              "NOT_EXECUTED"
+            ],
+            "description": "Estado operativo; sólo avanza. No es la vigencia de ningún resultado."
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "enqueued_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "stop_code": {
+            "type": "string",
+            "enum": [
+              "POLICY_PENDING",
+              "REQUESTER_NOT_AUTHORIZED",
+              "TARGET_CAMPAIGN_NOT_ELIGIBLE",
+              "ATTEMPTS_EXHAUSTED"
+            ],
+            "description": "Sólo en NOT_EXECUTED: el trabajo terminó sin registrar ninguna ejecución.",
+            "nullable": true
+          },
+          "run_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Sólo en COMPLETED: la ejecución registrada, CALCULATED o FAILED.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "contract_version",
+          "job_ref",
+          "request_id",
+          "scope",
+          "requested_by_role",
+          "target",
+          "product_refs",
+          "status",
+          "attempts",
+          "enqueued_at",
+          "started_at",
+          "finished_at",
+          "stop_code",
+          "run_ref"
+        ],
+        "description": "Trabajo de estimación por lotes (EST-D-04): estado operativo, separado de la ejecución inmutable."
+      },
+      "SeasonCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^\\S(.*\\S)?$",
+            "description": "Clave explícita, sin espacios al principio ni al final."
+          },
+          "definition": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "duration_days": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "contract_version",
+          "key",
+          "definition",
+          "duration_days"
+        ]
+      },
+      "Season": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "season": {
+            "$ref": "#/components/schemas/SeasonRef"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/Scope"
+          },
+          "created_by_role": {
+            "type": "string",
+            "enum": [
+              "DIRECTIVA",
+              "ADMINISTRADOR"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "contract_version",
+          "season",
+          "scope",
+          "created_by_role",
+          "created_at"
+        ],
+        "description": "Temporada registrada; no se modifica ni se borra."
+      },
+      "SeasonList": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Season"
+            }
+          }
+        },
+        "required": [
+          "contract_version",
+          "items"
+        ]
+      },
+      "ClassificationCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "campaign_ref": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "season_ref": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "contract_version",
+          "campaign_ref",
+          "season_ref"
+        ]
+      },
+      "Classification": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "campaign": {
+            "$ref": "#/components/schemas/CampaignRef"
+          },
+          "season": {
+            "$ref": "#/components/schemas/SeasonRef"
+          },
+          "classified_by_role": {
+            "type": "string",
+            "enum": [
+              "DIRECTIVA",
+              "ADMINISTRADOR"
+            ]
+          },
+          "classified_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "contract_version",
+          "campaign",
+          "season",
+          "classified_by_role",
+          "classified_at"
+        ],
+        "description": "Clasificación explícita de una campaña en una temporada: una por campaña, sin modificación."
+      },
+      "ClassificationList": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Classification"
+            }
+          }
+        },
+        "required": [
+          "contract_version",
+          "items"
+        ]
       }
     }
   }

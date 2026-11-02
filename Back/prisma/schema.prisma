@@ -241,6 +241,9 @@ model Tenant {
   collectiveSeals          CollectiveSeal[]
   consumptionSeries        ConsumptionSeries[]
   estimationRuns           EstimationRun[]
+  comparabilitySeasons     ComparabilitySeason[]
+  campaignClassifications  CampaignSeasonClassification[]
+  estimationJobs           EstimationJob[]
 }
 
 model User {
@@ -255,33 +258,36 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tenant                    Tenant                        @relation(fields: [tenantId], references: [id])
+  tenant                    Tenant                         @relation(fields: [tenantId], references: [id])
   members                   Member[]
   refreshTokens             RefreshToken[]
   warehouses                Warehouse[]
   inventoryLots             InventoryLot[]
-  stockMovements            StockMovement[]               @relation("StockMovementActor")
-  ownedStockMovements       StockMovement[]               @relation("StockMovementOwner")
+  stockMovements            StockMovement[]                @relation("StockMovementActor")
+  ownedStockMovements       StockMovement[]                @relation("StockMovementOwner")
   purchases                 Purchase[]
   purchaseItemAllocations   PurchaseItemAllocation[]
   purchaseParticipants      PurchaseParticipant[]
   payableAccounts           PayableAccount[]
-  payments                  Payment[]                     @relation("PaymentRegistrar")
+  payments                  Payment[]                      @relation("PaymentRegistrar")
   syncOperations            SyncOperation[]
-  createdCampaigns          AgriculturalCampaign[]        @relation("CampaignCreator")
-  closedCampaigns           AgriculturalCampaign[]        @relation("CampaignCloser")
+  createdCampaigns          AgriculturalCampaign[]         @relation("CampaignCreator")
+  closedCampaigns           AgriculturalCampaign[]         @relation("CampaignCloser")
   plots                     Plot[]
   plotCropAssignments       PlotCropAssignment[]
-  ownedApplications         AgrochemicalApplication[]     @relation("AgrochemicalApplicationOwner")
-  appliedApplications       AgrochemicalApplication[]     @relation("AgrochemicalApplicationAppliedBy")
+  ownedApplications         AgrochemicalApplication[]      @relation("AgrochemicalApplicationOwner")
+  appliedApplications       AgrochemicalApplication[]      @relation("AgrochemicalApplicationAppliedBy")
   calendarEvents            CalendarEvent[]
-  auditLogsAsActor          AuditLog[]                    @relation("AuditActor")
-  auditLogsAsOwner          AuditLog[]                    @relation("AuditOwner")
-  productAssociationsMade   ProductCanonicalAssociation[] @relation("ProductAssociationActor")
-  productAssociationsClosed ProductCanonicalAssociation[] @relation("ProductAssociationCloser")
-  jointPurchaseProposals    JointPurchaseProposal[]       @relation("JointPurchaseProposalAuthor")
-  collectiveSeals           CollectiveSeal[]              @relation("CollectiveSealActor")
-  estimationRuns            EstimationRun[]               @relation("EstimationRunRequester")
+  auditLogsAsActor          AuditLog[]                     @relation("AuditActor")
+  auditLogsAsOwner          AuditLog[]                     @relation("AuditOwner")
+  productAssociationsMade   ProductCanonicalAssociation[]  @relation("ProductAssociationActor")
+  productAssociationsClosed ProductCanonicalAssociation[]  @relation("ProductAssociationCloser")
+  jointPurchaseProposals    JointPurchaseProposal[]        @relation("JointPurchaseProposalAuthor")
+  collectiveSeals           CollectiveSeal[]               @relation("CollectiveSealActor")
+  estimationRuns            EstimationRun[]                @relation("EstimationRunRequester")
+  estimationJobs            EstimationJob[]                @relation("EstimationJobRequester")
+  comparabilitySeasons      ComparabilitySeason[]          @relation("ComparabilitySeasonCreator")
+  campaignClassifications   CampaignSeasonClassification[] @relation("CampaignSeasonClassifier")
 }
 
 model Member {
@@ -447,9 +453,9 @@ model AgriculturalCampaign {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  tenant                   Tenant                    @relation(fields: [tenantId], references: [id])
-  createdBy                User?                     @relation("CampaignCreator", fields: [createdById], references: [id])
-  closedBy                 User?                     @relation("CampaignCloser", fields: [closedById], references: [id])
+  tenant                   Tenant                        @relation(fields: [tenantId], references: [id])
+  createdBy                User?                         @relation("CampaignCreator", fields: [createdById], references: [id])
+  closedBy                 User?                         @relation("CampaignCloser", fields: [closedById], references: [id])
   plotCropAssignments      PlotCropAssignment[]
   inventoryLots            InventoryLot[]
   stockMovements           StockMovement[]
@@ -466,6 +472,8 @@ model AgriculturalCampaign {
   collectiveSeals          CollectiveSeal[]
   seriesPoints             SeriesPoint[]
   estimationRuns           EstimationRun[]
+  seasonClassification     CampaignSeasonClassification?
+  estimationJobs           EstimationJob[]
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -1078,30 +1086,30 @@ model CollectiveReleaseItem {
 /// PostgreSQL. Owner = authenticated Member of the tenant. Not part of Sync v1
 /// nor of any collective projection (F06 §8); no file name from the client.
 model BackupMetadata {
-  id            String       @id @db.Uuid
-  tenantId      String
-  memberId      String
-  status        BackupStatus @default(UPLOADING)
+  id             String       @id @db.Uuid
+  tenantId       String
+  memberId       String
+  status         BackupStatus @default(UPLOADING)
   /// Generated by the server; never derived from client input.
-  storageKey    String       @unique @db.Uuid
-  contentType   String       @db.VarChar(64)
+  storageKey     String       @unique @db.Uuid
+  contentType    String       @db.VarChar(64)
   /// Compatibility declared by the client (container format, SQLite schema).
-  formatVersion Int
-  schemaVersion Int
+  formatVersion  Int
+  schemaVersion  Int
   /// SHA-256 declared by the client; equals the server-computed hash when AVAILABLE.
-  sha256        String       @db.Char(64)
+  sha256         String       @db.Char(64)
   /// Server-measured size; set only when AVAILABLE.
-  sizeBytes     BigInt?
+  sizeBytes      BigInt?
   /// Closed code of a FAILED upload (no request content).
-  failureCode   String?      @db.VarChar(48)
-  createdAt     DateTime     @default(now())
-  completedAt   DateTime?
-  deletedAt     DateTime?
+  failureCode    String?      @db.VarChar(48)
+  createdAt      DateTime     @default(now())
+  completedAt    DateTime?
+  deletedAt      DateTime?
   /// F08-BKP-06 (#40): DELETED or FAILED row whose bytes the storage has not
   /// yet confirmed as gone. A CHECK keeps it false on any other status.
-  purgePending  Boolean      @default(false)
+  purgePending   Boolean      @default(false)
   /// OWNER or RETENTION, only on DELETED rows (CHECK in the migration).
-  deletionReason String?     @db.VarChar(16)
+  deletionReason String?      @db.VarChar(16)
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   member Member @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
@@ -1203,10 +1211,10 @@ model CollectiveSeal {
   openDisputes            Boolean
   reviewRef               String   @db.Char(64)
 
-  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign AgriculturalCampaign  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sealedBy User                  @relation("CollectiveSealActor", fields: [sealedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  entries  CollectiveSealEntry[]
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign     AgriculturalCampaign  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sealedBy     User                  @relation("CollectiveSealActor", fields: [sealedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  entries      CollectiveSealEntry[]
   seriesPoints SeriesPoint[]
 
   @@unique([tenantId, campaignId, version])
@@ -1259,19 +1267,63 @@ enum EstimationResultStatus {
   CALCULATION_FAILED
 }
 
+/// F12-EST-01 (EST-D-02): temporada institucional que define qué campañas son
+/// comparables. La crea DIRECTIVA o ADMINISTRADOR (ADR-003) con una clave
+/// explícita, su definición y su duración nominal; nunca se infiere de nombres
+/// ni de fechas. Inmutable: otra definición es otra temporada con otra clave.
+model ComparabilitySeason {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String
+  /// Clave de comparabilidad asignada por la Directiva.
+  key             String   @db.VarChar(64)
+  definition      String   @db.VarChar(500)
+  /// Duración nominal de una campaña de la temporada, en días.
+  durationDays    Int
+  createdByUserId String
+  createdByRole   UserRole
+  createdAt       DateTime @default(now())
+
+  tenant          Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy       User                           @relation("ComparabilitySeasonCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  classifications CampaignSeasonClassification[]
+  series          ConsumptionSeries[]
+  runs            EstimationRun[]
+
+  @@unique([tenantId, key])
+}
+
+/// F12-EST-01 (EST-D-02): clasificación explícita de una campaña en una
+/// temporada, hecha por DIRECTIVA o ADMINISTRADOR. Una campaña sin fila está
+/// sin clasificar: no entra en ninguna serie ni puede ser campaña objetivo.
+/// No se rellena para campañas antiguas y no toca sus sellados. Inmutable.
+model CampaignSeasonClassification {
+  campaignId         String   @id
+  tenantId           String
+  seasonId           String   @db.Uuid
+  classifiedByUserId String
+  classifiedByRole   UserRole
+  classifiedAt       DateTime @default(now())
+
+  campaign     AgriculturalCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  season       ComparabilitySeason  @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  classifiedBy User                 @relation("CampaignSeasonClassifier", fields: [classifiedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([tenantId, seasonId])
+}
+
 /// F12-EST-01 (consumption_series): serie de consumo autorizado por producto
-/// canónico, unidad base y clave de comparabilidad, derivada sólo de cifras
-/// publicadas. Se escribe una vez; si cambian las cifras o las asociaciones se
-/// crea una versión nueva y la anterior se conserva con sus ejecuciones.
-/// Inmutable (disparadores de la migración). Sin cantidades por agricultor.
+/// canónico, unidad base y temporada, derivada sólo de cifras publicadas y
+/// selladas. Se escribe una vez; si cambian las cifras, las asociaciones o las
+/// clasificaciones se crea una versión nueva y la anterior se conserva con sus
+/// ejecuciones. Inmutable (disparadores de la migración). Sin cantidades por
+/// agricultor.
 model ConsumptionSeries {
   id                 String         @id @default(uuid()) @db.Uuid
   tenantId           String
   canonicalProductId String
   baseUnit           SyncV1BaseUnit
-  /// Temporada institucional y definición comparables; su origen se fija en
-  /// F12-EST-02 (decisión pendiente del contrato, §11).
-  comparabilityKey   String         @db.VarChar(64)
+  seasonId           String         @db.Uuid
   version            Int
   previousSeriesId   String?        @db.Uuid
   /// SHA-256 en hexadecimal de las fuentes y sus versiones (§5 del contrato).
@@ -1281,29 +1333,29 @@ model ConsumptionSeries {
 
   tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   canonicalProduct Product             @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  season           ComparabilitySeason @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   previousSeries   ConsumptionSeries?  @relation("ConsumptionSeriesVersion", fields: [previousSeriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   nextSeries       ConsumptionSeries?  @relation("ConsumptionSeriesVersion")
   points           SeriesPoint[]
   results          EstimationResult[]
 
-  @@unique([tenantId, canonicalProductId, baseUnit, comparabilityKey, version], map: "ConsumptionSeries_scope_version_key")
+  @@unique([tenantId, canonicalProductId, baseUnit, seasonId, version], map: "ConsumptionSeries_scope_version_key")
   @@unique([previousSeriesId])
 }
 
-/// F12-EST-01 (series_point): una campaña comparable de la serie, en orden
-/// cronológico. La cantidad existe exactamente cuando es consumo comprobado.
+/// F12-EST-01 (series_point): una campaña clasificada en la temporada de la
+/// serie, en orden cronológico. La cantidad existe exactamente cuando es
+/// consumo comprobado, que exige una campaña cerrada y su versión sellada
+/// (EST-D-03). Sin columnas de cobertura: no hay una fuente verificable de la
+/// cobertura del consumo (EST-D-09).
 model SeriesPoint {
-  seriesId         String          @db.Uuid
-  position         Int
-  campaignId       String
-  kind             SeriesPointKind
-  quantityBase     BigInt?
-  /// Cobertura «N de M» de la cifra publicada; distinta del número de
-  /// aportantes de una fila, que no se guarda.
-  coverageReported Int?
-  coverageExpected Int?
-  sourceSealId     String?         @db.Uuid
-  sourceReleaseId  String?         @db.Uuid
+  seriesId        String          @db.Uuid
+  position        Int
+  campaignId      String
+  kind            SeriesPointKind
+  quantityBase    BigInt?
+  sourceSealId    String?         @db.Uuid
+  sourceReleaseId String?         @db.Uuid
 
   series        ConsumptionSeries    @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   campaign      AgriculturalCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1315,24 +1367,64 @@ model SeriesPoint {
   @@index([sourceReleaseId])
 }
 
-/// F12-EST-01 (estimation_run): una solicitud de estimación de DIRECTIVA o
-/// ADMINISTRADOR (ADR-003) para una campaña objetivo, con método, parámetros,
-/// política de divulgación aplicada y resultado (calculada o fallida),
-/// registrado una vez. Referencia a la ejecución anterior sin modificarla. Sin
-/// columna de vigencia (se deriva al consultar) ni campos de aprobación.
-/// Una sola cadena por campaña objetivo: índice único parcial de la migración
-/// (una sola ejecución sin anterior por tenant y campaña objetivo).
-model EstimationRun {
-  id                String               @id @default(uuid()) @db.Uuid
+/// F12-EST-01 (EST-D-04): estado operativo de un trabajo de estimación.
+enum EstimationJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  NOT_EXECUTED
+}
+
+/// F12-EST-01 (EST-D-04): solicitud de cálculo por lotes, fuera de la petición
+/// interactiva. Es estado operativo y es lo único que cambia: identidad,
+/// petición y campaña objetivo no cambian; QUEUED → RUNNING → COMPLETED o
+/// NOT_EXECUTED, y un estado final no cambia. No se borra. La ejecución que
+/// produce (EstimationRun) se escribe una vez y no cambia.
+model EstimationJob {
+  id                String              @id @default(uuid()) @db.Uuid
   tenantId          String
-  requestId         String               @db.Uuid
+  requestId         String              @db.Uuid
   /// SHA-256 de la petición canónica (campaña objetivo y productos pedidos):
   /// el mismo `requestId` con otra huella es REQUEST_ID_REUSED.
-  requestHash       String               @db.Char(64)
+  requestHash       String              @db.Char(64)
   requestedByUserId String
   requestedByRole   UserRole
   targetCampaignId  String
-  comparabilityKey  String               @db.VarChar(64)
+  /// Productos canónicos pedidos; NULL = los productos canónicos estimables
+  /// con consumo publicado en la temporada de la campaña objetivo.
+  productRefs       Json?
+  status            EstimationJobStatus @default(QUEUED)
+  attempts          Int                 @default(0)
+  enqueuedAt        DateTime            @default(now())
+  startedAt         DateTime?
+  leaseExpiresAt    DateTime?
+  finishedAt        DateTime?
+  stopCode          String?             @db.VarChar(48)
+
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy    User                 @relation("EstimationJobRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetCampaign AgriculturalCampaign @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  run            EstimationRun?
+
+  @@unique([tenantId, requestId])
+  @@index([status, enqueuedAt])
+}
+
+/// F12-EST-01 (estimation_run): la ejecución de un trabajo de estimación de
+/// DIRECTIVA o ADMINISTRADOR (ADR-003) para una campaña objetivo, con método,
+/// parámetros, política de divulgación aplicada y resultado (calculada o
+/// fallida), registrado una vez. Referencia a la ejecución anterior sin
+/// modificarla. Sin columna de vigencia (se deriva al consultar) ni campos de
+/// aprobación. Una sola cadena por campaña objetivo: índice único parcial de la
+/// migración (una sola ejecución sin anterior por tenant y campaña objetivo).
+model EstimationRun {
+  id                String               @id @default(uuid()) @db.Uuid
+  tenantId          String
+  jobId             String               @unique @db.Uuid
+  requestedByUserId String
+  requestedByRole   UserRole
+  targetCampaignId  String
+  seasonId          String               @db.Uuid
   contractVersion   Int
   method            String               @db.VarChar(32)
   methodVersion     String               @db.VarChar(32)
@@ -1348,13 +1440,14 @@ model EstimationRun {
   generatedAt       DateTime             @default(now())
 
   tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  job            EstimationJob        @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   requestedBy    User                 @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   targetCampaign AgriculturalCampaign @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  season         ComparabilitySeason  @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   previousRun    EstimationRun?       @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   nextRun        EstimationRun?       @relation("EstimationRunSuccession")
   results        EstimationResult[]
 
-  @@unique([tenantId, requestId])
   @@unique([previousRunId])
   @@index([tenantId, targetCampaignId, generatedAt])
 }
