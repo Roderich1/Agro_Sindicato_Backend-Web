@@ -261,6 +261,7 @@ Señal aceptada, como en F07-POL-01 §6: una retirada revela que algo cambió en
 - **Acredita** cuántos de los agricultores vinculados al sellar forman parte de alguna cifra de consumo publicada de esa campaña: participación.
 - **No acredita** que esos N hayan registrado todo su consumo: no mide integridad.
 - **No dice** nada del consumo de los M − N restantes: una ausencia de publicación es desconocida, **nunca cero**.
+- **No acredita** representatividad: no dice que la cifra represente el consumo de todo el sindicato.
 - **No es** el número de aportantes de una fila (`contributors` de cada celda divulgada), ni la membresía actual.
 - **No implica ningún mínimo:** ni F07 ni F12 comparan N/M con un porcentaje.
 
