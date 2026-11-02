@@ -1,0 +1,338 @@
+{
+  "nota": "Recorrido de 1d29eb0 ejecutado contra el código de 654ed43 (antes de la corrección), en un worktree temporal; la única diferencia del guion: una pausa fija en lugar de esperar el mensaje TARGET_REVOKED, que 654ed43 no tiene. Fallo de borrado inyectado en el navegador.",
+  "version": "head=654ed43ec41cb27522f3cae73d807265cc1a621e\nstatus= M docs/evidence/f12_est_07/control-sintetico.cjs; M docs/evidence/f12_est_07/recorrido-copia.mjs;\nnode=v25.9.0\n",
+  "phase": "copia",
+  "at": "2026-11-02T22:12:50.849Z",
+  "checks": [
+    {
+      "name": "genera invierno (trabajador real)",
+      "ok": true,
+      "detail": "Terminado"
+    },
+    {
+      "name": "genera verano (datos insuficientes)",
+      "ok": true,
+      "detail": "Terminado"
+    },
+    {
+      "name": "API: Directiva → 200 INSTITUTIONAL con subject, fechas, vigencia al descargar y storage",
+      "ok": true,
+      "detail": "{\"product\":{\"product_ref\":\"cd6624a2-dd09-4eec-9cad-d0daaacfc9bc\",\"name\":\"Herbicida de ensayo\"},\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":null,\"method\":\"SES_NAIVE\",\"run_ref\":\"1efbd962-58af-4cef-9361-9dd64ab3b66d\",\"generated_at\":\"2026-11-02T22:10:45.025Z\",\"span_length\":4,\"estimate_base\":\"111000.000000\",\"naive_base\":\"116000\",\"coverage\":{\"status\":\"IDENTIFIED\",\"campaigns\":[{\"campaign_ref\":\"19d656d8-e909-484f-b8a6-a6d8fe90cd12\",\"coverage\":{\"status\":\"IDENTIFIED\",\"unkno"
+    },
+    {
+      "name": "API: la copia es la misma selección que /results (salvo la vigencia, que es la de la descarga)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "API: Agricultor → 200 FARMER sin naive, cobertura, puntos ni serie",
+      "ok": true,
+      "detail": "{\"product\":{\"product_ref\":\"cd6624a2-dd09-4eec-9cad-d0daaacfc9bc\",\"name\":\"Herbicida de ensayo\"},\"base_unit\":\"ML\",\"presentation_unit\":\"L\",\"status\":\"ESTIMATED\",\"reason_code\":null,\"method\":\"SES_NAIVE\",\"run_ref\":\"1efbd962-58af-4cef-9361-9dd64ab3b66d\",\"generated_at\":\"2026-11-02T22:10:45.025Z\",\"span_length\":4,\"estimate_base\":\"111000.000000\",\"validity_reason\":null,\"validity_at_download\":\"CURRENT\"}"
+    },
+    {
+      "name": "descarga invierno: guardada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "descarga verano: guardada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "IndexedDB: dos copias de la Directiva A en el sindicato A",
+      "ok": true,
+      "detail": "ccf5c6fa-36cf-45f5-afb8-0c9399611a75|ed7ed9ae-ea73-4dfb-aa68-aa4961436dda|85eea7ca-b8f6-4614-bda4-b1736533ab2a, ccf5c6fa-36cf-45f5-afb8-0c9399611a75|ed7ed9ae-ea73-4dfb-aa68-aa4961436dda|c8825f7f-569c-42ce-9156-a8823671a518"
+    },
+    {
+      "name": "IndexedDB: la copia de verano es la respuesta exacta de GET /download",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "IndexedDB: formato v1, identidad y fechas; ninguna credencial",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "contexto local: abierto por la sesión institucional de la Directiva A (huella, sin identificadores en claro); cada copia lleva su id; sin credenciales",
+      "ok": true,
+      "detail": "{\"version\":1,\"id\":\"4dce1af1\",\"opened_at\":\"2026-11-02T22:10:42.490Z\",\"owner_hash\":\"c12759e8a6f902a1\",\"role\":\"DIRECTIVA\"}"
+    },
+    {
+      "name": "Cache Storage: sólo el app-shell, ninguna respuesta /api/",
+      "ok": true,
+      "detail": "25 entradas"
+    },
+    {
+      "name": "sin conexión: SES 111 L (111.000 mL) y naive 116 L, como al descargar",
+      "ok": true,
+      "detail": "111 L111.000 mL"
+    },
+    {
+      "name": "sin conexión: vigencia al descargar «Vigente» y vigencia actual «Desconocida sin conexión»",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sin conexión: fecha de descarga, período y aviso de posible desactualización",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sin conexión: fecha de generación de la copia = generated_at de la descarga",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sin conexión y sin copia de esta campaña: el aviso, ninguna cifra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recarga sin conexión: el login ofrece la copia del contexto local vigente",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recarga sin conexión: invierno con sus cifras",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recarga sin conexión: verano, «Sin cifra» con su motivo, nunca un cero",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recarga sin conexión: ninguna respuesta de /estimation en esta lectura",
+      "ok": true,
+      "detail": "0 respuestas"
+    },
+    {
+      "name": "reconexión: misma identidad, las dos copias siguen",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "rol perdido al recuperar la sesión: fuera de la pantalla institucional",
+      "ok": true,
+      "detail": "/sin-acceso-web"
+    },
+    {
+      "name": "rol perdido al recuperar la sesión: el contexto local se cierra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "rol perdido al recuperar la sesión: las copias se retiran de IndexedDB",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "rol degradado con la copia aún en IndexedDB: no se lee (sólo se impidió el acceso)",
+      "ok": true,
+      "detail": "copias físicas antes de leer: 1"
+    },
+    {
+      "name": "rol recuperado: una copia nueva",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "rol perdido con la pantalla abierta: aviso, sin resultados ni panel de copia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "rol perdido con la pantalla abierta: la copia se retira de IndexedDB",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "rol perdido: el servidor entregó el perfil FARMER en /results",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "antes de cerrar sesión: una copia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "cierre de sesión: ninguna copia en IndexedDB",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "cierre de sesión: el login no ofrece copia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "cierre de sesión: el contexto local se cierra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "acceso directo sin contexto, con una copia en IndexedDB: no se muestra nada",
+      "ok": true,
+      "detail": "copias físicas: 1"
+    },
+    {
+      "name": "nueva sesión de la Directiva A: contexto nuevo y el borrado pendiente se completa",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "respuesta tardía: la descarga de A queda retenida",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "respuesta tardía: la descarga de A llegó (200) pero no se guardó para nadie",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "respuesta tardía: el contexto local es ahora del Administrador A",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "escritura tardía de A en IndexedDB: el Administrador A no la ve",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "la siguiente carga borra lo inaccesible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Administrador A: una copia suya",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "otra identidad de otro sindicato: la copia del Administrador A se borra",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "otra identidad de otro sindicato: el contexto local es de la Directiva B",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Directiva B: no ve ninguna copia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "retirada: copia de invierno guardada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "retirada: copia de verano guardada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "retirada: las dos copias se leen antes del 404",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "retirada: la descarga pedida antes del 404 respondió 200 y su respuesta queda retenida",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "retirada: el servidor respondió 404 TARGET_CAMPAIGN_NOT_FOUND",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "retirada: la respuesta tardía (200, pedida antes del 404) no se guarda",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "name": "retirada: queda en el contexto local (misma id, generación 1, una huella) sin la referencia de la campaña",
+      "ok": false,
+      "detail": "{\"revoked\":0}"
+    },
+    {
+      "name": "retirada: el borrado falló (inyectado) y queda pendiente; las dos copias siguen físicamente",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recarga sin conexión tras el 404: el login ofrece la copia (queda la de verano)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recarga sin conexión tras el 404: invierno sigue inaccesible, verano se lee",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "name": "recarga sin conexión tras el 404: invierno sigue físicamente almacenada (sólo se impidió el acceso)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "reintento de limpieza: la copia retirada se borra; queda la de verano",
+      "ok": false,
+      "detail": "[\"85eea7ca-b8f6-4614-bda4-b1736533ab2a\",\"c8825f7f-569c-42ce-9156-a8823671a518\"]"
+    },
+    {
+      "name": "descarga posterior autorizada: guardada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "descarga posterior autorizada: lleva la generación nueva",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "name": "descarga posterior autorizada: se lee tras recargar sin conexión",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "otra identidad tras la retirada: no ve las copias de la Directiva A",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "otra identidad tras la retirada: contexto propio sin retiradas",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "otra identidad: su descarga de invierno se guarda y se lee",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "antes de la política pendiente: una copia de la Directiva A",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "misma identidad en una sesión nueva: sólo ve su copia de este contexto, no la escritura tardía anterior",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "y la siguiente carga la borra",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

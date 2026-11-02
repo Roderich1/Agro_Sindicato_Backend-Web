@@ -663,10 +663,10 @@ Desconectado, el cliente no conoce revocaciones ni cambios de fuentes: la copia 
   - **Service worker:** no pasa ni cachea respuestas del API.
 - **Lectura sin conexión, también tras recargar** (`/estimacion/copia-sin-conexion`): solo dentro del **contexto local** que una sesión aceptada por el servidor con rol institucional abrió en ese navegador (en `localStorage`: `id` aleatorio, huella de usuario y sindicato, rol y fecha; ningún identificador en claro). Cada copia lleva el `id` del contexto.
   - **Sin contexto**, o con otra identidad, sindicato o rol, no se enumera ni se lee nada.
-  - **El contexto se cierra de forma síncrona** al cerrar la sesión, con otra identidad o sindicato, con un 401, con un 403 o al perder el rol. Un 409 de política lo renueva, y un 404 revoca la campaña en memoria y borra su copia. La identidad se compara por su huella.
+  - **El contexto se cierra de forma síncrona** al cerrar la sesión, con otra identidad o sindicato, con un 401, con un 403 o al perder el rol. Un 409 de política lo renueva. Un 404 **retira la campaña en el propio contexto** (huella de la campaña y generación, en `localStorage`), así que la retirada sobrevive a una recarga aunque el borrado falle; solo una descarga pedida después y autorizada por el servidor vuelve a habilitar una copia de esa campaña. La identidad y la campaña se comparan por su huella (FNV-1a, que no es cifrado ni anonimización).
   - **El borrado físico va después:** si falla, queda pendiente y se reintenta.
   - **El contexto identifica la sesión propietaria**, no a la persona frente al navegador.
-  - Detalle y pruebas en `F12_EST_07_WEB_2026-11-02.md` §6.
+  - Detalle y pruebas en `F12_EST_07_WEB_2026-11-02.md` §6 y §7.
 - **Mobile (#164):** el contrato que usará está en [`F12_EST_07_COPIA_MOBILE.md`](F12_EST_07_COPIA_MOBILE.md). Todavía no está implementado.
 
 ## 10. Coherencia con el diseño aprobado
@@ -827,3 +827,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), décima | F12-EST-06 (#179): pantalla Web institucional sobre las rutas de #190 (§12), contrastada con el prototipo W4 y recorrida con la Directiva y el Administrador; sin descarga ni copia |
 | 2026-11-02 (UTC), undécima | F12-EST-07-WEB (#180): `GET /estimation/download` implementada y la copia de la PWA en IndexedDB (§9, §12); `openapi:check` en etapa `IMPLEMENTED`; contrato de la copia Mobile documentado para #164, sin implementar |
 | 2026-11-02 (UTC), precisión de #175 | EST-D-17 decidida por el autor: la agrupación de denominaciones se limita a asociaciones admisibles anteriores al sellado; sin reagrupación retrospectiva (§3.2, §11.1) |
+| 2026-11-02 (UTC), duodécima | F12-EST-07-WEB (#180): la retirada por un 404 se guarda en el contexto local y persiste tras recargar aunque el borrado falle; una descarga posterior autorizada habilita otra copia (§9) |

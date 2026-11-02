@@ -62,7 +62,7 @@
 - Al cerrar la sesión y al cambiar de identidad o de titular (`discard_on`).
 - Cuando el servidor responde:
   - **401** (sesión), **403** (permiso) o **409 `POLICY_PENDING`** (política): se borran las copias de esa identidad;
-  - **404** (campaña inexistente o de otro sindicato): se borra la de esa campaña.
+  - **404** (campaña inexistente o de otro sindicato): se retira la de esa campaña. La retirada del acceso se registra de forma persistente **antes** del borrado físico, que puede fallar o quedar pendiente; una recarga o una escritura tardía no la reactivan, y solo una descarga posterior autorizada por el servidor habilita otra copia (como en la PWA, `F12_EST_07_WEB_2026-11-02.md` §7).
 - La copia **nunca** se ofrece como alternativa a un rechazo.
 
 **Sin conexión:** se muestra la copia del contexto, si existe. Si no existe, se informa que no hay estimación disponible, **sin cifras**.
