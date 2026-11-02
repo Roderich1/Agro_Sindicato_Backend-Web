@@ -1,7 +1,7 @@
 import { AxiosError, AxiosHeaders } from 'axios';
 import { describe, expect, it } from 'vitest';
 import { parseCsv, RESULTS_CSV_COLUMNS, resultsCsv } from './estimation-csv';
-import { clearsInstitutionalData, estimationError, newRequestId } from './estimation-text';
+import { clearsInstitutionalData, estimationError, formatAlpha, newRequestId } from './estimation-text';
 import { decimalToPresentation, formatBaseValue, formatDecimalQuantity } from './quantity';
 import type { InstitutionalResults } from '../types/estimation';
 
@@ -112,5 +112,14 @@ describe('exportación de la consulta (#179, tercer criterio)', () => {
     });
     // Una ausencia es una celda vacía, nunca un cero.
     expect(asObject(rows[1]!).estimate_base).toBe('');
+  });
+});
+
+describe('α en pantalla', () => {
+  it('coma decimal como el resto de las cifras; sin dato, raya; otra forma, no se muestra', () => {
+    expect(formatAlpha('0.50')).toBe('0,50');
+    expect(formatAlpha('1.00')).toBe('1,00');
+    expect(formatAlpha(null)).toBe('—');
+    for (const bad of ['0.5', '2.00', '-0.50', '0,50', '']) expect(formatAlpha(bad)).toBe('Cifra no válida');
   });
 });

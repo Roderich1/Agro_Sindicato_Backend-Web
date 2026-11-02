@@ -107,6 +107,16 @@ export function estimationError(err: unknown, fallback: string): EstimationError
   return { kind: 'other', message: fallback };
 }
 
+/**
+ * α tal como lo entrega el servidor (dos decimales, EST-D-07), con coma decimal
+ * como el resto de las cifras de la Web (es-BO): `"0.50"` → `"0,50"`. Sin dato,
+ * una raya; un valor con otra forma no se muestra.
+ */
+export function formatAlpha(alpha: string | null): string {
+  if (alpha === null) return '—';
+  return /^(0|1)\.[0-9]{2}$/.test(alpha) ? alpha.replace('.', ',') : 'Cifra no válida';
+}
+
 /** Errores tras los que no se conserva a la vista ningún dato institucional de la consulta anterior. */
 export function clearsInstitutionalData(kind: EstimationErrorKind): boolean {
   return kind === 'session' || kind === 'forbidden' || kind === 'policy' || kind === 'not-found';

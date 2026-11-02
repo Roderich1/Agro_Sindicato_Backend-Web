@@ -123,7 +123,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       { role: 'AGRICULTOR', path: PATH, routes: [{ path: WEB_NOT_FOR_FARMERS_PATH, element: <p>Sin acceso web</p> }] },
     );
     expect(await screen.findByText('Sin acceso web')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Solicitar estimación/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Generar estimación/ })).toBeNull();
     expect(estimationService.results).not.toHaveBeenCalled();
   });
 
@@ -133,8 +133,9 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     const row = await screen.findByTestId('result-Herbicida');
     expect(within(row).getByTestId('estimate').textContent).toBe('111 L111.000 mL');
     expect(within(row).getByTestId('naive').textContent).toBe('116 L116.000 mL');
-    await waitFor(() => expect(within(row).getByTestId('alpha').textContent).toBe('0.50'));
-    expect(within(row).getByTestId('observed').textContent).toBe('4: C1 a C4');
+    await waitFor(() => expect(within(row).getByTestId('alpha').textContent).toBe('0,50'));
+    expect(within(row).getByTestId('observed-span').textContent).toBe('4: C1 a C4');
+    expect(within(row).getByTestId('observed-values').textContent).toBe('96 · 120 · 104 · 116 L');
     expect(within(row).getByTestId('validity').textContent).toBe('Vigente');
     expect(screen.getByText(/no se suma a ellas ni crea compras, propuestas o movimientos/)).toBeTruthy();
     expect(screen.getByTestId('season').textContent).toMatch(/Temporada INVIERNO/);
@@ -152,6 +153,30 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect(within(row).getByTestId('naive').textContent).toBe('Sin cifra');
     expect(row.textContent).not.toMatch(/\b0 L\b/);
     expect(within(row).getByTestId('validity').textContent).toMatch(/No utilizable.*no tiene cifra/);
+  });
+
+  it('campañas observadas como W4: lo publicado, «oculto» y «sin registro» tal como llegan; sin campañas, «sin cifras publicadas»', async () => {
+    const hidden = { ...point('C2', 2, null, true), kind: 'HIDDEN' as const, exclusion_reason: 'HIDDEN' as const };
+    serve(
+      resultsWith([
+        result('Cipermetrina', { status: 'INSUFFICIENT_DATA', reason_code: 'SPAN_TOO_SHORT', estimate_base: null, naive_base: null, span_length: 2, validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' }),
+        result('Amina', { status: 'INSUFFICIENT_DATA', reason_code: 'NO_SERIES', estimate_base: null, naive_base: null, span_length: null, validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' }),
+      ]),
+      [
+        run('run-1', [
+          detail('Cipermetrina', {
+            status: 'INSUFFICIENT_DATA', alpha: null, estimate_base: null, naive_base: null, span: null,
+            points: [{ ...point('C1', 1, '12000', false), exclusion_reason: 'BEFORE_GAP' as const }, hidden, point('C3', 3, '14000', true), { ...point('C4', 4, null, true), exclusion_reason: null }, point('T', 5, null, false)],
+          }),
+          detail('Amina', { status: 'INSUFFICIENT_DATA', alpha: null, estimate_base: null, naive_base: null, span: null, points: [point('T', 1, null, false)] }),
+        ]),
+      ],
+    );
+    renderAt(<EstimationPage />, { path: PATH });
+    const row = await screen.findByTestId('result-Cipermetrina');
+    await waitFor(() => expect(within(row).getByTestId('observed-values').textContent).toBe('12 · oculto · 14 · sin registro L'));
+    expect(within(row).getByTestId('alpha').textContent).toBe('—');
+    expect(within(screen.getByTestId('result-Amina')).getByTestId('observed-values').textContent).toBe('sin cifras publicadas');
   });
 
   it('aunque un resultado sin cifra llegara con una por error, no se muestra', async () => {
@@ -196,7 +221,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       .mockResolvedValueOnce(jobWith('RUNNING', { started_at: '2026-11-02T14:00:01.000Z' }))
       .mockResolvedValueOnce(jobWith('COMPLETED', { finished_at: '2026-11-02T14:00:02.000Z', run_ref: 'run-2' }));
     serve(resultsWith([result('Herbicida', { run_ref: 'run-2' })]), [run('run-2', [detail('Herbicida', { run_ref: 'run-2' })])]);
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     expect(await screen.findByTestId('job-status')).toHaveProperty('textContent', 'En cola');
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS));
     await waitFor(() => expect(screen.getByTestId('job-status').textContent).toMatch(/Procesándose \(intento 1 de 3\)/));
@@ -218,7 +243,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     const view = renderAt(<EstimationPage />, { path: PATH });
     await screen.findByText(/Todavía no hay ninguna estimación/);
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     await screen.findByTestId('job-status');
     view.unmount();
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 5));
@@ -232,16 +257,36 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     renderAt(<EstimationPage />, { path: PATH });
     await screen.findByTestId('result-Herbicida');
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     await screen.findByTestId('job-status');
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS));
     expect(await screen.findByTestId('error-forbidden')).toBeTruthy();
     expect(screen.queryByTestId('result-Herbicida')).toBeNull();
     expect(screen.queryByTestId('job')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Solicitar estimación' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Generar estimación' })).toBeNull();
     const calls = vi.mocked(estimationService.job).mock.calls.length;
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 5));
     expect(vi.mocked(estimationService.job).mock.calls.length).toBe(calls);
+  });
+
+  it.each([
+    [401, 'Unauthorized', 'session'],
+    [403, 'No tienes permisos para esta acción', 'forbidden'],
+    [409, 'POLICY_PENDING', 'policy'],
+  ])('un rechazo %i al consultar de nuevo retira las cifras ya mostradas (%s)', async (status, message, kind) => {
+    serve(resultsWith([result('Herbicida')]), [run('run-1', [detail('Herbicida')])], [summary('run-1')]);
+    renderAt(<EstimationPage />, { path: PATH });
+    const row = await screen.findByTestId('result-Herbicida');
+    await waitFor(() => expect(within(row).getByTestId('alpha').textContent).toBe('0,50'));
+    // Hasta la siguiente consulta, el cliente no sabe del cambio: la cifra sigue a la vista.
+    expect(within(row).getByTestId('estimate').textContent).toBe('111 L111.000 mL');
+    vi.mocked(estimationService.run).mockRejectedValue(httpError(status, message));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver detalle' }));
+    expect(await screen.findByTestId(`error-${kind}`)).toBeTruthy();
+    expect(screen.queryByTestId('result-Herbicida')).toBeNull();
+    expect(screen.queryByTestId('history-item')).toBeNull();
+    expect(screen.queryByText(/111 L/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toHaveProperty('disabled', true);
   });
 
   it('política pendiente: sin cifras ni solicitud', async () => {
@@ -249,7 +294,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     vi.mocked(estimationService.runs).mockRejectedValue(httpError(409, 'POLICY_PENDING'));
     renderAt(<EstimationPage />, { path: PATH });
     expect((await screen.findByTestId('error-policy')).textContent).toMatch(/no se solicita ni se muestra ninguna estimación/);
-    expect(screen.queryByRole('button', { name: 'Solicitar estimación' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Generar estimación' })).toBeNull();
     expect(screen.queryByText('Resultados para')).toBeNull();
   });
 
@@ -258,11 +303,14 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     vi.mocked(estimationService.request).mockRejectedValueOnce(httpError(null)).mockResolvedValueOnce(jobWith('COMPLETED', { run_ref: 'run-1' }));
     renderAt(<EstimationPage />, { path: PATH });
     await screen.findByTestId('result-Herbicida');
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     expect((await screen.findByTestId('error-offline')).textContent).toMatch(/Sin conexión con el servidor/);
     expect(screen.getByTestId('stale')).toBeTruthy();
     expect(screen.getByTestId('result-Herbicida')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    // Sin conexión no se exporta: el CSV es de una consulta respondida, no una copia para consultar sin conexión.
+    expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('csv-note').textContent).toMatch(/No es una copia para consultar sin conexión/);
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     await screen.findByTestId('job-status');
     const [first, second] = vi.mocked(estimationService.request).mock.calls.map((call) => call[0].requestId);
     expect(second).toBe(first);
@@ -275,9 +323,9 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       .mockResolvedValueOnce(jobWith('NOT_EXECUTED', { stop_code: 'POLICY_PENDING', finished_at: '2026-11-02T14:00:01.000Z' }));
     renderAt(<EstimationPage />, { path: PATH });
     await screen.findByText(/Todavía no hay ninguna estimación/);
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     expect((await screen.findByTestId('error-invalid')).textContent).toMatch(/no está clasificada/);
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     expect((await screen.findByTestId('job-stop')).textContent).toMatch(/política de divulgación dejó de permitirlo/);
     expect(screen.getByTestId('job-status').textContent).toBe('No se ejecutó');
   });
@@ -286,7 +334,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     serve(resultsWith([]), []);
     renderAt(<EstimationPage />, { path: `${PATH}?campaign=${CLOSED.id}` });
     expect((await screen.findByTestId('not-eligible')).textContent).toMatch(/cerrada/);
-    expect(screen.getByRole('button', { name: 'Solicitar estimación' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Generar estimación' })).toHaveProperty('disabled', true);
     await waitFor(() => expect(estimationService.results).toHaveBeenCalledWith(CLOSED.id));
   });
 
@@ -295,7 +343,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     vi.mocked(estimationService.request).mockResolvedValue(jobWith('COMPLETED', { run_ref: 'run-2' }));
     renderAt(<EstimationPage />, { path: PATH });
     await screen.findByTestId('result-Herbicida');
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar estimación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     expect((await screen.findByTestId('earlier-run')).textContent).toMatch(/De una ejecución anterior/);
   });
 

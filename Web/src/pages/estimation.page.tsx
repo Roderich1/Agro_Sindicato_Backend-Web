@@ -9,6 +9,7 @@ import {
   clearsInstitutionalData,
   estimationError,
   FAILURE_TEXT,
+  formatAlpha,
   JOB_STATUS_TEXT,
   newRequestId,
   REASON_TEXT,
@@ -18,7 +19,7 @@ import {
   VALIDITY_TEXT,
   type EstimationError,
 } from '../lib/estimation-text';
-import { formatBaseValue, formatDecimalQuantity, formatQuantity } from '../lib/quantity';
+import { formatBaseValue, formatDecimalQuantity, formatQuantity, groupDecimal, toPresentation } from '../lib/quantity';
 import { collectiveService } from '../services/collective.service';
 import { estimationService } from '../services/estimation.service';
 import type { CatalogEntry } from '../types/collective';
@@ -49,8 +50,9 @@ function byCodeUnits(a: string, b: string): number {
  * calcula el servidor, por lotes. La estimación es una referencia de consumo
  * para una campaña comparable: no se suma a la necesidad declarada ni crea
  * compras, propuestas o movimientos. Un dato ausente nunca se muestra como
- * cero, y cada cifra dice de qué ejecución viene. Sin copia descargada (RF-40,
- * F12-EST-07).
+ * cero, y cada cifra dice de qué ejecución viene. El CSV exporta la consulta tal
+ * como respondió el servidor y requiere conexión; no es la copia descargada para
+ * consultar sin conexión (RF-40, F12-EST-07), que esta pantalla no tiene.
  */
 export function EstimationPage() {
   const { user } = useAuth();
@@ -245,7 +247,7 @@ export function EstimationPage() {
       title="Estimación del consumo"
       section="Directiva"
       actions={
-        <button type="button" className={secondaryButtonClass} onClick={exportCsv} disabled={!results || results.results.length === 0}>
+        <button type="button" className={secondaryButtonClass} onClick={exportCsv} disabled={stale || !results || results.results.length === 0}>
           Exportar CSV de la consulta
         </button>
       }
@@ -273,7 +275,9 @@ export function EstimationPage() {
         )}
         {stale && (
           <p className="text-xs text-amber-700" data-testid="stale">
-            Lo que se muestra es de la última consulta que respondió; puede no estar actualizado.
+            Lo que se muestra es de la última consulta que respondió; puede no estar actualizado. Sin conexión no se
+            exporta, y generar o actualizar también requieren conexión: esta pantalla no guarda una copia para consultar
+            sin conexión.
           </p>
         )}
 
@@ -319,9 +323,9 @@ function RequestPanel({
 }) {
   const toggle = (ref: string) => onChoose(chosen.includes(ref) ? chosen.filter((r) => r !== ref) : [...chosen, ref]);
   return (
-    <section className="glass-card space-y-4 p-5" aria-label="Solicitar estimación">
+    <section className="glass-card space-y-4 p-5" aria-label="Generar estimación">
       <div>
-        <h2 className="text-base font-bold text-slate-900">Solicitar estimación</h2>
+        <h2 className="text-base font-bold text-slate-900">Generar estimación</h2>
         <p className="mt-0.5 text-xs text-slate-500">
           El servidor calcula por lotes, fuera de esta pantalla: la solicitud queda en cola y se consulta su estado.
         </p>
@@ -344,12 +348,12 @@ function RequestPanel({
       )}
       {!eligible && campaignStatus && (
         <p className="text-xs text-slate-600" data-testid="not-eligible">
-          Esta campaña está {campaignStatus.toLowerCase()}: sólo se solicita una estimación para una campaña planificada o
+          Esta campaña está {campaignStatus.toLowerCase()}: sólo se genera una estimación para una campaña planificada o
           abierta. Sus resultados anteriores siguen consultándose abajo.
         </p>
       )}
       <button type="button" className={buttonClass} onClick={onRequest} disabled={busy || !eligible}>
-        {busy ? 'Solicitando…' : 'Solicitar estimación'}
+        {busy ? 'Generando…' : 'Generar estimación'}
       </button>
     </section>
   );
@@ -441,6 +445,25 @@ function observed(detail: ResultDetail | null): string {
   return `${detail.span.length}: ${names.get(detail.span.first_campaign_ref) ?? '?'} a ${names.get(detail.span.last_campaign_ref) ?? '?'}`;
 }
 
+const OBSERVED_GAP: Record<Exclude<SeriesPoint['kind'], 'VERIFIED_CONSUMPTION'>, string> = { NO_RECORD: 'sin registro', HIDDEN: 'oculto' };
+
+/**
+ * Lo publicado en cada campaña anterior al objetivo, en orden y tal como lo
+ * entrega el servidor (prototipo W4): «96 · 120 · 104 · 116 L», «12 · oculto ·
+ * 14 · 15 L». Una cifra que dejó de divulgarse llega como oculta.
+ */
+function observedValues(detail: ResultDetail | null, unit: 'L' | 'KG'): string | null {
+  if (!detail) return null;
+  const before = detail.points.filter((p) => p.exclusion_reason !== 'NOT_BEFORE_TARGET');
+  if (before.length === 0) return 'sin cifras publicadas';
+  const values = before.map((p) => {
+    if (p.kind !== 'VERIFIED_CONSUMPTION') return OBSERVED_GAP[p.kind];
+    const shown = p.quantity_base === null ? null : toPresentation(p.quantity_base);
+    return shown === null ? 'cifra no válida' : groupDecimal(shown);
+  });
+  return `${values.join(' · ')} ${unit}`;
+}
+
 function ResultsSection({ results, details, latestRun }: { results: InstitutionalResults; details: Record<string, Run>; latestRun: string | null }) {
   return (
     <section className="glass-card overflow-hidden" aria-label="Resultados por producto">
@@ -451,6 +474,10 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
           {' · '}Vigencia evaluada el {fmtDateTime(results.evaluated_at)}
         </p>
         <p className="mt-1 text-xs text-slate-500">{results.notice}</p>
+        <p className="mt-1 text-xs text-slate-500" data-testid="csv-note">
+          «Exportar CSV de la consulta» guarda en un archivo esta consulta tal como la respondió el servidor. No es una
+          copia para consultar sin conexión.
+        </p>
       </div>
       {results.results.length === 0 ? (
         <EmptyState title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra." />
@@ -490,10 +517,17 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                       <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
                     </td>
                     <td className="px-4 py-3 tabular-nums" data-testid="alpha">
-                      {detail?.alpha ?? '—'}
+                      {formatAlpha(detail?.alpha ?? null)}
                       {detail?.fit_informative === false && <span className="block text-[11px] text-slate-500">Ajuste no informativo</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600" data-testid="observed">{observed(detail)}</td>
+                    <td className="px-4 py-3 text-xs text-slate-600" data-testid="observed">
+                      <span data-testid="observed-span">{observed(detail)}</span>
+                      {observedValues(detail, result.presentation_unit) && (
+                        <span className="block tabular-nums text-slate-800" data-testid="observed-values">
+                          {observedValues(detail, result.presentation_unit)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs text-slate-600">
                       {result.coverage.campaigns.length === 0
                         ? '—'
@@ -616,7 +650,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
                 <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />{' '}
                 · naive:{' '}
                 <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />{' '}
-                · α {result.alpha ?? '—'}
+                · α {formatAlpha(result.alpha)}
                 {result.fit_informative === false && ' (ajuste no informativo)'}
               </p>
               <ValidityBadge validity={result.validity} reason={result.validity_reason} />
