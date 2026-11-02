@@ -1,6 +1,6 @@
 {
   "phase": "pendiente",
-  "at": "2026-11-02T20:32:58.579Z",
+  "at": "2026-11-02T20:45:23.195Z",
   "checks": [
     {
       "name": "perfil persistente: la copia de la Directiva A sigue antes de consultar",

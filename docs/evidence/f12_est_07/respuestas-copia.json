@@ -1,6 +1,6 @@
 [
   {
-    "at": "2026-11-02T20:31:26.113Z",
+    "at": "2026-11-02T20:43:52.128Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -8,7 +8,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:26.119Z",
+    "at": "2026-11-02T20:43:52.144Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -16,7 +16,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:27.321Z",
+    "at": "2026-11-02T20:43:53.315Z",
     "method": "POST",
     "path": "/api/v1/estimation/jobs",
     "status": 202,
@@ -24,15 +24,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:29.357Z",
+    "at": "2026-11-02T20:43:55.341Z",
     "method": "GET",
-    "path": "/api/v1/estimation/jobs/6d31d84f-99d6-4a90-8a27-87d94dd180d6",
+    "path": "/api/v1/estimation/jobs/79cfd290-9513-4936-803f-94ee57ef11b6",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:29.390Z",
+    "at": "2026-11-02T20:43:55.352Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -40,7 +40,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:29.451Z",
+    "at": "2026-11-02T20:43:55.400Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -48,15 +48,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:29.591Z",
+    "at": "2026-11-02T20:43:55.450Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:31.679Z",
+    "at": "2026-11-02T20:43:57.427Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -64,7 +64,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:31.687Z",
+    "at": "2026-11-02T20:43:57.427Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -72,7 +72,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:32.748Z",
+    "at": "2026-11-02T20:43:58.615Z",
     "method": "POST",
     "path": "/api/v1/estimation/jobs",
     "status": 202,
@@ -80,15 +80,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:34.776Z",
+    "at": "2026-11-02T20:44:00.640Z",
     "method": "GET",
-    "path": "/api/v1/estimation/jobs/09d7804a-0bd7-4760-9604-a642157d1a9d",
+    "path": "/api/v1/estimation/jobs/4ec46bf6-4955-456d-93a6-979c7fa94e92",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:34.800Z",
+    "at": "2026-11-02T20:44:00.650Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -96,7 +96,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:34.844Z",
+    "at": "2026-11-02T20:44:00.682Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -104,15 +104,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:34.902Z",
+    "at": "2026-11-02T20:44:00.718Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/b56291af-3a5a-43ad-8539-cb6bd8bca2d2",
+    "path": "/api/v1/estimation/runs/4f242c39-aaba-4705-b77d-8b800684b4c7",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:37.340Z",
+    "at": "2026-11-02T20:44:03.005Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -120,7 +120,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:37.404Z",
+    "at": "2026-11-02T20:44:03.046Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -128,15 +128,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:37.485Z",
+    "at": "2026-11-02T20:44:03.089Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:38.645Z",
+    "at": "2026-11-02T20:44:04.222Z",
     "method": "GET",
     "path": "/api/v1/estimation/download",
     "status": 200,
@@ -144,7 +144,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:39.126Z",
+    "at": "2026-11-02T20:44:04.608Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -152,7 +152,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:39.175Z",
+    "at": "2026-11-02T20:44:04.641Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -160,15 +160,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:39.218Z",
+    "at": "2026-11-02T20:44:04.689Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/b56291af-3a5a-43ad-8539-cb6bd8bca2d2",
+    "path": "/api/v1/estimation/runs/4f242c39-aaba-4705-b77d-8b800684b4c7",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:40.413Z",
+    "at": "2026-11-02T20:44:05.817Z",
     "method": "GET",
     "path": "/api/v1/estimation/download",
     "status": 200,
@@ -176,7 +176,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:44.122Z",
+    "at": "2026-11-02T20:44:08.788Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -184,7 +184,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:44.222Z",
+    "at": "2026-11-02T20:44:08.818Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -192,15 +192,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:44.314Z",
+    "at": "2026-11-02T20:44:08.855Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:50.740Z",
+    "at": "2026-11-02T20:44:15.588Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -208,7 +208,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:50.795Z",
+    "at": "2026-11-02T20:44:15.616Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -216,15 +216,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:50.909Z",
+    "at": "2026-11-02T20:44:15.657Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:51.987Z",
+    "at": "2026-11-02T20:44:16.805Z",
     "method": "GET",
     "path": "/api/v1/estimation/download",
     "status": 200,
@@ -232,7 +232,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:53.272Z",
+    "at": "2026-11-02T20:44:17.873Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 403,
@@ -240,7 +240,7 @@
     "message": "No tienes permisos para esta acción"
   },
   {
-    "at": "2026-11-02T20:31:53.360Z",
+    "at": "2026-11-02T20:44:17.911Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -248,7 +248,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:57.010Z",
+    "at": "2026-11-02T20:44:21.184Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -256,7 +256,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:57.073Z",
+    "at": "2026-11-02T20:44:21.218Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -264,15 +264,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:57.153Z",
+    "at": "2026-11-02T20:44:21.259Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:31:58.239Z",
+    "at": "2026-11-02T20:44:22.410Z",
     "method": "GET",
     "path": "/api/v1/estimation/download",
     "status": 200,
@@ -280,7 +280,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:02.075Z",
+    "at": "2026-11-02T20:44:25.756Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -288,7 +288,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:02.131Z",
+    "at": "2026-11-02T20:44:25.788Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -296,15 +296,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:02.211Z",
+    "at": "2026-11-02T20:44:25.829Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:27.066Z",
+    "at": "2026-11-02T20:44:52.669Z",
     "method": "GET",
     "path": "/api/v1/estimation/download",
     "status": 200,
@@ -312,7 +312,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:33.478Z",
+    "at": "2026-11-02T20:44:58.913Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -320,7 +320,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:33.533Z",
+    "at": "2026-11-02T20:44:58.943Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -328,15 +328,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:33.630Z",
+    "at": "2026-11-02T20:44:58.981Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:34.704Z",
+    "at": "2026-11-02T20:45:00.124Z",
     "method": "GET",
     "path": "/api/v1/estimation/download",
     "status": 200,
@@ -344,7 +344,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:41.463Z",
+    "at": "2026-11-02T20:45:06.740Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -352,7 +352,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:41.468Z",
+    "at": "2026-11-02T20:45:06.740Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -360,7 +360,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:44.303Z",
+    "at": "2026-11-02T20:45:09.356Z",
     "method": "GET",
     "path": "/api/v1/estimation/runs",
     "status": 200,
@@ -368,7 +368,7 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:44.356Z",
+    "at": "2026-11-02T20:45:09.385Z",
     "method": "GET",
     "path": "/api/v1/estimation/results",
     "status": 200,
@@ -376,15 +376,15 @@
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:44.436Z",
+    "at": "2026-11-02T20:45:09.422Z",
     "method": "GET",
-    "path": "/api/v1/estimation/runs/4e476ee9-99f5-4c70-869e-170da4568538",
+    "path": "/api/v1/estimation/runs/a74d9013-980b-4805-bb27-e363ad3af12d",
     "status": 200,
     "profile": null,
     "message": null
   },
   {
-    "at": "2026-11-02T20:32:45.555Z",
+    "at": "2026-11-02T20:45:10.579Z",
     "method": "GET",
     "path": "/api/v1/estimation/download",
     "status": 200,
