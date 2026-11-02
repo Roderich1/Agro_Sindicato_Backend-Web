@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { discardAllCopies, setActiveIdentity } from './estimation-copy';
+import { closeContext, purgeInaccessibleCopies } from './estimation-copy';
 
 let _accessToken: string | null = null;
 
@@ -66,10 +66,12 @@ api.interceptors.response.use(
         failedQueue.forEach((p) => p.reject(refreshError));
         failedQueue = [];
         clearAccessToken();
-        // F12-EST-07-WEB (#180): sin sesión no se guarda ninguna descarga en curso, y si
-        // el servidor la rechaza se retira la copia (al recargar se comprueba de nuevo).
-        setActiveIdentity(null);
-        if (axios.isAxiosError(refreshError) && refreshError.response?.status === 401) await discardAllCopies().catch(() => undefined);
+        // F12-EST-07-WEB (#180): si el servidor rechaza la sesión, el contexto local se cierra
+        // (ninguna copia es legible ni se guarda una descarga en curso) y se intenta el borrado.
+        if (axios.isAxiosError(refreshError) && refreshError.response?.status === 401) {
+          closeContext();
+          await purgeInaccessibleCopies();
+        }
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {

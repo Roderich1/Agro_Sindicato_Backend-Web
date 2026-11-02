@@ -1,22 +1,27 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InstitutionalDownload } from '../types/estimation';
 import {
-  discardAllCopies,
-  discardCopies,
-  listCopies,
+  closeContext,
+  currentContext,
   memoryBackend,
+  openContext,
+  purgeInaccessibleCopies,
+  purgePending,
+  readableCopies,
   readCopy,
-  retainOnly,
+  revokeTarget,
+  rotateContext,
   saveCopy,
-  setActiveIdentity,
   setCopyBackend,
+  type CopyBackend,
   type CopyOwner,
 } from './estimation-copy';
 
 /** Respuestas sintéticas de `GET /download` (INT-09, perfil institucional). */
 const A: CopyOwner = { userId: 'u-a', tenantId: 't-1', name: 'Directiva sintética A', tenantName: 'Sindicato sintético', role: 'DIRECTIVA' };
 const B: CopyOwner = { userId: 'u-b', tenantId: 't-1', name: 'Directiva sintética B', tenantName: 'Sindicato sintético', role: 'DIRECTIVA' };
-const OTHER_TENANT: CopyOwner = { ...A, tenantId: 't-2', tenantName: 'Otro sindicato sintético' };
+const A_OTHER_TENANT: CopyOwner = { ...A, tenantId: 't-2', tenantName: 'Otro sindicato sintético' };
+const session = (owner: CopyOwner, role = owner.role) => ({ userId: owner.userId, tenantId: owner.tenantId, role });
 
 function download(overrides: Partial<InstitutionalDownload> = {}, target = 'c-1'): InstitutionalDownload {
   return {
@@ -36,62 +41,155 @@ function download(overrides: Partial<InstitutionalDownload> = {}, target = 'c-1'
   };
 }
 
-describe('copia de la estimación sin conexión (F12-EST-07-WEB, #180)', () => {
+let memory: CopyBackend;
+/** Guarda en el contexto vigente de `owner`. */
+async function saveAs(owner: CopyOwner, body = download()) {
+  const context = openContext(owner)!;
+  return saveCopy(context.id, owner, body);
+}
+
+describe('copia de la estimación sin conexión: acceso por contexto local (F12-EST-07-WEB, #180)', () => {
   beforeEach(() => {
-    setCopyBackend(memoryBackend());
-    setActiveIdentity(A);
+    localStorage.clear();
+    memory = memoryBackend();
+    setCopyBackend(memory);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('sin contexto local no se lee ni se enumera nada, aunque haya copias en IndexedDB', async () => {
+    await saveAs(A);
+    closeContext();
+    expect(await memory.list()).toHaveLength(1);
+    expect(await readableCopies(null)).toEqual([]);
+    expect(await readCopy(null, 'c-1')).toBeNull();
   });
 
-  it('guarda para la identidad de la sesión y sólo esa identidad la lee', async () => {
-    expect(await saveCopy(A, download())).toBe('SAVED');
-    expect((await readCopy(A, 'c-1'))?.download.downloaded_at).toBe('2026-11-02T18:00:00.000Z');
-    expect(await readCopy(B, 'c-1')).toBeNull();
-    expect(await readCopy(OTHER_TENANT, 'c-1')).toBeNull();
-    expect(await listCopies(B)).toEqual([]);
-    expect((await listCopies(A)).map((c) => c.owner.userId)).toEqual(['u-a']);
+  it('con el contexto de la sesión propietaria se lee también sin sesión en memoria (recarga sin conexión)', async () => {
+    await saveAs(A);
+    expect((await readableCopies(null)).map((c) => c.owner.userId)).toEqual(['u-a']);
+    expect((await readCopy(session(A), 'c-1'))?.download.downloaded_at).toBe('2026-11-02T18:00:00.000Z');
   });
 
-  it('una descarga que responde cuando la sesión ya es otra no se guarda para nadie', async () => {
-    setActiveIdentity(B);
-    expect(await saveCopy(A, download())).toBe('IDENTITY_CHANGED');
-    setActiveIdentity(null);
-    expect(await saveCopy(A, download())).toBe('IDENTITY_CHANGED');
-    expect(await listCopies(null)).toEqual([]);
+  it('otra identidad, otro sindicato o un rol no institucional no leen la copia', async () => {
+    await saveAs(A);
+    expect(await readableCopies(session(B))).toEqual([]);
+    expect(await readableCopies(session(A_OTHER_TENANT))).toEqual([]);
+    expect(await readableCopies(session(A, 'AGRICULTOR'))).toEqual([]);
+    // Abrir el contexto de otra identidad o sindicato invalida el anterior al instante.
+    openContext(A_OTHER_TENANT);
+    expect(await readableCopies(null)).toEqual([]);
+    openContext(A);
+    expect(await readableCopies(null)).toEqual([]);
+  });
+
+  it('un rol conocido sin permiso institucional cierra el contexto: no lee mientras el borrado sigue pendiente', async () => {
+    await saveAs(A);
+    setCopyBackend({ ...memory, delete: () => new Promise<void>(() => undefined) });
+    expect(openContext({ ...A, role: 'AGRICULTOR' })).toBeNull();
+    void purgeInaccessibleCopies();
+    expect(currentContext()).toBeNull();
+    expect(await readableCopies(null)).toEqual([]);
+    expect(await memory.list()).toHaveLength(1);
+  });
+
+  it('cerrar la sesión invalida el acceso aunque el borrado físico falle; el fallo queda pendiente y se reintenta', async () => {
+    await saveAs(A);
+    setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
+    closeContext();
+    expect(await purgeInaccessibleCopies()).toEqual({ deleted: 0, failed: 1 });
+    expect(purgePending()).toBe(true);
+    expect(await memory.list()).toHaveLength(1);
+    expect(await readableCopies(null)).toEqual([]);
+    setCopyBackend(memory);
+    expect(await purgeInaccessibleCopies()).toEqual({ deleted: 1, failed: 0 });
+    expect(purgePending()).toBe(false);
+    expect(await memory.list()).toEqual([]);
+  });
+
+  it('si ni siquiera se pueden listar las copias, el borrado queda pendiente y el acceso ya está retirado', async () => {
+    await saveAs(A);
+    closeContext();
+    setCopyBackend({ ...memory, list: () => Promise.reject(new Error('IndexedDB no disponible')) });
+    expect(await purgeInaccessibleCopies()).toEqual({ deleted: 0, failed: 1 });
+    expect(purgePending()).toBe(true);
+    setCopyBackend(memory);
+    expect(await readableCopies(null)).toEqual([]);
+  });
+
+  it('una escritura tardía no reactiva una copia invalidada, ni aunque la misma identidad vuelva a entrar', async () => {
+    let release: () => void = () => undefined;
+    setCopyBackend({ ...memory, put: (copy) => new Promise<void>((done) => (release = () => void memory.put(copy).then(done))) });
+    const context = openContext(A)!;
+    const pending = saveCopy(context.id, A, download());
+    await vi.waitFor(() => expect(release).not.toBe(undefined));
+    await new Promise((r) => setTimeout(r, 5));
+    closeContext();
+    release();
+    expect(await pending).toBe('SAVED');
+    expect(await memory.list()).toHaveLength(1);
+    expect(await readableCopies(null)).toEqual([]);
+    openContext(A);
+    expect(await readableCopies(null)).toEqual([]);
+  });
+
+  it('una descarga pedida en un contexto que ya cambió no se guarda', async () => {
+    const before = openContext(A)!;
+    openContext(B);
+    expect(await saveCopy(before.id, A, download())).toBe('CONTEXT_CHANGED');
+    closeContext();
+    expect(await saveCopy(before.id, A, download())).toBe('CONTEXT_CHANGED');
+    expect(await memory.list()).toEqual([]);
+  });
+
+  it('política pendiente: contexto nuevo; lo anterior deja de leerse y se puede volver a descargar', async () => {
+    await saveAs(A);
+    rotateContext();
+    expect(await readableCopies(null)).toEqual([]);
+    const renewed = currentContext()!;
+    expect(await saveCopy(renewed.id, A, download())).toBe('SAVED');
+    expect(await readableCopies(null)).toHaveLength(1);
+  });
+
+  it('un 404 revoca la copia de esa campaña aunque su borrado falle', async () => {
+    await saveAs(A);
+    await saveAs(A, download({}, 'c-2'));
+    setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
+    revokeTarget('c-2');
+    void purgeInaccessibleCopies();
+    expect((await readableCopies(null)).map((c) => c.download.target.campaign_ref)).toEqual(['c-1']);
   });
 
   it('no guarda otro perfil, otro sindicato ni otro formato', async () => {
+    const context = openContext(A)!;
     const farmer = { ...download(), profile: 'FARMER' } as unknown as InstitutionalDownload;
-    expect(await saveCopy(A, farmer)).toBe('NOT_INSTITUTIONAL');
-    expect(await saveCopy(A, download({ scope: { tenant_ref: 't-2' } }))).toBe('OTHER_SCOPE');
-    expect(await saveCopy(A, { ...download(), contract_version: 2 } as unknown as InstitutionalDownload)).toBe('UNSUPPORTED');
-    expect(await listCopies(null)).toEqual([]);
+    expect(await saveCopy(context.id, A, farmer)).toBe('NOT_INSTITUTIONAL');
+    expect(await saveCopy(context.id, A, download({ scope: { tenant_ref: 't-2' } }))).toBe('OTHER_SCOPE');
+    expect(await saveCopy(context.id, A, { ...download(), contract_version: 2 } as unknown as InstitutionalDownload)).toBe('UNSUPPORTED');
+    expect(await memory.list()).toEqual([]);
   });
 
-  it('sólo se reemplaza por una descarga más reciente de la misma identidad y campaña', async () => {
-    await saveCopy(A, download());
-    expect(await saveCopy(A, download({ downloaded_at: '2026-11-02T17:00:00.000Z' }))).toBe('KEPT_NEWER');
-    expect(await saveCopy(A, download({ downloaded_at: '2026-11-02T18:00:00.000Z' }))).toBe('KEPT_NEWER');
-    expect(await saveCopy(A, download({ downloaded_at: '2026-11-02T19:00:00.000Z' }))).toBe('SAVED');
-    expect((await readCopy(A, 'c-1'))?.download.downloaded_at).toBe('2026-11-02T19:00:00.000Z');
+  it('sólo se reemplaza por una más reciente del mismo contexto; una copia de un contexto anterior no lo impide', async () => {
+    const context = openContext(A)!;
+    await saveCopy(context.id, A, download());
+    expect(await saveCopy(context.id, A, download({ downloaded_at: '2026-11-02T17:00:00.000Z' }))).toBe('KEPT_NEWER');
+    expect(await saveCopy(context.id, A, download({ downloaded_at: '2026-11-02T19:00:00.000Z' }))).toBe('SAVED');
+    closeContext();
+    const next = openContext(A)!;
+    expect(await saveCopy(next.id, A, download({ downloaded_at: '2026-11-02T10:00:00.000Z' }))).toBe('SAVED');
+    expect((await readCopy(session(A), 'c-1'))?.download.downloaded_at).toBe('2026-11-02T10:00:00.000Z');
   });
 
-  it('se borra al cambiar de identidad, ante un rechazo y al cerrar la sesión', async () => {
-    await saveCopy(A, download());
-    await saveCopy(A, download({}, 'c-2'));
-    await discardCopies(A, 'c-2');
-    expect((await listCopies(A)).map((c) => c.download.target.campaign_ref)).toEqual(['c-1']);
-    await retainOnly(B);
-    expect(await listCopies(null)).toEqual([]);
-    setActiveIdentity(B);
-    await saveCopy(B, download());
-    await discardAllCopies();
-    expect(await listCopies(null)).toEqual([]);
+  it('sin localStorage no hay contexto: no se guarda ni se lee nada', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('almacenamiento no disponible');
+    });
+    expect(openContext(A)).toBeNull();
+    expect(await readableCopies(null)).toEqual([]);
   });
 
-  it('guarda la respuesta del servidor y la identidad, nunca credenciales', async () => {
-    await saveCopy(A, download());
-    const stored = JSON.stringify(await listCopies(null));
-    expect(stored).not.toMatch(/token|password|contraseña|authorization|bearer/i);
-    expect(JSON.parse(stored)[0]).toMatchObject({ format_version: 1, owner: { userId: 'u-a', tenantId: 't-1' } });
+  it('ni la copia ni el contexto contienen credenciales', async () => {
+    await saveAs(A);
+    const stored = JSON.stringify([await memory.list(), localStorage.getItem('agro_estimacion_contexto_v1')]);
+    expect(stored).not.toMatch(/token|password|contraseña|authorization|bearer|pin/i);
   });
 });

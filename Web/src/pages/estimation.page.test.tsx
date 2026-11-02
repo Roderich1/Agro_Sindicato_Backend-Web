@@ -2,7 +2,17 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { AxiosError, AxiosHeaders } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CollectiveRoute } from '../components/collective-route';
-import { listCopies, memoryBackend, saveCopy, setActiveIdentity, setCopyBackend } from '../lib/estimation-copy';
+import {
+  closeContext,
+  currentContext,
+  memoryBackend,
+  openContext,
+  purgePending,
+  readableCopies,
+  saveCopy,
+  setCopyBackend,
+  type CopyBackend,
+} from '../lib/estimation-copy';
 import { WEB_NOT_FOR_FARMERS_PATH } from '../lib/navigation';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
@@ -114,11 +124,16 @@ function downloadOf(read: InstitutionalResults, downloadedAt = '2026-11-02T16:00
   };
 }
 const SESSION = { userId: 'u-1', tenantId: 't-1', name: 'Usuario sintético', tenantName: 'Sindicato sintético', role: 'DIRECTIVA' };
+let memory: CopyBackend;
+/** Guarda en el contexto local vigente de la sesión simulada. */
+const saveForSession = (body: InstitutionalDownload) => saveCopy(currentContext()!.id, SESSION, body);
 
 describe('Estimación del consumo (F12-EST-06, #179)', () => {
   beforeEach(() => {
-    setCopyBackend(memoryBackend());
-    setActiveIdentity(SESSION);
+    localStorage.clear();
+    memory = memoryBackend();
+    setCopyBackend(memory);
+    openContext(SESSION);
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN, CLOSED]);
     vi.mocked(collectiveService.catalog).mockResolvedValue([
       { product_ref: 'p-Herbicida', product_name: 'Herbicida', unit: 'L', base_unit: 'ML', is_active: true },
@@ -401,13 +416,13 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       expect((await screen.findByTestId('copy-note')).textContent).toBe('Copia guardada en este navegador.');
       await waitFor(() => expect(screen.getByTestId('copy-status').textContent).toMatch(/Hay una copia de esta campaña en este navegador, descargada el/));
       expect(estimationService.download).toHaveBeenCalledWith(CAMPAIGN.id);
-      const stored = await listCopies(null);
+      const stored = await readableCopies(null);
       expect(stored.map((c) => [c.owner.userId, c.owner.tenantId, c.download.target.campaign_ref])).toEqual([['u-1', 't-1', CAMPAIGN.id]]);
       expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toBeTruthy();
     });
 
     it('sin conexión y con copia: fechas, período, vigencia al descargar, vigencia actual desconocida y aviso; ausencias sin cifra', async () => {
-      await saveCopy(SESSION, downloadOf(copyRead()));
+      await saveForSession(downloadOf(copyRead()));
       offline();
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('error-offline');
@@ -430,9 +445,9 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     });
 
     it('sin conexión y sin copia de esta identidad: el aviso y ninguna cifra (la copia de otra identidad no se ve)', async () => {
-      setActiveIdentity({ userId: 'u-otra', tenantId: 't-1' });
-      await saveCopy({ ...SESSION, userId: 'u-otra', name: 'Otra identidad sintética' }, downloadOf(copyRead()));
-      setActiveIdentity(SESSION);
+      const other = { ...SESSION, userId: 'u-otra', name: 'Otra identidad sintética' };
+      await saveCopy(openContext(other)!.id, other, downloadOf(copyRead()));
+      openContext(SESSION);
       offline();
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('error-offline');
@@ -446,24 +461,28 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       [403, 'No tienes permisos para esta acción', 'forbidden'],
       [409, 'POLICY_PENDING', 'policy'],
     ])('un rechazo %i retira la copia de esta identidad y no la ofrece como alternativa (%s)', async (status, message, kind) => {
-      await saveCopy(SESSION, downloadOf(copyRead()));
+      await saveForSession(downloadOf(copyRead()));
       vi.mocked(estimationService.results).mockRejectedValue(httpError(status, message));
       vi.mocked(estimationService.runs).mockRejectedValue(httpError(status, message));
       renderAt(<EstimationPage />, { path: PATH });
       expect(await screen.findByTestId(`error-${kind}`)).toBeTruthy();
-      await waitFor(async () => expect(await listCopies(null)).toEqual([]));
+      expect(await readableCopies(null)).toEqual([]);
+      await waitFor(async () => expect(await memory.list()).toEqual([]));
       expect(screen.queryByTestId('copy-panel')).toBeNull();
       expect(screen.queryByTestId(`copy-${CAMPAIGN.id}`)).toBeNull();
     });
 
     it('un perfil de Agricultor en /results o en /download es un permiso perdido: sin cifras y sin copia', async () => {
-      await saveCopy(SESSION, downloadOf(copyRead()));
+      await saveForSession(downloadOf(copyRead()));
       serve({ ...resultsWith([result('Herbicida')]), profile: 'FARMER' } as unknown as InstitutionalResults, []);
       const first = renderAt(<EstimationPage />, { path: PATH });
       expect((await screen.findByTestId('error-forbidden')).textContent).toMatch(/ya no tiene acceso/);
-      await waitFor(async () => expect(await listCopies(null)).toEqual([]));
+      expect(await readableCopies(null)).toEqual([]);
+      await waitFor(async () => expect(await memory.list()).toEqual([]));
       expect(screen.queryByTestId('result-Herbicida')).toBeNull();
       first.unmount();
+      // Nueva sesión institucional: el servidor la acepta y se abre otro contexto local.
+      openContext(SESSION);
 
       const read = resultsWith([result('Herbicida')]);
       serve(read, [run('run-1', [detail('Herbicida')])]);
@@ -472,21 +491,58 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       await screen.findByTestId('result-Herbicida');
       fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
       expect(await screen.findByTestId('error-forbidden')).toBeTruthy();
-      expect(await listCopies(null)).toEqual([]);
+      expect(await memory.list()).toEqual([]);
     });
 
     it('una descarga que responde cuando la sesión ya es otra no se guarda', async () => {
       const read = resultsWith([result('Herbicida')]);
       serve(read, [run('run-1', [detail('Herbicida')])]);
       vi.mocked(estimationService.download).mockImplementation(async () => {
-        setActiveIdentity({ userId: 'u-2', tenantId: 't-1' });
+        openContext({ ...SESSION, userId: 'u-2' });
         return downloadOf(read);
       });
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('result-Herbicida');
       fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
-      expect((await screen.findByTestId('copy-note')).textContent).toMatch(/La sesión cambió durante la descarga/);
-      expect(await listCopies(null)).toEqual([]);
+      expect((await screen.findByTestId('copy-note')).textContent).toMatch(/La sesión cambió o se retiró el acceso durante la descarga/);
+      expect(await memory.list()).toEqual([]);
+    });
+
+    it('cerrar la sesión mientras una descarga está en curso: la respuesta no se guarda', async () => {
+      const read = resultsWith([result('Herbicida')]);
+      serve(read, [run('run-1', [detail('Herbicida')])]);
+      vi.mocked(estimationService.download).mockImplementation(async () => {
+        closeContext();
+        return downloadOf(read);
+      });
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('result-Herbicida');
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      expect((await screen.findByTestId('copy-note')).textContent).toMatch(/La sesión cambió o se retiró el acceso/);
+      expect(await memory.list()).toEqual([]);
+    });
+
+    it('un rechazo retira el acceso al instante aunque el borrado físico falle; no se afirma borrada', async () => {
+      await saveForSession(downloadOf(copyRead()));
+      setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
+      vi.mocked(estimationService.results).mockRejectedValue(httpError(403, 'No tienes permisos para esta acción'));
+      vi.mocked(estimationService.runs).mockRejectedValue(httpError(403, 'No tienes permisos para esta acción'));
+      renderAt(<EstimationPage />, { path: PATH });
+      expect(await screen.findByTestId('error-forbidden')).toBeTruthy();
+      expect(await readableCopies(null)).toEqual([]);
+      await waitFor(() => expect(purgePending()).toBe(true));
+      expect(await memory.list()).toHaveLength(1);
+    });
+
+    it('sin acceso local vigente no se descarga una copia', async () => {
+      const read = resultsWith([result('Herbicida')]);
+      serve(read, [run('run-1', [detail('Herbicida')])]);
+      closeContext();
+      renderAt(<EstimationPage />, { path: PATH });
+      await screen.findByTestId('result-Herbicida');
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      expect((await screen.findByTestId('copy-note')).textContent).toMatch(/No hay un acceso local vigente/);
+      expect(estimationService.download).not.toHaveBeenCalled();
     });
   });
 });

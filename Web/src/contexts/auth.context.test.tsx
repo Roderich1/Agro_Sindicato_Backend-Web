@@ -2,15 +2,24 @@ import { act, render, waitFor } from '@testing-library/react';
 import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { useContext, useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { listCopies, memoryBackend, saveCopy, setActiveIdentity, setCopyBackend } from '../lib/estimation-copy';
+import {
+  currentContext,
+  memoryBackend,
+  openContext,
+  purgePending,
+  readableCopies,
+  saveCopy,
+  setCopyBackend,
+  type CopyBackend,
+} from '../lib/estimation-copy';
 import { api } from '../lib/axios';
 import { userWith } from '../test/render';
 import type { InstitutionalDownload } from '../types/estimation';
 import { AuthContext, AuthProvider, type AuthContextValue } from './auth.context';
 
 /**
- * F12-EST-07-WEB (#180): la copia de la estimación sigue a la sesión. Datos
- * sintéticos; el servidor se simula.
+ * F12-EST-07-WEB (#180): el contexto local de la copia sigue a la sesión que
+ * acepta el servidor. Datos sintéticos; el servidor se simula.
  */
 const OWNER = { userId: 'u-1', tenantId: 't-1', name: 'Usuario sintético', tenantName: 'Sindicato sintético', role: 'DIRECTIVA' };
 const download: InstitutionalDownload = {
@@ -33,46 +42,58 @@ function Probe() {
   return null;
 }
 const mount = () => render(<AuthProvider><Probe /></AuthProvider>);
+let memory: CopyBackend;
 
-describe('la copia sigue a la sesión (F12-EST-07-WEB, #180)', () => {
+describe('el contexto local de la copia sigue a la sesión (F12-EST-07-WEB, #180)', () => {
   beforeEach(async () => {
-    setCopyBackend(memoryBackend());
-    setActiveIdentity(OWNER);
-    await saveCopy(OWNER, download);
+    localStorage.clear();
+    memory = memoryBackend();
+    setCopyBackend(memory);
+    await saveCopy(openContext(OWNER)!.id, OWNER, download);
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it('la misma identidad institucional conserva su copia', async () => {
+  it('la misma identidad institucional conserva su contexto y su copia', async () => {
+    const before = currentContext()!.id;
     vi.spyOn(axios, 'post').mockResolvedValue(refreshed('DIRECTIVA'));
     mount();
     await waitFor(() => expect(auth?.user?.id).toBe('u-1'));
-    expect(await listCopies(null)).toHaveLength(1);
+    expect(currentContext()?.id).toBe(before);
+    expect(await readableCopies(null)).toHaveLength(1);
   });
 
-  it('otra identidad u otro sindicato: la copia anterior se borra', async () => {
+  it('otra identidad u otro sindicato: la copia anterior deja de ser legible al instante y se borra', async () => {
     vi.spyOn(axios, 'post').mockResolvedValue(refreshed('DIRECTIVA', 'u-1', 't-2'));
     mount();
-    await waitFor(async () => expect(await listCopies(null)).toEqual([]));
+    await waitFor(() => expect(auth?.user?.tenantId).toBe('t-2'));
+    expect(await readableCopies(null)).toEqual([]);
+    await waitFor(async () => expect(await memory.list()).toEqual([]));
   });
 
-  it('si el servidor ya no le da un rol institucional, su copia se borra', async () => {
+  it('rol degradado mientras la copia aún existe: no es legible aunque el borrado siga pendiente', async () => {
+    setCopyBackend({ ...memory, delete: () => new Promise<void>(() => undefined) });
     vi.spyOn(axios, 'post').mockResolvedValue(refreshed('AGRICULTOR'));
     mount();
-    await waitFor(async () => expect(await listCopies(null)).toEqual([]));
+    await waitFor(() => expect(auth?.user?.role).toBe('AGRICULTOR'));
+    expect(currentContext()).toBeNull();
+    expect(await readableCopies(null)).toEqual([]);
+    expect(await memory.list()).toHaveLength(1);
   });
 
-  it('una sesión rechazada (401) borra la copia; sin conexión se conserva para leerla', async () => {
+  it('una sesión rechazada (401) cierra el contexto; sin conexión se conserva para leer la copia', async () => {
     vi.spyOn(axios, 'post').mockRejectedValueOnce(rejected(null));
     const first = mount();
     await waitFor(() => expect(auth?.isLoading).toBe(false));
-    expect(await listCopies(null)).toHaveLength(1);
+    expect(await readableCopies(null)).toHaveLength(1);
     first.unmount();
     vi.spyOn(axios, 'post').mockRejectedValueOnce(rejected(401));
     mount();
-    await waitFor(async () => expect(await listCopies(null)).toEqual([]));
+    await waitFor(() => expect(currentContext()).toBeNull());
+    expect(await readableCopies(null)).toEqual([]);
   });
 
-  it('al cerrar la sesión se borra antes de avisar al servidor, aunque falle la red', async () => {
+  it('sesión cerrada con borrado fallido: el acceso se retira, el borrado queda pendiente y no se da por hecho', async () => {
+    setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
     vi.spyOn(axios, 'post').mockResolvedValue(refreshed('DIRECTIVA'));
     vi.spyOn(api, 'post').mockRejectedValue(rejected(null));
     mount();
@@ -80,8 +101,15 @@ describe('la copia sigue a la sesión (F12-EST-07-WEB, #180)', () => {
     await act(async () => {
       await auth!.logout().catch(() => undefined);
     });
-    expect(await listCopies(null)).toEqual([]);
-    // Ya sin sesión, una descarga que llegue tarde no se guarda.
-    expect(await saveCopy(OWNER, download)).toBe('IDENTITY_CHANGED');
+    expect(currentContext()).toBeNull();
+    expect(await readableCopies(null)).toEqual([]);
+    expect(purgePending()).toBe(true);
+    expect(await memory.list()).toHaveLength(1);
+    // La siguiente carga reintenta el borrado pendiente.
+    setCopyBackend(memory);
+    vi.spyOn(axios, 'post').mockRejectedValueOnce(rejected(null));
+    mount();
+    await waitFor(() => expect(purgePending()).toBe(false));
+    expect(await memory.list()).toEqual([]);
   });
 });

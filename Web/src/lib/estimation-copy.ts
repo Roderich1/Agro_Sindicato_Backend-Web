@@ -4,38 +4,72 @@ import type { InstitutionalDownload } from '../types/estimation';
  * F12-EST-07-WEB (#180; RF-40, RN-30, DAT-20; contrato §9): la copia de la
  * estimación para consultar sin conexión, en IndexedDB de este navegador.
  *
- * - Pertenece a una identidad (usuario y sindicato de la sesión) y a una campaña
- *   objetivo; otra identidad nunca la lee.
- * - Se descarta al cerrar la sesión, al cambiar de identidad o sindicato y
- *   cuando el servidor rechaza la sesión, el permiso o la política.
- * - Sólo se reemplaza por una descarga más reciente de la misma identidad y
- *   campaña (`NEWER_SAME_SUBJECT_AND_SCOPE`).
- * - Guarda la respuesta de `GET /download` tal como llegó, sin credenciales:
- *   ningún token ni contraseña.
- * - No es una autorización vigente: sin conexión no se conocen revocaciones
- *   ni cambios de fuentes.
+ * **Regla de acceso.** Una copia solo se lee dentro del *contexto local* que la
+ * guardó:
+ * - El contexto lo abre una sesión que el servidor reconoce con rol
+ *   institucional (Directiva o Administrador), al iniciarla o al recuperarla.
+ * - Identifica a esa sesión (usuario, sindicato y rol), **no** a la persona
+ *   física que está frente al navegador.
+ * - Vive en `localStorage`, para invalidarlo de forma síncrona y para que
+ *   sobreviva a una recarga sin conexión.
+ * - Cada copia guarda el `id` del contexto. Sin contexto, con otro contexto,
+ *   con otra identidad o sindicato, con un rol no institucional o con la
+ *   campaña revocada, la copia **no se lee**, aunque siga en IndexedDB.
+ * - Nunca se deduce autorización de que exista una copia: sin contexto no se
+ *   enumera nada.
  *
- * No es el CSV de la consulta, que se exporta con conexión y no se guarda aquí.
+ * **Invalidación inmediata, independiente del borrado.** Cerrar la sesión,
+ * cambiar de identidad o sindicato, o recibir un rechazo de sesión o de
+ * permiso cierran el contexto. Un rechazo de política lo renueva, con otro
+ * `id`, y un 404 revoca esa campaña. Después se intenta borrar físicamente:
+ * - si el borrado falla o sigue pendiente, la copia ya es inaccesible;
+ * - el fallo queda marcado (`purgePending`) y se reintenta en la siguiente
+ *   sesión o carga.
+ * Una escritura que termine después de invalidar lleva el `id` antiguo y nunca
+ * es legible.
+ *
+ * **Lo que guarda:** la respuesta de `GET /download` tal como llegó, sin
+ * credenciales (ningún token ni contraseña). No es el CSV de la consulta.
+ *
+ * **Lo que no se sabe sin conexión:** revocaciones ni cambios de fuentes.
  */
 
 export const COPY_FORMAT_VERSION = 1;
+const CONTEXT_KEY = 'agro_estimacion_contexto_v1';
+const PURGE_KEY = 'agro_estimacion_purga_pendiente_v1';
+const INSTITUTIONAL_ROLES = ['DIRECTIVA', 'ADMINISTRADOR'];
 
-/** La identidad de la sesión que descarga: usuario y sindicato. Nunca credenciales. */
 export interface CopyIdentity {
   userId: string;
   tenantId: string;
 }
 
-/** Lo que se muestra sin conexión de quién es la copia. */
+/** La sesión en memoria (si la hay) que intenta leer. */
+export interface SessionIdentity extends CopyIdentity {
+  role: string;
+}
+
+/** Lo que se muestra de quién es la copia. Nunca credenciales. */
 export interface CopyOwner extends CopyIdentity {
   name: string;
   tenantName: string;
   role: string;
 }
 
+/** El contexto local autorizado: la sesión propietaria de las copias de este navegador. */
+export interface LocalContext extends CopyOwner {
+  version: 1;
+  id: string;
+  opened_at: string;
+  /** Campañas cuya copia el servidor retiró (404) en este contexto. */
+  revoked: string[];
+}
+
 export interface StoredCopy {
   key: string;
   format_version: typeof COPY_FORMAT_VERSION;
+  /** Contexto local que la guardó: fuera de él no se lee. */
+  context_id: string;
   owner: CopyOwner;
   /** Hora local en que este navegador la guardó; la fecha de descarga es la del servidor (`download.downloaded_at`). */
   saved_at: string;
@@ -110,46 +144,151 @@ export function memoryBackend(): CopyBackend {
 }
 
 let backend: CopyBackend = indexedDbBackend;
-let active: CopyIdentity | null = null;
+/** Contextos cerrados en esta página: no vuelven a valer aunque `localStorage` no se pudiera escribir. */
+const closedIds = new Set<string>();
 
 /** Sólo para pruebas: otro almacén. */
 export function setCopyBackend(next: CopyBackend) {
   backend = next;
 }
 
-/**
- * La identidad de la sesión en curso, que fija la autenticación. Una descarga
- * que responde cuando la sesión ya es otra (o ninguna) no se guarda.
- */
-export function setActiveIdentity(identity: CopyIdentity | null) {
-  active = identity ? { userId: identity.userId, tenantId: identity.tenantId } : null;
-}
-
 export const sameIdentity = (a: CopyIdentity | null, b: CopyIdentity | null) =>
   a !== null && b !== null && a.userId === b.userId && a.tenantId === b.tenantId;
 
-const keyOf = (identity: CopyIdentity, targetRef: string) => `${identity.userId}|${identity.tenantId}|${targetRef}`;
+export const isInstitutional = (role: string | null | undefined) => INSTITUTIONAL_ROLES.includes(role ?? '');
 
-export type SaveOutcome = 'SAVED' | 'KEPT_NEWER' | 'IDENTITY_CHANGED' | 'NOT_INSTITUTIONAL' | 'OTHER_SCOPE' | 'UNSUPPORTED';
+function newId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function writeContext(context: LocalContext): boolean {
+  try {
+    localStorage.setItem(CONTEXT_KEY, JSON.stringify(context));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** El contexto local vigente, o `null` si no lo hay, no es válido o no es institucional. */
+export function currentContext(): LocalContext | null {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(CONTEXT_KEY);
+  } catch {
+    return null;
+  }
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<LocalContext>;
+    const valid =
+      value.version === 1 &&
+      typeof value.id === 'string' &&
+      typeof value.userId === 'string' &&
+      typeof value.tenantId === 'string' &&
+      typeof value.role === 'string' &&
+      Array.isArray(value.revoked) &&
+      isInstitutional(value.role) &&
+      !closedIds.has(value.id);
+    return valid ? (value as LocalContext) : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Guarda la descarga para `owner`, que es la identidad que la pidió. Se niega si
- * la sesión ya no es esa identidad, si el perfil no es el institucional, si el
- * sindicato no es el de la sesión o si el formato no es el de INT-09 v1.
+ * Lo llama la autenticación cuando el servidor acepta una sesión. Con rol
+ * institucional abre (o mantiene, si es la misma identidad y sindicato) el
+ * contexto. Con otro rol lo cierra: un rol conocido sin permiso institucional
+ * no lee la copia institucional, aunque su borrado siga pendiente.
  */
-export async function saveCopy(owner: CopyOwner, download: InstitutionalDownload): Promise<SaveOutcome> {
-  if (!sameIdentity(active, owner)) return 'IDENTITY_CHANGED';
+export function openContext(owner: CopyOwner): LocalContext | null {
+  if (!isInstitutional(owner.role)) {
+    closeContext();
+    return null;
+  }
+  const existing = currentContext();
+  const base = { userId: owner.userId, tenantId: owner.tenantId, name: owner.name, tenantName: owner.tenantName, role: owner.role };
+  const context: LocalContext =
+    existing && sameIdentity(existing, owner)
+      ? { ...existing, ...base }
+      : { version: 1, id: newId(), opened_at: new Date().toISOString(), revoked: [], ...base };
+  if (existing && existing.id !== context.id) closedIds.add(existing.id);
+  return writeContext(context) ? context : null;
+}
+
+/** Cierre de sesión, cambio de identidad o rechazo de sesión o permiso: ninguna copia vuelve a ser legible. */
+export function closeContext() {
+  const existing = currentContext();
+  if (existing) closedIds.add(existing.id);
+  try {
+    localStorage.removeItem(CONTEXT_KEY);
+  } catch {
+    // Sin `localStorage` tampoco hay contexto que leer; `closedIds` cubre esta página.
+  }
+}
+
+/** Rechazo de política: misma sesión, contexto nuevo; las copias anteriores dejan de ser legibles. */
+export function rotateContext() {
+  const existing = currentContext();
+  if (!existing) return;
+  closedIds.add(existing.id);
+  if (!writeContext({ ...existing, id: newId(), opened_at: new Date().toISOString(), revoked: [] })) closeContext();
+}
+
+/** 404 de una campaña: su copia deja de ser legible en este contexto. */
+export function revokeTarget(targetRef: string) {
+  const existing = currentContext();
+  if (!existing || existing.revoked.includes(targetRef)) return;
+  if (!writeContext({ ...existing, revoked: [...existing.revoked, targetRef] })) closeContext();
+}
+
+function admissible(context: LocalContext | null, session: SessionIdentity | null): context is LocalContext {
+  if (!context || !isInstitutional(context.role)) return false;
+  return session === null || (sameIdentity(session, context) && isInstitutional(session.role));
+}
+
+function readable(copy: StoredCopy, context: LocalContext): boolean {
+  return (
+    copy.format_version === COPY_FORMAT_VERSION &&
+    copy.context_id === context.id &&
+    sameIdentity(copy.owner, context) &&
+    copy.download?.scope?.tenant_ref === context.tenantId &&
+    !context.revoked.includes(copy.download.target.campaign_ref)
+  );
+}
+
+const keyOf = (identity: CopyIdentity, targetRef: string) => `${identity.userId}|${identity.tenantId}|${targetRef}`;
+
+export type SaveOutcome = 'SAVED' | 'KEPT_NEWER' | 'CONTEXT_CHANGED' | 'NOT_INSTITUTIONAL' | 'OTHER_SCOPE' | 'UNSUPPORTED';
+
+/**
+ * Guarda la descarga en el contexto `contextId`, que es el vigente cuando se
+ * pidió. Se niega si el contexto ya no es ese (sesión cerrada, cambiada o
+ * rechazada), si el perfil no es el institucional, si el sindicato no es el
+ * del contexto o si el formato no es el de INT-09 v1.
+ */
+export async function saveCopy(contextId: string, owner: CopyOwner, download: InstitutionalDownload): Promise<SaveOutcome> {
+  const stillValid = () => {
+    const context = currentContext();
+    return context !== null && context.id === contextId && sameIdentity(context, owner) ? context : null;
+  };
+  if (!stillValid()) return 'CONTEXT_CHANGED';
   if (download.contract_version !== 1 || download.kind !== 'ESTIMATION_DOWNLOAD' || download.may_be_outdated !== true) return 'UNSUPPORTED';
   if (download.profile !== 'INSTITUTIONAL') return 'NOT_INSTITUTIONAL';
   if (download.scope.tenant_ref !== owner.tenantId) return 'OTHER_SCOPE';
   const key = keyOf(owner, download.target.campaign_ref);
   const existing = await backend.get(key);
-  if (existing && Date.parse(existing.download.downloaded_at) >= Date.parse(download.downloaded_at)) return 'KEPT_NEWER';
-  // Otra vez justo antes de escribir: la sesión pudo cambiar mientras se leía.
-  if (!sameIdentity(active, owner)) return 'IDENTITY_CHANGED';
+  if (existing && existing.context_id === contextId && Date.parse(existing.download.downloaded_at) >= Date.parse(download.downloaded_at)) return 'KEPT_NEWER';
+  // Otra vez justo antes de escribir; aunque la escritura termine más tarde, lleva este `id` y no se leerá en otro contexto.
+  if (!stillValid()) return 'CONTEXT_CHANGED';
   await backend.put({
     key,
     format_version: COPY_FORMAT_VERSION,
+    context_id: contextId,
     owner: { userId: owner.userId, tenantId: owner.tenantId, name: owner.name, tenantName: owner.tenantName, role: owner.role },
     saved_at: new Date().toISOString(),
     download,
@@ -157,37 +296,76 @@ export async function saveCopy(owner: CopyOwner, download: InstitutionalDownload
   return 'SAVED';
 }
 
-/** La copia de esta identidad para esta campaña, o `null`. Nunca la de otra identidad. */
-export async function readCopy(identity: CopyIdentity, targetRef: string): Promise<StoredCopy | null> {
-  const copy = await backend.get(keyOf(identity, targetRef));
-  return copy && sameIdentity(copy.owner, identity) && copy.format_version === COPY_FORMAT_VERSION ? copy : null;
+/** La copia legible de esta campaña en el contexto vigente, o `null`. */
+export async function readCopy(session: SessionIdentity | null, targetRef: string): Promise<StoredCopy | null> {
+  const context = currentContext();
+  if (!admissible(context, session)) return null;
+  const copy = await backend.get(keyOf(context, targetRef));
+  // El contexto pudo cerrarse mientras se leía.
+  if (currentContext()?.id !== context.id) return null;
+  return copy && readable(copy, context) ? copy : null;
 }
 
 /**
- * Las copias guardadas, para leerlas sin conexión tras recargar la PWA, cuando
- * la sesión no puede comprobarse. Con una sesión en curso, sólo las suyas.
- * Sólo puede haber copias de la última identidad que no cerró sesión: iniciar
- * sesión con otra borra las demás.
+ * Las copias legibles en el contexto vigente: también sin sesión en memoria
+ * (recarga sin conexión), pero nunca sin contexto ni con otra identidad.
  */
-export async function listCopies(identity: CopyIdentity | null): Promise<StoredCopy[]> {
-  const copies = (await backend.list()).filter((copy) => copy.format_version === COPY_FORMAT_VERSION);
-  const visible = identity ? copies.filter((copy) => sameIdentity(copy.owner, identity)) : copies;
-  return visible.sort((a, b) => Date.parse(b.download.downloaded_at) - Date.parse(a.download.downloaded_at));
+export async function readableCopies(session: SessionIdentity | null): Promise<StoredCopy[]> {
+  const context = currentContext();
+  if (!admissible(context, session)) return [];
+  const copies = (await backend.list()).filter((copy) => readable(copy, context));
+  if (currentContext()?.id !== context.id) return [];
+  return copies.sort((a, b) => Date.parse(b.download.downloaded_at) - Date.parse(a.download.downloaded_at));
 }
 
-/** Al iniciar o recuperar una sesión: se borran las copias de cualquier otra identidad o sindicato. */
-export async function retainOnly(identity: CopyIdentity) {
-  for (const copy of await backend.list()) if (!sameIdentity(copy.owner, identity)) await backend.delete(copy.key);
+export interface PurgeResult {
+  deleted: number;
+  failed: number;
 }
 
-/** Tras un rechazo del servidor: las copias de esta identidad (de una campaña, si se indica). */
-export async function discardCopies(identity: CopyIdentity, targetRef?: string) {
-  for (const copy of await backend.list()) {
-    if (sameIdentity(copy.owner, identity) && (targetRef === undefined || copy.download.target.campaign_ref === targetRef)) await backend.delete(copy.key);
+/**
+ * Borra físicamente lo que ya no es legible en el contexto vigente (todo, si
+ * no hay contexto). Si algo falla, queda marcado como pendiente y se reintenta
+ * en la siguiente sesión o carga: el acceso ya estaba retirado.
+ */
+export async function purgeInaccessibleCopies(): Promise<PurgeResult> {
+  const context = currentContext();
+  let deleted = 0;
+  let failed = 0;
+  let copies: StoredCopy[];
+  try {
+    copies = await backend.list();
+  } catch {
+    markPurge(true);
+    return { deleted, failed: 1 };
+  }
+  for (const copy of copies) {
+    if (context && readable(copy, context)) continue;
+    try {
+      await backend.delete(copy.key);
+      deleted += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  markPurge(failed > 0);
+  return { deleted, failed };
+}
+
+function markPurge(pending: boolean) {
+  try {
+    if (pending) localStorage.setItem(PURGE_KEY, new Date().toISOString());
+    else localStorage.removeItem(PURGE_KEY);
+  } catch {
+    // Sin `localStorage` no hay contexto: nada es legible igualmente.
   }
 }
 
-/** Al cerrar la sesión o al perderla: todas las copias de este navegador. */
-export async function discardAllCopies() {
-  for (const copy of await backend.list()) await backend.delete(copy.key);
+/** `true` si un borrado físico falló y está pendiente de reintento. El acceso ya está retirado. */
+export function purgePending(): boolean {
+  try {
+    return localStorage.getItem(PURGE_KEY) !== null;
+  } catch {
+    return true;
+  }
 }

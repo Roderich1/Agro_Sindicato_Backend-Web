@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EstimationCopyView } from '../components/estimation-copy-view';
 import { useAuth } from '../hooks/use-auth';
-import { listCopies, type StoredCopy } from '../lib/estimation-copy';
+import { readableCopies, type StoredCopy } from '../lib/estimation-copy';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 
 /**
  * F12-EST-07-WEB (#180): lectura sin conexión de la copia descargada, también
- * tras recargar la PWA, cuando la sesión no puede comprobarse. No pide nada al
- * servidor: sólo lee IndexedDB. Con una sesión en curso, sólo sus copias; sin
- * ella, las que quedan en el navegador, que sólo pueden ser de la última
- * identidad que no cerró sesión (entrar con otra borra las demás).
+ * tras recargar la PWA, cuando la sesión no puede comprobarse con el servidor.
+ * No pide nada al servidor. Sólo muestra las copias del contexto local vigente,
+ * que una sesión institucional abrió en este navegador y que no se ha cerrado
+ * ni invalidado. Sin ese contexto, o con una sesión en memoria de otra
+ * identidad, sindicato o rol, no muestra nada, aunque queden copias en IndexedDB.
  */
 export function EstimationCopyPage() {
   const { user, isLoading } = useAuth();
@@ -20,7 +21,7 @@ export function EstimationCopyPage() {
   useEffect(() => {
     if (isLoading) return;
     let alive = true;
-    listCopies(user ? { userId: user.id, tenantId: user.tenantId } : null)
+    readableCopies(user ? { userId: user.id, tenantId: user.tenantId, role: user.role } : null)
       .then((found) => alive && setCopies(found))
       .catch(() => alive && setFailed(true));
     return () => {
@@ -44,7 +45,7 @@ export function EstimationCopyPage() {
       )}
       {copies !== null && copies.length === 0 && (
         <p className="glass-card p-5 text-sm text-slate-700" data-testid="copy-none">
-          No hay una estimación descargada en este navegador. Sin conexión no se muestra ninguna cifra.
+          No hay una copia accesible en este navegador para una sesión vigente. Sin conexión no se muestra ninguna cifra.
         </p>
       )}
       {copies?.map((copy) => <EstimationCopyView key={copy.key} copy={copy} />)}

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
-import { listCopies } from '../lib/estimation-copy';
+import { readableCopies } from '../lib/estimation-copy';
 import { ESTIMATION_COPY_PATH } from '../lib/navigation';
 
 export function LoginPage() {
@@ -14,12 +14,12 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // F12-EST-07-WEB (#180): si quedó una copia descargada (sin conexión no se pudo comprobar la sesión), se ofrece leerla.
+  // F12-EST-07-WEB (#180): si hay un contexto local vigente con copias (sin conexión no se pudo comprobar la sesión), se ofrece leerlas.
   const [hasCopy, setHasCopy] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    listCopies(null)
+    readableCopies(null)
       .then((copies) => alive && setHasCopy(copies.length > 0))
       .catch(() => undefined);
     return () => {

@@ -21,7 +21,19 @@ import {
 import { formatQuantity, groupDecimal, toPresentation } from '../lib/quantity';
 import { Figure, ValidityBadge } from '../components/estimation-figure';
 import { EstimationCopyView } from '../components/estimation-copy-view';
-import { discardCopies, readCopy, saveCopy, type CopyIdentity, type SaveOutcome, type StoredCopy } from '../lib/estimation-copy';
+import {
+  closeContext,
+  currentContext,
+  purgeInaccessibleCopies,
+  readCopy,
+  revokeTarget,
+  rotateContext,
+  saveCopy,
+  sameIdentity,
+  type SaveOutcome,
+  type SessionIdentity,
+  type StoredCopy,
+} from '../lib/estimation-copy';
 import { ESTIMATION_COPY_PATH } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
 import { estimationService } from '../services/estimation.service';
@@ -46,7 +58,7 @@ const LOST_ROLE: EstimationError = { kind: 'forbidden', message: 'Su rol ya no t
 const SAVE_TEXT: Record<SaveOutcome, string> = {
   SAVED: 'Copia guardada en este navegador.',
   KEPT_NEWER: 'Ya había una copia igual o más reciente de esta campaña: se conserva.',
-  IDENTITY_CHANGED: 'La sesión cambió durante la descarga: la copia no se guardó.',
+  CONTEXT_CHANGED: 'La sesión cambió o se retiró el acceso durante la descarga: la copia no se guardó.',
   NOT_INSTITUTIONAL: 'La respuesta no es del perfil institucional: no se guardó.',
   OTHER_SCOPE: 'La respuesta no es de su sindicato: no se guardó.',
   UNSUPPORTED: 'El formato de la respuesta no es el esperado: no se guardó.',
@@ -91,11 +103,11 @@ export function EstimationPage() {
   const [copy, setCopy] = useState<StoredCopy | null>(null);
   const [copyNote, setCopyNote] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const identity = useMemo<CopyIdentity | null>(() => (user ? { userId: user.id, tenantId: user.tenantId } : null), [user]);
-  const scopeRef = useRef<{ identity: CopyIdentity | null; target: string | null }>({ identity: null, target: null });
+  const identity = useMemo<SessionIdentity | null>(() => (user ? { userId: user.id, tenantId: user.tenantId, role: user.role } : null), [user]);
+  const targetRef = useRef<string | null>(null);
   useEffect(() => {
-    scopeRef.current = { identity, target: selected };
-  }, [identity, selected]);
+    targetRef.current = selected;
+  }, [selected]);
 
   const campaign = campaigns.find((c) => c.id === selected) ?? null;
   const eligible = campaign ? ELIGIBLE.includes(campaign.status) : false;
@@ -121,8 +133,12 @@ export function EstimationPage() {
       if (clearsInstitutionalData(problem.kind)) {
         clearAll();
         setCopy(null);
-        const { identity: owner, target } = scopeRef.current;
-        if (owner) void discardCopies(owner, problem.kind === 'not-found' ? (target ?? undefined) : undefined).catch(() => undefined);
+        // El acceso local se retira ya, de forma síncrona; el borrado físico va después y puede quedar pendiente.
+        if (problem.kind === 'policy') rotateContext();
+        else if (problem.kind === 'not-found') {
+          if (targetRef.current) revokeTarget(targetRef.current);
+        } else closeContext();
+        void purgeInaccessibleCopies();
       } else if (problem.kind === 'offline') setStale(true);
       return problem;
     },
@@ -291,16 +307,22 @@ export function EstimationPage() {
   /** RF-40: descarga explícita, con conexión; se guarda sólo si la sesión sigue siendo la que la pidió. */
   const downloadCopy = async () => {
     if (!selected || !user || !identity) return;
-    const owner = { ...identity, name: user.name, tenantName: user.tenant?.name ?? '', role: user.role };
-    setDownloading(true);
+    const owner = { ...identity, name: user.name, tenantName: user.tenant?.name ?? '' };
+    // El contexto local vigente al pedirla: si al responder ya no es este, no se guarda.
+    const context = currentContext();
     setCopyNote(null);
+    if (!context || !sameIdentity(context, identity)) {
+      setCopyNote('No hay un acceso local vigente para esta sesión: vuelva a iniciar sesión para descargar una copia.');
+      return;
+    }
+    setDownloading(true);
     try {
       const body = await estimationService.download(selected);
       if (body.profile !== 'INSTITUTIONAL') {
         apply(LOST_ROLE);
         return;
       }
-      const outcome = await saveCopy(owner, body);
+      const outcome = await saveCopy(context.id, owner, body);
       setCopyNote(SAVE_TEXT[outcome]);
       if (outcome === 'SAVED' || outcome === 'KEPT_NEWER') setCopy(await readCopy(identity, selected));
     } catch (err) {

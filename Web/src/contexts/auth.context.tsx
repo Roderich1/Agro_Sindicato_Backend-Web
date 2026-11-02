@@ -6,8 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { api, clearAccessToken, setAccessToken } from '../lib/axios';
-import { discardAllCopies, discardCopies, retainOnly, setActiveIdentity } from '../lib/estimation-copy';
-import { COLLECTIVE_ROLES } from '../lib/navigation';
+import { closeContext, openContext, purgeInaccessibleCopies } from '../lib/estimation-copy';
 
 export interface TenantInfo {
   id: string;
@@ -39,24 +38,22 @@ export interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
- * F12-EST-07-WEB (#180): la copia de la estimación pertenece a la identidad de
- * la sesión. Al empezar una sesión se borran las copias de cualquier otra
- * identidad o sindicato, y también las propias si el servidor ya no le da un
- * rol institucional (la copia es del perfil institucional); al cerrarla, o si
- * el servidor la rechaza, todas.
+ * F12-EST-07-WEB (#180): la copia de la estimación sólo se lee en el contexto
+ * local de la sesión que la guardó (`lib/estimation-copy`). Una sesión que el
+ * servidor acepta con rol institucional abre o mantiene ese contexto; con otra
+ * identidad, sindicato o rol, se cierra el anterior. Cerrar o perder la sesión
+ * lo cierra. Primero se retira el acceso, de forma síncrona, y después se
+ * intenta el borrado físico. Si falla, queda pendiente (`purgePending`) y se
+ * reintenta en la siguiente sesión o carga; nunca se da por hecho.
  */
 function beginSession(next: AuthUser) {
-  const identity = { userId: next.id, tenantId: next.tenantId };
-  setActiveIdentity(identity);
-  const institutional = (COLLECTIVE_ROLES as readonly string[]).includes(next.role);
-  void retainOnly(identity)
-    .then(() => (institutional ? undefined : discardCopies(identity)))
-    .catch(() => undefined);
+  openContext({ userId: next.id, tenantId: next.tenantId, name: next.name, tenantName: next.tenant?.name ?? '', role: next.role });
+  void purgeInaccessibleCopies();
 }
 
 function endSession() {
-  setActiveIdentity(null);
-  return discardAllCopies().catch(() => undefined);
+  closeContext();
+  return purgeInaccessibleCopies();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -75,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Sin sesión previa, continúa como anónimo. Si el servidor rechaza la
         // sesión, la copia sin conexión se retira; sin conexión no se sabe y se conserva.
         if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) void endSession();
+        // Sin conexión, el contexto local se conserva para leer la copia; se reintenta un borrado pendiente.
+        else void purgeInaccessibleCopies();
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -87,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async (): Promise<void> => {
-    // La copia se borra antes de avisar al servidor: aunque falle la red, no queda.
+    // El acceso a la copia se retira antes de avisar al servidor, aunque falle la red o el borrado.
     await endSession();
     try {
       await api.post('/auth/logout');
