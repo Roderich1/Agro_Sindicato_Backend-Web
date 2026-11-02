@@ -96,7 +96,26 @@ export class ConsumptionSeriesUseCase {
       select: { id: true, seasonId: true },
     });
     if (!classification) return { refused: "TARGET_CAMPAIGN_NOT_CLASSIFIED", result: null };
-    const outcome = await this.build(tenantId, classification.seasonId!, productId);
+    if (this.config.mode === "POLICY_PENDING") return { refused: "POLICY_PENDING", result: null };
+    return this.prisma.$transaction(
+      async (tx) =>
+        this.assessIn(tx, tenantId, { campaignId: target.id, startDate: target.startDate, classificationId: classification.id, seasonId: classification.seasonId! }, productId),
+      { maxWait: 10000, timeout: 30000 },
+    );
+  }
+
+  /**
+   * The same reading inside the caller's transaction (the F12-EST-05 worker),
+   * for a target whose current classification the caller already read. The
+   * caller checks the policy before calling.
+   */
+  async assessIn(
+    tx: Tx,
+    tenantId: string,
+    target: { campaignId: string; startDate: Date; classificationId: string; seasonId: string },
+    productId: string,
+  ): Promise<TargetAssessment> {
+    const outcome = await this.buildIn(tx, tenantId, target.seasonId, productId);
     if ("refused" in outcome) {
       const result =
         outcome.refused === "MIXED_UNITS"
@@ -108,12 +127,71 @@ export class ConsumptionSeriesUseCase {
     }
     return {
       built: outcome.built,
-      target: { campaignId: target.id, classificationId: classification.id, seasonId: classification.seasonId! },
-      assessment: assessSpan(outcome.built.points, { campaignId: target.id, startDate: target.startDate }),
+      target: { campaignId: target.campaignId, classificationId: target.classificationId, seasonId: target.seasonId },
+      assessment: assessSpan(outcome.built.points, { campaignId: target.campaignId, startDate: target.startDate }),
     };
   }
 
+  /**
+   * The sources the series of this scope would have now, without writing
+   * anything: F12-EST-05 compares their hash with the series a result used
+   * (SOURCES_CHANGED, EST-D-12).
+   */
+  async currentSources(tx: Tx, tenantId: string, seasonId: string, productId: string): Promise<{ sourceHash: string } | { refused: SeriesRefusal }> {
+    const collected = await this.collectIn(tx, tenantId, seasonId, productId, false);
+    return "refused" in collected ? { refused: collected.refused } : { sourceHash: collected.sourceHash };
+  }
+
   private async buildIn(tx: Tx, tenantId: string, seasonId: string, productId: string): Promise<SeriesOutcome> {
+    const collected = await this.collectIn(tx, tenantId, seasonId, productId, true);
+    if ("refused" in collected) return collected;
+    const { scope, points, sources, sourceHash } = collected;
+    const product = { id: scope.canonicalProductId };
+    const baseUnit = scope.baseUnit;
+    const season = { id: scope.seasonId };
+    const latest = await tx.consumptionSeries.findFirst({
+      where: { tenantId, canonicalProductId: product.id, baseUnit, seasonId: season.id },
+      orderBy: { version: "desc" },
+      select: { id: true, version: true, sourceHash: true },
+    });
+    if (latest?.sourceHash === sourceHash) {
+      return { built: { seriesId: latest.id, version: latest.version, sourceHash, reused: true, scope, points } };
+    }
+    const created = await tx.consumptionSeries.create({
+      data: {
+        tenantId,
+        canonicalProductId: product.id,
+        baseUnit,
+        seasonId: season.id,
+        version: (latest?.version ?? 0) + 1,
+        previousSeriesId: latest?.id ?? null,
+        sourceHash,
+        sources: sources as Prisma.InputJsonValue,
+        points: {
+          create: points.map((p) => ({
+            position: p.position,
+            campaignId: p.campaignId,
+            classificationId: p.classificationId,
+            kind: p.kind,
+            quantityBase: p.quantityBase,
+            sourceSealId: p.sealId,
+            sourceReleaseId: p.releaseId,
+          })),
+        },
+      },
+      select: { id: true, version: true },
+    });
+    this.logger.log(`[F12 SERIES] tenant=${tenantId} product=${product.id} unit=${baseUnit} season=${season.id} version=${created.version} points=${points.length}`);
+    return { built: { seriesId: created.id, version: created.version, sourceHash, reused: false, scope, points } };
+  }
+
+  private async collectIn(
+    tx: Tx,
+    tenantId: string,
+    seasonId: string,
+    productId: string,
+    lock: boolean,
+  ): Promise<{ scope: SeriesScope; points: SourcePoint[]; sources: unknown[]; sourceHash: string } | { refused: SeriesRefusal; campaignId?: string }> {
     const season = await tx.comparabilitySeason.findFirst({ where: { id: seasonId, tenantId }, select: { id: true } });
     if (!season) return { refused: "SEASON_NOT_FOUND" };
     const product = await tx.product.findFirst({ where: { id: productId, tenantId }, select: { id: true, unit: true } });
@@ -135,7 +213,7 @@ export class ConsumptionSeriesUseCase {
     };
 
     // One build at a time per scope: two builds never create the same version.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`f12-series:${tenantId}:${product.id}:${baseUnit}:${season.id}`}, 0))`;
+    if (lock) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`f12-series:${tenantId}:${product.id}:${baseUnit}:${season.id}`}, 0))`;
     const classified = await tx.campaignSeasonClassification.findMany({
       where: { tenantId, seasonId: season.id, nextClassification: { is: null } },
       select: { id: true, campaign: { select: { id: true, status: true, startDate: true } } },
@@ -186,40 +264,7 @@ export class ConsumptionSeriesUseCase {
     }
 
     const { sources, sourceHash } = canonicalSources(scope, points);
-    const latest = await tx.consumptionSeries.findFirst({
-      where: { tenantId, canonicalProductId: product.id, baseUnit, seasonId: season.id },
-      orderBy: { version: "desc" },
-      select: { id: true, version: true, sourceHash: true },
-    });
-    if (latest?.sourceHash === sourceHash) {
-      return { built: { seriesId: latest.id, version: latest.version, sourceHash, reused: true, scope, points } };
-    }
-    const created = await tx.consumptionSeries.create({
-      data: {
-        tenantId,
-        canonicalProductId: product.id,
-        baseUnit,
-        seasonId: season.id,
-        version: (latest?.version ?? 0) + 1,
-        previousSeriesId: latest?.id ?? null,
-        sourceHash,
-        sources: sources as Prisma.InputJsonValue,
-        points: {
-          create: points.map((p) => ({
-            position: p.position,
-            campaignId: p.campaignId,
-            classificationId: p.classificationId,
-            kind: p.kind,
-            quantityBase: p.quantityBase,
-            sourceSealId: p.sealId,
-            sourceReleaseId: p.releaseId,
-          })),
-        },
-      },
-      select: { id: true, version: true },
-    });
-    this.logger.log(`[F12 SERIES] tenant=${tenantId} product=${product.id} unit=${baseUnit} season=${season.id} version=${created.version} points=${points.length}`);
-    return { built: { seriesId: created.id, version: created.version, sourceHash, reused: false, scope, points } };
+    return { scope, points, sources, sourceHash };
   }
 }
 

@@ -2368,6 +2368,73 @@
           "review_ref"
         ]
       },
+      "CorrectClassificationDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "previous_classification_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Versión vigente que se corrige"
+          },
+          "season_ref": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Temporada nueva; null deja la campaña sin clasificar"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Motivo de la corrección"
+          }
+        },
+        "required": [
+          "contract_version",
+          "previous_classification_ref",
+          "season_ref",
+          "reason"
+        ]
+      },
+      "GenerateEstimationDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Idempotencia: el mismo identificador con la misma petición devuelve el mismo trabajo"
+          },
+          "target_campaign_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Campaña objetivo del sindicato autenticado"
+          },
+          "product_refs": {
+            "description": "Productos canónicos; sin ellos, los estimables con consumo publicado en la temporada (ESTIMATION_MAX_PRODUCTS)",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "contract_version",
+          "request_id",
+          "target_campaign_ref"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {

@@ -1,13 +1,15 @@
 # F12-EST-01 — Contrato INT-09: estimación del consumo (v1)
 
 - **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado dos veces el 2026-11-02 (UTC) con las decisiones del autor del §11.
-- **Estado:** **especificación**. Es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
-  - **Ninguna ruta está implementada:** no hay controladores, trabajador por lotes ni registro de ejecuciones.
+- **Estado:** **parcialmente implementado**. El contrato es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
+  - **Rutas implementadas desde F12-EST-05 (#178):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST /estimation/campaign-classifications/{campaignId}/corrections` y `GET /estimation/campaign-classifications/{campaignId}/history`.
+  - **Siguen solo especificadas:** temporadas, clasificación inicial y su lista, y la descarga (§12).
   - **Lo construido:**
     - el esquema de datos (§6), con su migración aditiva;
     - la cobertura de consumo de los sellados F07 nuevos (§3.1), implementada en el caso de uso del sellado;
     - desde F12-EST-02 y F12-EST-03 (#175, #176), la preparación de fuentes, la construcción de series y su lectura para una campaña objetivo (§3.2), sin rutas;
-    - desde F12-EST-04 (#177), el motor SES/naive como función pura sobre el tramo `READY` (§3.3), sin rutas ni ejecuciones.
+    - desde F12-EST-04 (#177), el motor SES/naive como función pura sobre el tramo `READY` (§3.3);
+    - desde F12-EST-05 (#178), los trabajos, el trabajador por lotes, las ejecuciones y resultados solo por inserción, la vigencia derivada al consultar y las rutas anteriores (§4.2, §4.3, §8).
 - **Issue:** [#174](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/174) (F12-EST-01), entregable E7.1 de 3.13.2. Lo siguen F12-EST-02 a F12-EST-08.
 - **Bases:**
   - Backend `main` `b81ff23`.
@@ -88,7 +90,7 @@ Las dos últimas **nunca** son cero, no se interpolan y no entran en el cálculo
 **Identidades sin permiso.** Reciben **403** del `RolesGuard` global, con el cuerpo `{ "statusCode": 403, "message": "No tienes permisos para esta acción", "error": "Forbidden" }`.
 - La petición no llega al caso de uso.
 - **No se encola, no se calcula ni se registra nada.**
-- Es una especificación: no hay ruta implementada que lo pruebe (§12).
+- En las rutas implementadas se prueba por HTTP contra PostgreSQL (§12); en las demás sigue especificado.
 
 **Defensa en profundidad, probada contra PostgreSQL (§12).** Quien define una temporada, clasifica una campaña, pide un trabajo o figura como solicitante de una ejecución debe ser, en el momento de cada escritura:
 - Member **activo**;
@@ -137,11 +139,13 @@ La serie solo usa cifras ya publicadas y selladas (§3).
    - Un cambio de asociaciones, de cifras o de clasificaciones (una corrección) crea una **versión nueva** de la serie (`version + 1`, `previousSeriesId`).
    - Cada punto cita la versión de la clasificación que usó (`classificationId`), y la base solo admite la vigente al construir.
    - La anterior se conserva con las ejecuciones que la usaron.
-5. **Política pendiente.** Si la política de divulgación está en `POLICY_PENDING`, no hay cifras publicadas:
+5. **Política pendiente (EST-D-10, decidida).** Si la política de divulgación está en `POLICY_PENDING`, no hay cifras publicadas:
    - **no se encola ni se registra** nada: **409 `POLICY_PENDING`**, el mismo código que ya usan las propuestas;
    - si pasa a pendiente con un trabajo en cola, el trabajo termina `NOT_EXECUTED` con `POLICY_PENDING`, sin ejecución;
    - **ninguna lectura entrega cifras:** también 409 (§4.3);
-   - la base rechaza una ejecución con `disclosureMode = POLICY_PENDING`.
+   - la base rechaza una ejecución con `disclosureMode = POLICY_PENDING`;
+   - un trabajo no se reanuda sin volver a comprobar las condiciones: cada intento, también el que retoma un trabajo tras un error transitorio o un plazo vencido, vuelve a observar el permiso, la política y la campaña antes de calcular (§4.2);
+   - esta regla no es la aprobación institucional de la política (GOV-02, #107).
 6. **Cobertura (EST-D-09).** La cobertura «N de M» que exige RN-25 se define en el §3.1.
 
 ### 3.1 Cobertura del consumo (EST-D-09)
@@ -300,6 +304,8 @@ Todas las rutas están bajo `/api/v1/estimation`, con bearer y respuestas JSON c
 
 No existen `PUT`, `PATCH` ni `DELETE` en INT-09, y lo comprueba `openapi:check` (§12).
 
+**Implementadas (F12-EST-05):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST …/corrections` y `GET …/history`. `openapi:check` compara esas siete operaciones con el OpenAPI generado desde el código (`x-implemented-operations`). Las otras cinco (las dos de temporadas, las dos de clasificación inicial y la descarga) siguen especificadas.
+
 ### 4.1 Temporadas, clasificaciones y correcciones (EST-D-02, EST-D-14)
 
 - **`POST /estimation/seasons`:** `{ contract_version: 1, key, definition, duration_days }`.
@@ -391,7 +397,15 @@ El trabajo y su desenlace se conservan (§6.5).
   - **Al agotar los intentos** con errores transitorios, el cálculo ya se inició y falló: se registra una ejecución `FAILED` con `RETRIES_EXHAUSTED`, sin cifras. La base solo la admite con los intentos agotados.
   - **Sin duplicados:** una sola ejecución por trabajo (`jobId` único).
 - **Parada frente a fallo.** `NOT_EXECUTED` significa que no se calculó nada y no hay ejecución. `FAILED` significa que una ejecución empezó y falló, y queda registrada (RN-27).
-- **Configuración.** El intervalo y el plazo son parámetros de despliegue; el máximo de productos y de intentos, límites técnicos configurables. Ninguno es una regla de negocio.
+- **Configuración.** El intervalo (`ESTIMATION_WORKER_INTERVAL_MS`, 5 s) y el plazo (`ESTIMATION_LEASE_MS`, 5 min) son parámetros de despliegue; el máximo de productos y de intentos, límites técnicos configurables. Ninguno es una regla de negocio. `ESTIMATION_WORKER=disabled` impide que el trabajador arranque con la aplicación (las pruebas lo conducen explícitamente). Los cinco valores se validan al arrancar (`envSchema`): un valor inválido detiene el arranque en lugar de caer al valor por defecto.
+- **Proceso.** El trabajador vive dentro del proceso del Backend (`node dist/main.js`, la entrada del Dockerfile) y empieza con él. Cada proceso con el trabajador activo toma trabajos; varios procesos sobre la misma base no duplican ejecuciones. Sin un proceso con el trabajador activo, los trabajos esperan en cola. Una parada abrupta deja el trabajo `RUNNING` hasta que vence su plazo y otro proceso lo retoma (§4.2, recuperación); el proceso no registra ganchos de apagado (`enableShutdownHooks`), así que el trabajo en curso no se libera antes del plazo.
+- **Implementación (F12-EST-05):** `estimation-worker.ts`, `estimation-jobs.use-case.ts` y `estimation-reads.use-case.ts`.
+  - **Idempotencia primero.** Una repetición del mismo `request_id` se responde antes de las demás comprobaciones, de modo que un reintento del cliente encuentra su trabajo aunque la campaña o la política hayan cambiado. Dos peticiones simultáneas iguales encolan un solo trabajo (la segunda encuentra el de la primera).
+  - **Productos por defecto.** Sin `product_refs`, los productos canónicos estimables con consumo sellado en una campaña de la temporada, ordenados, como mucho `ESTIMATION_MAX_PRODUCTS`. Un producto que dejó de ser canónico no puede llevar resultado (la base exige canónico) y se omite.
+  - **Titularidad del trabajo.** Cada intento escribe solo mientras es el titular: en su transacción bloquea la fila del trabajo y exige que siga `RUNNING`, con su número de intento y el plazo sin vencer. La base exige lo mismo al insertar la ejecución (`jobAttempt` igual a `attempts` y plazo vigente, salvo `RETRIES_EXHAUSTED`; migración `20261102100000_f12_est_05_run_ownership`). Un trabajador que perdió el trabajo no escribe nada.
+  - **Recuperación.** Un trabajo `RUNNING` con el plazo vencido se retoma con un intento más. Si ya agotó los intentos, se registra su ejecución `FAILED` con `RETRIES_EXHAUSTED`.
+  - **Errores transitorios:** conexión, serialización o interbloqueo (`P1001`, `P1002`, `P1008`, `P1017`, `P2024`, `P2028`, `P2034`, `40001`, `40P01`), conflicto de sucesión (`P2002` sobre `previousRunId` o la raíz) y una clasificación corregida mientras se calcula. Cualquier otro error es determinista: `FAILED` con `CALCULATION_FAILED`. Un fallo del motor en un producto es `CALCULATION_FAILED` de ese producto dentro de una ejecución `CALCULATED`.
+  - **Permiso perdido durante el cálculo.** La base rechaza la ejecución y el trabajo termina `NOT_EXECUTED` con `REQUESTER_NOT_AUTHORIZED`, porque antes de registrar un fallo se vuelven a observar las paradas.
 - **Límite del despliegue.** El trabajador necesita un proceso del Backend en marcha. Si el servicio se suspende, los trabajos esperan en cola.
 
 **Resultado de la ejecución:**
@@ -420,7 +434,9 @@ Así una ejecución fallida posterior **no oculta** un resultado vigente. Un tra
 
 Sin ejecuciones, la lista va vacía. **Nunca hay cifras fabricadas.**
 
-**`GET /estimation/runs` y `GET /estimation/runs/{runId}`** muestran el historial completo, incluidas las ejecuciones fallidas y las sustituidas, con su vigencia derivada (RN-27).
+**`GET /estimation/runs` y `GET /estimation/runs/{runId}`** muestran el historial completo, incluidas las ejecuciones fallidas y las sustituidas (RN-27).
+- La lista (`RunSummary`) no lleva cifras ni vigencia. Va de la más reciente a la más antigua (`generatedAt` y, a igualdad, `id`), con `limit` de 1 a 50 (20 por defecto) y un cursor opaco que codifica la última ejecución de la página. Un cursor que no emitió la ruta es 400, nunca una primera página silenciosa. Este orden es un detalle de implementación de F12-EST-05: el contrato no lo fijaba.
+- El detalle de una ejecución lleva la vigencia derivada de cada resultado (§8).
 
 **La política y la divulgación vigentes se aplican al leer**, en todas las rutas con cifras (3.12.3.4: «Un resultado histórico sigue sujeto a los permisos y a la política de divulgación vigentes»). Esto **vuelve a comprobar** la fuente sellada (EST-D-03):
 - En `POLICY_PENDING`, las cuatro rutas de lectura con cifras responden **409 `POLICY_PENDING`**.
@@ -436,12 +452,16 @@ Sin ejecuciones, la lista va vacía. **Nunca hay cifras fabricadas.**
   - También el método (`SES_NAIVE`), `methodVersion`, los parámetros, el horizonte (1) y la política de divulgación aplicada (`disclosureMode`, `policy`, `threshold`).
   - Y `generatedAt`, que fija el trabajador con la hora del servidor. La base no la impone: solo exige que no sea anterior a la de la ejecución precedente.
   - La huella de la petición queda en el trabajo (`requestHash`).
-- **`EstimationRun.contentHash`:** SHA-256 de la ejecución y de todos sus resultados, serializados de forma canónica, con los campos y el orden fijados en F12-EST-05.
+- **`EstimationRun.contentHash`:** SHA-256 de la ejecución y de todos sus resultados, serializados de forma canónica (`domain/run-content.ts`, F12-EST-05):
+  - la ejecución: todas sus columnas salvo `contentHash`, incluido `jobAttempt`, con las cifras como texto y las fechas en ISO 8601;
+  - sus resultados ordenados por producto y unidad: todas las columnas salvo `runId`, con la estimación y el criterio con 6 decimales, α con 2 y el naive entero;
+  - todo objeto con sus claves ordenadas, de forma recursiva (el JSON leído de `jsonb` da la misma huella).
+  - La suite F12-EST-05 la recalcula desde las filas guardadas y coincide.
   - Permite comprobar que una ejecución **no se alteró**.
   - La conservación depende además de que no haya rutas de modificación y de los disparadores (§6.3).
 - **Cada resultado** referencia la versión de la serie que usó (`seriesId`). Así quedan identificadas las fuentes y sus versiones de cada cifra (RF-37, DAT-19).
 
-## 6. Modelo de datos (migración `20261101233651_f12_est_01_estimation`; cobertura en `20261102020000_f07_seal_consumption_coverage`)
+## 6. Modelo de datos (migración `20261101233651_f12_est_01_estimation`; cobertura en `20261102020000_f07_seal_consumption_coverage`; titularidad en `20261102100000_f12_est_05_run_ownership`)
 
 ### 6.1 Tablas
 
@@ -454,7 +474,7 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 | `consumption_series` | `ConsumptionSeries` | Tenant, producto canónico, unidad base, temporada, `version`, `previousSeriesId`, `sourceHash`, `sources`, `builtAt` |
 | `series_point` | `SeriesPoint` | Serie, `position`, campaña, `classificationId` (versión usada), `kind`, `quantityBase` (solo comprobado), `sourceSealId`, `sourceReleaseId`. La cobertura se lee del sellado (§3.1) |
 | (EST-D-04, 15, 16) | `EstimationJob` | Tenant, `requestId`, `requestHash`, solicitante y rol, campaña objetivo, `productRefs`, `maxAttempts`, y el estado operativo: `status`, `attempts`, `enqueuedAt`, `startedAt`, `leaseExpiresAt`, `finishedAt`, `stopCode`, `stopEvidence` |
-| `estimation_run` | `EstimationRun` | Tenant, `jobId` (único), solicitante y rol, campaña objetivo, `targetClassificationId` (versión usada), temporada, contrato, método y versión, parámetros, `horizon`, política aplicada, `outcome`, `failureCode`, `previousRunId`, `contentHash`, `generatedAt` |
+| `estimation_run` | `EstimationRun` | Tenant, `jobId` (único), `jobAttempt` (intento que la produjo, F12-EST-05), solicitante y rol, campaña objetivo, `targetClassificationId` (versión usada), temporada, contrato, método y versión, parámetros, `horizon`, política aplicada, `outcome`, `failureCode`, `previousRunId`, `contentHash`, `generatedAt` |
 | `estimation_result` | `EstimationResult` | Ejecución, producto canónico, unidad base, serie, `status`, `reasonCode`, `estimateBase`, `naiveBase`, `alpha`, `fitInformative`, `fitCriterion`, tramo (`spanFirstPosition`, `spanLastPosition`), `exclusions`, `validations`, `metrics` |
 
 `estimation_cache` del diseño no es una tabla del servicio: es la copia del cliente, en SQLite o IndexedDB (§9).
@@ -545,7 +565,7 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 - un `HIDDEN` que cita un sellado corresponde a una entrada no visible de ese sellado; un `NO_RECORD` que cita un sellado, a ninguna entrada de consumo de esa celda;
 - el producto es **canónico**: no es hoy denominación de otro;
 - la serie anterior es del mismo ámbito y de la versión inmediatamente anterior;
-- una ejecución procede de un trabajo `RUNNING` con la misma campaña objetivo y el mismo solicitante;
+- una ejecución procede de un trabajo `RUNNING` con la misma campaña objetivo y el mismo solicitante, y de su intento vigente (`jobAttempt` = `attempts`) con el plazo sin vencer según la hora real, salvo `RETRIES_EXHAUSTED` (F12-EST-05: un trabajador que perdió el trabajo no puede registrarla);
 - la ejecución cita la versión vigente de la clasificación de su campaña objetivo, que es su temporada;
 - una ejecución `FAILED` con `RETRIES_EXHAUSTED` solo existe si el trabajo agotó sus intentos;
 - la ejecución anterior es de la misma campaña objetivo y no posterior;
@@ -586,10 +606,12 @@ F12-EST-08 solo podrá mostrarla en una columna separada (RN-29).
 Para un resultado de la ejecución *E* (campaña objetivo *T*, producto *P*, unidad *U*), en este orden:
 
 1. **`NOT_USABLE`:** *E* es `FAILED` (`RUN_FAILED`) o el resultado no es `ESTIMATED` (`NO_FIGURE`).
-2. **`SUPERSEDED`:** existe una ejecución posterior `CALCULATED` del mismo sindicato y campaña *T* que incluye un resultado de (*P*, *U*), de cualquier estado (`LATER_RUN`) (EST-D-08). Una ejecución posterior `FAILED` **no** sustituye.
+2. **`SUPERSEDED`:** existe una ejecución posterior `CALCULATED` del mismo sindicato y campaña *T* que incluye un resultado de (*P*, *U*), de cualquier estado (`LATER_RUN`) (EST-D-08, decidida). Una ejecución posterior `FAILED` **no** sustituye.
 3. **`OUTDATED`:** cambiaron de forma conocida las cifras, asociaciones o clasificaciones que la sustentan.
    - `CLASSIFICATION_CORRECTED`: la clasificación de la campaña objetivo, o la de alguna campaña de la serie, ya no es la versión que se usó (EST-D-14).
-   - `SOURCES_CHANGED`: por ejemplo, la serie vigente de (*P*, *U*, temporada) tiene otra `sourceHash`. Cómo se detecta exactamente se fija en F12-EST-05 (EST-D-12).
+   - `SOURCES_CHANGED`: las fuentes de la serie de (*P*, *U*, temporada), reunidas ahora sin escribir nada, tienen otra huella que la `sourceHash` de la serie que usó el resultado (EST-D-12, decidida). La huella incluye las campañas clasificadas, sus versiones, sellados, divulgaciones, visibilidad, cobertura y asociaciones (§5): por ejemplo, una campaña nueva clasificada en la temporada lo produce.
+   - Si se cumplen varias, el motivo es el primero de esta lista: `SOURCES_WITHDRAWN`, `CLASSIFICATION_CORRECTED`, `SOURCES_CHANGED`.
+   - **Retirada.** Un punto comprobado sigue divulgado si su entrada sellada es `DISCLOSED`, visible, con la misma divulgación sin retirar y un número de aportantes no menor que el umbral vigente. El número de aportantes solo se usa para esta comprobación y no se entrega.
    - `SOURCES_WITHDRAWN`: alguna cifra usada ya no se divulga; en ese caso, además, **no se entregan sus cifras** (§4.3).
 4. **`CURRENT`:** en los demás casos.
 
@@ -644,6 +666,9 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | EST-D-05 | 2026-11-01 | El Agricultor consulta la estimación sin naive, cobertura ni serie; puede coincidir con una cifra histórica; la proyección debe estar en la política institucional; no se habilitan datos reales ni se declara aprobada la política | §2 |
 | EST-D-06 | 2026-11-02 (UTC) | Campaña objetivo admisible: del mismo sindicato, clasificada y `PLANIFICADA` o `ABIERTA`, al pedir el trabajo y antes de empezar el cálculo. Si se cierra después de empezar, la ejecución se completa y se conserva como histórica; la campaña no se reabre ni se modifica, y la consulta sigue sujeta a los permisos y a la divulgación vigentes | §4.2; base: alta del trabajo y parada `TARGET_CAMPAIGN_NOT_ELIGIBLE`; la ejecución no exige el estado |
 | EST-D-07 | 2026-11-02 (UTC) | Cálculo sin redondeos intermedios; α y la comparación de errores, antes de redondear; estimación SES y naive finales con 6 decimales de la unidad base y `ROUND_HALF_UP`; se conservan los parámetros y la versión del método. Seis decimales son una decisión de representación, no una garantía de exactitud | §3.3; `Parameters` del OpenAPI |
+| EST-D-08 | 2026-11-02 (UTC) | Una ejecución posterior calculada sustituye a la anterior; una fallida, no. El resultado anterior solo se entrega conforme a su vigencia, sus fuentes y los permisos actuales. No se reutilizan cifras anteriores como si pertenecieran a una ejecución nueva con datos insuficientes | §4.3, §8 |
+| EST-D-10 | 2026-11-02 (UTC) | Mientras la política requerida esté pendiente se bloquean con 409 las solicitudes, las lecturas de cifras y la descarga. Los trabajos en cola detienen su procesamiento conforme al contrato, y antes de reanudarlos se vuelven a comprobar las condiciones aplicables. **No es la aprobación institucional de GOV-02** | §3 (punto 5), §4.2, §4.3, §9 |
+| EST-D-12 | 2026-11-02 (UTC) | Los cambios de fuentes, de clasificación o de la composición de la temporada desactualizan los resultados, incluida una campaña clasificada después. Si una fuente pierde la autorización, además no se entregan las cifras afectadas, SES y naive incluidos | §4.3, §8 |
 | EST-D-09 | 2026-11-01 y 2026-11-02 (UTC) | Ampliación mínima de F07: cobertura de participación del consumo en los sellados futuros, en la misma transacción e inmutable; no aceptar la cobertura general; no reconstruir los sellados anteriores; misma población en N y M; participación distinta de integridad; ningún mínimo nuevo | §3.1; F07 §5.3 |
 | EST-D-11 | 2026-11-02 (UTC) | Conservar los registros durante la construcción y la evaluación académica; la retención institucional definitiva, pendiente en GOV-02, sin declarar aprobada una conservación perpetua | §6.5 |
 | EST-D-13 | 2026-11-01 | Autorización existente por roles, con identidad, pertenencia y cuenta activa; ningún segundo sistema | §2, §6.3 |
@@ -656,9 +681,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 
 | Id | Decisión | Propuesta | Compatibilidad | Quién o cuándo |
 |---|---|---|---|---|
-| EST-D-08 | Qué sustituye a un resultado | Una ejecución posterior `CALCULATED` que incluya el producto; una `FAILED`, no | Compatible: con lotes, «posterior» es el orden de la cadena. Una ejecución `FAILED` con `RETRIES_EXHAUSTED` tampoco sustituye | F12-EST-05 |
-| EST-D-10 | Política pendiente | 409 al pedir y al leer; un trabajo en cola termina `NOT_EXECUTED` | Compatible con EST-D-15 | F12-EST-05 |
-| EST-D-12 | Detección de `OUTDATED` | Huella de las fuentes vigentes frente a `sourceHash`; `CLASSIFICATION_CORRECTED` si cambió una versión de clasificación usada | Compatible. La huella incluye las versiones de clasificación y la cobertura del sellado (§5) | F12-EST-05 |
+| — | Ninguna | Desde el 2026-11-02 (UTC) no queda ninguna decisión del autor pendiente en INT-09: EST-D-08, EST-D-10 y EST-D-12 pasaron a §11.1. Los límites que quedan están en §11.3 | — | — |
 
 ### 11.3 Incompatibilidades y límites que quedan
 
@@ -690,16 +713,21 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 |---|---|---|
 | Rutas, peticiones, respuestas, perfiles, errores, correcciones, trabajo por lotes, vigencia, política al leer y copia descargada | **Especificado** | `docs/api/openapi-f12-estimation.json` |
 | La especificación es coherente y completa (detalle debajo) | **Comprobado por script** | `Back/scripts/openapi-f12-estimation.cjs`, dentro de `npm run openapi:check` |
-| Que no hay rutas `/api/v1/estimation` implementadas | **Comprobación de esta etapa** | El mismo script, contra `openapi-f02.json`, que se genera desde el código, mientras la especificación diga `SPECIFIED_NOT_IMPLEMENTED`. **No prohíbe implementar INT-09:** F12-EST-05 cambia ese estado y sustituye la comprobación por la comparación con el OpenAPI generado; con otro estado, el script falla y lo pide |
+| Las operaciones implementadas son exactamente las declaradas (`x-implemented-operations`), con los mismos códigos de respuesta y ninguna de modificación | **Comprobado por script** | El mismo script, contra `openapi-f02.json`, que se genera desde el código (etapa `PARTIALLY_IMPLEMENTED`, desde F12-EST-05). Los cuerpos de las respuestas se contrastan con los esquemas en la suite F12-EST-05 |
 | Esquema: temporadas, versiones de clasificación, series, puntos, trabajos, ejecuciones y resultados | **Construido** | Migración `20261101233651_f12_est_01_estimation` |
 | **Cobertura de consumo de los sellados F07 nuevos** | **Implementado y comprobado contra PostgreSQL** | Caso de uso del sellado, `consumption-coverage.ts` y migración `20261102020000_f07_seal_consumption_coverage`. Pruebas en `f07-collective-seal.postgres.spec.ts` (sellado real por la API, migración desde la base previa) y `consumption-coverage.spec.ts` |
 | Rechazos de la base F12 (detalle debajo) | **Comprobado contra PostgreSQL** | `f12-est-01-estimation-schema.postgres.spec.ts` (13 pruebas) |
 | La migración F12 es aditiva y no cambia `DemandForecast` ni los sellados; la F07 nueva no da cobertura a los sellados anteriores | **Comprobado contra PostgreSQL** | La misma suite, desde la base previa (13 migraciones) con datos sintéticos, y la prueba de migración F07 |
-| Rechazo HTTP 403 de una identidad sin permiso; 409 en `POLICY_PENDING`; 202 al encolar; correcciones por HTTP; selección de la consulta; perfiles; retirada de cifras al leer | **Solo especificado** | No hay controlador. Se probará en F12-EST-05 y F12-EST-06 |
-| Trabajador por lotes: toma con `SKIP LOCKED`, plazo, clasificación de errores transitorios, reintentos y paradas | **Solo especificado** | La base prueba las transiciones, el máximo de intentos, que una parada sea verificable y que `RETRIES_EXHAUSTED` exija los intentos agotados |
+| En las rutas implementadas: 401, 403 sin escribir nada, 404 de otro sindicato, 400, 422 y 409 `POLICY_PENDING`; 202 al encolar y 200 al repetir; correcciones por HTTP; selección de la consulta; perfiles; retirada de cifras al leer; permiso perdido | **Comprobado por HTTP contra PostgreSQL** | `f12-est-05-runs.postgres.spec.ts`, con cada cuerpo contrastado con su esquema de la especificación |
+| Trabajador por lotes: toma con `SKIP LOCKED`, plazo, titularidad, recuperación, errores transitorios, reintentos, agotamiento, fallo determinista y paradas | **Comprobado contra PostgreSQL**, conducido explícitamente | La misma suite. La base prueba además las transiciones y la titularidad (`f12-est-01`, `f12-est-05`) |
+| Ejecuciones y resultados solo por inserción, cadena por campaña objetivo, huella de contenido y vigencia derivada (los cuatro estados) | **Comprobado contra PostgreSQL** | La misma suite y `insert-only.spec.ts`, que revisa el código del módulo |
+| Lista de ejecuciones (`GET /estimation/runs`) con cursor | **Implementado y comprobado por HTTP contra PostgreSQL** | `f12-est-05-runs.postgres.spec.ts` |
+| El trabajador como proceso real: `node dist/main.js` recibe la petición, su trabajador toma el trabajo, registra la ejecución y la API la entrega; dos procesos sobre la misma base; sin trabajador, el trabajo espera | **Comprobado en un ensayo reproducible (HOST, PostgreSQL desechable, datos sintéticos)** | `docs/evidence/f12_est_05/ensayo-proceso-trabajador.cjs`. Acredita integración y operación, no producción ni precisión |
+| Temporadas y clasificación inicial con su lista | **Solo especificado en `main` y en #190** | Fuera del alcance de #178; ningún issue las incluía. Se proponen en un PR de continuación con Refs #175 |
+| Descarga (`GET /estimation/download`) y clientes | **Solo especificado** | Copias de F12-EST-07 (#180, Mobile #164) y pantallas de F12-EST-06 (#179). EST-D-08, 10 y 12 ya están decididas (§11.1); la descarga sigue sin implementarse |
 | Preparación de fuentes, construcción de series con versiones y lectura del tramo para una campaña objetivo (§3.2) | **Implementado y comprobado contra PostgreSQL**, sin rutas | `consumption-series.use-case.ts` y `domain/series.ts`; `series.spec.ts` (9) y `f12-est-02-series.postgres.spec.ts` (4, con sellados reales F07 por la API) |
 | Motor SES/naive (§3.3): rejilla de α, empates, criterio constante, naive y redondeo final | **Implementado y comprobado**, sin rutas ni ejecuciones | `domain/ses-naive.ts`; `ses-naive.spec.ts` (11, con casos calculados a mano y una referencia decimal independiente) y el tramo `READY` de sellados reales en `f12-est-02-series.postgres.spec.ts` |
-| Ejecuciones, resultados, vigencia y clientes | **No construido** | F12-EST-05 a F12-EST-07 |
+| Clientes Mobile y Web | **No construido** | F12-EST-06 y F12-EST-07 |
 
 **Lo que comprueba el script** sobre la especificación:
 - OpenAPI 3.0.3, referencias resueltas y ningún `$ref` con hermanos;
@@ -760,3 +788,6 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), tercera | EST-D-06 decidida por el autor: admisible al pedir y antes de calcular; la base lo exige al crear el trabajo, y una ejecución iniciada se completa aunque la campaña se cierre |
 | 2026-11-02 (UTC), cuarta | F12-EST-02 y F12-EST-03 (#175, #176): construcción de series y lectura del tramo, implementadas sin rutas (§3.2); se añade la distinción de representatividad a la cobertura y el límite sintético de su exposición |
 | 2026-11-02 (UTC), quinta | EST-D-07 decidida por el autor (§11.1). F12-EST-04 (#177): motor SES/naive implementado como función pura, sin rutas ni ejecuciones (§3.3); `Parameters` del OpenAPI añade `arithmetic`, `result_scale` y `rounding` |
+| 2026-11-02 (UTC), sexta | F12-EST-05 (#178): trabajos, trabajador por lotes, ejecuciones y resultados solo por inserción y vigencia derivada, con seis rutas implementadas (§4); titularidad del trabajo en la base con una migración aditiva (`jobAttempt`); huella de contenido fijada (§5); detección de `SOURCES_CHANGED` fijada (§8); etapa `PARTIALLY_IMPLEMENTED` comparada con el código (§12). EST-D-08, 10 y 12 se implementan como estaban propuestas y siguen pendientes de decisión del autor |
+| 2026-11-02 (UTC), séptima | F12-EST-05 (#178): `GET /estimation/runs` implementado (§4.3); configuración del trabajador validada al arrancar y su funcionamiento como proceso descrito (§4.2); ensayo con el proceso real (§12); temporadas, clasificación inicial y descarga asignadas a sus bloques (§12). Corrige el recuento de operaciones especificadas de la revisión anterior |
+| 2026-11-02 (UTC), octava | EST-D-08, EST-D-10 y EST-D-12 decididas por el autor, con sus precisiones (§11.1); §11.2 queda sin pendientes. Contraste con el código y las pruebas: coincidían; se añaden dos pruebas que faltaban (una ejecución nueva con datos insuficientes no reutiliza la cifra anterior; un trabajo retomado tras un error transitorio vuelve a comprobar la política antes de calcular). La decisión EST-D-10 no aprueba GOV-02 |

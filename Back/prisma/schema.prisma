@@ -1468,6 +1468,9 @@ model EstimationRun {
   id                     String               @id @default(uuid()) @db.Uuid
   tenantId               String
   jobId                  String               @unique @db.Uuid
+  /// Intento del trabajo que la produjo; la base exige el vigente y, salvo
+  /// RETRIES_EXHAUSTED, el plazo sin vencer (F12-EST-05, titularidad).
+  jobAttempt             Int?
   requestedByUserId      String
   requestedByRole        UserRole
   targetCampaignId       String

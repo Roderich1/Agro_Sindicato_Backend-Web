@@ -1,0 +1,295 @@
+{
+  "started_at": "2026-11-02T13:34:43.093Z",
+  "node": "v25.9.0",
+  "git_head": "dc84f0a024c7762b026a06e8978674997e1db455",
+  "git_status": "M ../docs/architecture/F12_EST_01_ESTIMATION_CONTRACT.md\n?? ../docs/evidence/F12_EST_05_PROCESO_2026-11-02.md\n?? ../docs/evidence/f12_est_05/",
+  "scenarios": {
+    "A": {
+      "process": {
+        "pid": 37732,
+        "port": 3291,
+        "env": {
+          "NODE_ENV": "development",
+          "ESTIMATION_WORKER_INTERVAL_MS": "1000"
+        }
+      },
+      "post": {
+        "status": 202,
+        "job": {
+          "status": "QUEUED",
+          "attempts": 0,
+          "max_attempts": 3
+        }
+      },
+      "job": {
+        "status": "COMPLETED",
+        "attempts": 1,
+        "enqueued_at": "2026-11-02T13:34:46.685Z",
+        "started_at": "2026-11-02T13:34:47.311Z",
+        "finished_at": "2026-11-02T13:34:47.375Z",
+        "run_ref": "1bbd95ab-b9d5-438d-ae89-0f28db8f73f6"
+      },
+      "run": {
+        "status": 200,
+        "outcome": "CALCULATED",
+        "method_version": "F12-EST-04/1",
+        "content_hash": "ef7dae2c8a58067268499e6d2cebf8e97a401ef6dee9c8934770da623fb32afd",
+        "generated_at": "2026-11-02T13:34:47.368Z"
+      },
+      "result": {
+        "status": "ESTIMATED",
+        "alpha": "0.50",
+        "estimate_base": "111000.000000",
+        "naive_base": "116000",
+        "span_length": 4,
+        "validity": "CURRENT"
+      },
+      "results_institutional": {
+        "status": 200,
+        "profile": "INSTITUTIONAL",
+        "keys": [
+          "base_unit",
+          "coverage",
+          "estimate_base",
+          "generated_at",
+          "method",
+          "naive_base",
+          "presentation_unit",
+          "product",
+          "reason_code",
+          "run_ref",
+          "span_length",
+          "status",
+          "validity",
+          "validity_reason"
+        ]
+      },
+      "results_farmer": {
+        "status": 200,
+        "profile": "FARMER",
+        "keys": [
+          "base_unit",
+          "estimate_base",
+          "generated_at",
+          "method",
+          "presentation_unit",
+          "product",
+          "reason_code",
+          "run_ref",
+          "span_length",
+          "status",
+          "validity",
+          "validity_reason"
+        ],
+        "estimate_base": "111000.000000"
+      },
+      "runs_list": {
+        "status": 200,
+        "items": 1,
+        "next_cursor": null
+      }
+    },
+    "B": {
+      "chains": {
+        "ee3b8218-0991-45f0-ab9f-81dfc97a1e8d": {
+          "runs": 3,
+          "linear": true
+        },
+        "a2afb31e-ad05-47eb-bc73-be3a1774df55": {
+          "runs": 3,
+          "linear": true
+        }
+      },
+      "processes": [
+        {
+          "pid": 37732,
+          "port": 3291
+        },
+        {
+          "pid": 4360,
+          "port": 3292
+        }
+      ],
+      "jobs": [
+        {
+          "job_ref": "bd034c1f-bb6d-4824-9d42-53d71ec9a5e3",
+          "status": "COMPLETED",
+          "attempts": 1,
+          "run_ref": "2f310d2b-b0c2-4e73-9f66-c48543eed934"
+        },
+        {
+          "job_ref": "ec4b16d5-718d-43f4-be35-236f003ba56f",
+          "status": "COMPLETED",
+          "attempts": 1,
+          "run_ref": "6da9cc3c-b734-4dc6-b69c-0aa52e7023fc"
+        },
+        {
+          "job_ref": "57861190-c28d-4bde-bd98-83f2f64a95d9",
+          "status": "COMPLETED",
+          "attempts": 1,
+          "run_ref": "5c83fdd0-79c8-4f8a-be20-ac9b5021147e"
+        },
+        {
+          "job_ref": "efb00669-fcb2-4b51-aa4c-7f31f0adc9c6",
+          "status": "COMPLETED",
+          "attempts": 1,
+          "run_ref": "75bb6610-5fc3-4254-99c4-d4ce089a9923"
+        },
+        {
+          "job_ref": "581aa233-e4b5-46f2-b1c1-dfbb59b33f06",
+          "status": "COMPLETED",
+          "attempts": 1,
+          "run_ref": "fc45f40a-ab35-41e2-ba03-1cbcf428b781"
+        },
+        {
+          "job_ref": "b769d7d0-d81c-4050-bbae-49389903f45b",
+          "status": "COMPLETED",
+          "attempts": 1,
+          "run_ref": "4e1aa2f6-ac2b-4259-9ba8-0c3e41a07717"
+        }
+      ],
+      "runs_per_job": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "taken_by": {
+        "bd034c1f-bb6d-4824-9d42-53d71ec9a5e3": [
+          "A"
+        ],
+        "ec4b16d5-718d-43f4-be35-236f003ba56f": [
+          "B"
+        ],
+        "57861190-c28d-4bde-bd98-83f2f64a95d9": [
+          "A"
+        ],
+        "efb00669-fcb2-4b51-aa4c-7f31f0adc9c6": [
+          "B"
+        ],
+        "581aa233-e4b5-46f2-b1c1-dfbb59b33f06": [
+          "A"
+        ],
+        "b769d7d0-d81c-4050-bbae-49389903f45b": [
+          "B"
+        ]
+      }
+    },
+    "C": {
+      "without_worker": {
+        "pid": 22420,
+        "status_after_4s": "QUEUED",
+        "attempts": 0
+      },
+      "with_worker": {
+        "pid": 48224,
+        "status": "COMPLETED",
+        "attempts": 1,
+        "run_ref": "b0e1f759-7e88-4eb5-9094-448a92a6fb7a"
+      }
+    }
+  },
+  "migrations": "16",
+  "database": "f12_worker_c4c864c1b3704783a619f0718ddcee22",
+  "rows_before": {
+    "EstimationJob": 0,
+    "EstimationRun": 0,
+    "EstimationResult": 0,
+    "ConsumptionSeries": 0,
+    "InventoryLot": 0,
+    "StockMovement": 0,
+    "Purchase": 0,
+    "PurchaseItem": 0,
+    "JointPurchaseProposal": 0,
+    "JointPurchaseProposalLine": 0,
+    "CollectiveRelease": 4,
+    "SyncV1Contribution": 0
+  },
+  "rows_after": {
+    "EstimationJob": 8,
+    "EstimationRun": 8,
+    "EstimationResult": 8,
+    "ConsumptionSeries": 1,
+    "InventoryLot": 0,
+    "StockMovement": 0,
+    "Purchase": 0,
+    "PurchaseItem": 0,
+    "JointPurchaseProposal": 0,
+    "JointPurchaseProposalLine": 0,
+    "CollectiveRelease": 4,
+    "SyncV1Contribution": 0
+  },
+  "worker_log": {
+    "A": [
+      "[Nest] 37732  - 02/11/2026, 9:34:46 a.m.     LOG [NestApplication] Nest application successfully started +12ms",
+      "[Nest] 37732  - 02/11/2026, 9:34:47 a.m.     LOG [ConsumptionSeriesUseCase] [F12 SERIES] tenant=ce810d94-4469-4214-91cb-b5d8896636e2 product=f628baab-b602-4ed2-992a-54840f451ce4 unit=ML season=684bb832-4c14-461f-99c8-947857dd3c36 version=1 points=8",
+      "[Nest] 37732  - 02/11/2026, 9:34:47 a.m.     LOG [EstimationWorker] [F12 WORKER] job=bb906adc-ea6c-4751-8ec0-7d00fc488204 attempt=1 run=1bbd95ab-b9d5-438d-ae89-0f28db8f73f6 CALCULATED results=1",
+      "[Nest] 37732  - 02/11/2026, 9:34:52 a.m.     LOG [EstimationWorker] [F12 WORKER] job=bd034c1f-bb6d-4824-9d42-53d71ec9a5e3 attempt=1 run=2f310d2b-b0c2-4e73-9f66-c48543eed934 CALCULATED results=1",
+      "[Nest] 37732  - 02/11/2026, 9:34:52 a.m.     LOG [EstimationWorker] [F12 WORKER] job=57861190-c28d-4bde-bd98-83f2f64a95d9 attempt=1 run=5c83fdd0-79c8-4f8a-be20-ac9b5021147e CALCULATED results=1",
+      "[Nest] 37732  - 02/11/2026, 9:34:52 a.m.     LOG [EstimationWorker] [F12 WORKER] job=581aa233-e4b5-46f2-b1c1-dfbb59b33f06 attempt=1 run=fc45f40a-ab35-41e2-ba03-1cbcf428b781 CALCULATED results=1"
+    ],
+    "B": [
+      "[Nest] 4360  - 02/11/2026, 9:34:51 a.m.     LOG [NestApplication] Nest application successfully started +13ms",
+      "[Nest] 4360  - 02/11/2026, 9:34:52 a.m.     LOG [EstimationWorker] [F12 WORKER] job=ec4b16d5-718d-43f4-be35-236f003ba56f attempt=1 run=6da9cc3c-b734-4dc6-b69c-0aa52e7023fc CALCULATED results=1",
+      "[Nest] 4360  - 02/11/2026, 9:34:52 a.m.     LOG [EstimationWorker] [F12 WORKER] job=efb00669-fcb2-4b51-aa4c-7f31f0adc9c6 attempt=1 run=75bb6610-5fc3-4254-99c4-d4ce089a9923 CALCULATED results=1",
+      "[Nest] 4360  - 02/11/2026, 9:34:52 a.m.     LOG [EstimationWorker] [F12 WORKER] job=b769d7d0-d81c-4050-bbae-49389903f45b attempt=1 run=4e1aa2f6-ac2b-4259-9ba8-0c3e41a07717 CALCULATED results=1"
+    ],
+    "C": [
+      "[Nest] 22420  - 02/11/2026, 9:34:56 a.m.     LOG [NestApplication] Nest application successfully started +16ms"
+    ],
+    "D": [
+      "[Nest] 48224  - 02/11/2026, 9:35:01 a.m.     LOG [NestApplication] Nest application successfully started +13ms",
+      "[Nest] 48224  - 02/11/2026, 9:35:02 a.m.     LOG [EstimationWorker] [F12 WORKER] job=0901934d-b5ec-4680-b4f6-f546e24850cd attempt=1 run=b0e1f759-7e88-4eb5-9094-448a92a6fb7a CALCULATED results=1"
+    ]
+  },
+  "processes": [
+    {
+      "label": "A",
+      "pid": 37732,
+      "port": 3291,
+      "env": {
+        "NODE_ENV": "development",
+        "ESTIMATION_WORKER_INTERVAL_MS": "1000"
+      },
+      "ready_at": "2026-11-02T13:34:46.535Z",
+      "stopped_at": "2026-11-02T13:34:54.630Z"
+    },
+    {
+      "label": "B",
+      "pid": 4360,
+      "port": 3292,
+      "env": {
+        "NODE_ENV": "development",
+        "ESTIMATION_WORKER_INTERVAL_MS": "1000"
+      },
+      "ready_at": "2026-11-02T13:34:51.376Z",
+      "stopped_at": "2026-11-02T13:34:54.640Z"
+    },
+    {
+      "label": "C",
+      "pid": 22420,
+      "port": 3293,
+      "env": {
+        "NODE_ENV": "development",
+        "ESTIMATION_WORKER_INTERVAL_MS": "1000",
+        "ESTIMATION_WORKER": "disabled"
+      },
+      "ready_at": "2026-11-02T13:34:56.184Z",
+      "stopped_at": "2026-11-02T13:35:00.315Z"
+    },
+    {
+      "label": "D",
+      "pid": 48224,
+      "port": 3294,
+      "env": {
+        "NODE_ENV": "development",
+        "ESTIMATION_WORKER_INTERVAL_MS": "1000"
+      },
+      "ready_at": "2026-11-02T13:35:01.846Z",
+      "stopped_at": "2026-11-02T13:35:04.964Z"
+    }
+  ],
+  "finished_at": "2026-11-02T13:35:04.971Z"
+}

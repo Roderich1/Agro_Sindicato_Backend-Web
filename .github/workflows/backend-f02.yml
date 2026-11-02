@@ -87,3 +87,5 @@ jobs:
       - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-01-estimation-schema.postgres.spec.ts --runInBand
       # F12-EST-02/03 (#175, #176): series desde sellados reales F07; crea su propia base en dos pasos.
       - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-02-series.postgres.spec.ts --runInBand
+      # F12-EST-05 (#178): trabajos, trabajador, ejecuciones y vigencia, por HTTP y contra la base; crea su propia base.
+      - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-05-runs.postgres.spec.ts --runInBand

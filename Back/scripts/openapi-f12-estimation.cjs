@@ -1,13 +1,13 @@
 // F12-EST-01 (#174): comprueba la especificación INT-09 v1
-// (docs/api/openapi-f12-estimation.json), que se escribe a mano porque las
-// rutas todavía no existen. `openapi.cjs --check` sólo compara los archivos
-// generados desde el código: sin este script, un archivo nuevo en docs/api/
-// no se leería. Esto valida la ESPECIFICACIÓN y su coherencia con el esquema
-// y la migración, no un comportamiento: ningún rechazo HTTP queda probado
-// aquí, y `x-roles` es una anotación (no hay @Roles todavía que contrastar).
-// El bloque 8 es una comprobación de ESTA ETAPA (especificado, no
-// implementado), no una prohibición de implementar INT-09: F12-EST-05 la
-// sustituye por la comparación con el OpenAPI generado desde el código.
+// (docs/api/openapi-f12-estimation.json), escrita a mano: es el contrato, y
+// el OpenAPI generado desde el código no describe sus cuerpos.
+// `openapi.cjs --check` sólo compara los archivos generados desde el código:
+// sin este script, un archivo nuevo en docs/api/ no se leería. Esto valida la
+// ESPECIFICACIÓN y su coherencia con el esquema y la migración, no un
+// comportamiento: los rechazos HTTP de las rutas implementadas se prueban en
+// f12-est-05-runs.postgres.spec.ts, y `x-roles` es una anotación.
+// El bloque 8 compara, desde F12-EST-05 (#178), las operaciones declaradas
+// implementadas con las del OpenAPI generado desde el código.
 const assert = require("node:assert/strict");
 const { readFileSync, readdirSync } = require("node:fs");
 const { resolve } = require("node:path");
@@ -241,18 +241,36 @@ for (const model of models) {
   for (const field of fields) assert.ok(!/coverage|cobertura/i.test(field), `${model}.${field}: cobertura sin fuente`);
 }
 
-// 8. Comprobación de esta etapa (F12-EST-01: especificado, no implementado),
-// no una prohibición de implementar INT-09. Mientras la especificación se
-// declare SPECIFIED_NOT_IMPLEMENTED, el documento generado desde el código no
-// tiene rutas de estimación. F12-EST-05, al implementarlas, cambia el estado y
-// sustituye este bloque por la comparación con el OpenAPI generado. Depende de
-// que `openapi.cjs --check` haya pasado antes (orden de openapi:check).
+// 8. Especificado frente a implementado (F12-EST-05). Las operaciones de
+// estimación del OpenAPI generado desde el código son exactamente las que la
+// especificación declara implementadas (x-implemented-operations), con los
+// mismos códigos de respuesta, y ninguna modifica ni borra. Las demás siguen
+// especificadas. Depende de que `openapi.cjs --check` haya pasado antes
+// (orden de openapi:check).
 const stage = spec.info["x-implementation-status"];
-const implemented = Object.keys(generated.paths).filter((path) => path.startsWith("/api/v1/estimation"));
+const implemented = Object.entries(generated.paths)
+  .filter(([path]) => path.startsWith("/api/v1/estimation"))
+  .flatMap(([path, methods]) => Object.keys(methods).map((method) => `${method.toUpperCase()} ${path}`))
+  .sort();
 if (stage === "SPECIFIED_NOT_IMPLEMENTED") {
-  assert.deepEqual(implemented, [], "Etapa F12-EST-01: hay rutas de estimación implementadas; al implementarlas, cambie x-implementation-status y esta comprobación");
+  assert.deepEqual(implemented, [], "Etapa SPECIFIED_NOT_IMPLEMENTED: hay rutas de estimación implementadas");
+} else if (stage === "PARTIALLY_IMPLEMENTED") {
+  const declared = [...(spec.info["x-implemented-operations"] ?? [])].sort();
+  assert.deepEqual(implemented, declared, "Las operaciones de estimación del código no son las declaradas implementadas");
+  for (const operation of declared) {
+    const [method, path] = operation.split(" ");
+    assert.ok(spec.paths[path]?.[method.toLowerCase()], `${operation}: no está en la especificación`);
+    assert.ok(!["PUT", "PATCH", "DELETE"].includes(method), `${operation}: modificación no admitida`);
+    assert.deepEqual(
+      Object.keys(generated.paths[path][method.toLowerCase()].responses).sort(),
+      Object.keys(spec.paths[path][method.toLowerCase()].responses).sort(),
+      `${operation}: códigos de respuesta del código frente a la especificación`,
+    );
+  }
 } else {
-  assert.fail(`Etapa ${stage}: F12-EST-05 debe sustituir esta comprobación por la comparación con el OpenAPI generado`);
+  assert.fail(`Etapa ${stage} desconocida`);
 }
 
-process.stdout.write(`openapi-f12-estimation: ${Object.keys(spec.paths).length} rutas, ${Object.keys(schemas).length} esquemas, ${refs.size} referenciados; etapa ${stage}: especificado, no implementado\n`);
+process.stdout.write(
+  `openapi-f12-estimation: ${Object.keys(spec.paths).length} rutas, ${Object.keys(schemas).length} esquemas, ${refs.size} referenciados; etapa ${stage}: ${implemented.length} operaciones implementadas y comparadas con el código\n`,
+);
