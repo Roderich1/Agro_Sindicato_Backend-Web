@@ -1,6 +1,6 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
 import { cell, SEAL, sealStateWith, summaryWith } from '../test/fixtures';
@@ -8,7 +8,7 @@ import { CAMPAIGN, renderAt } from '../test/render';
 import { CollectiveSummaryPage } from './collective-summary.page';
 
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { summary: vi.fn(), sealState: vi.fn(), seal: vi.fn() },
+  collectiveService: { summary: vi.fn(), summaryCsv: vi.fn(), sealState: vi.fn(), seal: vi.fn() },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
 
@@ -21,6 +21,9 @@ function httpError(status: number) {
 }
 
 describe('Resumen colectivo', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   beforeEach(() => {
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN]);
     vi.mocked(collectiveService.sealState).mockResolvedValue(
@@ -54,7 +57,7 @@ describe('Resumen colectivo', () => {
   it('POLICY_PENDING: no hay tablas, ni cifras, ni cobertura', async () => {
     vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith([], 'POLICY_PENDING'));
     renderAt(<CollectiveSummaryPage />, { path: PATH });
-    expect(await screen.findByText(/Política de divulgación pendiente/)).toBeTruthy();
+    expect(await screen.findByText(/Sin cifras colectivas/)).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.queryByTestId('coverage')).toBeNull();
     expect(collectiveService.summary).toHaveBeenCalledWith(CAMPAIGN.id);
@@ -136,5 +139,68 @@ describe('Resumen colectivo', () => {
     renderAt(<CollectiveSummaryPage />, { path: PATH });
     await waitFor(() => expect(screen.getByText(/Sin conexión con el servidor/)).toBeTruthy());
     expect(localStorage.length).toBe(0);
+  });
+  it('«Descargar CSV actualizado»: pide al servidor una lectura nueva y muestra la fecha de los datos del CSV', async () => {
+    vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith([cell({ product_name: 'Urea', contributors: 3 })]));
+    const csv = [
+      'campaign_ref,campaign,disclosure,policy,approved,threshold,linked_members,members_with_contribution,suppressed_cells,seal_ref,seal_version,sealed_at',
+      `${CAMPAIGN.id},Campaña sintética,PROVISIONAL_SYNTHETIC,F07-POL-01,false,3,7,5,false,,,`,
+      '',
+      'projection_type,product_ref,product_name,base_unit,presentation_unit,status,total_base,total_presentation,contributors,data_as_of,released_at,pending_changes',
+      'DECLARED_NEED,p-1,Urea,G,KG,DISCLOSED,25000,25,3,2026-10-29T14:19:00.000Z,2026-10-29T14:19:00.000Z,false',
+    ].join('\n');
+    vi.mocked(collectiveService.summaryCsv).mockResolvedValue(new Blob([csv], { type: 'text/csv' }));
+    const createObjectURL = vi.fn(() => 'blob:resumen');
+    const revokeObjectURL = vi.fn();
+    // El stub muta el `URL` global: se retira al salir para no afectar a otras pruebas.
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    renderAt(<CollectiveSummaryPage />, { path: PATH });
+    await screen.findByTestId('coverage');
+    expect(collectiveService.summaryCsv).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV actualizado' }));
+    expect(await screen.findByText(/CSV descargado \(/)).toBeTruthy();
+    expect(collectiveService.summaryCsv).toHaveBeenCalledWith(CAMPAIGN.id);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    const notice = screen.getByText(/CSV descargado \(/).textContent ?? '';
+    expect(notice).toMatch(/datos aceptados hasta 29 oct/);
+    expect(notice).toMatch(/no significa que todos los agricultores/);
+    expect(notice).toMatch(/lectura nueva del servidor/);
+    // La pantalla no se recalcula sola con el CSV: sigue lo que se cargó.
+    expect(collectiveService.summary).toHaveBeenCalledTimes(1);
+    expect(anchorClick).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:resumen'), { timeout: 2000 });
+    anchorClick.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('una descarga pedida para la campaña A que responde después de pasar a B no coloca su aviso en B', async () => {
+    const other = { ...CAMPAIGN, id: '7f1a2b3c-0000-4000-8000-00000000000b', name: 'Otra campaña' };
+    vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN, other]);
+    vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith([cell({ product_name: 'Urea', contributors: 3 })]));
+    let resolveA: (blob: Blob) => void = () => undefined;
+    vi.mocked(collectiveService.summaryCsv).mockImplementation(
+      () =>
+        new Promise<Blob>((resolve) => {
+          resolveA = resolve;
+        }),
+    );
+    const createObjectURL = vi.fn(() => 'blob:resumen');
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+    renderAt(<CollectiveSummaryPage />, { path: PATH });
+    await screen.findByTestId('coverage');
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV actualizado' }));
+    expect(collectiveService.summaryCsv).toHaveBeenCalledWith(CAMPAIGN.id);
+    // Cambia a B mientras la petición de A sigue pendiente.
+    fireEvent.change(screen.getByLabelText('Campaña (filtro aplicado)'), { target: { value: other.id } });
+    await waitFor(() => expect(collectiveService.summary).toHaveBeenCalledWith(other.id));
+    // Llega la respuesta de A.
+    resolveA(new Blob(['projection_type,data_as_of\nDECLARED_NEED,2026-10-29T14:19:00.000Z'], { type: 'text/csv' }));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Descargar CSV actualizado' }) as HTMLButtonElement).disabled).toBe(false),
+    );
+    expect(screen.queryByText(/CSV descargado \(/)).toBeNull();
+    expect(createObjectURL).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

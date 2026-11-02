@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { fmtDate } from '../lib/format';
-import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor } from '../lib/navigation';
+import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuGroupsFor, menuPathsFor } from '../lib/navigation';
 import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
 
 /* ══════════════════════════════════════════
@@ -53,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Necesidades y propuesta',
+    label: 'Necesidades y propuestas',
     to: COLLECTIVE_PATHS.proposals,
     icon: <NavIcon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
   },
@@ -68,7 +68,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
   },
   {
-    label: 'Reconciliación',
+    label: 'Equivalencias de productos',
     to: COLLECTIVE_PATHS.reconciliation,
     icon: <NavIcon d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />,
   },
@@ -78,7 +78,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
   },
   {
-    label: 'Campanas',
+    label: 'Campañas',
     to: '/campaigns',
     icon: <NavIcon d="M8 7V3m8 4V3M5 11h14M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />,
   },
@@ -108,7 +108,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Bitacora',
+    label: 'Bitácora',
     to: '/audit-logs',
     icon: <NavIcon d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
   },
@@ -139,6 +139,14 @@ function navItemsFor(role: string | null | undefined): NavItem[] {
   return menuPathsFor(role)
     .map((path) => NAV_ITEMS.find((item) => item.to === path))
     .filter((item): item is NavItem => Boolean(item));
+}
+
+/** Los mismos ítems, agrupados por tarea (bloque de experiencia 2026-10-30). */
+function navGroupsFor(role: string | null | undefined): { title: string | null; items: NavItem[] }[] {
+  return menuGroupsFor(role).map((group) => ({
+    title: group.title,
+    items: group.paths.map((path) => NAV_ITEMS.find((item) => item.to === path)).filter((item): item is NavItem => Boolean(item)),
+  }));
 }
 
 /* ══════════════════════════════════════════
@@ -186,7 +194,7 @@ function Sidebar({
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const filteredNav = navItemsFor(user?.role);
+  const navGroups = navGroupsFor(user?.role);
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -206,8 +214,13 @@ function Sidebar({
 
       <div className="mx-4 border-t border-white/8" />
 
-      <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Navegación principal">
-        {filteredNav.map((item) => {
+      <nav className="flex-1 space-y-3 px-3 py-4" aria-label="Navegación principal">
+        {navGroups.map((group) => (
+          <div key={group.title ?? 'menu'} className="space-y-1" role="group" aria-label={group.title ?? undefined}>
+            {group.title && !collapsed && (
+              <p className="px-3 pb-1 pt-2 text-[13px] font-semibold uppercase tracking-wider text-slate-500">{group.title}</p>
+            )}
+            {group.items.map((item) => {
           const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
           const isSync = item.to === '/sync';
           return (
@@ -230,7 +243,9 @@ function Sidebar({
               )}
             </Link>
           );
-        })}
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="mx-4 border-t border-white/8" />
@@ -289,9 +304,10 @@ function Header({ title, section, actions, onMenuClick, isOnline }: { title: str
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+      {/* Sin altura fija: con dos acciones a 390 px la fila se reorganiza en vez de desbordar (2026-10-30). */}
+      <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 sm:px-6">
         <div className="flex items-center gap-3">
-          <button onClick={onMenuClick} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden">
+          <button type="button" onClick={onMenuClick} aria-label="Abrir menú" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <div>
@@ -309,10 +325,10 @@ function Header({ title, section, actions, onMenuClick, isOnline }: { title: str
             }`}
           >
             {isLoading
-              ? 'Campana...'
+              ? 'Campaña...'
               : activeCampaign
                 ? `${activeCampaign.name} · ${fmtDate(activeCampaign.startDate)}`
-                : 'Sin campana activa'}
+                : 'Sin campaña activa'}
           </Link>
           <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
@@ -476,8 +492,8 @@ export function StatusBadge({ status }: { status: string }) {
     ACTUALIZAR: { label: 'Actualizar', cls: 'bg-sky-500/10 text-sky-700 ring-sky-500/20' },
     INACTIVAR: { label: 'Inactivar', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
     ELIMINAR: { label: 'Eliminar', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    ABRIR_CAMPANA: { label: 'Abrir campana', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    CERRAR_CAMPANA: { label: 'Cerrar campana', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
+    ABRIR_CAMPANA: { label: 'Abrir campaña', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
+    CERRAR_CAMPANA: { label: 'Cerrar campaña', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
     AJUSTAR_STOCK: { label: 'Ajustar stock', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
     REGISTRAR_PAGO: { label: 'Registrar pago', cls: 'bg-blue-500/10 text-blue-700 ring-blue-500/20' },
     SINCRONIZAR: { label: 'Sincronizar', cls: 'bg-violet-500/10 text-violet-700 ring-violet-500/20' },

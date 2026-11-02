@@ -55,7 +55,7 @@ export function sealBlockText(block: SealBlock): string {
     case 'SEALING_DISABLED':
       return 'El sellado está desactivado en este servidor hasta que la app móvil en uso sepa tratar una campaña sellada.';
     case 'POLICY_PENDING':
-      return 'La política de divulgación no está aprobada: no se sella una versión sin cifras autorizadas.';
+      return 'No hay cifras que sellar: falta la política de divulgación aprobada (ver el aviso de esta página).';
     case 'CAMPAIGN_NOT_CLOSED':
       return 'Sólo se sella una campaña cerrada. Cerrar y sellar son pasos distintos.';
   }
