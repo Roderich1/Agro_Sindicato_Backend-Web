@@ -229,6 +229,7 @@ La suite F12 las usa (§12).
      - Las cifras selladas no se suman, porque sería publicar una cifra nueva.
      - Para una ejecución se informa como `INCOMPATIBLE_DATA` con `NO_COMPARABLE_CAMPAIGNS`.
    - Dos denominaciones asociadas **antes** del sellado ya forman una sola cifra en F07 y se estiman juntas.
+   - **Alcance de la agrupación (EST-D-17).** La agrupación de denominaciones solo se aplica a las asociaciones admisibles anteriores al sellado. Una asociación posterior no reagrupa cifras ya selladas: la serie se rechaza con `CANONICAL_CHANGED_AFTER_SEAL` y no es una agregación.
 6. **Huella y versiones.**
    - La huella (§5) cubre el ámbito, las asociaciones y cada posición.
    - Si coincide con la última versión, se **reutiliza**; si no, se crea la versión siguiente con sus puntos en una transacción, bajo un bloqueo por ámbito.
@@ -680,6 +681,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | EST-D-13 | 2026-11-01 | Autorización existente por roles, con identidad, pertenencia y cuenta activa; ningún segundo sistema | §2, §6.3 |
 | EST-D-14 | 2026-11-02 (UTC) | Corregir una clasificación equivocada con motivo y trazabilidad, como versión nueva; conservar las versiones que usaron series y ejecuciones anteriores | §3 (punto 2), §4.1, §6, §8 |
 | EST-D-15 | 2026-11-02 (UTC) | Si antes de calcular desaparece el permiso, la política deja de permitirlo o la campaña deja de ser admisible: `NOT_EXECUTED` con motivo verificable, conservando la solicitud y su desenlace; distinto de una ejecución iniciada que falla | §4.2, §6 |
+| EST-D-17 | 2026-11-02 (UTC) | La agrupación de denominaciones de un producto canónico se aplica a las asociaciones admisibles **anteriores al sellado** (F07 ya las consolida en una cifra). **No** se reagrupan retrospectivamente cifras selladas mediante asociaciones posteriores: se rechaza con `CANONICAL_CHANGED_AFTER_SEAL`, sin serie, y una ejecución informa `INCOMPATIBLE_DATA`. Precisa el primer criterio de #175; el criterio original se conserva como antecedente en el issue | §3.2 (punto 5) |
 | EST-D-16 | 2026-11-02 (UTC) | 200 productos como límite técnico inicial configurable; reintentos limitados, solo de errores transitorios recuperables, sin duplicar ejecuciones ni reintentar rechazos de permiso, política o datos | §4.2, §6 |
 | F06 | 2026-11-02 (UTC) | Acotar la exclusión de pronóstico de F06: F06 mantiene la proyección colectiva y F12 calcula SES/naive aparte con fuentes permitidas, sin ampliar el acceso a datos privados ni la divulgación | §0; F06 §1 |
 
@@ -800,3 +802,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), octava | EST-D-08, EST-D-10 y EST-D-12 decididas por el autor, con sus precisiones (§11.1); §11.2 queda sin pendientes. Contraste con el código y las pruebas: coincidían; se añaden dos pruebas que faltaban (una ejecución nueva con datos insuficientes no reutiliza la cifra anterior; un trabajo retomado tras un error transitorio vuelve a comprobar la política antes de calcular). La decisión EST-D-10 no aprueba GOV-02 |
 | 2026-11-02 (UTC), novena | Continuación de #190 (Refs #175): temporadas y clasificación inicial con su lista implementadas (§4.1); `openapi:check` compara once operaciones; solo la descarga sigue especificada |
 | 2026-11-02 (UTC), décima | F12-EST-06 (#179): pantalla Web institucional sobre las rutas de #190 (§12), contrastada con el prototipo W4 y recorrida con la Directiva y el Administrador; sin descarga ni copia |
+| 2026-11-02 (UTC), precisión de #175 | EST-D-17 decidida por el autor: la agrupación de denominaciones se limita a asociaciones admisibles anteriores al sellado; sin reagrupación retrospectiva (§3.2, §11.1) |

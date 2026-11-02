@@ -56,3 +56,15 @@ F12_EST_PG_TEST_URL=<desechable> npx jest f12-est-05-runs.postgres.spec.ts --run
 | Una asociación canónica corregida crea una versión nueva y conserva la anterior con sus ejecuciones | **Acreditado** para la corrección que el contrato admite: cerrar una asociación errónea, sin cifras selladas que reagrupar. Crea la versión `n + 1` y conserva la anterior y sus ejecuciones. **Escenario no admitido:** una corrección que obligaría a reagrupar cifras ya selladas. No crea versión: se rechaza sin escribir nada y conserva lo anterior |
 
 **El issue sigue abierto:** decidir si el primer criterio se da por cumplido con la regla del contrato corresponde a Roderich.
+
+## 5. Adenda: precisión del criterio 1 (2026-11-02, decisión del autor EST-D-17)
+
+- **Qué se aprobó:** la agrupación de denominaciones se aplica a las **asociaciones admisibles anteriores al sellado**. No se autoriza reagrupar retrospectivamente cifras selladas mediante asociaciones posteriores.
+- **Criterio precisado:**
+  - **Texto:** «Dadas cifras publicadas de dos denominaciones asociadas al mismo producto canónico **antes del sellado**, cuando se prepara la serie, entonces se agregan en una sola serie en la unidad base; con una asociación posterior al sellado, la serie se rechaza con `CANONICAL_CHANGED_AFTER_SEAL` sin agregar».
+  - **Antecedente:** el criterio original («…se agregan en una sola serie…», sin distinguir el momento) se conserva en el issue.
+- **Caso admitido:** asociación anterior al sellado. F07 consolida ambas denominaciones en una cifra sellada, y la serie la toma como una sola posición en la unidad base (`f12-est-02-series.postgres.spec.ts`, «joins two denominations associated before the seal…»).
+- **Rechazo, no agregación:** asociación posterior al sellado de una denominación con cifra sellada.
+  - `CANONICAL_CHANGED_AFTER_SEAL` y ninguna versión escrita; para una ejecución, `INCOMPATIBLE_DATA` sin cifra (mismo archivo y el caso «#175» de `f12-est-05-runs.postgres.spec.ts`).
+  - **No es una agregación exitosa.**
+- **Estado tras integrar #194 en `main` (`3d2ab4b`):** con el criterio precisado, el criterio 1 queda acreditado. La tabla de §4 refleja el estado anterior a esta decisión y no se reescribe.
