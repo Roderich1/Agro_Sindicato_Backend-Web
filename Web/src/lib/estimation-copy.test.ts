@@ -45,7 +45,7 @@ let memory: CopyBackend;
 /** Guarda en el contexto vigente de `owner`. */
 async function saveAs(owner: CopyOwner, body = download()) {
   const context = openContext(owner)!;
-  return saveCopy(context.id, owner, body);
+  return saveCopy(context, owner, body);
 }
 
 describe('copia de la estimación sin conexión: acceso por contexto local (F12-EST-07-WEB, #180)', () => {
@@ -120,7 +120,7 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     let release: () => void = () => undefined;
     setCopyBackend({ ...memory, put: (copy) => new Promise<void>((done) => (release = () => void memory.put(copy).then(done))) });
     const context = openContext(A)!;
-    const pending = saveCopy(context.id, A, download());
+    const pending = saveCopy(context, A, download());
     await new Promise((r) => setTimeout(r, 5));
     closeContext();
     release();
@@ -142,9 +142,9 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
   it('una descarga pedida en un contexto que ya cambió no se guarda', async () => {
     const before = openContext(A)!;
     openContext(B);
-    expect(await saveCopy(before.id, A, download())).toBe('CONTEXT_CHANGED');
+    expect(await saveCopy(before, A, download())).toBe('CONTEXT_CHANGED');
     closeContext();
-    expect(await saveCopy(before.id, A, download())).toBe('CONTEXT_CHANGED');
+    expect(await saveCopy(before, A, download())).toBe('CONTEXT_CHANGED');
     expect(await memory.list()).toEqual([]);
   });
 
@@ -153,11 +153,11 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     rotateContext();
     expect(await readableCopies(null)).toEqual([]);
     const renewed = currentContext()!;
-    expect(await saveCopy(renewed.id, A, download())).toBe('SAVED');
+    expect(await saveCopy(renewed, A, download())).toBe('SAVED');
     expect(await readableCopies(null)).toHaveLength(1);
   });
 
-  it('un 404 revoca la copia de esa campaña mientras la página sigue abierta, aunque su borrado falle', async () => {
+  it('un 404 retira la copia de esa campaña, aunque su borrado falle; las demás siguen legibles', async () => {
     await saveAs(A);
     await saveAs(A, download({}, 'c-2'));
     setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
@@ -169,20 +169,20 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
   it('no guarda otro perfil, otro sindicato ni otro formato', async () => {
     const context = openContext(A)!;
     const farmer = { ...download(), profile: 'FARMER' } as unknown as InstitutionalDownload;
-    expect(await saveCopy(context.id, A, farmer)).toBe('NOT_INSTITUTIONAL');
-    expect(await saveCopy(context.id, A, download({ scope: { tenant_ref: 't-2' } }))).toBe('OTHER_SCOPE');
-    expect(await saveCopy(context.id, A, { ...download(), contract_version: 2 } as unknown as InstitutionalDownload)).toBe('UNSUPPORTED');
+    expect(await saveCopy(context, A, farmer)).toBe('NOT_INSTITUTIONAL');
+    expect(await saveCopy(context, A, download({ scope: { tenant_ref: 't-2' } }))).toBe('OTHER_SCOPE');
+    expect(await saveCopy(context, A, { ...download(), contract_version: 2 } as unknown as InstitutionalDownload)).toBe('UNSUPPORTED');
     expect(await memory.list()).toEqual([]);
   });
 
   it('sólo se reemplaza por una más reciente del mismo contexto; una copia de un contexto anterior no lo impide', async () => {
     const context = openContext(A)!;
-    await saveCopy(context.id, A, download());
-    expect(await saveCopy(context.id, A, download({ downloaded_at: '2026-11-02T17:00:00.000Z' }))).toBe('KEPT_NEWER');
-    expect(await saveCopy(context.id, A, download({ downloaded_at: '2026-11-02T19:00:00.000Z' }))).toBe('SAVED');
+    await saveCopy(context, A, download());
+    expect(await saveCopy(context, A, download({ downloaded_at: '2026-11-02T17:00:00.000Z' }))).toBe('KEPT_NEWER');
+    expect(await saveCopy(context, A, download({ downloaded_at: '2026-11-02T19:00:00.000Z' }))).toBe('SAVED');
     closeContext();
     const next = openContext(A)!;
-    expect(await saveCopy(next.id, A, download({ downloaded_at: '2026-11-02T10:00:00.000Z' }))).toBe('SAVED');
+    expect(await saveCopy(next, A, download({ downloaded_at: '2026-11-02T10:00:00.000Z' }))).toBe('SAVED');
     expect((await readCopy(session(A), 'c-1'))?.download.downloaded_at).toBe('2026-11-02T10:00:00.000Z');
   });
 
@@ -194,14 +194,38 @@ describe('copia de la estimación sin conexión: acceso por contexto local (F12-
     expect(await readableCopies(null)).toEqual([]);
   });
 
-  it('en localStorage sólo van un id aleatorio, la huella de la identidad, el rol y la fecha; un identificador con otra forma no abre contexto', async () => {
+  it('en localStorage sólo van un id aleatorio, huellas, el rol, la fecha y la generación; un identificador con otra forma no abre contexto', async () => {
     openContext(A);
     const stored = localStorage.getItem('agro_estimacion_contexto_v1')!;
     expect(Object.keys(JSON.parse(stored)).sort()).toEqual(['id', 'opened_at', 'owner_hash', 'role', 'version']);
     expect(stored).not.toContain('u-a');
+    revokeTarget('c-1');
+    const withRevocation = localStorage.getItem('agro_estimacion_contexto_v1')!;
+    expect(Object.keys(JSON.parse(withRevocation)).sort()).toEqual(['generation', 'id', 'opened_at', 'owner_hash', 'revoked', 'role', 'version']);
+    expect(withRevocation).not.toContain('c-1');
     expect(stored).not.toContain('Directiva sintética');
     expect(openContext({ ...A, userId: '<script>' })).toBeNull();
     expect(currentContext()).toBeNull();
+  });
+
+  it('un contexto con retiradas mal formadas no vale: no se lee nada', async () => {
+    await saveAs(A);
+    const stored = JSON.parse(localStorage.getItem('agro_estimacion_contexto_v1')!);
+    for (const broken of [{ generation: -1 }, { generation: 1, revoked: { 'c-1': 0 } }, { generation: 1, revoked: { '0123456789abcdef': 1 } }, { revoked: [] }]) {
+      localStorage.setItem('agro_estimacion_contexto_v1', JSON.stringify({ ...stored, ...broken }));
+      expect(currentContext()).toBeNull();
+      expect(await readableCopies(null)).toEqual([]);
+    }
+  });
+
+  it('si la retirada no se puede guardar, se cierra el contexto entero', async () => {
+    await saveAs(A);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('almacenamiento lleno');
+    });
+    revokeTarget('c-1');
+    expect(currentContext()).toBeNull();
+    expect(await readableCopies(null)).toEqual([]);
   });
 
   it('ni la copia ni el contexto contienen credenciales', async () => {

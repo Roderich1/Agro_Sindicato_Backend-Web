@@ -191,6 +191,28 @@ const leftover = (copy, contextId, key = `${copy.key}|resto`) =>
       }),
     { ...copy, key, context_id: contextId },
   );
+/** Campañas que muestra la entrada sin conexión. */
+async function readerCampaigns() {
+  await page.goto(`${WEB_URL}/estimacion/copia-sin-conexion`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-testid="copy-none"], [data-testid^="copy-result-"]', { timeout: 15000 });
+  return page.$$eval('[data-testid^="copy-"]', (els) =>
+    els.map((el) => el.getAttribute('data-testid').slice('copy-'.length)).filter((id) => /^[0-9a-f-]{36}$/.test(id)).sort(),
+  );
+}
+/**
+ * Fallo de IndexedDB INYECTADO en el navegador por este guion: `IDBObjectStore.delete`
+ * lanza un error en esta página y en las que se carguen después, hasta retirarlo.
+ */
+async function injectDeleteFailure() {
+  const broken = () => {
+    IDBObjectStore.prototype.delete = function () {
+      throw new DOMException('fallo de borrado inyectado por el recorrido', 'UnknownError');
+    };
+  };
+  const { identifier } = await page.evaluateOnNewDocument(broken);
+  await page.evaluate(broken);
+  return identifier;
+}
 async function readerShowsNothing() {
   await page.goto(`${WEB_URL}/estimacion/copia-sin-conexion`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-testid="copy-none"], [data-testid^="copy-result-"]', { timeout: 15000 });
@@ -395,6 +417,98 @@ try {
     await page.waitForSelector('[data-testid="copy-none"]', { timeout: 10000 });
     check('Directiva B: no ve ninguna copia', (await page.$('[data-testid^="copy-result-"]')) === null);
     await shot('07-otra-identidad-otro-sindicato');
+
+    // 10b. Retirada por 404 con el borrado roto: persiste tras recargar sin conexión.
+    await page.goto(`${WEB_URL}/colectivo/estimacion`, { waitUntil: 'domcontentloaded' });
+    await sleep(1500);
+    await logout();
+    await login(ids.directorEmail);
+    await open(ids.t1);
+    await page.waitForSelector('[data-testid="result-Herbicida de ensayo"]', { timeout: 20000 });
+    check('retirada: copia de invierno guardada', (await downloadCopy()) === 'Copia guardada en este navegador.');
+    await open(ids.t2);
+    check('retirada: copia de verano guardada', (await downloadCopy()) === 'Copia guardada en este navegador.');
+    const beforeRevocation = await copies();
+    const winterBefore = beforeRevocation.find((c) => c.download.target.campaign_ref === ids.t1);
+    check('retirada: las dos copias se leen antes del 404', JSON.stringify(await readerCampaigns()) === JSON.stringify([ids.t1, ids.t2].sort()));
+    const contextR = await localContext();
+    // Borrado roto (inyectado) y una descarga de invierno pedida ANTES del 404 cuya respuesta 200 se retiene en el navegador.
+    const injected = await injectDeleteFailure();
+    await open(ids.t1);
+    await page.waitForSelector('[data-testid="result-Herbicida de ensayo"]', { timeout: 20000 });
+    const cdp = await page.createCDPSession();
+    let heldResponse = null;
+    cdp.on('Fetch.requestPaused', (event) => {
+      if (!heldResponse) heldResponse = event;
+      else void cdp.send('Fetch.continueRequest', { requestId: event.requestId });
+    });
+    await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*/api/v1/estimation/download*', requestStage: 'Response' }] });
+    await clickButton('Descargar copia para consultar sin conexión');
+    for (let i = 0; i < 50 && !heldResponse; i++) await sleep(100);
+    check('retirada: la descarga pedida antes del 404 respondió 200 y su respuesta queda retenida', heldResponse?.responseStatusCode === 200, String(heldResponse?.responseStatusCode));
+    // El servidor deja de reconocer la campaña al sindicato A: la consulta siguiente da 404.
+    control('hide-target');
+    await page.select('#campaign-picker', ids.t3);
+    await sleep(1500);
+    await page.select('#campaign-picker', ids.t1);
+    await page.waitForSelector('[data-testid="error-not-found"]', { timeout: 15000 });
+    check('retirada: el servidor respondió 404 TARGET_CAMPAIGN_NOT_FOUND', served.some((r) => r.status === 404 && r.message === 'TARGET_CAMPAIGN_NOT_FOUND'));
+    await cdp.send('Fetch.continueRequest', { requestId: heldResponse.requestId });
+    await waitText('copy-note', /La campaña dejó de estar disponible durante la descarga/, 15000);
+    await cdp.send('Fetch.disable');
+    await cdp.detach();
+    check('retirada: la respuesta tardía (200, pedida antes del 404) no se guarda', (await copies()).find((c) => c.download.target.campaign_ref === ids.t1)?.download.downloaded_at === winterBefore.download.downloaded_at);
+    const contextAfter = await localContext();
+    const stored404 = await page.evaluate(() => localStorage.getItem('agro_estimacion_contexto_v1'));
+    check('retirada: queda en el contexto local (misma id, generación 1, una huella) sin la referencia de la campaña',
+      contextAfter?.id === contextR.id && contextAfter?.generation === 1 && Object.keys(contextAfter?.revoked ?? {}).length === 1 && !stored404.includes(ids.t1),
+      JSON.stringify({ generation: contextAfter?.generation, revoked: Object.keys(contextAfter?.revoked ?? {}).length }));
+    await sleep(1000);
+    check('retirada: el borrado falló (inyectado) y queda pendiente; las dos copias siguen físicamente',
+      (await page.evaluate(() => localStorage.getItem('agro_estimacion_purga_pendiente_v1'))) !== null && (await copies()).length === 2);
+    // Una escritura tardía (simulada) de una descarga pedida antes del 404: misma id de contexto, generación anterior.
+    await leftover({ ...winterBefore, generation: 0, download: { ...winterBefore.download, downloaded_at: new Date().toISOString() } }, contextR.id, winterBefore.key);
+    // Recarga sin conexión: sólo el contexto local.
+    await page.setOfflineMode(true);
+    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => undefined);
+    await page.waitForFunction(() => location.pathname === '/login', { timeout: 20000 });
+    check('recarga sin conexión tras el 404: el login ofrece la copia (queda la de verano)', (await page.waitForSelector('[data-testid="offline-copy-link"]', { timeout: 10000 }).catch(() => null)) !== null);
+    check('recarga sin conexión tras el 404: invierno sigue inaccesible, verano se lee', JSON.stringify(await readerCampaigns()) === JSON.stringify([ids.t2]));
+    check('recarga sin conexión tras el 404: invierno sigue físicamente almacenada (sólo se impidió el acceso)', (await copies()).some((c) => c.download.target.campaign_ref === ids.t1));
+    await shot('09-retirada-404-recarga-sin-conexion');
+    // El almacenamiento vuelve a funcionar: con conexión, la siguiente carga reintenta la limpieza.
+    await page.removeScriptToEvaluateOnNewDocument(injected);
+    await page.setOfflineMode(false);
+    await open(ids.t2);
+    await page.waitForSelector('[data-testid^="result-"]', { timeout: 20000 });
+    await sleep(1500);
+    const afterRetry = await copies();
+    check('reintento de limpieza: la copia retirada se borra; queda la de verano',
+      afterRetry.length === 1 && afterRetry[0].download.target.campaign_ref === ids.t2 && (await page.evaluate(() => localStorage.getItem('agro_estimacion_purga_pendiente_v1'))) === null,
+      JSON.stringify(afterRetry.map((c) => c.download.target.campaign_ref)));
+    // El servidor vuelve a autorizar la campaña: una descarga nueva sí se guarda y se lee, también sin conexión.
+    control('show-target');
+    await open(ids.t1);
+    await page.waitForSelector('[data-testid="result-Herbicida de ensayo"]', { timeout: 20000 });
+    check('descarga posterior autorizada: guardada', (await downloadCopy()) === 'Copia guardada en este navegador.');
+    check('descarga posterior autorizada: lleva la generación nueva', (await copies()).find((c) => c.download.target.campaign_ref === ids.t1)?.generation === 1);
+    await page.setOfflineMode(true);
+    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => undefined);
+    await page.waitForFunction(() => location.pathname === '/login', { timeout: 20000 });
+    check('descarga posterior autorizada: se lee tras recargar sin conexión', JSON.stringify(await readerCampaigns()) === JSON.stringify([ids.t1, ids.t2].sort()));
+    await shot('10-descarga-posterior-autorizada');
+    await page.setOfflineMode(false);
+    // Aislamiento: otra identidad no hereda copias ni retiradas.
+    await page.goto(`${WEB_URL}/colectivo/estimacion`, { waitUntil: 'domcontentloaded' });
+    await sleep(1500);
+    await logout();
+    await login(ids.adminEmail);
+    await sleep(1500);
+    check('otra identidad tras la retirada: no ve las copias de la Directiva A', JSON.stringify(await readerCampaigns()) === '[]');
+    check('otra identidad tras la retirada: contexto propio sin retiradas', (await localContext())?.owner_hash === ownerHash(ids.adminUser, ids.tenant) && (await localContext())?.revoked === undefined);
+    await open(ids.t1);
+    await page.waitForSelector('[data-testid="result-Herbicida de ensayo"]', { timeout: 20000 });
+    check('otra identidad: su descarga de invierno se guarda y se lee', (await downloadCopy()) === 'Copia guardada en este navegador.' && JSON.stringify(await readerCampaigns()) === JSON.stringify([ids.t1]));
 
     // 11. Para la fase pendiente: la Directiva A deja una copia con su sesión abierta.
     await page.goto(`${WEB_URL}/colectivo/estimacion`, { waitUntil: 'domcontentloaded' });

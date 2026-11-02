@@ -24,13 +24,18 @@ import type { InstitutionalDownload } from '../types/estimation';
  * **Invalidación inmediata, independiente del borrado.** Cerrar la sesión,
  * cambiar de identidad o sindicato, o recibir un rechazo de sesión o de
  * permiso cierran el contexto. Un rechazo de política lo renueva, con otro
- * `id`, y un 404 revoca esa campaña mientras la página siga abierta (y se
- * borra su copia). Después se intenta borrar físicamente:
+ * `id`. Un 404 retira esa campaña **en el propio contexto** (`localStorage`),
+ * así que la retirada sobrevive a una recarga; sólo una descarga pedida
+ * después, y autorizada por el servidor, vuelve a dejar legible una copia de
+ * esa campaña. Después se intenta borrar físicamente:
  * - si el borrado falla o sigue pendiente, la copia ya es inaccesible;
  * - el fallo queda marcado (`purgePending`) y se reintenta en la siguiente
  *   sesión o carga.
- * Una escritura que termine después de invalidar lleva el `id` antiguo y nunca
- * es legible.
+ * Una escritura que termine después de invalidar lleva el `id` (o la
+ * generación) antiguo y nunca es legible.
+ *
+ * Las huellas (FNV-1a) sólo sirven para comparar sin guardar el texto: no son
+ * cifrado, ni anonimización, ni una garantía criptográfica.
  *
  * **Lo que guarda:** la respuesta de `GET /download` tal como llegó, sin
  * credenciales (ningún token ni contraseña). No es el CSV de la consulta.
@@ -42,8 +47,11 @@ export const COPY_FORMAT_VERSION = 1;
 const CONTEXT_KEY = 'agro_estimacion_contexto_v1';
 const PURGE_KEY = 'agro_estimacion_purga_pendiente_v1';
 const INSTITUTIONAL_ROLES = new Set(['DIRECTIVA', 'ADMINISTRADOR']);
-/** Forma admitida de los identificadores que se escriben en `localStorage`. */
+/** Forma admitida de los identificadores de los que se guarda la huella. */
 const STORED_ID = /^[A-Za-z0-9-]{1,64}$/;
+const HASH = /^[0-9a-f]{16}$/;
+/** Campañas retiradas que caben en un contexto; con más, se renueva el contexto entero. */
+const MAX_REVOKED = 200;
 
 export interface CopyIdentity {
   userId: string;
@@ -72,6 +80,10 @@ export interface LocalContext {
   owner_hash: string;
   role: 'DIRECTIVA' | 'ADMINISTRADOR';
   opened_at: string;
+  /** Sube con cada campaña retirada por un 404 (0 si falta). */
+  generation?: number;
+  /** Huella de cada campaña retirada → generación en que se retiró. */
+  revoked?: Record<string, number>;
 }
 
 export interface StoredCopy {
@@ -79,6 +91,8 @@ export interface StoredCopy {
   format_version: typeof COPY_FORMAT_VERSION;
   /** Contexto local que la guardó: fuera de él no se lee. */
   context_id: string;
+  /** Generación del contexto cuando se pidió la descarga (0 si falta). */
+  generation?: number;
   owner: CopyOwner;
   /** Hora local en que este navegador la guardó; la fecha de descarga es la del servidor (`download.downloaded_at`). */
   saved_at: string;
@@ -163,8 +177,6 @@ export function memoryBackend(): CopyBackend {
 let backend: CopyBackend = indexedDbBackend;
 /** Contextos cerrados en esta página: no vuelven a valer aunque `localStorage` no se pudiera escribir. */
 const closedIds = new Set<string>();
-/** Campañas retiradas por un 404, por contexto, mientras la página siga abierta. */
-const revokedTargets = new Map<string, Set<string>>();
 
 /** Sólo para pruebas: otro almacén. */
 export function setCopyBackend(next: CopyBackend) {
@@ -207,14 +219,28 @@ export function currentContext(): LocalContext | null {
       value.version === 1 &&
       typeof value.id === 'string' &&
       typeof value.owner_hash === 'string' &&
-      /^[0-9a-f]{16}$/.test(value.owner_hash) &&
+      HASH.test(value.owner_hash) &&
       typeof value.role === 'string' &&
       isInstitutional(value.role) &&
+      validRevocations(value) &&
       !closedIds.has(value.id);
     return valid ? (value as LocalContext) : null;
   } catch {
     return null;
   }
+}
+
+const isGeneration = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+
+/** Generación y retiradas con forma válida; si no, el contexto no vale (no se lee nada). */
+function validRevocations(value: Partial<LocalContext>): boolean {
+  if (value.generation === undefined && value.revoked === undefined) return true;
+  const generation = value.generation ?? 0;
+  if (!isGeneration(generation)) return false;
+  if (value.revoked === undefined) return true;
+  if (typeof value.revoked !== 'object' || value.revoked === null || Array.isArray(value.revoked)) return false;
+  const entries = Object.entries(value.revoked);
+  return entries.length <= MAX_REVOKED && entries.every(([hash, at]) => HASH.test(hash) && isGeneration(at) && at < generation);
 }
 
 /**
@@ -260,20 +286,27 @@ export function rotateContext() {
   const existing = currentContext();
   if (!existing) return;
   closedIds.add(existing.id);
-  if (!writeContext({ ...existing, id: newId(), opened_at: new Date().toISOString() })) closeContext();
+  const renewed: LocalContext = { version: 1, id: newId(), owner_hash: existing.owner_hash, role: existing.role, opened_at: new Date().toISOString() };
+  if (!writeContext(renewed)) closeContext();
 }
 
 /**
- * 404 de una campaña: su copia deja de ser legible en este contexto mientras
- * la página siga abierta, y se borra. No se escribe en `localStorage`: la
- * referencia viene de la URL.
+ * 404 de una campaña: sus copias pedidas hasta ahora dejan de ser legibles en
+ * este contexto, también tras recargar, y después se borran. Se guarda en el
+ * contexto la huella de la campaña (la referencia viene de la URL) y la
+ * generación, que sube: sólo una descarga pedida después vuelve a ser legible.
+ * Si no se puede escribir, se cierra el contexto entero.
  */
 export function revokeTarget(targetRef: string) {
   const existing = currentContext();
   if (!existing) return;
-  const revoked = revokedTargets.get(existing.id) ?? new Set<string>();
-  revoked.add(targetRef);
-  revokedTargets.set(existing.id, revoked);
+  const generation = existing.generation ?? 0;
+  const revoked = { ...existing.revoked, [targetHash(targetRef)]: generation };
+  if (Object.keys(revoked).length > MAX_REVOKED) {
+    rotateContext();
+    return;
+  }
+  if (!writeContext({ ...existing, generation: generation + 1, revoked })) closeContext();
 }
 
 function admissible(context: LocalContext | null, session: SessionIdentity | null): context is LocalContext {
@@ -281,25 +314,29 @@ function admissible(context: LocalContext | null, session: SessionIdentity | nul
   return session === null || (contextBelongsTo(context, session) && isInstitutional(session.role));
 }
 
+/** `true` si la campaña se retiró por un 404 después de pedirse esa descarga. */
+function revokedFor(context: LocalContext, targetRef: string, generation: number): boolean {
+  const at = context.revoked?.[targetHash(targetRef)];
+  return at !== undefined && generation <= at;
+}
+
 function readable(copy: StoredCopy, context: LocalContext): boolean {
+  const generation = copy.generation ?? 0;
   return (
     copy.format_version === COPY_FORMAT_VERSION &&
     copy.context_id === context.id &&
     contextBelongsTo(context, copy.owner) &&
     copy.download?.scope?.tenant_ref === copy.owner.tenantId &&
-    !revokedTargets.get(context.id)?.has(copy.download.target.campaign_ref)
+    isGeneration(generation) &&
+    generation <= (context.generation ?? 0) &&
+    !revokedFor(context, copy.download.target.campaign_ref, generation)
   );
 }
 
 const keyOf = (identity: CopyIdentity, targetRef: string) => `${identity.userId}|${identity.tenantId}|${targetRef}`;
 
-/**
- * Huella de la identidad (FNV-1a de 64 bits sobre «usuario|sindicato»). Los
- * identificadores los asigna el servidor; la huella sólo sirve para comprobar
- * que el contexto es de esa identidad sin guardarla como texto.
- */
-export function identityHash(identity: CopyIdentity): string {
-  const text = `${identity.userId}|${identity.tenantId}`;
+/** FNV-1a de 64 bits en hexadecimal. Sirve para comparar, no para ocultar: no es cifrado. */
+function fnv1a64(text: string): string {
   let hash = 0xcbf29ce484222325n;
   for (let i = 0; i < text.length; i++) {
     hash ^= BigInt(text.charCodeAt(i));
@@ -308,36 +345,53 @@ export function identityHash(identity: CopyIdentity): string {
   return hash.toString(16).padStart(16, '0');
 }
 
+/**
+ * Huella de la identidad (FNV-1a de 64 bits sobre «usuario|sindicato»). Los
+ * identificadores los asigna el servidor; la huella sólo sirve para comprobar
+ * que el contexto es de esa identidad sin guardarla como texto.
+ */
+export const identityHash = (identity: CopyIdentity) => fnv1a64(`${identity.userId}|${identity.tenantId}`);
+
+/** Huella de una campaña retirada. Una colisión retiraría también otra campaña: falla hacia no mostrar. */
+const targetHash = (targetRef: string) => fnv1a64(`campaña|${targetRef}`);
+
 /** `true` si el contexto es de esa identidad y sindicato. */
 export const contextBelongsTo = (context: LocalContext | null, identity: CopyIdentity | null) =>
   context !== null && identity !== null && context.owner_hash === identityHash(identity);
 
-export type SaveOutcome = 'SAVED' | 'KEPT_NEWER' | 'CONTEXT_CHANGED' | 'NOT_INSTITUTIONAL' | 'OTHER_SCOPE' | 'UNSUPPORTED';
+export type SaveOutcome = 'SAVED' | 'KEPT_NEWER' | 'CONTEXT_CHANGED' | 'TARGET_REVOKED' | 'NOT_INSTITUTIONAL' | 'OTHER_SCOPE' | 'UNSUPPORTED';
 
 /**
- * Guarda la descarga en el contexto `contextId`, que es el vigente cuando se
- * pidió. Se niega si el contexto ya no es ese (sesión cerrada, cambiada o
- * rechazada), si el perfil no es el institucional, si el sindicato no es el
- * del contexto o si el formato no es el de INT-09 v1.
+ * Guarda la descarga en `requested`, el contexto vigente cuando se pidió. Se
+ * niega si el contexto ya no es ese (sesión cerrada, cambiada o rechazada), si
+ * la campaña se retiró después de pedirla, si el perfil no es el institucional,
+ * si el sindicato no es el del contexto o si el formato no es el de INT-09 v1.
  */
-export async function saveCopy(contextId: string, owner: CopyOwner, download: InstitutionalDownload): Promise<SaveOutcome> {
-  const stillValid = () => {
+export async function saveCopy(requested: LocalContext, owner: CopyOwner, download: InstitutionalDownload): Promise<SaveOutcome> {
+  const generation = requested.generation ?? 0;
+  const check = (): SaveOutcome | null => {
     const context = currentContext();
-    return context !== null && context.id === contextId && contextBelongsTo(context, owner) ? context : null;
+    if (context === null || context.id !== requested.id || !contextBelongsTo(context, owner)) return 'CONTEXT_CHANGED';
+    return revokedFor(context, download.target.campaign_ref, generation) ? 'TARGET_REVOKED' : null;
   };
-  if (!stillValid()) return 'CONTEXT_CHANGED';
   if (download.contract_version !== 1 || download.kind !== 'ESTIMATION_DOWNLOAD' || download.may_be_outdated !== true) return 'UNSUPPORTED';
   if (download.profile !== 'INSTITUTIONAL') return 'NOT_INSTITUTIONAL';
   if (download.scope.tenant_ref !== owner.tenantId) return 'OTHER_SCOPE';
+  const refused = check();
+  if (refused) return refused;
   const key = keyOf(owner, download.target.campaign_ref);
   const existing = await backend.get(key);
-  if (existing && existing.context_id === contextId && Date.parse(existing.download.downloaded_at) >= Date.parse(download.downloaded_at)) return 'KEPT_NEWER';
-  // Otra vez justo antes de escribir; aunque la escritura termine más tarde, lleva este `id` y no se leerá en otro contexto.
-  if (!stillValid()) return 'CONTEXT_CHANGED';
+  const context = currentContext();
+  if (existing && context && readable(existing, context) && Date.parse(existing.download.downloaded_at) >= Date.parse(download.downloaded_at)) return 'KEPT_NEWER';
+  // Otra vez justo antes de escribir. Aunque la escritura termine más tarde, lleva este `id` y esta
+  // generación: no se leerá en otro contexto ni después de retirarse la campaña.
+  const late = check();
+  if (late) return late;
   await backend.put({
     key,
     format_version: COPY_FORMAT_VERSION,
-    context_id: contextId,
+    context_id: requested.id,
+    generation,
     owner: { userId: owner.userId, tenantId: owner.tenantId, name: owner.name, tenantName: owner.tenantName, role: owner.role },
     saved_at: new Date().toISOString(),
     download,

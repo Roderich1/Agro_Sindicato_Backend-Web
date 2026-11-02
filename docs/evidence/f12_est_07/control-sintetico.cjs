@@ -10,6 +10,8 @@
 // Identidades: Directiva A, Administrador A y Agricultor A del sindicato A, y una
 // Directiva del sindicato B. Órdenes:
 //   demote | promote   la Directiva A pierde o recupera su rol (permiso perdido)
+//   hide-target | show-target   la campaña objetivo de invierno pasa al sindicato B o vuelve al A
+//                               (para el sindicato A, «inexistente o de otro sindicato»: 404)
 const { createRequire } = require("node:module");
 const { randomUUID } = require("node:crypto");
 const { spawnSync } = require("node:child_process");
@@ -99,6 +101,8 @@ async function act(name, idsFile) {
   try {
     if (name === "demote" || name === "promote") {
       await db.member.update({ where: { id: ids.directorMember }, data: { role: name === "demote" ? "AGRICULTOR" : "DIRECTIVA" } });
+    } else if (name === "hide-target" || name === "show-target") {
+      await db.agriculturalCampaign.update({ where: { id: ids.t1 }, data: { tenantId: name === "hide-target" ? ids.tenantB : ids.tenant } });
     } else {
       throw new Error(`orden desconocida: ${name}`);
     }

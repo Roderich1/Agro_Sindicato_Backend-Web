@@ -49,7 +49,7 @@ describe('el contexto local de la copia sigue a la sesión (F12-EST-07-WEB, #180
     localStorage.clear();
     memory = memoryBackend();
     setCopyBackend(memory);
-    await saveCopy(openContext(OWNER)!.id, OWNER, download);
+    await saveCopy(openContext(OWNER)!, OWNER, download);
   });
   afterEach(() => vi.restoreAllMocks());
 

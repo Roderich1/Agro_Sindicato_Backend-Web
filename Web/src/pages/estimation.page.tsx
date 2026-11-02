@@ -59,6 +59,7 @@ const SAVE_TEXT: Record<SaveOutcome, string> = {
   SAVED: 'Copia guardada en este navegador.',
   KEPT_NEWER: 'Ya había una copia igual o más reciente de esta campaña: se conserva.',
   CONTEXT_CHANGED: 'La sesión cambió o se retiró el acceso durante la descarga: la copia no se guardó.',
+  TARGET_REVOKED: 'La campaña dejó de estar disponible durante la descarga: la copia no se guardó.',
   NOT_INSTITUTIONAL: 'La respuesta no es del perfil institucional: no se guardó.',
   OTHER_SCOPE: 'La respuesta no es de su sindicato: no se guardó.',
   UNSUPPORTED: 'El formato de la respuesta no es el esperado: no se guardó.',
@@ -322,7 +323,7 @@ export function EstimationPage() {
         apply(LOST_ROLE);
         return;
       }
-      const outcome = await saveCopy(context.id, owner, body);
+      const outcome = await saveCopy(context, owner, body);
       setCopyNote(SAVE_TEXT[outcome]);
       if (outcome === 'SAVED' || outcome === 'KEPT_NEWER') setCopy(await readCopy(identity, selected));
     } catch (err) {

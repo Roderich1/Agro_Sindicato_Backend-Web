@@ -31,7 +31,7 @@ const copy = (target: string, name: string, tenant = 't-1'): InstitutionalDownlo
 });
 
 let memory: CopyBackend;
-const saveAs = async (owner: typeof OWNER, body: InstitutionalDownload) => saveCopy(openContext(owner)!.id, owner, body);
+const saveAs = async (owner: typeof OWNER, body: InstitutionalDownload) => saveCopy(openContext(owner)!, owner, body);
 
 describe('lectura sin conexión de la copia (F12-EST-07-WEB, #180)', () => {
   beforeEach(() => {

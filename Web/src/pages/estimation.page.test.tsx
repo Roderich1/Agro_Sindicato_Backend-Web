@@ -126,7 +126,7 @@ function downloadOf(read: InstitutionalResults, downloadedAt = '2026-11-02T16:00
 const SESSION = { userId: 'u-1', tenantId: 't-1', name: 'Usuario sintético', tenantName: 'Sindicato sintético', role: 'DIRECTIVA' };
 let memory: CopyBackend;
 /** Guarda en el contexto local vigente de la sesión simulada. */
-const saveForSession = (body: InstitutionalDownload) => saveCopy(currentContext()!.id, SESSION, body);
+const saveForSession = (body: InstitutionalDownload) => saveCopy(currentContext()!, SESSION, body);
 
 describe('Estimación del consumo (F12-EST-06, #179)', () => {
   beforeEach(() => {
@@ -446,7 +446,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
 
     it('sin conexión y sin copia de esta identidad: el aviso y ninguna cifra (la copia de otra identidad no se ve)', async () => {
       const other = { ...SESSION, userId: 'u-otra', name: 'Otra identidad sintética' };
-      await saveCopy(openContext(other)!.id, other, downloadOf(copyRead()));
+      await saveCopy(openContext(other)!, other, downloadOf(copyRead()));
       openContext(SESSION);
       offline();
       renderAt(<EstimationPage />, { path: PATH });
@@ -530,6 +530,20 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       renderAt(<EstimationPage />, { path: PATH });
       expect(await screen.findByTestId('error-forbidden')).toBeTruthy();
       expect(await readableCopies(null)).toEqual([]);
+      await waitFor(() => expect(purgePending()).toBe(true));
+      expect(await memory.list()).toHaveLength(1);
+    });
+
+    it('un 404 retira la copia de esa campaña en el contexto local (persiste) aunque su borrado falle', async () => {
+      await saveForSession(downloadOf(copyRead()));
+      setCopyBackend({ ...memory, delete: () => Promise.reject(new Error('IndexedDB no disponible')) });
+      vi.mocked(estimationService.results).mockRejectedValue(httpError(404, 'TARGET_NOT_FOUND'));
+      vi.mocked(estimationService.runs).mockRejectedValue(httpError(404, 'TARGET_NOT_FOUND'));
+      renderAt(<EstimationPage />, { path: PATH });
+      expect(await screen.findByTestId('error-not-found')).toBeTruthy();
+      expect(await readableCopies(null)).toEqual([]);
+      expect(Object.keys(currentContext()?.revoked ?? {})).toHaveLength(1);
+      expect(localStorage.getItem('agro_estimacion_contexto_v1')).not.toContain(CAMPAIGN.id);
       await waitFor(() => expect(purgePending()).toBe(true));
       expect(await memory.list()).toHaveLength(1);
     });
