@@ -582,6 +582,8 @@ describePostgres("F12-EST-01 estimation schema", () => {
       await expect(db.estimationJob.create({ data: jobData({ requestedByUserId: user }) })).rejects.toThrow(/no es miembro activo del tenant con ese rol/);
     }
     await expect(db.estimationJob.create({ data: jobData({ targetCampaignId: f.campaigns.openB }) })).rejects.toThrow(/campaña objetivo no es del tenant/);
+    // EST-D-06: sólo una campaña PLANIFICADA o ABIERTA admite trabajos (closedA está clasificada y CERRADA).
+    await expect(db.estimationJob.create({ data: jobData({ targetCampaignId: f.campaigns.closedA }) })).rejects.toThrow(/no es admisible/);
     // EST-D-02: una campaña objetivo sin clasificar no admite trabajos.
     await expect(db.estimationJob.create({ data: jobData({ targetCampaignId: f.campaigns.openA }) })).rejects.toThrow(/campaña objetivo no está clasificada/);
     await expect(db.estimationJob.create({ data: jobData({ status: "RUNNING", attempts: 1, startedAt: new Date(), leaseExpiresAt: new Date() }) })).rejects.toThrow(/empieza en cola/);
@@ -695,6 +697,12 @@ describePostgres("F12-EST-01 estimation schema", () => {
     await expect(db.estimationRun.create({ data: runOf(await runningJob({ targetCampaignId: targets[13]! }), { outcome: "FAILED", failureCode: "SOURCES_UNAVAILABLE" }) })).rejects.toThrow(
       /EstimationRun_values/,
     );
+    // EST-D-06: si la campaña objetivo se cierra después de empezar el
+    // cálculo, la ejecución se completa y se conserva como histórica.
+    const closing = await runningJob({ targetCampaignId: targets[13]! });
+    await db.agriculturalCampaign.update({ where: { id: targets[13]! }, data: { status: "CERRADA", closedAt: new Date() } });
+    const kept = await db.estimationRun.create({ data: runOf(closing) });
+    expect(kept.targetCampaignId).toBe(targets[13]);
     // Lo mismo si se desactiva la cuenta y el Member sigue activo.
     const disabled = await person("Directiva con cuenta desactivada después");
     const waiting = await runningJob({ requestedByUserId: disabled, targetCampaignId: targets[8]! });

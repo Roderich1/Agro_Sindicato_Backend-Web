@@ -614,7 +614,8 @@ CREATE TRIGGER "series_point_insert_guard"
   FOR EACH ROW EXECUTE FUNCTION "series_point_insert_guard"();
 
 -- EST-D-04: un trabajo nace en cola, para una campaña objetivo del tenant ya
--- clasificada, pedido por un Member activo con rol DIRECTIVA o ADMINISTRADOR.
+-- clasificada y admisible (EST-D-06), pedido por un Member activo con rol
+-- DIRECTIVA o ADMINISTRADOR.
 CREATE FUNCTION "estimation_job_insert_guard"() RETURNS trigger AS $$
 BEGIN
   IF NEW."status" <> 'QUEUED' THEN
@@ -624,6 +625,14 @@ BEGIN
     SELECT 1 FROM "AgriculturalCampaign" c WHERE c."id" = NEW."targetCampaignId" AND c."tenantId" = NEW."tenantId"
   ) THEN
     RAISE EXCEPTION 'EstimationJob: la campaña objetivo no es del tenant';
+  END IF;
+  -- EST-D-06: admisible al pedir (y, antes de calcular, la parada
+  -- TARGET_CAMPAIGN_NOT_ELIGIBLE). Si se cierra después de empezar, la
+  -- ejecución se completa y se conserva: la ejecución no exige el estado.
+  IF NOT EXISTS (
+    SELECT 1 FROM "AgriculturalCampaign" c WHERE c."id" = NEW."targetCampaignId" AND c."status" IN ('PLANIFICADA', 'ABIERTA')
+  ) THEN
+    RAISE EXCEPTION 'EstimationJob: la campaña objetivo no es admisible (PLANIFICADA o ABIERTA)';
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM "CampaignSeasonClassification" k

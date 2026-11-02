@@ -246,7 +246,7 @@ Como prevé 3.12.7, el cálculo ocurre **fuera de la petición interactiva**. La
 - rol: 403 (§2);
 - campaña objetivo:
   - del sindicato, o **404 `TARGET_CAMPAIGN_NOT_FOUND`**;
-  - `PLANIFICADA` o `ABIERTA`, o **422 `TARGET_CAMPAIGN_NOT_ELIGIBLE`** (EST-D-06);
+  - `PLANIFICADA` o `ABIERTA`, o **422 `TARGET_CAMPAIGN_NOT_ELIGIBLE`** (EST-D-06; la base también lo exige al crear el trabajo);
   - con clasificación vigente en una temporada, o **422 `TARGET_CAMPAIGN_NOT_CLASSIFIED`**;
 - `product_refs`:
   - inexistente o de otro sindicato: **404 `PRODUCT_NOT_FOUND`**;
@@ -276,6 +276,8 @@ El trabajo y su desenlace se conservan (§6.5).
   - desapareció el permiso: el solicitante ya no es Member activo con cuenta activa y el mismo rol (`REQUESTER_NOT_AUTHORIZED`);
   - la política dejó de permitirlo (`POLICY_PENDING`);
   - la campaña objetivo dejó de ser admisible: ya no es `PLANIFICADA` ni `ABIERTA`, o no tiene clasificación vigente (`TARGET_CAMPAIGN_NOT_ELIGIBLE`).
+
+  **Después de empezar (EST-D-06).** Si la campaña objetivo se cierra con el cálculo ya iniciado, la ejecución se completa y se conserva como histórica. No se reabre la campaña ni se modifica su información. La base no exige el estado al registrar la ejecución.
 
   **Motivo verificable.** `stop_evidence` guarda lo observado (`member_active`, `account_active`, `role`, `campaign_status`, `classified`, `disclosure_mode` y `observed_at`), con las mismas claves en la API y en la base.
   - La base comprueba al cerrar el trabajo que el permiso o la campaña **de verdad** fallan. Rechaza un `REQUESTER_NOT_AUTHORIZED` con el solicitante autorizado o un `TARGET_CAMPAIGN_NOT_ELIGIBLE` con la campaña admisible.
@@ -436,7 +438,7 @@ Los nombres siguen la convención del repositorio: PascalCase, sin `@@map`, ids 
 - `maxAttempts` tampoco cambia: se fija al encolar;
 - las transiciones son `QUEUED` → `RUNNING`, `RUNNING` → `RUNNING` (otro intento, con más intentos), `COMPLETED` o `NOT_EXECUTED`, y los intentos no disminuyen;
 - la base no comprueba que el plazo haya vencido para tomar otro intento: eso es del trabajador, y `jobId` único impide dos ejecuciones;
-- la campaña objetivo de un trabajo nuevo está clasificada;
+- la campaña objetivo de un trabajo nuevo está clasificada y es `PLANIFICADA` o `ABIERTA` (EST-D-06);
 - un trabajo cuya ejecución ya está registrada solo puede pasar a `COMPLETED`;
 - un estado final no cambia;
 - `COMPLETED` exige su ejecución;
@@ -554,6 +556,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | EST-D-03 | 2026-11-01 | Campañas cerradas con fuente sellada para el consumo comprobado; procedencia exacta; divulgación comprobada de nuevo al consultar | §3 (punto 3), §4.3, §6 |
 | EST-D-04 | 2026-11-01 | Cálculo por lotes fuera de la petición, con el mecanismo mínimo, sin plataforma de colas; ejecuciones finales inmutables y estado operativo aparte | §4.2, §6 |
 | EST-D-05 | 2026-11-01 | El Agricultor consulta la estimación sin naive, cobertura ni serie; puede coincidir con una cifra histórica; la proyección debe estar en la política institucional; no se habilitan datos reales ni se declara aprobada la política | §2 |
+| EST-D-06 | 2026-11-02 (UTC) | Campaña objetivo admisible: del mismo sindicato, clasificada y `PLANIFICADA` o `ABIERTA`, al pedir el trabajo y antes de empezar el cálculo. Si se cierra después de empezar, la ejecución se completa y se conserva como histórica; la campaña no se reabre ni se modifica, y la consulta sigue sujeta a los permisos y a la divulgación vigentes | §4.2; base: alta del trabajo y parada `TARGET_CAMPAIGN_NOT_ELIGIBLE`; la ejecución no exige el estado |
 | EST-D-09 | 2026-11-01 y 2026-11-02 (UTC) | Ampliación mínima de F07: cobertura de participación del consumo en los sellados futuros, en la misma transacción e inmutable; no aceptar la cobertura general; no reconstruir los sellados anteriores; misma población en N y M; participación distinta de integridad; ningún mínimo nuevo | §3.1; F07 §5.3 |
 | EST-D-11 | 2026-11-02 (UTC) | Conservar los registros durante la construcción y la evaluación académica; la retención institucional definitiva, pendiente en GOV-02, sin declarar aprobada una conservación perpetua | §6.5 |
 | EST-D-13 | 2026-11-01 | Autorización existente por roles, con identidad, pertenencia y cuenta activa; ningún segundo sistema | §2, §6.3 |
@@ -566,7 +569,6 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 
 | Id | Decisión | Propuesta | Compatibilidad | Quién o cuándo |
 |---|---|---|---|---|
-| EST-D-06 | Campaña objetivo admisible | Del sindicato, `PLANIFICADA` o `ABIERTA`, con clasificación vigente | **Ya aplicada provisionalmente en la base** para verificar la parada `TARGET_CAMPAIGN_NOT_ELIGIBLE` (EST-D-15). El alta de un trabajo y el registro de la ejecución solo exigen la clasificación vigente, no el estado: una campaña que se cierra durante el cálculo no se rechaza. Confirmar la definición o cambiarla | F12-EST-05 |
 | EST-D-07 | Redondeo de la estimación | 6 decimales en la unidad base; el modo, en F12-EST-04 | Compatible | F12-EST-04 |
 | EST-D-08 | Qué sustituye a un resultado | Una ejecución posterior `CALCULATED` que incluya el producto; una `FAILED`, no | Compatible: con lotes, «posterior» es el orden de la cadena. Una ejecución `FAILED` con `RETRIES_EXHAUSTED` tampoco sustituye | F12-EST-05 |
 | EST-D-10 | Política pendiente | 409 al pedir y al leer; un trabajo en cola termina `NOT_EXECUTED` | Compatible con EST-D-15 | F12-EST-05 |
@@ -667,3 +669,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-01 | Tras una lectura de contraste de otro agente de la sesión, antes del primer commit, se corrigieron cinco bloqueantes: el perfil del Agricultor sin naive ni cobertura, la política vigente al leer, la selección de la consulta frente a la vigencia, las unidades no enlazables como 422 y los CHECK de las cifras. También se corrigieron menores: una sola cadena por campaña objetivo, la cifra igual a la divulgada, la entrada sellada, el Member activo, el producto canónico, los códigos cerrados, `TRUNCATE`, `requestHash`, `$ref` anulables y los textos de 401 y 403 |
 | 2026-11-02 (UTC) | Conciliación con las decisiones del autor EST-D-01 a 05, 09 y 13 (§11.1). Cambios: ADR-004; temporadas y clasificaciones explícitas en lugar de `comparabilityKey`; fuente sellada obligatoria; trabajos por lotes en lugar del cálculo en la petición, de modo que `POST /runs` pasa a `POST /jobs` y desaparece `RUN_SUCCESSION_CONFLICT`; cobertura retirada del esquema y `UNKNOWN` en la API; cuenta activa en la defensa de la base; la comprobación de ausencia de rutas pasa a ser de etapa. La migración, sin publicar en `main`, se reescribió en el mismo archivo. Una lectura de contraste de otro agente de la sesión, antes del commit, encontró dos bloqueantes, corregidos: un trabajo con ejecución podía pasar a `NOT_EXECUTED`, y una campaña sellada admitía `NO_RECORD` sin sellado. También se corrigieron menores: motivo emparejado con su estado, otro intento con más intentos, trabajo solo para campañas clasificadas, reglas propias declaradas como EST-D-15 y EST-D-16, textos de F06 y F07 sin tocar declarados, redacción de `CURRENT_SCOPE` y del 409, y pruebas de cuenta desactivada y de otro sindicato |
 | 2026-11-02 (UTC), segunda | Decisiones del autor EST-D-09 (cobertura), 11, 14, 15, 16 y F06 (§11.1). Cambios: cobertura de participación del consumo en los sellados F07 nuevos, implementada (F07 §5.3), con la advertencia sobre `SHOW_PRIOR` corregida tras leer `decideCell`; versiones de clasificación con corrección motivada, citadas por puntos y ejecuciones; paradas `NOT_EXECUTED` con evidencia verificable; `RETRIES_EXHAUSTED` en lugar de `ATTEMPTS_EXHAUSTED` y `SOURCES_UNAVAILABLE`; máximo de intentos y de productos configurables; retención académica con la institucional en GOV-02; F06 §1 acotado; fuentes sintéticas con cobertura conocida y desconocida |
+| 2026-11-02 (UTC), tercera | EST-D-06 decidida por el autor: admisible al pedir y antes de calcular; la base lo exige al crear el trabajo, y una ejecución iniciada se completa aunque la campaña se cierre |
