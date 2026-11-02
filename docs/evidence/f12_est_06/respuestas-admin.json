@@ -1,0 +1,182 @@
+[
+  {
+    "at": "2026-11-02T16:43:06.483Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=08e7b06a-a9a7-41b0-bf15-a1455c3ce7f3&limit=10",
+    "status": 200,
+    "body": {
+      "items": []
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:06.499Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=08e7b06a-a9a7-41b0-bf15-a1455c3ce7f3",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": []
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:07.542Z",
+    "method": "POST",
+    "path": "/api/v1/estimation/jobs",
+    "status": 202,
+    "body": {
+      "job_ref": "bcbb4df9-b204-4f2d-88c3-c7ff695126f0",
+      "status": "QUEUED",
+      "requested_by_role": "ADMINISTRADOR",
+      "attempts": 0,
+      "stop_code": null,
+      "run_ref": null
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:09.561Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/jobs/bcbb4df9-b204-4f2d-88c3-c7ff695126f0",
+    "status": 200,
+    "body": {
+      "job_ref": "bcbb4df9-b204-4f2d-88c3-c7ff695126f0",
+      "status": "COMPLETED",
+      "requested_by_role": "ADMINISTRADOR",
+      "attempts": 1,
+      "stop_code": null,
+      "run_ref": "28f3f74c-4479-451f-8269-e80220f37e6e"
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:09.578Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs?target_campaign_ref=08e7b06a-a9a7-41b0-bf15-a1455c3ce7f3&limit=10",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "run_ref": "28f3f74c-4479-451f-8269-e80220f37e6e",
+          "outcome": "CALCULATED",
+          "requested_by_role": "ADMINISTRADOR",
+          "counts": {
+            "estimated": 1,
+            "insufficient_data": 0,
+            "incompatible_data": 0,
+            "calculation_failed": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:09.616Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/results?target_campaign_ref=08e7b06a-a9a7-41b0-bf15-a1455c3ce7f3",
+    "status": 200,
+    "body": {
+      "profile": "INSTITUTIONAL",
+      "results": [
+        {
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "run_ref": "28f3f74c-4479-451f-8269-e80220f37e6e",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "validity_reason": null
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:09.663Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/28f3f74c-4479-451f-8269-e80220f37e6e",
+    "status": 200,
+    "body": {
+      "run_ref": "28f3f74c-4479-451f-8269-e80220f37e6e",
+      "outcome": "CALCULATED",
+      "requested_by_role": "ADMINISTRADOR",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": "0.50",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "116000"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-02T16:43:11.981Z",
+    "method": "GET",
+    "path": "/api/v1/estimation/runs/28f3f74c-4479-451f-8269-e80220f37e6e",
+    "status": 200,
+    "body": {
+      "run_ref": "28f3f74c-4479-451f-8269-e80220f37e6e",
+      "outcome": "CALCULATED",
+      "requested_by_role": "ADMINISTRADOR",
+      "method_version": "F12-EST-04/1",
+      "results": [
+        {
+          "alpha": "0.50",
+          "estimate_base": "111000.000000",
+          "naive_base": "116000",
+          "validity": "CURRENT",
+          "points": [
+            [
+              "VERIFIED_CONSUMPTION",
+              "96000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "120000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "104000"
+            ],
+            [
+              "VERIFIED_CONSUMPTION",
+              "116000"
+            ],
+            [
+              "NO_RECORD",
+              null
+            ],
+            [
+              "NO_RECORD",
+              null
+            ]
+          ]
+        }
+      ]
+    }
+  }
+]

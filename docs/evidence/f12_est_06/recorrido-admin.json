@@ -1,0 +1,81 @@
+{
+  "phase": "admin",
+  "at": "2026-11-02T16:43:13.227Z",
+  "checks": [
+    {
+      "name": "Administrador: «Estimación del consumo» en el menú",
+      "ok": true,
+      "detail": "Resumen colectivo, Necesidades y propuesta, Cobertura, Tendencias, Estimación del consumo, Reconciliación, Campanas, Usuarios, Resumen colectivo, Necesidades y propuesta, Cobertura, Tendencias, Estimación del consumo, Reconciliación, Campanas, Usuarios"
+    },
+    {
+      "name": "Administrador: sin ejecuciones, ninguna cifra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Administrador: el trabajo termina",
+      "ok": true,
+      "detail": "Terminado"
+    },
+    {
+      "name": "servidor: POST /jobs → 202, en cola, rol ADMINISTRADOR",
+      "ok": true,
+      "detail": "{\"at\":\"2026-11-02T16:43:07.542Z\",\"method\":\"POST\",\"path\":\"/api/v1/estimation/jobs\",\"status\":202,\"body\":{\"job_ref\":\"bcbb4df9-b204-4f2d-88c3-c7ff695126f0\",\"status\":\"QUEUED\",\"requested_by_role\":\"ADMINISTRADOR\",\"attempts\":0,\"stop_code\":null,\"run_ref\":null}}"
+    },
+    {
+      "name": "servidor: GET /jobs/{id} → 200 hasta COMPLETED con su ejecución",
+      "ok": true,
+      "detail": "COMPLETED"
+    },
+    {
+      "name": "servidor: GET /results → 200, perfil institucional, 111000.000000 y 116000, CURRENT",
+      "ok": true,
+      "detail": "{\"profile\":\"INSTITUTIONAL\",\"results\":[{\"status\":\"ESTIMATED\",\"reason_code\":null,\"run_ref\":\"28f3f74c-4479-451f-8269-e80220f37e6e\",\"estimate_base\":\"111000.000000\",\"naive_base\":\"116000\",\"validity\":\"CURRENT\",\"validity_reason\":null}]}"
+    },
+    {
+      "name": "pantalla = servidor: SES 111 L (111.000 mL)",
+      "ok": true,
+      "detail": "111 L111.000 mL"
+    },
+    {
+      "name": "pantalla = servidor: naive 116 L (116.000 mL)",
+      "ok": true,
+      "detail": "116 L116.000 mL"
+    },
+    {
+      "name": "servidor: GET /runs/{id} → 200, α 0.50, rol ADMINISTRADOR",
+      "ok": true,
+      "detail": "[[\"VERIFIED_CONSUMPTION\",\"96000\"],[\"VERIFIED_CONSUMPTION\",\"120000\"],[\"VERIFIED_CONSUMPTION\",\"104000\"],[\"VERIFIED_CONSUMPTION\",\"116000\"],[\"NO_RECORD\",null],[\"NO_RECORD\",null]]"
+    },
+    {
+      "name": "pantalla: α 0,50",
+      "ok": true,
+      "detail": "0,50"
+    },
+    {
+      "name": "pantalla: lo observado como W4, 96 · 120 · 104 · 116 L",
+      "ok": true,
+      "detail": "96 · 120 · 104 · 116 L"
+    },
+    {
+      "name": "servidor: GET /runs → 200 con 1 ejecución calculada del Administrador",
+      "ok": true,
+      "detail": "{\"items\":[{\"run_ref\":\"28f3f74c-4479-451f-8269-e80220f37e6e\",\"outcome\":\"CALCULATED\",\"requested_by_role\":\"ADMINISTRADOR\",\"counts\":{\"estimated\":1,\"insufficient_data\":0,\"incompatible_data\":0,\"calculation_failed\":0}}]}"
+    },
+    {
+      "name": "pantalla: historial con 1 ejecución",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "detalle: serie 96, 120, 104 y 116 L de esa ejecución, Vigente",
+      "ok": true,
+      "detail": "Ejecución del 2 nov de 2026, 12:43 p. m.Calculada · método SES_NAIVE F12-EST-04/1 · temporada INVIERNO. Las cifras de esta sección son las de esta ejecución.Cerrar detalleHerbicida de ensayo (L) · Est"
+    },
+    {
+      "name": "servidor: ningún 4xx ni 5xx en el recorrido del Administrador",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

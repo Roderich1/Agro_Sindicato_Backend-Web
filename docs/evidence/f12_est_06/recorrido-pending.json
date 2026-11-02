@@ -1,0 +1,31 @@
+{
+  "phase": "pending",
+  "at": "2026-11-02T16:43:57.827Z",
+  "checks": [
+    {
+      "name": "política pendiente: aviso",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: sin resultados",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: sin solicitud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "política pendiente: el servidor responde 409 POLICY_PENDING",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sin conexión: aviso de conexión",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

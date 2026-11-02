@@ -51,3 +51,44 @@ export function formatQuantity(base: string | null, unit: BaseUnit, serverPresen
 export function presentationUnit(unit: BaseUnit): 'L' | 'KG' {
   return PRESENTATION_UNIT[unit];
 }
+
+/**
+ * F12-EST-06: la estimación SES llega como decimal exacto en unidad base, con
+ * hasta 6 decimales (EST-D-07), dentro de un string.
+ */
+const BASE_DECIMAL = /^(0|[1-9][0-9]*)(\.[0-9]{1,6})?$/;
+
+export function isBaseDecimal(value: unknown): value is string {
+  return typeof value === 'string' && BASE_DECIMAL.test(value);
+}
+
+/**
+ * Decimal en unidad base → L/KG exactos, desplazando la coma tres lugares sobre
+ * el string, sin redondear: `"111000.000000"` → `"111"`, `"0.292613"` →
+ * `"0.000292613"`. `null` si el valor no es válido.
+ */
+export function decimalToPresentation(base: string): string | null {
+  const match = BASE_DECIMAL.exec(base);
+  if (!match) return null;
+  const whole = match[1]!;
+  const digits = whole + (match[2] ?? '').slice(1);
+  const point = whole.length - 3;
+  const integer = point <= 0 ? '0' : digits.slice(0, point).replace(/^0+(?=\d)/, '');
+  const fraction = (point <= 0 ? '0'.repeat(-point) + digits : digits.slice(point)).replace(/0+$/, '');
+  return fraction ? `${integer}.${fraction}` : integer;
+}
+
+/** `"111000.000000"` (ML) → `"111 L"`; `null` si no es un decimal válido. */
+export function formatDecimalQuantity(base: string | null, unit: BaseUnit): string | null {
+  if (base === null) return null;
+  const presentation = decimalToPresentation(base);
+  return presentation === null ? null : `${groupDecimal(presentation)} ${PRESENTATION_UNIT[unit]}`;
+}
+
+/** La cifra tal como la entrega el servidor, en unidad base: `"111000.000000"` → `"111.000 mL"`. */
+export function formatBaseValue(base: string | null, unit: BaseUnit): string | null {
+  if (base === null || !(isBaseQuantity(base) || isBaseDecimal(base))) return null;
+  const [whole, fraction] = base.split('.');
+  const trimmed = fraction?.replace(/0+$/, '');
+  return `${groupDecimal(trimmed ? `${whole}.${trimmed}` : whole!)} ${unit === 'ML' ? 'mL' : 'g'}`;
+}
