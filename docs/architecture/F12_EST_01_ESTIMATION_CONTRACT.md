@@ -1,6 +1,6 @@
 # F12-EST-01 — Contrato INT-09: estimación del consumo (v1)
 
-- **Fecha real:** 2026-11-01 (UTC).
+- **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia.
 - **Estado:** **especificación**. Es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor. **Ninguna ruta está implementada**: no hay controladores, casos de uso ni motor de cálculo. Lo único construido en este bloque es el esquema de datos (§6), con su migración aditiva.
 - **Issue:** [#174](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/174) (F12-EST-01), entregable E7.1 de 3.13.2. Lo siguen F12-EST-02 a F12-EST-08.
 - **Bases:**
