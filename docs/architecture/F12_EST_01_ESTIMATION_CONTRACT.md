@@ -3,7 +3,8 @@
 - **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado dos veces el 2026-11-02 (UTC) con las decisiones del autor del §11.
 - **Estado:** **parcialmente implementado**. El contrato es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
   - **Rutas implementadas desde F12-EST-05 (#178):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST /estimation/campaign-classifications/{campaignId}/corrections` y `GET /estimation/campaign-classifications/{campaignId}/history`.
-  - **Siguen solo especificadas:** temporadas, clasificación inicial y su lista, y la descarga (§12).
+  - **Temporadas y clasificación inicial** (`POST`/`GET /estimation/seasons`, `POST`/`GET /estimation/campaign-classifications`): implementadas en la continuación de #190, con Refs #175 (§12).
+  - **Sigue solo especificada:** la descarga (§12).
   - **Lo construido:**
     - el esquema de datos (§6), con su migración aditiva;
     - la cobertura de consumo de los sellados F07 nuevos (§3.1), implementada en el caso de uso del sellado;
@@ -304,7 +305,7 @@ Todas las rutas están bajo `/api/v1/estimation`, con bearer y respuestas JSON c
 
 No existen `PUT`, `PATCH` ni `DELETE` en INT-09, y lo comprueba `openapi:check` (§12).
 
-**Implementadas (F12-EST-05):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST …/corrections` y `GET …/history`. `openapi:check` compara esas siete operaciones con el OpenAPI generado desde el código (`x-implemented-operations`). Las otras cinco (las dos de temporadas, las dos de clasificación inicial y la descarga) siguen especificadas.
+**Implementadas (F12-EST-05):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST …/corrections` y `GET …/history`. `openapi:check` compara esas siete operaciones con el OpenAPI generado desde el código (`x-implemented-operations`). La continuación de #190 (Refs #175) añade las dos de temporadas y las dos de clasificación inicial: once en total. Solo la descarga sigue especificada.
 
 ### 4.1 Temporadas, clasificaciones y correcciones (EST-D-02, EST-D-14)
 
@@ -325,6 +326,11 @@ No existen `PUT`, `PATCH` ni `DELETE` en INT-09, y lo comprueba `openapi:check` 
   - Las series y ejecuciones ya construidas siguen citando la versión que usaron (`SeriesPoint.classificationId`, `EstimationRun.targetClassificationId`).
   - Lo siguiente que se construya usa la vigente: una serie nueva crea **otra versión de la serie**, y los resultados anteriores pasan a `OUTDATED` con `CLASSIFICATION_CORRECTED` (§8).
 - Las temporadas no se modifican ni se borran. Otra definición es otra temporada con otra clave.
+- **Implementación** (continuación de #190, Refs #175):
+  - `GET /estimation/seasons` lista las temporadas del sindicato por orden de registro;
+  - `GET /estimation/campaign-classifications` lista la versión vigente de cada campaña clasificada, por fecha de inicio de la campaña, y con `season_ref` solo las de esa temporada;
+  - una campaña cuya versión vigente la dejó sin temporada no aparece;
+  - dos registros simultáneos de la misma clave, o dos clasificaciones simultáneas de la misma campaña, dejan uno y responden 409 al otro.
 
 ### 4.2 Pedir una estimación: trabajo por lotes (EST-D-04)
 
@@ -723,7 +729,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | Ejecuciones y resultados solo por inserción, cadena por campaña objetivo, huella de contenido y vigencia derivada (los cuatro estados) | **Comprobado contra PostgreSQL** | La misma suite y `insert-only.spec.ts`, que revisa el código del módulo |
 | Lista de ejecuciones (`GET /estimation/runs`) con cursor | **Implementado y comprobado por HTTP contra PostgreSQL** | `f12-est-05-runs.postgres.spec.ts` |
 | El trabajador como proceso real: `node dist/main.js` recibe la petición, su trabajador toma el trabajo, registra la ejecución y la API la entrega; dos procesos sobre la misma base; sin trabajador, el trabajo espera | **Comprobado en un ensayo reproducible (HOST, PostgreSQL desechable, datos sintéticos)** | `docs/evidence/f12_est_05/ensayo-proceso-trabajador.cjs`. Acredita integración y operación, no producción ni precisión |
-| Temporadas y clasificación inicial con su lista | **Solo especificado en `main` y en #190** | Fuera del alcance de #178; ningún issue las incluía. Se proponen en un PR de continuación con Refs #175 |
+| Temporadas y clasificación inicial con su lista | **Implementado y comprobado por HTTP contra PostgreSQL en el PR de continuación de #190** (Refs #175); no en `main` ni en #190 | `f12-est-seasons.postgres.spec.ts`. Fuera del alcance de #178; ningún issue las incluía, y su asignación a #175 es una propuesta |
 | Descarga (`GET /estimation/download`) y clientes | **Solo especificado** | Copias de F12-EST-07 (#180, Mobile #164) y pantallas de F12-EST-06 (#179). EST-D-08, 10 y 12 ya están decididas (§11.1); la descarga sigue sin implementarse |
 | Preparación de fuentes, construcción de series con versiones y lectura del tramo para una campaña objetivo (§3.2) | **Implementado y comprobado contra PostgreSQL**, sin rutas | `consumption-series.use-case.ts` y `domain/series.ts`; `series.spec.ts` (9) y `f12-est-02-series.postgres.spec.ts` (4, con sellados reales F07 por la API) |
 | Motor SES/naive (§3.3): rejilla de α, empates, criterio constante, naive y redondeo final | **Implementado y comprobado**, sin rutas ni ejecuciones | `domain/ses-naive.ts`; `ses-naive.spec.ts` (11, con casos calculados a mano y una referencia decimal independiente) y el tramo `READY` de sellados reales en `f12-est-02-series.postgres.spec.ts` |
@@ -792,4 +798,5 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), sexta | F12-EST-05 (#178): trabajos, trabajador por lotes, ejecuciones y resultados solo por inserción y vigencia derivada, con seis rutas implementadas (§4); titularidad del trabajo en la base con una migración aditiva (`jobAttempt`); huella de contenido fijada (§5); detección de `SOURCES_CHANGED` fijada (§8); etapa `PARTIALLY_IMPLEMENTED` comparada con el código (§12). EST-D-08, 10 y 12 se implementan como estaban propuestas y siguen pendientes de decisión del autor |
 | 2026-11-02 (UTC), séptima | F12-EST-05 (#178): `GET /estimation/runs` implementado (§4.3); configuración del trabajador validada al arrancar y su funcionamiento como proceso descrito (§4.2); ensayo con el proceso real (§12); temporadas, clasificación inicial y descarga asignadas a sus bloques (§12). Corrige el recuento de operaciones especificadas de la revisión anterior |
 | 2026-11-02 (UTC), octava | EST-D-08, EST-D-10 y EST-D-12 decididas por el autor, con sus precisiones (§11.1); §11.2 queda sin pendientes. Contraste con el código y las pruebas: coincidían; se añaden dos pruebas que faltaban (una ejecución nueva con datos insuficientes no reutiliza la cifra anterior; un trabajo retomado tras un error transitorio vuelve a comprobar la política antes de calcular). La decisión EST-D-10 no aprueba GOV-02 |
+| 2026-11-02 (UTC), novena | Continuación de #190 (Refs #175): temporadas y clasificación inicial con su lista implementadas (§4.1); `openapi:check` compara once operaciones; solo la descarga sigue especificada |
 | 2026-11-02 (UTC), décima | F12-EST-06 (#179): pantalla Web institucional implementada en rama, sobre las rutas de #190 (§12); sin descarga ni copia |
