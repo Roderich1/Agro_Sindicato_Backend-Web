@@ -660,7 +660,12 @@ Desconectado, el cliente no conoce revocaciones ni cambios de fuentes: la copia 
     - si el servidor rechaza la sesión, el permiso o la política;
     - si la sesión se recupera sin un rol institucional.
   - **Service worker:** no pasa ni cachea respuestas del API.
-- **Lectura tras recargar sin conexión** (`/estimacion/copia-sin-conexion`): la sesión no puede comprobarse. La página muestra las copias que quedan en el navegador, que solo pueden ser de la última identidad que no cerró sesión.
+- **Lectura sin conexión, también tras recargar** (`/estimacion/copia-sin-conexion`): solo dentro del **contexto local** que una sesión aceptada por el servidor con rol institucional abrió en ese navegador (usuario, sindicato, rol e `id`, en `localStorage`). Cada copia lleva el `id` del contexto.
+  - **Sin contexto**, o con otra identidad, sindicato o rol, no se enumera ni se lee nada.
+  - **El contexto se cierra de forma síncrona** al cerrar la sesión, con otra identidad o sindicato, con un 401, con un 403 o al perder el rol. Un 409 de política lo renueva y un 404 revoca la campaña.
+  - **El borrado físico va después:** si falla, queda pendiente y se reintenta.
+  - **El contexto identifica la sesión propietaria**, no a la persona frente al navegador.
+  - Detalle y pruebas en `F12_EST_07_WEB_2026-11-02.md` §6.
 - **Mobile (#164):** el contrato que usará está en [`F12_EST_07_COPIA_MOBILE.md`](F12_EST_07_COPIA_MOBILE.md). Todavía no está implementado.
 
 ## 10. Coherencia con el diseño aprobado
