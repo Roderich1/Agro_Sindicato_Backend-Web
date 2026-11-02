@@ -1,5 +1,7 @@
 # F12-EST-01 (#174): conciliación del contrato INT-09 con las decisiones del autor — evidencia
 
+> **Registro de `c957330`.** El bloque siguiente, del mismo PR y antes de integrar, añadió la cobertura de consumo de los sellados F07 nuevos, las correcciones de clasificación, las paradas verificables y los reintentos limitados. Lo vigente está en [`F12_EST_01_DESBLOQUEO_2026-11-01.md`](F12_EST_01_DESBLOQUEO_2026-11-01.md). Este registro no se reescribe.
+
 | Campo | Valor |
 |---|---|
 | Fecha real | 2026-11-02, de las 00:46Z a las 01:35Z (UTC); noche del 2026-11-01 en Bolivia |
