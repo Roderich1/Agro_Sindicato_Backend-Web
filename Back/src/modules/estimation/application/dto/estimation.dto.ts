@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ArrayMinSize, ArrayUnique, IsArray, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, ValidateIf } from "class-validator";
+import { Type } from "class-transformer";
+import { ArrayMinSize, ArrayUnique, IsArray, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from "class-validator";
 
 /** INT-09 `GenerateRequest` (CU-20): what to estimate; the tenant is never sent. */
 export class GenerateEstimationDto {
@@ -22,6 +23,29 @@ export class GenerateEstimationDto {
   @ArrayUnique()
   @IsUUID(undefined, { each: true })
   product_refs?: string[];
+}
+
+/** `GET /estimation/runs`: earlier runs, newest first, with an opaque cursor. */
+export class RunsQueryDto {
+  @ApiPropertyOptional({ format: "uuid", description: "Campaña objetivo (período) dentro del sindicato autenticado" })
+  @IsOptional()
+  @IsUUID()
+  target_campaign_ref?: string;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 50, default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
+
+  @ApiPropertyOptional({ description: "Cursor opaco de next_cursor" })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  cursor?: string;
 }
 
 export class ResultsQueryDto {

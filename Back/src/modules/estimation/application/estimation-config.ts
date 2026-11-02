@@ -10,6 +10,7 @@ import { ConfigService } from "@nestjs/config";
  * - ESTIMATION_WORKER_INTERVAL_MS (5000): how often the worker looks for a job;
  * - ESTIMATION_WORKER=disabled: the worker does not start with the
  *   application (tests drive it explicitly; jobs then wait in the queue).
+ * The values are validated at start by `envSchema` (src/config/env.schema.ts).
  */
 @Injectable()
 export class EstimationConfig {

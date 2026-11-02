@@ -101,6 +101,16 @@ export const envSchema = z.object({
   // LEGACY_ROUTE_CLOSED). `enabled` is an operational rollback of this
   // server only, never the normal path; it authorises nothing.
   LEGACY_PRIVATE_WRITES_ROLLBACK: optionalText(z.enum(["enabled", "disabled"])),
+  // F12-EST-05 (#178): the estimation worker runs inside this process and
+  // starts with it; `disabled` leaves jobs queued (tests drive it). Interval
+  // and lease are deployment parameters; products and attempts per job are
+  // technical limits (EST-D-16), not business rules. Invalid values stop the
+  // start instead of falling back silently.
+  ESTIMATION_WORKER: optionalText(z.enum(["enabled", "disabled"])),
+  ESTIMATION_WORKER_INTERVAL_MS: optionalText(z.coerce.number().int().min(100).max(3_600_000)),
+  ESTIMATION_LEASE_MS: optionalText(z.coerce.number().int().min(100).max(86_400_000)),
+  ESTIMATION_MAX_PRODUCTS: optionalText(z.coerce.number().int().positive().max(10_000)),
+  ESTIMATION_MAX_ATTEMPTS: optionalText(z.coerce.number().int().positive().max(20)),
 });
 
 export type Env = z.infer<typeof envSchema>;

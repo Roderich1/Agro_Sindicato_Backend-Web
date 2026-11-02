@@ -5,7 +5,7 @@ import type { Response } from "express";
 import { CurrentUser } from "../../../iam/api/rest/decorators/current-user.decorator";
 import { Roles } from "../../../iam/api/rest/decorators/roles.decorator";
 import { AuthenticatedPrincipal } from "../../../iam/application/types/authenticated-principal.type";
-import { CorrectClassificationDto, GenerateEstimationDto, ResultsQueryDto } from "../../application/dto/estimation.dto";
+import { CorrectClassificationDto, GenerateEstimationDto, ResultsQueryDto, RunsQueryDto } from "../../application/dto/estimation.dto";
 import { EstimationClassificationsUseCase } from "../../application/estimation-classifications.use-case";
 import { EstimationJobsUseCase } from "../../application/estimation-jobs.use-case";
 import { EstimationReadsUseCase } from "../../application/estimation-reads.use-case";
@@ -22,8 +22,8 @@ const PolicyPending = ApiResponse({ status: 409, description: "POLICY_PENDING: n
  * the request. Reading runs and results applies the policy and the
  * permissions in force. There is no route that modifies or deletes a job, a
  * run or a result. Correcting a classification inserts a new version
- * (EST-D-14). Seasons, the first classification and its list, the list of
- * runs and the download remain specified, not implemented.
+ * (EST-D-14). Seasons, the first classification and its list, and the
+ * download remain specified, not implemented here.
  */
 @ApiTags("estimation")
 @ApiBearerAuth()
@@ -111,6 +111,24 @@ export class EstimationController {
   @ApiResponse({ status: 404, description: "JOB_NOT_FOUND (inexistente o de otro sindicato)" })
   job(@CurrentUser() user: AuthenticatedPrincipal, @Param("jobId", new ParseUUIDPipe()) jobId: string) {
     return this.jobs.get(user.tenantId, jobId);
+  }
+
+  @Get("runs")
+  @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Ejecuciones anteriores, de la más reciente a la más antigua, paginadas con un cursor opaco" })
+  @ApiResponse({ status: 200, description: "Lista paginada" })
+  @Invalid("Parámetros inválidos (limit fuera de 1 a 50, o un cursor que no emitió esta ruta)")
+  @Unauthenticated
+  @Forbidden
+  @ApiResponse({ status: 404, description: "TARGET_CAMPAIGN_NOT_FOUND" })
+  @PolicyPending
+  runs(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: RunsQueryDto) {
+    return this.reads.list(user.tenantId, {
+      ...(query.target_campaign_ref ? { targetCampaignId: query.target_campaign_ref } : {}),
+      ...(query.limit === undefined ? {} : { limit: query.limit }),
+      ...(query.cursor === undefined ? {} : { cursor: query.cursor }),
+    });
   }
 
   @Get("runs/:runId")

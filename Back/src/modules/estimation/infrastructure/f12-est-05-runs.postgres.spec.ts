@@ -14,6 +14,7 @@ import { ConsumptionSeriesUseCase } from "../application/consumption-series.use-
 import { EstimationConfig } from "../application/estimation-config";
 import { CarryOutcome, EstimationWorker, resultContentOf } from "../application/estimation-worker";
 import { runContentHash } from "../domain/run-content";
+import { sealedConsumptionCampaigns } from "../test-support/synthetic-sources";
 import { shapeErrors } from "../test-support/openapi-shape";
 
 /**
@@ -507,6 +508,30 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     };
   });
 
+  it("marks a result OUTDATED when a denomination is associated to its product after the run", async () => {
+    const product = (await prisma.product.create({ data: { tenantId: f.tenantA, name: "Insecticida estimación", unit: "L" } })).id;
+    const sources = await sealedConsumptionCampaigns(prisma, {
+      tenantId: f.tenantA, sealedByUserId: directorUser, canonicalProductId: product, baseUnit: "ML", firstYear: 2010,
+      quantities: [3000n, 3000n, 3000n], namePrefix: "Campaña sellada para la asociación", coverage: { status: "IDENTIFIED", membersInPublishedFigures: 3 },
+    });
+    sources.forEach((source, i) => (campaigns[`A${i + 1}`] = source.campaignId));
+    await plannedCampaign("TA", 2013);
+    await season("ASOCIACION");
+    await classify("ASOCIACION", ["A1", "A2", "A3", "TA"]);
+    const jobId = await queue("TA", [product]);
+    expect(await worker.processNext()).toMatchObject({ jobId, status: "COMPLETED", outcome: "CALCULATED" });
+    const runId = (await runOf(jobId)).id;
+    const read = async () => ((await http().get(`/api/v1/estimation/runs/${runId}`).set(auth(director))).body as { results: ResultBody[] }).results[0]!;
+    expect(await read()).toMatchObject({ status: "ESTIMATED", estimate_base: "3000.000000", validity: "CURRENT" });
+    // A denomination is associated to the product: the series would be built with another scope now.
+    const alias = (await prisma.product.create({ data: { tenantId: f.tenantA, name: "Insecticida genérico estimación", unit: "L" } })).id;
+    await prisma.productCanonicalAssociation.create({
+      data: { tenantId: f.tenantA, productId: alias, canonicalProductId: product, actorUserId: directorUser, reason: "Misma sustancia, asociada después de la ejecución" },
+    });
+    expect(await read()).toMatchObject({ validity: "OUTDATED", validity_reason: "SOURCES_CHANGED", estimate_base: "3000.000000" });
+    demo["association_changed"] = { run: runId, validity: "OUTDATED", reason: "SOURCES_CHANGED" };
+  });
+
   it("does not deliver a result to an identity that lost its permission, nor to another tenant", async () => {
     const second = await person("DIRECTIVA");
     const path = `/api/v1/estimation/runs/${runs["T1b"]}`;
@@ -532,6 +557,47 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     for (const route of [path, `/api/v1/estimation/jobs/${randomUUID()}`]) expect((await http().get(route).set(auth(farmer))).status).toBe(403);
   });
 
+  it("lists earlier runs newest first, with an opaque cursor, failed ones included and no figures", async () => {
+    const list = (session: TestSession, query = "") => http().get(`/api/v1/estimation/runs${query}`).set(auth(session));
+    const target = `?target_campaign_ref=${campaigns["T1"]}`;
+    const first = await list(director, `${target}&limit=2`);
+    expect(first.status).toBe(200);
+    shaped("RunList", first.body);
+    expect(first.body.items.map((r: { run_ref: string }) => r.run_ref)).toEqual([runs["T1c"], runs["T1b"]]);
+    expect(first.body.items[0]).toMatchObject({ outcome: "FAILED", failure_code: "CALCULATION_FAILED", previous_run_ref: runs["T1b"], counts: { calculation_failed: 2 } });
+    expect(first.body.items[1]).toMatchObject({ outcome: "CALCULATED", previous_run_ref: runs["T1a"], counts: { estimated: 1, insufficient_data: 1 } });
+    expect(first.body.next_cursor).toEqual(expect.any(String));
+    const second = await list(director, `${target}&limit=2&cursor=${encodeURIComponent(first.body.next_cursor)}`);
+    shaped("RunList", second.body);
+    expect([second.body.items.map((r: { run_ref: string }) => r.run_ref), second.body.next_cursor]).toEqual([[runs["T1a"]], null]);
+
+    // Every run of the tenant, page after page, once each and in order.
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const page = await list(director, `?limit=3${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
+      shaped("RunList", page.body);
+      seen.push(...page.body.items.map((r: { run_ref: string }) => r.run_ref));
+      cursor = page.body.next_cursor;
+    } while (cursor);
+    const stored = await prisma.estimationRun.findMany({ where: { tenantId: f.tenantA }, orderBy: [{ generatedAt: "desc" }, { id: "desc" }], select: { id: true } });
+    expect(seen).toEqual(stored.map((r) => r.id));
+
+    expect((await list(farmer)).status).toBe(403);
+    const other = await person("DIRECTIVA", f.tenantB);
+    const otherList = await list(other);
+    expect([otherList.status, otherList.body.items, otherList.body.next_cursor]).toEqual([200, [], null]);
+    const hidden = await list(other, target);
+    expect([hidden.status, hidden.body.message]).toEqual([404, "TARGET_CAMPAIGN_NOT_FOUND"]);
+    const forged = Buffer.from(JSON.stringify(["no-es-fecha", randomUUID()]), "utf8").toString("base64url");
+    for (const query of ["?limit=0", "?limit=51", "?limit=dos", "?target_campaign_ref=no-es-uuid", `?cursor=${forged}`, "?cursor=%25%25"]) {
+      const res = await list(director, query);
+      expect([query, res.status]).toEqual([query, 400]);
+      shaped("Error", res.body);
+    }
+    demo["runs_list"] = { first_page: first.body.items.map((r: { run_ref: string; outcome: string }) => [r.run_ref, r.outcome]), pages_cover_all: seen.length };
+  });
+
   it("stops before calculating, without a run, on lost permission, pending policy or an ineligible target", async () => {
     const revoked = await person("DIRECTIVA");
     const byRevoked = await queue("U3", [products["Herbicida"]!], revoked);
@@ -542,7 +608,7 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     (collective as { mode: string }).mode = "POLICY_PENDING";
     try {
       expect(await worker.processNext()).toMatchObject({ jobId: pending, status: "NOT_EXECUTED", stopCode: "POLICY_PENDING" });
-      for (const route of [`/api/v1/estimation/runs/${runs["T1b"]}`, `/api/v1/estimation/results?target_campaign_ref=${campaigns["T1"]}`]) {
+      for (const route of [`/api/v1/estimation/runs/${runs["T1b"]}`, "/api/v1/estimation/runs", `/api/v1/estimation/results?target_campaign_ref=${campaigns["T1"]}`]) {
         const res = await http().get(route).set(auth(director));
         expect([res.status, res.body.message]).toEqual([409, "POLICY_PENDING"]);
       }

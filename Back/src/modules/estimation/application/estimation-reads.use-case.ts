@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CollectiveConfig } from "../../collective/application/collective-config";
@@ -71,32 +71,44 @@ export class EstimationReadsUseCase {
     const reading = new Reading(this.prisma, this.series, tenantId, await this.chain(tenantId, run.targetCampaignId));
     const results = [];
     for (const result of sortResults(run.results)) results.push(await reading.detail(run, result));
-    const count = (status: string) => run.results.filter((r) => r.status === status).length;
     return {
-      contract_version: 1,
-      run_ref: run.id,
-      job_ref: run.jobId,
-      scope: { tenant_ref: run.tenantId },
-      requested_by_role: run.requestedByRole,
-      target: campaignRefOf(run.targetCampaign),
-      season: seasonRefOf(run.season),
-      target_classification_ref: run.targetClassificationId,
-      method: run.method,
-      method_version: run.methodVersion,
-      outcome: run.outcome,
-      failure_code: run.failureCode,
-      previous_run_ref: run.previousRunId,
-      content_hash: run.contentHash,
-      generated_at: run.generatedAt.toISOString(),
-      counts: {
-        estimated: count("ESTIMATED"),
-        insufficient_data: count("INSUFFICIENT_DATA"),
-        incompatible_data: count("INCOMPATIBLE_DATA"),
-        calculation_failed: count("CALCULATION_FAILED"),
-      },
+      ...summaryOf(run),
       parameters: run.parameters,
       disclosure: { mode: run.disclosureMode, policy: run.policy, threshold: run.threshold },
       results,
+    };
+  }
+
+  /**
+   * Earlier runs of the tenant (RN-27), optionally of one target, newest
+   * first (`generatedAt`, then `id`), failed and superseded ones included.
+   * The cursor is opaque: it encodes the last run of the page. A summary has
+   * no figures nor validity; the detail of each run carries them.
+   */
+  async list(tenantId: string, query: { targetCampaignId?: string; limit?: number; cursor?: string }) {
+    this.requirePolicy();
+    if (query.targetCampaignId) {
+      const target = await this.prisma.agriculturalCampaign.findFirst({ where: { id: query.targetCampaignId, tenantId }, select: { id: true } });
+      if (!target) throw new NotFoundException("TARGET_CAMPAIGN_NOT_FOUND");
+    }
+    const after = query.cursor === undefined ? null : decodeCursor(query.cursor);
+    const limit = query.limit ?? 20;
+    const rows = await this.prisma.estimationRun.findMany({
+      where: {
+        tenantId,
+        ...(query.targetCampaignId ? { targetCampaignId: query.targetCampaignId } : {}),
+        ...(after ? { OR: [{ generatedAt: { lt: after.generatedAt } }, { generatedAt: after.generatedAt, id: { lt: after.id } }] } : {}),
+      },
+      orderBy: [{ generatedAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      include: { targetCampaign: { select: CAMPAIGN }, season: true, results: { select: { status: true } } },
+    });
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      contract_version: 1,
+      items: page.map(summaryOf),
+      next_cursor: rows.length > limit && last ? encodeCursor(last.generatedAt, last.id) : null,
     };
   }
 
@@ -344,6 +356,71 @@ class Reading {
     }
     return this.hashes.get(key)!;
   }
+}
+
+/** The part of a run that `RunSummary` and `Run` share. */
+function summaryOf(run: {
+  id: string;
+  jobId: string;
+  tenantId: string;
+  requestedByRole: string;
+  targetCampaign: Parameters<typeof campaignRefOf>[0];
+  season: Parameters<typeof seasonRefOf>[0];
+  targetClassificationId: string;
+  method: string;
+  methodVersion: string;
+  outcome: string;
+  failureCode: string | null;
+  previousRunId: string | null;
+  contentHash: string;
+  generatedAt: Date;
+  results: { status: string }[];
+}) {
+  const count = (status: string) => run.results.filter((r) => r.status === status).length;
+  return {
+    contract_version: 1,
+    run_ref: run.id,
+    job_ref: run.jobId,
+    scope: { tenant_ref: run.tenantId },
+    requested_by_role: run.requestedByRole,
+    target: campaignRefOf(run.targetCampaign),
+    season: seasonRefOf(run.season),
+    target_classification_ref: run.targetClassificationId,
+    method: run.method,
+    method_version: run.methodVersion,
+    outcome: run.outcome,
+    failure_code: run.failureCode,
+    previous_run_ref: run.previousRunId,
+    content_hash: run.contentHash,
+    generated_at: run.generatedAt.toISOString(),
+    counts: {
+      estimated: count("ESTIMATED"),
+      insufficient_data: count("INSUFFICIENT_DATA"),
+      incompatible_data: count("INCOMPATIBLE_DATA"),
+      calculation_failed: count("CALCULATION_FAILED"),
+    },
+  };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function encodeCursor(generatedAt: Date, id: string): string {
+  return Buffer.from(JSON.stringify([generatedAt.toISOString(), id]), "utf8").toString("base64url");
+}
+
+/** A cursor this route did not issue is a bad request, never a silent first page. */
+function decodeCursor(cursor: string): { generatedAt: Date; id: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+  } catch {
+    parsed = null;
+  }
+  if (Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === "string" && typeof parsed[1] === "string" && UUID.test(parsed[1])) {
+    const generatedAt = new Date(parsed[0]);
+    if (!Number.isNaN(generatedAt.getTime()) && generatedAt.toISOString() === parsed[0]) return { generatedAt, id: parsed[1] };
+  }
+  throw new BadRequestException(["cursor inválido"]);
 }
 
 function spanPoints(result: StoredResult): StoredPoint[] {
