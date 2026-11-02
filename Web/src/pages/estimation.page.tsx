@@ -428,7 +428,7 @@ function CopyPanel({
         <h2 className="text-base font-bold text-slate-900">Copia para consultar sin conexión</h2>
         <p className="mt-0.5 text-xs text-slate-500">
           Guarda en este navegador la última estimación permitida de esta campaña, con sus fechas y la vigencia que tenía al
-          descargarse. Sin conexión puede estar desactualizada. Es sólo para su sesión y se borra al cerrarla. No es el CSV de la
+          descargarse. Sin conexión puede estar desactualizada. Sólo la lee esta sesión, también sin conexión tras recargar; al cerrarla deja de poder leerse, y después se borra (si falla, se reintenta). No es el CSV de la
           consulta.
         </p>
       </div>
