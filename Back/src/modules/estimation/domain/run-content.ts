@@ -54,6 +54,15 @@ export interface ResultContent {
   metrics: unknown;
 }
 
+/**
+ * Order of identifiers by UTF-16 code units, as `Array.prototype.sort` does
+ * by default: independent of locale, so hashes and queues stay reproducible.
+ */
+export function byCodeUnits(a: string, b: string): number {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+}
+
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== "object") {
     if (typeof value === "bigint") return JSON.stringify(value.toString());

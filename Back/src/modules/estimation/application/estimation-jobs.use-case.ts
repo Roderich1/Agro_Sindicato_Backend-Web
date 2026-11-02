@@ -12,7 +12,7 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { CollectiveConfig } from "../../collective/application/collective-config";
 import { baseUnitForCentralUnit } from "../../sync-v1/domain/units";
 import { AuthenticatedPrincipal } from "../../iam/application/types/authenticated-principal.type";
-import { canonicalJson } from "../domain/run-content";
+import { byCodeUnits, canonicalJson } from "../domain/run-content";
 import { EstimationConfig } from "./estimation-config";
 import { campaignRefOf } from "./estimation-views";
 
@@ -43,7 +43,7 @@ export class EstimationJobsUseCase {
 
   async request(principal: AuthenticatedPrincipal, command: GenerateCommand): Promise<{ created: boolean; job: JobView }> {
     if (!GENERATORS.includes(principal.role)) throw new ForbiddenException();
-    const productRefs = command.productRefs ? [...new Set(command.productRefs)].sort() : null;
+    const productRefs = command.productRefs ? [...new Set(command.productRefs)].sort(byCodeUnits) : null;
     const requestHash = createHash("sha256")
       .update(canonicalJson({ target_campaign_ref: command.targetCampaignId, product_refs: productRefs }))
       .digest("hex");

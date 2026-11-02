@@ -4,6 +4,7 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { CollectiveConfig } from "../../collective/application/collective-config";
 import { PROVISIONAL_THRESHOLD } from "../../collective/domain/disclosure-policy";
 import { AuthenticatedPrincipal } from "../../iam/application/types/authenticated-principal.type";
+import { byCodeUnits } from "../domain/run-content";
 import { deriveValidity, figuresWithheld, ValidityFacts } from "../domain/validity";
 import { ConsumptionSeriesUseCase } from "./consumption-series.use-case";
 import { campaignRefOf, coverageViewOf, NOTICE, presentationUnitOf, seasonRefOf } from "./estimation-views";
@@ -121,7 +122,7 @@ export class EstimationReadsUseCase {
     const farmer = principal.role === UserRole.AGRICULTOR;
     const results = [];
     const runs = new Map<string, Awaited<ReturnType<typeof this.loadRun>>>();
-    for (const key of [...chosen.keys()].sort()) {
+    for (const key of [...chosen.keys()].sort(byCodeUnits)) {
       const runId = chosen.get(key)!.id;
       if (!runs.has(runId)) runs.set(runId, await this.loadRun(runId));
       const run = runs.get(runId)!;

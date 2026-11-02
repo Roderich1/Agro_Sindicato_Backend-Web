@@ -1,4 +1,4 @@
-import { canonicalJson, ResultContent, RunContent, runContentHash } from "./run-content";
+import { byCodeUnits, canonicalJson, ResultContent, RunContent, runContentHash } from "./run-content";
 import { deriveValidity, figuresWithheld, ValidityFacts } from "./validity";
 
 const none: ValidityFacts = {
@@ -57,6 +57,12 @@ describe("runContentHash (F12-EST-05, contract §5)", () => {
     expect(runContentHash(run, [result("p1", "2400.000001")])).not.toBe(a);
     expect(runContentHash({ ...run, job_attempt: 2 }, [result("p1", "2400.000000")])).not.toBe(a);
     expect(runContentHash(run, [])).not.toBe(a);
+  });
+
+  it("orders identifiers by code units, exactly as the default sort, whatever the locale", () => {
+    const ids = ["b0", "B1", "a", "Z", "ä", "10", "9", "e3f1-…", "E3F1-…", "", "a"];
+    expect([...ids].sort(byCodeUnits)).toEqual([...ids].sort());
+    expect(byCodeUnits("a", "a")).toBe(0);
   });
 
   it("serialises objects with sorted keys and bigint as text", () => {

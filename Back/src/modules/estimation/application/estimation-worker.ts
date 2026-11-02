@@ -6,7 +6,7 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { CollectiveConfig } from "../../collective/application/collective-config";
 import { PROVISIONAL_THRESHOLD } from "../../collective/domain/disclosure-policy";
 import { baseUnitForCentralUnit } from "../../sync-v1/domain/units";
-import { ResultContent, runContentHash } from "../domain/run-content";
+import { byCodeUnits, ResultContent, runContentHash } from "../domain/run-content";
 import { SpanAssessment } from "../domain/series";
 import { estimateSesNaive, SES_NAIVE_METHOD, SES_NAIVE_METHOD_VERSION, SES_NAIVE_PARAMETERS } from "../domain/ses-naive";
 import { ConsumptionSeriesUseCase } from "./consumption-series.use-case";
@@ -180,7 +180,7 @@ export class EstimationWorker implements OnApplicationBootstrap, OnModuleDestroy
 
         const products = job.productRefs ?? (await this.defaultProducts(tx, job.tenantId, target.seasonId));
         const results: ResultRow[] = [];
-        for (const productId of [...products].sort()) {
+        for (const productId of [...products].sort(byCodeUnits)) {
           const row = await this.resultFor(tx, job.tenantId, target, productId);
           if (row) results.push(row);
         }
@@ -207,7 +207,7 @@ export class EstimationWorker implements OnApplicationBootstrap, OnModuleDestroy
           const target = observed.target!;
           const products = job.productRefs ?? (await this.defaultProducts(tx, job.tenantId, target.seasonId));
           const results: ResultRow[] = [];
-          for (const productId of [...products].sort()) {
+          for (const productId of [...products].sort(byCodeUnits)) {
             const product = await tx.product.findFirst({ where: { id: productId, tenantId: job.tenantId }, select: { unit: true } });
             const baseUnit = product ? baseUnitForCentralUnit(product.unit) : null;
             if (!baseUnit) continue;
@@ -297,7 +297,7 @@ export class EstimationWorker implements OnApplicationBootstrap, OnModuleDestroy
       const product = await tx.product.findFirst({ where: { id: productId, tenantId }, select: { unit: true } });
       if (product && baseUnitForCentralUnit(product.unit)) canonical.add(productId);
     }
-    return [...canonical].sort().slice(0, this.config.maxProducts);
+    return [...canonical].sort(byCodeUnits).slice(0, this.config.maxProducts);
   }
 
   /** The result of one product: figures only from a READY span (RN-28). */
