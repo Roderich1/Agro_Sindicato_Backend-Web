@@ -172,6 +172,38 @@ export class EstimationReadsUseCase {
     };
   }
 
+  /**
+   * RF-40 (contract §9): the copy to read offline. It is `results` itself —
+   * same selection, profile, policy and authorization at this request — with
+   * the identity that downloads (`subject`), the server time of the download,
+   * the validity each result had at that moment and the rules of the copy.
+   * It carries no series point, contribution nor private figure; the Farmer
+   * profile has neither the naive baseline nor the coverage. The copy is not
+   * a current authorization: offline, the client knows no revocation nor
+   * change of sources (`may_be_outdated`).
+   */
+  async download(principal: AuthenticatedPrincipal, targetCampaignId: string) {
+    const read = await this.results(principal, targetCampaignId);
+    return {
+      contract_version: 1,
+      kind: "ESTIMATION_DOWNLOAD" as const,
+      profile: read.profile,
+      scope: read.scope,
+      subject: { member_ref: principal.memberId, role: principal.role },
+      downloaded_at: read.evaluated_at,
+      target: read.target,
+      season: read.season,
+      results: read.results.map(({ validity, ...result }) => ({ ...result, validity_at_download: validity })),
+      may_be_outdated: true as const,
+      notice: read.notice,
+      storage: {
+        backup: "EXCLUDED_FROM_PRIVATE_BACKUP" as const,
+        discard_on: ["IDENTITY_CHANGE", "SIGN_OUT"] as const,
+        replace_only_with: "NEWER_SAME_SUBJECT_AND_SCOPE" as const,
+      },
+    };
+  }
+
   private requirePolicy() {
     if (this.collective.mode === "POLICY_PENDING") throw new ConflictException("POLICY_PENDING");
   }

@@ -8501,6 +8501,52 @@
         ]
       }
     },
+    "/api/v1/estimation/download": {
+      "get": {
+        "operationId": "EstimationController_download",
+        "parameters": [
+          {
+            "name": "target_campaign_ref",
+            "required": true,
+            "in": "query",
+            "description": "Campaña objetivo (período) dentro del sindicato autenticado",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Perfil INSTITUTIONAL o FARMER según el rol, con fechas, vigencia al descargar y aviso"
+          },
+          "400": {
+            "description": "Parámetros inválidos"
+          },
+          "401": {
+            "description": "Sin sesión válida, o cuenta, Member o tenant inactivos"
+          },
+          "403": {
+            "description": "Rol no admitido (RolesGuard global): no se ejecuta ni se registra nada"
+          },
+          "404": {
+            "description": "TARGET_CAMPAIGN_NOT_FOUND"
+          },
+          "409": {
+            "description": "POLICY_PENDING: no hay política de divulgación en vigor; no se entrega ninguna cifra"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "RF-40: copia de la última versión permitida para consultar sin conexión",
+        "tags": [
+          "estimation"
+        ]
+      }
+    },
     "/api/v1/me/backups": {
       "get": {
         "operationId": "BackupsController_list",
