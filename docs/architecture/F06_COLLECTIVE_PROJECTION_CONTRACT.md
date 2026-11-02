@@ -8,7 +8,14 @@ Baselines de lectura: Backend/Web `6fa1c0c0083965b7d8da0b8ac3cd1907a418f29e`; Mo
 
 Rigen [ADR-001](../adr/ADR-001-mobile-individual-system-of-record.md), [CURRENT_SCOPE](../scope/CURRENT_SCOPE.md), las matrices de alcance y [F01](F01_INTEGRATION_DECISIONS.md), incluidos sus ajustes semánticos. El código histórico no crea requisitos. Mobile conserva autoridad sobre operaciones individuales; Central conserva identidad, membresía, catálogos y campañas compartidas. Central custodia únicamente una proyección autorizada para planificación, visualización y reportes colectivos. Web es consumidor Directiva/Admin online-first.
 
-Regla: **DENY por defecto**. Sólo entran campos con finalidad, trazabilidad, propietario, acceso, minimización y retención definidos. No hay réplica de SQLite, sincronización financiera, forecasting, IA, recomendación, aportes comunales (retirados, ADR-002), operación individual desde Web ni publicación implícita desde backup.
+Regla: **DENY por defecto**. Sólo entran campos con finalidad, trazabilidad, propietario, acceso, minimización y retención definidos. No hay réplica de SQLite, sincronización financiera, IA, recomendación, aportes comunales (retirados, ADR-002), operación individual desde Web ni publicación implícita desde backup.
+
+**Pronóstico ([ADR-004](../adr/ADR-004-estimacion-exploratoria-ses-naive.md)).** Esta proyección no calcula pronósticos y conserva su responsabilidad: recibir, consolidar y divulgar cifras colectivas autorizadas. La estimación SES/naive de INT-09 es un módulo aparte (F12):
+- solo lee, con los permisos y la política vigentes, cifras de consumo ya publicadas y selladas;
+- no añade campos a esta proyección, no amplía el acceso a datos privados y no cambia las reglas de divulgación;
+- su única salida colectiva nueva es la cobertura de participación del consumo de los sellados nuevos (F07 §5.3), declarada allí para revisarla con F07-POL-01 antes de usar datos reales.
+
+Hasta el 2026-11-02 (UTC) la frase anterior incluía «forecasting» en la lista de exclusiones; la acotación es decisión del autor en F12-EST-01 (#174).
 
 | Decisión | Finalidad concreta | Respaldo y consumidor |
 | --- | --- | --- |
@@ -216,7 +223,7 @@ En rechazo por campos privados, la auditoría registra clasificación y referenc
 
 | Clase | Inicio / contenido permitido | Criterio de salida y minimización | Responsable / issue / plazo |
 |---|---|---|---|
-| `R_COLLECTIVE_HISTORY` | El sellado manual de una campaña **cerrada** por DIRECTIVA o ADMINISTRADOR del tenant. Contenido: `CollectiveSeal`, con actor, rol, hora del servidor, modo, política, umbral, cobertura agregada, el booleano de disputas y la huella de revisión, y `CollectiveSealEntry`, con el estado por celda, la referencia a la divulgación mostrada, `pendingChanges` y la marca de retirada de visibilidad. Sin cantidades por aportación, identidades ni datos privados | Consulta histórica autorizada y tendencias descriptivas, con la política **vigente** al leer: puede retirar la visibilidad, nunca añadirla. Inmutable: sin UPDATE ni DELETE, salvo marcar la retirada de visibilidad. No hay purga en este bloque | Roderich1: F07 #107 (política para datos reales), F10 #45 (verificación). Datos sintéticos: se conserva mientras dure el entorno del ensayo. Datos reales: **sin plazo aprobado; no hay datos reales admitidos**. `PERIOD_DELEGATED` no se convierte en una conservación indefinida autorizada |
+| `R_COLLECTIVE_HISTORY` | El sellado manual de una campaña **cerrada** por DIRECTIVA o ADMINISTRADOR del tenant. Contenido: `CollectiveSeal`, con actor, rol, hora del servidor, modo, política, umbral, cobertura agregada, el booleano de disputas y la huella de revisión, y `CollectiveSealEntry`, con el estado por celda, la referencia a la divulgación mostrada, `pendingChanges` y la marca de retirada de visibilidad. Desde el 2026-11-02, también `CollectiveSealConsumptionCoverage` de cada sellado nuevo, con N y M de participación en las cifras de consumo (F07 §5.3). Sin cantidades por aportación, identidades ni datos privados | Consulta histórica autorizada y tendencias descriptivas, con la política **vigente** al leer: puede retirar la visibilidad, nunca añadirla. Inmutable: sin UPDATE ni DELETE, salvo marcar la retirada de visibilidad. No hay purga en este bloque | Roderich1: F07 #107 (política para datos reales), F10 #45 (verificación). Datos sintéticos: se conserva mientras dure el entorno del ensayo. Datos reales: **sin plazo aprobado; no hay datos reales admitidos**. `PERIOD_DELEGATED` no se convierte en una conservación indefinida autorizada |
 
 **Es vinculable.** Cada entrada visible apunta a una divulgación de `R_DISCLOSURE_MEMORY`, que guarda la cantidad de cada aportación con su Member. Conservar el historial es conservar **datos protegidos y vinculables**, no «sólo agregados anónimos». La Directiva sólo accede a las salidas colectivas que la política permite.
 

@@ -68,7 +68,7 @@ No cruzan la frontera por defecto, cuando existan en componentes privados o lega
 
 ## 11. Explicit Out-of-Scope
 
-- forecasting o predicción mediante IA;
+- cualquier pronóstico distinto de la estimación SES/naive de INT-09: entre otros, ARIMA, Prophet, redes neuronales u otros modelos de IA o aprendizaje automático, variables externas (clima, precios) y recomendaciones o decisiones automáticas. Sí está en el alcance la estimación exploratoria del consumo con SES y línea base naive de INT-09, que no se suma a necesidades, propuestas, compras ni inventarios ([ADR-004](../adr/ADR-004-estimacion-exploratoria-ses-naive.md), que conserva el texto anterior de esta línea);
 - recomendaciones agronómicas automáticas;
 - aportes comunales, tesorería, banca y conciliación;
 - contabilidad general, nómina y facturación electrónica;

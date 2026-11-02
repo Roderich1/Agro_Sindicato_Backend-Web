@@ -171,6 +171,11 @@ CollectiveSealEntry   -- una por celda del resumen en el instante del sellado
   releaseId (sólo y siempre si DISCLOSED) → CollectiveRelease (Restrict)
   pendingChanges
   visibilityWithdrawnAt (null; §5.2)
+
+CollectiveSealConsumptionCoverage   -- §5.3; migración 20261102020000_f07_seal_consumption_coverage
+  sealId (PK) → CollectiveSeal (Restrict)
+  status (IDENTIFIED | POPULATION_MISMATCH)
+  linkedMembers · membersInPublishedFigures   -- sólo si IDENTIFIED; 0 <= N <= M
 ```
 
 **Invariantes en la base:**
@@ -234,6 +239,45 @@ Una entrada sellada `DISCLOSED` se sirve con su cifra sólo si se cumple **todo*
 Señal aceptada, como en F07-POL-01 §6: una retirada revela que algo cambió en esa celda, no cuánto ni quién.
 
 **Cobertura sellada.** `linked_members`, `members_with_contribution` y `suppressed_cells` son los del instante del sellado. Se rotulan «al sellar» y **no se recalculan**: recalcularlos tras una retirada revelaría cuántos agricultores había en esa celda.
+
+### 5.3 Cobertura de participación del consumo de un sellado nuevo (2026-11-02, para F12)
+
+**Por qué existe.** La cobertura sellada de §5.2 cuenta, en N, a los agricultores de **alguna** cifra publicada, de necesidad o de consumo. La estimación F12 necesita la cobertura del **consumo** (RN-25) y no puede usar esa mezcla (decisión del autor, contrato F12 §3.1). Desde la migración `20261102020000_f07_seal_consumption_coverage`, cada sellado nuevo guarda además una fila `CollectiveSealConsumptionCoverage`.
+
+**Definición exacta.** Se calcula en la **misma decisión** que fija el sellado (§3.5), dentro de su transacción:
+- **M:** Members `AGRICULTOR` activos, con cuenta activa, del tenant, leídos en esa decisión. Es el mismo valor que `CollectiveSeal.linkedMembers`, y la base lo exige.
+- **N:** Members distintos con al menos un aporte dentro de alguna cifra de `CONSUMPTION_TOTAL` **mostrada** por esa decisión, es decir, en una celda que queda `DISCLOSED`:
+  - en una cifra nueva (`RELEASE`), los Members actuales de la celda;
+  - en una cifra anterior que se sigue mostrando (`SHOW_PRIOR`), los Members de esa divulgación.
+- **No cuentan** los aportantes de una celda suprimida, retirada o desbordada, ni ninguna necesidad declarada.
+
+**Misma población.** N es una parte de M solo si todo Member de N está en M. El código y la base lo resuelven así:
+- **Por la regla F07 vigente:** la regla 3 de F07-POL-01 retira la cifra en cuanto un Member de ella deja de estar en la celda, por cancelación, disputa, inactividad, cuenta desactivada o reagrupación. Por eso `SHOW_PRIOR` solo se da si **ningún** Member de la cifra anterior ha salido de la celda actual (`decideCell` y `decideCellWithRelated`), y sus Members son Members actuales y elegibles, es decir, de M.
+  - La advertencia anterior del contrato F12, según la cual `SHOW_PRIOR` podía incluir a agricultores inactivos, era incorrecta.
+  - La cifra de quien se fue **no se excluye en silencio**: se retira y se rotula `SUPPRESSED_*`, como cualquier retirada.
+- **Si aun así no coinciden:** las lecturas de la decisión se hacen en `READ COMMITTED`, y una baja confirmada entre dos lecturas podría dejar a un Member de N fuera de M. Entonces el sellado guarda `POPULATION_MISMATCH` **sin ninguna fracción**: no se presenta un «N de M» de dos poblaciones distintas, y las cifras selladas no cambian. F12 lo trata como cobertura desconocida.
+
+**Lo que acredita y lo que no:**
+- **Acredita** cuántos de los agricultores vinculados al sellar forman parte de alguna cifra de consumo publicada de esa campaña: participación.
+- **No acredita** que esos N hayan registrado todo su consumo: no mide integridad.
+- **No dice** nada del consumo de los M − N restantes: una ausencia de publicación es desconocida, **nunca cero**.
+- **No es** el número de aportantes de una fila (`contributors` de cada celda divulgada), ni la membresía actual.
+- **No implica ningún mínimo:** ni F07 ni F12 comparan N/M con un porcentaje.
+
+**Inmutable y sin reconstrucción:**
+- La fila se escribe con su sellado, en la misma transacción. La base rechaza:
+  - escribirla después;
+  - un M distinto del del sellado;
+  - N > M;
+  - una fracción en `POPULATION_MISMATCH`;
+  - cualquier UPDATE, DELETE o TRUNCATE.
+- Un disparador diferido rechaza, al confirmar, un sellado nuevo sin su fila.
+- Los sellados anteriores a la migración **no** reciben fila: su cobertura de consumo sigue desconocida y no se recalcula.
+
+**Sin cambio en la API F07.** La revisión, `review_ref` y las lecturas F07 no cambian, y `openapi-f06-collective.json` tampoco.
+- La Directiva confirma el sellado sin ver la cobertura de consumo. Esta se deriva de la misma decisión revisada y queda fijada con el sellado.
+- La cobertura de consumo solo la lee el módulo de estimación, en su perfil institucional (contrato F12 §3.1).
+- **Es una salida nueva** para DIRECTIVA y ADMINISTRADOR, aunque solo cuenta personas dentro de cifras ya publicadas, no toca celdas suprimidas y no da cantidades. Junto con N general, permite saber cuántos Members están solo en cifras de necesidad. Se declara para revisarla con la política F07-POL-01 y con F10-SEC-02 antes de usar datos reales.
 
 ## 6. Correcciones privadas tras el sellado (RF-03)
 
@@ -359,11 +403,19 @@ Se ejecutan con PostgreSQL desechable y cuentas sintéticas (`collective-seal.po
 - CANCEL y cambios de elegibilidad no filtran cifras;
 - las lecturas no escriben (recuento de filas antes y después);
 - la comparación histórica, el CSV y la propuesta aplican la misma política, también a las celdas suprimidas y retiradas;
-- la migración desde la base previa conserva los datos y los disparadores rechazan mutaciones.
+- la migración desde la base previa conserva los datos y los disparadores rechazan mutaciones;
+- §5.3 (2026-11-02):
+  - el sellado de CA guarda la cobertura de consumo con el mismo M;
+  - una campaña sintética con necesidad y consumo de agricultores distintos, una cifra en `SHOW_PRIOR` y un Member que se desactiva da una cobertura general de 6 y una de consumo de 3, con la cifra del que se fue suprimida a la vista;
+  - la base rechaza un sellado nuevo sin cobertura y cualquier cambio de ella;
+  - la migración no da cobertura a los sellados anteriores;
+  - la función de dominio cubre `POPULATION_MISMATCH` (`consumption-coverage.spec.ts`).
 
 La Web prueba estados, confirmación, cobertura y falta de red (Vitest).
 
 ## 12. Registro de revisiones
+
+- **2026-11-02 (UTC), F12-EST-01 (#174, PR #187), decisión del autor:** §5.3, cobertura de participación del consumo de los sellados nuevos, en la misma transacción e inmutable; los anteriores siguen sin ella. No cambia la API, la revisión ni las reglas de divulgación.
 
 - **2026-10-23, sesión A sobre `de94e83` (§3.5, §5.2, §7):** LISTO para tocar `sync-v1`, con cinco observaciones:
   - O1: el bloqueo compartido lo toman todas las acciones; la suite prueba la carrera CANCEL ↔ sellado;

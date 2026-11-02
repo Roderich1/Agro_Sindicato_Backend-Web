@@ -18,7 +18,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "openapi:generate": "node scripts/openapi.cjs",
-    "openapi:check": "node scripts/openapi.cjs --check && node scripts/openapi-contract.cjs"
+    "openapi:check": "node scripts/openapi.cjs --check && node scripts/openapi-contract.cjs && node scripts/openapi-f12-estimation.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1144.0",

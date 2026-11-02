@@ -12,7 +12,7 @@ Las pantallas actuales de inventario, parcelas, aplicaciones, compras, pagos, ca
 - No añadir CRUD operativo del agricultor ni nuevas escrituras privadas.
 - No expandir cola offline/PWA; un service worker no cambia la autoridad de datos.
 - No mostrar detalle privado cuando basta un agregado y no enviar `tenantId` desde el cliente.
-- No implementar forecasting, aportes comunales (retirados, ADR-002) ni voz autónoma.
+- No implementar aportes comunales (retirados, ADR-002), voz autónoma ni pronósticos fuera de la consulta de la estimación SES/naive de INT-09 ([ADR-004](../docs/adr/ADR-004-estimacion-exploratoria-ses-naive.md)). La Web no calcula estimaciones ni las suma a necesidades o propuestas.
 - Las propuestas colectivas no crean efectos individuales automáticos.
 - Mantener servicios/tipos/rutas coherentes mientras existan consumidores legacy; su retirada sigue `TRANSITION_PLAN.md`.
 

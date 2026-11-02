@@ -51,6 +51,7 @@ const describePostgres = postgresUrl ? describe : describe.skip;
 
 const PUSH = "/api/v1/sync/v1/push";
 const SEAL_MIGRATION = "20261023100000_f07_collective_seal";
+const COVERAGE_MIGRATION = "20261102020000_f07_seal_consumption_coverage";
 
 type Type = "CONSUMPTION_TOTAL" | "DECLARED_NEED";
 type Action = "PUBLISH" | "SUPERSEDE" | "CANCEL";
@@ -415,6 +416,14 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
       ].sort(),
     );
     expect(sealed.body.coverage).toEqual({ linked_members: 7, members_with_contribution: 4, suppressed_cells: true });
+    // F07 §5.3: the participation coverage of its consumption figures, with
+    // the seal and with the same M (Herbicida: 4 Members; Urea suppressed).
+    expect(await prisma.collectiveSealConsumptionCoverage.findUniqueOrThrow({ where: { sealId: sealedA.body.seal.seal_ref } })).toEqual({
+      sealId: sealedA.body.seal.seal_ref,
+      status: "IDENTIFIED",
+      linkedMembers: 7,
+      membersInPublishedFigures: 4,
+    });
     const audit = await prisma.auditLog.findMany({ where: { entityName: "CollectiveSeal" } });
     expect(audit).toHaveLength(1);
     expect(audit[0]).toMatchObject({ actorUserId: expect.any(String), campaignId: campaigns.CA, action: "OTRO", before: null, after: null });
@@ -769,6 +778,81 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     const line = (fromA.body.lines as any[]).find((l) => l.product_name === "Herbicida sello");
     expect(line).toMatchObject({ status: "SUPPRESSED_REVISION", quantity_base: null });
   });
+  it("a new seal records the participation coverage of its consumption figures only, with SHOW_PRIOR and a departed Member (F07 §5.3)", async () => {
+    const campaign = randomUUID();
+    await prisma.agriculturalCampaign.create({
+      data: { id: campaign, tenantId: f.tenantA, name: "Campaña cobertura", status: "ABIERTA", isActive: true, startDate: new Date("2026-02-01T00:00:00.000Z") },
+    });
+    for (const key of ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"]) farmers[key] = await fresh("AGRICULTOR");
+    await publishAll(campaign, [
+      ["G1", "CONSUMPTION_TOTAL", "Herbicida", "ML", "100"],
+      ["G2", "CONSUMPTION_TOTAL", "Herbicida", "ML", "200"],
+      ["G3", "CONSUMPTION_TOTAL", "Herbicida", "ML", "300"],
+      ["G4", "CONSUMPTION_TOTAL", "Urea", "G", "100"],
+      ["G5", "CONSUMPTION_TOTAL", "Urea", "G", "200"],
+      ["G7", "CONSUMPTION_TOTAL", "Urea", "G", "300"],
+      ["G4", "DECLARED_NEED", "Urea", "G", "500"],
+      ["G5", "DECLARED_NEED", "Urea", "G", "600"],
+      ["G6", "DECLARED_NEED", "Urea", "G", "700"],
+    ]);
+    // The first read publishes the three figures.
+    expect(cellsOf(await summary(campaign))).toEqual(
+      [
+        "CONSUMPTION_TOTAL|Herbicida sello|ML|DISCLOSED|600|3",
+        "CONSUMPTION_TOTAL|Urea sello|G|DISCLOSED|600|3",
+        "DECLARED_NEED|Urea sello|G|DISCLOSED|1800|3",
+      ].sort(),
+    );
+    // One Member changes its consumption: fewer than k changes, so the earlier
+    // figure stays shown with pending changes (SHOW_PRIOR); its Members are
+    // still the cell's current Members.
+    // G8 joins the cell too: still fewer than k changes, so the figure shown
+    // remains the earlier one, whose Members are G1–G3, not the cell's four.
+    await publishAll(campaign, [
+      ["G1", "CONSUMPTION_TOTAL", "Herbicida", "ML", "150"],
+      ["G8", "CONSUMPTION_TOTAL", "Herbicida", "ML", "50"],
+    ]);
+    // A Member of the Urea consumption figure leaves: rule 3 withdraws that
+    // figure, visibly (suppressed), instead of keeping a departed
+    // Member inside a shown figure.
+    await prisma.member.update({ where: { id: farmers["G7"]!.memberId }, data: { isActive: false } });
+    expect((await close(campaign)).status).toBe(200);
+
+    // The database refuses a new seal without its consumption coverage (at commit).
+    await expect(
+      prisma.collectiveSeal.create({
+        data: {
+          tenantId: f.tenantA, campaignId: campaign, sealedAt: new Date(), sealedByUserId: (await prisma.member.findUniqueOrThrow({ where: { id: f.members.directorA } })).userId,
+          sealedByRole: "DIRECTIVA", disclosureMode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", threshold: 3, linkedMembers: 1,
+          membersWithContribution: 0, suppressedCells: false, openDisputes: false, reviewRef: "b".repeat(64),
+        },
+      }),
+    ).rejects.toThrow(/exige su cobertura de consumo/);
+
+    const sealed = await reviewAndSeal(campaign);
+    expect(sealed.status).toBe(200);
+    const sealRow = await prisma.collectiveSeal.findFirstOrThrow({ where: { campaignId: campaign }, include: { entries: true, consumptionCoverage: true } });
+    const entry = (type: string, product: string) =>
+      sealRow.entries.find((e) => e.projectionType === type && e.canonicalProductId === products[product]);
+    expect(entry("CONSUMPTION_TOTAL", "Herbicida")).toMatchObject({ status: "DISCLOSED", pendingChanges: true });
+    // Withdrawn with two Members left (below k): visibly suppressed, not hidden.
+    expect(entry("CONSUMPTION_TOTAL", "Urea")).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", releaseId: null });
+    expect(entry("DECLARED_NEED", "Urea")).toMatchObject({ status: "DISCLOSED" });
+    const linked = await prisma.member.count({ where: { tenantId: f.tenantA, role: "AGRICULTOR", isActive: true, user: { isActive: true } } });
+    // General coverage (needs and consumption): G1–G3 and G4–G6.
+    expect(sealRow).toMatchObject({ linkedMembers: linked, membersWithContribution: 6 });
+    // Consumption coverage: only G1–G3, inside the figure still shown (G8
+    // contributed but is in no shown figure); the withdrawn Urea consumption
+    // figure counts nobody, and G7 is not in M.
+    expect(sealRow.consumptionCoverage).toEqual({ sealId: sealRow.id, status: "IDENTIFIED", linkedMembers: linked, membersInPublishedFigures: 3 });
+    for (const sql of [
+      `UPDATE "CollectiveSealConsumptionCoverage" SET "membersInPublishedFigures" = 4 WHERE "sealId" = '${sealRow.id}'`,
+      `DELETE FROM "CollectiveSealConsumptionCoverage" WHERE "sealId" = '${sealRow.id}'`,
+      `TRUNCATE "CollectiveSealConsumptionCoverage"`,
+    ]) {
+      await expect(prisma.$executeRawUnsafe(sql)).rejects.toThrow(/CollectiveSealConsumptionCoverage es inmutable/);
+    }
+  });
 });
 
 /**
@@ -796,6 +880,10 @@ describePostgres("F07 seal migration from the previous base", () => {
       cpSync(resolve("prisma/schema.prisma"), join(previous, "schema.prisma"));
       cpSync(resolve("prisma/migrations"), join(previous, "migrations"), { recursive: true });
       rmSync(join(previous, "migrations", SEAL_MIGRATION), { recursive: true });
+      // La base previa no tiene nada posterior (F12-EST-01 añadió una migración detrás).
+      for (const entry of readdirSync(join(previous, "migrations"))) {
+        if (/^\d{14}_/.test(entry) && entry > SEAL_MIGRATION) rmSync(join(previous, "migrations", entry), { recursive: true });
+      }
       expect(readdirSync(join(previous, "migrations"))).not.toContain(SEAL_MIGRATION);
       expect(deploy(previous).status).toBe(0);
     } finally {
@@ -843,6 +931,89 @@ describePostgres("F07 seal migration from the previous base", () => {
           },
         }),
       ).rejects.toThrow(/CERRADA/);
+    } finally {
+      await db.$disconnect();
+    }
+  }, 240000);
+});
+
+/**
+ * Migration from the base before 20261102020000_f07_seal_consumption_coverage:
+ * earlier seals keep no consumption coverage (unknown); every new seal needs one.
+ */
+describePostgres("F07 consumption coverage migration from the previous base", () => {
+  it("adds coverage only to new seals: old seals stay unchanged with unknown consumption coverage", async () => {
+    const admin = new PrismaClient({ datasources: { db: { url: postgresUrl! } } });
+    const name = `f07_cov_mig_${randomUUID().replaceAll("-", "")}`;
+    await admin.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
+    await admin.$disconnect();
+    const url = new URL(postgresUrl!);
+    url.pathname = `/${name}`;
+    const deploy = (schemaDir: string) =>
+      spawnSync(process.execPath, [resolve("node_modules/prisma/build/index.js"), "migrate", "deploy", "--schema", join(schemaDir, "schema.prisma")], {
+        cwd: process.cwd(),
+        env: { ...process.env, DATABASE_URL: url.toString() },
+        encoding: "utf8",
+        timeout: 120000,
+      });
+    const previous = mkdtempSync(join(tmpdir(), "f07-cov-prev-"));
+    try {
+      cpSync(resolve("prisma/schema.prisma"), join(previous, "schema.prisma"));
+      cpSync(resolve("prisma/migrations"), join(previous, "migrations"), { recursive: true });
+      for (const entry of readdirSync(join(previous, "migrations"))) {
+        if (/^\d{14}_/.test(entry) && entry >= COVERAGE_MIGRATION) rmSync(join(previous, "migrations", entry), { recursive: true });
+      }
+      expect(deploy(previous).status).toBe(0);
+    } finally {
+      rmSync(previous, { recursive: true, force: true });
+    }
+    const db = new PrismaClient({ datasources: { db: { url: url.toString() } } });
+    try {
+      const f = await seedFixture(db as unknown as PrismaService);
+      const director = (await db.member.findUniqueOrThrow({ where: { id: f.members.directorA } })).userId;
+      const sealData = (campaignId: string, linkedMembers: number) => ({
+        tenantId: f.tenantA, campaignId, sealedAt: new Date(), sealedByUserId: director, sealedByRole: "DIRECTIVA" as const,
+        disclosureMode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", threshold: 3, linkedMembers,
+        membersWithContribution: 3, suppressedCells: false, openDisputes: false, reviewRef: "b".repeat(64),
+      });
+      // An old seal, written before the coverage existed.
+      const old = await db.collectiveSeal.create({ data: sealData(f.campaigns.closedA, 5) });
+      const dump = async () => JSON.stringify(await db.collectiveSeal.findMany({ orderBy: { id: "asc" }, include: { entries: true } }));
+      const before = await dump();
+      const result = deploy(resolve("prisma"));
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(COVERAGE_MIGRATION);
+      expect(await dump()).toBe(before);
+      // Its consumption coverage stays unknown: no row, and none can be added later.
+      expect(await db.collectiveSealConsumptionCoverage.count()).toBe(0);
+      await expect(
+        db.collectiveSealConsumptionCoverage.create({ data: { sealId: old.id, status: "IDENTIFIED", linkedMembers: 5, membersInPublishedFigures: 3 } }),
+      ).rejects.toThrow(/sólo se escribe con su sellado/);
+
+      const campaigns = [randomUUID(), randomUUID()];
+      await db.agriculturalCampaign.createMany({
+        data: campaigns.map((id, i) => ({
+          id, tenantId: f.tenantA, name: `Cerrada nueva ${i}`, status: "CERRADA" as const, isActive: false,
+          startDate: new Date("2026-04-01T00:00:00.000Z"), closedAt: new Date("2026-06-01T00:00:00.000Z"),
+        })),
+      });
+      const withCoverage = (campaignId: string, coverage: object) =>
+        db.collectiveSeal.create({ data: { ...sealData(campaignId, 5), consumptionCoverage: { create: coverage as never } } });
+      await expect(db.collectiveSeal.create({ data: sealData(campaigns[0]!, 5) })).rejects.toThrow(/exige su cobertura de consumo/);
+      await expect(withCoverage(campaigns[0]!, { status: "IDENTIFIED", linkedMembers: 4, membersInPublishedFigures: 3 })).rejects.toThrow(/M no es el de su sellado/);
+      await expect(withCoverage(campaigns[0]!, { status: "IDENTIFIED", linkedMembers: 5, membersInPublishedFigures: 6 })).rejects.toThrow(/CollectiveSealConsumptionCoverage_values/);
+      await expect(withCoverage(campaigns[0]!, { status: "IDENTIFIED", linkedMembers: 5 })).rejects.toThrow(/CollectiveSealConsumptionCoverage_values/);
+      await expect(withCoverage(campaigns[0]!, { status: "POPULATION_MISMATCH", linkedMembers: 5, membersInPublishedFigures: 3 })).rejects.toThrow(
+        /CollectiveSealConsumptionCoverage_values/,
+      );
+      const known = await withCoverage(campaigns[0]!, { status: "IDENTIFIED", linkedMembers: 5, membersInPublishedFigures: 3 });
+      const mismatch = await withCoverage(campaigns[1]!, { status: "POPULATION_MISMATCH" });
+      expect(await db.collectiveSealConsumptionCoverage.findMany({ orderBy: { status: "asc" } })).toEqual(
+        [
+          { sealId: known.id, status: "IDENTIFIED", linkedMembers: 5, membersInPublishedFigures: 3 },
+          { sealId: mismatch.id, status: "POPULATION_MISMATCH", linkedMembers: null, membersInPublishedFigures: null },
+        ],
+      );
     } finally {
       await db.$disconnect();
     }

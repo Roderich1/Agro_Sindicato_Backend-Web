@@ -8,7 +8,7 @@ El código, schema y documentos legacy describen compatibilidad/transición, no 
 
 ## Límites obligatorios
 
-- No reintroducir forecasting, predicción o recomendaciones automáticas.
+- No introducir pronósticos fuera de la estimación exploratoria SES/naive de INT-09 ([ADR-004](docs/adr/ADR-004-estimacion-exploratoria-ses-naive.md)): ni IA, ARIMA, Prophet, redes neuronales o variables externas (clima, precios), ni recomendaciones o decisiones automáticas. La estimación no se suma a necesidades, propuestas, compras ni inventarios.
 - No reintroducir aportes comunales (retirados, ADR-002), tesorería, banca o contabilidad.
 - No construir Web como cliente operativo del agricultor ni ampliar su cola offline.
 - No convertir sync en réplica total de SQLite ni proyectar datos privados por conveniencia.
