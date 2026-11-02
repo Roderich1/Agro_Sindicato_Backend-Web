@@ -2368,6 +2368,63 @@
           "review_ref"
         ]
       },
+      "CreateSeasonDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^\\S(.*\\S)?$",
+            "description": "Clave de comparabilidad, única en el sindicato"
+          },
+          "definition": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Definición de la temporada"
+          },
+          "duration_days": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Duración nominal en días"
+          }
+        },
+        "required": [
+          "contract_version",
+          "key",
+          "definition",
+          "duration_days"
+        ]
+      },
+      "ClassifyCampaignDto": {
+        "type": "object",
+        "properties": {
+          "contract_version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "campaign_ref": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "season_ref": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "contract_version",
+          "campaign_ref",
+          "season_ref"
+        ]
+      },
       "CorrectClassificationDto": {
         "type": "object",
         "properties": {

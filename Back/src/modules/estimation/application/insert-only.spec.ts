@@ -39,7 +39,7 @@ describe("estimation module: insert-only runs and results (F12-EST-05)", () => {
 
   it("writes nothing outside the estimation tables", () => {
     const write = /\.(\w+)\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\b/g;
-    const allowed = new Set(["campaignSeasonClassification", "consumptionSeries", "estimationJob", "estimationRun"]);
+    const allowed = new Set(["campaignSeasonClassification", "comparabilitySeason", "consumptionSeries", "estimationJob", "estimationRun"]);
     for (const { path, text } of files) {
       const models = [...text.matchAll(write)].map((m) => m[1]!).filter((model) => !allowed.has(model));
       expect([path, models]).toEqual([path, []]);

@@ -3,7 +3,7 @@
   "info": {
     "title": "Agrocuentas — Estimación del consumo (INT-09)",
     "version": "1.0.0-draft",
-    "description": "Contrato v1 de INT-09 (F12-EST-01, Roderich1/Agro_Sindicato_Backend-Web#174). PARCIALMENTE IMPLEMENTADO desde F12-EST-05 (#178): x-implemented-operations enumera las operaciones que existen en el código, y `openapi:check` las compara con el OpenAPI generado (rutas, métodos y códigos de respuesta). Las demás (temporadas, clasificación inicial y su lista, y descarga) siguen especificadas y no implementadas. Documento rector: docs/architecture/F12_EST_01_ESTIMATION_CONTRACT.md.",
+    "description": "Contrato v1 de INT-09 (F12-EST-01, Roderich1/Agro_Sindicato_Backend-Web#174). PARCIALMENTE IMPLEMENTADO desde F12-EST-05 (#178): x-implemented-operations enumera las operaciones que existen en el código, y `openapi:check` las compara con el OpenAPI generado (rutas, métodos y códigos de respuesta). La descarga (GET /estimation/download) sigue especificada y no implementada. Documento rector: docs/architecture/F12_EST_01_ESTIMATION_CONTRACT.md.",
     "x-implementation-status": "PARTIALLY_IMPLEMENTED",
     "x-retention": "Temporadas, clasificaciones, series, trabajos, ejecuciones y resultados se conservan durante la construcción y la evaluación académica. La retención institucional definitiva está pendiente en GOV-02 (#185); no hay una conservación perpetua aprobada.",
     "x-contract-version": 1,
@@ -13,6 +13,10 @@
       "GET /api/v1/estimation/runs/{runId}",
       "GET /api/v1/estimation/results",
       "GET /api/v1/estimation/runs",
+      "POST /api/v1/estimation/seasons",
+      "GET /api/v1/estimation/seasons",
+      "POST /api/v1/estimation/campaign-classifications",
+      "GET /api/v1/estimation/campaign-classifications",
       "POST /api/v1/estimation/campaign-classifications/{campaignId}/corrections",
       "GET /api/v1/estimation/campaign-classifications/{campaignId}/history"
     ]

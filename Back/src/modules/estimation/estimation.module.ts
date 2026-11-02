@@ -14,8 +14,9 @@ import { EstimationWorker } from "./application/estimation-worker";
  *   their reading for a target campaign;
  * - F12-EST-04 (#177): the SES/naive engine (domain/ses-naive.ts);
  * - F12-EST-05 (#178): jobs, the batch worker, insert-only runs and results,
- *   the reading with derived validity and the correction of classifications,
- *   over six INT-09 routes.
+ *   the reading with derived validity and the correction of classifications;
+ * - contract §4.1 (EST-D-02): seasons and the first classification of a
+ *   campaign (continuation of #190, Refs #175).
  * No clients (F12-EST-06, F12-EST-07).
  */
 @Module({
