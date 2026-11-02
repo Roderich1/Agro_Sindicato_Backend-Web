@@ -24,5 +24,7 @@ import { JointPurchaseProposalUseCase } from "./application/joint-purchase-propo
     CollectiveSealUseCase,
     CollectiveTrendsUseCase,
   ],
+  // F12 reads the disclosure mode in force before building a series.
+  exports: [CollectiveConfig],
 })
 export class CollectiveModule {}

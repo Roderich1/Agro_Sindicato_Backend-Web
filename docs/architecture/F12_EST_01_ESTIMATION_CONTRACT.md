@@ -3,7 +3,10 @@
 - **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado dos veces el 2026-11-02 (UTC) con las decisiones del autor del §11.
 - **Estado:** **especificación**. Es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
   - **Ninguna ruta está implementada:** no hay controladores, casos de uso, trabajador por lotes ni motor de cálculo.
-  - **Lo construido** es el esquema de datos (§6), con su migración aditiva, y la cobertura de consumo de los sellados F07 nuevos (§3.1), que sí está implementada en el caso de uso del sellado.
+  - **Lo construido:**
+    - el esquema de datos (§6), con su migración aditiva;
+    - la cobertura de consumo de los sellados F07 nuevos (§3.1), implementada en el caso de uso del sellado;
+    - desde F12-EST-02 y F12-EST-03 (#175, #176), la preparación de fuentes, la construcción de series y su lectura para una campaña objetivo (§3.2), sin rutas.
 - **Issue:** [#174](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/174) (F12-EST-01), entregable E7.1 de 3.13.2. Lo siguen F12-EST-02 a F12-EST-08.
 - **Bases:**
   - Backend `main` `b81ff23`.
@@ -167,6 +170,7 @@ Es la «cobertura general» de 3.12.6.3, y **no se acepta** para la estimación 
 **Lo que no acredita:**
 - **Integridad:** que esos N registraran todo su consumo.
 - **Consumo de los demás:** la ausencia de publicación de los M − N es desconocida, **nunca cero**.
+- **Representatividad:** no dice que la cifra represente el consumo de todo el sindicato. Solo dice quiénes forman parte de ella. Esta distinción se mantiene en el contrato, en la evidencia y en cualquier presentación futura.
 - **Un mínimo:** no se introduce ningún porcentaje mínimo. RN-25 exige cobertura **identificada**, no un umbral, y fijar uno sería una regla nueva sin justificación en el documento.
 
 **Lo que no se usa como sustituto:**
@@ -174,7 +178,7 @@ Es la «cobertura general» de 3.12.6.3, y **no se acepta** para la estimación 
 - la membresía actual;
 - la cobertura general.
 
-**Cómo la usa F12** (F12-EST-03, especificado):
+**Cómo la usa F12** (F12-EST-02 y 03, construido; la entrega por la API sigue especificada):
 - **Por punto.** Cada punto lee la cobertura de su sellado por `sourceSealId`, sin copiarla. El punto no tiene columnas de cobertura.
   - Sellado con fila `IDENTIFIED`: N de M.
   - Sellado anterior a la migración: `UNKNOWN`, `SEALED_BEFORE_COVERAGE`.
@@ -184,6 +188,7 @@ Es la «cobertura general» de 3.12.6.3, y **no se acepta** para la estimación 
 - **Entrega.** La cobertura de cada campaña del tramo se entrega por separado, sin agregarla (`SpanCoverage`), solo en el perfil institucional.
   - **Es una salida nueva:** F07 no sirve la N de consumo. Junto con la N general, deja saber cuántos Members están solo en cifras de necesidad.
   - No da cantidades ni toca celdas suprimidas, pero se declara para revisarla con F07-POL-01 y F10-SEC-02 antes de usar datos reales (F07 §5.3).
+  - **Mientras no haya autorización institucional**, su exposición se limita al entorno sintético. La API de F07 no se amplía para mostrarla.
 
 **Sellados anteriores.** No reciben fila ni se recalculan. Su cobertura de consumo sigue desconocida y no se reconstruye.
 
@@ -192,6 +197,54 @@ Es la «cobertura general» de 3.12.6.3, y **no se acepta** para la estimación 
 - sin ella, antes de la migración.
 
 La suite F12 las usa (§12).
+
+### 3.2 Construcción de series y tramo (F12-EST-02 y F12-EST-03, implementado sin rutas)
+
+`Back/src/modules/estimation/application/consumption-series.use-case.ts` y `domain/series.ts`. Ningún controlador los alcanza.
+
+**Construir la serie** de un producto canónico, su unidad base y una temporada (`build`):
+1. **Antes de leer nada.**
+   - Con la política en `POLICY_PENDING` no se construye nada.
+   - La temporada y el producto se buscan en el sindicato; si son de otro, no existen.
+   - El producto debe ser canónico y de unidad enlazable (`PRODUCT_NOT_ESTIMABLE` si no).
+2. **Posiciones.** Son las campañas cuya clasificación **vigente** es la temporada, en orden cronológico, cada una con la versión de clasificación usada.
+   - Una campaña clasificada sin cifra es una posición, nunca se salta.
+   - Un período sin campaña registrada no puede detectarse, porque nada se infiere de las fechas.
+3. **Clase de cada posición:**
+   - **Campaña no cerrada, o cerrada sin sellar:** `NO_RECORD`, sin sellado.
+   - **Campaña sellada:** según la entrada de consumo del producto en la última versión sellada.
+     - Una entrada `DISCLOSED` visible cuya divulgación sigue vigente da `VERIFIED_CONSUMPTION` (también el cero), con la cifra exacta, el sellado y la divulgación.
+     - Una entrada suprimida, desbordada o con la visibilidad retirada da `HIDDEN`.
+     - Sin entrada, `NO_RECORD` con el sellado.
+4. **Cobertura.** Se lee del sellado (§3.1), sin copiarla en el punto.
+5. **Rechazos sin escribir nada:**
+   - Si una cifra sellada del grupo canónico está en otra unidad base: `MIXED_UNITS`.
+   - Si una cifra sellada es de un producto que **después** del sellado pasó a ser denominación de este: `CANONICAL_CHANGED_AFTER_SEAL`.
+     - Las cifras selladas no se suman, porque sería publicar una cifra nueva.
+     - Para una ejecución se informa como `INCOMPATIBLE_DATA` con `NO_COMPARABLE_CAMPAIGNS`.
+   - Dos denominaciones asociadas **antes** del sellado ya forman una sola cifra en F07 y se estiman juntas.
+6. **Huella y versiones.**
+   - La huella (§5) cubre el ámbito, las asociaciones y cada posición.
+   - Si coincide con la última versión, se **reutiliza**; si no, se crea la versión siguiente con sus puntos en una transacción, bajo un bloqueo por ámbito.
+   - Una corrección de clasificación produce así una versión nueva, y la anterior conserva sus puntos y la versión de clasificación que usó.
+
+**Leer la serie para una campaña objetivo** (`assess`, F12-EST-03):
+1. Se toma la temporada vigente del objetivo.
+2. Son relevantes las posiciones que empiezan antes que él. Las demás, incluido el propio objetivo, quedan como `NOT_BEFORE_TARGET`.
+3. Sin posiciones relevantes, `INCOMPATIBLE_DATA` con `NO_COMPARABLE_CAMPAIGNS`.
+4. El tramo es la racha final de posiciones comprobadas que termina en la última relevante. No se rellena ni se comprime.
+   - **Exclusiones:** `NO_RECORD`, `HIDDEN` y `BEFORE_GAP`.
+   - **Última relevante no comprobada:** `INSUFFICIENT_DATA` con `LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED`.
+   - **Menos de tres posiciones:** `SPAN_TOO_SHORT`.
+   - **Alguna posición del tramo con cobertura no identificada:** `INCOMPATIBLE_DATA` con `COVERAGE_UNKNOWN`, por cualquiera de sus motivos.
+   - **En otro caso, `READY`:** con los valores del tramo para el cálculo y la cobertura de cada campaña.
+5. Ningún motivo lleva cifras, y no se aplica ningún mínimo de participación.
+
+**Lo que no hace:**
+- no calcula SES ni naive;
+- no registra ejecuciones ni resultados;
+- no comprueba la admisibilidad del objetivo para un trabajo, que es de EST-D-06 y F12-EST-05;
+- no expone nada por HTTP.
 
 ## 4. Rutas (v1) y semántica
 
@@ -611,7 +664,8 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | La migración F12 es aditiva y no cambia `DemandForecast` ni los sellados; la F07 nueva no da cobertura a los sellados anteriores | **Comprobado contra PostgreSQL** | La misma suite, desde la base previa (13 migraciones) con datos sintéticos, y la prueba de migración F07 |
 | Rechazo HTTP 403 de una identidad sin permiso; 409 en `POLICY_PENDING`; 202 al encolar; correcciones por HTTP; selección de la consulta; perfiles; retirada de cifras al leer | **Solo especificado** | No hay controlador. Se probará en F12-EST-05 y F12-EST-06 |
 | Trabajador por lotes: toma con `SKIP LOCKED`, plazo, clasificación de errores transitorios, reintentos y paradas | **Solo especificado** | La base prueba las transiciones, el máximo de intentos, que una parada sea verificable y que `RETRIES_EXHAUSTED` exija los intentos agotados |
-| SES, naive, construcción de series, tramo, cobertura del tramo, vigencia y clientes | **No construido** | F12-EST-02 a F12-EST-07 |
+| Preparación de fuentes, construcción de series con versiones y lectura del tramo para una campaña objetivo (§3.2) | **Implementado y comprobado contra PostgreSQL**, sin rutas | `consumption-series.use-case.ts` y `domain/series.ts`; `series.spec.ts` (9) y `f12-est-02-series.postgres.spec.ts` (4, con sellados reales F07 por la API) |
+| SES, naive, ejecuciones, vigencia y clientes | **No construido** | F12-EST-04 a F12-EST-07 |
 
 **Lo que comprueba el script** sobre la especificación:
 - OpenAPI 3.0.3, referencias resueltas y ningún `$ref` con hermanos;
@@ -670,3 +724,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC) | Conciliación con las decisiones del autor EST-D-01 a 05, 09 y 13 (§11.1). Cambios: ADR-004; temporadas y clasificaciones explícitas en lugar de `comparabilityKey`; fuente sellada obligatoria; trabajos por lotes en lugar del cálculo en la petición, de modo que `POST /runs` pasa a `POST /jobs` y desaparece `RUN_SUCCESSION_CONFLICT`; cobertura retirada del esquema y `UNKNOWN` en la API; cuenta activa en la defensa de la base; la comprobación de ausencia de rutas pasa a ser de etapa. La migración, sin publicar en `main`, se reescribió en el mismo archivo. Una lectura de contraste de otro agente de la sesión, antes del commit, encontró dos bloqueantes, corregidos: un trabajo con ejecución podía pasar a `NOT_EXECUTED`, y una campaña sellada admitía `NO_RECORD` sin sellado. También se corrigieron menores: motivo emparejado con su estado, otro intento con más intentos, trabajo solo para campañas clasificadas, reglas propias declaradas como EST-D-15 y EST-D-16, textos de F06 y F07 sin tocar declarados, redacción de `CURRENT_SCOPE` y del 409, y pruebas de cuenta desactivada y de otro sindicato |
 | 2026-11-02 (UTC), segunda | Decisiones del autor EST-D-09 (cobertura), 11, 14, 15, 16 y F06 (§11.1). Cambios: cobertura de participación del consumo en los sellados F07 nuevos, implementada (F07 §5.3), con la advertencia sobre `SHOW_PRIOR` corregida tras leer `decideCell`; versiones de clasificación con corrección motivada, citadas por puntos y ejecuciones; paradas `NOT_EXECUTED` con evidencia verificable; `RETRIES_EXHAUSTED` en lugar de `ATTEMPTS_EXHAUSTED` y `SOURCES_UNAVAILABLE`; máximo de intentos y de productos configurables; retención académica con la institucional en GOV-02; F06 §1 acotado; fuentes sintéticas con cobertura conocida y desconocida |
 | 2026-11-02 (UTC), tercera | EST-D-06 decidida por el autor: admisible al pedir y antes de calcular; la base lo exige al crear el trabajo, y una ejecución iniciada se completa aunque la campaña se cierre |
+| 2026-11-02 (UTC), cuarta | F12-EST-02 y F12-EST-03 (#175, #176): construcción de series y lectura del tramo, implementadas sin rutas (§3.2); se añade la distinción de representatividad a la cobertura y el límite sintético de su exposición |
