@@ -1,0 +1,711 @@
+[
+  {
+    "at": "2026-11-03T11:27:40.168Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": []
+  },
+  {
+    "at": "2026-11-03T11:27:41.102Z",
+    "method": "POST",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 201,
+    "body": {
+      "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:41.120Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/116a597a-5bab-4e4c-9d8c-8b8e46b6ac40/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:27:41.115Z",
+      "proposal_generated_at": "2026-11-03T11:27:41.018Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": "NO_RESULT"
+        },
+        {
+          "position": 1,
+          "absence": "NO_RESULT"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:41.126Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:27:48.054Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:27:49.108Z",
+    "method": "POST",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 201,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:49.132Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      },
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:27:49.204Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:27:49.198Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": "111000.000000",
+          "validity": "CURRENT",
+          "validity_reason": null,
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:50.082Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+    "status": 200,
+    "body": {
+      "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:50.160Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/116a597a-5bab-4e4c-9d8c-8b8e46b6ac40/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:27:50.155Z",
+      "proposal_generated_at": "2026-11-03T11:27:41.018Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "AFTER_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": "111000.000000",
+          "validity": "CURRENT",
+          "validity_reason": null,
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "AFTER_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:50.964Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+    "status": 200,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:51.040Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:27:51.035Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": "111000.000000",
+          "validity": "CURRENT",
+          "validity_reason": null,
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:51.293Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/csv",
+    "status": 200
+  },
+  {
+    "at": "2026-11-03T11:27:54.708Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      },
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:27:55.756Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+    "status": 200,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:55.826Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:27:55.821Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": "111000.000000",
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_CHANGED",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:58.086Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      },
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:27:58.808Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+    "status": 200,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:58.887Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:27:58.881Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": null,
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_WITHDRAWN",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:27:59.145Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/csv",
+    "status": 200
+  },
+  {
+    "at": "2026-11-03T11:28:00.358Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+    "status": 200,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:00.633Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/2827ac94-303d-4cd1-9bac-57aa762df43a/proposals",
+    "status": 200,
+    "body": []
+  },
+  {
+    "at": "2026-11-03T11:28:01.108Z",
+    "method": "POST",
+    "path": "/api/v1/collective/campaigns/2827ac94-303d-4cd1-9bac-57aa762df43a/proposals",
+    "status": 201,
+    "body": {
+      "proposal_ref": "c945e512-7d2d-4436-8ca3-9ec1a72a193e",
+      "inputs_fingerprint": "03d2b0240de29d41d12e7be34e1523f3630bb710cb5128a2beed850b1f3f6f5c",
+      "seal": null,
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "60000"
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:01.122Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/c945e512-7d2d-4436-8ca3-9ec1a72a193e/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:28:01.117Z",
+      "proposal_generated_at": "2026-11-03T11:28:00.676Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:01.132Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/2827ac94-303d-4cd1-9bac-57aa762df43a/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "c945e512-7d2d-4436-8ca3-9ec1a72a193e",
+        "inputs_fingerprint": "03d2b0240de29d41d12e7be34e1523f3630bb710cb5128a2beed850b1f3f6f5c",
+        "line_count": 1
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:28:01.467Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:28:01.463Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": null,
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_WITHDRAWN",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:05.823Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      },
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:28:06.886Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+    "status": 200,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": "c41d780d-adc4-4d90-9086-b523c34756d9",
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:06.956Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:28:06.951Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": null,
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_WITHDRAWN",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:07.225Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/csv",
+    "status": 200
+  }
+]

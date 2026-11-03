@@ -1,0 +1,7 @@
+start=2026-11-03T11:27:04Z
+head=1f55988a1429389573828c0ddc7720257c27c801
+status=?? docs/evidence/f12_est_08/demo-postgres.json;?? docs/evidence/f12_est_08/recorrido/;
+node=v25.9.0
+postgres=16.13
+puppeteer_core=25.16.0
+end=2026-11-03T11:28:29Z

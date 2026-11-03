@@ -1,0 +1,80 @@
+[
+  {
+    "at": "2026-11-03T11:28:24.954Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+        "inputs_fingerprint": null,
+        "line_count": 3
+      },
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": null,
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:28:26.022Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+    "status": 200,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": null,
+      "seal": "c41d780d-adc4-4d90-9086-b523c34756d9",
+      "lines": [
+        [
+          0,
+          "POLICY_PENDING",
+          null
+        ],
+        [
+          1,
+          "POLICY_PENDING",
+          null
+        ],
+        [
+          2,
+          "POLICY_PENDING",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:26.028Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "POLICY_PENDING",
+      "evaluated_at": "2026-11-03T11:28:26.021Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": "POLICY_PENDING"
+        },
+        {
+          "position": 1,
+          "absence": "POLICY_PENDING"
+        },
+        {
+          "position": 2,
+          "absence": "POLICY_PENDING"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:26.276Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/csv",
+    "status": 200
+  }
+]
