@@ -4,8 +4,8 @@
 |---|---|
 | Estado | **Borrador revisable de F11** (BE #53). No es un release. GATE-F11 no se evalúa con este documento |
 | Fecha de redacción | 2026-10-19 |
-| Actualización | 2026-10-24: funciones de F03, RF-13, RF-03, F07 y F08 que ve el usuario (§1.1, §1.2, §2.1, §3, §6, §7, §9.5 y §9.6). 2026-10-27: bloque 2 (D-03, D-04, E-15, D-07, E-12) en §1, §1.1, §2, §3, §4, §11, §12 y §13. 2026-10-28: D-03 con anulaciones demostradas (§2, §2.1, §3 y §11), referencias de la composición probada `fb331c6` y comprobaciones en EMULADOR del bloque 2 (§1.1, §3, §4.1, §4.2, §12 y §13). 2026-10-31: copias previas a restauraciones tras F08-PREV-01 (§7.5, §12 y §13) |
-| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`). **Sólo las partes marcadas como bloque 2 describen el código del bloque 2**: los PR Mobile #156 (D-03, `323f393`; documentación posterior en `7a56656`), #157 (D-04, `b4b548b`), #158 (E-15, `3f70a48`), #159 (D-07, `0ea59aa`) y #160 (E-12, `f32eb97`; la rama incorpora D-07 con el merge `656c645` y documentación hasta `8718e9e`). Su composición probada es Mobile `fb331c6`. Se integraron el 2026-10-28 en Mobile `main` `186f473`, cuyo código es idéntico al de esa composición. Esas partes son: §1 (párrafo *Crear el PIN al terminar*), §1.1 (apartados *Crear el PIN durante la activación* y *Volver a la operación pendiente*, una fila de la tabla y el párrafo *Olvidé el PIN*), §2 (una viñeta), §2.1 (una viñeta), §3 (apartados de la aplicación con fecha pasada y de la transferencia), §4.1, §4.2, una viñeta de §4.3, tres límites de §11, los puntos 8 y 9 de §12 y cuatro filas de §13. **§7.5 describe Mobile `main` `774ae88`** (F08-PREV-01, PR Mobile #173, integrado el 2026-10-31). **Todo lo demás sigue describiendo Mobile `1d77c14`.** **Limitación declarada:** los cambios de X01 y del bloque 1 (#149, #150–#154) **todavía no están descritos** en este manual; algunos textos y rutas de las partes no actualizadas ya no coinciden con `fb331c6` |
+| Actualización | 2026-10-24: funciones de F03, RF-13, RF-03, F07 y F08 que ve el usuario (§1.1, §1.2, §2.1, §3, §6, §7, §9.5 y §9.6). 2026-10-27: bloque 2 (D-03, D-04, E-15, D-07, E-12) en §1, §1.1, §2, §3, §4, §11, §12 y §13. 2026-10-28: D-03 con anulaciones demostradas (§2, §2.1, §3 y §11), referencias de la composición probada `fb331c6` y comprobaciones en EMULADOR del bloque 2 (§1.1, §3, §4.1, §4.2, §12 y §13). 2026-10-31: copias previas a restauraciones tras F08-PREV-01 (§7.5, §12 y §13). **2026-11-03: estimación del consumo, F12 (§4.4, §9.4, §9.7, §11, §12 y §13)** |
+| Versión descrita | App móvil Mobile `1d77c14`; Central y Web Backend `4bcb1ea`. La redacción del 2026-10-19 describía Mobile `463d3ec` y Backend `2a69fe6` (código `f0b55ee`). **Sólo las partes marcadas como bloque 2 describen el código del bloque 2**: los PR Mobile #156 (D-03, `323f393`; documentación posterior en `7a56656`), #157 (D-04, `b4b548b`), #158 (E-15, `3f70a48`), #159 (D-07, `0ea59aa`) y #160 (E-12, `f32eb97`; la rama incorpora D-07 con el merge `656c645` y documentación hasta `8718e9e`). Su composición probada es Mobile `fb331c6`. Se integraron el 2026-10-28 en Mobile `main` `186f473`, cuyo código es idéntico al de esa composición. Esas partes son: §1 (párrafo *Crear el PIN al terminar*), §1.1 (apartados *Crear el PIN durante la activación* y *Volver a la operación pendiente*, una fila de la tabla y el párrafo *Olvidé el PIN*), §2 (una viñeta), §2.1 (una viñeta), §3 (apartados de la aplicación con fecha pasada y de la transferencia), §4.1, §4.2, una viñeta de §4.3, tres límites de §11, los puntos 8 y 9 de §12 y cuatro filas de §13. **§7.5 describe Mobile `main` `774ae88`** (F08-PREV-01, PR Mobile #173, integrado el 2026-10-31). **§4.4 describe Mobile `main` `5b5b318`**, y **§9.4 (referencia de la estimación) y §9.7 describen Backend y Web `main` `075a511`** (F12, 2026-11-03). **Todo lo demás sigue describiendo Mobile `1d77c14`.** **Limitación declarada:** los cambios de X01 y del bloque 1 (#149, #150–#154) **todavía no están descritos** en este manual; algunos textos y rutas de las partes no actualizadas ya no coinciden con `fb331c6` |
 | Manual técnico | [`F11_MANUAL_TECNICO.md`](F11_MANUAL_TECNICO.md) (BE #54): instalación, configuración, respaldos del servidor y recuperación |
 | Revisión | Sesión A, el recorrido de usuario. Las decisiones las toma Roderich Rendón |
 
@@ -566,6 +566,49 @@ En Operaciones › «Reportes»:
 - **Cifras netas:** hay pruebas en host (MOB #140, `76eea02`). Se vieron en pantalla en el POCO durante la preparación del piloto (2026-10-19), pero **sin evidencia versionada** **[Verificar]**.
 - **Reportes:** capturas de la serie EV2, del 2026-09, anteriores a esta versión **[Verificar]**.
 
+#### 4.4 Estimación del consumo (F12, 2026-11-03; Mobile `main` `5b5b318`)
+
+En «Inventario», la tarjeta «Estimación del consumo» abre una **referencia** del consumo de cada producto para la próxima campaña comparable. La calcula el sindicato con cifras ya publicadas y selladas. **No es su necesidad ni una compra:** «Es una referencia: no se suma a su necesidad declarada, no cambia su …». La app solo consulta: no calcula nada.
+
+**Consultar con conexión:**
+1. Elija la «Campaña objetivo».
+2. Pulse «Consultar con conexión». Por cada producto verá:
+   - la estimación, con la fecha de su ejecución («Generada el …»);
+   - el período objetivo y la temporada con que se compara;
+   - la vigencia.
+3. **Si un producto dice «Datos insuficientes»** (u otro motivo) y no muestra cifra, el sindicato no tiene campañas comparables suficientes. La app **nunca** pone un cero en su lugar.
+
+**Vigencia.** «Vigente» quiere decir que es la última estimación y que sus fuentes no cambiaron. Una estimación puede estar «Desactualizada» (cambiaron las cifras o las campañas que la sustentan) o ser «No utilizable» (no tiene cifra). Si una cifra usada dejó de publicarse, no se muestra.
+
+**Usarla sin conexión:**
+1. Con conexión, pulse «Descargar copia para consultar sin conexión». Verá «Copia guardada en este teléfono.».
+2. Sin conexión, la sección «Copia descargada en este teléfono» muestra la copia con:
+   - la fecha de descarga;
+   - la «Vigencia al descargar»;
+   - «Vigencia actual: desconocida sin conexión»;
+   - el aviso de que **puede estar desactualizada**. Sin conexión, la app no sabe si el sindicato cambió las cifras, la política o su acceso.
+3. Sin copia descargada, verá «Sin copia descargada…» y ninguna cifra.
+
+**Quién puede leer la copia.** Solo con la instalación activada y la sesión del **titular vigente**, de la misma cuenta y el mismo sindicato que la descargaron.
+- La copia se retira al cerrar la sesión, al cambiar de titular o cuando el sindicato rechaza la consulta: acceso retirado, otra campaña o política.
+- La copia pertenece a **la sesión, no a la persona**: quien use el teléfono con esa sesión puede verla. La app no pide un PIN extra para esto.
+- **Sin conexión no se conocen revocaciones:** si el sindicato le retira el acceso mientras está sin conexión, la copia sigue visible hasta la siguiente consulta con conexión, el cierre de sesión o el cambio de titular.
+
+**Respaldos.** La copia **no entra en su respaldo privado** (§7). Al restaurar un respaldo, la estimación aparece como «Sin copia descargada» y hay que volver a descargarla.
+
+**Caso excepcional del almacenamiento.** Si el teléfono no logra guardar la retirada de una copia ni en la base de la app ni en su almacenamiento seguro (los dos a la vez):
+- mientras la app siga abierta, no muestra la copia;
+- tras cerrarla y reabrirla sin conexión, la copia anterior podría volver a verse para la misma cuenta, hasta la siguiente consulta con conexión.
+
+Es una limitación aceptada para el alcance académico.
+
+**Comprobado** (Mobile `docs/evidence/F12_EST_07_MOB_ESTIMACION_2026-11-02.md`):
+- en el ordenador;
+- en el **POCO X5 Pro** contra un Central de ensayo con datos sintéticos: consulta, descarga, lectura en modo avión tras reabrir, «Datos insuficientes» y retirada por rechazos reales;
+- con un servidor simulado para el respaldo y la restauración.
+
+En el teléfono **no** se probaron el cierre de sesión ni el cambio de titular (solo en el ordenador). **No se usó emulador.**
+
 ### 5. Necesidad declarada
 
 Es **lo que usted pide al sindicato para una campaña**. No cambia su inventario y no es una compra.
@@ -963,6 +1006,23 @@ Sirve cuando dos nombres son el mismo producto, por ejemplo «Bellator» y «Bel
 
 **Pregunta W5, «¿Generar ese borrador compra los productos?»: no.** El borrador es «para revisión humana. Usa la necesidad declarada por los agricultores: no resta stock y no es una necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos.» No hay ninguna acción para convertirlo en compra.
 
+**Columna «Estimación del consumo (referencia)» (F12-EST-08, 2026-11-03; Backend y Web `main` `075a511`).** A la derecha de las líneas, cada producto muestra:
+- la estimación del consumo para la misma campaña y unidad;
+- su vigencia;
+- «Ejecución del … · anterior al borrador» o «posterior al borrador», según cuándo se calculó.
+
+Es **otra cifra**: no se suma a la necesidad declarada, no es la cantidad a pedir y no cambia las líneas, los totales ni la huella del borrador. Detalle en §9.7.
+- **Sin cifra:**
+  - «Sin estimación»: ninguna ejecución incluye ese producto;
+  - «Datos insuficientes», con su motivo;
+  - «Cifra retirada»: una cifra usada dejó de publicarse;
+  - con la política pendiente: «Sin cifra: la política de divulgación no está aprobada».
+
+  Nunca aparece un cero en su lugar.
+- **Fila con la necesidad oculta** (decisión del autor del 2026-11-03). La necesidad sigue oculta. Si la estimación de ese producto está permitida, la celda lo dice antes de la cifra: «La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se suma a la propuesta.». El prototipo W3 del documento dibuja «—» en esa fila; la diferencia es deliberada.
+- **Un borrador antiguo** muestra la estimación vigente hoy, marcada como «posterior al borrador» si se calculó después.
+- **«Exportar CSV»** conserva las columnas del borrador y añade la referencia al final, en columnas `estimation_*`, con el momento en que se evaluó la vigencia. En una fila oculta, la necesidad queda vacía; nunca lleva la estimación ni un cero.
+
 **Más detalles:**
 - Cada vez que genera, se añade un borrador nuevo al «Historial de borradores». No se sobrescribe ninguno.
 - Con la política pendiente, no se genera ningún borrador con cifras: «La política de divulgación no está aprobada: no se genera ni se guarda ninguna propuesta con cifras.»
@@ -1042,6 +1102,75 @@ Mientras el sellado esté desactivado no hay versiones selladas, así que la pá
 
 Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilidad/04_tarjetas_web_W1-W5.md` **no tienen todavía sesiones con personas**.
 
+#### 9.7 Estimación del consumo (F12, 2026-11-03; Backend y Web `main` `075a511`)
+
+La estimación del consumo es una **referencia exploratoria** para la próxima campaña comparable. El sindicato la calcula con las cifras de consumo **ya publicadas y selladas** de campañas anteriores de la misma temporada.
+- No es una necesidad, no es una propuesta y no se suma a ninguna de las dos.
+- No crea compras ni movimientos.
+- No se aprueba resultado por resultado: la decisión sigue siendo de las personas, en la propuesta (§9.4).
+
+**Generar.**
+1. En el menú, «Estimación del consumo».
+2. Elija la campaña objetivo, planificada o abierta.
+3. Si quiere, marque «Productos (opcional)». Sin marcar, se estiman los productos con consumo publicado en la temporada.
+4. Pulse «Generar estimación». La solicitud queda **en cola**: el servidor la calcula aparte y el «Estado del trabajo» pasa de «En cola» a «Procesándose» y a «Terminado» (o «No se ejecutó», con el motivo). Si la consulta automática se detiene, use «Consultar estado ahora».
+
+**Leer los resultados.** Por producto:
+- «Resultado»;
+- «Estimación SES»;
+- «Línea base naive»;
+- α;
+- «Campañas observadas», con lo publicado en cada una;
+- «Cobertura»;
+- «Vigencia»;
+- «Ejecución».
+
+**Qué es cada cifra:**
+- **SES (suavizamiento exponencial simple):** promedia las campañas anteriores dando más peso a las recientes. El peso es α, entre 0 y 1, y el servidor lo elige con esas mismas campañas.
+- **Naive:** repite la última cifra publicada. Es la línea base que cualquier método debería superar.
+- **El SES puede no superar al naive.** En la evaluación sintética de F12-EST-09, el naive tuvo menor error en tres de los cinco conjuntos evaluables (S2, S3 y S4). Ninguna de las dos cifras demuestra precisión con campañas reales.
+
+**Sin datos suficientes.** Con menos de tres campañas comparables consecutivas con consumo comprobado, o si la campaña anterior no tiene consumo comprobado, el resultado dice «Datos insuficientes», con su motivo, y **no muestra cifra**. Una campaña oculta o sin registro **no cuenta como cero**.
+
+**Vigencia** (se evalúa cada vez que consulta):
+
+| Vigencia | Qué significa |
+|---|---|
+| «Vigente» | Ninguna ejecución posterior la reemplaza y sus fuentes no cambiaron |
+| «Sustituido» | Una ejecución calculada posterior la reemplaza |
+| «Desactualizado» | Cambiaron las cifras, las campañas, las asociaciones o la clasificación que la sustentan. Si una cifra usada dejó de publicarse, la estimación **no se muestra** («Cifra retirada») |
+| «No utilizable» | La ejecución falló o el producto no tiene cifra |
+
+**Ejecuciones anteriores.** La sección lista todas las ejecuciones, incluidas las fallidas, de la más reciente a la más antigua, con «Ver detalle» y «Cargar más». Ninguna se modifica ni se borra.
+
+**Exportar.** «Exportar CSV de la consulta» guarda en un archivo la consulta tal como la respondió el servidor. No es una copia para consultar sin conexión.
+
+**Copia sin conexión en este navegador.**
+1. Con conexión, pulse «Descargar copia para consultar sin conexión».
+2. Sin conexión, la pantalla muestra la copia con su fecha, la «Vigencia al descargar», la «Vigencia actual» como «Desconocida sin conexión» y el aviso «Puede estar desactualizada.».
+3. Tras recargar sin conexión, la página de inicio de sesión ofrece «Hay una estimación descargada en este navegador. Consultarla sin conexión».
+4. Generar, actualizar y exportar requieren conexión.
+
+**Quién puede leer la copia:**
+- Solo la sesión con rol de Directiva o Administrador que la descargó, en ese navegador.
+- La copia se retira al cerrar la sesión, al entrar con otra cuenta u otro sindicato, o cuando el servidor rechaza la consulta: un 404 retira la copia de esa campaña.
+- Pertenece a **la sesión del navegador, no a la persona**.
+- **Sin conexión no se conocen revocaciones.**
+
+**Quién ve qué:**
+- **Directiva y Administrador:** generan y consultan con el perfil institucional (SES, naive, cobertura y serie).
+- **Agricultor:** en la app consulta solo la estimación, sin naive, cobertura ni serie (§4.4). La Web no es su cliente.
+- **Con la política de divulgación pendiente** no se genera ni se muestra ninguna cifra.
+
+**Comprobado:**
+- en el ordenador, con PostgreSQL desechable;
+- con recorridos de navegador (Edge sin interfaz) contra el servidor real con datos sintéticos: Backend `docs/evidence/F12_EST_06_WEB_2026-11-02.md`, `F12_EST_07_WEB_2026-11-02.md` y `F12_EST_08_REFERENCIA_PROPUESTA_2026-11-03.md`.
+
+**Límites:**
+- Solo con datos sintéticos.
+- No se ha evaluado la precisión con campañas reales ni hay ahorro demostrado.
+- La política de divulgación es provisional y no está aprobada.
+
 ### 10. Campañas y usuarios en la Web
 
 **«Campanas»** (Directiva y Administrador):
@@ -1106,6 +1235,14 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
   - **Las copias subidas con una versión anterior** aparecen como «SIN CIFRAR (formato anterior)». De ellas sigue valiendo lo que decía la redacción anterior: el proveedor las cifra en reposo, pero quien opera el servidor podría leerlas (manual técnico, §5.2). Puede eliminarlas con «Eliminar del servidor» después de subir una copia cifrada.
   - El cifrado protege el contenido, **no lo hace anónimo**. El servidor sabe de qué cuenta es cada copia, cuándo se subió, cuánto ocupa, la versión de su esquema y un identificador no secreto de la clave, con el que puede saber si dos copias usan la misma clave.
 - **La clave en pantalla y la accesibilidad:** mientras se muestra la clave de recuperación no se pueden hacer capturas ni grabaciones de pantalla, pero los servicios de accesibilidad autorizados, como TalkBack, sí pueden leerla (§7.2).
+- **Estimación del consumo (F12, §4.4, §9.4 y §9.7):**
+  - solo con datos sintéticos, sin precisión demostrada con campañas reales ni ahorro;
+  - en la evaluación sintética, el naive superó al SES en tres de los cinco conjuntos evaluables;
+  - la política de divulgación es provisional;
+  - el primer resultado con datos reales exigiría tres campañas consecutivas selladas después de la migración de F12;
+  - la copia sin conexión pertenece a la sesión, no a la persona; sin conexión no se conocen revocaciones; en el teléfono hay un caso excepcional de almacenamiento (§4.4);
+  - la estimación no se prueba en un emulador;
+  - en el teléfono no se probaron el cierre de sesión ni el cambio de titular.
 - **Sellado y tendencias (Web):** el sellado está desactivado por defecto. Mientras lo esté, no hay versiones selladas ni tendencias con cifras (§9.5 y §9.6).
 - **Equipos probados:**
   - app: POCO X5 Pro (Android 12) y HONOR JDY-LX3P (Android 16);
@@ -1137,6 +1274,7 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
    - E-12: el mensaje de «Ahora no», la vuelta desde una operación tardía y desde la clave del respaldo (F08), y la medición E4, que decide si el límite baja de 10 a 5 minutos y necesita personas.
    - Las familias de rechazo de sincronización tampoco se recorrieron en el emulador del bloque 2; las de §6 conservan sus evidencias anteriores.
 9. Capturas nuevas, con datos sintéticos, de la oferta del PIN, la tarjeta «Consumo y costos propios», el detalle de cuenta y «Confirmar transferencia».
+10. (2026-11-03, F12) Capturas de la app de «Estimación del consumo» con y sin copia; la del POCO es de la evidencia de Mobile y no se reproduce aquí. Releer §4.4, §9.4 y §9.7 si la APK o la Web que se entreguen no son Mobile `5b5b318` y Backend `075a511`.
 
 ### 13. Trazabilidad
 
@@ -1150,6 +1288,8 @@ Sólo hay pruebas automatizadas: las tareas W1–W5 de `docs/evaluation/usabilid
 | 5–6. Necesidad, consumo y sincronización | `F05_SYNC_V1_PUSH_ACK_CONTRACT.md`; `F06_COLLECTIVE_PROJECTION_CONTRACT.md`; `F07_SEALED_HISTORY_CONTRACT.md` §7 (`CAMPAIGN_SEALED`) | `F05_MOBILE_SYNC_DEVICE.md`, `F05_SYNC_06_DEVICE_F10.md`, `F06_D4_DEVICE.md`; `CAMPAIGN_SEALED`: Mobile `caca66c` (ordenador) y `F01_F08_DEVICE_FINAL_2026-10-24.md` (teléfono, C3–C5) |
 | 7. Respaldos | `F08_BACKUP_THREAT_MODEL.md`; `F08_BKP_06_RETENCION.md`; Mobile `docs/adr/F08-ADR-003-respaldo-cifrado-y-previo.md` | `F08_MOBILE_RESTORE.md`, `F10_RESTORE_DEVICE.md`; Backend `F08_BKP_07_B2_ENSAYO_REAL.md`; Mobile `F08_RESPALDO_CIFRADO_HOST.md` y `F01_F08_DEVICE_COMPOSICION_2026-10-24.md` (D6–D9) y `F01_F08_DEVICE_FINAL_2026-10-24.md` (D3–D5); Mobile `F08_PREV_01_VERIFICACION_ROLLBACK_2026-10-31.md` (HOST y CI) |
 | 8–10. Web de la Directiva | ADR-003; `F07_AGGREGATE_DISCLOSURE_POLICY.md` (propuesta); `AUTHORIZATION_MATRIX_VIGENTE.md` | `F07_WEB.md`, `F07_WEB_01.md`, `F10_COMPATIBILIDAD_WEB_S2.md`, `F10_DSUX_CENTRAL_VERIFICACION.md` |
+| 4.4. Estimación del consumo en la app (F12-EST-07-MOB; CU-21, RF-40, RN-30, DAT-20) | Backend `F12_EST_01_ESTIMATION_CONTRACT.md` §9 y `F12_EST_07_COPIA_MOBILE.md` | Mobile `F12_EST_07_MOB_ESTIMACION_2026-11-02.md` (HOST, DEVICE real y simulado) |
+| 9.4 y 9.7. Estimación en la Web y referencia en la propuesta (F12-EST-06, 07-WEB y 08; CU-20, CU-21, RF-23, RF-35 a RF-40, RN-29) | `F12_EST_01_ESTIMATION_CONTRACT.md` §4, §7.1, §8 y §9 | `F12_EST_06_WEB_2026-11-02.md`, `F12_EST_07_WEB_2026-11-02.md`, `F12_EST_08_REFERENCIA_PROPUESTA_2026-11-03.md`; índice `F12_EST_10_INDICE_EVIDENCIA_2026-11-03.md` |
 | 9.5–9.6. Sellado y tendencias | `F07_SEALED_HISTORY_CONTRACT.md`; F06 §7.2 (`R_COLLECTIVE_HISTORY`) | `F07_SELLADO_HISTORICO.md` (§7, recorrido Web 48/48) |
 | 1 y 1.1. PIN en la activación y vuelta a la operación pendiente (bloque 2, E-12; RF-01, RF-13, RF-03, CU-01, RNF-04) | Decisión del autor del 2026-10-27; Mobile `docs/architecture/F03_RECUPERACION_IDENTIDAD_LOCAL.md` §4 bis | Mobile `F10_BLOQUE2_E12_PIN_EN_ACTIVACION.md` (ordenador); `F10_BLOQUE2_EMULADOR_2026-10-28.md` (EMULADOR, E1–E3) |
 | 2, 2.1 y 3. Aplicación con fecha pasada y operaciones anuladas por error (bloque 2, D-03; RF-03, RF-13, CU-09) | Decisiones del autor del 2026-10-27 y del 2026-10-28 (anulaciones demostradas, también en las operaciones tardías); Mobile `F04_RF13_RF03_ACTOR_Y_TARDIAS.md` §2.3 y §2.6; `docs/15_BUSINESS_RULES.md` (precisión de la regla de stock suficiente) | Mobile `F10_BLOQUE2_D03_EXISTENCIA_HISTORICA.md` (ordenador, §8–§10 para las anulaciones demostradas); `F10_BLOQUE2_EMULADOR_2026-10-28.md` (EMULADOR) |
