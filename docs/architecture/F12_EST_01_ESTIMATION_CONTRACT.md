@@ -1,7 +1,7 @@
 # F12-EST-01 — Contrato INT-09: estimación del consumo (v1)
 
 - **Fecha real:** 2026-11-01 y 2026-11-02 (UTC); 2026-11-01 en Bolivia. Conciliado dos veces el 2026-11-02 (UTC) con las decisiones del autor del §11.
-- **Estado:** **implementado en el servicio**; falta el cliente Mobile de la copia (#164). El contrato es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
+- **Estado:** **implementado en el servicio y en sus dos clientes de la copia** (PWA #180; Mobile #164 en AppMovilAgroquimico `main` `c2ac44a`). El contrato es una propuesta del autor, no una aprobación institucional, de la Directiva ni del tutor.
   - **Rutas implementadas desde F12-EST-05 (#178):** `POST /estimation/jobs`, `GET /estimation/jobs/{jobId}`, `GET /estimation/runs`, `GET /estimation/runs/{runId}`, `GET /estimation/results`, `POST /estimation/campaign-classifications/{campaignId}/corrections` y `GET /estimation/campaign-classifications/{campaignId}/history`.
   - **Temporadas y clasificación inicial** (`POST`/`GET /estimation/seasons`, `POST`/`GET /estimation/campaign-classifications`): implementadas en la continuación de #190, con Refs #175 (§12).
   - **Descarga** (`GET /estimation/download`): implementada en F12-EST-07-WEB, con Refs #180 (§9 y §12). Con ella existen en el código las doce operaciones especificadas.
@@ -667,7 +667,7 @@ Desconectado, el cliente no conoce revocaciones ni cambios de fuentes: la copia 
   - **El borrado físico va después:** si falla, queda pendiente y se reintenta.
   - **El contexto identifica la sesión propietaria**, no a la persona frente al navegador.
   - Detalle y pruebas en `F12_EST_07_WEB_2026-11-02.md` §6 y §7.
-- **Mobile (#164):** el contrato que usará está en [`F12_EST_07_COPIA_MOBILE.md`](F12_EST_07_COPIA_MOBILE.md). Todavía no está implementado.
+- **Mobile (#164):** implementado en AppMovilAgroquimico `main` `c2ac44a`, según [`F12_EST_07_COPIA_MOBILE.md`](F12_EST_07_COPIA_MOBILE.md) §6.
 
 ## 10. Coherencia con el diseño aprobado
 
@@ -759,7 +759,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | Motor SES/naive (§3.3): rejilla de α, empates, criterio constante, naive y redondeo final | **Implementado y comprobado**, sin rutas ni ejecuciones | `domain/ses-naive.ts`; `ses-naive.spec.ts` (11, con casos calculados a mano y una referencia decimal independiente) y el tramo `READY` de sellados reales en `f12-est-02-series.postgres.spec.ts` |
 | Pantalla Web institucional «Estimación del consumo» (F12-EST-06): solicitud, estado del trabajo, resultados del perfil institucional con su vigencia, ejecuciones anteriores con su detalle y exportación de la consulta | **Implementado** (F12-EST-06, Refs #179); comprobado con pruebas de componentes y con un recorrido de navegador contra el backend real y PostgreSQL desechable, con la Directiva y el Administrador, y contrastado con el prototipo W4 | `Web/src/pages/estimation.page.tsx`; `docs/evidence/F12_EST_06_WEB_2026-11-02.md`. La Web no calcula: presenta lo que entrega el servicio |
 | Copia descargada en la PWA (IndexedDB) | **Implementado** (F12-EST-07-WEB, Refs #180). Comprobado con pruebas de componentes y con un recorrido de navegador real contra el backend: lectura sin conexión, también tras recargar, aislamiento, borrado y rechazos | `Web/src/lib/estimation-copy.ts`; `docs/evidence/F12_EST_07_WEB_2026-11-02.md` |
-| Copia descargada en Mobile (SQLite) y cliente Mobile | **No construido** | Mobile #164; contrato en `F12_EST_07_COPIA_MOBILE.md` |
+| Copia descargada en Mobile (SQLite) y cliente Mobile | **Implementado** (Mobile #164, AppMovilAgroquimico `c2ac44a`). Comprobado en HOST, en el POCO X5 Pro contra un Central propio y desechable por HTTPS, y con servidor simulado en el teléfono | `F12_EST_07_COPIA_MOBILE.md` §6; evidencia Mobile `F12_EST_07_MOB_ESTIMACION_2026-11-02.md` |
 
 **Lo que comprueba el script** sobre la especificación:
 - OpenAPI 3.0.3, referencias resueltas y ningún `$ref` con hermanos;
@@ -828,3 +828,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), undécima | F12-EST-07-WEB (#180): `GET /estimation/download` implementada y la copia de la PWA en IndexedDB (§9, §12); `openapi:check` en etapa `IMPLEMENTED`; contrato de la copia Mobile documentado para #164, sin implementar |
 | 2026-11-02 (UTC), precisión de #175 | EST-D-17 decidida por el autor: la agrupación de denominaciones se limita a asociaciones admisibles anteriores al sellado; sin reagrupación retrospectiva (§3.2, §11.1) |
 | 2026-11-02 (UTC), duodécima | F12-EST-07-WEB (#180): la retirada por un 404 se guarda en el contexto local y persiste tras recargar aunque el borrado falle; una descarga posterior autorizada habilita otra copia (§9) |
+| 2026-11-03 (UTC), decimotercera | Mobile #164 integrado (AppMovilAgroquimico `c2ac44a`): estado real del cliente Mobile de la copia (§9, §12) y del contrato `F12_EST_07_COPIA_MOBILE.md` |

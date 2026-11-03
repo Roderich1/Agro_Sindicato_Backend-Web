@@ -1,7 +1,7 @@
 # F12-EST-07-MOB (Mobile #164): contrato de la copia de la estimación para la app móvil
 
 - **Fecha real:** 2026-11-02 (UTC).
-- **Estado:** **especificado, no implementado**. Este documento fija lo que usará Mobile #164 cuando se construya. No cambia el contrato INT-09 (`F12_EST_01_ESTIMATION_CONTRACT.md` §9), que es el que manda.
+- **Estado:** **implementado** en AppMovilAgroquimico `main` `c2ac44a` (PR Roderich1/AppMovilAgroquimico#180), integrado el 2026-11-03 (UTC). No cambia el contrato INT-09 (`F12_EST_01_ESTIMATION_CONTRACT.md` §9), que es el que manda. Evidencia: `docs/evidence/F12_EST_07_MOB_ESTIMACION_2026-11-02.md` del repositorio Mobile; alcance de las pruebas en §6.
 - **Referencia implementada:** la copia de la PWA (F12-EST-07-WEB, #180, `Web/src/lib/estimation-copy.ts`) y `GET /estimation/download` en el servicio.
 - **No es una aprobación institucional.**
   - Con datos reales, el perfil `FARMER` solo se entrega cuando la política institucional (GOV-02, #107) contemple esta proyección (`x-policy-requirement` de la operación).
@@ -40,14 +40,17 @@
 
 ## 3. Almacén local
 
-- **Dónde:** SQLite de la app, en Inventario (contrato §9). Será el esquema 13 si integra después de F04-AV.
+- **Dónde:** SQLite de la app, en Inventario (contrato §9). **Esquema 13**, aditivo e idempotente, tras el 12 de F04-AV:
+  - `estimation_copies`: la copia, con el titular que la descargó y el contexto y la generación de cuando se pidió;
+  - `estimation_copy_access`: el contexto local (`context_id` aleatorio y generación);
+  - `estimation_copy_retirements`: las campañas retiradas por un 404 en un contexto.
 - **Una fila por** `(member_ref, tenant_ref, target_campaign_ref)`, con:
   - la respuesta tal como llegó;
   - `downloaded_at`, que se usa para reemplazar;
   - la versión del formato local;
   - la identidad de la sesión que la descargó.
 - **Sin credenciales:** ni token, ni PIN, ni clave.
-- **Respaldo privado:** queda **fuera** (`storage.backup: EXCLUDED_FROM_PRIVATE_BACKUP`, decisión del autor del 2026-10-31). La exportación del respaldo de F08 debe excluir esta tabla, y una restauración nunca debe traer copias.
+- **Respaldo privado:** queda **fuera** (`storage.backup: EXCLUDED_FROM_PRIVATE_BACKUP`, decisión del autor del 2026-10-31). La exportación del respaldo de F08 borra las tres tablas de la base empaquetada y la compacta con `VACUUM`. La restauración nunca trae copias: después aparece «Sin copia descargada».
 
 ## 4. Reglas del cliente
 
@@ -76,7 +79,7 @@
 
 ## 5. Pruebas previstas para #164
 
-Son orientativas, porque todavía no hay código:
+Lista original, conservada como antecedente (las realizadas están en §6):
 - **Lectura sin conexión** con la copia: fechas, período, vigencia al descargar y aviso.
 - **Sin copia:** el aviso sin cifras.
 - **Otra identidad u otro titular** en el mismo teléfono: no ve la copia.
@@ -88,3 +91,32 @@ Son orientativas, porque todavía no hay código:
 - **Fidelidad:** de cifras, unidades y ausencias.
 
 Siguiendo la regla del proyecto, la evidencia deberá indicar su procedencia: HOST, EMULADOR o DEVICE, con el modelo cuando aplique.
+
+## 6. Implementación y pruebas realizadas (2026-11-03)
+
+**Código.** AppMovilAgroquimico `main` `c2ac44a` (PR Roderich1/AppMovilAgroquimico#180). Implementación en `c127c45`; código final de `lib/` en `5594599`.
+
+**Regla de lectura.** Una copia se lee solo con:
+- la instalación activada y la sesión del mismo Member y sindicato que el **titular vigente**;
+- el **contexto local vigente**;
+- que su campaña no se retirara después de pedirla.
+
+**Retirada persistente, aparte del borrado físico:**
+- cerrar la sesión, un 401, 403 o 409, o un perfil que no es FARMER renuevan el contexto;
+- un 404 retira esa campaña;
+- cambiar de titular la borra en su misma transacción.
+
+Esa escritura va primero. El borrado físico va después y puede quedar pendiente, pero la copia no reaparece al reiniciar. Si SQLite tampoco admite la retirada, una marca en el almacenamiento seguro impide mostrar cifras hasta completarla.
+
+| Procedencia | Qué se comprobó |
+|---|---|
+| **HOST** (Windows 11, Flutter 3.47.2) | Suite completa 2237/2237 sobre `095684e`. Regresión de reinicio: 5 de 5 fallan sobre `267592a` y pasan corregidas, con fallos de SQLite **inyectados**. Alteraciones de las reglas: fallan todas las válidas |
+| **DEVICE con el Backend real** (POCO X5 Pro 5G, Android 12; app aislada `.est164`) | Central propio y desechable de este repositorio (`main` `635cc8f`, datos sintéticos) por un túnel HTTPS temporal. Pasos:<br>• activación;<br>• `/results` FARMER y `/download` 200, sin naive, cobertura ni serie en el JSON guardado;<br>• lectura en modo avión tras cerrar y reabrir;<br>• un producto sin datos suficientes, sin cifra;<br>• **404 y 409 reales**, con la retirada persistente tras reiniciar;<br>• una nueva descarga autorizada.<br>APK de `c127c45` (SHA-256 `281117cb…`) y de `5594599` (`9fab4a7a…`) |
+| **DEVICE con servidor simulado** | `integration_test` 5/5, también con el respaldo `.agrobackup` y la restauración en Android |
+| **EMULADOR** | No ejecutado |
+
+**Límites que se conservan:**
+- **Sesión, no persona:** la copia la lee quien use la sesión del titular.
+- **Revocaciones sin conexión:** no se conocen.
+- **Fallos de almacenamiento:** solo se inyectaron en HOST.
+- **Fallo doble:** si fallan a la vez SQLite y el almacenamiento seguro, la lectura solo se bloquea durante esa ejecución.
