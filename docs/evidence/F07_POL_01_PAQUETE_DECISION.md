@@ -87,6 +87,7 @@ Pruebas en `main`; abreviaturas como en [`F07_CIERRE_MATRIZ.md`](F07_CIERRE_MATR
 | 4 | Revaluar k con el volumen real del tenant | Roderich, en F10-SEC-02 (#45) | Nota en la política | Pendiente; depende de 1 |
 | 5 | Habilitar cifras reales | PR propio con revisión | Un modo nuevo y explícito para producción (hoy no existe: `NODE_ENV=production` siempre equivale a `POLICY_PENDING`), con su prueba y su rollback | **No se hace** sin 1–3 |
 | 6 | Finalidad, lectores y duración del historial sellado y de su memoria (`R_COLLECTIVE_HISTORY`, `R_DISCLOSURE_MEMORY`) para datos reales (fila añadida el 2026-10-23) | Autor y Directiva (filas 1 y 2) | Su decisión con fecha real. La conservación decidida el 2026-10-23 cubre sólo el entorno sintético | **Pendiente** |
+| 7 | Proyección de la estimación del consumo al Agricultor (EST-D-05) y control de estimaciones sucesivas (3.12.6.3) con datos reales (fila añadida el 2026-11-03) | Autor y Directiva (filas 1 y 2) | Su decisión con fecha real; opciones en `F07_POL_01_REVISION_INSTITUCIONAL.md` §7.3 (A5, A6 y 2(h)) | **Pendiente** |
 
 **Mientras falten 1–3:**
 - #107 sigue abierto;
