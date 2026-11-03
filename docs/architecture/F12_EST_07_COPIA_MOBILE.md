@@ -106,7 +106,7 @@ Siguiendo la regla del proyecto, la evidencia deberá indicar su procedencia: HO
 - un 404 retira esa campaña;
 - cambiar de titular la borra en su misma transacción.
 
-Esa escritura va primero. El borrado físico va después y puede quedar pendiente, pero la copia no reaparece al reiniciar. Si SQLite tampoco admite la retirada, una marca en el almacenamiento seguro impide mostrar cifras hasta completarla.
+Esa escritura va primero. El borrado físico va después y puede quedar pendiente: si **solo** falla el borrado, la copia no reaparece al reiniciar. Si SQLite tampoco admite la retirada, una marca en el almacenamiento seguro impide mostrar cifras hasta completarla. Si el almacenamiento seguro no se puede leer, no se muestra ninguna cifra.
 
 | Procedencia | Qué se comprobó |
 |---|---|
@@ -119,4 +119,4 @@ Esa escritura va primero. El borrado físico va después y puede quedar pendient
 - **Sesión, no persona:** la copia la lee quien use la sesión del titular.
 - **Revocaciones sin conexión:** no se conocen.
 - **Fallos de almacenamiento:** solo se inyectaron en HOST.
-- **Fallo doble:** si fallan a la vez SQLite y el almacenamiento seguro, la lectura solo se bloquea durante esa ejecución.
+- **Fallo doble (limitación excepcional del alcance académico, aceptada por el autor el 2026-11-03):** si SQLite y el almacenamiento seguro rechazan ambos la escritura de la retirada, la lectura queda bloqueada durante esa ejecución, pero **la retirada no persiste tras reiniciar**. Sin conexión, la copia anterior puede volver a leerse para la misma identidad hasta la siguiente invalidación que sí se pueda escribir. No es una aprobación de producción ni cambia ningún gate (evidencia Mobile §13).
