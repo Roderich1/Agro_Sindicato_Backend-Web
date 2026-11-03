@@ -150,6 +150,31 @@ describe('Propuesta conjunta: estimación del consumo como referencia (F12-EST-0
     expect(cell('Cipermetrina').textContent).not.toMatch(/\d[\d.,]* L\b/);
   });
 
+  it('necesidad oculta con estimación permitida: la necesidad sigue oculta y la cifra se rotula como estimación aparte', async () => {
+    vi.mocked(collectiveService.proposal).mockResolvedValue(DRAFT);
+    vi.mocked(collectiveService.proposalEstimationReference).mockResolvedValue(
+      referenceFor(DRAFT, [
+        { absence: null, estimation: estimation() },
+        { absence: 'NO_RESULT', estimation: null },
+        { absence: null, estimation: estimation({ estimate_base: '12000.000000' }) },
+      ]),
+    );
+    renderAt(<JointProposalPage />, { path: PATH });
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    await screen.findByText('12 L');
+    // La necesidad no se rellena con la estimación ni con un cero.
+    expect(need('Amina').textContent).toMatch(/umbral/);
+    expect(need('Amina').textContent).not.toMatch(/\d[\d.,]* L\b/);
+    expect(need('Amina').textContent).not.toMatch(/\b0\b/);
+    const hidden = cell('Amina');
+    expect(within(hidden).getByTestId('reference-hidden-need').textContent).toMatch(
+      /La necesidad de esta fila no está divulgada\. Lo que sigue es la estimación del consumo: no la sustituye ni se\s+suma a la propuesta\./,
+    );
+    expect(hidden.textContent).toMatch(/12 L/);
+    // En una fila con la necesidad publicada no aparece esa advertencia.
+    expect(within(cell('Glifosato')).queryByTestId('reference-hidden-need')).toBeNull();
+  });
+
   it('con la política pendiente no hay cifra de estimación y el borrador se sigue viendo', async () => {
     vi.mocked(collectiveService.proposal).mockResolvedValue(DRAFT);
     vi.mocked(collectiveService.proposalEstimationReference).mockResolvedValue(

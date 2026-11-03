@@ -273,8 +273,16 @@ function ReferenceCell({ line, state }: { line: ProposalLine; state: ReferenceSt
     );
   }
   const e = ref.estimation;
+  // Decisión del autor (2026-11-03): la referencia se muestra aunque la necesidad de la fila no esté divulgada.
+  const needHidden = line.status !== 'DISCLOSED';
   return (
     <div className="space-y-1">
+      {needHidden && (
+        <p className="text-[11px] font-semibold text-slate-700" data-testid="reference-hidden-need">
+          La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se
+          suma a la propuesta.
+        </p>
+      )}
       {e.status === 'ESTIMATED' ? (
         <Figure value={e.estimate_base} unit={ref.base_unit} kind="estimate" status={e.status} validityReason={e.validity_reason} />
       ) : (

@@ -38,7 +38,7 @@
 | Columna «Estimación (referencia)» a la derecha de las líneas | «Estimación del consumo (referencia)», última columna, separada con borde y fondo | **Coincide.** El nombre añade «del consumo», como se pidió |
 | «295 L» en una fila publicada | «111 L» con el valor base (111.000 mL), la vigencia («Vigente») y «Ejecución del … · anterior al borrador» | **Coincide**, con la vigencia y la procedencia que exige el contrato |
 | «Datos insuficientes» | «Datos insuficientes», con su motivo y «No utilizable» | **Coincide** |
-| «—» en la fila «Oculto» | La fila oculta muestra su propia referencia: «Sin estimación» si ninguna ejecución la incluye, o la cifra si existe | **Diferencia, explicada.** La referencia es por producto y depende de la política de la estimación, no del estado de la necesidad. Mostrarla no revela la necesidad oculta, porque solo usa cifras de consumo ya publicadas y selladas. **Pendiente de decisión del autor** si prefiere «—» en las filas ocultas |
+| «—» en la fila «Oculto» | La fila oculta muestra su propia referencia: «Sin estimación» si ninguna ejecución la incluye, o la cifra si existe, precedida de «La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se suma a la propuesta.» | **Diferencia deliberada, aprobada por el autor el 2026-11-03 (§7).** La referencia es por producto y pasa sus propios controles de permisos y divulgación. No revela la necesidad oculta, porque solo usa cifras de consumo ya publicadas y selladas. El Word no se modifica |
 | Nota: «La columna “Estimación” es una referencia… no se suma… ni cambia las líneas del borrador. Detalle en “Estimación del consumo”» | El mismo mensaje, que añade «no es la cantidad solicitada» y enlaza con la pantalla | **Coincide** |
 | «Misma huella = mismas entradas autorizadas y mismas líneas» | Sin cambios en el historial | **Coincide** |
 | «Exportar CSV» | El CSV añade la referencia en columnas `estimation_*` | **Coincide.** W3 no detalla el contenido |
@@ -178,7 +178,6 @@ Los detalles están en `recorrido-*.json`, las respuestas reales del servidor re
 - **Solo HOST.** No hay DEVICE ni EMULADOR. Mobile no muestra propuestas y no cambia.
 - **La exportación evalúa la vigencia al exportar.** Si entre la consulta en pantalla y la exportación se calcula otra ejecución, el CSV lleva la nueva, identificada por `estimation_run_ref` y `estimation_evaluated_at`. No se fija a lo mostrado.
 - **Referencia de un borrador histórico:** se muestra la vigente al consultar, no la que existía al generarlo, identificada con su ejecución y su relación con el borrador. Reconstruir la de entonces sería otra consulta, que no se construyó.
-- **Filas ocultas:** muestran su referencia por producto (§2). Queda pendiente la decisión del autor.
 - **La vista y la referencia del CSV se leen en dos pasos**, sin una transacción común. Cada parte es coherente consigo misma.
 - **En el recorrido, la retirada y la clasificación se simulan en la base.** En la suite de PostgreSQL, la retirada llega por una cancelación real de Sync v1.
 - **El service worker se omite en el recorrido.** No se prueba aquí.
@@ -186,3 +185,27 @@ Los detalles están en `recorrido-*.json`, las respuestas reales del servidor re
 - **Los tiempos de 5 s agotados de §3 y §4** quedan sin causa confirmada.
 - **Hallazgo aparte, sin causa confirmada:** `f10_x01_pago_datos_test` (Mobile). No se toca en este bloque, porque no hay relación demostrada.
 - **F12-EST-10 y la decisión de GATE-F12** quedan para el cierre posterior. No cambia ningún gate.
+
+## 7. Decisión del autor sobre las filas ocultas y comprobación acotada (2026-11-03)
+
+**Decisión.**
+- La estimación se muestra como referencia independiente aunque la necesidad de la fila esté oculta, siempre que la permitan sus propios controles de divulgación y autorización.
+- Es una diferencia deliberada respecto a W3 y queda registrada en el contrato §7.1. El Word no se modifica.
+
+**Cambios** (sobre `af38134`):
+- **Pantalla:** en una fila con la necesidad no divulgada, la celda de la referencia empieza con «La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se suma a la propuesta.».
+- **Suite de PostgreSQL:** se añade Acaricida, con consumo sellado por tres agricultores en las cuatro campañas y necesidad declarada solo por dos.
+- **Pruebas de componentes:** se añade una para este caso.
+- **Sin cambios** en el servicio, en el CSV ni en la huella.
+
+| Comprobación pedida | Prueba | Resultado |
+|---|---|---|
+| Necesidad oculta y estimación permitida: referencia separada para los roles autorizados | **Nueva.** En `f12-est-08-proposal-reference.postgres.spec.ts`, «with an estimation available…»: la línea Acaricida es `SUPPRESSED_UNDER_THRESHOLD`, sin cantidad ni aportantes; su referencia es `ESTIMATED`, `CURRENT`, con cifra igual a `/estimation/results`, idéntica para la Directiva y el Administrador. El Agricultor recibe 403 (prueba «rejects…»). En el CSV, la fila tiene la necesidad vacía (ni la estimación ni un cero) y la cifra solo en `estimation_estimate_base`. Componentes: «necesidad oculta con estimación permitida…» (si se retira la advertencia, falla) | 7/7 y 17/17 |
+| Necesidad visible y fuente de consumo retirada: ninguna cifra de estimación | **Ya existía:** «marks the reference OUTDATED… withheld when a source is withdrawn». Herbicida, con 120 L publicados, da `SOURCES_WITHDRAWN` y `estimate_base` nulo, y el CSV no contiene `111000`. Recorrido, paso 7 | Pasa |
+| Política pendiente: ninguna cifra de referencia | **Ya existía:** «with the policy pending…». `availability: POLICY_PENDING` y todas las líneas sin cifra. Recorrido, fase *pending* | Pasa |
+| Iguales líneas, totales y huella funcional | **Ya existía**, ahora con Acaricida: P0 y P1 tienen la misma `inputs_fingerprint`, las mismas líneas y el mismo total servido (122000 mL; Acaricida, oculto, no suma). Las filas guardadas son idénticas | Pasa |
+
+**Recorrido de navegador:** no se repitió. El de §5 es sobre `1f55988`, y su fila oculta (Insecticida) no tiene estimación. La advertencia nueva solo está cubierta por las pruebas de componentes y por la suite de PostgreSQL, en lo que respecta a los datos.
+
+**Tiempos agotados:** se conservan como fallos sin causa confirmada (§3 y §4). No se aumentó ningún límite ni se tocó ninguna prueba ajena.
+

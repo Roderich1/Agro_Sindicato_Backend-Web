@@ -143,19 +143,22 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     directorB = await person("DIRECTIVA", f.tenantB);
     for (const key of ["F1", "F2", "F3"]) farmers[key] = await person("AGRICULTOR");
     farmers["B1"] = await person("AGRICULTOR", f.tenantB);
-    for (const [key, label] of [["Herbicida", "Herbicida de referencia"], ["Fungicida", "Fungicida de referencia"], ["Insecticida", "Insecticida de referencia"]] as const) {
+    for (const [key, label] of [["Herbicida", "Herbicida de referencia"], ["Fungicida", "Fungicida de referencia"], ["Insecticida", "Insecticida de referencia"], ["Acaricida", "Acaricida de referencia"]] as const) {
       products[key] = (await prisma.product.create({ data: { tenantId: f.tenantA, name: label, unit: "L" } })).id;
     }
     // INVIERNO: the 3.12.5 example (96, 120, 104 and 116 L); Fungicida only in the last two campaigns.
-    await sealedCampaign("C1", 2015, [["Herbicida", ["32000", "32000", "32000"]]]);
-    await sealedCampaign("C2", 2016, [["Herbicida", ["40000", "40000", "40000"]]]);
-    await sealedCampaign("C3", 2017, [["Herbicida", ["34000", "35000", "35000"]], ["Fungicida", ["100", "100", "100"]]]);
-    await sealedCampaign("C4", 2018, [["Herbicida", ["38000", "39000", "39000"]], ["Fungicida", ["200", "200", "200"]]]);
+    // Acaricida: consumption published by three farmers in every campaign, so its estimate is allowed on its own.
+    await sealedCampaign("C1", 2015, [["Herbicida", ["32000", "32000", "32000"]], ["Acaricida", ["1000", "1000", "1000"]]]);
+    await sealedCampaign("C2", 2016, [["Herbicida", ["40000", "40000", "40000"]], ["Acaricida", ["1200", "1200", "1200"]]]);
+    await sealedCampaign("C3", 2017, [["Herbicida", ["34000", "35000", "35000"]], ["Fungicida", ["100", "100", "100"]], ["Acaricida", ["1100", "1100", "1100"]]]);
+    await sealedCampaign("C4", 2018, [["Herbicida", ["38000", "39000", "39000"]], ["Fungicida", ["200", "200", "200"]], ["Acaricida", ["1300", "1300", "1300"]]]);
     // The target: open, with needs declared by three farmers (Insecticida by two: under the threshold).
     await campaign("T", 2019, "ABIERTA");
     for (const [i, quantity] of ["30000", "40000", "50000"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Herbicida", quantity);
     for (const [i, quantity] of ["500", "700", "800"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Fungicida", quantity);
     for (const [i, quantity] of ["1000", "2000"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Insecticida", quantity);
+    // Acaricida: need declared by two farmers only (hidden), while its consumption estimate is allowed.
+    for (const [i, quantity] of ["4000", "6000"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Acaricida", quantity);
     await campaign("X", 2020, "PLANIFICADA");
     await season("INVIERNO");
     await classify("INVIERNO", ["C1", "C2", "C3", "C4", "T"]);
@@ -354,7 +357,7 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
       expect((await http().get(`/api/v1/collective/proposals/no-es-uuid/${path}`).set(auth(director))).status).toBe(400);
     }
     // The Administrador reads it like the Directiva.
-    expect((await reference(proposals["P0"]!, admin)).lines).toHaveLength(3);
+    expect((await reference(proposals["P0"]!, admin)).lines).toHaveLength(4);
     expect(changed(reads, await snapshot())).toEqual([]);
     demo["rejections"] = { generated_tables: changed(before, afterGenerate) };
   });
@@ -416,6 +419,14 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     // A line under the threshold keeps its own state; no run includes its product.
     expect(p1.lines.find((l) => l.product_ref === products["Insecticida"])).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", quantity_base: null });
     expect(lineOf(r1, "Insecticida")).toMatchObject({ absence: "NO_RESULT", estimation: null });
+    // Hidden need, allowed estimate: the reference is there, separate, for both authorized roles; the need stays hidden.
+    const hidden = p1.lines.find((l) => l.product_ref === products["Acaricida"])!;
+    expect(hidden).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", quantity_base: null, quantity_presentation: null, contributors: null });
+    const acaricide = lineOf(r1, "Acaricida");
+    expect(acaricide).toMatchObject({ absence: null, estimation: { status: "ESTIMATED", validity: "CURRENT", run_ref: runs["R1"] } });
+    expect(acaricide.estimation!.estimate_base).toMatch(/^[1-9][0-9]*\.[0-9]{6}$/);
+    expect(lineOf(await reference(p1.proposal_ref, admin), "Acaricida").estimation).toEqual(acaricide.estimation);
+
     // The same run read for the earlier draft is marked as later than it.
     expect(lineOf(await reference(p0.proposal_ref), "Herbicida").estimation).toMatchObject({ run_ref: runs["R1"], run_relation: "AFTER_PROPOSAL" });
     // It is /estimation/results itself.
@@ -426,6 +437,13 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     expectConsistentCsv(text, p1, r1);
     // The estimate is never in a need column.
     expect(parseCsv(text).slice(5).map((row) => row[6])).toEqual(p1.lines.map((l) => l.quantity_base ?? ""));
+    const directAcaricide = results.body.results.find((r: { product: { product_ref: string } }) => r.product.product_ref === products["Acaricida"]);
+    expect(acaricide.estimation!.estimate_base).toBe(directAcaricide.estimate_base);
+    // The hidden line in the CSV: state, no need (neither the estimate nor zero), and the estimate only in estimation_*.
+    const hiddenRow = parseCsv(text).find((row) => row[1] === products["Acaricida"])!;
+    expect(hiddenRow.slice(5, 9)).toEqual(["SUPPRESSED_UNDER_THRESHOLD", "", "", ""]);
+    expect(hiddenRow[12 + REFERENCE_LINE.indexOf("estimation_estimate_base")]).toBe(acaricide.estimation!.estimate_base);
+    expect(hiddenRow[12 + REFERENCE_LINE.indexOf("estimation_status")]).toBe("ESTIMATED");
     expect(changed(before, await snapshot())).toEqual([]);
     demo["with_estimation"] = {
       fingerprint_p0: p0.inputs_fingerprint, fingerprint_p1: p1.inputs_fingerprint, total_base_p0: total(p0), total_base_p1: total(p1),

@@ -642,6 +642,13 @@ F12-EST-08 solo la muestra en una columna separada (RN-29), según §7.1.
 - Una fuente retirada da `estimate_base` nulo con `SOURCES_WITHDRAWN` (§4.3).
 - La referencia muestra la ejecución que sustituye a otra, nunca un resultado `SUPERSEDED`. El historial completo sigue en `GET /estimation/runs`.
 
+**Filas con la necesidad oculta (decisión del autor del 2026-11-03, diferencia deliberada respecto a W3).**
+- Una línea cuya necesidad no está divulgada muestra igualmente la referencia, siempre que la estimación pase sus propios controles: los permisos del §2 y la divulgación vigente del §4.3.
+- La necesidad sigue oculta y no se rellena con la estimación ni con un cero.
+- La Web lo dice en la propia celda: «La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se suma a la propuesta.».
+- En el CSV, la necesidad queda vacía y la cifra solo aparece en las columnas `estimation_*`.
+- W3 dibuja «—» en esa fila. El Word no se modifica.
+
 **Borradores y propuestas selladas.**
 - Leer la referencia no ejecuta la decisión del resumen ni escribe nada.
 - El CSV usa la vista existente del borrador, que es de solo lectura y, en una campaña sellada, se sirve desde su versión sellada.
@@ -881,3 +888,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), duodécima | F12-EST-07-WEB (#180): la retirada por un 404 se guarda en el contexto local y persiste tras recargar aunque el borrado falle; una descarga posterior autorizada habilita otra copia (§9) |
 | 2026-11-03 (UTC), decimotercera | Mobile #164 integrado (AppMovilAgroquimico `c2ac44a`): estado real del cliente Mobile de la copia (§9, §12) y del contrato `F12_EST_07_COPIA_MOBILE.md` |
 | 2026-11-03 (UTC), decimocuarta | F12-EST-08 (Refs #181), en rama: la estimación como referencia separada en la propuesta conjunta y en su CSV (§1, §7, §7.1, §12) |
+| 2026-11-03 (UTC), decimoquinta | Decisión del autor: la referencia se muestra también en las filas con la necesidad oculta, rotulada como estimación y sin sustituir la necesidad (§7.1); diferencia deliberada respecto a W3 |
