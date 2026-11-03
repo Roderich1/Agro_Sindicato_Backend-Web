@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Param, ParseUUIDPipe, Post } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiProduces, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { UserRole } from "@prisma/client";
 import { CurrentUser } from "../../../iam/api/rest/decorators/current-user.decorator";
 import { Roles } from "../../../iam/api/rest/decorators/roles.decorator";
@@ -65,20 +65,7 @@ export class JointPurchaseProposalsController {
     return this.proposals.view(user.tenantId, proposalId);
   }
 
-  @Get("proposals/:proposalId/csv")
-  @Header("Content-Type", "text/csv; charset=utf-8")
-  @Header("Content-Disposition", 'attachment; filename="propuesta-conjunta.csv"')
-  @Header("Cache-Control", "no-store")
-  @ApiOperation({ summary: "El mismo detalle como CSV, con la misma política" })
-  @ApiProduces("text/csv")
-  @ApiResponse({ status: 200, description: "CSV con los mismos estados que el JSON", schema: { type: "string" } })
-  @Unauthenticated
-  @Forbidden
-  @ApiResponse({ status: 404, description: "Propuesta inexistente o de otro tenant (indistinguibles)" })
-  csv(
-    @CurrentUser() user: AuthenticatedPrincipal,
-    @Param("proposalId", new ParseUUIDPipe()) proposalId: string,
-  ) {
-    return this.proposals.csv(user.tenantId, proposalId);
-  }
+  // GET proposals/:proposalId/csv lives in the estimation module since
+  // F12-EST-08 (#181): the export appends the estimation reference, and the
+  // estimation module already depends on this one, not the other way round.
 }

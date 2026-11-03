@@ -1,0 +1,16 @@
+{
+  "phase": "pending",
+  "browser": "Edg/156.0.4314.58",
+  "checks": [
+    {
+      "name": "Política pendiente: sin cifra de estimación, con el motivo",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Política pendiente: el CSV sigue disponible, con POLICY_PENDING",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

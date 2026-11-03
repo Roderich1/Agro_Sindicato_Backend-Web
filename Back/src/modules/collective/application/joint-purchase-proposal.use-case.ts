@@ -174,10 +174,6 @@ export class JointPurchaseProposalUseCase {
     return result!;
   }
 
-  async csv(tenantId: string, proposalId: string): Promise<string> {
-    return proposalCsv(await this.view(tenantId, proposalId));
-  }
-
   private async persist(
     tx: Tx,
     tenantId: string,
@@ -360,11 +356,24 @@ function requireRelease(releaseOf: ReadonlyMap<string, string>, productRef: stri
   return id;
 }
 
+type CsvValue = string | number | boolean | null;
+
+/**
+ * Columns another reading appends after the proposal's own (F12-EST-08: the
+ * estimation reference). The proposal's columns, rows and values never change:
+ * removing the appended columns gives `proposalCsv(view)` exactly.
+ */
+export interface ProposalCsvAppendix {
+  head: { header: string[]; values: CsvValue[] };
+  lineHeader: string[];
+  line: (position: number) => CsvValue[];
+}
+
 /** Same view as JSON, as CSV: same states, no other figure (R8). */
-export function proposalCsv(view: ProposalView): string {
-  const row = (values: (string | number | boolean | null)[]) => values.map(csvField).join(",");
+export function proposalCsv(view: ProposalView, appendix?: ProposalCsvAppendix): string {
+  const row = (values: CsvValue[]) => values.map(csvField).join(",");
   const lines = [
-    row(["proposal_ref", "status", "basis", "campaign_ref", "campaign", "generated_at", "generated_by", "inputs_fingerprint", "disclosure", "policy", "approved", "linked_members", "members_with_contribution", "coverage_basis", "seal_ref", "seal_version", "sealed_at"]),
+    row(["proposal_ref", "status", "basis", "campaign_ref", "campaign", "generated_at", "generated_by", "inputs_fingerprint", "disclosure", "policy", "approved", "linked_members", "members_with_contribution", "coverage_basis", "seal_ref", "seal_version", "sealed_at", ...(appendix?.head.header ?? [])]),
     row([
       view.proposal_ref,
       view.status,
@@ -383,10 +392,11 @@ export function proposalCsv(view: ProposalView): string {
       view.seal?.seal_ref ?? null,
       view.seal?.version ?? null,
       view.seal?.sealed_at ?? null,
+      ...(appendix?.head.values ?? []),
     ]),
     row(["notice", view.notice]),
     "",
-    row(["position", "product_ref", "product_name", "base_unit", "presentation_unit", "status", "quantity_base", "quantity_presentation", "contributors", "data_as_of", "released_at", "pending_changes"]),
+    row(["position", "product_ref", "product_name", "base_unit", "presentation_unit", "status", "quantity_base", "quantity_presentation", "contributors", "data_as_of", "released_at", "pending_changes", ...(appendix?.lineHeader ?? [])]),
     ...view.lines.map((line) =>
       row([
         line.position,
@@ -401,6 +411,7 @@ export function proposalCsv(view: ProposalView): string {
         line.data_as_of,
         line.released_at,
         line.pending_changes,
+        ...(appendix?.line(line.position) ?? []),
       ]),
     ),
   ];

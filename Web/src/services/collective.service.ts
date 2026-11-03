@@ -9,6 +9,7 @@ import type {
   ProposalSummary,
   SealState,
 } from '../types/collective';
+import type { ProposalEstimationReference } from '../types/estimation';
 
 /** Cada identificador se codifica antes de componer la ruta. */
 const seg = encodeURIComponent;
@@ -27,7 +28,12 @@ export const collectiveService = {
     api.post<Proposal>(`/collective/campaigns/${seg(campaignId)}/proposals`).then((r) => r.data),
   proposal: (proposalId: string) =>
     api.get<Proposal>(`/collective/proposals/${seg(proposalId)}`).then((r) => r.data),
-  /** El CSV lo genera el servidor con la misma política que el JSON. */
+  /** F12-EST-08: la estimación del consumo como referencia separada del borrador. */
+  proposalEstimationReference: (proposalId: string) =>
+    api
+      .get<ProposalEstimationReference>(`/collective/proposals/${seg(proposalId)}/estimation-reference`)
+      .then((r) => r.data),
+  /** El CSV lo genera el servidor con la misma política que el JSON, con la referencia en columnas aparte. */
   proposalCsv: (proposalId: string) =>
     api.get<Blob>(`/collective/proposals/${seg(proposalId)}/csv`, { responseType: 'blob' }).then((r) => r.data),
   /** F07: estado del sellado y revisión previa (cobertura, banderas, review_ref). */

@@ -1,0 +1,151 @@
+{
+  "phase": "provisional",
+  "browser": "Edg/156.0.4314.58",
+  "checks": [
+    {
+      "name": "Sin estimación: la columna se identifica como «Estimación del consumo (referencia)»",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Sin estimación: Herbicida de ensayo dice «Sin estimación» y no muestra un cero",
+      "ok": true,
+      "detail": "Sin estimaciónNinguna ejecución incluye este producto para esta campaña"
+    },
+    {
+      "name": "Sin estimación: Fungicida de ensayo dice «Sin estimación» y no muestra un cero",
+      "ok": true,
+      "detail": "Sin estimaciónNinguna ejecución incluye este producto para esta campaña"
+    },
+    {
+      "name": "Sin estimación: Insecticida de ensayo dice «Sin estimación» y no muestra un cero",
+      "ok": true,
+      "detail": "Sin estimaciónNinguna ejecución incluye este producto para esta campaña"
+    },
+    {
+      "name": "Necesidad de Herbicida 120 L (30 + 40 + 50)",
+      "ok": true,
+      "detail": "120 L"
+    },
+    {
+      "name": "Insecticida, con dos aportantes, queda oculto bajo el umbral",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "La estimación de T1 termina en el trabajador real",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Misma huella de líneas con y sin estimación (P0 y P1)",
+      "ok": true,
+      "detail": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c 2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c"
+    },
+    {
+      "name": "Mismas líneas y cantidades con y sin estimación",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Mismo total servido (122000 mL) con y sin estimación",
+      "ok": true,
+      "detail": "122000 122000"
+    },
+    {
+      "name": "Herbicida: 111 L, Vigente, ejecución anterior al borrador",
+      "ok": true,
+      "detail": "111 L111.000 mLVigenteEjecución del 3 nov de 2026, 7:27 a. m. · anterior al borrador"
+    },
+    {
+      "name": "La necesidad de Herbicida sigue en 120 L, sin la estimación sumada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Fungicida: «Datos insuficientes» con su motivo, sin cifra",
+      "ok": true,
+      "detail": "Datos insuficientesLa campaña comparable inmediatamente anterior no tiene consumo comprobado.No utilizableEste resultado no tiene cifra.Ejecución del 3 nov de 2026, 7:27 a. m. · anterior al borrador"
+    },
+    {
+      "name": "Insecticida: «Sin estimación»",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nota: no se suma, no es la cantidad solicitada, detalle en la pantalla de estimación",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "P0 (histórico): la ejecución se marca posterior al borrador",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CSV de P1: columnas del borrador iguales al JSON y estimation_* iguales a la referencia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CSV de P1: la referencia está identificada en la cabecera",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Desactualizada: «Desactualizado» con el motivo y la cifra a la vista",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Fuente retirada: «Cifra retirada», sin 111 L",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CSV tras la retirada: igual al servidor y sin la cifra retirada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Se retuvo la referencia de P1 mientras se cambiaba de campaña",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "La referencia tardía de P1 no aparece en el borrador de la otra campaña",
+      "ok": true,
+      "detail": "Sin estimaciónNinguna ejecución incluye este producto para esta campaña"
+    },
+    {
+      "name": "Borrador de la otra campaña con su propia necesidad (60 L)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T1 se cierra y se sella por la API",
+      "ok": true,
+      "detail": "200 200"
+    },
+    {
+      "name": "Sellada: ninguna tabla salvo las de sesión cambia al consultar el borrador, la referencia y el CSV",
+      "ok": true,
+      "detail": "cambiadas: RefreshToken"
+    },
+    {
+      "name": "Sellada: mismas líneas y huella que antes del sellado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Sellada: el CSV sigue igual al servidor",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Tablas privadas de compras, lotes, movimientos, deudas y pagos idénticas (md5), con filas sembradas",
+      "ok": true,
+      "detail": "cambiadas: ninguna; filas compra/ítem/deuda/lote/movimiento: 1/1/1/1/1"
+    }
+  ]
+}

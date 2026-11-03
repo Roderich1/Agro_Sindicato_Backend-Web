@@ -1,0 +1,64 @@
+{
+  "currentCampaign": "bda7a2c6-5e6c-4f11-9860-a53780ab898d",
+  "p0": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+  "p1": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+  "p2": "c945e512-7d2d-4436-8ca3-9ec1a72a193e",
+  "privateMd5": {
+    "Purchase": {
+      "before": "4134d4f4e1bd3dae8f8837ddf99127b8",
+      "after": "4134d4f4e1bd3dae8f8837ddf99127b8"
+    },
+    "PurchaseItem": {
+      "before": "fd592d0442a727ef9b56429fbec94b75",
+      "after": "fd592d0442a727ef9b56429fbec94b75"
+    },
+    "PurchaseItemAllocation": {
+      "before": "d41d8cd98f00b204e9800998ecf8427e",
+      "after": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "PurchaseParticipant": {
+      "before": "d41d8cd98f00b204e9800998ecf8427e",
+      "after": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "InventoryLot": {
+      "before": "92c24ba9f91061892b6c552438a0cd5d",
+      "after": "92c24ba9f91061892b6c552438a0cd5d"
+    },
+    "StockMovement": {
+      "before": "b94aa701460ceb73d7453b94b4e2d849",
+      "after": "b94aa701460ceb73d7453b94b4e2d849"
+    },
+    "PayableAccount": {
+      "before": "6f24b06108d8129c9394d8a0ac5d24fe",
+      "after": "6f24b06108d8129c9394d8a0ac5d24fe"
+    },
+    "Payment": {
+      "before": "d41d8cd98f00b204e9800998ecf8427e",
+      "after": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  },
+  "tablesChanged": [
+    "AgriculturalCampaign",
+    "AuditLog",
+    "AuthSession",
+    "CalendarEvent",
+    "CampaignSeasonClassification",
+    "ClientRegistration",
+    "CollectiveRelease",
+    "CollectiveReleaseItem",
+    "CollectiveSeal",
+    "CollectiveSealConsumptionCoverage",
+    "CollectiveSealEntry",
+    "ConsumptionSeries",
+    "EstimationJob",
+    "EstimationResult",
+    "EstimationRun",
+    "JointPurchaseProposal",
+    "JointPurchaseProposalLine",
+    "RefreshToken",
+    "SeriesPoint",
+    "SyncV1Contribution",
+    "SyncV1OperationJournal",
+    "User"
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "rejections": {
+    "generated_tables": [
+      "CollectiveRelease",
+      "CollectiveReleaseItem",
+      "JointPurchaseProposal",
+      "JointPurchaseProposalLine"
+    ]
+  },
+  "without_estimation": {
+    "lines": [
+      {
+        "position": 0,
+        "absence": "NO_RESULT"
+      },
+      {
+        "position": 1,
+        "absence": "NO_RESULT"
+      },
+      {
+        "position": 2,
+        "absence": "NO_RESULT"
+      },
+      {
+        "position": 3,
+        "absence": "NO_RESULT"
+      }
+    ]
+  },
+  "with_estimation": {
+    "fingerprint_p0": "c5ab9e71b3e7d12c73692aea98d962e42ba6d39693584e6afb9d9d7af06b1ba8",
+    "fingerprint_p1": "c5ab9e71b3e7d12c73692aea98d962e42ba6d39693584e6afb9d9d7af06b1ba8",
+    "total_base_p0": "122000",
+    "total_base_p1": "122000",
+    "generated_tables": [
+      "ConsumptionSeries",
+      "EstimationJob",
+      "EstimationResult",
+      "EstimationRun",
+      "JointPurchaseProposal",
+      "JointPurchaseProposalLine",
+      "SeriesPoint"
+    ],
+    "private_counts": [
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0
+    ],
+    "private_md5": {
+      "Purchase": "9231378566ddcf00709e4400e5f9cd3d",
+      "PurchaseItem": "0d8e0cc4112a8ad02158fe66f8eb6934",
+      "PurchaseItemAllocation": "d41d8cd98f00b204e9800998ecf8427e",
+      "PurchaseParticipant": "d41d8cd98f00b204e9800998ecf8427e",
+      "InventoryLot": "ccfbb2815f0e1d6d989db9bfb894cf2a",
+      "StockMovement": "4aef187f93a7e6996727c82b47c5d335",
+      "PayableAccount": "b1c6a59821d41e5fe37c353217522c1d",
+      "Payment": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "reference": [
+      {
+        "position": 0,
+        "absence": null,
+        "status": "ESTIMATED",
+        "estimate_base": "3701.025000",
+        "validity": "CURRENT",
+        "run_relation": "BEFORE_PROPOSAL"
+      },
+      {
+        "position": 1,
+        "absence": null,
+        "status": "INSUFFICIENT_DATA",
+        "estimate_base": null,
+        "validity": "NOT_USABLE",
+        "run_relation": "BEFORE_PROPOSAL"
+      },
+      {
+        "position": 2,
+        "absence": null,
+        "status": "ESTIMATED",
+        "estimate_base": "111000.000000",
+        "validity": "CURRENT",
+        "run_relation": "BEFORE_PROPOSAL"
+      },
+      {
+        "position": 3,
+        "absence": "NO_RESULT",
+        "status": null,
+        "estimate_base": null,
+        "validity": null,
+        "run_relation": null
+      }
+    ],
+    "csv_header": [
+      "position",
+      "product_ref",
+      "product_name",
+      "base_unit",
+      "presentation_unit",
+      "status",
+      "quantity_base",
+      "quantity_presentation",
+      "contributors",
+      "data_as_of",
+      "released_at",
+      "pending_changes",
+      "estimation_absence",
+      "estimation_status",
+      "estimation_reason_code",
+      "estimation_estimate_base",
+      "estimation_validity",
+      "estimation_validity_reason",
+      "estimation_method",
+      "estimation_run_ref",
+      "estimation_run_generated_at",
+      "estimation_run_relation"
+    ]
+  },
+  "superseded": {
+    "earlier": "4c2f9cee-c860-4e3c-ba21-f9d2ca259476",
+    "shown": "def11b98-791b-4eac-9995-14cfcc29f6b4",
+    "relation": "AFTER_PROPOSAL"
+  },
+  "outdated": {
+    "reason": "SOURCES_CHANGED",
+    "estimate_base": "111000.000000"
+  },
+  "withdrawn": {
+    "reason": "SOURCES_WITHDRAWN",
+    "estimate_base": null
+  },
+  "policy_pending": {
+    "availability": "POLICY_PENDING"
+  },
+  "sealed": {
+    "seal": "a085bf73-411e-4a2a-a907-328d52c6cece",
+    "fingerprint": "c5ab9e71b3e7d12c73692aea98d962e42ba6d39693584e6afb9d9d7af06b1ba8",
+    "tables_changed_by_reads": [],
+    "run": "def11b98-791b-4eac-9995-14cfcc29f6b4"
+  },
+  "private_tables_whole_suite": {
+    "Purchase": {
+      "start": "9231378566ddcf00709e4400e5f9cd3d",
+      "end": "9231378566ddcf00709e4400e5f9cd3d"
+    },
+    "PurchaseItem": {
+      "start": "0d8e0cc4112a8ad02158fe66f8eb6934",
+      "end": "0d8e0cc4112a8ad02158fe66f8eb6934"
+    },
+    "PurchaseItemAllocation": {
+      "start": "d41d8cd98f00b204e9800998ecf8427e",
+      "end": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "PurchaseParticipant": {
+      "start": "d41d8cd98f00b204e9800998ecf8427e",
+      "end": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "InventoryLot": {
+      "start": "ccfbb2815f0e1d6d989db9bfb894cf2a",
+      "end": "ccfbb2815f0e1d6d989db9bfb894cf2a"
+    },
+    "StockMovement": {
+      "start": "4aef187f93a7e6996727c82b47c5d335",
+      "end": "4aef187f93a7e6996727c82b47c5d335"
+    },
+    "PayableAccount": {
+      "start": "b1c6a59821d41e5fe37c353217522c1d",
+      "end": "b1c6a59821d41e5fe37c353217522c1d"
+    },
+    "Payment": {
+      "start": "d41d8cd98f00b204e9800998ecf8427e",
+      "end": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  }
+}

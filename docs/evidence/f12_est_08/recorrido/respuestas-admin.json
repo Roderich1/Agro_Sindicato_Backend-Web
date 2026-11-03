@@ -1,0 +1,88 @@
+[
+  {
+    "at": "2026-11-03T11:28:15.675Z",
+    "method": "GET",
+    "path": "/api/v1/collective/campaigns/bda7a2c6-5e6c-4f11-9860-a53780ab898d/proposals",
+    "status": 200,
+    "body": [
+      {
+        "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      },
+      {
+        "proposal_ref": "116a597a-5bab-4e4c-9d8c-8b8e46b6ac40",
+        "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+        "line_count": 3
+      }
+    ]
+  },
+  {
+    "at": "2026-11-03T11:28:16.632Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+    "status": 200,
+    "body": {
+      "proposal_ref": "8bc18f86-a853-4f4c-a2af-107a9bf5730c",
+      "inputs_fingerprint": "2693c8acc1f10872c06f3b777a4ab03c5083d29742946ebadfb78ddc8d46856c",
+      "seal": "c41d780d-adc4-4d90-9086-b523c34756d9",
+      "lines": [
+        [
+          0,
+          "DISCLOSED",
+          "2000"
+        ],
+        [
+          1,
+          "DISCLOSED",
+          "120000"
+        ],
+        [
+          2,
+          "SUPPRESSED_UNDER_THRESHOLD",
+          null
+        ]
+      ]
+    }
+  },
+  {
+    "at": "2026-11-03T11:28:16.696Z",
+    "method": "GET",
+    "path": "/api/v1/collective/proposals/8bc18f86-a853-4f4c-a2af-107a9bf5730c/estimation-reference",
+    "status": 200,
+    "body": {
+      "label": "Estimación del consumo",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-03T11:28:16.691Z",
+      "proposal_generated_at": "2026-11-03T11:27:49.081Z",
+      "lines": [
+        {
+          "position": 0,
+          "absence": null,
+          "status": "INSUFFICIENT_DATA",
+          "reason_code": "LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED",
+          "estimate_base": null,
+          "validity": "NOT_USABLE",
+          "validity_reason": "NO_FIGURE",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 1,
+          "absence": null,
+          "status": "ESTIMATED",
+          "reason_code": null,
+          "estimate_base": null,
+          "validity": "OUTDATED",
+          "validity_reason": "SOURCES_WITHDRAWN",
+          "run_ref": "ff46b451-72d4-493a-b808-ae301f9d5775",
+          "run_relation": "BEFORE_PROPOSAL"
+        },
+        {
+          "position": 2,
+          "absence": "NO_RESULT"
+        }
+      ]
+    }
+  }
+]

@@ -135,6 +135,8 @@ const f06Required = [
   ["/api/v1/collective/campaigns/{campaignId}/proposals", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/proposals/{proposalId}", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/proposals/{proposalId}/csv", "get", "200", "401", "403", "404"],
+  // F12-EST-08 (#181): the estimation as a separate reference of a proposal.
+  ["/api/v1/collective/proposals/{proposalId}/estimation-reference", "get", "200", "401", "403", "404"],
   // F07 (2026-10-23): manual seal and trends over sealed versions.
   ["/api/v1/collective/campaigns/{campaignId}/seal", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/campaigns/{campaignId}/seal", "post", "200", "400", "401", "403", "404", "409", "422"],
@@ -182,6 +184,25 @@ for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "net
 const history = f06.paths["/api/v1/collective/campaigns/{campaignId}/proposals"].get.responses["200"].content["application/json"].schema;
 assert.ok(!("lines" in history.items.properties) && !("quantity_base" in history.items.properties));
 assert.ok(f06.paths["/api/v1/collective/proposals/{proposalId}/csv"].get.responses["200"].content["text/csv"]);
+// F12-EST-08 (#181): the reference is closed, identified as the consumption
+// estimate, separate from the lines (it repeats no need figure) and carries
+// neither the naive baseline, the coverage, the series nor per-Member data.
+const reference = f06.paths["/api/v1/collective/proposals/{proposalId}/estimation-reference"].get.responses["200"].content["application/json"].schema;
+assert.equal(reference.additionalProperties, false);
+assert.deepEqual(Object.keys(reference.properties).sort(), [...reference.required].sort());
+assert.deepEqual(reference.properties.label.enum, ["Estimación del consumo"]);
+const referenceLine = reference.properties.lines.items;
+assert.equal(referenceLine.additionalProperties, false);
+assert.deepEqual(Object.keys(referenceLine.properties).sort(), [...referenceLine.required].sort());
+const referenced = referenceLine.properties.estimation;
+assert.equal(referenced.additionalProperties, false);
+assert.equal(referenced.nullable, true);
+assert.deepEqual(Object.keys(referenced.properties).sort(), [...referenced.required].sort());
+assert.deepEqual(referenced.properties.run_relation.enum, ["BEFORE_PROPOSAL", "AFTER_PROPOSAL"]);
+assert.deepEqual(referenceLine.properties.absence.enum, ["NO_RESULT", "POLICY_PENDING"]);
+for (const forbidden of ["naive_base", "coverage", "points", "series", "quantity_base", "contributors", "memberId", "member_ref"]) {
+  assert.ok(!(forbidden in referenceLine.properties) && !(forbidden in referenced.properties), `Estimation reference must not expose ${forbidden}`);
+}
 // F07 (2026-10-23): the sealed version is identified everywhere, sealed only
 // by DIRECTIVA or ADMINISTRADOR, version 1 only; trends carry no per-Member
 // data and mark absence and unsealed campaigns instead of zero.
