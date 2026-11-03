@@ -306,7 +306,7 @@ function ReferenceNote({ proposal, state }: { proposal: Proposal; state: Referen
       {state?.status === 'ready' && (
         <p className="mt-2 text-xs text-slate-500" data-testid="reference-evaluated">
           Vigencia evaluada el {fmtDateTime(state.data.evaluated_at)}
-          {state.data.season ? ` · Temporada ${state.data.season.key}` : ''}. «Exportar CSV» incluye esta referencia en
+          {state.data.season ? ` · Temporada ${state.data.season.key}` : ''} · «Exportar CSV» incluye esta referencia en
           columnas aparte (estimation_*), evaluada al exportar.
         </p>
       )}
