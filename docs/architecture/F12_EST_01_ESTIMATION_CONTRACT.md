@@ -50,7 +50,7 @@ La discrepancia EST-D-01 queda resuelta por [ADR-004](../adr/ADR-004-estimacion-
 | Temporada | Definición institucional de campañas comparables: clave, definición y duración, asignadas por la Directiva (EST-D-02) | `ComparabilitySeason` y `CampaignSeasonClassification` (§6) |
 | Trabajo | Solicitud de cálculo por lotes y su estado operativo (EST-D-04) | `EstimationJob` (§6) |
 | Estimación | Referencia calculada para la campaña siguiente comparable (h = 1) | `EstimationRun` y `EstimationResult` (§6) |
-| Propuesta conjunta | Borrador que las personas revisan | `JointPurchaseProposal`; la estimación solo podrá mostrarse en una columna aparte (F12-EST-08) y nunca se suma |
+| Propuesta conjunta | Borrador que las personas revisan | `JointPurchaseProposal`; la estimación solo se muestra en una columna aparte (F12-EST-08, §7.1) y nunca se suma |
 
 **Clase de cada posición de la serie (RN-26, DAT-18):**
 - `VERIFIED_CONSUMPTION`: consumo comprobado, incluido el **cero**. Procede siempre de la versión sellada de una campaña cerrada (§3).
@@ -606,7 +606,57 @@ Ninguna ruta de INT-09:
 - escribe en necesidades declaradas, propuestas, compras, lotes, movimientos ni inventarios;
 - suma la estimación a nada.
 
-F12-EST-08 solo podrá mostrarla en una columna separada (RN-29).
+F12-EST-08 solo la muestra en una columna separada (RN-29), según §7.1.
+
+### 7.1 Referencia en la propuesta conjunta (F12-EST-08, #181)
+
+**Estado:** implementado en la rama de F12-EST-08 (PR en borrador con Refs #181), no en `main`.
+
+**Rutas.** Las dos están bajo `/api/v1/collective`, con los roles de la propuesta (DIRECTIVA y ADMINISTRADOR). Las sirve el módulo de estimación, que ya depende del colectivo.
+
+| Método y ruta | Escribe | Qué entrega |
+|---|---|---|
+| `GET /collective/proposals/{proposalId}/estimation-reference` | No | Por cada línea del borrador, la referencia o el motivo de su ausencia |
+| `GET /collective/proposals/{proposalId}/csv` | No | El CSV del borrador, sin cambios, con la referencia añadida en columnas aparte |
+
+**Origen de la cifra.**
+- Es `GET /estimation/results` (§4.3) para la campaña del borrador, con la misma selección, vigencia, política y permisos.
+- No hay otro cálculo ni otro almacenamiento.
+- Una línea toma el resultado del **mismo producto canónico y unidad**. El sindicato es el del borrador y la campaña es la suya, que es la campaña objetivo de la estimación.
+- Un borrador de otro sindicato responde 404, igual que uno inexistente.
+
+**Identificación y separación.**
+- La respuesta lleva `label: "Estimación del consumo"` y un aviso fijo: no se suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas, los totales ni la huella del borrador.
+- La referencia no repite ninguna cifra de necesidad.
+- **No entrega** naive, cobertura, serie ni datos por Member.
+
+**Ejecución y momento.**
+- Cada línea con resultado lleva la ejecución (`run_ref`), su fecha de generación y `run_relation`, que indica si la ejecución es anterior o posterior al borrador (`BEFORE_PROPOSAL` o `AFTER_PROPOSAL`).
+- La respuesta lleva `evaluated_at`, el momento en que se evaluó la vigencia.
+- Una propuesta histórica muestra así la referencia vigente al consultar, identificada como tal. La referencia nunca forma parte del borrador.
+
+**Ausencias, nunca un cero.**
+- `absence: NO_RESULT`: ninguna ejecución incluye ese producto y unidad.
+- `absence: POLICY_PENDING`: sin política en vigor no se entrega ninguna cifra, y el borrador se sigue mostrando como en F07.
+- Un resultado sin cifra lleva su estado y su motivo.
+- Una fuente retirada da `estimate_base` nulo con `SOURCES_WITHDRAWN` (§4.3).
+- La referencia muestra la ejecución que sustituye a otra, nunca un resultado `SUPERSEDED`. El historial completo sigue en `GET /estimation/runs`.
+
+**Borradores y propuestas selladas.**
+- Leer la referencia no ejecuta la decisión del resumen ni escribe nada.
+- El CSV usa la vista existente del borrador, que es de solo lectura y, en una campaña sellada, se sirve desde su versión sellada.
+- Un borrador no se recalcula ni se modifica al consultarlo, y su `inputs_fingerprint` no cambia: la función de huella (`proposalFingerprint`) no se tocó.
+
+**Exportación.**
+- El CSV del borrador conserva sus filas, columnas y valores.
+- Añade, al final de la cabecera, `estimation_reference`, `estimation_availability`, `estimation_evaluated_at`, `estimation_season` y `estimation_notice`.
+- Añade, al final de cada línea, diez columnas `estimation_*`: ausencia, estado, motivo, cifra en unidad base, vigencia, su motivo, método, ejecución, fecha y relación con el borrador.
+- Sin las columnas añadidas, el archivo es exactamente el CSV anterior. La huella del archivo cambia; la huella funcional de las líneas no.
+- La exportación evalúa la vigencia en su propio momento (`estimation_evaluated_at`).
+
+**Clientes.**
+- La Web la muestra en «Necesidades y propuesta conjunta» como columna «Estimación del consumo (referencia)» (prototipo W3).
+- Descarta una respuesta que llega después de cambiar de campaña, de identidad o de borrador.
 
 ## 8. Vigencia derivada al consultar
 
@@ -759,6 +809,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | Motor SES/naive (§3.3): rejilla de α, empates, criterio constante, naive y redondeo final | **Implementado y comprobado**, sin rutas ni ejecuciones | `domain/ses-naive.ts`; `ses-naive.spec.ts` (11, con casos calculados a mano y una referencia decimal independiente) y el tramo `READY` de sellados reales en `f12-est-02-series.postgres.spec.ts` |
 | Pantalla Web institucional «Estimación del consumo» (F12-EST-06): solicitud, estado del trabajo, resultados del perfil institucional con su vigencia, ejecuciones anteriores con su detalle y exportación de la consulta | **Implementado** (F12-EST-06, Refs #179); comprobado con pruebas de componentes y con un recorrido de navegador contra el backend real y PostgreSQL desechable, con la Directiva y el Administrador, y contrastado con el prototipo W4 | `Web/src/pages/estimation.page.tsx`; `docs/evidence/F12_EST_06_WEB_2026-11-02.md`. La Web no calcula: presenta lo que entrega el servicio |
 | Copia descargada en la PWA (IndexedDB) | **Implementado** (F12-EST-07-WEB, Refs #180). Comprobado con pruebas de componentes y con un recorrido de navegador real contra el backend: lectura sin conexión, también tras recargar, aislamiento, borrado y rechazos | `Web/src/lib/estimation-copy.ts`; `docs/evidence/F12_EST_07_WEB_2026-11-02.md` |
+| Estimación como referencia separada en la propuesta conjunta y su CSV (§7.1) | **Implementado y comprobado por HTTP contra PostgreSQL en la rama de F12-EST-08** (Refs #181), no en `main`; la Web, con pruebas de componentes y un recorrido de navegador contra el backend real | `proposal-reference.use-case.ts`; `f12-est-08-proposal-reference.postgres.spec.ts`; `docs/evidence/F12_EST_08_REFERENCIA_PROPUESTA_2026-11-03.md` |
 | Copia descargada en Mobile (SQLite) y cliente Mobile | **Implementado** (Mobile #164, AppMovilAgroquimico `c2ac44a`). Comprobado en HOST, en el POCO X5 Pro contra un Central propio y desechable por HTTPS, y con servidor simulado en el teléfono | `F12_EST_07_COPIA_MOBILE.md` §6; evidencia Mobile `F12_EST_07_MOB_ESTIMACION_2026-11-02.md` |
 
 **Lo que comprueba el script** sobre la especificación:
@@ -829,3 +880,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-02 (UTC), precisión de #175 | EST-D-17 decidida por el autor: la agrupación de denominaciones se limita a asociaciones admisibles anteriores al sellado; sin reagrupación retrospectiva (§3.2, §11.1) |
 | 2026-11-02 (UTC), duodécima | F12-EST-07-WEB (#180): la retirada por un 404 se guarda en el contexto local y persiste tras recargar aunque el borrado falle; una descarga posterior autorizada habilita otra copia (§9) |
 | 2026-11-03 (UTC), decimotercera | Mobile #164 integrado (AppMovilAgroquimico `c2ac44a`): estado real del cliente Mobile de la copia (§9, §12) y del contrato `F12_EST_07_COPIA_MOBILE.md` |
+| 2026-11-03 (UTC), decimocuarta | F12-EST-08 (Refs #181), en rama: la estimación como referencia separada en la propuesta conjunta y en su CSV (§1, §7, §7.1, §12) |

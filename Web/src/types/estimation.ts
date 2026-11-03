@@ -203,3 +203,45 @@ export interface InstitutionalDownload {
 
 /** Lo que devuelve `GET /download`: el perfil lo decide el servidor según el rol vigente. */
 export type EstimationDownload = InstitutionalDownload | (Omit<InstitutionalDownload, 'profile' | 'results'> & { profile: 'FARMER'; results: unknown[] });
+
+/**
+ * F12-EST-08 (#181): `GET /collective/proposals/{id}/estimation-reference`. La
+ * estimación del consumo como referencia separada de cada línea del borrador:
+ * el resultado de `GET /estimation/results` para el mismo producto canónico,
+ * unidad y campaña, con su ejecución y fecha, o el motivo de su ausencia.
+ */
+export interface ReferenceEstimation {
+  status: ResultStatus;
+  reason_code: ReasonCode | null;
+  estimate_base: string | null;
+  validity: Validity;
+  validity_reason: ValidityReason | null;
+  method: 'SES_NAIVE';
+  run_ref: string;
+  generated_at: string;
+  span_length: number | null;
+  run_relation: 'BEFORE_PROPOSAL' | 'AFTER_PROPOSAL';
+}
+
+export interface ReferenceLine {
+  position: number;
+  product_ref: string;
+  base_unit: BaseUnit;
+  presentation_unit: 'L' | 'KG';
+  absence: 'NO_RESULT' | 'POLICY_PENDING' | null;
+  estimation: ReferenceEstimation | null;
+}
+
+export interface ProposalEstimationReference {
+  contract_version: 1;
+  kind: 'PROPOSAL_ESTIMATION_REFERENCE';
+  label: 'Estimación del consumo';
+  proposal_ref: string;
+  proposal_generated_at: string;
+  target_campaign_ref: string;
+  availability: 'AVAILABLE' | 'POLICY_PENDING';
+  evaluated_at: string;
+  season: SeasonRef | null;
+  lines: ReferenceLine[];
+  notice: string;
+}

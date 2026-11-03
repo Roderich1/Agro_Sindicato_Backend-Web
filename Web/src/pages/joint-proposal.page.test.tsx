@@ -9,7 +9,7 @@ import { CAMPAIGN, renderAt } from '../test/render';
 import { JointProposalPage } from './joint-proposal.page';
 
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { proposals: vi.fn(), generateProposal: vi.fn(), proposal: vi.fn(), proposalCsv: vi.fn() },
+  collectiveService: { proposals: vi.fn(), generateProposal: vi.fn(), proposal: vi.fn(), proposalCsv: vi.fn(), proposalEstimationReference: vi.fn(() => new Promise(() => undefined)) },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
 

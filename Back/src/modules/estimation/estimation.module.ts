@@ -1,12 +1,14 @@
 import { Module } from "@nestjs/common";
 import { CollectiveModule } from "../collective/collective.module";
 import { EstimationController } from "./api/rest/estimation.controller";
+import { ProposalEstimationReferenceController } from "./api/rest/proposal-reference.controller";
 import { ConsumptionSeriesUseCase } from "./application/consumption-series.use-case";
 import { EstimationClassificationsUseCase } from "./application/estimation-classifications.use-case";
 import { EstimationConfig } from "./application/estimation-config";
 import { EstimationJobsUseCase } from "./application/estimation-jobs.use-case";
 import { EstimationReadsUseCase } from "./application/estimation-reads.use-case";
 import { EstimationWorker } from "./application/estimation-worker";
+import { ProposalEstimationReferenceUseCase } from "./application/proposal-reference.use-case";
 
 /**
  * F12 estimation (INT-09, F12_EST_01_ESTIMATION_CONTRACT.md):
@@ -17,12 +19,21 @@ import { EstimationWorker } from "./application/estimation-worker";
  *   the reading with derived validity and the correction of classifications;
  * - contract §4.1 (EST-D-02): seasons and the first classification of a
  *   campaign (continuation of #190, Refs #175).
- * No clients (F12-EST-06, F12-EST-07).
+ * - F12-EST-08 (#181): the estimation as a separate reference next to a
+ *   joint purchase proposal and in its CSV export.
  */
 @Module({
   imports: [CollectiveModule],
-  controllers: [EstimationController],
-  providers: [ConsumptionSeriesUseCase, EstimationConfig, EstimationJobsUseCase, EstimationReadsUseCase, EstimationClassificationsUseCase, EstimationWorker],
+  controllers: [EstimationController, ProposalEstimationReferenceController],
+  providers: [
+    ConsumptionSeriesUseCase,
+    EstimationConfig,
+    EstimationJobsUseCase,
+    EstimationReadsUseCase,
+    EstimationClassificationsUseCase,
+    EstimationWorker,
+    ProposalEstimationReferenceUseCase,
+  ],
   exports: [ConsumptionSeriesUseCase],
 })
 export class EstimationModule {}
