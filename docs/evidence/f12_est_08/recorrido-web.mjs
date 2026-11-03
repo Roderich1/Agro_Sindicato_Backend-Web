@@ -416,7 +416,13 @@ try {
 
     const privateAfter = snapshot();
     const privateChanged = changed(privateBefore, privateAfter).filter((t) => PRIVATE.includes(t));
-    check('Tablas privadas de compras, lotes, movimientos, deudas y pagos idénticas', privateChanged.length === 0, privateChanged.join(','));
+    const counts = await Promise.all([prisma.purchase.count(), prisma.purchaseItem.count(), prisma.payableAccount.count(), prisma.inventoryLot.count(), prisma.stockMovement.count()]);
+    check(
+      'Tablas privadas de compras, lotes, movimientos, deudas y pagos idénticas (md5), con filas sembradas',
+      privateChanged.length === 0 && counts.every((n) => n > 0),
+      `cambiadas: ${privateChanged.join(',') || 'ninguna'}; filas compra/ítem/deuda/lote/movimiento: ${counts.join('/')}`,
+    );
+    state.privateMd5 = Object.fromEntries(PRIVATE.map((t) => [t, { before: privateBefore[t], after: privateAfter[t] }]));
     state.tablesChanged = changed(privateBefore, privateAfter);
   } else if (phase === 'admin') {
     await login(ids.adminEmail);

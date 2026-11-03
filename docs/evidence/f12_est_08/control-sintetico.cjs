@@ -69,6 +69,13 @@ async function seed(out) {
   }
   const product = async (label) => (await db.product.create({ data: { tenantId: f.tenantA, name: label, unit: "L" } })).id;
   const products = { herbicide: await product("Herbicida de ensayo"), fungicide: await product("Fungicida de ensayo"), insecticide: await product("Insecticida de ensayo") };
+  // Filas privadas de un agricultor sintético: la comparación «antes y después» no es entre tablas vacías.
+  const supplier = await db.supplier.create({ data: { tenantId: f.tenantA, name: "Proveedor sintético" } });
+  const purchase = await db.purchase.create({ data: { tenantId: f.tenantA, supplierId: supplier.id } });
+  await db.purchaseItem.create({ data: { tenantId: f.tenantA, purchaseId: purchase.id, productId: products.herbicide, quantity: 20, unitCost: 15, subtotal: 300 } });
+  await db.payableAccount.create({ data: { tenantId: f.tenantA, purchaseId: purchase.id, dueDate: new Date("2026-12-01T00:00:00.000Z"), totalAmount: 300 } });
+  await db.inventoryLot.create({ data: { tenantId: f.tenantA, ownerUserId: farmers[0].userId, productId: products.herbicide, initialQuantity: 20, currentQuantity: 20 } });
+  await db.stockMovement.create({ data: { tenantId: f.tenantA, ownerUserId: farmers[0].userId, productId: products.herbicide, type: "ENTRADA", quantity: 20 } });
   const common = { tenantId: f.tenantA, sealedByUserId: director.userId, baseUnit: "ML", coverage: { status: "IDENTIFIED", membersInPublishedFigures: 3 } };
   // INVIERNO: el ejemplo de 3.12.5 en mL (96, 120, 104 y 116 L). Fungicida sólo en dos campañas anteriores: datos insuficientes.
   const winter = await sealedConsumptionCampaigns(db, { ...common, canonicalProductId: products.herbicide, firstYear: 2015, quantities: [96000n, 120000n, 104000n, 116000n], namePrefix: "Invierno sintético" });

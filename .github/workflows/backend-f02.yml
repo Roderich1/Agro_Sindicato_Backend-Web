@@ -91,3 +91,5 @@ jobs:
       - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-05-runs.postgres.spec.ts --runInBand
       # EST-D-02 (Refs #175): temporadas y clasificación inicial por HTTP; crea su propia base.
       - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-seasons.postgres.spec.ts --runInBand
+      # F12-EST-08 (Refs #181): la estimación como referencia de la propuesta y su CSV, por HTTP; crea su propia base.
+      - run: F12_EST_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest f12-est-08-proposal-reference.postgres.spec.ts --runInBand

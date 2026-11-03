@@ -124,6 +124,8 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
   const views: Record<string, ProposalView> = {};
   const runs: Record<string, string> = {};
   const demo: Record<string, unknown> = {};
+  /** md5 of each private table when the suite starts, compared at its end. */
+  let privateAtStart: (string | undefined)[] = [];
 
   beforeAll(async () => {
     process.env["COLLECTIVE_DISCLOSURE_MODE"] = "provisional-synthetic";
@@ -157,6 +159,14 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     await campaign("X", 2020, "PLANIFICADA");
     await season("INVIERNO");
     await classify("INVIERNO", ["C1", "C2", "C3", "C4", "T"]);
+    // Private rows of a synthetic farmer, so that «identical before and after» compares real content.
+    const owner = (await prisma.member.findUniqueOrThrow({ where: { id: f.members.farmerA } })).userId;
+    const supplier = await prisma.supplier.create({ data: { tenantId: f.tenantA, name: "Proveedor sintético" } });
+    const purchase = await prisma.purchase.create({ data: { tenantId: f.tenantA, supplierId: supplier.id } });
+    await prisma.purchaseItem.create({ data: { tenantId: f.tenantA, purchaseId: purchase.id, productId: products["Herbicida"]!, quantity: 20, unitCost: 15, subtotal: 300 } });
+    await prisma.payableAccount.create({ data: { tenantId: f.tenantA, purchaseId: purchase.id, dueDate: new Date("2026-12-01T00:00:00.000Z"), totalAmount: 300 } });
+    await prisma.inventoryLot.create({ data: { tenantId: f.tenantA, ownerUserId: owner, productId: products["Herbicida"]!, initialQuantity: 20, currentQuantity: 20 } });
+    await prisma.stockMovement.create({ data: { tenantId: f.tenantA, ownerUserId: owner, productId: products["Herbicida"]!, type: "ENTRADA", quantity: 20 } });
   }, 300000);
 
   afterAll(async () => {
@@ -321,6 +331,7 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
 
   it("rejects without a session, for the Farmer and across tenants, and writes nothing", async () => {
     const before = await snapshot();
+    privateAtStart = PRIVATE_TABLES.map((name) => before.get(name));
     const own = await generate();
     proposals["P0"] = own.proposal_ref;
     views["P0"] = own;
@@ -365,6 +376,8 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
 
   it("with an estimation available, a new draft has the same lines, totals and fingerprint; the earlier one is unchanged", async () => {
     const privateBefore = await privateCounts();
+    // Purchase, its item, the payable account, the lot and the movement exist: the comparison is not of empty tables.
+    expect(privateBefore).toEqual([1, 1, 0, 0, 1, 1, 1, 0]);
     const tablesBefore = await snapshot();
     runs["R1"] = await estimate();
     const p1 = await generate();
@@ -386,6 +399,7 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     expect(await privateCounts()).toEqual(privateBefore);
     const generatedChanges = changed(tablesBefore, await snapshot());
     expect(generatedChanges.filter((name) => PRIVATE_TABLES.includes(name))).toEqual([]);
+    const privateHashes = Object.fromEntries(PRIVATE_TABLES.map((name) => [name, tablesBefore.get(name)]));
 
     const before = await snapshot();
     const r1 = await reference(p1.proposal_ref);
@@ -415,7 +429,7 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     expect(changed(before, await snapshot())).toEqual([]);
     demo["with_estimation"] = {
       fingerprint_p0: p0.inputs_fingerprint, fingerprint_p1: p1.inputs_fingerprint, total_base_p0: total(p0), total_base_p1: total(p1),
-      generated_tables: generatedChanges, private_counts: privateBefore,
+      generated_tables: generatedChanges, private_counts: privateBefore, private_md5: privateHashes,
       reference: r1.lines.map((l) => ({ position: l.position, absence: l.absence, status: l.estimation?.status ?? null, estimate_base: l.estimation?.estimate_base ?? null, validity: l.estimation?.validity ?? null, run_relation: l.estimation?.run_relation ?? null })),
       csv_header: parseCsv(text)[4],
     };
@@ -490,6 +504,10 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     // The reference still says which run and moment it belongs to.
     expect(lineOf(ref, "Herbicida").estimation).toMatchObject({ run_ref: runs["R2"], run_relation: "AFTER_PROPOSAL" });
     expect(Date.parse(ref.evaluated_at)).toBeGreaterThan(Date.parse(ref.proposal_generated_at));
+    // From the first generation to here (estimations, withdrawals, the seal and every reading): the private tables are the same.
+    const end = await snapshot();
+    expect(PRIVATE_TABLES.map((name) => end.get(name))).toEqual(privateAtStart);
     demo["sealed"] = { seal: sealed.seal?.seal_ref, fingerprint: sealed.inputs_fingerprint, tables_changed_by_reads: [], run: lineOf(ref, "Herbicida").estimation!.run_ref };
+    demo["private_tables_whole_suite"] = Object.fromEntries(PRIVATE_TABLES.map((name, i) => [name, { start: privateAtStart[i], end: end.get(name) }]));
   });
 });
