@@ -136,7 +136,7 @@ Los SHA ejecutados están en ramas de ensayo. El adaptador de `main` es idéntic
 | 7 | Restauración en un teléfono de otro modelo | **Prueba técnica pendiente** | El caso D se hizo en el mismo modelo | Restaurar en el HONOR | T con el teléfono y una clave temporal de R |
 | 8 | Clave de mínimo privilegio y revocación de las de ensayo | **Parcial**: el adaptador funciona con claves de 4 capacidades y prefijo | Revocación de `b151-*` solo en el comentario 6391397579; no se probó el acceso denegado | Clave productiva por entorno; qué hacer con la clave amplia de #149; opcional: prueba de acceso denegado | R; producción |
 | 9 | Monitorización, `--reconcile`, rotación y costos | **Operación productiva pendiente**, más una prueba técnica | Los códigos de limpieza pendiente existen y están probados | Probar `backups:inventory --reconcile` contra un prefijo de ensayo en B2; alertas, rotación y costos | T (CLI); producción y R |
-| 10 | Retención de `.previo` | **Parcial**: 2 y 7 días implementados; #172 protege `interrupted` y `retained` (H) | — | En D: plazo, cota e `interrupted`; una cota para `retained`; la política con datos reales | T con teléfono; R y Directiva |
+| 10 | Retención de `.previo` | **Parcial**: 2 copias y 7 días implementados. La **excepción vigente** (F08-ADR-003 §7.2; #172) protege las `interrupted` y `retained` fuera del plazo y de la cota hasta que el titular confirme la recuperación (H) | — | En D: el plazo y la cota de las copias resueltas, como mejora de cobertura; el plazo exige mover el reloj, lo que necesita una autorización específica. Una `interrupted` no puede provocarse en Android sin un gancho de prueba. **No hay que implementar ninguna cota ni purga para `retained`**: es la excepción aceptada. Falta la política con datos reales | T con teléfono (mejora); R y Directiva (política) |
 | 11 | Límites de uso declarados | Límites declarados, no defectos | UPLOADING abandonada, cerrada en B2 (C5b) | Procedimiento operativo y aceptación | Producción; R |
 | 12 | Política institucional de retención | **Decisión institucional pendiente** (GOV-02 #185) | — | Plazo, copias, purga y cierre de cuenta | Directiva con R |
 | 13 | Cifrado en reposo exigible | Técnica acreditada en lo sintético (formato 2 en B2; caso D) | R1: formato 2 FAIL (H1) | `BACKUP_REQUIRE_CLIENT_ENCRYPTION=true`; revisar `cryptography`; comprobar con personas cómo se guarda la clave | R y Directiva; producción; R y tutor |
@@ -232,3 +232,68 @@ Los SHA ejecutados están en ramas de ensayo. El adaptador de `main` es idéntic
 | Lo que lo cierra | §6 (pruebas) y §7 (decisiones del autor) | §5 (b) y (c), y la hoja de revisión §7.2, nivel 5 |
 
 **OE3 no está completo.** Para cerrarlo académicamente hacen falta las decisiones del §7 y el trabajo del §6, o excepciones explícitas del autor por escrito. Las aprobaciones de la Directiva y del tutor solo son necesarias para #107 y para la admisión real, a menos que el autor decida separar ambas cosas (§7.2).
+
+## 10. Segunda pasada (2026-11-03): reclasificación y cambios aplicados
+
+### 10.1 Cambios administrativos aplicados
+
+Autorizados por Roderich el 2026-11-03, registrados antes de aplicarlos y releídos después.
+
+| Ítem | Cambio | Valor releído |
+|---|---|---|
+| MOB #178 | Gate vacío → N/A | Done · Gate N/A · Verified |
+| MOB #28 | [Anexo](https://github.com/Roderich1/AppMovilAgroquimico/issues/28#issuecomment-6608323341): cita de P9 corregida y D-F04-C1 superado | Sin cambios de campos: Done · Passed · Partial |
+| MOB #50 | [Anexo](https://github.com/Roderich1/AppMovilAgroquimico/issues/50#issuecomment-6608324424) por criterio. La doble reversión (`rec_050`) y la confirmación (`destructive_actions_test`) ya estaban cubiertas; reversión sin red en DEVICE (caso A) | **Evidence Verified** |
+| BE #149 | [Anexo](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/issues/149#issuecomment-6608326279) por criterio con las evidencias del 2026-10-24 | **Evidence Verified** |
+| MOB #73 | Los cuatro criterios en HOST con mutaciones; ninguno exige DEVICE | **Evidence Verified** |
+| MOB #82 | Los cuatro criterios en la CI con el paso TZ | **Evidence Verified** |
+
+En ninguno se registra una inspección personal del autor. Verified se refiere a los criterios de cada issue.
+
+### 10.2 Reclasificación de los pendientes
+
+Cinco clases:
+- **(C) criterio de aceptación pendiente;**
+- **(M) mejora de cobertura deseable**, que ningún criterio exige;
+- **(D) documentación desactualizada;**
+- **(A) decisión de alcance** del autor;
+- **(I) condición institucional o productiva.**
+
+No se exige DEVICE cuando el criterio admite HOST (`OE3_PLAN_DEVICE_B2_2026-11-03.md` §1).
+
+| Ítem | Pendiente | Clase | Cómo se resuelve |
+|---|---|---|---|
+| MOB #18 | Pruebas de 403/404 y de la configuración desde el entorno | C (HOST) | PR de pruebas HOST de OE3 |
+| MOB #18–#22 | Índice en `docs/evidence/` | D | Ídem |
+| MOB #19 C y F; #20 Auto Backup y D2D; #21 21-E; #71 E-1 | Filas de teléfono sin medir | M | Plan del POCO (P-01 a P-04); Auto Backup y D2D necesitan una autorización específica |
+| MOB #20 | Corte de energía | A | Excepción E-F03-4 o una autorización |
+| MOB #23 / #28 | Ratificación de los gates por el autor | A | `OE3_DECISIONES_BORRADOR_2026-11-03.md` §1–§2 |
+| MOB #28 | Cita de P9 y D-F04-C1 | D | Anexo aplicado (§10.1) y corrección en el PR Mobile |
+| MOB #28 | Transferencia en DEVICE | M | P-08, o la excepción E-F04-1 |
+| MOB #36 | Otro modelo | A (equivalencia aprobada por delegación) | Ratificar o hacer H-02 |
+| MOB #44 | Cámara | C (HOST con doble) | PR de pruebas HOST |
+| MOB #44 | `docs/13` y la procedencia de la foto alterada | D | PR Mobile |
+| MOB #45 | «Supera el saldo» y compra revertida | C (HOST) | PR de pruebas HOST |
+| MOB #45 / #49 | Requisito formal | A (con revisión del tutor) | PR Mobile de especificación (propuesta) |
+| MOB #49 | Modo compartido en DEVICE; inmutabilidad solo de aplicación | M; A | P-09; decisión del autor |
+| MOB #76 | «Otro Member» en DEVICE | M | P-05 |
+| MOB #83 | SHA de la prueba | D | Repetición registrada en el PR de pruebas HOST |
+| MOB #97 | Nombre largo en compartido | M | P-10 |
+| MOB #121 | R-03 en aplicación en DEVICE | M | P-06 |
+| MOB #122 | Versión de necesidad posterior a hoy | C (HOST) | PR de pruebas HOST |
+| MOB #125 | Día inicial en DEVICE | M | P-07 |
+| MOB #129 | M8 A4-F en el HONOR | **C (DEVICE)** | H-01: **requiere conectar el HONOR** |
+| BE #18 / #19 | 22 filas Mobile NOT_MEASURED | M (criterio 10 cumplido) | Servidor real (5 filas) o transporte controlado (16), con modos nuevos del arnés; C36 es I |
+| BE #19 | Acta con REJECTED sin D y D-F04-C2 | D | Actualización del 2026-11-03 en `F05_GATE_DECISION.md` |
+| BE #18 | §6 de `F05_SYNC_06.md` | D | Precisión del 2026-11-03 |
+| BE #21, MOB #32/#33/#34 | Criterios reescritos por el contrato F06 | A | Confirmación del autor |
+| BE #22 | Depende de #107 y del tutor | I | Hoja de revisión §7 |
+| BE #24 / #25 | Criterios recortados por delegación | A | Excepción (decisiones §3) |
+| BE #29 | Criterio 9 | A (opción B) o I (opción A) | Decisiones §3 |
+| BE #107 | Decisión del autor, Directiva y tutor | I | Hoja de revisión §7.3 |
+| BE #151, punto 7 | Otro modelo | C (DEVICE) | H-02, con B2 (B-1) o desde archivo local, rotulado como tal |
+| BE #151, punto 9 | CLI contra B2 | C (técnico) | B-2: **sin credenciales autorizadas** |
+| BE #151, punto 10 | Plazo y cota en DEVICE | M. El plazo exige mover el reloj (no autorizado) | P-11 solo para la cota. **No hace falta ninguna cota ni purga para `retained`**: es la excepción vigente |
+| BE #151, puntos 8, 11–15 | Claves productivas, operación, retención, cifrado exigible, admisión y bucket | I | GOV-02 (#185) y producción |
+
+**Corrección del texto anterior.** La fila del punto 10 del §5 presentaba «una cota para `retained`» como pendiente. No lo es: la excepción vigente (F08-ADR-003 §7.2; #172) protege esas copias fuera del plazo y de la cota hasta que el titular confirme la recuperación. Queda declarado como límite («las `retained` se acumulan sin cota»), no como funcionalidad obligatoria.

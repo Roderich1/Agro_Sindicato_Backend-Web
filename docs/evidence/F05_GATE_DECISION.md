@@ -63,3 +63,18 @@
 - **Registro:** sesión A de Claude Code, el 2026-10-17, sobre las actas versionadas y sin repetir pruebas.
 - **Revisión personal de Roderich Rendón:** no consta.
 - **Revisión del tutor:** se registra aparte en GOV-01.
+
+## Actualización del 2026-11-03 (cierre de OE3): límites superados
+
+*No cambia el Gate (Passed para el alcance académico), su Evidence (Partial) ni el Status. No registra ninguna revisión personal del autor.*
+
+- **El estado «rechazada» (REJECTED) ya se observó en el teléfono** (límite del criterio 3), en los casos C3 y C4 de Mobile `docs/evidence/F01_F08_DEVICE_FINAL_2026-10-24.md`:
+  - POCO X5 Pro, Mobile `1d77c14`, Backend `4bcb1ea`;
+  - una sustitución sobre una campaña sellada quedó `REJECTED` con `CAMPAIGN_SEALED`, con 1 intento y sin reintentos;
+  - la app muestra «Rechazado (CAMPAIGN_SEALED)».
+- **D-F04-C2 quedó corregida** en MOB #116 (merge `65f7cfc`): el período local tiene que caber en el central. Los pasos físicos G1–G3 están en Mobile `F04_C2_DEVICE.md` (MOB #118), y su efecto sobre la D4 en `F06_GATE_DECISION.md`.
+- **Sigue vigente:**
+  - C08 sin DEVICE. La app no puede generar un mismo `operationId` con otro contenido, porque el trigger lo impide; solo se probaría con transporte controlado, distinto del servidor real;
+  - las 22 filas Mobile NOT_MEASURED de BE #18;
+  - un solo modelo de teléfono.
+

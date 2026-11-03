@@ -155,6 +155,14 @@ Las respuestas inyectadas miden la reacción del cliente, no la decisión de Cen
 - El rendimiento bajo carga, más allá de la concurrencia puntual de C09, C11 y C28.
 - Producción: la admisión sigue cerrada (C36) y no hay purga. La sesión física de §4 la abrió sólo en un entorno desechable.
 
+> **Precisión del 2026-11-03 (cierre de OE3).** Este apartado se redactó con la ejecución del §1. Varias acciones Mobile que lista se midieron después en el teléfono (§4b, 2026-10-16), y su procedencia queda como en ese apartado:
+> - **ACK inválido:** C30, con una respuesta **inyectada** por el arnés de transporte (no por el servidor real): `OUTCOME_UNKNOWN`/`INVALID_ACK`, nunca ACKED;
+> - **pausa por autenticación:** C22, desactivación real por la API → `AUTH_PAUSED`;
+> - **restore sin prueba de propietario:** C35;
+> - **relogin con otra cuenta:** C38.
+>
+> **Siguen sin probar** el backoff con jitter medido, la rotación real de la clave de huella, la carga y producción. Las filas Mobile marcadas NOT_MEASURED en el §3 siguen así; su clasificación (alcanzables desde la app, con transporte controlado o solo de Central) está en `docs/evaluation/OE3_CIERRE_INVENTARIO_2026-11-03.md` §4.3.
+
 ## 7. Revisiones
 
 - Ejecución automatizada: Claude Code, 2026-10-15 (arriba). El CI del PR ejecuta A y R en cada push.
