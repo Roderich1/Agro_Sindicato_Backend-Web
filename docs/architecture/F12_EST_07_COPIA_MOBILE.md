@@ -96,6 +96,8 @@ Siguiendo la regla del proyecto, la evidencia deberá indicar su procedencia: HO
 
 **Código.** AppMovilAgroquimico `main` `c2ac44a` (PR Roderich1/AppMovilAgroquimico#180). Implementación en `c127c45`; código final de `lib/` en `5594599`.
 
+**CI de `main`:** falló en `c2ac44a` (run 41566802912, conservado) por una prueba de pantalla ajena a la copia (`operation_mode_onboarding_test`), que siguió tras una espera agotada sin fallar. La espera se corrigió en Roderich1/AppMovilAgroquimico#181, sin cambios en `lib/`. La CI de `main` pasó en `5b5b318`: run 41577902321, 2233 correctas, 0 fallidas y 4 omitidas. Mobile #164 se cerró sobre `5b5b318`.
+
 **Regla de lectura.** Una copia se lee solo con:
 - la instalación activada y la sesión del mismo Member y sindicato que el **titular vigente**;
 - el **contexto local vigente**;
