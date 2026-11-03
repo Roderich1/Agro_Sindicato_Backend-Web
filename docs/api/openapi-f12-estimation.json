@@ -929,7 +929,7 @@
           "DIRECTIVA",
           "ADMINISTRADOR"
         ],
-        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (GOV-02, #107) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
+        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (F07-POL-01, #107, dentro de las decisiones institucionales de GOV-02, #185) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
         "parameters": [
           {
             "name": "target_campaign_ref",
@@ -1037,7 +1037,7 @@
           "DIRECTIVA",
           "ADMINISTRADOR"
         ],
-        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (GOV-02, #107) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
+        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (F07-POL-01, #107, dentro de las decisiones institucionales de GOV-02, #185) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
         "parameters": [
           {
             "name": "target_campaign_ref",

@@ -3,8 +3,8 @@
 | Campo | Valor |
 |---|---|
 | Estado | **Borrador revisable de F11** (BE #54). No es un release ni una guía de producción aprobada. GATE-F11 no se evalúa con este documento |
-| Fecha de redacción | 2026-10-19. **Actualización del 2026-10-24** (F01–F08, sesión C), marcada en cada apartado. **Actualización del 2026-10-31** (copias previas tras F08-PREV-01: resumen, §6, §9.2 y §12) |
-| Base descrita | Backend `main` `2a69fe6` (código igual a `f0b55ee`) y Mobile `463d3ec`. **Desde la actualización del 2026-10-24:** Backend `main` `4bcb1ea` y Mobile `main` `1d77c14`. **Lo marcado con el 2026-10-31** describe Mobile `main` `774ae88` (F08-PREV-01, PR Mobile #173). Los nombres de variables, comandos y códigos se comprobaron sobre esos SHA |
+| Fecha de redacción | 2026-10-19. **Actualización del 2026-10-24** (F01–F08, sesión C), marcada en cada apartado. **Actualización del 2026-10-31** (copias previas tras F08-PREV-01: resumen, §6, §9.2 y §12). **Actualización del 2026-11-03** (estimación del consumo, F12: resumen, §3.1, §4.1, §11, §12 y §13) |
+| Base descrita | Backend `main` `2a69fe6` (código igual a `f0b55ee`) y Mobile `463d3ec`. **Desde la actualización del 2026-10-24:** Backend `main` `4bcb1ea` y Mobile `main` `1d77c14`. **Lo marcado con el 2026-10-31** describe Mobile `main` `774ae88` (F08-PREV-01, PR Mobile #173). **Lo marcado con el 2026-11-03 y §13** describen Backend `main` `075a511` y Mobile `main` `5b5b318` (F12). Los nombres de variables, comandos y códigos se comprobaron sobre esos SHA |
 | Manual de usuario | [`F11_MANUAL_USUARIO.md`](F11_MANUAL_USUARIO.md) (BE #53): recorrido del agricultor y de la Directiva. Aquí no se repite |
 | Revisión | Sesión B (técnica). Las decisiones las toma Roderich Rendón |
 
@@ -24,6 +24,15 @@
 - la herramienta de #160 y el modo `drop-refresh-response` del arnés Mobile (§7.4);
 - la restauración en un teléfono nuevo, con la cuenta y la clave (§6.1);
 - lo que sigue pendiente para producción, por separado (§7.5).
+
+**Actualización del 2026-11-03** (F12, estimación del consumo; Backend `main` `075a511`, Mobile `main` `5b5b318`): tres migraciones aditivas (§3.1), variables `ESTIMATION_*` (§4.1) y un apartado nuevo (§13) sobre:
+- el trabajador por lotes y las rutas INT-09;
+- el método SES/naive y la vigencia;
+- las copias sin conexión de la Web y de Mobile, con su exclusión del respaldo privado y sus límites;
+- la referencia en la propuesta conjunta;
+- la evaluación sintética.
+
+Comprobado en HOST con PostgreSQL desechable, en navegador contra el servidor real y, para Mobile, en el POCO X5 Pro. **Sin EMULADOR.**
 
 **Actualización del 2026-10-31** (Mobile `main` `774ae88`, F08-PREV-01): comprobación del estado recuperado tras un rollback, estado `retained`, copias protegidas y excepción a la limpieza normal de `previo/` (§6, §9.2 y §12). Comprobado sólo en HOST y CI; no en un emulador ni en un teléfono.
 
@@ -121,6 +130,11 @@ En `Back/prisma/migrations/`, en este orden:
 11. `20261017020156_f10_proposal_coverage_basis`
 12. `20261019150000_f08_bkp06_retention`
 13. `20261023100000_f07_collective_seal` (añadida el 2026-10-24; §3.4)
+14. *2026-11-03:* `20261101233651_f12_est_01_estimation` (F12: temporadas, clasificaciones, series, puntos, trabajos, ejecuciones y resultados, con disparadores de solo inserción; §13)
+15. *2026-11-03:* `20261102020000_f07_seal_consumption_coverage` (cobertura de consumo de los sellados **nuevos**; no reconstruye los anteriores)
+16. *2026-11-03:* `20261102100000_f12_est_05_run_ownership` (titularidad del trabajo por intento)
+
+Las tres son aditivas: no cambian `DemandForecast`, los sellados existentes ni ninguna tabla anterior. **[Probado]** desde la base previa en `f12-est-01-estimation-schema.postgres.spec.ts` (`F12_EST_01_DESBLOQUEO_2026-11-01.md`).
 
 F08-ADR-003 (formato 2) **no añade migración**: `formatVersion` ya era un entero.
 
@@ -187,6 +201,11 @@ El Backend valida el entorno al arrancar con un esquema zod (`Back/src/config/en
 | `SYNC_V1_PRODUCTION_ADMISSION` | Abre Sync v1 con `NODE_ENV=production` | `enabled` \| `disabled` (plantilla `disabled`) | Cerrado salvo decisión |
 | `COLLECTIVE_DISCLOSURE_MODE` | Cifras colectivas | `disabled` \| `provisional-synthetic` (k = 3). **Se ignora en producción**, que siempre responde `POLICY_PENDING` | — |
 | `COLLECTIVE_SEALING` (2026-10-24) | Sellado manual de la versión colectiva de una campaña (F07) | `enabled` \| `disabled`. **Desactivada por defecto** (plantilla `disabled`): sin definir o en `disabled`, sellar responde 409 `SEALING_DISABLED`. Otro valor no pasa la validación del arranque. Leer versiones ya selladas no depende de ella | No. **Condición de habilitación:** sólo con la compilación Mobile en uso que trate `CAMPAIGN_SEALED` como fallo terminal, comprobada en DEVICE con la APK de ese SHA (`F07_SEALED_HISTORY_CONTRACT.md` §3.2). Además, sellar exige un modo distinto de `POLICY_PENDING` (409 `POLICY_PENDING`), así que en producción hoy no se puede sellar |
+| `ESTIMATION_WORKER` (2026-11-03) | Trabajador de la estimación dentro del proceso de la API | `enabled` \| `disabled`; sin definir, encendido. Con `disabled`, los trabajos esperan en cola. Otro valor no pasa la validación del arranque | No |
+| `ESTIMATION_WORKER_INTERVAL_MS` | Cada cuánto busca un trabajo | `5000`; entre 100 y 3 600 000 | No |
+| `ESTIMATION_LEASE_MS` | Cuánto tiempo es dueño un trabajador del trabajo que tomó | `300000`; entre 100 y 86 400 000 | No |
+| `ESTIMATION_MAX_PRODUCTS` | Productos por trabajo | `200`; máximo 10 000 | No |
+| `ESTIMATION_MAX_ATTEMPTS` | Intentos de un trabajo, fijados al encolarlo | `3`; máximo 20 | No |
 | `BACKUP_STORAGE_PROVIDER` | Proveedor de respaldos | `disk` (si está vacío) \| `b2` | — |
 | `BACKUP_STORAGE_DIR` | Directorio del proveedor de disco | sin valor: rutas en 503 | Sólo con `disk` |
 | `BACKUP_MAX_BYTES` | Tamaño máximo de una copia | `104857600` (100 MiB); máximo 1 GiB | No |
@@ -715,6 +734,10 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
 - **Voz (F09):** es opcional y queda pendiente. No se documenta ninguna operación técnica de reconocimiento de voz. GATE-F09 está Pending y tiene mediciones `NOT_MEASURED`.
 - **Un solo modelo de teléfono:** los ensayos de restauración se hicieron en el POCO X5 Pro (Android 12).
 - *2026-10-24:* **lo pendiente para producción después de F01–F08** está en §7.5; las pruebas que faltan en el teléfono, en Mobile F08-ADR-003 §0.4. Este manual no cierra Roderich1/Agro_Sindicato_Backend-Web#151, no cambia ningún gate y no habilita datos reales.
+- *2026-11-03:* **Estimación (F12, §13).**
+  - Pendiente: la retención de ejecuciones y copias (GOV-02, #185) y la política de divulgación para datos reales (#107).
+  - No se probó en EMULADOR.
+  - Las suites PostgreSQL locales tuvieron tiempos de 5 s agotados esporádicos, sin causa confirmada (`F12_EST_10_INDICE_EVIDENCIA_2026-11-03.md` §3).
 - **Para verificar después de este borrador:**
   - los procedimientos [Sin probar] de §5.5, §5.6, §9.1 y §10;
   - una relectura completa por la sesión B.
@@ -740,4 +763,113 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
 | *2026-10-24:* herramienta de #160 | `tool/f08_b2/`; `b151-b2-real.postgres.spec.ts` | `F08_BKP_08_HERRAMIENTA_B151.md` |
 | *2026-10-24:* sellado F07 y su migración | `F07_SEALED_HISTORY_CONTRACT.md` §3–§4 | `F07_SELLADO_HISTORICO.md` |
 | *2026-10-24:* respaldo cifrado y restauración en el teléfono | Mobile F08-ADR-003 §3, §5 y §7 | Mobile `F08_RESPALDO_CIFRADO_HOST.md`; Mobile `F01_F08_DEVICE_COMPOSICION_2026-10-24.md` |
+| *2026-11-03:* estimación del consumo (F12): migraciones, trabajador, rutas, copias y referencia | `F12_EST_01_ESTIMATION_CONTRACT.md`; `docs/api/openapi-f12-estimation.json`; `F12_EST_07_COPIA_MOBILE.md`; ADR-004 | Índice `F12_EST_10_INDICE_EVIDENCIA_2026-11-03.md` (F12-EST-01 a 09, con las partes Web y Mobile de EST-07) |
 | *2026-10-24:* arnés Mobile, `drop-refresh-response` | Mobile `tool/f03_res_01/observer.cjs` y `fault.sh` | Mobile `F01_F08_DEVICE_COMPOSICION_2026-10-24.md`, tercera ronda |
+
+---
+
+## 13. Estimación del consumo (F12, actualización del 2026-11-03)
+
+**Versión descrita:** Backend `main` `075a511` y Mobile `main` `5b5b318`.
+**Contrato:** `docs/architecture/F12_EST_01_ESTIMATION_CONTRACT.md` (INT-09), con la especificación `docs/api/openapi-f12-estimation.json`; para Mobile, `F12_EST_07_COPIA_MOBILE.md`.
+**Alcance:** ADR-004.
+**Evidencia por entregable:** `docs/evidence/F12_EST_10_INDICE_EVIDENCIA_2026-11-03.md`.
+
+**Qué es.** Una referencia **exploratoria** del consumo por producto canónico y unidad base para la próxima campaña comparable.
+- Se calcula en el servidor, solo con cifras de consumo publicadas y selladas (F07), de campañas cerradas de la misma temporada.
+- No escribe en necesidades, propuestas, compras, lotes, movimientos ni inventarios, y no se suma a nada.
+- No hay aprobación por resultado.
+
+### 13.1 Componentes
+
+| Pieza | Dónde | Notas |
+|---|---|---|
+| Temporadas y clasificación de campañas | `estimation-classifications.use-case.ts` | Una clasificación corregida crea una versión nueva, con su motivo |
+| Series y tramo | `consumption-series.use-case.ts`, `domain/series.ts` | `VERIFIED_CONSUMPTION` (incluido el cero), `NO_RECORD` y `HIDDEN`. Solo se agrupan las asociaciones anteriores al sellado (EST-D-17) |
+| Motor SES/naive | `domain/ses-naive.ts` | Función pura (§13.3) |
+| Trabajos y trabajador | `estimation-jobs.use-case.ts`, `estimation-worker.ts` | Por lotes, fuera de la petición (§13.2) |
+| Lectura y vigencia | `estimation-reads.use-case.ts`, `domain/validity.ts` | La vigencia se deriva al consultar; nunca se guarda |
+| Referencia en la propuesta | `proposal-reference.use-case.ts` | `GET /collective/proposals/{id}/estimation-reference` y columnas `estimation_*` del CSV del borrador |
+| Web | `estimation.page.tsx`, `estimation-copy.ts`, `joint-proposal.page.tsx` | La Web no calcula: presenta lo que entrega el servicio |
+| Mobile | `estimation_screen.dart`, `estimation_copy_store.dart`, `estimation_providers.dart` | Solo el perfil del Agricultor; esquema SQLite 13 |
+
+### 13.2 Trabajador y operación
+
+- **Encolado.** `POST /api/v1/estimation/jobs` encola un trabajo (202). Repetir el mismo `request_id` con la misma petición devuelve el mismo trabajo; con otra petición, 409 `REQUEST_ID_REUSED`.
+- **Proceso.** El trabajador corre dentro de `node dist/main.js`:
+  - toma los trabajos con `SKIP LOCKED` y un plazo de propiedad (`ESTIMATION_LEASE_MS`);
+  - reintenta solo los errores transitorios, hasta `ESTIMATION_MAX_ATTEMPTS`, y después registra `RETRIES_EXHAUSTED`;
+  - antes de calcular comprueba la política, el permiso del solicitante y la campaña. Si alguno falla, para sin cálculo (`NOT_EXECUTED`).
+- **Varias réplicas.** Dos procesos sobre la misma base se reparten los trabajos. Con `ESTIMATION_WORKER=disabled`, los trabajos esperan en cola. **[Probado]** en `docs/evidence/f12_est_05/ensayo-proceso-trabajador.cjs` (HOST, `F12_EST_05_PROCESO_2026-11-02.md`).
+- **Registro.** Las líneas `[F12 WORKER]` (trabajo, intento, ejecución, resultado) y `[F12 SERIES]`.
+- **Apagado.** No hay ganchos: un trabajo en curso al apagar se recupera cuando vence su plazo.
+- **Inmutabilidad.** Ejecuciones y resultados solo se insertan; los disparadores de la base rechazan `UPDATE` y `DELETE`. Cada ejecución guarda una huella de contenido (`contentHash`).
+- **Retención.** Ninguna: depende de GOV-02 (#185).
+
+### 13.3 Método (SES y naive)
+
+- **Tramo.** Campañas consecutivas de la temporada con consumo comprobado, terminando en la inmediatamente anterior al objetivo. Hacen falta **al menos tres**. Con menos, o si la última campaña no tiene consumo comprobado, el resultado es `INSUFFICIENT_DATA`, sin cifra.
+- **SES:**
+  - nivel inicial = primera observación;
+  - *L*ₜ = α·*y*ₜ + (1 − α)·*L*ₜ₋₁;
+  - la estimación es el último nivel;
+  - α en 21 valores, de 0,00 a 1,00 con paso 0,05, elegido por la suma de errores cuadráticos a un paso desde la tercera campaña;
+  - en empate (tolerancia 10⁻⁹), el mayor α. Con el criterio constante, α = 1 y el ajuste se marca no informativo.
+- **Naive:** la última observación del tramo.
+- **Aritmética.** Fracciones exactas, redondeo final a 6 decimales (`ROUND_HALF_UP`), `methodVersion = F12-EST-04/1`. Horizonte de una campaña.
+- **El SES puede ser peor que el naive** fuera del tramo. Es un resultado válido.
+- **Supuesto del catálogo completo (2026-11-03).** La consecutividad se mide sobre las campañas registradas y clasificadas. Si una campaña nunca se registró, el sistema no lo detecta. Es un supuesto aceptado para el alcance académico, no una validación del calendario (contrato §11.3, punto 6).
+
+### 13.4 Vigencia, política y permisos
+
+- **Vigencia**, en este orden:
+  1. `NOT_USABLE`: ejecución fallida o sin cifra;
+  2. `SUPERSEDED`: hay una ejecución calculada posterior;
+  3. `OUTDATED`: fuentes retiradas, clasificación corregida o fuentes cambiadas;
+  4. `CURRENT`.
+- **Fuente retirada.** Si una cifra usada dejó de divulgarse, el resultado se entrega **sin cifras** (`SOURCES_WITHDRAWN`).
+- **Política.** Con `COLLECTIVE_DISCLOSURE_MODE` distinto de `provisional-synthetic` (y siempre en producción), las rutas con cifras responden 409 `POLICY_PENDING`. Sin sellado (`COLLECTIVE_SEALING` desactivado) no hay consumo comprobado.
+- **Roles:**
+  - DIRECTIVA y ADMINISTRADOR: perfil `INSTITUTIONAL`;
+  - AGRICULTOR: perfil `FARMER`, solo la estimación, sin naive, cobertura ni serie.
+- **Ámbito.** Siempre el sindicato del Member autenticado. Otro sindicato responde 404.
+
+### 13.5 Copias sin conexión y respaldo privado
+
+| | Web (PWA) | Mobile |
+|---|---|---|
+| Dónde | IndexedDB, más un contexto local en `localStorage` (identificador aleatorio, huella FNV-1a de usuario y sindicato, rol, generación y campañas retiradas; **ningún identificador en claro**) | SQLite, esquema 13: `estimation_copies`, `estimation_copy_access` y `estimation_copy_retirements`; una marca de retirada en el almacenamiento seguro |
+| Quién la lee | La sesión institucional que la descargó, en ese navegador | La sesión del titular vigente, de la misma cuenta y sindicato |
+| Se retira | Al cerrar la sesión, con otra identidad o sindicato, y ante 401, 403 o 409; ante un 404, la de esa campaña. La retirada se escribe antes del borrado y persiste tras recargar | Igual, más el cambio de titular, en su propia transacción. La retirada va antes del borrado físico y persiste tras reiniciar |
+| Respaldo privado | No aplica | **Excluida.** El respaldo vacía las tres tablas en la base empaquetada y la compacta (`VACUUM`). Restaurar nunca trae la copia |
+| Límites | Sesión, no persona; revocaciones desconocidas sin conexión; la huella FNV-1a no es cifrado | Sesión, no persona; revocaciones desconocidas sin conexión; **fallo doble**: si SQLite y el almacenamiento seguro rechazan ambos la retirada, la lectura queda bloqueada en esa ejecución, pero la retirada no persiste tras reiniciar. Es una excepción aceptada por el autor para el alcance académico, que no aprueba condiciones de producción. Con el almacenamiento seguro ilegible no se muestra ninguna cifra |
+
+### 13.6 Referencia en la propuesta conjunta
+
+- **Rutas:** `GET /api/v1/collective/proposals/{id}/estimation-reference` y `GET …/csv`, con los roles de la propuesta. Las sirve el módulo de estimación.
+- **Lectura sin escritura.** Por línea, el resultado de `/estimation/results` del mismo producto canónico y unidad, con `run_ref`, `generated_at`, `run_relation` y `evaluated_at`, o `absence` (`NO_RESULT`, `POLICY_PENDING`). No toca el borrador, sus líneas ni su huella (`proposalFingerprint`).
+- **CSV.** Las columnas del borrador no cambian; las `estimation_*` van al final.
+- **Filas ocultas.** Se muestra la referencia, rotulada aparte (decisión del autor del 2026-11-03).
+
+### 13.7 Evaluación sintética (F12-EST-09)
+
+**Reproducir**, desde `Back/`:
+
+```
+node ../docs/evidence/f12_est_09/generar-conjuntos.cjs <conjuntos.json>
+node ../docs/evidence/f12_est_09/evaluar.cjs <resultados.json> <resultados.md>
+npx jest src/modules/estimation/test-support/evaluation
+```
+
+**Resultados conservados** en `docs/evidence/f12_est_09/`:
+- el naive tiene menor MAE que el SES en **S2, S3 y S4**;
+- el SES, en S1 y S5;
+- S6 no tiene orígenes evaluables.
+
+No acredita precisión con campañas reales, ahorro ni superioridad general del SES.
+
+### 13.8 Comprobaciones para el operador
+
+- `npm run openapi:check` incluye la especificación INT-09 (etapa `IMPLEMENTED`, 12 operaciones) y la forma cerrada de la referencia de la propuesta.
+- Las suites PostgreSQL de F12 corren en `backend-f02.yml` con `F12_EST_PG_TEST_URL` apuntando a una base de administración desechable. Cada una crea su propia base.
+- **[Sin probar]** cualquier despliegue fuera de los entornos desechables de ensayo.
