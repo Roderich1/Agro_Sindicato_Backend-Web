@@ -6,6 +6,12 @@
 - **Lo que no es:** no atribuye ninguna revisión al tutor ni a la Directiva, y no registra una inspección personal que no ocurrió.
 - **Base:** Backend `main` `5973b49`; Mobile `main` `5b5b318`. Inventario en `OE3_CIERRE_INVENTARIO_2026-11-03.md`.
 
+> **Actualización del 2026-11-03 (tarde).** La sesión física del POCO (MOB PR #184) y las pruebas HOST (MOB PR #183) se ejecutaron después de redactar este borrador.
+> - **Ya no hacen falta:** E-F03-1, E-F03-2, E-F03-6, E-F04-1 y E-F04-3, que pasan a estar medidas.
+> - **Se reduce:** E-F03-5.
+> - **Siguen igual:** E-F03-3, E-F03-4, E-F03-7 y E-F04-2.
+> - **Lo que no cambia:** la ratificación sigue siendo una decisión del autor.
+
 ## 1. Ratificación de GATE-F03 (MOB #23)
 
 **Situación.**
@@ -21,12 +27,12 @@
 
 | Excepción | Criterio | Evidencia disponible | Riesgo | Por qué no se completó la medición |
 |---|---|---|---|---|
-| E-F03-1: #19 C (corte de red durante la activación) | #19, «DEVICE según aplique» | Activación A/B/D/E en DEVICE; manejo de error en HOST | Un corte a mitad del vínculo en Android podría dejar un estado no cubierto por HOST | No se hizo con red controlada; **es medible** en el POCO (plan P-01) |
-| E-F03-2: #19 F (reactivación en el mismo proceso) | Ídem | Regresión de widget | Bajo | Medible en el POCO (P-02) |
+| E-F03-1: #19 C (corte de red durante la activación) | #19, «DEVICE según aplique» | Activación A/B/D/E en DEVICE; manejo de error en HOST | Un corte a mitad del vínculo en Android podría dejar un estado no cubierto por HOST | No se hizo con red controlada; **es medible** en el POCO (plan P-01). **Medida el 2026-11-03: PASS** (P-01, MOB #184): la excepción ya no hace falta |
+| E-F03-2: #19 F (reactivación en el mismo proceso) | Ídem | Regresión de widget | Bajo | Medible en el POCO (P-02). **Medida el 2026-11-03: PASS** por «Volver a autenticar» en el mismo proceso (P-02, MOB #184), que es la entrada que ofrece el producto con titular vinculado: la excepción ya no hace falta |
 | E-F03-3: #20, restauración de Auto Backup y D2D | #20, «según aplique» | Inspección del APK (reglas de exclusión) | Que Android restaure credenciales a otra instalación | Auto Backup necesita cambiar el transporte de copia (ajuste global); D2D necesita un reset. Ninguno está autorizado |
 | E-F03-4: #20, corte de energía | Ídem | Ninguna | Corrupción del almacén seguro en un apagado | No está autorizado cortar la energía |
-| E-F03-5: #21 21-E (almacén incompatible y keystore) | #21, «según aplique» | P13: un slot cifrado dañado en DEVICE | Otros daños del almacén | El almacén es medible con una APK debug (P-03); **el keystore no sin root** |
-| E-F03-6: #71 E-1, logcat sin escaneo de valores opacos | #71 | E-2 con escaneo ampliado PASS | Fuga de un token en el log en el caso de desactivación | Medible en el POCO (P-04) |
+| E-F03-5: #21 21-E (almacén incompatible y keystore) | #21, «según aplique» | P13: un slot cifrado dañado en DEVICE | Otros daños del almacén | El almacén es medible con una APK debug (P-03); **el keystore no sin root**. **2026-11-03:** almacén entero dañado PASS (P-03, MOB #184). La excepción se **reduce** a la versión incompatible real (no fabricable sin la clave) y al Keystore |
+| E-F03-6: #71 E-1, logcat sin escaneo de valores opacos | #71 | E-2 con escaneo ampliado PASS | Fuga de un token en el log en el caso de desactivación | Medible en el POCO (P-04). **Medida el 2026-11-03: PASS** (P-04, MOB #184): la excepción ya no hace falta |
 | E-F03-7: un solo modelo de teléfono | — | POCO X5 Pro | Diferencias de fabricante (MIUI frente a otros) | El HONOR no se usó para F03 |
 
 ## 2. Ratificación de GATE-F04 (MOB #28)
@@ -41,9 +47,9 @@
 
 | Excepción | Criterio | Evidencia disponible | Riesgo | Por qué no se completó la medición |
 |---|---|---|---|---|
-| E-F04-1: transferencia en modo compartido sin DEVICE | Criterio 4 | HOST (`f04_bug_01`, `f04_bug_02`) y EMULADOR en otros SHA | Diferencias de la interfaz física al transferir | Nunca se hizo en el teléfono; **medible** en el POCO (P-08) |
+| E-F04-1: transferencia en modo compartido sin DEVICE | Criterio 4 | HOST (`f04_bug_01`, `f04_bug_02`) y EMULADOR en otros SHA | Diferencias de la interfaz física al transferir | Nunca se hizo en el teléfono; **medible** en el POCO (P-08). **Medida el 2026-11-03: PASS** (P-08, MOB #184), con reversión por PIN: la excepción ya no hace falta |
 | E-F04-2: aplicación multiproducto y modo compartido sin red, solo en HOST | Criterio 5 | Compra multiproducto sin red en DEVICE (HONOR, R-07); aplicación de un producto sin red (POCO, P7) | Bajo: comparten el repositorio | No se repitió en DEVICE sobre `ad5b43d` |
-| E-F04-3: modalidad compartida no repetida en DEVICE sobre `ad5b43d` | Criterios 1–2 | DEVICE P8/P9 sobre `1902e6e` | Regresión entre SHA | Ídem |
+| E-F04-3: modalidad compartida no repetida en DEVICE sobre `ad5b43d` | Criterios 1–2 | DEVICE P8/P9 sobre `1902e6e` | Regresión entre SHA | Ídem. **2026-11-03:** compra repartida, aplicación, transferencia con reversión y pago en modo compartido en DEVICE sobre `b7a9813` (P-06 a P-10, MOB #184), que desciende de `ad5b43d`: la excepción ya no hace falta para los criterios 1–2 |
 
 ## 3. Propuesta de aceptación académica de GATE-F07 (BE #29), con excepción explícita al criterio 9
 

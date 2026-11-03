@@ -131,6 +131,37 @@ Las respuestas inyectadas miden la reacción del cliente, no la decisión de Cen
 - **Fuera del dispositivo:** el reenvío posterior que devolvería ALREADY_APPLIED, porque la app no reenvía una intención ACKED. Lo acredita la columna Central.
 - **Evidencia:** Mobile `docs/evidence/F10_C23_REANUDACION_DEVICE.md` (PR MOB #98).
 
+## 4d. Sesión física del 2026-11-03 (cierre de OE3)
+
+Añadida el 2026-11-03. **No cambia las columnas del §3**: las filas siguientes pasan a tener, además, una medición DEVICE contra el **servidor real**, con su procedencia.
+
+**Entorno.**
+- **Central:** desechable, con el código de este Backend igual a `main` `5973b49` (`src/` y `prisma/`).
+- **Teléfono:** POCO X5 Pro con el paquete aislado `.oe3` de Mobile `b7a9813`.
+- **Datos:** sintéticos.
+- **Transporte:** observador con `drop-push-response` sólo en C10, para dejar la operación en resultado incierto. Ninguna respuesta se inyectó ni se alteró.
+
+| Fila | Resultado en DEVICE | Detalle |
+|---|---|---|
+| C10 | PASS | Ver C10 |
+| C16 | PASS | `REJECTED`/`CAMPAIGN_NOT_OPEN`, con la contribución intacta (ACTIVE, 30 000) |
+| C18 | PASS | CANCEL APPLIED, con la contribución CANCELLED y sin cantidad. Se apoya en la última operación aceptada, no en la rechazada |
+| C19 | PASS sólo para «producto inactivo» | `REJECTED`/`REFERENCE_UNAVAILABLE`, sin contribución y con un mensaje genérico en la app. «Inexistente» y «de otro sindicato» siguen NOT_MEASURED en DEVICE |
+
+**C10, paso a paso.**
+1. Central aplica la operación y la respuesta no llega al teléfono.
+2. Con el modo avión, el teléfono queda en OUTCOME_UNKNOWN.
+3. Se exporta el respaldo.
+4. Se activa una segunda instalación del mismo Member: hay 2 `ClientRegistration` ACTIVE.
+5. Se restaura el respaldo: queda RESTORE_PAUSED, sin envíos.
+6. «Liberar» produce un único `push` 200 del mismo `operationId`.
+
+**Resultado de C10.** La operación queda ACKED con `serverAcceptedAt` original. La fila del journal no cambia (`updatedAt` igual). El `resultCode` literal no se registra, porque el observador no guarda cuerpos.
+
+**Sin medir:** C33 y las filas de transporte controlado (C07, C08, C09, C12, C13, C17, C21, C25–C29, C32, C37, C39), que necesitan modos nuevos del arnés.
+
+**Evidencia:** Mobile `docs/evidence/OE3_DEVICE_POCO_2026-11-03.md` (PR MOB #184).
+
 ## 5. Cobertura mínima de #18
 
 | Aspecto | Evidencia |

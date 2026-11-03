@@ -297,3 +297,66 @@ No se exige DEVICE cuando el criterio admite HOST (`OE3_PLAN_DEVICE_B2_2026-11-0
 | BE #151, puntos 8, 11–15 | Claves productivas, operación, retención, cifrado exigible, admisión y bucket | I | GOV-02 (#185) y producción |
 
 **Corrección del texto anterior.** La fila del punto 10 del §5 presentaba «una cota para `retained`» como pendiente. No lo es: la excepción vigente (F08-ADR-003 §7.2; #172) protege esas copias fuera del plazo y de la cota hasta que el titular confirme la recuperación. Queda declarado como límite («las `retained` se acumulan sin cota»), no como funcionalidad obligatoria.
+
+## 11. Ejecución del 2026-11-03 (tarde): resultados
+
+Fuentes:
+- **HOST:** Mobile PR #183 (`test/oe3-host-cierre`, head `70702bd`; último código `62df336`), evidencia `docs/evidence/OE3_HOST_CIERRE_2026-11-03.md`.
+- **DEVICE:** Mobile PR #184 (`test/oe3-device`, `b6bd5e5`; APK de `b7a9813`), evidencia `docs/evidence/OE3_DEVICE_POCO_2026-11-03.md`.
+- **Especificación:** Mobile PR #182 (propuesta, no aprobada).
+
+Ninguno está fusionado. **No se cambió ningún campo del Project ni ningún gate** por estos resultados.
+
+### 11.1 Criterios que pasan a estar acreditados
+
+| Ítem | Criterio o fila | Procedencia | Resultado |
+|---|---|---|---|
+| MOB #18 | 403 y 404 en seis operaciones; `AGRO_API_BASE_URL` ausente, válida, http e ilegible | HOST, con 4 variantes de compilación | PASS, con mutaciones que fallan |
+| MOB #45 | Pago que supera el saldo; compra revertida, con y sin pago previo | HOST | PASS, con mutaciones |
+| MOB #122 | Necesidad con versión posterior a hoy, incluida una CANCELLED | HOST | PASS, con mutaciones |
+| MOB #44 | Camino de la cámara con un **doble de prueba** (`ImagePickerPlatform`), cancelación y permiso negado | HOST. **No es una cámara física** | PASS, con mutaciones |
+| MOB #83 | Repetición sobre un SHA registrado: `remote_session_screen_test` 11/11 en `46d09e5` (mismo código que `62df336`) | HOST | PASS |
+| MOB #19 | DEVICE-C (corte durante el vínculo) y DEVICE-F (mismo proceso, vía «Volver a autenticar») | DEVICE | PASS |
+| MOB #21 | 21-E: almacén entero dañado | DEVICE | PASS. Siguen NOT_MEASURED la versión incompatible y el Keystore |
+| MOB #71 | E-1 con el escaneo ampliado | DEVICE | PASS |
+| MOB #76 | Criterio 4, sesión de otro Member | DEVICE | PASS |
+| MOB #121 | R-03 en la aplicación | DEVICE | PASS |
+| MOB #125 | Sucesora con inicio hoy | DEVICE | PASS |
+| MOB #28 | Criterio 4: transferencia y reversión en modo compartido | DEVICE | PASS |
+| MOB #49 | Pago a la deuda previa en modo compartido | DEVICE | PASS |
+| MOB #97 | Nombre largo con `font_scale` 1,3 | DEVICE | PASS |
+| BE #151, punto 10 | Cota de 2 copias finalizadas | DEVICE | PASS. El plazo de 7 días sigue sin medir |
+| BE #18 | C10, C16 y C18 | DEVICE contra el servidor real | PASS |
+| BE #18 | C19 «producto inactivo» | DEVICE contra el servidor real | PASS. «Inexistente» y «de otro sindicato» siguen sin medir |
+
+**Documentación corregida** en Mobile PR #183:
+- `docs/13`;
+- la procedencia de la foto alterada (sólo HOST);
+- el índice F03 de #18–#22;
+- el anexo de GATE-F04: P9 no es una transferencia, y D-F04-C1 está superado;
+- F08-ADR-003 §0.4.
+
+En este PR: la §4d de `F05_SYNC_06.md` y la actualización de `OE3_DECISIONES_BORRADOR_2026-11-03.md`.
+
+### 11.2 Fallos u observaciones nuevas
+
+**No apareció ningún defecto confirmado de la app:** `lib/` no cambia en #183 ni en #184.
+
+**Observaciones sin investigar:**
+- **Transferencia con «1.5».** La cantidad «1.5», con punto, no avanza «Revisar y confirmar» y no muestra ningún mensaje. Hay que reproducirlo antes de clasificarlo.
+- **Sesiones remanentes en Central.** Quedan ACTIVE la sesión sin vincular de un vínculo cortado y la sesión del 401 tras reactivar la cuenta. Decisión del autor: si la desactivación debe revocarlas.
+- **Suite HOST completa sobre `62df336`.** Dio 2249 pasan, 3 omitidas y **5 fallan**. Las fallas no son de la rama y cada archivo pasa ejecutado solo; apuntan a esperas bajo la carga de la suite: `f03_access_recovery_app_test`, `f10_x01_pago_revision_test` y `f12_est_07_estimation_ui_test`. Sin corregir.
+
+**Incidente declarado** en la evidencia DEVICE §6: los secretos efímeros del Central desechable aparecieron en la salida de la sesión al detener la API. No están en archivos ni commits, y el entorno está destruido.
+
+### 11.3 No ejecutado y por qué
+
+| Pendiente | Motivo |
+|---|---|
+| MOB #129 (H-01) y BE #151 punto 7 (H-02) | **El HONOR no estaba conectado.** Se pide sólo ese paso. No se sustituyó por el POCO |
+| BE #151 punto 9 (B-2) y B-1 | Sin credenciales B2 autorizadas. El procedimiento está en `OE3_PLAN_DEVICE_B2_2026-11-03.md` §5 |
+| MOB #20: Auto Backup, D2D y corte de energía | Requieren un ajuste global, un reset o cortar la energía, y ninguno está autorizado |
+| MOB #21: versión incompatible y Keystore | No se puede fabricar sin la clave; el Keystore requiere root |
+| BE #151 punto 10: plazo de 7 días | Exige mover el reloj (no autorizado) |
+| BE #18: C33 y las 16 filas de transporte controlado | Necesitan modos nuevos del arnés que alteren el cuerpo del envío, y una segunda instalación simultánea para C33. Siguen NOT_MEASURED en DEVICE, con su PASS de HOST |
+| MOB #44: cámara física | No se usó la cámara del teléfono. El criterio queda en HOST con un doble |
