@@ -20,12 +20,16 @@
       {
         "position": 2,
         "absence": "NO_RESULT"
+      },
+      {
+        "position": 3,
+        "absence": "NO_RESULT"
       }
     ]
   },
   "with_estimation": {
-    "fingerprint_p0": "b02167f434563b07cdb1b7b34f0773f299d15e797de42687e2bc74443c4105c2",
-    "fingerprint_p1": "b02167f434563b07cdb1b7b34f0773f299d15e797de42687e2bc74443c4105c2",
+    "fingerprint_p0": "c5ab9e71b3e7d12c73692aea98d962e42ba6d39693584e6afb9d9d7af06b1ba8",
+    "fingerprint_p1": "c5ab9e71b3e7d12c73692aea98d962e42ba6d39693584e6afb9d9d7af06b1ba8",
     "total_base_p0": "122000",
     "total_base_p1": "122000",
     "generated_tables": [
@@ -48,18 +52,26 @@
       0
     ],
     "private_md5": {
-      "Purchase": "b55cbd9630e7d628ec5cd764f55c89de",
-      "PurchaseItem": "0af2d68a422dd46084a7b8ddbb904dfb",
+      "Purchase": "9231378566ddcf00709e4400e5f9cd3d",
+      "PurchaseItem": "0d8e0cc4112a8ad02158fe66f8eb6934",
       "PurchaseItemAllocation": "d41d8cd98f00b204e9800998ecf8427e",
       "PurchaseParticipant": "d41d8cd98f00b204e9800998ecf8427e",
-      "InventoryLot": "dbff6e33edd9b942639dc955deb727b8",
-      "StockMovement": "048e6ea0894faf99f88fe7ef7cd7529a",
-      "PayableAccount": "807709c7ee62720cf71b51bc1689e30e",
+      "InventoryLot": "ccfbb2815f0e1d6d989db9bfb894cf2a",
+      "StockMovement": "4aef187f93a7e6996727c82b47c5d335",
+      "PayableAccount": "b1c6a59821d41e5fe37c353217522c1d",
       "Payment": "d41d8cd98f00b204e9800998ecf8427e"
     },
     "reference": [
       {
         "position": 0,
+        "absence": null,
+        "status": "ESTIMATED",
+        "estimate_base": "3701.025000",
+        "validity": "CURRENT",
+        "run_relation": "BEFORE_PROPOSAL"
+      },
+      {
+        "position": 1,
         "absence": null,
         "status": "INSUFFICIENT_DATA",
         "estimate_base": null,
@@ -67,7 +79,7 @@
         "run_relation": "BEFORE_PROPOSAL"
       },
       {
-        "position": 1,
+        "position": 2,
         "absence": null,
         "status": "ESTIMATED",
         "estimate_base": "111000.000000",
@@ -75,7 +87,7 @@
         "run_relation": "BEFORE_PROPOSAL"
       },
       {
-        "position": 2,
+        "position": 3,
         "absence": "NO_RESULT",
         "status": null,
         "estimate_base": null,
@@ -109,8 +121,8 @@
     ]
   },
   "superseded": {
-    "earlier": "bafb734b-1e5c-46ed-974b-d38ed92f6708",
-    "shown": "616996a7-1fdb-4adb-82e2-a1340179116c",
+    "earlier": "4c2f9cee-c860-4e3c-ba21-f9d2ca259476",
+    "shown": "def11b98-791b-4eac-9995-14cfcc29f6b4",
     "relation": "AFTER_PROPOSAL"
   },
   "outdated": {
@@ -125,19 +137,19 @@
     "availability": "POLICY_PENDING"
   },
   "sealed": {
-    "seal": "45b43560-35eb-4354-afc2-f550f27c4731",
-    "fingerprint": "b02167f434563b07cdb1b7b34f0773f299d15e797de42687e2bc74443c4105c2",
+    "seal": "a085bf73-411e-4a2a-a907-328d52c6cece",
+    "fingerprint": "c5ab9e71b3e7d12c73692aea98d962e42ba6d39693584e6afb9d9d7af06b1ba8",
     "tables_changed_by_reads": [],
-    "run": "616996a7-1fdb-4adb-82e2-a1340179116c"
+    "run": "def11b98-791b-4eac-9995-14cfcc29f6b4"
   },
   "private_tables_whole_suite": {
     "Purchase": {
-      "start": "b55cbd9630e7d628ec5cd764f55c89de",
-      "end": "b55cbd9630e7d628ec5cd764f55c89de"
+      "start": "9231378566ddcf00709e4400e5f9cd3d",
+      "end": "9231378566ddcf00709e4400e5f9cd3d"
     },
     "PurchaseItem": {
-      "start": "0af2d68a422dd46084a7b8ddbb904dfb",
-      "end": "0af2d68a422dd46084a7b8ddbb904dfb"
+      "start": "0d8e0cc4112a8ad02158fe66f8eb6934",
+      "end": "0d8e0cc4112a8ad02158fe66f8eb6934"
     },
     "PurchaseItemAllocation": {
       "start": "d41d8cd98f00b204e9800998ecf8427e",
@@ -148,16 +160,16 @@
       "end": "d41d8cd98f00b204e9800998ecf8427e"
     },
     "InventoryLot": {
-      "start": "dbff6e33edd9b942639dc955deb727b8",
-      "end": "dbff6e33edd9b942639dc955deb727b8"
+      "start": "ccfbb2815f0e1d6d989db9bfb894cf2a",
+      "end": "ccfbb2815f0e1d6d989db9bfb894cf2a"
     },
     "StockMovement": {
-      "start": "048e6ea0894faf99f88fe7ef7cd7529a",
-      "end": "048e6ea0894faf99f88fe7ef7cd7529a"
+      "start": "4aef187f93a7e6996727c82b47c5d335",
+      "end": "4aef187f93a7e6996727c82b47c5d335"
     },
     "PayableAccount": {
-      "start": "807709c7ee62720cf71b51bc1689e30e",
-      "end": "807709c7ee62720cf71b51bc1689e30e"
+      "start": "b1c6a59821d41e5fe37c353217522c1d",
+      "end": "b1c6a59821d41e5fe37c353217522c1d"
     },
     "Payment": {
       "start": "d41d8cd98f00b204e9800998ecf8427e",

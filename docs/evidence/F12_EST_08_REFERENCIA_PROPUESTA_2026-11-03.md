@@ -205,6 +205,15 @@ Los detalles están en `recorrido-*.json`, las respuestas reales del servidor re
 | Política pendiente: ninguna cifra de referencia | **Ya existía:** «with the policy pending…». `availability: POLICY_PENDING` y todas las líneas sin cifra. Recorrido, fase *pending* | Pasa |
 | Iguales líneas, totales y huella funcional | **Ya existía**, ahora con Acaricida: P0 y P1 tienen la misma `inputs_fingerprint`, las mismas líneas y el mismo total servido (122000 mL; Acaricida, oculto, no suma). Las filas guardadas son idénticas | Pasa |
 
+**Ejecuciones sobre `0c33c2a`:**
+
+| Suite | Correctas | Omitidas | Fallidas |
+|---|---|---|---|
+| `f12-est-08-proposal-reference.postgres.spec.ts` (12:07:25Z–12:07:52Z; demostración regenerada en `demo-postgres.json`) | 7 | 0 | 0 |
+| Web `npx vitest run` | 170 | 0 | 0 |
+
+La línea oculta Acaricida recibe la referencia `ESTIMATED` 3701.025000 mL. El total servido sigue en 122000 mL y la huella de P0 y P1 es la misma. El código del servicio no cambia desde `1f55988`, cuya suite completa del Backend figura en §4.
+
 **Recorrido de navegador:** no se repitió. El de §5 es sobre `1f55988`, y su fila oculta (Insecticida) no tiene estimación. La advertencia nueva solo está cubierta por las pruebas de componentes y por la suite de PostgreSQL, en lo que respecta a los datos.
 
 **Tiempos agotados:** se conservan como fallos sin causa confirmada (§3 y §4). No se aumentó ningún límite ni se tocó ninguna prueba ajena.
