@@ -158,9 +158,38 @@ Añadida el 2026-11-03. **No cambia las columnas del §3**: las filas siguientes
 
 **Resultado de C10.** La operación queda ACKED con `serverAcceptedAt` original. La fila del journal no cambia (`updatedAt` igual). El `resultCode` literal no se registra, porque el observador no guarda cuerpos.
 
-**Sin medir:** C33 y las filas de transporte controlado (C07, C08, C09, C12, C13, C17, C21, C25–C29, C32, C37, C39), que necesitan modos nuevos del arnés.
+**Sin medir:** C33 y las filas de transporte controlado (C07, C08, C09, C12, C13, C17, C21, C25–C29, C32, C37, C39), que necesitan modos nuevos del arnés. **Medidas después,** salvo C39: ver «Segunda tanda» más abajo.
 
 **Evidencia:** Mobile `docs/evidence/OE3_DEVICE_POCO_2026-11-03.md` (PR MOB #184).
+
+**Segunda tanda del 2026-11-03 (noche).** Mismo teléfono, con Mobile `35a0770` y un Central nuevo.
+
+**Procedencia.**
+- **Controlado:** lo que llega a Central. El observador altera, retiene, duplica o reenvía el envío del teléfono (`mutate`, `concurrent`, `burst`, `drop-push-response`, `hold-push-request`, `get-unknown`).
+- **Real:** la decisión de Central y la reacción del teléfono.
+- **Inyectado:** sólo C28 y el 503 de C29.
+- **Otra instalación con guion:** en C12, C13 y C33 la otra rama la produce un guion del mismo Member, con su propio registro y contra la API real.
+
+| Fila | Central | Teléfono | DEVICE |
+|---|---|---|---|
+| C07 | ALREADY_APPLIED (claves reordenadas y espacios) | ACKED, con la hora original | PASS |
+| C08 | REJECTED/IDEMPOTENCY_MISMATCH; el original intacto | REJECTED terminal | PASS |
+| C09 | Un APPLIED y dos ALREADY_APPLIED; 1 journal | ACKED | PASS |
+| C12 | ALREADY_APPLIED; la retirada se mantiene (CANCELLED, sin cantidad) | ACKED | PASS |
+| C13 | CONFLICT/CANCELLED_PREDECESSOR; sin resurrección | CONFLICT, para que decida la persona | PASS |
+| C17 | ALREADY_APPLIED tras cerrar la campaña | ACKED | PASS |
+| C21 | REJECTED/QUANTITY_INVALID | REJECTED terminal | PASS. El máximo exacto no se midió en DEVICE |
+| C25 | 422 CONTRACT_VERSION_MISMATCH | VERSION_MISMATCH: pausa, y reanuda sólo de forma manual | PASS |
+| C26 | 400 FIELD_NOT_ALLOWED | FAILED terminal | PASS |
+| C27 | REJECTED/INVALID_PREDECESSOR | REJECTED terminal | PASS |
+| C28 | — (RETRYABLE/DEPENDENCY_PENDING **inyectado**) | Conservada y reenviada: APPLIED | PASS, inyectada |
+| C29 | 429 RATE_LIMITED **real** (`Retry-After` 60); 503 **inyectado** | Respeta el plazo; reintenta | PASS |
+| C32 | 404 OPERATION_NOT_FOUND | CONFLICT intacto. El aviso muestra el texto técnico: corrección en MOB #186 | PASS (tratamiento) |
+| C33 | REJECTED/CAUSAL_FENCED; la resolución sigue vigente | REJECTED terminal | PASS |
+| C37 | 400 INVALID_REQUEST (cantidad «01») | FAILED terminal | PASS. Las demás variantes de C37 (array, claves duplicadas, JSON mal formado, 415 y 413) no se midieron en DEVICE; el arnés las admite y siguen acreditadas en A |
+| C39 | — | — | **Sin DEVICE.** Central no reabre una campaña cerrada (400) y la app no reenvía una intención REJECTED |
+
+**Evidencia:** Mobile `docs/evidence/OE3_DEVICE_POCO_2_2026-11-03.md` (PR MOB #187, en borrador).
 
 ## 5. Cobertura mínima de #18
 

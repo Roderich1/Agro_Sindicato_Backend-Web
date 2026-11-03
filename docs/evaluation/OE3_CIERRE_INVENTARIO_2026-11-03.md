@@ -360,3 +360,59 @@ En este PR: la §4d de `F05_SYNC_06.md` y la actualización de `OE3_DECISIONES_B
 | BE #151 punto 10: plazo de 7 días | Exige mover el reloj (no autorizado) |
 | BE #18: C33 y las 16 filas de transporte controlado | Necesitan modos nuevos del arnés que alteren el cuerpo del envío, y una segunda instalación simultánea para C33. Siguen NOT_MEASURED en DEVICE, con su PASS de HOST |
 | MOB #44: cámara física | No se usó la cámara del teléfono. El criterio queda en HOST con un doble |
+
+## 12. Integración y segunda tanda (2026-11-03, noche)
+
+### 12.1 Integrado
+
+| PR | Merge | CI de `main` |
+|---|---|---|
+| MOB #183 (HOST) | `e5a15c4` (merge commit; rama conservada) | La CI de `e5a15c4` se canceló por la concurrencia al llegar `0752127`. No se relanzó |
+| MOB #184 (DEVICE, primera tanda) | `0752127` (merge commit; rama conservada) | **SUCCESS** sobre `0752127`, que contiene los dos |
+
+**Árbol de `main`.** Es `5b5b318` más `docs/`, `test/` (#183) y `docs/evidence`, `tool/` (#184). `lib/` es idéntico a `5b5b318`.
+
+**En borrador, sin fusionar:**
+- MOB #182 (especificación);
+- MOB #185 (decimales);
+- MOB #186 (mensaje de consulta);
+- MOB #187 (segunda tanda);
+- este PR (#200).
+
+### 12.2 Resultados nuevos
+
+| Ítem | Resultado | Procedencia |
+|---|---|---|
+| MOB #28 / E-F04-2 | Aplicación multiproducto en modo compartido sin red: PASS | DEVICE |
+| BE #18 | C07, C08, C09, C12, C13, C17, C21, C25, C26, C27, C29 (429), C32, C33 y C37 («01»): PASS | DEVICE con el servidor real y transporte controlado; en C12, C13 y C33, otra instalación con guion |
+| BE #18 | C28 y el 503 de C29: PASS | DEVICE con **respuesta inyectada** |
+| BE #18 | C39: sin DEVICE | Central no reabre una campaña cerrada y la app no reenvía un REJECTED |
+| Sesiones | Sin incumplimiento del contrato. La sesión anterior a la reautenticación sigue siendo una credencial válida en el servidor, y las de una cuenta desactivada reviven al reactivarla | API real con un cliente scriptado |
+
+### 12.3 Defectos confirmados y observaciones
+
+**Defectos confirmados,** con corrección en borrador:
+1. **Transferencia con «1.5».** El aviso no explica el formato («Seleccione origen, destino…»). Corrección: MOB #185.
+2. **Consulta de una operación inexistente.** El aviso muestra `SyncQueryException(404, OPERATION_NOT_FOUND)`. Corrección: MOB #186.
+
+**Observaciones, no confirmadas como defecto:**
+- C08 deja una divergencia local, que sólo se da si el cuerpo se altera en tránsito.
+- El texto de QUANTITY_INVALID cae en la familia «referencias».
+- El botón flotante tapa «Reintentar con esta versión».
+- Tras RETRYABLE no hay reintento automático en 40 s.
+
+**La observación anterior** («1.5 sin mensaje») fue un error de captura y queda corregida.
+
+### 12.4 Pendientes
+
+**Por dispositivo:**
+- HONOR: #129, la restauración entre modelos (#151 punto 7) y otro modelo para F03 (E-F03-7, MOB #36).
+- **Respaldo entre modelos:** la salida del POCO ya está documentada (flujo, ruta y error exacto), y la vía preparada sin credenciales es el almacenamiento en disco del Central desechable, que no es B2.
+
+**Por credencial:** sólo B2 (#151 puntos 7 y 9), con el procedimiento de `OE3_PLAN_DEVICE_B2_2026-11-03.md` §5.
+
+**Por autorización:** Auto Backup, D2D, corte de energía y reloj (E-F03-3, E-F03-4 y el plazo de 7 días).
+
+**Por decisión del autor:** ver `OE3_DECISIONES_BORRADOR_2026-11-03.md` §4.
+
+**Incidente de secretos de la primera tanda:** verificado sin mostrarlos. Eran exclusivos del entorno destruido, con 0 coincidencias en 75 661 archivos y en el entorno, así que no hay ninguna contención pendiente.
