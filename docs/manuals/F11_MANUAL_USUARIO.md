@@ -1130,7 +1130,7 @@ La estimación del consumo es una **referencia exploratoria** para la próxima c
 - **Naive:** repite la última cifra publicada. Es la línea base que cualquier método debería superar.
 - **El SES puede no superar al naive.** En la evaluación sintética de F12-EST-09, el naive tuvo menor error en tres de los cinco conjuntos evaluables (S2, S3 y S4). Ninguna de las dos cifras demuestra precisión con campañas reales.
 
-**Sin datos suficientes.** Con menos de tres campañas comparables consecutivas con consumo comprobado, o si la campaña anterior no tiene consumo comprobado, el resultado dice «Datos insuficientes», con su motivo, y **no muestra cifra**. Una campaña oculta o sin registro **no cuenta como cero**.
+**Sin datos suficientes.** Con menos de tres campañas comparables consecutivas con consumo comprobado, o si la campaña anterior no tiene consumo comprobado, el resultado dice «Datos insuficientes», con su motivo, y **no muestra cifra**. Una campaña oculta o sin registro **no cuenta como cero**. **«Consecutivas» se cuenta sobre las campañas registradas en el sistema:** si una campaña de la temporada nunca se registró, el sistema no lo detecta. Se supone que el catálogo de campañas está completo.
 
 **Vigencia** (se evalúa cada vez que consulta):
 

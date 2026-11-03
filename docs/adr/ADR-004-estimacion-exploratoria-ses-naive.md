@@ -70,5 +70,5 @@ Los commits, issues, PR y evidencias anteriores no se reescriben. Una referencia
 
 - F12-EST-02 a F12-EST-08 pueden implementar el contrato F12-EST-01 dentro del punto 3.
 - Cualquier método distinto de SES/naive, o cualquier variable externa, exige una ADR nueva.
-- La estimación sigue sujeta a la política de divulgación y a los permisos vigentes (contrato §2 y §4.2). Entregarla al Agricultor con datos reales exige que la política institucional (GOV-02, #107) contemple esa proyección (EST-D-05).
+- La estimación sigue sujeta a la política de divulgación y a los permisos vigentes (contrato §2 y §4.2). Entregarla al Agricultor con datos reales exige que la política institucional (F07-POL-01, #107, dentro de las decisiones institucionales de GOV-02, #185) contemple esa proyección (EST-D-05).
 - Esta ADR **no** declara implementado nada. El estado de cada pieza está en el contrato §12.

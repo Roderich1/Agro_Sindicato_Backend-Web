@@ -68,3 +68,11 @@ F12_EST_PG_TEST_URL=<desechable> npx jest f12-est-05-runs.postgres.spec.ts --run
   - `CANONICAL_CHANGED_AFTER_SEAL` y ninguna versión escrita; para una ejecución, `INCOMPATIBLE_DATA` sin cifra (mismo archivo y el caso «#175» de `f12-est-05-runs.postgres.spec.ts`).
   - **No es una agregación exitosa.**
 - **Estado tras integrar #194 en `main` (`3d2ab4b`):** con el criterio precisado, el criterio 1 queda acreditado. La tabla de §4 refleja el estado anterior a esta decisión y no se reescribe.
+
+> **Aclaración del 2026-11-03 (F12-EST-10, #183): versión probada.** Este registro no indicaba el SHA probado. Lo que acreditan git y la CI:
+> - **PR #194:** tiene un solo commit, `579aa5e` (2026-11-02T17:51:07Z), sobre `main` `6117c77`. Añade el caso nuevo de `f12-est-05-runs.postgres.spec.ts` y este registro. **No cambia el código de producción** (`git diff 6117c77 579aa5e -- Back/src Back/prisma Web/src` solo toca esa prueba).
+> - **CI de `579aa5e`:** `verify` (run 41495071392, terminado a las 17:56:44Z) en success, con `f12-est-05-runs.postgres.spec.ts` «Tests: 17 passed, 17 total». SonarCloud en success.
+> - **Ejecución local de §3:** no registró su SHA. Su ventana (17:45Z–18:10Z) incluye el commit, y su resultado coincide con el de la CI.
+> - **Integración:** merge `3d2ab4b`.
+>
+> El texto y los resultados de este registro no cambian.

@@ -4,7 +4,7 @@
 - **Estado:** **implementado** en AppMovilAgroquimico `main` `c2ac44a` (PR Roderich1/AppMovilAgroquimico#180), integrado el 2026-11-03 (UTC). No cambia el contrato INT-09 (`F12_EST_01_ESTIMATION_CONTRACT.md` §9), que es el que manda. Evidencia: `docs/evidence/F12_EST_07_MOB_ESTIMACION_2026-11-02.md` del repositorio Mobile; alcance de las pruebas en §6.
 - **Referencia implementada:** la copia de la PWA (F12-EST-07-WEB, #180, `Web/src/lib/estimation-copy.ts`) y `GET /estimation/download` en el servicio.
 - **No es una aprobación institucional.**
-  - Con datos reales, el perfil `FARMER` solo se entrega cuando la política institucional (GOV-02, #107) contemple esta proyección (`x-policy-requirement` de la operación).
+  - Con datos reales, el perfil `FARMER` solo se entrega cuando la política institucional (F07-POL-01, #107, dentro de las decisiones institucionales de GOV-02, #185) contemple esta proyección (`x-policy-requirement` de la operación).
   - Hoy solo hay datos sintéticos (`PROVISIONAL_SYNTHETIC`).
 
 ## 1. Petición

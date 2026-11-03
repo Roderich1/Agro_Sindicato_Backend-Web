@@ -5,7 +5,7 @@
 | Fecha real | 2026-11-03 (UTC) |
 | Base | Backend `main` `075a511` (tras #198); Mobile `main` `5b5b318` (tras AppMovilAgroquimico#181) |
 | Procedencia de este índice | Lectura de las evidencias, de los comentarios de cierre de los issues y de los merges en GitHub. Este índice **no ejecuta pruebas nuevas**: cada resultado es el que registró su evidencia, con su fecha |
-| Issue | Refs #183. El acta propuesta está en [`F12_GATE.md`](F12_GATE.md) |
+| Issue | Refs #183. El acta propuesta está en [`F12_GATE.md`](F12_GATE.md), que se conserva como antecedente; la decisión del autor, en [`F12_GATE_DECISION.md`](F12_GATE_DECISION.md) |
 | Datos | Solo sintéticos. Ninguna cifra procede del Sindicato |
 
 **Abreviaturas.** `ev/` = `docs/evidence/` del Backend. `M/` = `docs/evidence/` de Mobile, en `5b5b318`. **HOST** = Windows 11 Home 10.0.26200, Node 25.9.0 y PostgreSQL 16.13 desechable (Docker `--rm`), salvo que se indique otra cosa. **NAVEGADOR** = Edge sin interfaz con puppeteer-core, contra el backend real (`node dist/main.js`). **EMULADOR** y **DEVICE** se indican solo donde se ejecutaron.
@@ -27,6 +27,26 @@
 | F12-EST-10 Este índice, manuales y acta | #183 | PR documental en borrador | — | Abierto |
 
 En todos los issues cerrados, el Project registra Status Done, Evidence Verified y Gate N/A.
+
+### 1.1 Versiones probadas, integradas y documentales
+
+- **Probada:** el commit sobre el que se ejecutó la evidencia, en local o en la CI.
+- **Integrada:** el merge en `main`.
+- **Documental:** un merge o un commit que solo cambia documentos. No vuelve a probar nada.
+
+| Entregable | Probada | Integrada | Documental |
+|---|---|---|---|
+| 01 | `acc04fa`, `c957330`, `cd23ab1` y `97a95c0` (EST-D-06) | `256ca53` | — |
+| 02 | `92a45ba` (series); `2eac025` (temporadas); `579aa5e` (asociaciones, acreditado por la CI, run 41495071392) | `973e2f6`, `35d9a1b` y `3d2ab4b` | `9c45270` (#196, EST-D-17; commit `c68bc91`) |
+| 03 | `92a45ba` | `973e2f6` | — |
+| 04 | `b01052c` | `f3d41d3` | — |
+| 05 | `a7bc3ec` y `dc84f0a`; 28/28 sobre `b68eca0` | `106045c` | `F12_EST_DECISIONES_2026-11-02.md` (decisiones, sin cambio de código) |
+| 06 | `0094c70`; cierre sobre `20299dd` y `e9712e4` (recorrido) | `b68eca0` | — |
+| 07-WEB | Servicio `831f169`; Web `c49f223`, `aa53833` y `1d29eb0` (recorrido final); CI verde en `96216eb` | `635cc8f` | — |
+| 07-MOB | HOST `095684e` (2237/2237); APK `c127c45` y `5594599` (DEVICE real); `3c2446e` (DEVICE simulado, `lib/` = `5594599`); CI `5b5b318` | Mobile `c2ac44a` (código) y `5b5b318` (espera de prueba) | Backend `670902d` (#197) |
+| 08 | `1f55988` (suite completa y recorrido); `0c33c2a` (filas ocultas); CI del HEAD del PR `6a5cab4` | `075a511` (árbol = `6a5cab4`) | — |
+| 09 | Definición fijada en `32cef61`; evaluación sobre la base `b68eca0` | `6117c77` | Protocolo `docs/evaluation/F12_EST_09_PROTOCOLO_EVALUACION.md` |
+| 10 | — (no ejecuta pruebas) | PR documental #199 | Índice, manuales, acta y decisión |
 
 ## 2. Detalle por entregable
 
@@ -67,6 +87,7 @@ En todos los issues cerrados, el Project registra Status Done, Evidence Verified
   - El mismo día, el issue figuró antes como «Parcial».
 - **Límites:**
   - Un período sin campaña registrada no se detecta.
+  - **SHA de asociaciones:** aclarado en la propia evidencia (`579aa5e`, acreditado por la CI).
   - **Asignar las temporadas a #175** fue una propuesta para el autor. No consta una decisión explícita sobre esa asignación.
 
 ### F12-EST-03 (#176): cobertura, ceros, ausencias y datos ocultos
@@ -249,10 +270,13 @@ En todos los issues cerrados, el Project registra Status Done, Evidence Verified
 | EMULADOR para la estimación | No ejecutado en ningún entregable |
 | DEVICE de la Web y de la referencia en la propuesta | No aplica: navegador de escritorio en HOST |
 | Cierre de sesión y cambio de identidad en el teléfono | Solo en HOST |
+| **Supuesto aceptado: catálogo de campañas completo** | La consecutividad se determina sobre las campañas registradas y clasificadas. El sistema no detecta un período cuya campaña nunca se registró. Es un supuesto, no una validación del calendario (contrato §11.3, punto 6) |
 | Hallazgos sin causa confirmada | Tiempos de 5 s agotados en suites PostgreSQL (EST-02, EST-08); `f10_x01_pago_datos_test` (Mobile); retraso de la CI de Mobile `c2ac44a` |
 
 ## 4. Inconsistencias encontradas al reunir la evidencia
 
-- **«GOV-02 (#107)».** El contrato (§2 y §3), `F12_EST_DECISIONES_2026-11-02.md` y `F12_EST_05_RUNS_2026-11-02.md` lo escriben así. En GitHub, #107 es `F07-POL-01` y GOV-02 es #185. No se corrigen los registros históricos; este índice usa los números de GitHub.
+- **«GOV-02 (#107)».** En GitHub, #107 es `F07-POL-01` y GOV-02 es #185.
+  - **Corregido** en los documentos vigentes: el contrato (§2, §3 y §11.3), `F12_EST_07_COPIA_MOBILE.md`, ADR-004 y `openapi-f12-estimation.json`.
+  - En los registros históricos (`F12_EST_DECISIONES_2026-11-02.md` y `F12_EST_05_RUNS_2026-11-02.md`) se añade una aclaración fechada, sin cambiar su texto ni sus resultados.
 - **Filas de estado del contrato.** Tres filas decían «no en `main`» para las temporadas y la referencia en la propuesta, ya integradas (#191 y #198). Se actualizan en este mismo PR (revisión decimosexta).
 - **Cabecera de la evidencia de F12-EST-08.** Su «HEAD probado» es `1f55988`; la comprobación de §7 corrió sobre `0c33c2a`. Ambos constan en el texto.

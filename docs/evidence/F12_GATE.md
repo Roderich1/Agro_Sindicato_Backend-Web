@@ -1,6 +1,8 @@
 # GATE-F12 (#184) — Acta propuesta: estimación temporal del consumo con datos sintéticos
 
-**Gate: Pending.** Status propuesto: Validation. **Ese cambio no se aplica:** se presenta como operación en seco (§8).
+**Gate: Passed, exclusivamente para el alcance académico con datos sintéticos** (decisión de Roderich del 2026-11-03, en [`F12_GATE_DECISION.md`](F12_GATE_DECISION.md)). El registro en GitHub se hace después de integrar el PR documental de F12-EST-10.
+
+*Antecedente:* hasta esa decisión, esta acta decía: «**Gate: Pending.** Status propuesto: Validation. **Ese cambio no se aplica:** se presenta como operación en seco (§8).». El resto del acta se conserva como se redactó; la decisión sustituye la operación en seco del §8.
 
 - **Quién la redacta:** la sesión de Claude Code, el 2026-11-03 (UTC), dentro de F12-EST-10 (#183).
 - **Qué hace:** reúne la evidencia y lo que falta. **No es una decisión.** Solo Roderich Rendón puede, con confirmación explícita, marcar el gate como Passed, Failed o Waived.

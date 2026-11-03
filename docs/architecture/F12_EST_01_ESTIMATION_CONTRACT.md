@@ -111,7 +111,7 @@ La serie solo usa cifras ya publicadas y selladas (§3).
   - **Sin** línea base naive: es literalmente la última cifra publicada.
   - **Sin** cobertura ni serie: en F07, la cifra colectiva solo la lee la Directiva (3.12.6.3).
   - **La estimación puede coincidir con una cifra histórica publicada.** Ocurre, por ejemplo, con α = 1 o con un criterio constante, en que reproduce la última cifra, o con una serie constante. Entregarla al Agricultor proyecta información colectiva que hoy solo lee la Directiva (RF-39, tabla 3.49).
-  - **Esa proyección debe estar contemplada en la política institucional** (GOV-02, #107) antes de usar datos reales. Hoy la política es `F07-POL-01` en modo `PROVISIONAL_SYNTHETIC`: solo datos sintéticos y **no aprobada**. Este contrato no habilita datos reales ni declara aprobada ninguna política.
+  - **Esa proyección debe estar contemplada en la política institucional** (F07-POL-01, #107, dentro de las decisiones institucionales de GOV-02, #185) antes de usar datos reales. Hoy la política es `F07-POL-01` en modo `PROVISIONAL_SYNTHETIC`: solo datos sintéticos y **no aprobada**. Este contrato no habilita datos reales ni declara aprobada ninguna política.
 
 ## 3. Fuentes de la serie (para F12-EST-02 y F12-EST-03)
 
@@ -146,7 +146,7 @@ La serie solo usa cifras ya publicadas y selladas (§3).
    - **ninguna lectura entrega cifras:** también 409 (§4.3);
    - la base rechaza una ejecución con `disclosureMode = POLICY_PENDING`;
    - un trabajo no se reanuda sin volver a comprobar las condiciones: cada intento, también el que retoma un trabajo tras un error transitorio o un plazo vencido, vuelve a observar el permiso, la política y la campaña antes de calcular (§4.2);
-   - esta regla no es la aprobación institucional de la política (GOV-02, #107).
+   - esta regla no es la aprobación institucional de la política (F07-POL-01, #107) ni una decisión de GOV-02 (#185).
 6. **Cobertura (EST-D-09).** La cobertura «N de M» que exige RN-25 se define en el §3.1.
 
 ### 3.1 Cobertura del consumo (EST-D-09)
@@ -776,10 +776,11 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
    - Con las campañas ya selladas, **ningún resultado puede ser `ESTIMATED`**: serían `INCOMPATIBLE_DATA` con `COVERAGE_UNKNOWN`. Es la consecuencia de no reconstruir.
    - Con **datos sintéticos** sí se puede probar todo el recorrido (`synthetic-sources.ts`).
    - Ya no bloquea F12-EST-02 a F12-EST-04, pero el primer resultado real llegaría tras tres temporadas selladas con cobertura.
-2. **EST-D-05 sin soporte en la política.** La política vigente (`F07-POL-01`, `PROVISIONAL_SYNTHETIC`, no aprobada) no contempla la proyección de la estimación al Agricultor. El contrato la conserva solo con datos sintéticos. Cuando GOV-02 la defina, F12-EST-06 debe comprobarla. Hoy no hay un indicador técnico para ello, y este bloque no lo crea.
+2. **EST-D-05 sin soporte en la política.** La política vigente (`F07-POL-01`, `PROVISIONAL_SYNTHETIC`, no aprobada) no contempla la proyección de la estimación al Agricultor. El contrato la conserva solo con datos sintéticos. Cuando la política institucional (F07-POL-01, #107, dentro de las decisiones de GOV-02, #185) la defina, F12-EST-06 debe comprobarla. Hoy no hay un indicador técnico para ello, y este bloque no lo crea.
 3. **EST-D-03 frente al sellado desactivado.** Si un despliegue tiene el sellado desactivado (`SEALING_DISABLED` en F07), ninguna campaña aporta consumo comprobado.
 4. **`POPULATION_MISMATCH`.** Con la regla F07 vigente no debería ocurrir: solo una baja confirmada entre dos lecturas del sellado, en `READ COMMITTED`, lo produce. Si ocurre, la campaña queda con cobertura desconocida para siempre, porque no se reconstruye. Evitarlo del todo exigiría que el sellado leyera en `REPEATABLE READ`, que es un cambio de F07 que este bloque no hace.
 5. **La política no se puede comprobar en la base.** De las tres paradas, la base verifica el permiso y la campaña. La política es configuración del proceso y solo queda como evidencia registrada.
+6. **Supuesto del catálogo de campañas completo (aceptado por el autor el 2026-11-03 para el alcance académico).** La consecutividad del tramo se determina sobre las campañas **registradas y clasificadas** en la temporada. El sistema **no detecta automáticamente** un período cuya campaña nunca se registró, porque no infiere nada de las fechas. Una estimación presupone, por tanto, que el catálogo de campañas de la temporada está completo. Es un supuesto declarado, **no una validación automática del calendario**. Los conjuntos sintéticos de F12-EST-09 tienen su calendario conocido y no cambian. Precisa la nota del §3.2, punto 3.
 
 ### 11.4 Trabajo adicional y su vínculo
 
@@ -890,3 +891,4 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-03 (UTC), decimocuarta | F12-EST-08 (Refs #181), en rama: la estimación como referencia separada en la propuesta conjunta y en su CSV (§1, §7, §7.1, §12) |
 | 2026-11-03 (UTC), decimoquinta | Decisión del autor: la referencia se muestra también en las filas con la necesidad oculta, rotulada como estimación y sin sustituir la necesidad (§7.1); diferencia deliberada respecto a W3 |
 | 2026-11-03 (UTC), decimosexta | F12-EST-10 (Refs #183): las filas de estado de las temporadas (§12) y de la referencia en la propuesta (§7.1, §12) dicen que están integradas en `main` (`35d9a1b` y `075a511`). Índice de evidencia en `docs/evidence/F12_EST_10_INDICE_EVIDENCIA_2026-11-03.md` |
+| 2026-11-03 (UTC), decimoséptima | Decisión del autor sobre GATE-F12: los números de la política (`F07-POL-01`, #107) y de GOV-02 (#185) corregidos en §2, §3 y §11.3; supuesto del catálogo de campañas completo (§11.3, punto 6) |

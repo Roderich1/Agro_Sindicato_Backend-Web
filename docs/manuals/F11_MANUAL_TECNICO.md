@@ -818,6 +818,7 @@ Una base creada con la migración inicial anterior a la eliminación del BOM sig
 - **Naive:** la última observación del tramo.
 - **Aritmética.** Fracciones exactas, redondeo final a 6 decimales (`ROUND_HALF_UP`), `methodVersion = F12-EST-04/1`. Horizonte de una campaña.
 - **El SES puede ser peor que el naive** fuera del tramo. Es un resultado válido.
+- **Supuesto del catálogo completo (2026-11-03).** La consecutividad se mide sobre las campañas registradas y clasificadas. Si una campaña nunca se registró, el sistema no lo detecta. Es un supuesto aceptado para el alcance académico, no una validación del calendario (contrato §11.3, punto 6).
 
 ### 13.4 Vigencia, política y permisos
 

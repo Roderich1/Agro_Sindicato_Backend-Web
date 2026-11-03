@@ -54,3 +54,5 @@ npx jest f12-est-05-runs.postgres.spec.ts --runInBand   → «Tests: 16 passed, 
 | Un intento retomado no vuelve a comprobar las paradas | Solo falla la nueva de EST-D-10: era una carencia real de cobertura |
 
 El código de producción no cambia: sigue siendo el de `dc84f0a`. Solo cambian la prueba y la documentación. La CI del PR se registra en el PR.
+
+> **Aclaración del 2026-11-03 (F12-EST-10, #183).** Donde este registro histórico dice «GOV-02 (#107)», los números correctos son: la política de divulgación `F07-POL-01` es #107, y GOV-02 (decisiones institucionales pendientes antes de admitir datos reales) es #185. El texto y los resultados de este registro no cambian.
