@@ -126,7 +126,7 @@ check(r.firstResultTop !== null && r.firstResultTop < r.innerH, `Resumen: la pri
 check(r.primaryActions.length === 1 && r.primaryActions[0] === 'Revisar borrador', `Resumen: una sola acción primaria (${r.primaryActions.join(', ')})`);
 check(r.synthetic === 'Datos sintéticos', 'Resumen: etiqueta «Datos sintéticos» en la cabecera');
 check(r.tenantFits === true, `Resumen: nombre del sindicato sin truncar («${r.tenantText}»)`);
-check(JSON.stringify(r.menu) === JSON.stringify(['Resumen colectivo', 'Propuesta conjunta', 'Tendencias', 'Estimación del consumo', 'Cobertura', 'Campañas', 'Equivalencias de productos']), `menú: ${r.menu.join(' | ')}`);
+check(JSON.stringify(r.menu) === JSON.stringify(['Resumen colectivo', 'Propuesta conjunta', 'Tendencias', 'Estimación del consumo', 'Cobertura', 'Productos', 'Campañas', 'Equivalencias de productos']), `menú: ${r.menu.join(' | ')}`);
 const rows = await page.evaluate(() =>
   [...document.querySelectorAll('[data-testid^="cell-DECLARED_NEED"]')].map((row) => ({ id: row.dataset.testid, text: row.innerText.replace(/\s+/g, ' ').trim() })),
 );
@@ -209,6 +209,8 @@ await sleep(2500);
 
 /* ── 4. Estimación del consumo ── */
 await go('/colectivo/estimacion');
+// Con muchos productos la estimación carga el detalle de cada ejecución: se espera al primer resultado.
+await page.waitForSelector('[data-testid^="result-"]', { timeout: 20000 }).catch(() => null);
 r = await inspect('[data-testid^="result-"]');
 say(`estimación: ${JSON.stringify(r)}`);
 check(r.h1 === 'Estimación del consumo', 'Estimación: título');

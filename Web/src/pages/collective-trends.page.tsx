@@ -237,8 +237,10 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
   );
 }
 
-const STEP = 136;
-const COLUMN = 52;
+/** Ancho útil del gráfico a 1366 px: las columnas se estrechan para que 11 campañas o más quepan sin desplazamiento. */
+const CHART_WIDTH = 1000;
+const MAX_STEP = 136;
+const MIN_STEP = 84;
 const PAD = { left: 28, right: 28, top: 40, bottom: 56 };
 const PLOT_HEIGHT = 190;
 const LINE_CHARS = 17;
@@ -276,6 +278,9 @@ function TrendChart({ line, campaigns }: { line: TrendSeries; campaigns: TrendCa
     return { campaign, point, value, label };
   });
   const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
+  const STEP = Math.max(MIN_STEP, Math.min(MAX_STEP, Math.floor((CHART_WIDTH - PAD.left - PAD.right) / Math.max(columns.length, 1))));
+  const COLUMN = Math.min(52, STEP - 32);
+  const valueSize = STEP < 110 ? 14 : 17;
   const width = PAD.left + PAD.right + STEP * Math.max(columns.length, 1);
   const height = PAD.top + PLOT_HEIGHT + PAD.bottom;
   const x = (index: number) => PAD.left + STEP * index + (STEP - COLUMN) / 2;
@@ -315,7 +320,7 @@ function TrendChart({ line, campaigns }: { line: TrendSeries; campaigns: TrendCa
                   >
                     <title>{`${campaign.name}: ${label}`}</title>
                   </rect>
-                  <text x={x(index) + COLUMN / 2} y={baseline - Math.max(h(value), 2) - 10} textAnchor="middle" fontSize={17} fontWeight={700} fill="#0f172a">
+                  <text x={x(index) + COLUMN / 2} y={baseline - Math.max(h(value), 2) - 10} textAnchor="middle" fontSize={valueSize} fontWeight={700} fill="#0f172a">
                     {label}
                   </text>
                 </>

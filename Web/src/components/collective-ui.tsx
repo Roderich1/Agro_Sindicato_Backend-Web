@@ -435,7 +435,7 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
                     style={{ width: `${value !== null && value > 0n ? Math.max(width(value), 1) : 0}%` }}
                   />
                 </div>
-                <span className="w-32 text-right text-3xl font-bold leading-none tabular-nums text-slate-900">
+                <span className="w-44 whitespace-nowrap text-right text-3xl font-bold leading-none tabular-nums text-slate-900">
                   {text ?? <span className="text-sm text-red-700">Dato no válido</span>}
                 </span>
               </div>
