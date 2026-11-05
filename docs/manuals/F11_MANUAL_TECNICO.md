@@ -381,7 +381,7 @@ npm run backups:inventory -- --reconcile --apply   # reintenta las purgas de las
 | Todas las rutas de respaldo responden 503 | Admisión cerrada en producción, proveedor `disk` sin `BACKUP_STORAGE_DIR` o `b2` incompleto | Revisar el log de arranque, que nombra las variables que faltan. No abrir la admisión sin la decisión de §7.3 | [Probado] (`F08_BACKUP.md`, `F08_BKP_07_B2_ADAPTER.md`) |
 | Un agricultor recibe 409 `BACKUP_UPLOAD_IN_PROGRESS` sin tener ninguna subida en curso | Fila `UPLOADING` colgada tras un reinicio del servidor | Esperar al cierre por abandono (≤ 60 min desde que empezó). No borrar la fila a mano | Límite declarado (`F08_BKP_06_RETENCION.md`, evidencia) |
 | Un respaldo grande, en una red lenta, falla a los 5 min | `requestTimeout` de Node (300 s) y límite del cliente | La fila queda `FAILED`, sin bytes, y la copia anterior se conserva. Hace falta una red más rápida o un respaldo más pequeño. Ampliar el límite exige cambiar el código (Node y app) | Límite declarado (`F08_BACKUP.md`, B6) |
-| Un agricultor recibe 503 en cada subida y la cola de purgas crece | El proveedor rechaza los borrados | Corregir el acceso al proveedor y ejecutar `--reconcile --apply` | [Probado] en el doble S3; sin probar en B2 real |
+| Un agricultor recibe 503 en cada subida y la cola de purgas crece | El proveedor rechaza los borrados | Corregir el acceso al proveedor y ejecutar `--reconcile --apply` | [Probado] en el doble S3. *Precisión del 2026-11-03:* el rechazo del borrado (503, `FAILED STORAGE_COMMIT_FAILED` con purga pendiente y copias intactas) también está **[Probado] en B2 real**: T-R5a, «PASS por la causa prevista», en `F08_BKP_08_B2_REAL_REPETICION.md` (2026-10-24, adaptador `353ad31`). `--reconcile --apply` contra B2 sigue **[Sin probar]** |
 | El inventario termina con código 3 | Copia `AVAILABLE` sin objeto o con otro tamaño | Revisión humana; no hay corrección automática | [Sin probar] en un entorno conservado |
 | Restos tras una limpieza manual | `purgePending` sigue activo | `--reconcile --apply` | Límite declarado |
 | *2026-10-24:* el log del módulo `Backups` muestra `Backup staging cleanup after STAGE_FAILED` o `DISCARDED` (`…): pending reconciliation: <códigos>` | Una subida falló o se descartó, y la limpieza de su staging no pudo confirmar que no queda nada (§5.7) | `--reconcile`, y después `--reconcile --apply` (§5.5). Si el código es `MULTIPART_OWNERSHIP_AMBIGUOUS`, revisar antes: nada se abortó a propósito | [Probado] en el doble S3 y, para 5b, en B2 real (`F08_BKP_08_B2_REAL_ACOTADA.md`). La secuencia del operador, [Sin probar] |
@@ -524,10 +524,10 @@ Después de restaurar, los envíos pendientes quedan en `RESTORE_PAUSED` hasta q
 **Estado de las pruebas:**
 - **[Probado] en el host:** sin la clave, `RecoveryKeyRequired`; con la correcta, se restauran los datos, las fotos y la cola en pausa; con una equivocada, `wrongKey` (Mobile `F08_RESPALDO_CIFRADO_HOST.md` §2.3).
 - **[Probado] en el POCO X5 Pro:** tras `pm clear` y reactivar, una clave señuelo bien formada se rechaza sin cambios (D7c). La pausa y la liberación sin duplicado también (D7e, tercera ronda).
+- **[Probado] en el POCO X5 Pro (caso D, 2026-10-24; precisión del 2026-11-03):** una copia cifrada por el teléfono sube a B2 real, se descarga en una **instalación nueva** con el llavero vacío y se restaura con la clave correcta (31 de 32 tablas idénticas; la que cambia es la instalación). Fuente: Mobile `docs/evidence/F01_F08_DEVICE_FINAL_2026-10-24.md`, caso D (Mobile `1d77c14`, Backend `4bcb1ea`, API con `NODE_ENV=development`). La clave la conservó y tecleó un proceso del PC, no una persona.
 - **[Sin probar] en el teléfono:**
-  - el camino positivo en una instalación nueva, con la clave correcta escrita a mano;
-  - un teléfono de otro modelo (#151, ítem 7);
-  - una copia cifrada por el teléfono que pase por B2 real.
+  - la clave anotada y escrita a mano por una persona (F08-ADR-003 §0.4);
+  - un teléfono de otro modelo (#151, ítem 7).
 
 ---
 
@@ -621,7 +621,7 @@ Nada de esto existe todavía. Se suma a §7.2 y §7.3, y no se cumple con la ent
 - **Alertas** sobre las líneas `pending reconciliation` del adaptador (§5.7), un `backups:inventory --reconcile` periódico, y control de capacidad y costos.
 - **Reglas del bucket** fuera del prefijo de ensayo: versiones, lifecycle y Object Lock (#151, ítem 15).
 - **Retención institucional** para datos reales (plazo, número de copias y purga) y el **ciclo de cierre de cuenta o servicio**: el plazo de 30 días no está aprobado.
-- **Pruebas que faltan en el teléfono** (F08-ADR-003 §0.4): rendimiento (NOT_MEASURED), rotación completada, archivo alterado, Auto Backup y D2D reales, otro modelo de teléfono, una copia cifrada por el teléfono a través de B2, y la comprobación con personas de cómo se guarda la clave.
+- **Pruebas que faltan en el teléfono** (F08-ADR-003 §0.4): rendimiento (NOT_MEASURED), rotación completada, archivo alterado, Auto Backup y D2D reales, otro modelo de teléfono y la comprobación con personas de cómo se guarda la clave. *Precisión del 2026-11-03:* la copia cifrada por el teléfono a través de B2 ya pasó en el caso D de Mobile `F01_F08_DEVICE_FINAL_2026-10-24.md` (§6.1).
 - **Revisión del paquete `cryptography`** antes de cualquier admisión real: tiene un solo mantenedor (F08-ADR-003 §2.3).
 - **`COLLECTIVE_SEALING`:** habilitarla sólo con su condición (§4.1). Hoy, además, la impide `POLICY_PENDING`.
 - **Admisión productiva** (`BACKUP_PRODUCTION_ADMISSION`): la decide Roderich. No la abre ninguna de estas variables.

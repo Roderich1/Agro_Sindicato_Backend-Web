@@ -82,3 +82,8 @@ Con `preparar`, los dos `inventario` y `limpiar`, son 14 casos y 14 PASS.
 - **Riesgos residuales de la corrección:** en el §9 del modelo de amenazas. La pertenencia se apoya en los 64 bits aleatorios del nombre y en `$metadata.attempts`. Lo ambiguo, lo desconocido o lo que falla queda pendiente de reconciliación, nunca como limpieza completa.
 - **Revocación de las tres claves temporales:** la ejecuta Roderich en su ventana, con la ruta y el comando que le pasa A. Después se verifica que ya no autorizan. **Esta sesión no revocó nada.**
 - **#151 sigue abierto.** El cierre y los gates son de Roderich.
+
+> **Aclaración del 2026-11-03 (conciliación de #151).**
+> - **Revocación:** según el comentario de #151 del 2026-10-25 (id 6391397579), Roderich revocó las tres claves temporales `b151-*` el 2026-10-24 a las 20:42:41Z, con la salida de su script local y sin mostrar claves.
+> - **Sin comprobar:** no se probó el acceso con las claves revocadas, así que la comprobación que anunciaba el punto anterior («Después se verifica que ya no autorizan») **no se hizo**.
+> - **Registros anteriores:** `F08_BKP_08_B2_REAL_FORMATO2.md` y `…_REPETICION.md` dicen «no se revocaron» porque se redactaron antes. El texto y los resultados de los tres registros no cambian.

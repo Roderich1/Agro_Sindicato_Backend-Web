@@ -131,6 +131,66 @@ Las respuestas inyectadas miden la reacción del cliente, no la decisión de Cen
 - **Fuera del dispositivo:** el reenvío posterior que devolvería ALREADY_APPLIED, porque la app no reenvía una intención ACKED. Lo acredita la columna Central.
 - **Evidencia:** Mobile `docs/evidence/F10_C23_REANUDACION_DEVICE.md` (PR MOB #98).
 
+## 4d. Sesión física del 2026-11-03 (cierre de OE3)
+
+Añadida el 2026-11-03. **No cambia las columnas del §3**: las filas siguientes pasan a tener, además, una medición DEVICE contra el **servidor real**, con su procedencia.
+
+**Entorno.**
+- **Central:** desechable, con el código de este Backend igual a `main` `5973b49` (`src/` y `prisma/`).
+- **Teléfono:** POCO X5 Pro con el paquete aislado `.oe3` de Mobile `b7a9813`.
+- **Datos:** sintéticos.
+- **Transporte:** observador con `drop-push-response` sólo en C10, para dejar la operación en resultado incierto. Ninguna respuesta se inyectó ni se alteró.
+
+| Fila | Resultado en DEVICE | Detalle |
+|---|---|---|
+| C10 | PASS | Ver C10 |
+| C16 | PASS | `REJECTED`/`CAMPAIGN_NOT_OPEN`, con la contribución intacta (ACTIVE, 30 000) |
+| C18 | PASS | CANCEL APPLIED, con la contribución CANCELLED y sin cantidad. Se apoya en la última operación aceptada, no en la rechazada |
+| C19 | PASS sólo para «producto inactivo» | `REJECTED`/`REFERENCE_UNAVAILABLE`, sin contribución y con un mensaje genérico en la app. «Inexistente» y «de otro sindicato» siguen NOT_MEASURED en DEVICE |
+
+**C10, paso a paso.**
+1. Central aplica la operación y la respuesta no llega al teléfono.
+2. Con el modo avión, el teléfono queda en OUTCOME_UNKNOWN.
+3. Se exporta el respaldo.
+4. Se activa una segunda instalación del mismo Member: hay 2 `ClientRegistration` ACTIVE.
+5. Se restaura el respaldo: queda RESTORE_PAUSED, sin envíos.
+6. «Liberar» produce un único `push` 200 del mismo `operationId`.
+
+**Resultado de C10.** La operación queda ACKED con `serverAcceptedAt` original. La fila del journal no cambia (`updatedAt` igual). El `resultCode` literal no se registra, porque el observador no guarda cuerpos.
+
+**Sin medir:** C33 y las filas de transporte controlado (C07, C08, C09, C12, C13, C17, C21, C25–C29, C32, C37, C39), que necesitan modos nuevos del arnés. **Medidas después,** salvo C39: ver «Segunda tanda» más abajo.
+
+**Evidencia:** Mobile `docs/evidence/OE3_DEVICE_POCO_2026-11-03.md` (PR MOB #184).
+
+**Segunda tanda del 2026-11-03 (noche).** Mismo teléfono, con Mobile `35a0770` y un Central nuevo.
+
+**Procedencia.**
+- **Controlado:** lo que llega a Central. El observador altera, retiene, duplica o reenvía el envío del teléfono (`mutate`, `concurrent`, `burst`, `drop-push-response`, `hold-push-request`, `get-unknown`).
+- **Real:** la decisión de Central y la reacción del teléfono.
+- **Inyectado:** sólo C28 y el 503 de C29.
+- **Otra instalación con guion:** en C12, C13 y C33 la otra rama la produce un guion del mismo Member, con su propio registro y contra la API real.
+
+| Fila | Central | Teléfono | DEVICE |
+|---|---|---|---|
+| C07 | ALREADY_APPLIED (claves reordenadas y espacios) | ACKED, con la hora original | PASS |
+| C08 | REJECTED/IDEMPOTENCY_MISMATCH; el original intacto | REJECTED terminal | PASS |
+| C09 | Un APPLIED y dos ALREADY_APPLIED; 1 journal | ACKED | PASS |
+| C12 | ALREADY_APPLIED; la retirada se mantiene (CANCELLED, sin cantidad) | ACKED | PASS |
+| C13 | CONFLICT/CANCELLED_PREDECESSOR; sin resurrección | CONFLICT, para que decida la persona | PASS |
+| C17 | ALREADY_APPLIED tras cerrar la campaña | ACKED | PASS |
+| C21 | REJECTED/QUANTITY_INVALID | REJECTED terminal | PASS. El máximo exacto no se midió en DEVICE |
+| C25 | 422 CONTRACT_VERSION_MISMATCH | VERSION_MISMATCH: pausa, y reanuda sólo de forma manual | PASS |
+| C26 | 400 FIELD_NOT_ALLOWED | FAILED terminal | PASS |
+| C27 | REJECTED/INVALID_PREDECESSOR | REJECTED terminal | PASS |
+| C28 | — (RETRYABLE/DEPENDENCY_PENDING **inyectado**) | Conservada y reenviada: APPLIED | PASS, inyectada |
+| C29 | 429 RATE_LIMITED **real** (`Retry-After` 60); 503 **inyectado** | Respeta el plazo; reintenta | PASS |
+| C32 | 404 OPERATION_NOT_FOUND | CONFLICT intacto. El aviso muestra el texto técnico: corrección en MOB #186 | PASS (tratamiento) |
+| C33 | REJECTED/CAUSAL_FENCED; la resolución sigue vigente | REJECTED terminal | PASS |
+| C37 | 400 INVALID_REQUEST (cantidad «01») | FAILED terminal | PASS. Las demás variantes de C37 (array, claves duplicadas, JSON mal formado, 415 y 413) no se midieron en DEVICE; el arnés las admite y siguen acreditadas en A |
+| C39 | — | — | **Sin DEVICE.** Central no reabre una campaña cerrada (400) y la app no reenvía una intención REJECTED |
+
+**Evidencia:** Mobile `docs/evidence/OE3_DEVICE_POCO_2_2026-11-03.md` (PR MOB #187, en borrador).
+
 ## 5. Cobertura mínima de #18
 
 | Aspecto | Evidencia |
@@ -154,6 +214,14 @@ Las respuestas inyectadas miden la reacción del cliente, no la decisión de Cen
 - La rotación real de la clave de huella en un despliegue. La verificación con claves anteriores está cubierta en las pruebas de dominio, no en un entorno desplegado.
 - El rendimiento bajo carga, más allá de la concurrencia puntual de C09, C11 y C28.
 - Producción: la admisión sigue cerrada (C36) y no hay purga. La sesión física de §4 la abrió sólo en un entorno desechable.
+
+> **Precisión del 2026-11-03 (cierre de OE3).** Este apartado se redactó con la ejecución del §1. Varias acciones Mobile que lista se midieron después en el teléfono (§4b, 2026-10-16), y su procedencia queda como en ese apartado:
+> - **ACK inválido:** C30, con una respuesta **inyectada** por el arnés de transporte (no por el servidor real): `OUTCOME_UNKNOWN`/`INVALID_ACK`, nunca ACKED;
+> - **pausa por autenticación:** C22, desactivación real por la API → `AUTH_PAUSED`;
+> - **restore sin prueba de propietario:** C35;
+> - **relogin con otra cuenta:** C38.
+>
+> **Siguen sin probar** el backoff con jitter medido, la rotación real de la clave de huella, la carga y producción. Las filas Mobile marcadas NOT_MEASURED en el §3 siguen así; su clasificación (alcanzables desde la app, con transporte controlado o solo de Central) está en `docs/evaluation/OE3_CIERRE_INVENTARIO_2026-11-03.md` §4.3.
 
 ## 7. Revisiones
 

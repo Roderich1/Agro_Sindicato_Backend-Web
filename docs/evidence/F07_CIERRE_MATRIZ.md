@@ -195,3 +195,60 @@ F07_WEB_PG_TEST_URL="postgresql://agro@127.0.0.1:55442/agro_b?schema=public" npx
 
 - **Backend:** `tsc --noEmit` y ESLint de la suite nueva, sin errores.
 - **CI:** se añade el paso `f07-acceptance.postgres.spec.ts` al job `f07-proposal-postgres` de `web.yml`, que es un archivo global. El resultado del CI está en el PR.
+
+## 7. Actualización del 2026-11-03: GATE-F07 (#29) contra `main` `5973b49`
+
+*Añadida por la sesión de Claude Code el 2026-11-03 (UTC), a pedido de Roderich Rendón. Las secciones anteriores se conservan como registro de `e2263b0`. **No cambia el gate, sus criterios, sus dependencias ni el Project.***
+
+**Pruebas que sostienen esta revisión.** No se ejecutó nada nuevo: no hay huecos técnicos que lo exijan.
+- **Suite completa del Backend** sobre `1f55988` (2026-11-03, 11:38Z–11:42Z): 794 correctas, 13 omitidas y 0 fallidas. Incluye `f07-acceptance`, `f07-web-proposal`, `f06-coll-05`, `f07-collective-seal` y `f10-sec-02-*`, con PostgreSQL 16.13 desechable (`F12_EST_08_REFERENCIA_PROPUESTA_2026-11-03.md` §4).
+- **De `1f55988` a `5973b49`** solo cambiaron pruebas, la advertencia de la Web y documentación.
+- **CI de `main` `075a511`:** `f07-proposal-postgres`, `web` y `verify` en success.
+
+**Antecedente conservado:** en la ejecución completa con carga en paralelo, dos pruebas de `f06-coll-05` agotaron 5 s. Sola pasó 3 de 3. Sin causa confirmada.
+
+### 7.1 Necesidad, consumo, estimación y propuesta: cuatro cosas distintas
+
+| Concepto | Origen | Dónde se ve | Qué no hace |
+|---|---|---|---|
+| **Necesidad declarada** (`DECLARED_NEED`) | Lo que declara cada agricultor por Sync v1; solo la versión vigente | Resumen colectivo, con k y cobertura; líneas del borrador | No resta stock ni es necesidad neta (RF-32 no implementado) |
+| **Consumo** (`CONSUMPTION_TOTAL`) | Lo aplicado, publicado por Sync v1 | Resumen colectivo, separado de la necesidad; versiones selladas y tendencias | No se suma ni se resta con la necesidad |
+| **Estimación del consumo** (F12) | SES y naive calculados en el servidor solo con consumo publicado y sellado | Pantalla «Estimación del consumo»; **referencia separada** en el borrador (F12-EST-08) | No se suma a la necesidad, no es la cantidad solicitada y no cambia las líneas, los totales ni la huella. Con datos reales no está admitida |
+| **Propuesta conjunta** (`JointPurchaseProposal`, `DRAFT`) | Las celdas `DECLARED_NEED` que el resumen decidió | Borrador, historial y CSV | No crea compras, lotes, movimientos, deudas ni pagos. No existe ninguna transición a compra |
+
+### 7.2 Criterios de #29
+
+| # | Criterio | Evidencia vigente | Dictamen técnico |
+|---|---|---|---|
+| 1 | Solo versiones vigentes del mismo canónico y unidad; sin declaración no es cero | ACC «needs and consumption…»; F07P (oráculo D4 RAW y CANONICAL). Con campaña sellada, la lectura se sirve de la versión sellada sin recalcular (`f07-collective-seal.postgres.spec.ts`; `F07_SELLADO_HISTORICO.md`) | **Evidenciado** |
+| 2 | Necesidad declarada diferenciada del forecasting; ninguna inferencia predictiva como fuente | El borrador sigue con `basis = DECLARED_NEED`. La estimación de F12 es la única inferencia y aparece como **referencia separada**: con y sin estimación, mismas líneas, totales (122000 mL) y huella (`f12-est-08-proposal-reference.postgres.spec.ts`; contrato F12 §1 y §7.1) | **Evidenciado**, ahora también frente a una estimación real del sistema |
+| 3 | Regla determinista: entradas, unidades, redondeos y salida | F07_GATE.md, criterio 3; F07P «regeneration…». La huella (`proposalFingerprint`) no cambió con F12-EST-08 | **Evidenciado** |
+| 4 | Directiva sin permiso de detalle: solo agregado, separado de las necesidades, sin datos privados | ACC; WEB (regiones separadas); F06C5. La referencia de F12-EST-08 no entrega naive, cobertura, serie ni datos por Member (`openapi-contract.cjs`) | **Evidenciado en lo agregado.** El detalle individual no está habilitado (decisión del 2026-10-16) |
+| 5 | Propuesta con campaña, líneas y versión de las necesidades; pendiente de revisión; sin efectos | ACC (`DRAFT`, huella, conteos). F12-EST-08: md5 de las 8 tablas privadas, con filas sembradas, igual del principio al final; un borrador sellado no se recalcula ni se modifica al leerlo | **Evidenciado** |
+| 6 | Un efecto individual posterior exige confirmación humana y un requisito aprobado | No existe la transición. `POST /purchases/joint` está cerrado (#118; `f10-sec-02-legacy-boundary.postgres.spec.ts`) | **Evidenciado por ausencia** |
+| 7 | Filtros, actualidad y cobertura; sin ahorros no medidos | ACC (`data_as_of`, cobertura publicada); WEB. F12 no afirma ahorro ni precisión real (`F12_GATE_DECISION.md`) | **Evidenciado** |
+| 8 | La primitiva `create-joint-purchase` no basta | La propuesta es un módulo propio; la primitiva está cerrada (#118) | **Evidenciado** |
+| 9 | Con F07-POL-01 o F07-REC-01 abiertos, el gate sigue Pending | #108 cerrado; **#107 abierto**: falta la decisión del autor, la Directiva y el tutor (`F07_POL_01_REVISION_INSTITUCIONAL.md` §7) | **Pending.** No se omite ni se declara Passed |
+
+**Estado:** los criterios 1 a 8 están evidenciados en lo técnico con datos sintéticos. **GATE-F07 sigue Pending por el criterio 9.**
+
+### 7.3 Aceptación académica frente a admisión institucional
+
+El criterio 9 ata el gate a #107. Para cerrar #107 hacen falta tres validaciones (paquete §5, filas 1 a 3):
+- la decisión del autor;
+- la validación de la Directiva;
+- la revisión del tutor.
+
+Las dos últimas son institucionales y externas al desarrollo. El gate, en cambio, se titula «Dashboard y propuesta conjunta validados» y sus criterios 1 a 8 son técnicos. **Mezcla la aceptación académica del entregable con su admisión institucional.**
+
+Los gates F06, F08 y F12 se resolvieron como Passed **solo** para el alcance académico con datos sintéticos, dejando fuera los pendientes institucionales. GATE-F07 no tiene hoy esa decisión.
+
+**Propuesta de decisión del autor** (no aplicada; no cambia criterios, dependencias ni estado):
+
+| Opción | Qué supone | Consecuencias |
+|---|---|---|
+| **A. Mantener** | GATE-F07 sigue Pending hasta cerrar #107 | F07 no tiene aceptación académica mientras falten la Directiva y el tutor. Es coherente con el texto actual de #29 |
+| **B. Aceptación académica con excepción explícita al criterio 9** | El autor registra, en un archivo de decisión aparte, GATE-F07 = Passed **solo** para el alcance académico con datos sintéticos, con el criterio 9 exceptuado de forma explícita y #107 abierto como condición para admitir datos reales | Como en GATE-F12: no habilita cifras reales (`POLICY_PENDING` sigue en producción). Exige una decisión fechada y el comentario en #29. **Cambia el efecto del criterio 9; lo decide el autor, no esta revisión** |
+| **C. Separar #107** | El autor decide que #107 cubre la política construida y su decisión como autor, y lleva la validación de la Directiva y del tutor a GOV-02 (#185) | Cambia el alcance de #107. Solo el autor puede hacerlo, con su registro, y no debe usarse para aparentar progreso |
+
+Con cualquier opción, la divulgación de cifras reales sigue cerrada hasta las validaciones institucionales y el PR del modo productivo (hoja de revisión, §7.2, nivel 5).
