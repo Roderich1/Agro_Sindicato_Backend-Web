@@ -127,7 +127,7 @@ La unidad se guarda como `L` o `kg`, los dos valores que el servidor convierte a
 
 ### 8.2 Verificación con datos sintéticos (Edge sin interfaz + API, copia aislada 5198 → 3340)
 
-Guion `productos-roles.mjs`; registros `productos/productos-directiva.log` (19:13:15Z) y `productos/productos-agricultor.log` (19:15:50Z → 19:16:13Z). 12 comprobaciones, 0 fallos.
+Guion `productos-roles.mjs`; registros `productos/productos-directiva.log` (19:13:15Z) y `productos/productos-agricultor.log` (19:15:50Z → 19:16:13Z). 11 comprobaciones (7 de la Directiva y 4 del Agricultor), 0 fallos.
 
 | Rol | Comprobado | Resultado |
 |---|---|---|
