@@ -84,6 +84,8 @@ jobs:
       - run: npx prisma generate
       - run: F07_WEB_PG_TEST_URL="$DATABASE_URL" npx jest f07-web-proposal.postgres.spec.ts --runInBand
       - run: F07_WEB_PG_TEST_URL="$DATABASE_URL" npx jest f07-acceptance.postgres.spec.ts --runInBand
+      # Variante experimental threshold-only de la necesidad declarada (2026-11-05, no aprobada, #107).
+      - run: F07_WEB_PG_TEST_URL="$DATABASE_URL" npx jest f07-pol-01-variante-necesidad.postgres.spec.ts --runInBand
       # F07 sellado e histórico (2026-10-23): sellado, Sync v1 tras el sellado,
       # tendencias y migración desde la base previa.
       - run: F07_SEAL_PG_TEST_URL="$DATABASE_URL" npx jest f07-collective-seal.postgres.spec.ts --runInBand
