@@ -416,3 +416,40 @@ En este PR: la §4d de `F05_SYNC_06.md` y la actualización de `OE3_DECISIONES_B
 **Por decisión del autor:** ver `OE3_DECISIONES_BORRADOR_2026-11-03.md` §4.
 
 **Incidente de secretos de la primera tanda:** verificado sin mostrarlos. Eran exclusivos del entorno destruido, con 0 coincidencias en 75 661 archivos y en el entorno, así que no hay ninguna contención pendiente.
+
+## 13. Tercera pasada (2026-11-03, noche; sin dispositivos físicos)
+
+### 13.1 Integrado en Mobile `main`
+
+| PR | Merge | Qué cambia |
+|---|---|---|
+| #186 | `9033d28` | Mensaje de usuario para una consulta fallida al sindicato. El tratamiento del conflicto no cambia |
+| #187 | `2ea6958` | Evidencia y herramientas de la segunda tanda. Sin código funcional |
+| #185 | `279b46b` | Mensaje de la cantidad con formato rechazado en las transferencias. La regla de cantidades no cambia |
+
+**CI de `main` `279b46b`:** SUCCESS. Las de `9033d28` y `2ea6958` se cancelaron por la concurrencia; no se relanzaron.
+
+**Incidencia:** el primer intento de integrar #185 devolvió un error transitorio de la API de GitHub. Se comprobó que no se había integrado y se repitió tras recalcular la mezclabilidad.
+
+### 13.2 Preparado (en borrador)
+
+| PR | Qué es |
+|---|---|
+| MOB #188 | El botón de creación muestra sólo «+», con el nombre accesible «Registrar operación», y se oculta en sincronización. **HOST:** 15 pruebas nuevas que fallan en `main` y pasan con la corrección. **CI:** SUCCESS. **Emulador** (2026-11-04): solape reproducido en `main` a 130 %; en la rama, Sincronización sin botón y «+» de 56 dp con su menú a 100, 130 y 200 %. TalkBack hablado no medido |
+| BE #201 y MOB #189 | DEMO integrada con datos sintéticos: Backend real, Web, emulador, siembra por la API real y ensayo completo. Guía en BE `docs/demo/DEMO_AGROCUENTAS.md` |
+
+### 13.3 Resultados
+
+- **RETRYABLE: sin incumplimiento.** El contrato C28 no fija un plazo. La app conserva la intención y la envía en el siguiente disparo: tick de 1 minuto con acceso verificado, que dura 10 minutos. Los 40 s observados coinciden con la caducidad del acceso (MOB `OE3_RETRYABLE_COMPORTAMIENTO_2026-11-03.md`).
+- **DEMO** (emulador y navegador; **no** es DEVICE):
+  - operación sin red persistente tras reiniciar;
+  - sincronización APPLIED, cuyo efecto autorizado en la Web es que Fungicida pasa a divulgado con 3 aportantes;
+  - propuesta y CSV;
+  - estimación SES 111 L y naive 116 L, con Fungicida con datos insuficientes;
+  - copia sin conexión en la Web (desconexión simulada del navegador) y en el móvil (desconexión real del emulador, también tras reiniciar);
+  - la estimación no se suma.
+- **Sin cambios** en DEVICE: ninguna fila NOT_MEASURED pasa a PASS por el emulador. C39 sigue sin DEVICE, con su cobertura en Central.
+
+### 13.4 Actas
+
+Los borradores de las actas de GATE-F03 y GATE-F04, la propuesta de aceptación de GATE-F07 y la separación de pendientes están en `OE3_ACTAS_BORRADOR_2026-11-04.md`. No se aplicó ningún gate.
