@@ -86,7 +86,31 @@ Conceptos que siguen separados y sin sumar: necesidad declarada, consumo registr
 2. **`notice` del servicio de estimación (INT-09)** repite la explicación de la vista («Referencia calculada a partir de cifras publicadas; no es una necesidad ni una propuesta…»). La Web lo sigue mostrando por contrato; acortarlo es decisión del Backend.
 3. **Campaña activa vs. elegida**: la cabecera muestra la activa (`GET /campaigns/active`) y cada vista filtra por la elegida. No hace falta Backend; se rotuló «Activa» para distinguirlas.
 
-## 7. Limitaciones
+## 7. Desplazamiento vertical (verificado el 2026-11-05, hasta 2026-11-05T15:46:17Z)
+
+Roderich informó que, en su ventana de Edge sobre http://127.0.0.1:5195, las vistas más altas que la ventana no se desplazaban. Comprobación sobre el mismo commit `b5afd30`, sin cambios de código:
+
+**a) Edge sin interfaz, ventana de 1366×600 (`scroll-check.mjs`, copia sintética, perfil nuevo por rol).** Navegación dentro de la SPA; medidas con `scrollTo`, rueda real (`page.mouse.wheel`) y posición del último botón:
+
+```
+resumen              scrollH 982  innerH 600  scrollTo→382  rueda +600→382  rueda −600→0  último «Actualizar»
+propuestas+borrador  scrollH 1133 innerH 600  scrollTo→533  rueda →533/0   último «Ver» a la vista al final
+estimacion           scrollH 1258 innerH 600  scrollTo→658  rueda →600/0   último «Descargar copia…» a la vista
+campanas             scrollH 865  innerH 600  scrollTo→265  último «Editar» a la vista
+dialogo «Nueva campaña»: abre (modal-backdrop) y cierra con Escape → tras cerrar, scrollTo→265 y rueda →265/0
+usuarios (admin)     scrollH 784  innerH 600  scrollTo→184  rueda →184/0   último «Desactivar» a la vista
+tras cambiar de vista desde el final: scrollY 0
+```
+
+`body` y `html` con `overflow: visible`; `document.scrollingElement` es `HTML`; sin capas fijas que cubran la ventana. Lo mismo con el rol Administrador (Campañas, diálogo y Usuarios).
+
+**b) La pestaña visible de Roderich (Edge con depuración remota, 1528×828).** Mediciones por CDP directo: `Runtime.evaluate` de lectura respondía, pero un clic del menú no navegaba, `scrollTo` no devolvía y `Page.captureScreenshot` ya había agotado el tiempo en esa misma pestaña durante las capturas automatizadas anteriores (`page.setViewport` y captura a página completa de puppeteer sobre una pestaña visible). Es decir, el proceso de dibujo de **esa pestaña** quedó atascado por la automatización de esta sesión, no por la Web.
+
+Se abrió una pestaña nueva en el mismo Edge (misma sesión) y se cerró la atascada. En la nueva, en Estimación del consumo: `scrollHeight` 1236 con ventana de 828, `scrollTo` al final → 408, rueda real +500 → 408, rueda −500 → 0.
+
+**Conclusión:** no hay defecto de desplazamiento en el código del PR; no se cambió código. Para capturas sobre una pestaña visible debe usarse un navegador sin interfaz aparte (`recorrido.mjs`, `scroll-check.mjs`), nunca `setViewport` ni captura a página completa sobre la pestaña de la persona.
+
+## 8. Limitaciones
 
 - Verificado con datos sintéticos en Edge de escritorio (1366×900); no se revisó en teléfono ni en Firefox/Safari.
 - Las acciones que escriben (sellar, generar) se ejercitaron sólo contra la copia aislada; «Generar propuesta» y «Generar estimación» están cubiertas por las pruebas unitarias con servicios simulados y, en la copia, se comprobó el estado deshabilitado en campaña cerrada.
