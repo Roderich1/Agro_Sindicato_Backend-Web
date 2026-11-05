@@ -43,6 +43,12 @@ export const envSchema = z.object({
   COLLECTIVE_DISCLOSURE_MODE: optionalText(
     z.enum(["disabled", "provisional-synthetic"]),
   ),
+  // Experimental variant for DECLARED_NEED cells (2026-11-05, not approved):
+  // `threshold-only` publishes the current total with k Members on every
+  // read, outside production only. Default: the combinations rule.
+  COLLECTIVE_DECLARED_NEED_RULE: optionalText(
+    z.enum(["combinations", "threshold-only"]),
+  ),
   // F07 manual seal of a campaign's collective version. Off by default: it is
   // enabled only with a Mobile build that handles CAMPAIGN_SEALED as a
   // terminal failure (F07_SEALED_HISTORY_CONTRACT §3.2). Reading sealed

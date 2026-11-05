@@ -1,5 +1,5 @@
 import { Cell, cellId, consolidate, EligibleContribution, MAX_TOTAL_BASE } from "./consolidation";
-import { decideCell, decideCells, decideCellWithRelated, PriorRelease } from "./disclosure-policy";
+import { decideCell, decideCells, decideCellThresholdOnly, decideCellWithRelated, PriorRelease } from "./disclosure-policy";
 import { amountColumn, newlyRevealing, WorkBudget } from "./differencing";
 
 /**
@@ -430,5 +430,55 @@ describe("F10-SEC-02: unknown amounts and the work limit fail closed", () => {
       }
     }
     expect(released).toBeGreaterThan(50);
+  });
+});
+
+describe("experimental variant for DECLARED_NEED: threshold-only (2026-11-05, not approved)", () => {
+  // 10 + 15 + 5 = 30 L, then + 8 = 38 L (mL in base unit).
+  const c1 = contribution(1, 10_000n);
+  const c2 = contribution(2, 15_000n);
+  const c3 = contribution(3, 5_000n);
+  const c4 = contribution(4, 8_000n);
+
+  it("two Members: suppressed; the third publishes 30 L", () => {
+    expect(decideCellThresholdOnly(cellOf(c1, c2), [])).toEqual({ kind: "SUPPRESS", reason: "UNDER_THRESHOLD", withdrawPrior: false });
+    const three = cellOf(c1, c2, c3);
+    expect(three.total).toBe(30_000n);
+    expect(decideCellThresholdOnly(three, [])).toEqual({ kind: "RELEASE" });
+  });
+
+  it("the fourth Member updates the figure at once (30 L → 38 L), which the rule in force would hold back", () => {
+    const four = cellOf(c1, c2, c3, c4);
+    const history = [releaseOf([c1, c2, c3])];
+    expect(four.total).toBe(38_000n);
+    expect(decideCellThresholdOnly(four, history)).toEqual({ kind: "RELEASE" });
+    expect(decideCell(four, history)).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+  });
+
+  it("a resend that leaves the state unchanged repeats the figure without a new release", () => {
+    const four = cellOf(c1, c2, c3, { ...c4, sequence: 2 });
+    expect(decideCellThresholdOnly(four, [releaseOf([c1, c2, c3, c4])])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: false });
+  });
+
+  it("a withdrawal that leaves fewer than k Members hides the figure again and retracts the prior one", () => {
+    const history = [releaseOf([c1, c2, c3, c4]), releaseOf([c1, c2, c3])];
+    expect(decideCellThresholdOnly(cellOf(c1, c2, c3), history)).toEqual({ kind: "RELEASE" });
+    expect(decideCellThresholdOnly(cellOf(c1, c2), history)).toEqual({ kind: "SUPPRESS", reason: "UNDER_THRESHOLD", withdrawPrior: true });
+  });
+
+  it("decideCells applies the variant to DECLARED_NEED only; CONSUMPTION_TOTAL keeps the combinations rule", () => {
+    const need = cellOf(c1, c2, c3, c4);
+    const consumption = cellOf(
+      ...[c1, c2, c3, c4].map((c) => ({ ...c, projectionType: "CONSUMPTION_TOTAL" as const, contributionId: `k${c.contributionId}` })),
+    );
+    const histories = new Map([
+      [cellId(need), [releaseOf([c1, c2, c3])]],
+      [cellId(consumption), [releaseOf([c1, c2, c3].map((c) => ({ ...c, contributionId: `k${c.contributionId}` })))]],
+    ]);
+    const variant = decideCells([need, consumption], histories, 3, undefined, { declaredNeedRule: "threshold-only" });
+    expect(variant.get(cellId(need))).toEqual({ kind: "RELEASE" });
+    expect(variant.get(cellId(consumption))).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+    const current = decideCells([need, consumption], histories);
+    expect(current.get(cellId(need))).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
   });
 });

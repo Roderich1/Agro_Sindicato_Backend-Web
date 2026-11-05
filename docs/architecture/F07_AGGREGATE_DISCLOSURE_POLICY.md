@@ -211,3 +211,13 @@ Registrada por la sesión B. Detalle en [`F07_SEALED_HISTORY_CONTRACT.md`](F07_S
   - el número real de vinculados, no confirmado.
   
   La comparación reproducible de k = 3 y k = 5 está en BE #161 (`docs/evidence/F07_POL_01_COMPARACION_K.md`), **pendiente de integrar**. k = 3 sigue provisional y sólo para ensayos sintéticos.
+
+## 12. Nota del 2026-11-05: variante experimental «threshold-only» para la necesidad declarada (NO aprobada)
+
+Registrada por la sesión de Claude Code a petición de Roderich Rendón, en la rama `feat/f07-variante-necesidad-inmediata`. **No cambia la regla vigente, no aprueba esta política ni cierra #107.** Producción sigue sin divulgación (`POLICY_PENDING`) y, aunque se activara el modo provisional, ignora la variante.
+
+- **Qué es.** Con `COLLECTIVE_DECLARED_NEED_RULE=threshold-only` (sólo fuera de producción), las celdas de **necesidad declarada** aplican únicamente R1: con k = 3 agricultores distintos se publica el total actual en cada lectura, y cada aporte aceptado (alta, cambio o `CANCEL`) se refleja de inmediato; con menos de k, la celda se oculta y la cifra anterior se retira. La regla de combinaciones (§9) deja de aplicarse a esas celdas.
+- **Qué no cambia.** Consumo (`CONSUMPTION_TOTAL`), sellado (la revisión y el sellado fuerzan la regla vigente), tendencias y estimación.
+- **Qué revela.** Dos cifras consecutivas de una celda (30 L y luego 38 L) dan el cambio neto de quien entró, salió o cambió: +8 L, la necesidad de un solo agricultor, a cualquier lector autorizado que guardara la cifra anterior. Es precisamente lo que §9 evita manteniendo la cifra anterior con `pending_changes`. Ninguna de las dos reglas hace anónimos los datos (§0).
+- **Ensayo.** `docs/evidence/f07_pol_01_variante/F07_POL_01_VARIANTE_NECESIDAD_2026-11-05.md`: contra el Backend real de una copia sintética, 10 + 15 + 5 = 30 L, +8 = 38 L al instante; un reenvío no duplica (`ALREADY_APPLIED`); dos retiradas devuelven la celda a oculta. Control con la regla vigente: 30 L con cambios pendientes.
+- **Decisión pendiente (Roderich, #107):** si la utilidad de ver la necesidad al día compensa revelar el aporte individual por diferencia, y con qué k. Mientras no se decida, la variante queda apagada.
