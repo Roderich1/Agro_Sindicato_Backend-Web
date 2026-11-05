@@ -453,3 +453,43 @@ export const productCatalogSchema: SchemaObject = {
     },
   },
 };
+
+/**
+ * F07-WEB-03 (#25): linked farmers and the date of their latest accepted
+ * Sync v1 send. No ids, quantities, products or live connection state.
+ */
+export const farmerSyncStatusSchema: SchemaObject = {
+  type: "object",
+  additionalProperties: false,
+  required: ["contractVersion", "basis", "date_label", "generated_at", "farmers"],
+  properties: {
+    contractVersion: { type: "integer", enum: [1] },
+    basis: {
+      type: "string",
+      enum: ["SYNC_V1_ACCEPTED_SEND"],
+      description: "La fecha es la hora del servidor del último envío aceptado (Sync v1, APPLIED). No es un inicio de sesión, un intento rechazado ni la hora de publicación de una cifra",
+    },
+    date_label: { type: "string", enum: ["Último envío aceptado"] },
+    generated_at: { type: "string", format: "date-time" },
+    farmers: {
+      type: "array",
+      description: "Agricultores activos del sindicato, ordenados por nombre",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["display_name", "state", "state_label", "last_accepted_send_at"],
+        properties: {
+          display_name: { type: "string" },
+          state: { type: "string", enum: ["WITH_ACCEPTED_SENDS", "NO_SYNC_RECORD"] },
+          state_label: { type: "string", enum: ["Con envíos aceptados", "Sin registro de sincronización"] },
+          last_accepted_send_at: {
+            type: "string",
+            format: "date-time",
+            nullable: true,
+            description: "null: el servidor no conserva ningún envío aceptado de este agricultor",
+          },
+        },
+      },
+    },
+  },
+};
