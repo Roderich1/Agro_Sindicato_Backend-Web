@@ -63,3 +63,39 @@ Necesidad declarada (resumen y propuesta), consumo publicado (resumen y tendenci
 - «Descargar Excel» no aparece hasta integrar el módulo de #206 (`excelExport.download`); «Cobertura» deja plegado el seguimiento de sincronización hasta integrar la consulta de #207.
 - Verificado en Edge de escritorio sin interfaz (1366×768, 1920×1080, 390×844) con datos sintéticos; no en otros navegadores ni en un teléfono real.
 - La pantalla «Cobertura» sigue en el menú principal (quinta) porque su ruta y permiso se conservan; el guion sólo exige que «Ver cobertura» enlace a ella.
+
+---
+
+## 7. Exportación a Excel con la identidad de Agrocuentas (2026-11-05, tarde)
+
+**Commits locales posteriores (misma rama `feat/web-defensa-panel`, sin publicar):** `d336837` (Estimación sin textos explicativos), `885c0a9` (fusión de `feat/web-compra-conjunta-xlsx`, PR #206, sin conflictos) y **`837eb57`** (libros Excel para las cuatro vistas). El CSV no cambia: es texto plano y el formato del servidor se conserva; la presentación cuidada va en el `.xlsx`, que se arma en el navegador con las mismas respuestas de la API que muestra la pantalla.
+
+### 7.1 Qué entrega «Descargar Excel»
+
+| Vista | Archivo | Hojas |
+|---|---|---|
+| Resumen colectivo | `resumen-<campaña>.xlsx` | **Resumen** (portada: campaña, versión, cobertura, conteos, umbral) · **Necesidad declarada** · **Consumo publicado** |
+| Propuesta conjunta | `propuesta-<ref>.xlsx` | **Borrador** (portada) · **Necesidades** · **Referencia de consumo** (si se cargó la referencia del mismo borrador) |
+| Tendencias | `tendencias-<dato>.xlsx` | **Tendencias** (portada con campañas, versión y cobertura) · **Por campaña** (matriz producto × campaña sellada) · **Detalle** |
+| Estimación del consumo | `estimacion-<campaña>.xlsx` | **Estimación** (portada) · **Resultados** (estimación, línea base, vigencia, α, ejecución) · **Serie observada** |
+
+Diseño común (`Web/src/lib/xlsx-writer.ts`, `xlsx-common.ts`): banda superior verde oscuro `#0F1D15` «AGROCUENTAS · PANEL DE LA DIRECTIVA», título en esmeralda `#047857` de 18 pt, subtítulo, ficha de datos con etiquetas, leyenda «Cómo leer este libro»; hojas de datos con encabezados blancos sobre esmeralda, filtro automático, fila inmovilizada, estados «Publicado»/«Vigente» en verde y «Oculto por privacidad»/«Sin cifra publicada»/«Datos insuficientes» en ámbar, cifras en negrita, fechas en hora de Bolivia (UTC−4), pestañas de color, cuadrícula oculta en las portadas e impresión apaisada ajustada al ancho. Sin dependencias nuevas ni fórmulas.
+
+Reglas (iguales a la pantalla): sólo se escribe una cifra publicada y válida; una celda vacía nunca es cero y la columna «Explicación» dice por qué; nada se suma, promedia ni recalcula; necesidad declarada, consumo publicado, borrador y estimación van en hojas distintas. En `POLICY_PENDING` el libro sale sin cifras y lo explica.
+
+### 7.2 Comprobaciones (`Web/`, commit `837eb57`)
+
+| Comando | Resultado | Hora (UTC) |
+|---|---|---|
+| `npx vitest run` | 22 archivos, **215 pruebas, 215 pasan** (nuevas: `collective-xlsx.test.ts`, `exports.test.ts`; adaptadas: `joint-purchase-xlsx.test.ts`) | 2026-11-05 18:44Z |
+| `npx eslint .` | 0 errores, 2 avisos preexistentes | 18:44Z |
+| `npx tsc -b` · `npm run build` | OK | 18:45Z |
+
+### 7.3 Descarga real y apertura en Microsoft Excel
+
+`descargar-excel.mjs` inicia sesión como Directiva en la copia sintética (Web 5198 → API 3340), navega por la SPA y pulsa «Descargar Excel» en Resumen, Propuesta, Tendencias y Estimación; `excel-pdf.ps1` abre cada libro con Excel 16.0 (COM, sólo lectura), cuenta hojas y celdas numéricas y exporta a PDF; `excel-png.ps1` captura cada hoja como imagen. Ejecución 2026-11-05 18:46Z → 18:47Z sobre `837eb57`. Resultado (`excel/descargas.log`, `excel/excel-lectura.txt`): cuatro libros de 3 hojas, **sin reparación** (`error*.xml` en `%TEMP%`: antes 0, después 0). Cifras leídas por Excel iguales a las del servidor: Resumen Fungicida 53 L · 3, Herbicida 250 L · 5, Insecticida celda vacía «Oculto por privacidad»; Tendencias Herbicida 96 · 120 · 104 · 116 L y Fungicida 30 · 36 L con huecos en 2015/2016; Estimación Herbicida 111 L frente a línea base 116 L, Fungicida e Insecticida «Datos insuficientes» sin cifra; Propuesta 53 L y 250 L con referencia 111 L vigente. Muestras y capturas en `excel/` (`*.xlsx`, `*-1-*.png` portadas, `*-2-*`/`*-3-*` hojas de datos).
+
+### 7.4 Limitaciones
+
+- Verificado en Excel 16.0 de escritorio (Windows); no en LibreOffice ni en Excel en línea.
+- El CSV del servidor sigue sin BOM (decisión pendiente del autor, ver PR #206).
