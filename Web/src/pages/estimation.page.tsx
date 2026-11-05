@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppShell, buttonClass, EmptyState, Notice, secondaryButtonClass } from '../components/app-shell';
-import { CollectiveToolbar, PageNote, SectionHeader } from '../components/collective-ui';
+import { Collapsible, CollectiveToolbar, PageNote, SectionHeader } from '../components/collective-ui';
+import { ExportButtons } from '../components/export-buttons';
+import { saveBlob } from '../lib/exports';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { fmtDateTime } from '../lib/collective-text';
@@ -294,15 +296,10 @@ export function EstimationPage() {
 
   const exportCsv = () => {
     if (!results) return;
-    const blob = new Blob([resultsCsv(results)], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `estimacion-${results.target.name.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    saveBlob(
+      new Blob([resultsCsv(results)], { type: 'text/csv;charset=utf-8' }),
+      `estimacion-${results.target.name.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.csv`,
+    );
   };
 
   /** RF-40: descarga explícita, con conexión; se guarda sólo si la sesión sigue siendo la que la pidió. */
@@ -339,9 +336,13 @@ export function EstimationPage() {
     <AppShell title="Estimación del consumo" section="Colectivo">
       <div className="space-y-5">
         <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select}>
-          <button type="button" className={secondaryButtonClass} onClick={exportCsv} disabled={stale || !results || results.results.length === 0}>
-            Exportar CSV de la consulta
-          </button>
+          <ExportButtons
+            kind="estimation"
+            reference={selected}
+            onCsv={exportCsv}
+            csvLabel="Exportar CSV de la consulta"
+            disabled={stale || !results || results.results.length === 0}
+          />
           {!blocked && selected && (
             <button type="button" className={buttonClass} onClick={() => void request()} disabled={busy || !eligible}>
               {busy ? 'Generando…' : 'Generar estimación'}
@@ -349,8 +350,8 @@ export function EstimationPage() {
           )}
         </CollectiveToolbar>
         <PageNote>
-          Referencia de consumo para una campaña comparable, calculada en el servidor con suavizamiento exponencial simple
-          (SES) frente a la línea base naive, a partir de las cifras selladas. No es una necesidad declarada ni una
+          Referencia de consumo para una campaña comparable, calculada en el servidor a partir de las cifras selladas
+          (suavizamiento exponencial simple, SES, frente a la línea base naive). No es una necesidad declarada ni una
           propuesta: no se suma a ellas ni crea compras, propuestas o movimientos.
         </PageNote>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
@@ -565,6 +566,16 @@ function observedValues(detail: ResultDetail | null, unit: 'L' | 'KG'): string |
   return `${values.join(' · ')} ${unit}`;
 }
 
+/** Último consumo comprobado anterior a la campaña objetivo: cifra y campaña. */
+function lastObserved(detail: ResultDetail | null, unit: 'ML' | 'G'): string | null {
+  if (!detail) return null;
+  const before = detail.points.filter((p) => p.exclusion_reason !== 'NOT_BEFORE_TARGET' && p.kind === 'VERIFIED_CONSUMPTION' && p.quantity_base !== null);
+  const last = before[before.length - 1];
+  if (!last) return null;
+  const shown = formatQuantity(last.quantity_base, unit);
+  return shown === null ? null : `${shown} · ${last.campaign.name}`;
+}
+
 function ResultsSection({ results, details, latestRun }: { results: InstitutionalResults; details: Record<string, Run>; latestRun: string | null }) {
   return (
     <section className="glass-card overflow-hidden" aria-label="Resultados por producto">
@@ -593,56 +604,81 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
               <tr>
                 <th className="px-4 py-2.5">Producto</th>
                 <th className="px-4 py-2.5">Resultado</th>
-                <th className="px-4 py-2.5">Estimación (SES)</th>
-                <th className="px-4 py-2.5">Línea base (naive)</th>
-                <th className="px-4 py-2.5">Serie observada</th>
+                <th className="px-4 py-2.5">Estimación de consumo</th>
+                <th className="px-4 py-2.5">Último consumo observado</th>
                 <th className="px-4 py-2.5">Vigencia</th>
-                <th className="px-4 py-2.5">Ejecución</th>
+                <th className="px-4 py-2.5 font-medium normal-case tracking-normal text-slate-400">Cálculo y fuentes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {results.results.map((result) => {
                 const detail = detailOf(details, result);
+                const observedLast = lastObserved(detail, result.base_unit);
+                const earlier = latestRun !== null && result.run_ref !== latestRun;
                 return (
-                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`}>
-                    <td className="px-4 py-3 font-semibold text-slate-800">
+                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top">
+                    <td className="px-4 py-3 text-base font-semibold text-slate-800">
                       {result.product.name}
                       <span className="ml-1 text-xs font-normal text-slate-400">{result.presentation_unit}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-semibold text-slate-800">{RESULT_STATUS_TEXT[result.status]}</span>
+                      <span className={`font-semibold ${result.status === 'ESTIMATED' ? 'text-slate-800' : 'text-amber-800'}`}>{RESULT_STATUS_TEXT[result.status]}</span>
                       {result.reason_code && <p className="text-[11px] text-slate-500" data-testid="reason">{REASON_TEXT[result.reason_code]}</p>}
                     </td>
-                    <td className="px-4 py-3" data-testid="estimate">
+                    <td className="px-4 py-3 text-2xl" data-testid="estimate">
                       <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />
                     </td>
-                    <td className="px-4 py-3" data-testid="naive">
-                      <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600" data-testid="observed">
-                      <span data-testid="observed-span">{observed(detail)}</span>
-                      {observedValues(detail, result.presentation_unit) && (
-                        <span className="block tabular-nums text-slate-800" data-testid="observed-values">
-                          {observedValues(detail, result.presentation_unit)}
-                        </span>
-                      )}
-                      <span className="block text-[11px] text-slate-500">
-                        α <span data-testid="alpha" className="tabular-nums">{formatAlpha(detail?.alpha ?? null)}</span>
-                        {detail?.fit_informative === false && ' (ajuste no informativo)'}
-                        {result.coverage.campaigns.length > 0 &&
-                          (result.coverage.status === 'IDENTIFIED'
-                            ? ' · cobertura identificada en el tramo'
-                            : ' · cobertura desconocida en alguna campaña')}
-                      </span>
+                    <td className="px-4 py-3 text-sm text-slate-700" data-testid="observed-last">
+                      {observedLast ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3" data-testid="validity">
                       <ValidityBadge validity={result.validity} reason={result.validity_reason} />
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600" data-testid="run">
-                      {fmtDateTime(result.generated_at)}
-                      {latestRun && result.run_ref !== latestRun && (
-                        <span className="block text-amber-700" data-testid="earlier-run">De una ejecución anterior, no de la última solicitada</span>
+                      {earlier && (
+                        <span className="mt-1 block text-[11px] text-amber-700" data-testid="earlier-run">
+                          De una ejecución anterior, no de la última solicitada
+                        </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600">
+                      <details>
+                        <summary className="cursor-pointer font-semibold text-emerald-700">Ver cálculo y fuentes</summary>
+                        <dl className="mt-2 space-y-1">
+                          <div>
+                            <dt className="inline text-slate-500">Línea base naive: </dt>
+                            <dd className="inline" data-testid="naive">
+                              <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="inline text-slate-500">α: </dt>
+                            <dd className="inline tabular-nums" data-testid="alpha">{formatAlpha(detail?.alpha ?? null)}</dd>
+                            {detail?.fit_informative === false && <span className="ml-1 text-slate-500">(ajuste no informativo)</span>}
+                          </div>
+                          <div data-testid="observed">
+                            <dt className="inline text-slate-500">Campañas observadas: </dt>
+                            <dd className="inline">
+                              <span data-testid="observed-span">{observed(detail)}</span>
+                              {observedValues(detail, result.presentation_unit) && (
+                                <span className="block tabular-nums text-slate-800" data-testid="observed-values">
+                                  {observedValues(detail, result.presentation_unit)}
+                                </span>
+                              )}
+                            </dd>
+                          </div>
+                          {result.coverage.campaigns.length > 0 && (
+                            <div>
+                              <dt className="inline text-slate-500">Cobertura: </dt>
+                              <dd className="inline">
+                                {result.coverage.status === 'IDENTIFIED' ? 'identificada en cada campaña del tramo (participación, no integridad)' : 'desconocida en alguna campaña'}
+                              </dd>
+                            </div>
+                          )}
+                          <div>
+                            <dt className="inline text-slate-500">Ejecución: </dt>
+                            <dd className="inline" data-testid="run">{fmtDateTime(result.generated_at)}</dd>
+                          </div>
+                        </dl>
+                      </details>
                     </td>
                   </tr>
                 );
@@ -681,8 +717,8 @@ function HistorySection({
   openedId: string | null;
 }) {
   return (
-    <section className="glass-card overflow-hidden" aria-label="Ejecuciones anteriores">
-      <SectionHeader title="Ejecuciones anteriores" note="De la más reciente a la más antigua, incluidas las fallidas. Ninguna se modifica." />
+    <Collapsible title={`Ejecuciones anteriores (${runs.length}${hasMore ? '+' : ''})`} label="Ejecuciones anteriores">
+      <p className="px-5 pt-3 text-xs text-slate-500">De la más reciente a la más antigua, incluidas las fallidas. Ninguna se modifica.</p>
       {runs.length === 0 ? (
         <EmptyState compact title="Sin ejecuciones" />
       ) : (
@@ -717,7 +753,7 @@ function HistorySection({
           </button>
         </div>
       )}
-    </section>
+    </Collapsible>
   );
 }
 

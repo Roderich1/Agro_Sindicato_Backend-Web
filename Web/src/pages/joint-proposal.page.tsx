@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AppShell, buttonClass, EmptyState, Notice, secondaryButtonClass } from '../components/app-shell';
+import { AppShell, buttonClass, EmptyState, Notice } from '../components/app-shell';
 import {
+  Collapsible,
   CollectiveToolbar,
   CoverageBanner,
   DisclosureNotice,
@@ -13,10 +14,12 @@ import {
   SectionHeader,
 } from '../components/collective-ui';
 import { Figure, ValidityBadge } from '../components/estimation-figure';
+import { ExportButtons } from '../components/export-buttons';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { REASON_TEXT, RESULT_STATUS_TEXT } from '../lib/estimation-text';
+import { saveBlob } from '../lib/exports';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
 import type { Proposal, ProposalLine, ProposalSummary } from '../types/collective';
@@ -37,11 +40,16 @@ type ReferenceState =
  * borradores: no crea compras, lotes, movimientos, deudas ni pagos, y no
  * calcula cantidades en el navegador.
  *
- * F12-EST-08 (#181, prototipo W3): la estimación del consumo como columna de
- * referencia separada, tal como la entrega el servidor para el mismo producto,
- * unidad y campaña. No se suma a la necesidad declarada ni cambia las líneas.
- * Una respuesta que llega después de cambiar de campaña, de identidad o de
+ * F12-EST-08 (#181, prototipo W3): la estimación del consumo como referencia
+ * separada, tal como la entrega el servidor para el mismo producto, unidad y
+ * campaña. No se suma a la necesidad declarada ni cambia las líneas. Una
+ * respuesta que llega después de cambiar de campaña, de identidad o de
  * borrador se descarta.
+ *
+ * Jerarquía (defensa, 2026-11-05): al entrar se abre el último borrador de la
+ * campaña y se ven sus líneas (producto, cantidad declarada, unidad, estado);
+ * la referencia de consumo queda como información secundaria con fecha y
+ * vigencia; la huella y los borradores anteriores van a «Historial».
  */
 export function JointProposalPage() {
   const { user } = useAuth();
@@ -68,17 +76,6 @@ export function JointProposalPage() {
     setError(message === 'POLICY_PENDING' ? POLICY_PENDING_MESSAGE : message);
   };
 
-  const loadHistory = useCallback(async (campaignId: string, at: string) => {
-    try {
-      const list = await collectiveService.proposals(campaignId);
-      if (contextRef.current === at) setHistory(list);
-    } catch (err) {
-      if (contextRef.current !== at) return;
-      setHistory([]);
-      fail(err, 'No fue posible cargar el historial de propuestas.');
-    }
-  }, []);
-
   const loadReference = useCallback(async (proposalRef: string, at: string) => {
     setReference({ status: 'loading' });
     const current = () => contextRef.current === at && shownRef.current === proposalRef;
@@ -101,6 +98,39 @@ export function JointProposalPage() {
     [loadReference],
   );
 
+  const open = useCallback(
+    async (id: string, at: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const shown = await collectiveService.proposal(id);
+        if (shown) show(shown, at);
+      } catch (err) {
+        if (contextRef.current === at) fail(err, 'No fue posible abrir el borrador.');
+      } finally {
+        setBusy(false);
+      }
+    },
+    [show],
+  );
+
+  /** Carga el historial y, si nada se muestra todavía, abre el último borrador. */
+  const loadHistory = useCallback(
+    async (campaignId: string, at: string) => {
+      try {
+        const list = await collectiveService.proposals(campaignId);
+        if (contextRef.current !== at) return;
+        setHistory(list);
+        if (shownRef.current === null && list[0]) await open(list[0].proposal_ref, at);
+      } catch (err) {
+        if (contextRef.current !== at) return;
+        setHistory([]);
+        fail(err, 'No fue posible cargar el historial de propuestas.');
+      }
+    },
+    [open],
+  );
+
   useEffect(() => {
     if (!selected) return;
     const at = context;
@@ -121,7 +151,8 @@ export function JointProposalPage() {
     try {
       const created = await collectiveService.generateProposal(selected);
       show(created, at);
-      await loadHistory(selected, at);
+      const list = await collectiveService.proposals(selected);
+      if (contextRef.current === at) setHistory(list);
     } catch (err) {
       if (contextRef.current === at) fail(err, 'No fue posible generar el borrador.');
     } finally {
@@ -129,39 +160,16 @@ export function JointProposalPage() {
     }
   };
 
-  const open = async (id: string) => {
-    const at = context;
-    setBusy(true);
-    setError(null);
-    try {
-      show(await collectiveService.proposal(id), at);
-    } catch (err) {
-      if (contextRef.current === at) fail(err, 'No fue posible abrir el borrador.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const downloadCsv = async (current: Proposal) => {
     try {
-      const blob = await collectiveService.proposalCsv(current.proposal_ref);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `propuesta-${current.proposal_ref}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      // Revocar después: algunos navegadores leen el blob tras el clic.
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      saveBlob(await collectiveService.proposalCsv(current.proposal_ref), `propuesta-${current.proposal_ref}.csv`);
     } catch (err) {
       fail(err, 'No fue posible descargar el CSV.');
     }
   };
 
-  const latest = history[0] ?? null;
   return (
-    <AppShell title="Necesidades y propuesta conjunta" section="Colectivo">
+    <AppShell title="Compra conjunta" section="Colectivo">
       <div className="space-y-5">
         <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select}>
           <button type="button" className={buttonClass} onClick={() => void generate()} disabled={!selected || busy}>
@@ -169,25 +177,22 @@ export function JointProposalPage() {
           </button>
         </CollectiveToolbar>
         <PageNote>
-          La propuesta de compra conjunta es un borrador para revisión humana. Usa la{' '}
-          <strong>necesidad declarada</strong> por los agricultores: no resta stock y no es una necesidad neta. No crea
-          compras, lotes, movimientos, deudas ni pagos.
+          El borrador de compra conjunta reúne la <strong>necesidad declarada</strong> publicada por los agricultores para
+          revisarla antes de comprar: no resta stock y no es una necesidad neta. <strong>No ejecuta ninguna compra</strong>.
+          No crea compras, lotes, movimientos, deudas ni pagos.
         </PageNote>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
-        {proposal && <ProposalDetail proposal={proposal} reference={reference} onCsv={() => void downloadCsv(proposal)} />}
-        {!proposal && latest && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/60 px-4 py-3 text-sm text-slate-700">
-            <span>
-              Último borrador de esta campaña: {fmtDateTime(latest.generated_at)} por {latest.generated_by.name} ·{' '}
-              {latest.line_count} líneas.
-            </span>
-            <button type="button" className={secondaryButtonClass} onClick={() => void open(latest.proposal_ref)} disabled={busy}>
-              Ver último borrador
-            </button>
-          </div>
+        {proposal ? (
+          <ProposalDetail proposal={proposal} reference={reference} onCsv={() => void downloadCsv(proposal)} />
+        ) : (
+          selected &&
+          !busy &&
+          history.length === 0 && (
+            <EmptyState compact title="Todavía no hay borradores para esta campaña" description="Genere el primero desde la barra superior." />
+          )
         )}
-        <HistoryTable history={history} current={proposal?.proposal_ref ?? null} onOpen={(id) => void open(id)} />
+        <HistorySection history={history} current={proposal} onOpen={(id) => void open(id, context)} busy={busy} />
       </div>
     </AppShell>
   );
@@ -200,17 +205,8 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
       <div className="glass-card overflow-hidden">
         <SectionHeader
           title={`Borrador · ${proposal.campaign.name}`}
-          note={
-            <>
-              Generado {fmtDateTime(proposal.generated_at)} por {proposal.generated_by.name} · huella{' '}
-              <Fingerprint value={proposal.inputs_fingerprint} />
-            </>
-          }
-          actions={
-            <button type="button" className={secondaryButtonClass} onClick={onCsv}>
-              Exportar CSV
-            </button>
-          }
+          note={`Generado ${fmtDateTime(proposal.generated_at)} por ${proposal.generated_by.name}. Borrador para revisión humana; no ejecuta ninguna compra.`}
+          actions={<ExportButtons kind="proposal" reference={proposal.proposal_ref} onCsv={onCsv} csvLabel="Exportar CSV" />}
         />
         {proposal.coverage && (
           <div className="px-5 pt-4">
@@ -225,9 +221,9 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
               <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-2.5">Producto (canónico)</th>
-                  <th className="px-5 py-2.5">Necesidad declarada</th>
+                  <th className="px-5 py-2.5">Cantidad declarada</th>
                   <th className="px-5 py-2.5 text-right">Aportantes</th>
-                  <th className="border-l border-slate-200 bg-sky-50/60 px-5 py-2.5" data-testid="reference-header">
+                  <th className="border-l border-slate-200 px-5 py-2.5 font-medium normal-case tracking-normal text-slate-400" data-testid="reference-header">
                     Estimación del consumo (referencia)
                   </th>
                 </tr>
@@ -245,11 +241,12 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
                         serverPresentation={line.quantity_presentation}
                         unit={line.base_unit}
                         asOf={line.data_as_of}
+                        size="lg"
                       />
                       {line.status === 'DISCLOSED' && line.pending_changes && <PendingChangesNote />}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums">{line.status === 'DISCLOSED' ? line.contributors : '—'}</td>
-                    <td className="border-l border-slate-200 bg-sky-50/30 px-5 py-3 text-xs" data-testid="reference">
+                    <td className="border-l border-slate-200 px-5 py-3 text-xs text-slate-500" data-testid="reference">
                       <ReferenceCell line={line} state={reference} />
                     </td>
                   </tr>
@@ -342,46 +339,58 @@ function ReferenceNote({ proposal, state }: { proposal: Proposal; state: Referen
   );
 }
 
-function HistoryTable({
+/** Huella del borrador mostrado y borradores anteriores de la campaña, plegados. */
+function HistorySection({
   history,
   current,
   onOpen,
+  busy,
 }: {
   history: ProposalSummary[];
-  current: string | null;
+  current: Proposal | null;
   onOpen: (id: string) => void;
+  busy: boolean;
 }) {
   return (
-    <section className="glass-card overflow-hidden" aria-label="Historial de borradores">
-      <SectionHeader title="Historial de borradores" note="Misma huella = mismas entradas autorizadas y mismas líneas." />
+    <Collapsible title={`Historial (${history.length} ${history.length === 1 ? 'borrador' : 'borradores'})`} label="Historial de borradores">
+      {current && (
+        <p className="px-5 py-3 text-xs text-slate-500">
+          Borrador mostrado: huella <Fingerprint value={current.inputs_fingerprint} />. Misma huella = mismas entradas
+          autorizadas y mismas líneas.
+        </p>
+      )}
       {history.length === 0 ? (
         <EmptyState compact title="Todavía no hay borradores para esta campaña" />
       ) : (
         <table className="w-full text-sm">
           <tbody className="divide-y divide-slate-100">
-            {history.map((entry) => (
-              <tr key={entry.proposal_ref} className={entry.proposal_ref === current ? 'bg-emerald-50/60' : ''}>
-                <td className="px-5 py-2.5 font-medium text-slate-800">{fmtDateTime(entry.generated_at)}</td>
-                <td className="px-5 py-2.5 text-slate-600">{entry.generated_by.name}</td>
-                <td className="px-5 py-2.5 text-xs text-slate-500">
-                  <Fingerprint value={entry.inputs_fingerprint} />
-                </td>
-                <td className="px-5 py-2.5 text-xs text-slate-500">{entry.line_count} líneas</td>
-                <td className="px-5 py-2.5 text-right">
-                  <button
-                    type="button"
-                    className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline disabled:text-slate-400"
-                    onClick={() => onOpen(entry.proposal_ref)}
-                    disabled={entry.proposal_ref === current}
-                  >
-                    Ver
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {history.map((entry) => {
+              const shown = entry.proposal_ref === current?.proposal_ref;
+              return (
+                <tr key={entry.proposal_ref} className={shown ? 'bg-emerald-50/60' : ''}>
+                  <td className="px-5 py-2.5 font-medium text-slate-800">{fmtDateTime(entry.generated_at)}</td>
+                  <td className="px-5 py-2.5 text-slate-600">{entry.generated_by.name}</td>
+                  <td className="px-5 py-2.5 text-xs text-slate-500">
+                    <Fingerprint value={entry.inputs_fingerprint} />
+                  </td>
+                  <td className="px-5 py-2.5 text-xs text-slate-500">{entry.line_count} líneas</td>
+                  <td className="px-5 py-2.5 text-right">
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline disabled:text-slate-400"
+                      onClick={() => onOpen(entry.proposal_ref)}
+                      disabled={busy || shown}
+                      title={shown ? 'Es el borrador mostrado' : undefined}
+                    >
+                      Ver
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
-    </section>
+    </Collapsible>
   );
 }

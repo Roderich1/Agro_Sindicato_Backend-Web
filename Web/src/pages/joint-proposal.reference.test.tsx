@@ -212,8 +212,7 @@ describe('Propuesta conjunta: estimación del consumo como referencia (F12-EST-0
     fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toBe('Cargando…'));
     fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: OTHER.id } });
-    await vi.waitFor(() => expect(screen.queryByLabelText('Detalle del borrador')).toBeNull());
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
+    // El último borrador de la otra campaña se abre solo (defensa, 2026-11-05).
     await screen.findByText(`Borrador · ${OTHER.name}`);
     // La referencia de la campaña anterior llega con el borrador de la otra ya abierto: no se muestra.
     await act(async () => late.resolve(referenceFor(DRAFT, [{ absence: null, estimation: estimation() }])));
@@ -268,6 +267,8 @@ describe('Propuesta conjunta: estimación del consumo como referencia (F12-EST-0
     const view = render(tree(userWith('DIRECTIVA')));
     fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toBe('Cargando…'));
+    // La identidad nueva no tiene borradores: nada se abre solo y la referencia diferida de la anterior se descarta.
+    vi.mocked(collectiveService.proposals).mockResolvedValue([]);
     view.rerender(tree({ ...userWith('ADMINISTRADOR'), id: 'u-2' }));
     await vi.waitFor(() => expect(screen.queryByLabelText('Detalle del borrador')).toBeNull());
     await act(async () => late.resolve(referenceFor(DRAFT, [{ absence: null, estimation: estimation() }])));

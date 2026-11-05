@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { CAMPAIGN_STATUS_TEXT, fmtDateTime, statusReason } from '../lib/collective-text';
 import { fmtDate } from '../lib/format';
-import { formatQuantity, type BaseUnit } from '../lib/quantity';
+import { formatQuantity, isBaseQuantity, type BaseUnit } from '../lib/quantity';
 import type { Campaign } from '../types/campaigns';
 import type { AnyStatus, Coverage, SealRef } from '../types/collective';
 import { inputClass, labelClass, Notice } from './app-shell';
@@ -69,6 +69,7 @@ export function QuantityCell({
   unit,
   threshold,
   asOf,
+  size = 'md',
 }: {
   status: AnyStatus;
   base: string | null;
@@ -77,6 +78,8 @@ export function QuantityCell({
   threshold?: number | null;
   /** Fecha hasta la que el servidor aceptó datos para esta cifra; se muestra bajo la cifra. */
   asOf?: string | null;
+  /** `lg`: cifra grande, para proyector. */
+  size?: 'md' | 'lg';
 }) {
   if (status !== 'DISCLOSED') {
     return <span className="text-xs text-slate-500">{statusReason(status, threshold)}</span>;
@@ -87,7 +90,7 @@ export function QuantityCell({
   }
   return (
     <span className="block">
-      <span className="text-base font-bold tabular-nums text-slate-900">{text}</span>
+      <span className={`${size === 'lg' ? 'text-2xl' : 'text-base'} font-bold tabular-nums text-slate-900`}>{text}</span>
       {asOf !== undefined && <span className="block text-[11px] text-slate-400">datos hasta {fmtDateTime(asOf)}</span>}
     </span>
   );
@@ -278,5 +281,93 @@ export function SectionHeader({ title, note, actions }: { title: string; note?: 
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
+  );
+}
+
+/** Indicador grande para proyector: etiqueta, cifra y una línea de contexto. */
+export function StatTile({ label, value, note, testId, tone = 'default' }: { label: string; value: ReactNode; note?: ReactNode; testId?: string; tone?: 'default' | 'muted' }) {
+  return (
+    <div className={`rounded-2xl border px-5 py-4 ${tone === 'muted' ? 'border-slate-200 bg-white/60' : 'border-emerald-100 bg-emerald-50/50'}`} data-testid={testId}>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
+      <p className="mt-1 text-3xl font-bold leading-tight text-slate-900 tabular-nums">{value}</p>
+      {note && <p className="mt-1 text-xs leading-relaxed text-slate-500">{note}</p>}
+    </div>
+  );
+}
+
+/** Sección secundaria plegada: lo que no hace falta para decidir, a un clic. */
+export function Collapsible({ title, children, testId, label, defaultOpen = false }: { title: string; children: ReactNode; testId?: string; label?: string; defaultOpen?: boolean }) {
+  return (
+    <details className="glass-card group overflow-hidden" data-testid={testId} aria-label={label ?? title} open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-800 hover:bg-slate-50/60">
+        {title}
+        <span className="text-xs font-medium text-emerald-700 group-open:hidden">Ver</span>
+        <span className="hidden text-xs font-medium text-slate-500 group-open:inline">Ocultar</span>
+      </summary>
+      <div className="border-t border-slate-100">{children}</div>
+    </details>
+  );
+}
+
+/** Una fila comparable: producto, barra (sólo con cifra publicada), cifra grande y aportantes. */
+export interface BarRow {
+  key: string;
+  testId?: string;
+  name: string;
+  unit: string;
+  status: AnyStatus;
+  base: string | null;
+  presentation: string | null;
+  contributors: number | null;
+  asOf: string | null;
+  pending: boolean;
+}
+
+/**
+ * Barras horizontales por producto, una escala por unidad (L y KG nunca se
+ * comparan entre sí). Una cifra oculta no dibuja barra ni cero: muestra el
+ * motivo. Un solo color: no hay series que distinguir.
+ */
+export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit: 'L' | 'KG'; threshold: number | null }) {
+  const values = rows.map((row) => (row.status === 'DISCLOSED' && isBaseQuantity(row.base) ? BigInt(row.base!) : null));
+  const max = values.reduce<bigint>((top, value) => (value !== null && value > top ? value : top), 0n);
+  const width = (value: bigint | null) => (value === null || max === 0n ? 0 : Number((value * 1000n) / max) / 10);
+  return (
+    <ul className="divide-y divide-slate-100" aria-label={`Comparación en ${unit}`}>
+      {rows.map((row, index) => {
+        const value = values[index]!;
+        const text = row.status === 'DISCLOSED' ? formatQuantity(row.base, unit === 'L' ? 'ML' : 'G', row.presentation) : null;
+        return (
+          <li key={row.key} className="grid items-center gap-x-4 gap-y-1 px-5 py-3 sm:grid-cols-[minmax(10rem,14rem)_1fr_auto]" data-testid={row.testId}>
+            <ProductCell name={row.name} unit={row.unit} status={row.status} threshold={threshold} />
+            {row.status === 'DISCLOSED' ? (
+              <div className="flex items-center gap-3" title={text ?? undefined}>
+                <div className="h-3 flex-1 rounded-full bg-slate-100">
+                  <div className="h-3 rounded-full bg-emerald-600" style={{ width: `${Math.max(width(value), text === '0 L' || text === '0 KG' ? 0 : 1)}%` }} />
+                </div>
+                <span className="w-28 text-right text-2xl font-bold tabular-nums text-slate-900">{text ?? <span className="text-sm text-red-700">Dato no válido</span>}</span>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">{statusReason(row.status, threshold)}</p>
+            )}
+            <div className="text-right text-xs text-slate-500 sm:w-40">
+              {row.status === 'DISCLOSED' ? (
+                <>
+                  <span className="block text-sm font-semibold text-slate-700">{row.contributors} aportantes</span>
+                  <span>datos hasta {fmtDateTime(row.asOf)}</span>
+                </>
+              ) : (
+                '—'
+              )}
+            </div>
+            {row.status === 'DISCLOSED' && row.pending && (
+              <div className="sm:col-span-3">
+                <PendingChangesNote />
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

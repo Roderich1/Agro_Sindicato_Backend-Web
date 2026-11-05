@@ -48,22 +48,22 @@ function NavIcon({ d }: { d: string }) {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    label: 'Resumen colectivo',
+    label: 'Resumen de campaña',
     to: COLLECTIVE_PATHS.summary,
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Necesidades y propuesta',
+    label: 'Compra conjunta',
     to: COLLECTIVE_PATHS.proposals,
     icon: <NavIcon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
   },
   {
-    label: 'Cobertura',
+    label: 'Agricultores',
     to: COLLECTIVE_PATHS.coverage,
     icon: <NavIcon d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
   },
   {
-    label: 'Tendencias',
+    label: 'Historial',
     to: COLLECTIVE_PATHS.trends,
     icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
   },
