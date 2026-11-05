@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppShell, buttonClass, EmptyState, Notice, secondaryButtonClass } from '../components/app-shell';
-import { Collapsible, CollectiveToolbar, PageNote, SectionHeader } from '../components/collective-ui';
+import { Collapsible, CollectiveToolbar, SectionHeader } from '../components/collective-ui';
 import { ExportButtons } from '../components/export-buttons';
 import { saveBlob } from '../lib/exports';
 import { useAuth } from '../hooks/use-auth';
@@ -349,10 +349,6 @@ export function EstimationPage() {
             </button>
           )}
         </CollectiveToolbar>
-        <PageNote>
-          Referencia de consumo para una campaña comparable, calculada en el servidor a partir de las cifras selladas.
-          No es una necesidad declarada ni una propuesta: no se suma a ellas ni crea compras, propuestas o movimientos.
-        </PageNote>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && (
           <div data-testid={`error-${error.kind}`}>
@@ -494,10 +490,6 @@ function RequestOptions({
                 {entry.product_name}
               </label>
             ))}
-            <p className="w-full text-[11px] text-slate-500">
-              Sin marcar ninguno, se estiman los productos con consumo publicado en la temporada de la campaña. El servidor
-              calcula por lotes: la solicitud queda en cola y se consulta su estado.
-            </p>
           </div>
         </details>
       )}
@@ -594,19 +586,6 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
     <section className="glass-card overflow-hidden" aria-label="Resultados por producto">
       <SectionHeader
         title={`Resultados para ${results.target.name}`}
-        note={
-          <>
-            <span data-testid="season">
-              {results.season ? `Temporada ${results.season.key}: ${results.season.definition}` : 'La campaña no está clasificada en una temporada.'}
-              {' · '}Vigencia evaluada el {fmtDateTime(results.evaluated_at)}
-            </span>
-            <span className="block">{results.notice}</span>
-            <span className="block" data-testid="csv-note">
-              «Exportar CSV de la consulta» guarda esta consulta tal como la respondió el servidor. No es una copia para
-              consultar sin conexión.
-            </span>
-          </>
-        }
       />
       {results.results.length === 0 ? (
         <EmptyState compact title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra." />

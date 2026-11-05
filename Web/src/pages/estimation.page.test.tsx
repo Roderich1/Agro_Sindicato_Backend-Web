@@ -167,8 +167,6 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect(within(row).getByTestId('observed-span').textContent).toBe('4: C1 a C4');
     expect(within(row).getByTestId('observed-values').textContent).toBe('96 · 120 · 104 · 116 L');
     expect(within(row).getByTestId('validity').textContent).toBe('Vigente');
-    expect(screen.getByText(/no se suma a ellas ni crea compras, propuestas o movimientos/)).toBeTruthy();
-    expect(screen.getByTestId('season').textContent).toMatch(/Temporada INVIERNO/);
   });
 
   it('datos insuficientes: el motivo y ninguna cifra, nunca un cero', async () => {
@@ -340,7 +338,6 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect(screen.getByTestId('result-Herbicida')).toBeTruthy();
     // Sin conexión no se exporta: el CSV es de una consulta respondida, no una copia para consultar sin conexión.
     expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('csv-note').textContent).toMatch(/No es una copia para consultar sin conexión/);
     fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     await screen.findByTestId('job-status');
     const [first, second] = vi.mocked(estimationService.request).mock.calls.map((call) => call[0].requestId);
