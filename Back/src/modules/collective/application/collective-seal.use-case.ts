@@ -86,9 +86,16 @@ export class CollectiveSealUseCase {
     const blocked = this.blocks(campaign.status);
     if (blocked.length > 0) return this.view(campaign, null, blocked);
     let review: SealReview | null = null;
-    const decided = await this.summary.decide(tenantId, campaignId, async (tx, d) => {
-      if (!d.summary.seal) review = await this.review(tx, tenantId, campaignId, d);
-    });
+    // The review and the seal always use the combinations rule for DECLARED_NEED
+    // (the experimental variant never reaches a sealed version).
+    const decided = await this.summary.decide(
+      tenantId,
+      campaignId,
+      async (tx, d) => {
+        if (!d.summary.seal) review = await this.review(tx, tenantId, campaignId, d);
+      },
+      { persist: true, declaredNeedRule: "combinations" },
+    );
     if (decided.summary.seal) return this.view(campaign, decided.summary.seal, []);
     return { ...this.view(campaign, null, []), review };
   }
@@ -115,7 +122,7 @@ export class CollectiveSealUseCase {
           contractVersion: 1 as const,
           campaign: { campaign_ref: campaign.id, name: campaign.name, status: campaign.status },
         };
-        const decided = await this.summary.decideLocked(tx, tenantId, header);
+        const decided = await this.summary.decideLocked(tx, tenantId, header, { persist: true, declaredNeedRule: "combinations" });
         const review = await this.review(tx, tenantId, campaignId, decided);
         // What is sealed is exactly what was reviewed, or nothing (the whole
         // transaction, releases of this decision included, rolls back).

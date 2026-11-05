@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { DeclaredNeedRule } from "../domain/disclosure-policy";
 
 export type DisclosureMode = "POLICY_PENDING" | "PROVISIONAL_SYNTHETIC";
 
@@ -21,11 +22,27 @@ export class CollectiveConfig {
    * that code is the one in use. Reading sealed versions never depends on it.
    */
   readonly sealingEnabled: boolean;
+  /**
+   * Experimental variant for DECLARED_NEED (2026-11-05, not approved; #107
+   * stays open): `COLLECTIVE_DECLARED_NEED_RULE=threshold-only` publishes the
+   * current total as soon as k Members contributed, on every read. Refused in
+   * production, where the combinations rule always applies. Seals keep the
+   * combinations rule whatever this says.
+   */
+  readonly declaredNeedRule: DeclaredNeedRule;
 
   constructor(config: ConfigService) {
     this.sealingEnabled = config.get<string>("COLLECTIVE_SEALING") === "enabled";
     const requested = config.get<string>("COLLECTIVE_DISCLOSURE_MODE");
     const production = config.get<string>("NODE_ENV") === "production";
+    const requestedRule = config.get<string>("COLLECTIVE_DECLARED_NEED_RULE");
+    if (requestedRule === "threshold-only" && production) {
+      this.logger.warn("COLLECTIVE_DECLARED_NEED_RULE=threshold-only ignored in production: combinations rule applies");
+    }
+    this.declaredNeedRule = requestedRule === "threshold-only" && !production ? "threshold-only" : "combinations";
+    if (this.declaredNeedRule === "threshold-only") {
+      this.logger.warn("DECLARED_NEED disclosure variant threshold-only active (experimental, synthetic data only)");
+    }
     if (requested === "provisional-synthetic" && production) {
       this.logger.warn(
         "COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic ignored in production: no figures until F07-POL-01 is approved",

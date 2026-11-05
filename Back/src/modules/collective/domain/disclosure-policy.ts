@@ -206,18 +206,63 @@ export function decideCellWithRelated(
 }
 
 /**
+ * Rule applied to DECLARED_NEED cells (experimental variant, 2026-11-05; NOT
+ * approved, never in production):
+ * - `combinations`: the rule in force (F10-SEC-02 #45), the same as for every
+ *   other cell;
+ * - `threshold-only`: only rule 1. With at least k Members the current total
+ *   is published on every read, so the figure follows each accepted
+ *   contribution; below k it is suppressed and any prior figure is withdrawn.
+ *   Comparing two figures (30 L, then 38 L) reveals the change (+8 L) of
+ *   whoever joined or changed: that is the trade-off under evaluation.
+ */
+export type DeclaredNeedRule = "combinations" | "threshold-only";
+
+export interface DecideCellsOptions {
+  declaredNeedRule?: DeclaredNeedRule;
+}
+
+/**
+ * `threshold-only` for one cell: rule 1 (and overflow) against the current
+ * state only. The same state as the latest shown figure repeats it without a
+ * new release; anything else with k Members publishes the current total.
+ */
+export function decideCellThresholdOnly(
+  cell: Cell,
+  history: readonly PriorRelease[],
+  threshold = PROVISIONAL_THRESHOLD,
+): CellDecision {
+  const latest = history[0] ?? null;
+  const latestShown = latest !== null && latest.withdrawnAt === null;
+  if (cell.overflow) return { kind: "OVERFLOW", withdrawPrior: latestShown };
+  if (cell.members.size < threshold) {
+    return { kind: "SUPPRESS", reason: "UNDER_THRESHOLD", withdrawPrior: latestShown };
+  }
+  if (latestShown && unchanged(compare(currentAmounts(cell), releasedAmounts(latest)))) {
+    return { kind: "SHOW_PRIOR", pendingChanges: false };
+  }
+  return { kind: "RELEASE" };
+}
+
+/**
  * Decides every cell of one summary read (F10-SEC-02 #45). `histories` maps a
  * cell key to its disclosures, newest first. Cells are decided in key order,
  * and each figure decided here is known to the cells decided after it, so two
  * cells published in the same read are checked against each other too (a
  * split P1 + P2 − earlier P1∪P2 isolates whoever joined). One budget bounds
  * the work of the whole read.
+ *
+ * With `declaredNeedRule: "threshold-only"`, DECLARED_NEED cells skip the
+ * combinations check (see `DeclaredNeedRule`); CONSUMPTION_TOTAL cells never
+ * do. Contributions never cross projection types, so the two sets of cells
+ * share no figures.
  */
 export function decideCells(
   cells: readonly Cell[],
   histories: ReadonlyMap<string, readonly PriorRelease[]>,
   threshold = PROVISIONAL_THRESHOLD,
   budget: WorkBudget = new WorkBudget(),
+  options: DecideCellsOptions = {},
 ): Map<string, CellDecision> {
   const known = new Map<string, readonly PriorRelease[]>(histories);
   const keysOf = new Map<string, Set<string>>();
@@ -258,7 +303,10 @@ export function decideCells(
     const id = cellId(cell);
     const history = histories.get(id) ?? [];
     const related = connectedKeys(id, cell.contributions.map((c) => c.contributionId)).map((key) => known.get(key) ?? []);
-    const decision = decideCellWithRelated(cell, history, related, threshold, budget);
+    const decision =
+      options.declaredNeedRule === "threshold-only" && cell.projectionType === "DECLARED_NEED"
+        ? decideCellThresholdOnly(cell, history, threshold)
+        : decideCellWithRelated(cell, history, related, threshold, budget);
     decisions.set(id, decision);
     if (decision.kind === "RELEASE") {
       // Known from now on, under a key of its own so it is never shown as

@@ -16,6 +16,7 @@ import {
 } from "../domain/consolidation";
 import {
   CellDecision,
+  DeclaredNeedRule,
   decideCells,
   PriorRelease,
   PROVISIONAL_THRESHOLD,
@@ -119,6 +120,12 @@ export interface DecideOptions {
    * internal consumers only (reading a proposal), never served as a summary.
    */
   persist: boolean;
+  /**
+   * Rule for DECLARED_NEED cells; by default the configured one. The seal
+   * passes `combinations` so a sealed version never depends on the
+   * experimental variant.
+   */
+  declaredNeedRule?: DeclaredNeedRule;
 }
 
 /** Marks, in a read-only decision, a figure that would be published now. */
@@ -228,7 +235,13 @@ export class CollectiveSummaryUseCase {
     header: Pick<CollectiveSummary, "contractVersion" | "campaign">,
     options: DecideOptions = { persist: true },
   ): Promise<DecidedSummary> {
-    const { releaseOf, population, ...rest } = await this.provisional(tx, tenantId, header.campaign.campaign_ref, options.persist);
+    const { releaseOf, population, ...rest } = await this.provisional(
+      tx,
+      tenantId,
+      header.campaign.campaign_ref,
+      options.persist,
+      options.declaredNeedRule ?? this.config.declaredNeedRule,
+    );
     return { summary: { ...header, seal: null, ...rest }, releaseOf, population };
   }
 
@@ -259,6 +272,7 @@ export class CollectiveSummaryUseCase {
     tenantId: string,
     campaignId: string,
     persist: boolean,
+    declaredNeedRule: DeclaredNeedRule,
   ): Promise<Pick<CollectiveSummary, "disclosure" | "coverage" | "cells"> & Required<Pick<DecidedSummary, "releaseOf" | "population">>> {
     const contributions = await this.eligible(tx, tenantId, campaignId);
     const canonicalOf = await this.canonicalMap(tx, tenantId);
@@ -267,7 +281,13 @@ export class CollectiveSummaryUseCase {
     // F10-SEC-02 (#45): every cell is checked against the figures of the keys
     // its contributions came from and against those decided before it in this
     // read (key order), within one work budget for the read.
-    const decisions = decideCells(cells, new Map([...histories].map(([id, { history }]) => [id, history])));
+    const decisions = decideCells(
+      cells,
+      new Map([...histories].map(([id, { history }]) => [id, history])),
+      PROVISIONAL_THRESHOLD,
+      undefined,
+      { declaredNeedRule },
+    );
     const now = new Date();
     const output: { key: CellKey; decision: CellDecision; cell: Cell | null; prior: PriorRelease | null }[] = [];
     for (const cell of cells) {
