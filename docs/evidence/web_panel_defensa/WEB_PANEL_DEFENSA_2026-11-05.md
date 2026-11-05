@@ -99,3 +99,45 @@ Reglas (iguales a la pantalla): sólo se escribe una cifra publicada y válida; 
 
 - Verificado en Excel 16.0 de escritorio (Windows); no en LibreOffice ni en Excel en línea.
 - El CSV del servidor sigue sin BOM (decisión pendiente del autor, ver PR #206).
+
+---
+
+## 8. Gestión → Productos (2026-11-05, tarde)
+
+**Commit de código:** **`0ff70c4`** (`feat(web): Gestión → Productos para la Directiva y el Administrador`), misma rama local `feat/web-defensa-panel`, sin publicar. Sólo `Web/`: usa `productsService` y los endpoints existentes (`GET`/`POST`/`PATCH /inventory/products`, `POST /inventory/products/:id/deactivate`), que el servidor ya restringe a Directiva y Administrador. Sin cambios de Backend, contratos ni móvil.
+
+| Archivo | Cambio |
+|---|---|
+| `Web/src/lib/navigation.ts`, `Web/src/App.tsx` | Ruta `/colectivo/productos` dentro de `CollectiveRoute`; en el menú, antes de `/campaigns` |
+| `Web/src/components/app-shell.tsx` | «Productos» primero en el grupo «Gestión» |
+| `Web/src/pages/products.page.tsx` (nuevo) | Acción primaria «Nuevo producto»; activos con nombre, unidad y categoría; «Editar» e «Inactivar» (con confirmación); «Ver inactivos»; enlace «Ver equivalencias» |
+| `Web/src/components/product-form.tsx`, `Web/src/lib/product-text.ts` (nuevos) | Formulario compartido: nombre y unidad (L o kg) obligatorios, opcionales plegados; aviso de nombre repetido sin distinguir mayúsculas ni tildes (también contra inactivos); 409 del servidor con mensaje claro; al editar la unidad se muestra fija |
+| `Web/src/pages/product-reconciliation.page.tsx` | En «Asociar…», «¿No está en la lista? Crear producto distinto…» con la unidad de la denominación; al crear vuelve al selector con el producto elegido y la asociación sigue pidiendo motivo y confirmación |
+| Pruebas | `products.page.test.tsx` (nuevo, 8 casos), creación desde la denominación en `product-reconciliation.page.test.tsx`, ruta y menú en `collective-route.test.tsx` y `app-shell.test.tsx` |
+
+La unidad se guarda como `L` o `kg`, los dos valores que el servidor convierte a una unidad base vinculable (`baseUnitForCentralUnit`: L → mL, KG → g). Editar no envía `unit`, para no romper vínculos con cifras, equivalencias y declaraciones ya recibidas.
+
+### 8.1 Comprobaciones (`Web/`, commit `0ff70c4`)
+
+| Comando | Resultado | Hora (UTC) |
+|---|---|---|
+| `npx vitest run` | 23 archivos, **225 pruebas, 225 pasan** | 2026-11-05 19:11Z |
+| `npx eslint .` | 0 errores, 2 avisos preexistentes | 19:11Z |
+| `npx tsc -b` · `npm run build` | OK | 19:11Z |
+
+### 8.2 Verificación con datos sintéticos (Edge sin interfaz + API, copia aislada 5198 → 3340)
+
+Guion `productos-roles.mjs`; registros `productos/productos-directiva.log` (19:13:15Z) y `productos/productos-agricultor.log` (19:15:50Z → 19:16:13Z). 12 comprobaciones, 0 fallos.
+
+| Rol | Comprobado | Resultado |
+|---|---|---|
+| Directiva | «Productos» en Gestión, antes de Campañas; abre `/colectivo/productos` | OK |
+| Directiva | «FUNGICIDA DEMO» avisado como repetido y botón bloqueado | OK |
+| Directiva | Crea «Adherente prueba Web 191317» (L, Coadyuvante): `POST /inventory/products` → **201**; aparece en el listado (`8c-productos-creado-1366x768.png`) | OK |
+| Directiva | «Inactivar» pide confirmación; el producto pasa a «Ver inactivos» | OK |
+| Agricultor | Abre `/colectivo/productos` → redirigido a `/sin-acceso-web`, sin catálogo (`8d-productos-agricultor.png`) | OK |
+| Agricultor | `POST /inventory/products` con su token → **403**; la búsqueda no encuentra el nombre: nada se creó | OK |
+
+La primera ejecución de la parte del Agricultor falló por el guion (reutilizaba el perfil del navegador con la sesión de la Directiva); se corrigió con un contexto de navegador propio y se repitió sólo esa parte (`ONLY=agricultor`), sin crear otro producto.
+
+**Efecto en la copia sintética:** queda un producto inactivo «Adherente prueba Web 191317» en el volumen aislado `agro_webdef_pgdata` (no en la DEMO oficial). Aparece en «Ver inactivos» y en Equivalencias como denominación inactiva. La contraseña sintética de `agricultor1` en esa copia se restableció con `password-pipe`.
