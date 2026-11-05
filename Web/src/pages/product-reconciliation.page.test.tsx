@@ -4,11 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import type { Association, CatalogEntry } from '../types/collective';
 import { renderAt } from '../test/render';
+import { productsService } from '../services/inventory.service';
+import type { Product } from '../types/inventory';
 import { ProductReconciliationPage } from './product-reconciliation.page';
 
 vi.mock('../services/collective.service', () => ({
   collectiveService: { catalog: vi.fn(), associations: vi.fn(), associate: vi.fn(), closeAssociation: vi.fn() },
 }));
+vi.mock('../services/inventory.service', () => ({ productsService: { create: vi.fn() } }));
 
 const CATALOG: CatalogEntry[] = [
   { product_ref: 'belator', product_name: 'Belator', unit: 'L', base_unit: 'ML', is_active: true },
@@ -127,6 +130,40 @@ describe('Reconciliación de denominaciones', () => {
     fireEvent.click(submit);
     await vi.waitFor(() =>
       expect(collectiveService.closeAssociation).toHaveBeenCalledWith('bellator', { reason: 'error', confirmed: true }),
+    );
+  });
+
+  it('desde una denominación pendiente se crea un producto distinto y se vuelve al selector; la asociación sigue pidiendo confirmación', async () => {
+    const created = { id: 'nuevo', name: 'Bellator Plus', unit: 'L', isActive: true } as Product;
+    vi.mocked(productsService.create).mockResolvedValue(created);
+    renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
+    fireEvent.click(within(await screen.findByTestId('product-Bellator')).getByRole('button', { name: 'Asociar…' }));
+    fireEvent.click(screen.getByRole('button', { name: '¿No está en la lista? Crear producto distinto…' }));
+    // La unidad queda fija en la de la denominación (L): kg no se puede elegir.
+    expect((screen.getByLabelText('Kilogramos (kg)') as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText('Litros (L)') as HTMLInputElement).checked).toBe(true);
+    // Un nombre que ya existe en el catálogo se avisa.
+    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'belator' } });
+    expect(screen.getByRole('alert').textContent).toMatch(/Ya existe «Belator»/);
+    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Bellator Plus' } });
+    vi.mocked(collectiveService.catalog).mockResolvedValue([
+      ...CATALOG,
+      { product_ref: 'nuevo', product_name: 'Bellator Plus', unit: 'L', base_unit: 'ML', is_active: true },
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Crear y volver al selector' }));
+    await vi.waitFor(() => expect(productsService.create).toHaveBeenCalledWith({ name: 'Bellator Plus', unit: 'L' }));
+    expect(await screen.findByTestId('created-product')).toBeTruthy();
+    const select = screen.getByLabelText('Producto canónico') as HTMLSelectElement;
+    expect(select.value).toBe('nuevo');
+    // Crear no asocia: hace falta motivo y confirmación explícita.
+    const confirm = screen.getByRole('button', { name: 'Confirmar asociación' }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    expect(collectiveService.associate).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'es otro producto' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(confirm);
+    await vi.waitFor(() =>
+      expect(collectiveService.associate).toHaveBeenCalledWith({ productId: 'bellator', canonicalProductId: 'nuevo', reason: 'es otro producto', confirmed: true }),
     );
   });
 });

@@ -21,6 +21,8 @@ export const COLLECTIVE_PATHS = {
   trends: '/colectivo/tendencias',
   /** F12-EST-06 (#179): estimación del consumo (INT-09, perfil institucional). */
   estimation: '/colectivo/estimacion',
+  /** Catálogo de productos del sindicato (Gestión, defensa 2026-11-05): `/inventory/products`. */
+  products: '/colectivo/productos',
 } as const;
 
 /**
@@ -65,6 +67,7 @@ export const COLLECTIVE_MENU: readonly string[] = [
   COLLECTIVE_PATHS.trends,
   COLLECTIVE_PATHS.estimation,
   COLLECTIVE_PATHS.reconciliation,
+  COLLECTIVE_PATHS.products,
   '/campaigns',
   '/users',
 ];

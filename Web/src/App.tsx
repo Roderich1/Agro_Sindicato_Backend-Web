@@ -50,6 +50,7 @@ const EstimationCopyPage = lazy(() =>
 const ProductReconciliationPage = lazy(() =>
   import('./pages/product-reconciliation.page').then((module) => ({ default: module.ProductReconciliationPage })),
 );
+const ProductsPage = lazy(() => import('./pages/products.page').then((module) => ({ default: module.ProductsPage })));
 const AuditLogsPage = lazy(() =>
   import('./pages/audit-logs.page').then((module) => ({ default: module.AuditLogsPage })),
 );
@@ -124,6 +125,15 @@ function AppRoutes() {
         element={
           <CollectiveRoute>
             <ProductReconciliationPage />
+          </CollectiveRoute>
+        }
+      />
+      {/* Catálogo de productos del sindicato: el servidor sólo admite crear y editar a Directiva y Administrador */}
+      <Route
+        path={COLLECTIVE_PATHS.products}
+        element={
+          <CollectiveRoute>
+            <ProductsPage />
           </CollectiveRoute>
         }
       />

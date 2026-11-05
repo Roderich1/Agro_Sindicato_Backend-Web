@@ -32,6 +32,12 @@ describe('rutas colectivas F07 por rol', () => {
     expect(screen.getByText('dashboard legacy')).toBeTruthy();
   });
 
+  it('AGRICULTOR tampoco abre la ruta directa de Productos', () => {
+    renderAt(PAGE, { role: 'AGRICULTOR', path: COLLECTIVE_PATHS.products, routes: FALLBACKS });
+    expect(screen.queryByText('contenido colectivo')).toBeNull();
+    expect(screen.getByText('aviso: la Web no es para agricultores')).toBeTruthy();
+  });
+
   it('sin sesión va al login', () => {
     renderAt(PAGE, { role: '', path: COLLECTIVE_PATHS.reconciliation, routes: FALLBACKS });
     expect(screen.queryByText('contenido colectivo')).toBeNull();
@@ -48,6 +54,7 @@ describe('menú congelado (F07-WEB-01)', () => {
       COLLECTIVE_PATHS.trends,
       COLLECTIVE_PATHS.estimation,
       COLLECTIVE_PATHS.reconciliation,
+      COLLECTIVE_PATHS.products,
       '/campaigns',
     ]);
   });

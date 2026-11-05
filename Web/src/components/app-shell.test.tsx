@@ -11,11 +11,12 @@ vi.mock('../services/campaigns.service', () => ({ campaignsService: { active: vi
 describe('AppShell: menú y etiqueta de datos sintéticos', () => {
   afterEach(() => reportDisclosureMode(null));
 
-  it('DIRECTIVA: primero el recorrido principal y la cobertura; Campañas y Equivalencias de productos bajo «Gestión»', () => {
+  it('DIRECTIVA: primero el recorrido principal y la cobertura; Productos, Campañas y Equivalencias de productos bajo «Gestión»', () => {
     renderAt(<AppShell title="Resumen colectivo" section="Colectivo"><p>contenido</p></AppShell>, { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
     const nav = screen.getAllByRole('navigation', { name: 'Navegación principal' })[0]!;
     const labels = within(nav).getAllByRole('link').map((link) => link.textContent?.trim());
-    expect(labels).toEqual(['Resumen colectivo', 'Propuesta conjunta', 'Tendencias', 'Estimación del consumo', 'Cobertura', 'Campañas', 'Equivalencias de productos']);
+    expect(labels).toEqual(['Resumen colectivo', 'Propuesta conjunta', 'Tendencias', 'Estimación del consumo', 'Cobertura', 'Productos', 'Campañas', 'Equivalencias de productos']);
+    expect(within(nav).getByRole('link', { name: 'Productos' }).getAttribute('href')).toBe(COLLECTIVE_PATHS.products);
     expect(within(nav).getByText('Gestión')).toBeTruthy();
     // Las rutas no cambian.
     expect(within(nav).getByRole('link', { name: 'Equivalencias de productos' }).getAttribute('href')).toBe(COLLECTIVE_PATHS.reconciliation);
@@ -27,7 +28,7 @@ describe('AppShell: menú y etiqueta de datos sintéticos', () => {
     renderAt(<AppShell title="Campañas" section="Gestión"><p>contenido</p></AppShell>, { role: 'ADMINISTRADOR', path: '/campaigns' });
     const nav = screen.getAllByRole('navigation', { name: 'Navegación principal' })[0]!;
     const labels = within(nav).getAllByRole('link').map((link) => link.textContent?.trim());
-    expect(labels.slice(-3)).toEqual(['Campañas', 'Equivalencias de productos', 'Usuarios']);
+    expect(labels.slice(-4)).toEqual(['Productos', 'Campañas', 'Equivalencias de productos', 'Usuarios']);
   });
 
   it('el nombre del sindicato se muestra completo bajo el logo (sin truncar) y la campaña activa en la cabecera', () => {

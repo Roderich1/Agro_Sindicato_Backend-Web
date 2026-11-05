@@ -49,13 +49,14 @@ function NavIcon({ d }: { d: string }) {
 /**
  * Menú de la Directiva (defensa, 2026-11-05): primero el recorrido principal
  * (Resumen → Propuesta conjunta → Tendencias → Estimación) y la cobertura;
- * después, bajo «Gestión», campañas, equivalencias de productos y usuarios.
+ * después, bajo «Gestión», productos, campañas, equivalencias de productos y
+ * usuarios.
  * El orden y los permisos siguen viniendo de `menuPathsFor`; aquí sólo se
  * agrupan para mostrarlos.
  */
 const NAV_GROUPS: { label: string | null; paths: readonly string[] }[] = [
   { label: null, paths: [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation, COLLECTIVE_PATHS.coverage] },
-  { label: 'Gestión', paths: ['/campaigns', COLLECTIVE_PATHS.reconciliation, '/users'] },
+  { label: 'Gestión', paths: [COLLECTIVE_PATHS.products, '/campaigns', COLLECTIVE_PATHS.reconciliation, '/users'] },
 ];
 
 const NAV_ITEMS: NavItem[] = [
@@ -83,6 +84,11 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Estimación del consumo',
     to: COLLECTIVE_PATHS.estimation,
     icon: <NavIcon d="M4 19h16M4 15l4-4 3 3 5-6 4 4M16 8h4v4" />,
+  },
+  {
+    label: 'Productos',
+    to: COLLECTIVE_PATHS.products,
+    icon: <NavIcon d="M9 3h6v4l4 6v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6l4-6V3zm-3 12h12" />,
   },
   {
     label: 'Equivalencias de productos',

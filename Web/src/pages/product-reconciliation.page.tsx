@@ -11,6 +11,8 @@ import {
   secondaryButtonClass,
 } from '../components/app-shell';
 import { Collapsible, PageNote, SectionHeader } from '../components/collective-ui';
+import { ProductForm } from '../components/product-form';
+import type { ProductUnit } from '../lib/product-text';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import type { Association, AssociationList, CatalogEntry } from '../types/collective';
@@ -199,6 +201,8 @@ export function ProductReconciliationPage() {
               other.base_unit === dialog.product.base_unit &&
               !aliasOf.has(other.product_ref),
           )}
+          existing={catalog.map((entry) => ({ id: entry.product_ref, name: entry.product_name, isActive: entry.is_active }))}
+          onProductCreated={load}
           onClose={() => setDialog(null)}
           onDone={(canonical) => void done(`«${dialog.product.product_name}» quedó asociado a «${canonical}».`)}
         />
@@ -217,15 +221,24 @@ export function ProductReconciliationPage() {
 function AssociateDialog({
   product,
   candidates,
+  existing,
+  onProductCreated,
   onClose,
   onDone,
 }: {
   product: CatalogEntry;
   candidates: CatalogEntry[];
+  /** Nombres del catálogo, para avisar si el producto nuevo ya existe. */
+  existing: { id: string; name: string; isActive: boolean }[];
+  /** Recarga el catálogo; el producto creado aparece entonces en el selector. */
+  onProductCreated: () => Promise<void>;
   onClose: () => void;
   onDone: (canonicalName: string) => void;
 }) {
   const [canonical, setCanonical] = useState('');
+  const [creatingProduct, setCreatingProduct] = useState(false);
+  const [created, setCreated] = useState<string | null>(null);
+  const lockedUnit: ProductUnit | undefined = product.base_unit === 'ML' ? 'L' : product.base_unit === 'G' ? 'kg' : undefined;
   const [reason, setReason] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,17 +267,49 @@ function AssociateDialog({
   return (
     <Modal title={`Asociar «${product.product_name}»`} onClose={onClose} size="lg">
       <div className="space-y-4">
-        <div>
-          <label className={labelClass} htmlFor="canonical">Producto canónico</label>
-          <select id="canonical" className={inputClass} value={canonical} onChange={(event) => setCanonical(event.target.value)}>
-            <option value="">Seleccione…</option>
-            {candidates.map((candidate) => (
-              <option key={candidate.product_ref} value={candidate.product_ref}>
-                {candidate.product_name} ({candidate.unit})
-              </option>
-            ))}
-          </select>
-        </div>
+        {creatingProduct ? (
+          <section className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4" aria-label="Crear producto distinto">
+            <p className="mb-3 text-sm font-semibold text-slate-800">Crear un producto distinto</p>
+            <ProductForm
+              existing={existing}
+              lockedUnit={lockedUnit}
+              submitLabel="Crear y volver al selector"
+              onCancel={() => setCreatingProduct(false)}
+              onSaved={(saved) => {
+                // Se recarga el catálogo y se vuelve al selector con el producto nuevo elegido;
+                // la asociación sigue pidiendo motivo y confirmación.
+                void onProductCreated().then(() => {
+                  setCanonical(saved.id);
+                  setCreated(saved.name);
+                  setConfirmed(false);
+                  setCreatingProduct(false);
+                });
+              }}
+            />
+          </section>
+        ) : (
+          <div>
+            <label className={labelClass} htmlFor="canonical">Producto canónico</label>
+            <select id="canonical" className={inputClass} value={canonical} onChange={(event) => setCanonical(event.target.value)}>
+              <option value="">Seleccione…</option>
+              {candidates.map((candidate) => (
+                <option key={candidate.product_ref} value={candidate.product_ref}>
+                  {candidate.product_name} ({candidate.unit})
+                </option>
+              ))}
+            </select>
+            {created && (
+              <p className="mt-1.5 text-xs text-emerald-700" data-testid="created-product">
+                «{created}» quedó creado y elegido. Complete el motivo y confirme la asociación.
+              </p>
+            )}
+            {lockedUnit && (
+              <button type="button" className="mt-2 text-xs font-semibold text-emerald-700 underline-offset-2 hover:underline" onClick={() => setCreatingProduct(true)}>
+                ¿No está en la lista? Crear producto distinto…
+              </button>
+            )}
+          </div>
+        )}
         <div>
           <label className={labelClass} htmlFor="reason">Motivo</label>
           <textarea id="reason" className={inputClass} maxLength={280} value={reason} onChange={(event) => setReason(event.target.value)} />
