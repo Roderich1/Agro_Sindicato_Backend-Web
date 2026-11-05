@@ -185,12 +185,10 @@ export function DisclosureNotice({ mode, threshold }: { mode: 'POLICY_PENDING' |
       </Notice>
     );
   }
-  return (
-    <Notice kind="warn" compact>
-      <strong>Modo provisional con datos sintéticos.</strong> Política F07-POL-01 no aprobada
-      {threshold ? ` (umbral provisional k = ${threshold})` : ''}. No usar para decisiones reales.
-    </Notice>
-  );
+  // Política aprobada: ningún banner. El umbral sigue explicándose fila por fila
+  // («Menos de k agricultores aportaron…»), que es donde falta el dato.
+  void threshold;
+  return null;
 }
 
 export function CampaignPicker({
