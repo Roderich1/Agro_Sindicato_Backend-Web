@@ -62,7 +62,7 @@ export function ProductReconciliationPage() {
   };
 
   return (
-    <AppShell title="Reconciliación de denominaciones" section="Directiva">
+    <AppShell title="Reconciliación de denominaciones" section="Colectivo">
       <div className="space-y-6">
         <Notice kind="info">
           Asociar «Bellator» con «Belator» agrupa sus cifras bajo el producto canónico en el resumen y en las propuestas

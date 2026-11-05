@@ -83,7 +83,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
   },
   {
-    label: 'Campanas',
+    label: 'Campañas',
     to: '/campaigns',
     icon: <NavIcon d="M8 7V3m8 4V3M5 11h14M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />,
   },
@@ -113,7 +113,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Bitacora',
+    label: 'Bitácora',
     to: '/audit-logs',
     icon: <NavIcon d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
   },
@@ -203,7 +203,7 @@ function Sidebar({
         </div>
         {!collapsed && (
           <div className="sidebar-item-text">
-            <p className="text-sm font-bold text-white">Agro PWA</p>
+            <p className="text-sm font-bold text-white">Agrocuentas</p>
             <p className="text-[10px] font-medium text-emerald-400/80 tracking-wider uppercase">{user?.tenant?.name}</p>
           </div>
         )}
@@ -307,17 +307,23 @@ function Header({ title, section, actions, onMenuClick, isOnline }: { title: str
         <div className="flex items-center gap-3">
           <Link
             to="/campaigns"
-            className={`hidden rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset sm:inline-flex ${
+            title="Campaña activa del sindicato"
+            className={`hidden items-center rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset sm:inline-flex ${
               activeCampaign
                 ? 'bg-emerald-50 text-emerald-700 ring-emerald-500/20'
                 : 'bg-amber-50 text-amber-700 ring-amber-500/20'
             }`}
           >
             {isLoading
-              ? 'Campana...'
+              ? 'Campaña…'
               : activeCampaign
-                ? `${activeCampaign.name} · ${fmtDate(activeCampaign.startDate)}`
-                : 'Sin campana activa'}
+                ? (
+                  <>
+                    <span className="mr-1.5 text-[10px] uppercase tracking-wider opacity-70">Activa</span>
+                    {activeCampaign.name} · {fmtDate(activeCampaign.startDate)}
+                  </>
+                )
+                : 'Sin campaña activa'}
           </Link>
           <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
@@ -392,7 +398,7 @@ export function AppShell({ title, section, actions, children }: { title: string;
    NOTICE / TOAST
    ══════════════════════════════════════════ */
 
-export function Notice({ kind, children }: { kind: 'ok' | 'error' | 'info' | 'warn'; children: ReactNode }) {
+export function Notice({ kind, children, compact = false }: { kind: 'ok' | 'error' | 'info' | 'warn'; children: ReactNode; compact?: boolean }) {
   const configs = {
     ok: { bg: 'bg-emerald-50/80', text: 'text-emerald-800', border: 'border-emerald-200', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
     error: { bg: 'bg-red-50/80', text: 'text-red-800', border: 'border-red-200', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
@@ -402,8 +408,8 @@ export function Notice({ kind, children }: { kind: 'ok' | 'error' | 'info' | 'wa
 
   const c = configs[kind];
   return (
-    <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm backdrop-blur-sm ${c.bg} ${c.text} ${c.border}`}>
-      <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={c.icon} /></svg>
+    <div className={`flex items-start gap-3 rounded-xl border text-sm backdrop-blur-sm ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-3'} ${c.bg} ${c.text} ${c.border}`}>
+      <svg className={`shrink-0 ${compact ? 'h-4 w-4' : 'h-5 w-5'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={c.icon} /></svg>
       <div className="flex-1">{children}</div>
     </div>
   );
@@ -413,9 +419,9 @@ export function SkeletonRow({ cols = 5 }: { cols?: number }) {
   return <tr>{Array.from({ length: cols }).map((_, i) => <td key={i} className="px-5 py-3.5"><div className="skeleton h-4 w-full rounded-md" /></td>)}</tr>;
 }
 
-export function EmptyState({ icon, title, description }: { icon?: ReactNode; title: string; description?: string }) {
+export function EmptyState({ icon, title, description, compact = false }: { icon?: ReactNode; title: string; description?: string; compact?: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
+    <div className={`flex flex-col items-center justify-center text-center ${compact ? 'py-7' : 'py-16'}`}>
       {icon && <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-300">{icon}</div>}
       <p className="text-sm font-semibold text-slate-600">{title}</p>
       {description && <p className="mt-1.5 max-w-xs text-xs text-slate-400">{description}</p>}
@@ -481,8 +487,8 @@ export function StatusBadge({ status }: { status: string }) {
     ACTUALIZAR: { label: 'Actualizar', cls: 'bg-sky-500/10 text-sky-700 ring-sky-500/20' },
     INACTIVAR: { label: 'Inactivar', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
     ELIMINAR: { label: 'Eliminar', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    ABRIR_CAMPANA: { label: 'Abrir campana', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    CERRAR_CAMPANA: { label: 'Cerrar campana', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
+    ABRIR_CAMPANA: { label: 'Abrir campaña', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
+    CERRAR_CAMPANA: { label: 'Cerrar campaña', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
     AJUSTAR_STOCK: { label: 'Ajustar stock', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
     REGISTRAR_PAGO: { label: 'Registrar pago', cls: 'bg-blue-500/10 text-blue-700 ring-blue-500/20' },
     SINCRONIZAR: { label: 'Sincronizar', cls: 'bg-violet-500/10 text-violet-700 ring-violet-500/20' },

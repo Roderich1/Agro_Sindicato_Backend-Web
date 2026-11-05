@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppShell, EmptyState, Notice } from '../components/app-shell';
-import {
-  CampaignPicker,
-  CoverageBanner,
-  DisclosureNotice,
-} from '../components/collective-ui';
+import { CollectiveToolbar, CoverageBanner, DisclosureNotice, PageNote } from '../components/collective-ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
@@ -42,9 +38,13 @@ export function CoveragePage() {
   }, [selected]);
 
   return (
-    <AppShell title="Cobertura de agricultores" section="Directiva">
-      <div className="space-y-6">
-        <CampaignPicker campaigns={campaigns} selected={selected} onSelect={select} />
+    <AppShell title="Cobertura de agricultores" section="Colectivo">
+      <div className="space-y-5">
+        <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select} />
+        <PageNote>
+          Cuántos agricultores vinculados están dentro de las cifras publicadas de la campaña. Por decisión de alcance de
+          F07 no se muestra quién aportó ni su última sincronización.
+        </PageNote>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
         {summary && (
@@ -57,10 +57,6 @@ export function CoveragePage() {
             )}
           </>
         )}
-        <Notice kind="info">
-          Por decisión de alcance de F07 no se muestra qué agricultores aportaron ni su última sincronización: sólo el
-          conteo agregado de quienes están en cifras publicadas.
-        </Notice>
       </div>
     </AppShell>
   );

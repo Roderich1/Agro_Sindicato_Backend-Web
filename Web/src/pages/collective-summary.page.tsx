@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppShell, EmptyState, Notice, secondaryButtonClass } from '../components/app-shell';
 import {
-  CampaignPicker,
+  CollectiveToolbar,
   CoverageBanner,
   DisclosureNotice,
   PendingChangesNote,
+  ProductCell,
   QuantityCell,
   SealBanner,
-  StatusBadge,
+  SectionHeader,
 } from '../components/collective-ui';
 import { SealPanel } from '../components/seal-panel';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
-import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { collectiveError } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveSummary, ProjectionType, SummaryCell } from '../types/collective';
 
@@ -19,12 +20,12 @@ const SECTIONS: { type: ProjectionType; title: string; description: string }[] =
   {
     type: 'DECLARED_NEED',
     title: 'Necesidad declarada',
-    description: 'Cantidad que cada agricultor declaró expresamente en la app. No es pronóstico ni recomendación.',
+    description: 'Lo que cada agricultor declaró que necesita para la campaña. No es pronóstico ni recomendación.',
   },
   {
     type: 'CONSUMPTION_TOTAL',
-    title: 'Consumo',
-    description: 'Consumo confirmado que los agricultores publicaron desde la app. Se muestra aparte: no se resta de la necesidad.',
+    title: 'Consumo registrado',
+    description: 'Consumo que los agricultores registraron y publicaron desde la app. Se muestra aparte: no se resta de la necesidad.',
   },
 ];
 
@@ -61,19 +62,15 @@ export function CollectiveSummaryPage() {
   }, [selected, load]);
 
   return (
-    <AppShell
-      title="Resumen colectivo"
-      section="Directiva"
-      actions={
-        selected ? (
-          <button type="button" className={secondaryButtonClass} onClick={() => void load(selected)} disabled={loading}>
-            Actualizar
-          </button>
-        ) : undefined
-      }
-    >
-      <div className="space-y-6">
-        <CampaignPicker campaigns={campaigns} selected={selected} onSelect={select} />
+    <AppShell title="Resumen colectivo" section="Colectivo">
+      <div className="space-y-5">
+        <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select}>
+          {selected && (
+            <button type="button" className={secondaryButtonClass} onClick={() => void load(selected)} disabled={loading}>
+              Actualizar
+            </button>
+          )}
+        </CollectiveToolbar>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
         {loading && <p className="text-sm text-slate-500">Cargando…</p>}
@@ -90,7 +87,7 @@ export function CollectiveSummaryPage() {
 function SummaryBody({ summary }: { summary: CollectiveSummary }) {
   const { disclosure } = summary;
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DisclosureNotice mode={disclosure.mode} threshold={disclosure.threshold} />
       {summary.seal && <SealBanner seal={summary.seal} />}
       {summary.coverage && (
@@ -127,12 +124,10 @@ function CellsTable({
 }) {
   return (
     <section className="glass-card overflow-hidden" aria-label={title}>
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h2 className="text-base font-bold text-slate-900">{title}</h2>
-        <p className="mt-0.5 text-xs text-slate-500">{description}</p>
-      </div>
+      <SectionHeader title={title} note={description} />
       {cells.length === 0 ? (
         <EmptyState
+          compact
           title="Sin aportaciones publicadas"
           description="Ningún agricultor publicó datos de este tipo en la campaña. Eso no significa cero."
         />
@@ -141,22 +136,16 @@ function CellsTable({
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="px-5 py-3">Producto (canónico)</th>
-                <th className="px-5 py-3">Estado</th>
-                <th className="px-5 py-3">Total</th>
-                <th className="px-5 py-3">Aportantes</th>
-                <th className="px-5 py-3">Datos aceptados hasta</th>
+                <th className="px-5 py-2.5">Producto (canónico)</th>
+                <th className="px-5 py-2.5">Total publicado</th>
+                <th className="px-5 py-2.5 text-right">Aportantes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {cells.map((cell) => (
                 <tr key={`${cell.product_ref}|${cell.base_unit}`} data-testid={`cell-${cell.projection_type}-${cell.product_name}-${cell.base_unit}`}>
-                  <td className="px-5 py-3 font-medium text-slate-800">
-                    {cell.product_name}
-                    <span className="ml-1 text-xs text-slate-400">({cell.presentation_unit})</span>
-                  </td>
                   <td className="px-5 py-3">
-                    <StatusBadge status={cell.status} threshold={threshold} />
+                    <ProductCell name={cell.product_name} unit={cell.presentation_unit} status={cell.status} threshold={threshold} />
                   </td>
                   <td className="px-5 py-3">
                     <QuantityCell
@@ -165,11 +154,11 @@ function CellsTable({
                       serverPresentation={cell.total_presentation}
                       unit={cell.base_unit}
                       threshold={threshold}
+                      asOf={cell.data_as_of}
                     />
                     {cell.status === 'DISCLOSED' && cell.pending_changes && <PendingChangesNote />}
                   </td>
-                  <td className="px-5 py-3 tabular-nums">{cell.status === 'DISCLOSED' ? cell.contributors : '—'}</td>
-                  <td className="px-5 py-3 text-xs text-slate-500">{cell.status === 'DISCLOSED' ? fmtDateTime(cell.data_as_of) : '—'}</td>
+                  <td className="px-5 py-3 text-right tabular-nums">{cell.status === 'DISCLOSED' ? cell.contributors : '—'}</td>
                 </tr>
               ))}
             </tbody>

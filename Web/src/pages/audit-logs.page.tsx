@@ -25,8 +25,8 @@ const ACTION_OPTIONS: Array<{ value: AuditAction; label: string }> = [
   { value: 'ACTUALIZAR', label: 'Actualizar' },
   { value: 'INACTIVAR', label: 'Inactivar' },
   { value: 'ELIMINAR', label: 'Eliminar' },
-  { value: 'ABRIR_CAMPANA', label: 'Abrir campana' },
-  { value: 'CERRAR_CAMPANA', label: 'Cerrar campana' },
+  { value: 'ABRIR_CAMPANA', label: 'Abrir campaña' },
+  { value: 'CERRAR_CAMPANA', label: 'Cerrar campaña' },
   { value: 'AJUSTAR_STOCK', label: 'Ajustar stock' },
   { value: 'REGISTRAR_PAGO', label: 'Registrar pago' },
   { value: 'SINCRONIZAR', label: 'Sincronizar' },
@@ -137,10 +137,10 @@ export function AuditLogsPage() {
     setFilters((current) => ({ ...current, [field]: value }));
 
   return (
-    <AppShell title="Bitacora" section="Trazabilidad">
+    <AppShell title="Bitácora" section="Trazabilidad">
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard label="Acciones visibles" value={logs.length} color="slate" />
-        <StatCard label="Con campana" value={logs.filter((log) => log.campaignId).length} color="emerald" />
+        <StatCard label="Con campaña" value={logs.filter((log) => log.campaignId).length} color="emerald" />
         <StatCard label="Tipos de accion" value={byAction.length} color="sky" />
       </div>
 
@@ -149,7 +149,7 @@ export function AuditLogsPage() {
       <div className={`${cardClass} mb-5 p-4`}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           <div>
-            <label htmlFor="audit-campaign" className={labelClass}>Campana</label>
+            <label htmlFor="audit-campaign" className={labelClass}>Campaña</label>
             <select id="audit-campaign" className={inputClass} value={filters.campaignId} onChange={(event) => setFilter('campaignId', event.target.value)}>
               <option value="">Todas</option>
               {campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
@@ -218,7 +218,7 @@ export function AuditLogsPage() {
                   <th className="px-4 py-3">Resumen</th>
                   <th className="px-4 py-3">Responsable</th>
                   <th className="px-4 py-3">Agricultor</th>
-                  <th className="px-4 py-3">Campana</th>
+                  <th className="px-4 py-3">Campaña</th>
                   <th className="px-4 py-3">Entidad</th>
                   <th className="px-4 py-3 text-right">Detalle</th>
                 </tr>
@@ -261,7 +261,7 @@ export function AuditLogsPage() {
               <div><p className="text-xs text-slate-500">Accion</p><p className="font-semibold text-slate-800">{actionLabel(selected.action)}</p></div>
               <div><p className="text-xs text-slate-500">Fecha</p><p className="font-semibold text-slate-800">{fmtDate(selected.createdAt)}</p></div>
               <div><p className="text-xs text-slate-500">Responsable</p><p className="font-semibold text-slate-800">{selected.actor?.name ?? '-'}</p></div>
-              <div><p className="text-xs text-slate-500">Campana</p><p className="font-semibold text-slate-800">{selected.campaign?.name ?? '-'}</p></div>
+              <div><p className="text-xs text-slate-500">Campaña</p><p className="font-semibold text-slate-800">{selected.campaign?.name ?? '-'}</p></div>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Antes</p><JsonBlock value={selected.before} /></div>

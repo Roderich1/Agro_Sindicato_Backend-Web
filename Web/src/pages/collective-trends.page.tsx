@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppShell, EmptyState, inputClass, labelClass, Notice, secondaryButtonClass } from '../components/app-shell';
-import { DisclosureNotice, PendingChangesNote, QuantityCell, StatusBadge } from '../components/collective-ui';
-import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { DisclosureNotice, PendingChangesNote, ProductCell, QuantityCell, SectionHeader } from '../components/collective-ui';
+import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime } from '../lib/collective-text';
 import { formatQuantity, isBaseQuantity } from '../lib/quantity';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveTrends, ProjectionType, TrendCampaign, TrendSeries } from '../types/collective';
@@ -68,7 +68,7 @@ export function CollectiveTrendsPage() {
   return (
     <AppShell
       title="Tendencias entre campañas"
-      section="Directiva"
+      section="Colectivo"
       actions={
         <button type="button" className={secondaryButtonClass} onClick={() => void downloadCsv()} disabled={!trends}>
           Descargar CSV
@@ -78,7 +78,7 @@ export function CollectiveTrendsPage() {
       <div className="space-y-6">
         <div className="max-w-sm">
           <label className={labelClass} htmlFor="trend-type">
-            Dato (filtro aplicado)
+            Dato
           </label>
           <select
             id="trend-type"
@@ -106,9 +106,7 @@ function TrendsBody({ trends }: { trends: CollectiveTrends }) {
   return (
     <div className="space-y-6">
       <DisclosureNotice mode={trends.disclosure.mode} threshold={trends.disclosure.threshold} />
-      <Notice kind="info">
-        {trends.notice} Ningún dato individual se incorpora para enriquecer estas tendencias.
-      </Notice>
+      <p className="text-xs text-slate-500">{trends.notice} Ningún dato individual se incorpora para enriquecer estas tendencias.</p>
       <CampaignsTable campaigns={trends.campaigns} />
       {trends.disclosure.mode === 'PROVISIONAL_SYNTHETIC' &&
         (trends.series.length === 0 ? (
@@ -133,13 +131,10 @@ function TrendsBody({ trends }: { trends: CollectiveTrends }) {
 function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
   return (
     <section className="glass-card overflow-hidden" aria-label="Campañas y versiones">
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h2 className="text-base font-bold text-slate-900">Campañas, versión y cobertura</h2>
-        <p className="mt-0.5 text-xs text-slate-500">
-          La cobertura es la fijada al sellar. Un cambio de cobertura entre campañas no prueba que cada agricultor
-          consumiera o necesitara más o menos.
-        </p>
-      </div>
+      <SectionHeader
+        title="Campañas, versión y cobertura"
+        note="La cobertura es la fijada al sellar. Un cambio de cobertura entre campañas no prueba que cada agricultor consumiera o necesitara más o menos."
+      />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
@@ -154,7 +149,7 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
             {campaigns.map((campaign) => (
               <tr key={campaign.campaign_ref} data-testid={`campaign-${campaign.name}`}>
                 <td className="px-5 py-3 font-medium text-slate-800">{campaign.name}</td>
-                <td className="px-5 py-3 text-xs text-slate-600">{campaign.status}</td>
+                <td className="px-5 py-3 text-xs text-slate-600">{CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}</td>
                 <td className="px-5 py-3 text-xs text-slate-600">
                   {campaign.seal
                     ? `Versión ${campaign.seal.version}, sellada el ${fmtDateTime(campaign.seal.sealed_at)}`
@@ -191,30 +186,25 @@ function SeriesCard({
       aria-label={title}
       data-testid={`series-${line.projection_type}-${line.product_name}-${line.base_unit}`}
     >
-      <div className="border-b border-slate-100 px-5 py-4">
+      <div className="border-b border-slate-100 px-5 py-3.5">
         <h3 className="text-base font-bold text-slate-900">{title}</h3>
-        <p className="mt-0.5 text-xs text-slate-500">
-          Una serie por producto y unidad: masa y volumen nunca se mezclan. Los huecos son campañas sin cifra publicada.
-        </p>
+        <p className="mt-0.5 text-xs text-slate-500">Los huecos son campañas sin cifra publicada; no son ceros.</p>
       </div>
       <TrendChart line={line} names={nameOf} />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
             <tr>
-              <th className="px-5 py-3">Campaña</th>
-              <th className="px-5 py-3">Estado</th>
-              <th className="px-5 py-3">Total</th>
-              <th className="px-5 py-3">Aportantes</th>
-              <th className="px-5 py-3">Datos aceptados hasta</th>
+              <th className="px-5 py-2.5">Campaña</th>
+              <th className="px-5 py-2.5">Total publicado</th>
+              <th className="px-5 py-2.5 text-right">Aportantes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {line.points.map((point) => (
               <tr key={point.campaign_ref} data-testid={`point-${nameOf.get(point.campaign_ref)}`}>
-                <td className="px-5 py-3 font-medium text-slate-800">{nameOf.get(point.campaign_ref)}</td>
                 <td className="px-5 py-3">
-                  <StatusBadge status={point.status} threshold={threshold} />
+                  <ProductCell name={nameOf.get(point.campaign_ref) ?? ''} unit="" status={point.status} threshold={threshold} />
                 </td>
                 <td className="px-5 py-3">
                   <QuantityCell
@@ -223,13 +213,11 @@ function SeriesCard({
                     serverPresentation={point.total_presentation}
                     unit={line.base_unit}
                     threshold={threshold}
+                    asOf={point.data_as_of}
                   />
                   {point.status === 'DISCLOSED' && point.pending_changes && <PendingChangesNote />}
                 </td>
-                <td className="px-5 py-3 tabular-nums">{point.status === 'DISCLOSED' ? point.contributors : '—'}</td>
-                <td className="px-5 py-3 text-xs text-slate-500">
-                  {point.status === 'DISCLOSED' ? fmtDateTime(point.data_as_of) : '—'}
-                </td>
+                <td className="px-5 py-3 text-right tabular-nums">{point.status === 'DISCLOSED' ? point.contributors : '—'}</td>
               </tr>
             ))}
           </tbody>
