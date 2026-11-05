@@ -1,0 +1,44 @@
+diff --git a/Web/src/components/export-buttons.tsx b/Web/src/components/export-buttons.tsx
+index 68cfe57..1dd3e43 100644
+--- a/Web/src/components/export-buttons.tsx
++++ b/Web/src/components/export-buttons.tsx
+@@ -23,7 +23,7 @@ export function ExportButtons({
+   disabled?: boolean;
+ }) {
+   const [busy, setBusy] = useState(false);
+-  const excel = excelExport.download;
++  const excel = excelExport.supports(kind) ? excelExport.download : null;
+   const excelDisabled = disabled || busy || !excel || !reference;
+   return (
+     <div className="flex flex-wrap items-center gap-2" data-testid="export-buttons">
+diff --git a/Web/src/lib/exports.ts b/Web/src/lib/exports.ts
+index c239492..4323cb4 100644
+--- a/Web/src/lib/exports.ts
++++ b/Web/src/lib/exports.ts
+@@ -12,17 +12,25 @@
+  * (campaña, borrador, tipo de tendencia o campaña de estimación), pida el
+  * archivo al servidor y lo entregue al navegador. No debe calcular totales.
+  */
++import { downloadProposalExcel } from './joint-purchase-excel-export';
++
+ export type ExcelKind = 'summary' | 'proposal' | 'trends' | 'estimation';
+ 
+ export interface ExcelExport {
+   /** `null` hasta que exista el módulo de la sesión 2. */
+   download: ((kind: ExcelKind, ref: string) => Promise<void>) | null;
++  /** Vistas con Excel disponible. */
++  supports: (kind: ExcelKind) => boolean;
+   /** Motivo que se muestra mientras no está disponible. */
+   unavailableReason: string;
+ }
+ 
+ export const excelExport: ExcelExport = {
+-  download: null,
++  download: async (kind, ref) => {
++    if (kind !== 'proposal') throw new Error('Excel aún no disponible para esta vista.');
++    await downloadProposalExcel(ref);
++  },
++  supports: (kind) => kind === 'proposal',
+   unavailableReason: 'Disponible cuando se integre el módulo de exportación a Excel (sesión 2).',
+ };
+ 

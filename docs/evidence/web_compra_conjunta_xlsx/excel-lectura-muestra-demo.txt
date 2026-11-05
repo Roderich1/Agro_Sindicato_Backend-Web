@@ -1,0 +1,101 @@
+﻿libro='muestra-demo-borrador.xlsx' hojas=3
+alturas filas 1-6: 18,14.4,14.4,14.4,14.4,14.4
+=== Hoja 'Borrador' usada=A1:B17 autofilter=False 
+[A1] String=Compra conjunta: borrador para revisión humana | txt='Compra conjunta: borrador para revisión humana' fmt='General' w=29.22
+[A2] String=No es una compra: no resta stock, no es necesidad neta y no crea compras, lotes, movimientos, deudas ni pagos. | txt='No es una compra: no resta stock, no es necesidad neta y no crea compras, lotes, movimientos, deudas ni pagos.' fmt='General' w=29.22
+[A4] String=Campaña | txt='Campaña' fmt='General' w=29.22
+[B4] String=Invierno 2026 (DEMO) | txt='Invierno 2026 (DEMO)' fmt='General' w=89.22
+[A5] String=Estado de la campaña | txt='Estado de la campaña' fmt='General' w=29.22
+[B5] String=(no consta en el CSV) | txt='(no consta en el CSV)' fmt='General' w=89.22
+[A6] String=Estado del borrador | txt='Estado del borrador' fmt='General' w=29.22
+[B6] String=Borrador | txt='Borrador' fmt='General' w=89.22
+[A7] String=Base | txt='Base' fmt='General' w=29.22
+[B7] String=Necesidad declarada por los agricultores | txt='Necesidad declarada por los agricultores' fmt='General' w=89.22
+[A8] String=Generado el (hora de Bolivia, UTC−4) | txt='Generado el (hora de Bolivia, UTC−4)' fmt='General' w=29.22
+[B8] Double=46331.43174769 | txt='2026-11-05 10:21' fmt='yyyy-mm-dd hh:mm' w=89.22
+[A9] String=Generado por | txt='Generado por' fmt='General' w=29.22
+[B9] String=Directiva DEMO | txt='Directiva DEMO' fmt='General' w=89.22
+[A10] String=Versión sellada | txt='Versión sellada' fmt='General' w=29.22
+[B10] String=Sin versión sellada: usa la necesidad declarada vigente al generar el borrador. | txt='Sin versión sellada: usa la necesidad declarada vigente al generar el borrador.' fmt='General' w=89.22
+[A11] String=Cobertura | txt='Cobertura' fmt='General' w=29.22
+[B11] String=6 de 6 agricultores vinculados con cifras publicadas al generar el borrador. | txt='6 de 6 agricultores vinculados con cifras publicadas al generar el borrador.' fmt='General' w=89.22
+[A12] String=Aviso del servidor | txt='Aviso del servidor' fmt='General' w=29.22
+[B12] String=Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos. | txt='Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos.' fmt='General' w=89.22
+[A13] String=Referencia del borrador | txt='Referencia del borrador' fmt='General' w=29.22
+[B13] String=11f5e558-dbd6-4000-9a58-b0b906c2bcd7 | txt='11f5e558-dbd6-4000-9a58-b0b906c2bcd7' fmt='General' w=89.22
+[A14] String=Huella de las entradas | txt='Huella de las entradas' fmt='General' w=29.22
+[B14] String=89c6048b1f527a9b818d83ac0c2b242af910dc37c51159a116942910ebce90b8 | txt='89c6048b1f527a9b818d83ac0c2b242af910dc37c51159a116942910ebce90b8' fmt='General' w=89.22
+[A15] String=Exportado el (hora de Bolivia, UTC−4) | txt='Exportado el (hora de Bolivia, UTC−4)' fmt='General' w=29.22
+[B15] Double=46331.55512731 | txt='2026-11-05 13:19' fmt='yyyy-mm-dd hh:mm' w=89.22
+[A16] String=Referencia de consumo | txt='Referencia de consumo' fmt='General' w=29.22
+[B16] String=En la hoja «Referencia de consumo»: no se suma a la necesidad declarada. | txt='En la hoja «Referencia de consumo»: no se suma a la necesidad declarada.' fmt='General' w=89.22
+[A17] String=Cómo leer las cifras | txt='Cómo leer las cifras' fmt='General' w=29.22
+[B17] String=Una celda vacía en «Cantidad» o en «Estimación» significa que la cifra no está disponible, no cero; la columna «Explicación» dice por qué. Las filas no se suman: cada una conserva su producto y su unidad. | txt='Una celda vacía en «Cantidad» o en «Estimación» significa que la cifra no está disponible, no cero; la columna «Explicación» dice por qué. Las filas no se suman: cada una conserva su producto y su unidad.' fmt='General' w=89.22
+alturas filas 1-6: 18,14.4,14.4,28.8,14.4,14.4
+=== Hoja 'Necesidades' usada=A1:G7 autofilter=True A4:G7
+[A1] String=Necesidad declarada · Invierno 2026 (DEMO) | txt='Necesidad declarada · Invierno 2026 (DEMO)' fmt='General' w=29.22
+[A2] String=Lo que declararon los agricultores, tal como lo publicó el servidor. No es consumo, ni estimación, ni cantidad comprada. | txt='Lo que declararon los agricultores, tal como lo publicó el servidor. No es consumo, ni estimación, ni cantidad comprada.' fmt='General' w=29.22
+[A4] String=Producto | txt='Producto' fmt='General' w=29.22
+[B4] String=Cantidad | txt='Cantidad' fmt='General' w=13.22
+[C4] String=Unidad | txt='Unidad' fmt='General' w=7.22
+[D4] String=Estado | txt='Estado' fmt='General' w=17.22
+[E4] String=Explicación | txt='Explicación' fmt='General' w=59.22
+[F4] String=Aportantes | txt='Aportantes' fmt='General' w=11.22
+[G4] String=Datos hasta (hora de Bolivia, UTC−4) | txt='Datos hasta (hora de Bolivia, UTC−4)' fmt='General' w=19.22
+[A5] String=Fungicida DEMO | txt='Fungicida DEMO' fmt='General' w=29.22
+[B5] Double=53 | txt='53' fmt='#,##0' w=13.22
+[C5] String=L | txt='L' fmt='General' w=7.22
+[D5] String=Publicado | txt='Publicado' fmt='General' w=17.22
+[E5] String=Cifra publicada. | txt='Cifra publicada.' fmt='General' w=59.22
+[F5] Double=3 | txt='3' fmt='0' w=11.22
+[G5] Double=46329.82945602 | txt='2026-11-03 19:54' fmt='yyyy-mm-dd hh:mm' w=19.22
+[A6] String=Herbicida DEMO | txt='Herbicida DEMO' fmt='General' w=29.22
+[B6] Double=250 | txt='250' fmt='#,##0' w=13.22
+[C6] String=L | txt='L' fmt='General' w=7.22
+[D6] String=Publicado | txt='Publicado' fmt='General' w=17.22
+[E6] String=Cifra publicada. | txt='Cifra publicada.' fmt='General' w=59.22
+[F6] Double=5 | txt='5' fmt='0' w=11.22
+[G6] Double=46329.81144676 | txt='2026-11-03 19:28' fmt='yyyy-mm-dd hh:mm' w=19.22
+[A7] String=Insecticida DEMO | txt='Insecticida DEMO' fmt='General' w=29.22
+[C7] String=L | txt='L' fmt='General' w=7.22
+[D7] String=Oculto | txt='Oculto' fmt='General' w=17.22
+[E7] String=Menos aportantes que el umbral de la política: la cifra no se publica para no revelar aportes individuales. | txt='Menos aportantes que el umbral de la política: la cifra no se publica para no revelar aportes individuales.' fmt='General' w=59.22
+alturas filas 1-6: 18,14.4,14.4,14.4,14.4,28.8
+=== Hoja 'Referencia de consumo' usada=A1:J9 autofilter=True A6:J9
+[A1] String=Estimación del consumo (referencia) | txt='Estimación del consumo (referencia)' fmt='General' w=29.22
+[A2] String=Vigencia evaluada el (hora de Bolivia, UTC−4) | txt='Vigencia evaluada el (hora de Bolivia, UTC−4)' fmt='General' w=29.22
+[B2] Double=46331.52260417 | txt='2026-11-05 12:32' fmt='yyyy-mm-dd hh:mm' w=17.22
+[A3] String=Temporada | txt='Temporada' fmt='General' w=29.22
+[B3] String=invierno | txt='invierno' fmt='General' w=17.22
+[A4] String=Estimación del consumo: referencia separada para el mismo producto, unidad y campaña. No se suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas, los totales ni la huella del borrador. Su vigencia se evalúa al consultar. | txt='Estimación del consumo: referencia separada para el mismo producto, unidad y campaña. No se suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas, los totales ni la huella del borrador. Su vigencia se evalúa al consultar.' fmt='General' w=29.22
+[A6] String=Producto | txt='Producto' fmt='General' w=29.22
+[B6] String=Estimación | txt='Estimación' fmt='General' w=17.22
+[C6] String=Unidad | txt='Unidad' fmt='General' w=7.22
+[D6] String=Explicación | txt='Explicación' fmt='General' w=47.22
+[E6] String=Vigencia | txt='Vigencia' fmt='General' w=15.22
+[F6] String=Motivo de la vigencia | txt='Motivo de la vigencia' fmt='General' w=43.22
+[G6] String=Ejecución del (hora de Bolivia, UTC−4) | txt='Ejecución del (hora de Bolivia, UTC−4)' fmt='General' w=19.22
+[H6] String=Relación con el borrador | txt='Relación con el borrador' fmt='General' w=21.22
+[I6] String=Ejecución (referencia) | txt='Ejecución (referencia)' fmt='General' w=37.22
+[J6] String=Nota | txt='Nota' fmt='General' w=47.22
+[A7] String=Fungicida DEMO | txt='Fungicida DEMO' fmt='General' w=29.22
+[C7] String=L | txt='L' fmt='General' w=7.22
+[D7] String=Sin cifra: Datos insuficientes. Hay menos de tres campañas comparables consecutivas con consumo comprobado. | txt='Sin cifra: Datos insuficientes. Hay menos de tres campañas comparables consecutivas con consumo comprobado.' fmt='General' w=47.22
+[E7] String=No utilizable | txt='No utilizable' fmt='General' w=15.22
+[F7] String=Este resultado no tiene cifra. | txt='Este resultado no tiene cifra.' fmt='General' w=43.22
+[G7] Double=46331.50950231 | txt='2026-11-05 12:13' fmt='yyyy-mm-dd hh:mm' w=19.22
+[H7] String=Posterior al borrador | txt='Posterior al borrador' fmt='General' w=21.22
+[I7] String=e1ff8a6f-481b-4020-81a5-4971a086d3c1 | txt='e1ff8a6f-481b-4020-81a5-4971a086d3c1' fmt='General' w=37.22
+[A8] String=Herbicida DEMO | txt='Herbicida DEMO' fmt='General' w=29.22
+[B8] Double=111 | txt='111' fmt='#,##0' w=17.22
+[C8] String=L | txt='L' fmt='General' w=7.22
+[D8] String=Estimado. | txt='Estimado.' fmt='General' w=47.22
+[E8] String=Vigente | txt='Vigente' fmt='General' w=15.22
+[G8] Double=46331.50898148 | txt='2026-11-05 12:12' fmt='yyyy-mm-dd hh:mm' w=19.22
+[H8] String=Posterior al borrador | txt='Posterior al borrador' fmt='General' w=21.22
+[I8] String=39d51027-1d1a-4df3-bba0-0f1fb47e0db7 | txt='39d51027-1d1a-4df3-bba0-0f1fb47e0db7' fmt='General' w=37.22
+[A9] String=Insecticida DEMO | txt='Insecticida DEMO' fmt='General' w=29.22
+[C9] String=L | txt='L' fmt='General' w=7.22
+[D9] String=Sin estimación: ninguna ejecución incluye este producto para esta campaña. | txt='Sin estimación: ninguna ejecución incluye este producto para esta campaña.' fmt='General' w=47.22
+[J9] String=La necesidad de esta fila no está divulgada. Esta es la estimación del consumo: no la sustituye ni se suma a la propuesta. | txt='La necesidad de esta fila no está divulgada. Esta es la estimación del consumo: no la sustituye ni se suma a la propuesta.' fmt='General' w=47.22
+registros de reparación de Excel en TEMP: antes=0 después=0

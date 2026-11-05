@@ -1,0 +1,48 @@
+// Prueba TEMPORAL de integración (worktree WEB-XLSX-INTCHK, no se commitea).
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { beforeEach, expect, it, vi } from 'vitest';
+import { collectiveService } from '../services/collective.service';
+import { campaignsService } from '../services/campaigns.service';
+import { line, proposalWith } from '../test/fixtures';
+import { CAMPAIGN, renderAt } from '../test/render';
+import { JointProposalPage } from './joint-proposal.page';
+
+vi.mock('../services/collective.service', () => ({
+  collectiveService: { proposals: vi.fn(), generateProposal: vi.fn(), proposal: vi.fn(), proposalCsv: vi.fn(), proposalEstimationReference: vi.fn() },
+}));
+vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
+
+const DRAFT = proposalWith([
+  line({ position: 0, product_name: 'Glifosato', quantity_base: '310000', quantity_presentation: '310', contributors: 7 }),
+  line({ position: 1, product_name: 'Amina', status: 'SUPPRESSED_UNDER_THRESHOLD' }),
+]);
+
+let saved: { blob: Blob; name: string }[];
+beforeEach(() => {
+  saved = [];
+  vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN]);
+  vi.mocked(collectiveService.proposals).mockResolvedValue([
+    { proposal_ref: DRAFT.proposal_ref, status: 'DRAFT', generated_at: DRAFT.generated_at, generated_by: DRAFT.generated_by, inputs_fingerprint: DRAFT.inputs_fingerprint, line_count: 2 },
+  ]);
+  vi.mocked(collectiveService.proposal).mockResolvedValue(DRAFT);
+  vi.mocked(collectiveService.proposalEstimationReference).mockRejectedValue(new Error('sin referencia'));
+  let lastBlob: Blob | null = null;
+  URL.createObjectURL = vi.fn((b: Blob) => ((lastBlob = b), 'blob:x')) as typeof URL.createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    if (lastBlob) saved.push({ blob: lastBlob, name: this.download });
+  });
+});
+
+it('«Descargar Excel» en el borrador descarga el .xlsx del mismo proposal_ref', async () => {
+  renderAt(<JointProposalPage />, { path: `/colectivo/propuestas?campaign=${CAMPAIGN.id}` });
+  const button = await screen.findByRole('button', { name: 'Descargar Excel' });
+  await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(button);
+  await waitFor(() => expect(saved.some((s) => s.name.endsWith('.xlsx'))).toBe(true));
+  const xlsx = saved.find((s) => s.name.endsWith('.xlsx'))!;
+  expect(xlsx.name).toBe(`propuesta-${DRAFT.proposal_ref}.xlsx`);
+  const bytes = new Uint8Array(await xlsx.blob.arrayBuffer());
+  expect([bytes[0], bytes[1]]).toEqual([0x50, 0x4b]); // «PK»: ZIP
+  expect(collectiveService.proposal).toHaveBeenCalledWith(DRAFT.proposal_ref);
+});
