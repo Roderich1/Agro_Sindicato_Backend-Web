@@ -9,6 +9,10 @@ import { buttonClass, Modal, Notice, secondaryButtonClass } from './app-shell';
  * versión colectiva de una campaña cerrada. DIRECTIVA o ADMINISTRADOR, cada
  * uno por sí solo. El servidor comprueba rol, tenant, estado y que lo sellado
  * sea exactamente lo revisado; ocultar el botón no es la protección.
+ *
+ * Mientras no se puede sellar (campaña abierta, política pendiente, bandera
+ * desactivada) el panel se reduce a una línea con los motivos: la revisión
+ * completa sólo aparece cuando sellar es posible.
  */
 export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSealed: () => void }) {
   const [state, setState] = useState<SealState | null>(null);
@@ -57,6 +61,31 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
   if (!state) return error ? <Notice kind="error">{error}</Notice> : null;
   if (state.state === 'SEALED') return error ? <Notice kind="error">{error}</Notice> : null;
 
+  if (!state.can_seal || !state.review) {
+    return (
+      <section
+        className="rounded-xl border border-slate-200 bg-white/60 px-4 py-3 text-xs text-slate-600"
+        aria-label="Sellado de la versión colectiva"
+        data-testid="seal-panel"
+      >
+        <span className="font-semibold text-slate-800">Sellado de la versión colectiva: </span>
+        todavía no se puede sellar.
+        {state.blocked_by.length > 0 && (
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">
+            {state.blocked_by.map((block) => (
+              <li key={block}>{sealBlockText(block)}</li>
+            ))}
+          </ul>
+        )}
+        {error && (
+          <div className="mt-2">
+            <Notice kind="error">{error}</Notice>
+          </div>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="glass-card space-y-4 p-5" aria-label="Sellado de la versión colectiva" data-testid="seal-panel">
       <div>
@@ -68,56 +97,42 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
         </p>
       </div>
       {error && <Notice kind="error">{error}</Notice>}
-      {state.blocked_by.length > 0 && (
-        <Notice kind="info">
-          <strong>Todavía no se puede sellar.</strong>
-          <ul className="mt-1 list-disc pl-5">
-            {state.blocked_by.map((block) => (
-              <li key={block}>{sealBlockText(block)}</li>
-            ))}
-          </ul>
-        </Notice>
-      )}
-      {state.can_seal && state.review && (
-        <>
-          <dl className="grid gap-3 text-sm sm:grid-cols-2" data-testid="seal-review">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">Cobertura</dt>
-              <dd className="font-semibold text-slate-900">
-                {state.review.coverage.members_with_contribution} de {state.review.coverage.linked_members} agricultores
-                vinculados con cifras publicadas
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">Datos aceptados hasta</dt>
-              <dd className="font-semibold text-slate-900">{fmtDateTime(state.review.accepted_until)}</dd>
-            </div>
-          </dl>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-            {state.review.open_disputes && (
-              <li>Hay aportes en conflicto sin resolver: no cuentan en las cifras y no se incorporarán después.</li>
-            )}
-            {state.review.pending_changes && (
-              <li>Algunas cifras muestran un valor anterior con cambios pendientes: se sellará ese valor anterior.</li>
-            )}
-            {state.review.cells_without_figure && (
-              <li>Algunas filas no tienen cifra (bajo el umbral o en revisión) y quedarán así en la versión sellada.</li>
-            )}
-            <li>
-              El servidor sólo conoce lo que los teléfonos publicaron y él aceptó: no puede asegurar que todos los
-              teléfonos publicaron todo.
-            </li>
-            <li>
-              Después de sellar, los teléfonos no podrán publicar valores nuevos de esta campaña. Un agricultor sí puede
-              retirar su aporte; entonces la cifra sellada que lo incluía deja de mostrarse.
-            </li>
-          </ul>
-          <button type="button" className={buttonClass} onClick={() => setConfirming(true)} disabled={busy}>
-            Sellar esta versión…
-          </button>
-        </>
-      )}
-      {confirming && state.review && (
+      <dl className="grid gap-3 text-sm sm:grid-cols-2" data-testid="seal-review">
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">Cobertura</dt>
+          <dd className="font-semibold text-slate-900">
+            {state.review.coverage.members_with_contribution} de {state.review.coverage.linked_members} agricultores
+            vinculados con cifras publicadas
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">Datos aceptados hasta</dt>
+          <dd className="font-semibold text-slate-900">{fmtDateTime(state.review.accepted_until)}</dd>
+        </div>
+      </dl>
+      <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+        {state.review.open_disputes && (
+          <li>Hay aportes en conflicto sin resolver: no cuentan en las cifras y no se incorporarán después.</li>
+        )}
+        {state.review.pending_changes && (
+          <li>Algunas cifras muestran un valor anterior con cambios pendientes: se sellará ese valor anterior.</li>
+        )}
+        {state.review.cells_without_figure && (
+          <li>Algunas filas no tienen cifra (bajo el umbral o en revisión) y quedarán así en la versión sellada.</li>
+        )}
+        <li>
+          El servidor sólo conoce lo que los teléfonos publicaron y él aceptó: no puede asegurar que todos los
+          teléfonos publicaron todo.
+        </li>
+        <li>
+          Después de sellar, los teléfonos no podrán publicar valores nuevos de esta campaña. Un agricultor sí puede
+          retirar su aporte; entonces la cifra sellada que lo incluía deja de mostrarse.
+        </li>
+      </ul>
+      <button type="button" className={buttonClass} onClick={() => setConfirming(true)} disabled={busy}>
+        Sellar esta versión…
+      </button>
+      {confirming && (
         <Modal title="Confirmar el sellado" onClose={() => (busy ? undefined : setConfirming(false))} size="sm">
           <div className="space-y-4 text-sm text-slate-700">
             <p>

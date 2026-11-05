@@ -88,7 +88,7 @@ describe('Resumen colectivo', () => {
     expect(screen.getByTestId('cell-DECLARED_NEED-Enorme-G').textContent).toMatch(/no se trunca/);
 
     // Necesidad y consumo son vistas separadas; no hay totales por encima de la celda.
-    expect(screen.getByRole('region', { name: 'Consumo' }).textContent).toContain('20 KG');
+    expect(screen.getByRole('region', { name: 'Consumo registrado' }).textContent).toContain('20 KG');
     expect(screen.getByRole('region', { name: 'Necesidad declarada' }).textContent).not.toContain('20 KG');
     expect(document.body.textContent).not.toMatch(/45 KG|31 L|Total general/);
 

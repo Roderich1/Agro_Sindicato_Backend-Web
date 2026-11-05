@@ -74,22 +74,22 @@ export function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
               </svg>
             </div>
-            <span className="text-lg font-bold text-white/90">Agro PWA</span>
+            <span className="text-lg font-bold text-white/90">Agrocuentas</span>
           </div>
 
           {/* Hero text */}
           <div className="max-w-lg">
             <h2 className="text-4xl font-extrabold leading-tight text-white xl:text-5xl" style={{ textWrap: 'balance' } as React.CSSProperties}>
-              Gestiona tu inventario de agroquímicos
+              Vistas colectivas del sindicato
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-emerald-200/80">
-              Control completo de stock, compras, proveedores y vencimientos. 
-              Trabaja incluso sin conexión a internet.
+              Necesidad declarada, consumo registrado, propuesta de compra conjunta y estimación del consumo, con las cifras que
+              autoriza la política de divulgación.
             </p>
 
             {/* Feature pills */}
             <div className="mt-8 flex flex-wrap gap-3">
-              {['Inventario en tiempo real', 'Modo offline', 'Gestión de compras', 'Alertas inteligentes'].map((feat) => (
+              {['Resumen colectivo', 'Propuesta conjunta', 'Estimación del consumo', 'Versiones selladas'].map((feat) => (
                 <span
                   key={feat}
                   className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-4 py-2 text-sm font-medium text-emerald-200/90 ring-1 ring-white/10 backdrop-blur-sm"
@@ -105,7 +105,7 @@ export function LoginPage() {
 
           {/* Footer */}
           <p className="text-sm text-white/30">
-            © {new Date().getFullYear()} Agro PWA · Proyecto de Grado
+            © {new Date().getFullYear()} Agrocuentas · Proyecto de Grado
           </p>
         </div>
       </div>
@@ -120,8 +120,8 @@ export function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Agro PWA</h1>
-            <p className="mt-1 text-sm text-slate-500">Inventario de agroquímicos</p>
+            <h1 className="text-2xl font-bold text-slate-900">Agrocuentas</h1>
+            <p className="mt-1 text-sm text-slate-500">Vistas colectivas de la Directiva</p>
           </div>
 
           {/* Form header */}

@@ -36,7 +36,7 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
       setActiveCampaign(campaign);
     } catch {
       setActiveCampaign(null);
-      setError('No fue posible cargar la campana activa.');
+      setError('No fue posible cargar la campaña activa.');
     } finally {
       setIsLoading(false);
     }

@@ -45,7 +45,7 @@ export function CampaignsPage() {
       });
       setCampaigns(data);
     } catch (err) {
-      setError(extractError(err, 'No fue posible cargar las campanas.'));
+      setError(extractError(err, 'No fue posible cargar las campañas.'));
     } finally {
       setIsLoading(false);
     }
@@ -72,19 +72,19 @@ export function CampaignsPage() {
 
   return (
     <AppShell
-      title="Campanas"
-      section="Periodo operativo"
+      title="Campañas"
+      section="Período operativo"
       actions={
         canManage ? (
           <button className={buttonClass} onClick={() => setCreating(true)}>
-            Nueva campana
+            Nueva campaña
           </button>
         ) : null
       }
     >
       <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_2fr]">
         <div className={cardClass}>
-          <p className={labelClass}>Campana activa</p>
+          <p className={labelClass}>Campaña activa</p>
           {activeCampaign ? (
             <div>
               <p className="text-lg font-bold text-slate-900">{activeCampaign.name}</p>
@@ -94,7 +94,7 @@ export function CampaignsPage() {
               </p>
             </div>
           ) : (
-            <Notice kind="warn">No hay campana activa. Las operaciones normales quedaran bloqueadas hasta que directiva abra una campana.</Notice>
+            <Notice kind="warn">No hay campaña activa. Las operaciones normales quedarán bloqueadas hasta que directiva abra una campaña.</Notice>
           )}
         </div>
 
@@ -109,7 +109,7 @@ export function CampaignsPage() {
       {error && <div className="mb-4"><Notice kind="error">{error}</Notice></div>}
       {!canManage && (
         <div className="mb-4">
-          <Notice kind="info">Puedes consultar las campanas, pero solo directiva o administrador pueden crear, abrir o cerrar.</Notice>
+          <Notice kind="info">Puedes consultar las campañas, pero solo directiva o administrador pueden crear, abrir o cerrar.</Notice>
         </div>
       )}
 
@@ -149,7 +149,7 @@ export function CampaignsPage() {
 
       <div className="table-container">
         <div className="border-b border-slate-100/80 px-5 py-3.5">
-          <h2 className="font-bold text-slate-900">Listado de campanas</h2>
+          <h2 className="font-bold text-slate-900">Listado de campañas</h2>
           <p className="mt-0.5 text-xs text-slate-400">Total: {campaigns.length}</p>
         </div>
         <div className="overflow-x-auto">
@@ -169,7 +169,7 @@ export function CampaignsPage() {
               ) : campaigns.length === 0 ? (
                 <tr>
                   <td colSpan={5}>
-                    <EmptyState title="Sin campanas" description="No hay campanas que coincidan con los filtros." />
+                    <EmptyState title="Sin campañas" description="No hay campañas que coincidan con los filtros." />
                   </td>
                 </tr>
               ) : (
@@ -221,13 +221,13 @@ export function CampaignsPage() {
       </div>
 
       {(creating || editing) && (
-        <Modal title={editing ? 'Editar campana' : 'Nueva campana'} onClose={() => { setCreating(false); setEditing(null); }}>
+        <Modal title={editing ? 'Editar campaña' : 'Nueva campaña'} onClose={() => { setCreating(false); setEditing(null); }}>
           <CampaignForm campaign={editing} onDone={done} />
         </Modal>
       )}
 
       {closing && (
-        <Modal title="Cerrar campana" onClose={() => setClosing(null)}>
+        <Modal title="Cerrar campaña" onClose={() => setClosing(null)}>
           <CloseCampaignForm campaign={closing} onDone={done} />
         </Modal>
       )}
@@ -272,13 +272,13 @@ function CampaignForm({ campaign, onDone }: { campaign: Campaign | null; onDone:
     try {
       if (campaign) {
         await campaignsService.update(campaign.id, payload);
-        await onDone('Campana actualizada.');
+        await onDone('Campaña actualizada.');
       } else {
         await campaignsService.create(payload);
-        await onDone('Campana creada.');
+        await onDone('Campaña creada.');
       }
     } catch (err) {
-      setError(extractError(err, 'No fue posible guardar la campana.'));
+      setError(extractError(err, 'No fue posible guardar la campaña.'));
     } finally {
       setSaving(false);
     }
@@ -326,9 +326,9 @@ function CloseCampaignForm({ campaign, onDone }: { campaign: Campaign; onDone: (
     setError(null);
     try {
       await campaignsService.close(campaign.id, { notes: notes || null });
-      await onDone('Campana cerrada.');
+      await onDone('Campaña cerrada.');
     } catch (err) {
-      setError(extractError(err, 'No fue posible cerrar la campana.'));
+      setError(extractError(err, 'No fue posible cerrar la campaña.'));
     } finally {
       setSaving(false);
     }
@@ -336,13 +336,13 @@ function CloseCampaignForm({ campaign, onDone }: { campaign: Campaign; onDone: (
 
   return (
     <form className="space-y-4" onSubmit={submit}>
-      <Notice kind="warn">Al cerrar la campana se bloquearan operaciones normales asociadas a este periodo.</Notice>
+      <Notice kind="warn">Al cerrar la campaña se bloquearán operaciones normales asociadas a este periodo.</Notice>
       <div>
         <label htmlFor="close-notes" className={labelClass}>Motivo o notas</label>
         <textarea id="close-notes" className={inputClass} rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} />
       </div>
       {error && <Notice kind="error">{error}</Notice>}
-      <button disabled={saving} className={buttonClass}>{saving ? 'Cerrando...' : 'Cerrar campana'}</button>
+      <button disabled={saving} className={buttonClass}>{saving ? 'Cerrando...' : 'Cerrar campaña'}</button>
     </form>
   );
 }
@@ -355,8 +355,8 @@ async function openCampaign(
   setError(null);
   try {
     await campaignsService.open(campaign.id);
-    await onDone('Campana abierta.');
+    await onDone('Campaña abierta.');
   } catch (err) {
-    setError(extractError(err, 'No fue posible abrir la campana.'));
+    setError(extractError(err, 'No fue posible abrir la campaña.'));
   }
 }
