@@ -171,7 +171,7 @@ function referenceRow(line: ProposalLine, ref: ReferenceLine | null, offset: num
 
 /** Por qué la referencia no va en el libro, o `null` si va. */
 function referenceAbsence(proposal: Proposal, reference: ProposalEstimationReference | null | undefined): string | null {
-  if (!reference) return 'No incluida: la referencia de consumo no estaba cargada al exportar.';
+  if (!reference) return 'No incluida: la referencia de consumo no estaba disponible al exportar.';
   if (reference.proposal_ref !== proposal.proposal_ref) return 'No incluida: la referencia cargada no corresponde a este borrador.';
   return null;
 }

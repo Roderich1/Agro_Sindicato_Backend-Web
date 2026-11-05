@@ -174,7 +174,7 @@ describe('exportador Compra conjunta (.xlsx)', () => {
     expect(summary).toContain(DRAFT.campaign.name);
     expect(summary).toContain('Abierta');
     expect(summary).toContain('Borrador');
-    expect(summary).toContain('No incluida: la referencia de consumo no estaba cargada al exportar.');
+    expect(summary).toContain('No incluida: la referencia de consumo no estaba disponible al exportar.');
   });
 
   it('cantidad numérica tal como la publicó el servidor, con su unidad y su estado', () => {
