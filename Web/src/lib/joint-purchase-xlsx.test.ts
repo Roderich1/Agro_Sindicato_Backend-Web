@@ -160,7 +160,8 @@ const DRAFT = proposalWith([
 ]);
 
 // Columnas de «Necesidades»: A Producto, B Cantidad, C Unidad, D Estado, E Explicación, F Aportantes, G Datos hasta.
-const NEED_HEADER_ROW = 4;
+// Hoja de datos: banda, título, nota y fila libre; los encabezados van en la fila 5.
+const NEED_HEADER_ROW = 5;
 
 describe('exportador Compra conjunta (.xlsx)', () => {
   it('hojas Borrador y Necesidades; sin referencia cargada no hay tercera hoja y se explica', () => {
@@ -207,7 +208,7 @@ describe('exportador Compra conjunta (.xlsx)', () => {
     expect(need.cells.has(`B${r}`)).toBe(false);
     expect(need.cells.has(`F${r}`)).toBe(false);
     expect(need.cells.has(`G${r}`)).toBe(false);
-    expect(need.cells.get(`D${r}`)!.value).toBe('Oculto');
+    expect(need.cells.get(`D${r}`)!.value).toBe('Oculto por privacidad');
     expect(need.cells.get(`E${r}`)!.value).toContain('la cifra no se publica para no revelar aportes individuales');
     // Un cero publicado sí es un cero.
     const zero = rowOf(need, 'Cero sintético');
@@ -307,7 +308,7 @@ describe('exportador Compra conjunta (.xlsx)', () => {
 
 // Columnas de «Referencia de consumo»: A Producto, B Estimación, C Unidad, D Explicación, E Vigencia,
 // F Motivo de la vigencia, G Ejecución del, H Relación, I Ejecución (referencia), J Nota.
-const REF_HEADER_ROW = 6;
+const REF_HEADER_ROW = 5;
 
 describe('hoja «Referencia de consumo»', () => {
   const reference = referenceFor(DRAFT, [
@@ -326,9 +327,10 @@ describe('hoja «Referencia de consumo»', () => {
     const { sheetNames, sheets, numFmtOf } = read(book.bytes);
     expect(sheetNames).toEqual(['Borrador', 'Necesidades', 'Referencia de consumo']);
     const ref = sheets.get('Referencia de consumo')!;
-    expect(ref.cells.get('A2')!.value).toBe('Vigencia evaluada el (hora de Bolivia, UTC−4)');
-    expect(numFmtOf(ref.cells.get('B2')!.style)).toBe('yyyy-mm-dd hh:mm');
-    expect(ref.cells.get('B3')!.value).toBe('invierno');
+    expect(ref.cells.get('A4')!.value).toBe('Vigencia evaluada el');
+    expect(ref.cells.get('A3')!.value).toContain('hora de Bolivia, UTC−4');
+    expect(numFmtOf(ref.cells.get('B4')!.style)).toBe('yyyy-mm-dd hh:mm');
+    expect(ref.cells.get('A3')!.value).toContain('Temporada: invierno');
     expect(ref.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${REF_HEADER_ROW}:J${REF_HEADER_ROW + DRAFT.lines.length}`);
 
     const r = rowOf(ref, 'Fungicida sintético');

@@ -13,6 +13,7 @@ import {
   SectionHeader,
   type BarRow,
 } from '../components/collective-ui';
+import { ExportButtons } from '../components/export-buttons';
 import { SealPanel } from '../components/seal-panel';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError } from '../lib/collective-text';
@@ -75,6 +76,7 @@ export function CollectiveSummaryPage() {
               >
                 Actualizar
               </button>
+              <ExportButtons kind="summary" reference={selected} disabled={!summary || loading} />
               <Link to={`${COLLECTIVE_PATHS.proposals}?campaign=${encodeURIComponent(selected)}`} className={buttonClass}>
                 Revisar borrador
               </Link>

@@ -18,13 +18,14 @@ export function ExportButtons({
   kind: ExcelKind;
   /** Referencia de lo que se exporta (campaña, borrador, tipo o campaña objetivo). */
   reference: string | null;
-  onCsv: () => void;
+  /** Sin `onCsv` (p. ej. el resumen, que no tiene CSV del servidor) sólo se ofrece el Excel. */
+  onCsv?: () => void;
   csvLabel?: string;
   /** Sin datos o sin conexión: ninguna de las dos descarga. */
   disabled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
-  const excel = excelExport.download;
+  const excel = excelExport.supports(kind) ? excelExport.download : null;
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="export-buttons">
       {excel && (
@@ -45,9 +46,11 @@ export function ExportButtons({
           {busy ? 'Preparando…' : 'Descargar Excel'}
         </button>
       )}
-      <button type="button" className={secondaryButtonClass} onClick={onCsv} disabled={disabled}>
-        {csvLabel}
-      </button>
+      {onCsv && (
+        <button type="button" className={secondaryButtonClass} onClick={onCsv} disabled={disabled}>
+          {csvLabel}
+        </button>
+      )}
     </div>
   );
 }
