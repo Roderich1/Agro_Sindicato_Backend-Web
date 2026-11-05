@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppShell, EmptyState, inputClass, labelClass, Notice } from '../components/app-shell';
-import { Collapsible, DisclosureNotice, PendingChangesNote, ProductCell, QuantityCell, SectionHeader } from '../components/collective-ui';
+import { Collapsible, DisclosureNotice, PendingChangesNote, ProductCell, QuantityCell, SectionHeader, SegmentedControl } from '../components/collective-ui';
 import { ExportButtons } from '../components/export-buttons';
 import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime } from '../lib/collective-text';
+import { reportDisclosureMode } from '../lib/data-mode';
 import { saveBlob } from '../lib/exports';
 import { formatQuantity, isBaseQuantity } from '../lib/quantity';
 import { collectiveService } from '../services/collective.service';
@@ -10,14 +11,14 @@ import type { CollectiveTrends, ProjectionType, TrendCampaign, TrendSeries } fro
 
 const TYPES: { type: ProjectionType; label: string; description: string }[] = [
   {
+    type: 'CONSUMPTION_TOTAL',
+    label: 'Consumo publicado',
+    description: 'Consumo que los agricultores registraron y publicaron. Se muestra aparte: no se resta de la necesidad.',
+  },
+  {
     type: 'DECLARED_NEED',
     label: 'Necesidad declarada',
     description: 'Cantidad que cada agricultor declaró en la app. No es pronóstico ni recomendación.',
-  },
-  {
-    type: 'CONSUMPTION_TOTAL',
-    label: 'Consumo registrado',
-    description: 'Consumo registrado que los agricultores publicaron. Se muestra aparte: no se resta de la necesidad.',
   },
 ];
 
@@ -29,14 +30,14 @@ const seriesKey = (line: TrendSeries) => `${line.product_ref}|${line.base_unit}`
  * resta, promedia ni interpola, y un hueco (cifra oculta, retirada, sin dato o
  * campaña sin sellar) nunca se dibuja como cero.
  *
- * Jerarquía (defensa, 2026-11-05): primero el gráfico de un producto, con
- * selector de dato (necesidad o consumo) y de producto; columnas con cantidad y
- * unidad legibles sobre las campañas selladas. Una campaña sin sellar no se
- * dibuja como histórico. La versión sellada, la cobertura y las tablas van en
- * «Ver fuentes y cobertura».
+ * Panel de la defensa (2026-11-05): el gráfico antes de la tabla; dos opciones
+ * visibles («Consumo publicado», con la que se abre, y «Necesidad declarada») y
+ * un selector de producto; unidad, campañas y valores visibles; sólo cifras
+ * publicadas, con huecos. Campañas, versión y cobertura en «Ver campañas y
+ * cobertura».
  */
 export function CollectiveTrendsPage() {
-  const [type, setType] = useState<ProjectionType>('DECLARED_NEED');
+  const [type, setType] = useState<ProjectionType>('CONSUMPTION_TOTAL');
   const [productKey, setProductKey] = useState<string | null>(null);
   const [trends, setTrends] = useState<CollectiveTrends | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +47,9 @@ export function CollectiveTrendsPage() {
     setLoading(true);
     setError(null);
     try {
-      setTrends(await collectiveService.trends(projectionType));
+      const data = await collectiveService.trends(projectionType);
+      reportDisclosureMode(data.disclosure.mode);
+      setTrends(data);
     } catch (err) {
       setTrends(null);
       setError(collectiveError(err, 'No fue posible cargar las tendencias.'));
@@ -61,7 +64,7 @@ export function CollectiveTrendsPage() {
 
   const downloadCsv = async () => {
     try {
-      saveBlob(await collectiveService.trendsCsv(type), `historial-${type === 'DECLARED_NEED' ? 'necesidad' : 'consumo'}.csv`);
+      saveBlob(await collectiveService.trendsCsv(type), `tendencias-${type === 'DECLARED_NEED' ? 'necesidad' : 'consumo'}.csv`);
     } catch (err) {
       setError(collectiveError(err, 'No fue posible descargar el CSV.'));
     }
@@ -71,23 +74,18 @@ export function CollectiveTrendsPage() {
   const series = trends?.series ?? [];
   const selected = series.find((line) => seriesKey(line) === productKey) ?? series[0] ?? null;
   return (
-    <AppShell title="Historial entre campañas" section="Colectivo">
-      <div className="space-y-5">
-        <div className="glass-card flex flex-wrap items-end justify-between gap-4 px-5 py-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="w-full sm:w-56">
-              <label className={labelClass} htmlFor="trend-type">
-                Dato
-              </label>
-              <select id="trend-type" className={inputClass} value={type} onChange={(event) => setType(event.target.value as ProjectionType)}>
-                {TYPES.map((entry) => (
-                  <option key={entry.type} value={entry.type}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-full sm:w-72">
+    <AppShell title="Tendencias" section="Colectivo">
+      <div className="space-y-4">
+        <div className="glass-card flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-5 py-3" data-testid="toolbar">
+          <div className="flex flex-wrap items-end gap-4">
+            <SegmentedControl
+              label="Dato"
+              testId="trend-type"
+              value={type}
+              onChange={setType}
+              options={TYPES.map((entry) => ({ value: entry.type, label: entry.label }))}
+            />
+            <div className="w-full sm:w-64">
               <label className={labelClass} htmlFor="trend-product">
                 Producto
               </label>
@@ -122,7 +120,7 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
   const sealed = trends.campaigns.filter((campaign) => campaign.seal !== null);
   const unsealed = trends.campaigns.filter((campaign) => campaign.seal === null);
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <DisclosureNotice mode={trends.disclosure.mode} threshold={trends.disclosure.threshold} />
       {trends.disclosure.mode === 'PROVISIONAL_SYNTHETIC' &&
         (selected === null ? (
@@ -130,23 +128,23 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
             <EmptyState
               compact
               title="Sin series selladas"
-              description={`No hay cifras selladas de ${typeLabel.toLowerCase()} en ninguna campaña. Eso no significa cero.`}
+              description={`Filtro aplicado: «${typeLabel}». No hay cifras selladas de ${typeLabel.toLowerCase()} en ninguna campaña. Eso no significa cero.`}
             />
           </div>
         ) : (
           <section className="glass-card overflow-hidden" aria-label="Gráfico del historial">
             <SectionHeader
-              title={`${selected.product_name} (${selected.presentation_unit}) · ${typeLabel}`}
+              title={`${selected.product_name} · ${typeLabel}`}
               note={
                 unsealed.length > 0
-                  ? `Campañas sin sellar (${unsealed.map((campaign) => campaign.name).join(', ')}) no se dibujan como histórico.`
-                  : 'Una columna por campaña sellada; sin columna = sin cifra publicada, no cero.'
+                  ? `Una columna por campaña sellada, en ${selected.presentation_unit}. Campañas sin sellar (${unsealed.map((campaign) => campaign.name).join(', ')}) no se dibujan como histórico.`
+                  : `Una columna por campaña sellada, en ${selected.presentation_unit}; sin columna = sin cifra publicada, no cero.`
               }
             />
             <TrendChart line={selected} campaigns={sealed} />
           </section>
         ))}
-      <Collapsible title="Ver fuentes y cobertura" testId="sources">
+      <Collapsible title="Ver campañas y cobertura" testId="sources">
         <div className="space-y-5 p-5">
           <p className="text-xs text-slate-500">{trends.notice} Ningún dato individual se incorpora para enriquecer estas tendencias.</p>
           <CampaignsTable campaigns={trends.campaigns} />
@@ -239,10 +237,28 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
   );
 }
 
-const STEP = 112;
-const COLUMN = 44;
-const PAD = { left: 24, right: 24, top: 36, bottom: 44 };
-const PLOT_HEIGHT = 160;
+const STEP = 136;
+const COLUMN = 52;
+const PAD = { left: 28, right: 28, top: 40, bottom: 56 };
+const PLOT_HEIGHT = 190;
+const LINE_CHARS = 17;
+
+/** Nombre de campaña en hasta dos líneas de ~17 caracteres, sin cortar palabras; sólo se abrevia si no cabe. */
+function wrapName(name: string): string[] {
+  const lines: string[] = [];
+  let current = '';
+  for (const word of name.split(/\s+/)) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= LINE_CHARS || !current) current = next;
+    else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length > 2) return [lines[0]!, `${lines.slice(1).join(' ').slice(0, LINE_CHARS - 1)}…`];
+  return lines.map((line) => (line.length > LINE_CHARS ? `${line.slice(0, LINE_CHARS - 1)}…` : line));
+}
 
 /**
  * Columnas de una sola serie sobre las campañas selladas, en orden. Sólo se
@@ -278,9 +294,12 @@ function TrendChart({ line, campaigns }: { line: TrendSeries; campaigns: TrendCa
         className="text-emerald-700"
         data-testid="trend-chart"
       >
+        <text x={PAD.left - 8} y={16} fontSize={11} fill="#64748b">
+          {line.presentation_unit} por campaña sellada
+        </text>
         <line x1={PAD.left - 8} x2={width - PAD.right + 8} y1={baseline} y2={baseline} stroke="#cbd5e1" strokeWidth={1} />
         {columns.map(({ campaign, value, label }, index) => {
-          const name = campaign.name.length > 18 ? `${campaign.name.slice(0, 17)}…` : campaign.name;
+          const name = wrapName(campaign.name);
           return (
             <g key={campaign.campaign_ref}>
               {value !== null && label ? (
@@ -296,7 +315,7 @@ function TrendChart({ line, campaigns }: { line: TrendSeries; campaigns: TrendCa
                   >
                     <title>{`${campaign.name}: ${label}`}</title>
                   </rect>
-                  <text x={x(index) + COLUMN / 2} y={baseline - Math.max(h(value), 2) - 10} textAnchor="middle" fontSize={15} fontWeight={700} fill="#0f172a">
+                  <text x={x(index) + COLUMN / 2} y={baseline - Math.max(h(value), 2) - 10} textAnchor="middle" fontSize={17} fontWeight={700} fill="#0f172a">
                     {label}
                   </text>
                 </>
@@ -305,8 +324,12 @@ function TrendChart({ line, campaigns }: { line: TrendSeries; campaigns: TrendCa
                   sin cifra
                 </text>
               )}
-              <text x={x(index) + COLUMN / 2} y={baseline + 18} textAnchor="middle" fontSize={11} fill="#475569">
-                {name}
+              <text x={x(index) + COLUMN / 2} y={baseline + 20} textAnchor="middle" fontSize={12} fill="#475569">
+                {name.map((part, line) => (
+                  <tspan key={line} x={x(index) + COLUMN / 2} dy={line === 0 ? 0 : 15}>
+                    {part}
+                  </tspan>
+                ))}
               </text>
             </g>
           );

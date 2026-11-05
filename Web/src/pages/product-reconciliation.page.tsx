@@ -10,6 +10,7 @@ import {
   Notice,
   secondaryButtonClass,
 } from '../components/app-shell';
+import { Collapsible, PageNote, SectionHeader } from '../components/collective-ui';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import type { Association, AssociationList, CatalogEntry } from '../types/collective';
@@ -20,9 +21,12 @@ type Dialog =
 
 /**
  * F07-REC-01 (#108, CU-18): la Directiva asocia una denominación del catálogo
- * con su producto canónico. Nada se asocia sin confirmación explícita; los
- * nombres originales no cambian y cada cambio queda en el historial. Sin
- * sugerencias automáticas.
+ * con su producto canónico («Equivalencias de productos»). Nada se asocia sin
+ * confirmación explícita; los nombres originales no cambian y cada cambio
+ * queda en el historial. Sin sugerencias automáticas.
+ *
+ * Panel de la defensa (2026-11-05): primero los nombres pendientes de asociar,
+ * después las equivalencias vigentes y el historial plegado.
  */
 export function ProductReconciliationPage() {
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
@@ -53,6 +57,7 @@ export function ProductReconciliationPage() {
   }
   const catalogEntry = (ref: string) => catalog.find((product) => product.product_ref === ref);
   const unassociated = catalog.filter((product) => !aliasOf.has(product.product_ref));
+  const pending = unassociated.filter((product) => product.base_unit !== null && (aliasCount.get(product.product_ref) ?? 0) === 0);
   const fullHistory = [...associations.current, ...associations.history].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
 
   const done = async (text: string) => {
@@ -62,33 +67,76 @@ export function ProductReconciliationPage() {
   };
 
   return (
-    <AppShell title="Reconciliación de denominaciones" section="Colectivo">
-      <div className="space-y-6">
-        <Notice kind="info">
+    <AppShell title="Equivalencias de productos" section="Gestión">
+      <div className="space-y-4">
+        <PageNote>
           Asociar «Bellator» con «Belator» agrupa sus cifras bajo el producto canónico en el resumen y en las propuestas
-          que se generen después. Los nombres del catálogo y los datos de los agricultores no cambian. Sólo se agrupan
+          que se generen después. Los nombres del catálogo y los datos de los agricultores no cambian; sólo se agrupan
           unidades de la misma dimensión (L con L, KG con KG).
-        </Notice>
+        </PageNote>
         {error && <Notice kind="error">{error}</Notice>}
         {message && <Notice kind="ok">{message}</Notice>}
 
+        <section className="glass-card overflow-hidden" aria-label="Denominaciones sin asociar">
+          <SectionHeader
+            title="Pendientes de asociar"
+            note={`${pending.length} ${pending.length === 1 ? 'denominación pendiente' : 'denominaciones pendientes'}. Cada una se consolida por separado hasta que la Directiva confirme una asociación.`}
+          />
+          {unassociated.length === 0 ? (
+            <EmptyState compact title="Todas las denominaciones están asociadas" />
+          ) : (
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-slate-100">
+                {unassociated.map((product) => {
+                  const aliases = aliasCount.get(product.product_ref) ?? 0;
+                  return (
+                    <tr key={product.product_ref} data-testid={`product-${product.product_name}`}>
+                      <td className="px-5 py-2.5 text-base font-semibold text-slate-900">
+                        {product.product_name}
+                        <span className="ml-2 text-xs font-normal text-slate-400">{product.unit}</span>
+                        {!product.is_active && <span className="ml-2 text-xs font-normal text-slate-400">(inactivo)</span>}
+                      </td>
+                      <td className="px-5 py-2.5 text-xs text-slate-500">
+                        {product.base_unit === null
+                          ? 'Unidad no vinculable'
+                          : aliases > 0
+                            ? `Canónico de ${aliases} denominación(es)`
+                            : 'Pendiente'}
+                      </td>
+                      <td className="px-5 py-2.5 text-right">
+                        <button
+                          type="button"
+                          className={secondaryButtonClass}
+                          disabled={product.base_unit === null || aliases > 0}
+                          title={aliases > 0 ? 'Es canónico de otras denominaciones: no puede ser alias.' : undefined}
+                          onClick={() => setDialog({ kind: 'associate', product })}
+                        >
+                          Asociar…
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </section>
+
         <section className="glass-card overflow-hidden" aria-label="Asociaciones vigentes">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-base font-bold text-slate-900">Asociaciones vigentes</h2>
-          </div>
+          <SectionHeader title="Equivalencias vigentes" note="Denominación → producto canónico bajo el que se agrupan sus cifras." />
           {associations.current.length === 0 ? (
-            <EmptyState title="No hay denominaciones asociadas" />
+            <EmptyState compact title="No hay denominaciones asociadas" />
           ) : (
             <table className="w-full text-sm">
               <tbody className="divide-y divide-slate-100">
                 {associations.current.map((row) => (
                   <tr key={row.association_ref} data-testid={`current-${row.product_name}`}>
-                    <td className="px-5 py-3 font-medium">{row.product_name}</td>
-                    <td className="px-5 py-3 text-slate-500">→ {row.canonical_product_name}</td>
-                    <td className="px-5 py-3 text-xs text-slate-500">
+                    <td className="px-5 py-2.5 font-semibold text-slate-900">{row.product_name}</td>
+                    <td className="px-5 py-2.5 text-slate-600">→ {row.canonical_product_name}</td>
+                    <td className="px-5 py-2.5 text-xs text-slate-500">
                       desde {fmtDateTime(row.valid_from)} · {row.actor_name}
                     </td>
-                    <td className="space-x-2 px-5 py-3 text-right">
+                    <td className="space-x-2 px-5 py-2.5 text-right">
                       {catalogEntry(row.product_ref) && (
                         <button
                           type="button"
@@ -109,85 +157,37 @@ export function ProductReconciliationPage() {
           )}
         </section>
 
-        <section className="glass-card overflow-hidden" aria-label="Denominaciones sin asociar">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-base font-bold text-slate-900">Denominaciones sin asociar</h2>
-            <p className="mt-0.5 text-xs text-slate-500">Cada una se consolida por separado hasta que la Directiva confirme una asociación.</p>
-          </div>
-          {unassociated.length === 0 ? (
-            <EmptyState title="Todas las denominaciones están asociadas" />
-          ) : (
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-100">
-                {unassociated.map((product) => {
-                  const aliases = aliasCount.get(product.product_ref) ?? 0;
-                  return (
-                    <tr key={product.product_ref} data-testid={`product-${product.product_name}`}>
-                      <td className="px-5 py-3 font-medium">
-                        {product.product_name}
-                        {!product.is_active && <span className="ml-2 text-xs text-slate-400">(inactivo)</span>}
-                      </td>
-                      <td className="px-5 py-3 text-xs text-slate-500">{product.unit}</td>
-                      <td className="px-5 py-3 text-xs text-slate-500">
-                        {product.base_unit === null
-                          ? 'Unidad no vinculable'
-                          : aliases > 0
-                            ? `Canónico de ${aliases} denominación(es)`
-                            : 'Pendiente'}
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <button
-                          type="button"
-                          className={secondaryButtonClass}
-                          disabled={product.base_unit === null || aliases > 0}
-                          title={aliases > 0 ? 'Es canónico de otras denominaciones: no puede ser alias.' : undefined}
-                          onClick={() => setDialog({ kind: 'associate', product })}
-                        >
-                          Asociar…
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </section>
-
-        <section className="glass-card overflow-hidden" aria-label="Historial">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-base font-bold text-slate-900">Historial</h2>
-            <p className="mt-0.5 text-xs text-slate-500">Las correcciones cierran la asociación anterior y abren otra; nada se borra.</p>
-          </div>
+        <Collapsible title={`Historial (${fullHistory.length})`} label="Historial">
+          <p className="px-5 pt-3 text-xs text-slate-500">Las correcciones cierran la asociación anterior y abren otra; nada se borra.</p>
           {fullHistory.length === 0 ? (
-            <EmptyState title="Sin cambios registrados" />
+            <EmptyState compact title="Sin cambios registrados" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
                   <tr>
-                    <th className="px-5 py-3">Denominación → canónico</th>
-                    <th className="px-5 py-3">Vigencia</th>
-                    <th className="px-5 py-3">Asociado por / motivo</th>
-                    <th className="px-5 py-3">Cerrado por / motivo</th>
+                    <th className="px-5 py-2.5">Denominación → canónico</th>
+                    <th className="px-5 py-2.5">Vigencia</th>
+                    <th className="px-5 py-2.5">Asociado por / motivo</th>
+                    <th className="px-5 py-2.5">Cerrado por / motivo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {fullHistory.map((row) => (
                     <tr key={row.association_ref} data-testid={`history-${row.association_ref}`}>
-                      <td className="px-5 py-3">{row.product_name} → {row.canonical_product_name}</td>
-                      <td className="px-5 py-3 text-xs">
+                      <td className="px-5 py-2.5">{row.product_name} → {row.canonical_product_name}</td>
+                      <td className="px-5 py-2.5 text-xs">
                         {fmtDateTime(row.valid_from)} – {row.valid_to ? fmtDateTime(row.valid_to) : 'vigente'}
                       </td>
-                      <td className="px-5 py-3 text-xs">{row.actor_name}: {row.reason}</td>
-                      <td className="px-5 py-3 text-xs">{row.closed_by_name ? `${row.closed_by_name}: ${row.close_reason ?? ''}` : '—'}</td>
+                      <td className="px-5 py-2.5 text-xs">{row.actor_name}: {row.reason}</td>
+                      <td className="px-5 py-2.5 text-xs">{row.closed_by_name ? `${row.closed_by_name}: ${row.close_reason ?? ''}` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </section>
+        </Collapsible>
       </div>
 
       {dialog?.kind === 'associate' && (

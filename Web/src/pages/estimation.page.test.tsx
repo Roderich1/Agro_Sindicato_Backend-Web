@@ -179,7 +179,8 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     renderAt(<EstimationPage />, { path: PATH });
     const row = await screen.findByTestId('result-Fungicida');
     expect(within(row).getByTestId('reason').textContent).toMatch(/menos de tres campañas comparables consecutivas/);
-    expect(within(row).getByTestId('estimate').textContent).toBe('Sin cifra');
+    // «Datos insuficientes» ocupa el lugar de la cifra: ninguna cantidad, ningún cero.
+    expect(within(row).getByTestId('estimate').textContent).toBe('Datos insuficientes');
     expect(within(row).getByTestId('naive').textContent).toBe('Sin cifra');
     expect(row.textContent).not.toMatch(/\b0 L\b/);
     expect(within(row).getByTestId('validity').textContent).toMatch(/No utilizable.*no tiene cifra/);
@@ -216,7 +217,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     );
     renderAt(<EstimationPage />, { path: PATH });
     const row = await screen.findByTestId('result-Glifosato');
-    expect(within(row).getByTestId('estimate').textContent).toBe('Sin cifra');
+    expect(within(row).getByTestId('estimate').textContent).toBe('Datos insuficientes');
     expect(within(row).getByTestId('naive').textContent).toBe('Sin cifra');
     expect(row.textContent).not.toMatch(/5 L|5\.000/);
   });

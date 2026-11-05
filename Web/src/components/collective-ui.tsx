@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { useCampaign } from '../hooks/use-campaign';
 import { CAMPAIGN_STATUS_TEXT, fmtDateTime, statusReason } from '../lib/collective-text';
-import { fmtDate } from '../lib/format';
 import { formatQuantity, isBaseQuantity, type BaseUnit } from '../lib/quantity';
 import type { Campaign } from '../types/campaigns';
 import type { AnyStatus, Coverage, SealRef } from '../types/collective';
@@ -10,14 +11,14 @@ import { inputClass, labelClass, Notice } from './app-shell';
 
 const STATUS_TEXT: Record<AnyStatus, { label: string; cls: string }> = {
   DISCLOSED: { label: 'Publicado', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-  SUPPRESSED_UNDER_THRESHOLD: { label: 'Oculto', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
-  SUPPRESSED_REVISION: { label: 'Oculto (revisión)', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
+  SUPPRESSED_UNDER_THRESHOLD: { label: 'Oculto por privacidad', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
+  SUPPRESSED_REVISION: { label: 'Sin cifra publicada', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
   OVERFLOW: { label: 'Fuera de rango', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
   WITHDRAWN: { label: 'Retirado', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
   SUPERSEDED: { label: 'Sustituido', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
   POLICY_PENDING: { label: 'Política pendiente', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
   WITHDRAWN_AFTER_SEAL: { label: 'Retirado tras sellar', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
-  NO_DATA: { label: 'Sin dato', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
+  NO_DATA: { label: 'Sin cifra publicada', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
   NOT_SEALED: { label: 'Sin sellar', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
 };
 
@@ -51,8 +52,8 @@ export function ProductCell({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="font-semibold text-slate-800">{name}</span>
-      <span className="text-xs text-slate-400">{unit}</span>
+      <span className="text-base font-semibold text-slate-900">{name}</span>
+      {unit && <span className="text-xs text-slate-400">{unit}</span>}
       <StatusBadge status={status} threshold={threshold} />
     </div>
   );
@@ -82,7 +83,7 @@ export function QuantityCell({
   size?: 'md' | 'lg';
 }) {
   if (status !== 'DISCLOSED') {
-    return <span className="text-xs text-slate-500">{statusReason(status, threshold)}</span>;
+    return <span className="text-xs leading-snug text-slate-500">{statusReason(status, threshold)}</span>;
   }
   const text = formatQuantity(base, unit, serverPresentation);
   if (text === null) {
@@ -90,7 +91,7 @@ export function QuantityCell({
   }
   return (
     <span className="block">
-      <span className={`${size === 'lg' ? 'text-2xl' : 'text-base'} font-bold tabular-nums text-slate-900`}>{text}</span>
+      <span className={`${size === 'lg' ? 'text-2xl' : 'text-lg'} font-bold leading-tight tabular-nums text-slate-900`}>{text}</span>
       {asOf !== undefined && <span className="block text-[11px] text-slate-400">datos hasta {fmtDateTime(asOf)}</span>}
     </span>
   );
@@ -113,7 +114,7 @@ export function PendingChangesNote() {
 }
 
 /**
- * Cobertura agregada, en una sola franja. Sin `asOf` es la cobertura actual
+ * Cobertura agregada en una tarjeta compacta. Sin `asOf` es la cobertura actual
  * (resumen); con `asOf` es la que quedó guardada al generar un borrador y no
  * se actualiza después. F10-SEC-02: cuenta sólo a los agricultores que están
  * dentro de una cifra publicada; los aportes de celdas sin cifra no se cuentan
@@ -124,12 +125,15 @@ export function CoverageBanner({
   campaignName,
   asOf,
   sealedAt,
+  link,
 }: {
   coverage: Coverage;
   campaignName: string;
   asOf?: string;
   /** Versión sellada: la cobertura es la del sellado y no se recalcula. */
   sealedAt?: string;
+  /** Enlace a la vista de cobertura («Ver cobertura»). */
+  link?: string;
 }) {
   const title = sealedAt
     ? `Cobertura al sellar (${fmtDateTime(sealedAt)})`
@@ -138,22 +142,36 @@ export function CoverageBanner({
       : 'Cobertura';
   const headline =
     coverage.basis === 'ALL_CONTRIBUTORS'
-      ? `${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados habían aportado datos en esa fecha`
-      : `${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados con cifras publicadas${asOf ? ' en esa fecha' : ''}`;
+      ? 'agricultores vinculados habían aportado datos en esa fecha'
+      : `agricultores vinculados con cifras publicadas${asOf ? ' en esa fecha' : ''}`;
   return (
-    <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3" data-testid="coverage">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-800/70">
-        {title} · {campaignName}
-      </p>
-      <p className="mt-0.5 text-base font-bold text-slate-900">{headline}</p>
-      <p className="mt-0.5 text-xs text-slate-500">
-        {coverage.basis === 'ALL_CONTRIBUTORS' &&
-          'Borrador guardado con la regla anterior a F10-SEC-02: el conteo incluye a quienes aportaron a filas sin cifra. '}
-        {asOf && 'No es la cobertura actual: la de hoy está en el resumen. '}
-        {sealedAt && 'Fijada al sellar; no se recalcula. '}
-        {coverage.suppressed_cells && 'Hay filas sin cifra (bajo el umbral o en revisión) cuyos aportes no se cuentan. '}
-        Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
-      </p>
+    <div
+      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-5 py-3"
+      data-testid="coverage"
+      title={campaignName}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-800/70">{title}</p>
+        <p className="mt-0.5 text-slate-900">
+          <span className="text-3xl font-bold leading-tight tabular-nums">
+            {coverage.members_with_contribution} de {coverage.linked_members}
+          </span>{' '}
+          <span className="text-sm font-semibold">{headline}</span>
+        </p>
+        <p className="mt-0.5 text-xs text-slate-500">
+          {coverage.basis === 'ALL_CONTRIBUTORS' &&
+            'Borrador guardado con la regla anterior a F10-SEC-02: el conteo incluye a quienes aportaron a filas sin cifra. '}
+          {asOf && 'No es la cobertura actual: la de hoy está en el resumen. '}
+          {sealedAt && 'Fijada al sellar; no se recalcula. '}
+          {coverage.suppressed_cells && 'Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan. '}
+          Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
+        </p>
+      </div>
+      {link && (
+        <Link to={link} className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline">
+          Ver cobertura
+        </Link>
+      )}
     </div>
   );
 }
@@ -164,7 +182,7 @@ export function CoverageBanner({
  */
 export function SealBanner({ seal }: { seal: SealRef }) {
   return (
-    <div className="rounded-xl border-l-4 border-emerald-600 bg-white/70 px-4 py-3 shadow-sm" data-testid="seal-banner">
+    <div className="rounded-xl border-l-4 border-emerald-600 bg-white/70 px-4 py-2.5 shadow-sm" data-testid="seal-banner">
       <p className="text-sm font-bold text-slate-900">
         Versión {seal.version} sellada el {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} (
         {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) · datos aceptados hasta{' '}
@@ -179,6 +197,10 @@ export function SealBanner({ seal }: { seal: SealRef }) {
   );
 }
 
+/**
+ * Aviso de política pendiente: se conserva porque bloquea las cifras. El modo
+ * sintético no lleva banner: el armazón muestra la etiqueta «Datos sintéticos».
+ */
 export function DisclosureNotice({ mode, threshold }: { mode: 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC'; threshold?: number | null }) {
   if (mode === 'POLICY_PENDING') {
     return (
@@ -188,8 +210,6 @@ export function DisclosureNotice({ mode, threshold }: { mode: 'POLICY_PENDING' |
       </Notice>
     );
   }
-  // Política aprobada: ningún banner. El umbral sigue explicándose fila por fila
-  // («Menos de k agricultores aportaron…»), que es donde falta el dato.
   void threshold;
   return null;
 }
@@ -204,7 +224,7 @@ export function CampaignPicker({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="w-full sm:w-[26rem]">
+    <div className="w-full sm:w-80">
       <label className={labelClass} htmlFor="campaign-picker">
         Campaña
       </label>
@@ -217,7 +237,7 @@ export function CampaignPicker({
         {selected === null && <option value="">Seleccione una campaña</option>}
         {campaigns.map((campaign) => (
           <option key={campaign.id} value={campaign.id}>
-            {campaign.name} · {CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status} · {fmtDate(campaign.startDate)}
+            {campaign.name} · {CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}
           </option>
         ))}
       </select>
@@ -226,8 +246,9 @@ export function CampaignPicker({
 }
 
 /**
- * Barra común de las vistas colectivas: la campaña elegida siempre a la vista,
- * a la izquierda, y la acción principal de la vista a la derecha.
+ * Barra común de las vistas colectivas: la campaña consultada a la izquierda
+ * (con su estado y, si no es la activa, un aviso) y la acción principal de la
+ * vista a la derecha. El nombre de la campaña no se repite en las tarjetas.
  */
 export function CollectiveToolbar({
   campaigns,
@@ -240,21 +261,41 @@ export function CollectiveToolbar({
   onSelect: (id: string) => void;
   children?: ReactNode;
 }) {
+  const { activeCampaign } = useCampaign();
   const campaign = campaigns.find((entry) => entry.id === selected) ?? null;
+  const differs = Boolean(campaign && activeCampaign && campaign.id !== activeCampaign.id);
   return (
-    <div className="glass-card flex flex-wrap items-end justify-between gap-4 px-5 py-4" data-testid="toolbar">
+    <div className="glass-card flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-5 py-3" data-testid="toolbar">
       <div className="flex flex-wrap items-end gap-3">
         <CampaignPicker campaigns={campaigns} selected={selected} onSelect={onSelect} />
         {campaign && (
-          <span
-            className={`mb-2.5 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
-              campaign.status === 'ABIERTA'
-                ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20'
-                : 'bg-slate-500/10 text-slate-600 ring-slate-500/20'
-            }`}
-          >
-            {CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}
-          </span>
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
+                campaign.status === 'ABIERTA'
+                  ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20'
+                  : 'bg-slate-500/10 text-slate-600 ring-slate-500/20'
+              }`}
+            >
+              {CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}
+            </span>
+            {differs ? (
+              <span
+                className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-500/20"
+                title={`La campaña activa del sindicato es ${activeCampaign!.name}`}
+                data-testid="campaign-differs"
+              >
+                Consultando una campaña distinta de la activa
+              </span>
+            ) : (
+              activeCampaign &&
+              campaign.id === activeCampaign.id && (
+                <span className="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                  Activa
+                </span>
+              )
+            )}
+          </div>
         )}
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
@@ -272,12 +313,15 @@ export function PageNote({ children, testId }: { children: ReactNode; testId?: s
 }
 
 /** Cabecera de una sección en tarjeta: título breve y, si hace falta, una línea de contexto. */
-export function SectionHeader({ title, note, actions }: { title: string; note?: ReactNode; actions?: ReactNode }) {
+export function SectionHeader({ title, note, actions, badge }: { title: ReactNode; note?: ReactNode; actions?: ReactNode; badge?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
-      <div>
-        <h2 className="text-base font-bold text-slate-900">{title}</h2>
-        {note && <p className="mt-0.5 text-xs text-slate-500">{note}</p>}
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-3">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-base font-bold text-slate-900">{title}</h2>
+          {badge}
+        </div>
+        {note && <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{note}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -299,13 +343,55 @@ export function StatTile({ label, value, note, testId, tone = 'default' }: { lab
 export function Collapsible({ title, children, testId, label, defaultOpen = false }: { title: string; children: ReactNode; testId?: string; label?: string; defaultOpen?: boolean }) {
   return (
     <details className="glass-card group overflow-hidden" data-testid={testId} aria-label={label ?? title} open={defaultOpen}>
-      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-800 hover:bg-slate-50/60">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600">
         {title}
         <span className="text-xs font-medium text-emerald-700 group-open:hidden">Ver</span>
         <span className="hidden text-xs font-medium text-slate-500 group-open:inline">Ocultar</span>
       </summary>
       <div className="border-t border-slate-100">{children}</div>
     </details>
+  );
+}
+
+/**
+ * Dos o tres opciones visibles a la vez (en lugar de un desplegable), manejables
+ * con teclado: cada opción es un botón con estado `aria-pressed`.
+ */
+export function SegmentedControl<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  testId,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  testId?: string;
+}) {
+  return (
+    <div>
+      <p className={labelClass}>{label}</p>
+      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5" role="group" aria-label={label} data-testid={testId}>
+        {options.map((option) => {
+          const active = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(option.value)}
+              className={`rounded-[10px] px-3.5 py-2 text-sm font-semibold transition-colors ${
+                active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -326,7 +412,8 @@ export interface BarRow {
 /**
  * Barras horizontales por producto, una escala por unidad (L y KG nunca se
  * comparan entre sí). Una cifra oculta no dibuja barra ni cero: muestra el
- * motivo. Un solo color: no hay series que distinguir.
+ * motivo. Un cero divulgado se escribe «0 L» sin barra. Un solo color: no hay
+ * series que distinguir.
  */
 export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit: 'L' | 'KG'; threshold: number | null }) {
   const values = rows.map((row) => (row.status === 'DISCLOSED' && isBaseQuantity(row.base) ? BigInt(row.base!) : null));
@@ -338,26 +425,31 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
         const value = values[index]!;
         const text = row.status === 'DISCLOSED' ? formatQuantity(row.base, unit === 'L' ? 'ML' : 'G', row.presentation) : null;
         return (
-          <li key={row.key} className="grid items-center gap-x-4 gap-y-1 px-5 py-3 sm:grid-cols-[minmax(10rem,14rem)_1fr_auto]" data-testid={row.testId}>
+          <li key={row.key} className="grid items-center gap-x-4 gap-y-1 px-5 py-2.5 sm:grid-cols-[minmax(11rem,15rem)_1fr_auto]" data-testid={row.testId}>
             <ProductCell name={row.name} unit={row.unit} status={row.status} threshold={threshold} />
             {row.status === 'DISCLOSED' ? (
               <div className="flex items-center gap-3" title={text ?? undefined}>
                 <div className="h-3 flex-1 rounded-full bg-slate-100">
-                  <div className="h-3 rounded-full bg-emerald-600" style={{ width: `${Math.max(width(value), text === '0 L' || text === '0 KG' ? 0 : 1)}%` }} />
+                  <div
+                    className="h-3 rounded-full bg-emerald-600"
+                    style={{ width: `${value !== null && value > 0n ? Math.max(width(value), 1) : 0}%` }}
+                  />
                 </div>
-                <span className="w-28 text-right text-2xl font-bold tabular-nums text-slate-900">{text ?? <span className="text-sm text-red-700">Dato no válido</span>}</span>
+                <span className="w-32 text-right text-3xl font-bold leading-none tabular-nums text-slate-900">
+                  {text ?? <span className="text-sm text-red-700">Dato no válido</span>}
+                </span>
               </div>
             ) : (
-              <p className="text-xs text-slate-500">{statusReason(row.status, threshold)}</p>
+              <p className="text-xs leading-snug text-slate-500">{statusReason(row.status, threshold)}</p>
             )}
-            <div className="text-right text-xs text-slate-500 sm:w-40">
+            <div className="text-right text-xs text-slate-500 sm:w-44">
               {row.status === 'DISCLOSED' ? (
                 <>
                   <span className="block text-sm font-semibold text-slate-700">{row.contributors} aportantes</span>
                   <span>datos hasta {fmtDateTime(row.asOf)}</span>
                 </>
               ) : (
-                '—'
+                <span className="text-slate-400">aportantes no revelados</span>
               )}
             </div>
             {row.status === 'DISCLOSED' && row.pending && (

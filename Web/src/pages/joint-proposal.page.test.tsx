@@ -37,7 +37,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
   it('genera un borrador y muestra sólo lo que el servidor publicó', async () => {
     vi.mocked(collectiveService.generateProposal).mockResolvedValue(DRAFT);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     const urea = await screen.findByTestId('line-Urea-G');
     expect(collectiveService.generateProposal).toHaveBeenCalledWith(CAMPAIGN.id);
     expect(within(urea).getByText('25 KG')).toBeTruthy();
@@ -59,7 +59,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
   it('la cobertura de un borrador se rotula con su fecha de generación, no como la actual (F10)', async () => {
     vi.mocked(collectiveService.generateProposal).mockResolvedValue(DRAFT);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     const coverage = await screen.findByTestId('coverage');
     expect(coverage.textContent).toContain(`Cobertura al generar el borrador (${fmtDateTime(DRAFT.generated_at)})`);
     expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas en esa fecha/);
@@ -72,7 +72,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
       coverage: { linked_members: 4, members_with_contribution: 3, basis: 'ALL_CONTRIBUTORS' },
     });
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     const coverage = await screen.findByTestId('coverage');
     expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados habían aportado datos en esa fecha/);
     expect(coverage.textContent).toMatch(/regla anterior a F10-SEC-02/);
@@ -82,7 +82,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
   it('POLICY_PENDING al generar: lo explica y no muestra ninguna línea', async () => {
     vi.mocked(collectiveService.generateProposal).mockRejectedValue(conflict());
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     expect(await screen.findByText(/no se genera ni se guarda ninguna propuesta con cifras/)).toBeTruthy();
     expect(screen.queryByLabelText('Detalle del borrador')).toBeNull();
   });
@@ -128,6 +128,30 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(screen.getAllByText('huella oculta').length).toBe(2);
   });
 
+  it('al elegir una campaña con borradores abre el último por consulta, sin generar uno', async () => {
+    vi.mocked(collectiveService.proposals).mockResolvedValue([
+      { proposal_ref: 'p-ultimo', status: 'DRAFT', generated_at: '2026-10-17T13:00:00.000Z', generated_by: DRAFT.generated_by, inputs_fingerprint: DRAFT.inputs_fingerprint, line_count: 4 },
+      { proposal_ref: 'p-anterior', status: 'DRAFT', generated_at: '2026-10-16T13:00:00.000Z', generated_by: DRAFT.generated_by, inputs_fingerprint: null, line_count: 1 },
+    ]);
+    vi.mocked(collectiveService.proposal).mockImplementation(async (id) =>
+      id === 'p-ultimo' ? { ...DRAFT, proposal_ref: 'p-ultimo' } : proposalWith([line({ position: 0, product_name: 'Urea', base_unit: 'G', quantity_base: '1000', quantity_presentation: '1', contributors: 3 })], { proposal_ref: 'p-anterior', inputs_fingerprint: null }),
+    );
+    renderAt(<JointProposalPage />, { path: PATH });
+    const urea = await screen.findByTestId('line-Urea-G');
+    expect(within(urea).getByText('25 KG')).toBeTruthy();
+    expect(collectiveService.proposal).toHaveBeenCalledWith('p-ultimo');
+    expect(collectiveService.generateProposal).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { level: 2, name: /^Borrador · / })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Generar borrador' })).toBeTruthy();
+    // El borrador mostrado no se vuelve a abrir; el histórico sí, y esa elección se respeta.
+    const buttons = screen.getAllByRole('button', { name: 'Ver' }) as HTMLButtonElement[];
+    expect(buttons[0]!.disabled).toBe(true);
+    fireEvent.click(buttons[1]!);
+    await screen.findByText('1 KG');
+    expect(screen.queryByText('25 KG')).toBeNull();
+    expect(collectiveService.generateProposal).not.toHaveBeenCalled();
+  });
+
   it('el historial muestra huella y autor, sin cantidades', async () => {
     vi.mocked(collectiveService.proposals).mockResolvedValue([
       { proposal_ref: 'p2', status: 'DRAFT', generated_at: '2026-10-16T13:00:00.000Z', generated_by: { user_ref: 'u', name: 'Presidente sintético' }, inputs_fingerprint: 'abc123def456' + '0'.repeat(52), line_count: 3 },
@@ -146,7 +170,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Exportar CSV' }));
     await vi.waitFor(() => expect(collectiveService.proposalCsv).toHaveBeenCalledWith(DRAFT.proposal_ref));
     expect(createObjectURL).toHaveBeenCalled();

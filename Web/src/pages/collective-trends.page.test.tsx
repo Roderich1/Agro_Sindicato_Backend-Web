@@ -98,13 +98,27 @@ describe('Tendencias entre campañas', () => {
     expect(document.body.textContent).toMatch(/no prueba que cada agricultor\s+consumiera o necesitara más o menos/);
   });
 
-  it('necesidad y consumo se piden por separado', async () => {
+  it('abre con «Consumo publicado»; necesidad y consumo se piden por separado con dos opciones visibles', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([]));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
     await screen.findByText(/Sin series selladas/);
-    expect(collectiveService.trends).toHaveBeenLastCalledWith('DECLARED_NEED');
-    fireEvent.change(screen.getByLabelText(/Dato/), { target: { value: 'CONSUMPTION_TOTAL' } });
-    await waitFor(() => expect(collectiveService.trends).toHaveBeenLastCalledWith('CONSUMPTION_TOTAL'));
+    expect(screen.getByText(/Filtro aplicado: «Consumo publicado»/)).toBeTruthy();
+    expect(collectiveService.trends).toHaveBeenLastCalledWith('CONSUMPTION_TOTAL');
+    const group = screen.getByRole('group', { name: 'Dato' });
+    expect(within(group).getByRole('button', { name: 'Consumo publicado' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(group).getByRole('button', { name: 'Necesidad declarada' }));
+    await waitFor(() => expect(collectiveService.trends).toHaveBeenLastCalledWith('DECLARED_NEED'));
+    expect(within(group).getByRole('button', { name: 'Necesidad declarada' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('el gráfico aparece antes de la tabla; campañas, versión y cobertura quedan en «Ver campañas y cobertura»', async () => {
+    vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida]));
+    renderAt(<CollectiveTrendsPage />, { path: PATH });
+    const chart = await screen.findByTestId('trend-chart');
+    const sources = screen.getByTestId('sources');
+    expect(sources.textContent).toMatch(/Ver campañas y cobertura/);
+    expect(chart.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(chart.textContent).toMatch(/L por campaña sellada/);
   });
 
   it('POLICY_PENDING: sin series ni cifras', async () => {

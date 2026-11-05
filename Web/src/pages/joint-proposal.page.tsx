@@ -18,6 +18,7 @@ import { ExportButtons } from '../components/export-buttons';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { reportDisclosureMode } from '../lib/data-mode';
 import { REASON_TEXT, RESULT_STATUS_TEXT } from '../lib/estimation-text';
 import { saveBlob } from '../lib/exports';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
@@ -46,10 +47,11 @@ type ReferenceState =
  * respuesta que llega después de cambiar de campaña, de identidad o de
  * borrador se descarta.
  *
- * Jerarquía (defensa, 2026-11-05): al entrar se abre el último borrador de la
- * campaña y se ven sus líneas (producto, cantidad declarada, unidad, estado);
- * la referencia de consumo queda como información secundaria con fecha y
- * vigencia; la huella y los borradores anteriores van a «Historial».
+ * Panel de la defensa (2026-11-05): al elegir una campaña con borradores se
+ * carga y muestra el último por el flujo de consulta (nunca se crea uno al
+ * entrar, refrescar o cambiar de campaña); si se abre un borrador histórico se
+ * respeta esa elección. «Generar borrador» es la única acción primaria; el
+ * historial, la huella y la trazabilidad van en detalles plegados.
  */
 export function JointProposalPage() {
   const { user } = useAuth();
@@ -92,6 +94,7 @@ export function JointProposalPage() {
     (shown: Proposal, at: string) => {
       if (contextRef.current !== at) return;
       shownRef.current = shown.proposal_ref;
+      reportDisclosureMode(shown.disclosure.mode);
       setProposal(shown);
       void loadReference(shown.proposal_ref, at);
     },
@@ -114,7 +117,7 @@ export function JointProposalPage() {
     [show],
   );
 
-  /** Carga el historial y, si nada se muestra todavía, abre el último borrador. */
+  /** Carga el historial y, si nada se muestra todavía, abre (sin crear) el último borrador. */
   const loadHistory = useCallback(
     async (campaignId: string, at: string) => {
       try {
@@ -169,17 +172,16 @@ export function JointProposalPage() {
   };
 
   return (
-    <AppShell title="Compra conjunta" section="Colectivo">
-      <div className="space-y-5">
+    <AppShell title="Propuesta conjunta" section="Colectivo">
+      <div className="space-y-4">
         <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select}>
           <button type="button" className={buttonClass} onClick={() => void generate()} disabled={!selected || busy}>
-            Generar propuesta (borrador)
+            {busy ? 'Trabajando…' : 'Generar borrador'}
           </button>
         </CollectiveToolbar>
         <PageNote>
-          El borrador de compra conjunta reúne la <strong>necesidad declarada</strong> publicada por los agricultores para
-          revisarla antes de comprar: no resta stock y no es una necesidad neta. <strong>No ejecuta ninguna compra</strong>.
-          No crea compras, lotes, movimientos, deudas ni pagos.
+          Borrador basado en las <strong>necesidades declaradas</strong> publicadas. Requiere revisión: no resta stock,
+          no es una necesidad neta y <strong>no ejecuta ninguna compra</strong>.
         </PageNote>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
@@ -189,7 +191,7 @@ export function JointProposalPage() {
           selected &&
           !busy &&
           history.length === 0 && (
-            <EmptyState compact title="Todavía no hay borradores para esta campaña" description="Genere el primero desde la barra superior." />
+            <EmptyState compact title="Todavía no hay borradores para esta campaña" description="Genere el primero con «Generar borrador»." />
           )
         )}
         <HistorySection history={history} current={proposal} onOpen={(id) => void open(id, context)} busy={busy} />
@@ -205,7 +207,7 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
       <div className="glass-card overflow-hidden">
         <SectionHeader
           title={`Borrador · ${proposal.campaign.name}`}
-          note={`Generado ${fmtDateTime(proposal.generated_at)} por ${proposal.generated_by.name}. Borrador para revisión humana; no ejecuta ninguna compra.`}
+          note={`Generado el ${fmtDateTime(proposal.generated_at)} por ${proposal.generated_by.name}. No crea compras, lotes, movimientos, deudas ni pagos.`}
           actions={<ExportButtons kind="proposal" reference={proposal.proposal_ref} onCsv={onCsv} csvLabel="Exportar CSV" />}
         />
         {proposal.coverage && (
@@ -216,15 +218,15 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
         {proposal.lines.length === 0 ? (
           <EmptyState compact title="Sin necesidades declaradas publicadas" description="Ausencia de declaración = desconocido, no cero." />
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-5 py-2.5">Producto (canónico)</th>
-                  <th className="px-5 py-2.5">Cantidad declarada</th>
+                  <th className="px-5 py-2.5">Producto</th>
+                  <th className="px-5 py-2.5">Necesidad declarada</th>
                   <th className="px-5 py-2.5 text-right">Aportantes</th>
-                  <th className="border-l border-slate-200 px-5 py-2.5 font-medium normal-case tracking-normal text-slate-400" data-testid="reference-header">
-                    Estimación del consumo (referencia)
+                  <th className="border-l border-slate-200 px-5 py-2.5 font-medium normal-case tracking-normal text-slate-500" data-testid="reference-header">
+                    Referencia de consumo (estimación del servidor)
                   </th>
                 </tr>
               </thead>
@@ -245,8 +247,10 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
                       />
                       {line.status === 'DISCLOSED' && line.pending_changes && <PendingChangesNote />}
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums">{line.status === 'DISCLOSED' ? line.contributors : '—'}</td>
-                    <td className="border-l border-slate-200 px-5 py-3 text-xs text-slate-500" data-testid="reference">
+                    <td className="px-5 py-3 text-right text-base tabular-nums">
+                      {line.status === 'DISCLOSED' ? line.contributors : <span className="text-xs text-slate-400">no revelados</span>}
+                    </td>
+                    <td className="border-l border-slate-200 bg-slate-50/40 px-5 py-3 text-xs text-slate-500" data-testid="reference">
                       <ReferenceCell line={line} state={reference} />
                     </td>
                   </tr>
@@ -313,11 +317,10 @@ function ReferenceCell({ line, state }: { line: ProposalLine; state: ReferenceSt
 
 function ReferenceNote({ proposal, state }: { proposal: Proposal; state: ReferenceState | null }) {
   return (
-    <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500" data-testid="reference-note">
+    <div className="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500" data-testid="reference-note">
       <p>
-        La columna «Estimación del consumo» es una referencia del servicio para el mismo producto, unidad y campaña: no se
-        suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas, los totales ni la huella del
-        borrador.{' '}
+        La referencia de consumo es una estimación del servicio para el mismo producto, unidad y campaña: no se suma a
+        la necesidad declarada, no es la cantidad solicitada y no cambia las líneas ni la huella del borrador.{' '}
         <Link className="font-semibold text-emerald-700 underline" to={`${COLLECTIVE_PATHS.estimation}?campaign=${encodeURIComponent(proposal.campaign.campaign_ref)}`}>
           Detalle en «Estimación del consumo»
         </Link>
@@ -339,7 +342,7 @@ function ReferenceNote({ proposal, state }: { proposal: Proposal; state: Referen
   );
 }
 
-/** Huella del borrador mostrado y borradores anteriores de la campaña, plegados. */
+/** Historial, huella y trazabilidad del borrador mostrado y de los anteriores, plegados. */
 function HistorySection({
   history,
   current,
@@ -352,11 +355,11 @@ function HistorySection({
   busy: boolean;
 }) {
   return (
-    <Collapsible title={`Historial (${history.length} ${history.length === 1 ? 'borrador' : 'borradores'})`} label="Historial de borradores">
+    <Collapsible title={`Historial y trazabilidad (${history.length} ${history.length === 1 ? 'borrador' : 'borradores'})`} label="Historial de borradores">
       {current && (
         <p className="px-5 py-3 text-xs text-slate-500">
           Borrador mostrado: huella <Fingerprint value={current.inputs_fingerprint} />. Misma huella = mismas entradas
-          autorizadas y mismas líneas.
+          autorizadas y mismas líneas. Cada borrador queda guardado tal como se generó; ninguno se modifica.
         </p>
       )}
       {history.length === 0 ? (

@@ -1,22 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppShell, EmptyState, Notice } from '../components/app-shell';
-import { CollectiveToolbar, DisclosureNotice, PageNote, SectionHeader, StatTile } from '../components/collective-ui';
+import { Collapsible, CollectiveToolbar, DisclosureNotice, PageNote, StatTile } from '../components/collective-ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError } from '../lib/collective-text';
+import { reportDisclosureMode } from '../lib/data-mode';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveSummary } from '../types/collective';
 
 /**
- * «Agricultores y sincronización» (defensa, 2026-11-05). La cobertura agregada
- * vive en el Resumen; aquí se repite sólo como indicador con enlace. El
- * seguimiento operativo por agricultor (última sincronización, pendientes)
- * depende de una consulta del servidor que aún no existe (sesión 3): la vista
- * deja su sitio preparado sin inventar datos ni estados.
- *
- * F07-WEB-03 (#25), alcance reducido: sólo el conteo agregado de quienes están
- * dentro de cifras publicadas (F10-SEC-02); nunca quién aportó.
+ * «Cobertura» (F07-WEB-03, #25, alcance reducido): sólo el conteo agregado de
+ * quienes están dentro de cifras publicadas (F10-SEC-02); nunca quién aportó.
+ * El seguimiento operativo por agricultor depende de una consulta del servidor
+ * que llega aparte: la vista deja su sitio preparado sin inventar datos.
  */
 export function CoveragePage() {
   const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
@@ -30,6 +27,7 @@ export function CoveragePage() {
       .summary(selected)
       .then((data) => {
         if (!alive) return;
+        reportDisclosureMode(data.disclosure.mode);
         setError(null);
         setSummary(data);
       })
@@ -44,8 +42,8 @@ export function CoveragePage() {
   }, [selected]);
 
   return (
-    <AppShell title="Agricultores y sincronización" section="Colectivo">
-      <div className="space-y-5">
+    <AppShell title="Cobertura" section="Colectivo">
+      <div className="space-y-4">
         <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select} />
         <PageNote>
           Cuántos agricultores vinculados están dentro de las cifras publicadas de la campaña. No se muestra quién aportó
@@ -64,11 +62,11 @@ export function CoveragePage() {
                   value={`${summary.coverage.members_with_contribution} de ${summary.coverage.linked_members}`}
                   note={
                     <>
-                      {' '}agricultores vinculados con cifras publicadas · {summary.campaign.name}.{' '}
-                      {summary.coverage.suppressed_cells && 'Hay filas sin cifra (bajo el umbral o en revisión) cuyos aportes no se cuentan. '}
+                      {' '}agricultores vinculados con cifras publicadas.{' '}
+                      {summary.coverage.suppressed_cells && 'Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan. '}
                       Ausencia de aporte = desconocido, no cero.{' '}
                       <Link className="font-semibold text-emerald-700 underline" to={`${COLLECTIVE_PATHS.summary}?campaign=${encodeURIComponent(summary.campaign.campaign_ref)}`}>
-                        Ver el resumen de la campaña
+                        Ver el resumen colectivo
                       </Link>
                     </>
                   }
@@ -85,17 +83,13 @@ export function CoveragePage() {
             )}
           </>
         )}
-        <section className="glass-card overflow-hidden" aria-label="Seguimiento de sincronización" data-testid="sync-tracking">
-          <SectionHeader
-            title="Seguimiento de sincronización"
-            note="Última sincronización y envíos pendientes por agricultor, con la consulta del servidor que prepara la sesión 3."
-          />
+        <Collapsible title="Seguimiento de sincronización" label="Seguimiento de sincronización" testId="sync-tracking">
           <EmptyState
             compact
             title="Todavía sin consulta del servidor"
-            description="Esta vista se completará cuando el servidor exponga el seguimiento operativo. Hasta entonces no muestra datos ni estados."
+            description="Última sincronización y envíos pendientes por agricultor se mostrarán cuando el servidor exponga esa consulta. Hasta entonces no se muestran datos ni estados."
           />
-        </section>
+        </Collapsible>
       </div>
     </AppShell>
   );

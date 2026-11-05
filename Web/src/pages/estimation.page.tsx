@@ -350,9 +350,8 @@ export function EstimationPage() {
           )}
         </CollectiveToolbar>
         <PageNote>
-          Referencia de consumo para una campaña comparable, calculada en el servidor a partir de las cifras selladas
-          (suavizamiento exponencial simple, SES, frente a la línea base naive). No es una necesidad declarada ni una
-          propuesta: no se suma a ellas ni crea compras, propuestas o movimientos.
+          Referencia de consumo para una campaña comparable, calculada en el servidor a partir de las cifras selladas.
+          No es una necesidad declarada ni una propuesta: no se suma a ellas ni crea compras, propuestas o movimientos.
         </PageNote>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && (
@@ -367,10 +366,14 @@ export function EstimationPage() {
           </p>
         )}
 
-        {!blocked && selected && (
-          <RequestOptions eligible={eligible} campaignStatus={campaign?.status ?? null} catalog={catalog} chosen={chosen} onChoose={setChosen} />
+        {((!blocked && selected) || job) && (
+          <div className="space-y-2">
+            {!blocked && selected && (
+              <RequestOptions eligible={eligible} campaignStatus={campaign?.status ?? null} catalog={catalog} chosen={chosen} onChoose={setChosen} />
+            )}
+            {job && <JobPanel job={job} polling={polling} onRecheck={() => void recheckJob()} />}
+          </div>
         )}
-        {job && <JobPanel job={job} polling={polling} onRecheck={() => void recheckJob()} />}
         {loading && <p className="text-sm text-slate-500">Cargando…</p>}
         {results && <ResultsSection results={results} details={details} latestRun={job?.run_ref ?? null} />}
         {opened && <RunDetail run={opened} onClose={() => setOpened(null)} />}
@@ -413,14 +416,14 @@ function CopyPanel({
     <section className="glass-card overflow-hidden" aria-label="Copia para consultar sin conexión" data-testid="copy-panel">
       <SectionHeader
         title="Copia para consultar sin conexión"
-        note="Guarda en este navegador la última estimación permitida de esta campaña, con su vigencia al descargarse. Sólo la lee esta sesión; al cerrarla deja de poder leerse. Sin conexión puede estar desactualizada. No es el CSV de la consulta."
+        note="Distinta del CSV de la consulta: guarda en este navegador la última estimación permitida de esta campaña, con su vigencia al descargarse. Sólo la lee esta sesión y sin conexión puede estar desactualizada."
         actions={
           <button type="button" className={secondaryButtonClass} onClick={onDownload} disabled={downloading || offline}>
             {downloading ? 'Descargando…' : 'Descargar copia para consultar sin conexión'}
           </button>
         }
       />
-      <div className="space-y-1 px-5 py-3 text-sm text-slate-700">
+      <div className="space-y-1 px-5 py-2.5 text-sm text-slate-700">
         <p data-testid="copy-status">
           {copy
             ? `Hay una copia de esta campaña en este navegador, descargada el ${fmtDateTime(copy.download.downloaded_at)}.`
@@ -469,7 +472,7 @@ function RequestOptions({
   const hasCatalog = Boolean(catalog && catalog.length > 0);
   if (!hasCatalog && eligible) return null;
   return (
-    <section className="rounded-xl border border-slate-200 bg-white/60 px-4 py-3 text-sm" aria-label="Opciones de la estimación">
+    <section className="text-sm" aria-label="Opciones de la estimación">
       {!eligible && campaignStatus && (
         <p className="text-xs text-slate-600" data-testid="not-eligible">
           Esta campaña está {campaignStatus.toLowerCase()}: sólo se genera una estimación para una campaña planificada o
@@ -477,22 +480,25 @@ function RequestOptions({
         </p>
       )}
       {hasCatalog && eligible && (
-        <details>
-          <summary className="cursor-pointer text-xs font-semibold text-slate-700">
-            Productos a estimar{chosen.length > 0 ? ` (${chosen.length} elegidos)` : ' (todos los que tienen consumo publicado)'}
+        <details className="group">
+          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span className="text-emerald-700 group-open:hidden">Elegir productos</span>
+            <span className="hidden text-emerald-700 group-open:inline">Ocultar productos</span>
+            {' · '}
+            {chosen.length > 0 ? `${chosen.length} elegidos` : 'todos los que tienen consumo publicado'}
           </summary>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-white/60 px-4 py-3">
             {catalog!.map((entry) => (
               <label key={entry.product_ref} className="flex items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" checked={chosen.includes(entry.product_ref)} onChange={() => toggle(entry.product_ref)} />
                 {entry.product_name}
               </label>
             ))}
+            <p className="w-full text-[11px] text-slate-500">
+              Sin marcar ninguno, se estiman los productos con consumo publicado en la temporada de la campaña. El servidor
+              calcula por lotes: la solicitud queda en cola y se consulta su estado.
+            </p>
           </div>
-          <p className="mt-2 text-[11px] text-slate-500">
-            Sin marcar ninguno, se estiman los productos con consumo publicado en la temporada de la campaña. El servidor
-            calcula por lotes: la solicitud queda en cola y se consulta su estado.
-          </p>
         </details>
       )}
     </section>
@@ -503,23 +509,24 @@ function JobPanel({ job, polling, onRecheck }: { job: Job; polling: boolean; onR
   const active = job.status === 'QUEUED' || job.status === 'RUNNING';
   return (
     <section
-      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50/60 px-4 py-3"
+      className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border px-4 py-2 ${
+        active ? 'border-sky-200 bg-sky-50/60' : 'border-slate-200 bg-white/60'
+      }`}
       aria-label="Estado del trabajo"
       data-testid="job"
     >
       <div className="text-sm text-slate-800">
-        <span className="font-semibold">Trabajo solicitado: </span>
+        <span className="font-semibold">Última solicitud: </span>
         <span data-testid="job-status">
           {JOB_STATUS_TEXT[job.status]}
           {job.status === 'RUNNING' && ` (intento ${job.attempts} de ${job.max_attempts})`}
         </span>
-        <p className="text-xs text-slate-500">
-          En cola desde {fmtDateTime(job.enqueued_at)}
-          {job.started_at && ` · iniciado ${fmtDateTime(job.started_at)}`}
-          {job.finished_at && ` · terminado ${fmtDateTime(job.finished_at)}`}
+        <span className="ml-2 text-xs text-slate-500">
+          en cola {fmtDateTime(job.enqueued_at)}
+          {job.finished_at && ` · terminada ${fmtDateTime(job.finished_at)}`}
           {active && (polling ? ' · se consulta el estado automáticamente' : ' · la consulta automática se detuvo por un error')}
-          {job.status === 'COMPLETED' && ' · los resultados se muestran abajo con su vigencia'}
-        </p>
+          {job.status === 'COMPLETED' && ' · resultados abajo, con su vigencia'}
+        </span>
         {job.status === 'NOT_EXECUTED' && job.stop_code && (
           <div className="mt-2">
             <Notice kind="warn" compact>
@@ -528,7 +535,7 @@ function JobPanel({ job, polling, onRecheck }: { job: Job; polling: boolean; onR
           </div>
         )}
       </div>
-      <button type="button" className={secondaryButtonClass} onClick={onRecheck}>
+      <button type="button" className="text-xs font-semibold text-emerald-700 underline-offset-2 hover:underline" onClick={onRecheck}>
         Consultar estado ahora
       </button>
     </section>
@@ -566,16 +573,22 @@ function observedValues(detail: ResultDetail | null, unit: 'L' | 'KG'): string |
   return `${values.join(' · ')} ${unit}`;
 }
 
-/** Último consumo comprobado anterior a la campaña objetivo: cifra y campaña. */
-function lastObserved(detail: ResultDetail | null, unit: 'ML' | 'G'): string | null {
+/** Campaña del último consumo comprobado anterior a la campaña objetivo (la que da la línea base). */
+function lastObservedCampaign(detail: ResultDetail | null): string | null {
   if (!detail) return null;
   const before = detail.points.filter((p) => p.exclusion_reason !== 'NOT_BEFORE_TARGET' && p.kind === 'VERIFIED_CONSUMPTION' && p.quantity_base !== null);
   const last = before[before.length - 1];
-  if (!last) return null;
-  const shown = formatQuantity(last.quantity_base, unit);
-  return shown === null ? null : `${shown} · ${last.campaign.name}`;
+  return last ? last.campaign.name : null;
 }
 
+/**
+ * Resultados por producto: la cifra estimada con su unidad, la línea base (el
+ * último consumo publicado de la serie, tal como la entrega la API) y la
+ * vigencia. «Datos insuficientes» se muestra en lugar de la cifra, con su
+ * motivo; una fila de una ejecución anterior lo dice junto a su vigencia. La
+ * serie observada, el método (α), la cobertura y la ejecución van en «Ver
+ * detalle».
+ */
 function ResultsSection({ results, details, latestRun }: { results: InstitutionalResults; details: Record<string, Run>; latestRun: string | null }) {
   return (
     <section className="glass-card overflow-hidden" aria-label="Resultados por producto">
@@ -603,59 +616,66 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
             <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="px-4 py-2.5">Producto</th>
-                <th className="px-4 py-2.5">Resultado</th>
                 <th className="px-4 py-2.5">Estimación de consumo</th>
-                <th className="px-4 py-2.5">Último consumo observado</th>
+                <th className="px-4 py-2.5">Línea base: último consumo publicado</th>
                 <th className="px-4 py-2.5">Vigencia</th>
-                <th className="px-4 py-2.5 font-medium normal-case tracking-normal text-slate-400">Cálculo y fuentes</th>
+                <th className="px-4 py-2.5 font-medium normal-case tracking-normal text-slate-400">Detalle</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {results.results.map((result) => {
                 const detail = detailOf(details, result);
-                const observedLast = lastObserved(detail, result.base_unit);
+                const baseCampaign = lastObservedCampaign(detail);
                 const earlier = latestRun !== null && result.run_ref !== latestRun;
+                const estimated = result.status === 'ESTIMATED';
                 return (
                   <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top">
-                    <td className="px-4 py-3 text-base font-semibold text-slate-800">
+                    <td className="px-4 py-3 text-base font-semibold text-slate-900">
                       {result.product.name}
                       <span className="ml-1 text-xs font-normal text-slate-400">{result.presentation_unit}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`font-semibold ${result.status === 'ESTIMATED' ? 'text-slate-800' : 'text-amber-800'}`}>{RESULT_STATUS_TEXT[result.status]}</span>
-                      {result.reason_code && <p className="text-[11px] text-slate-500" data-testid="reason">{REASON_TEXT[result.reason_code]}</p>}
+                      {estimated ? (
+                        <span className="text-3xl leading-none" data-testid="estimate">
+                          <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />
+                        </span>
+                      ) : (
+                        <>
+                          <span className="block text-base font-bold text-amber-800" data-testid="estimate">
+                            {RESULT_STATUS_TEXT[result.status]}
+                          </span>
+                          {result.reason_code && (
+                            <p className="mt-0.5 max-w-xs text-[11px] leading-snug text-slate-500" data-testid="reason">
+                              {REASON_TEXT[result.reason_code]}
+                            </p>
+                          )}
+                        </>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-2xl" data-testid="estimate">
-                      <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />
+                    <td className="px-4 py-3">
+                      <span className="text-lg" data-testid="naive">
+                        <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
+                      </span>
+                      <span className="block text-[11px] text-slate-500" data-testid="observed-last">
+                        {estimated && baseCampaign ? `Consumo publicado en ${baseCampaign}` : estimated ? 'Último consumo publicado de la serie' : '—'}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700" data-testid="observed-last">
-                      {observedLast ?? <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="px-4 py-3" data-testid="validity">
-                      <ValidityBadge validity={result.validity} reason={result.validity_reason} />
+                    <td className="px-4 py-3">
+                      <span data-testid="validity">
+                        <ValidityBadge validity={result.validity} reason={result.validity_reason} />
+                      </span>
                       {earlier && (
-                        <span className="mt-1 block text-[11px] text-amber-700" data-testid="earlier-run">
+                        <span className="mt-1 block text-[11px] font-medium text-amber-700" data-testid="earlier-run">
                           De una ejecución anterior, no de la última solicitada
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600">
                       <details>
-                        <summary className="cursor-pointer font-semibold text-emerald-700">Ver cálculo y fuentes</summary>
-                        <dl className="mt-2 space-y-1">
-                          <div>
-                            <dt className="inline text-slate-500">Línea base naive: </dt>
-                            <dd className="inline" data-testid="naive">
-                              <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="inline text-slate-500">α: </dt>
-                            <dd className="inline tabular-nums" data-testid="alpha">{formatAlpha(detail?.alpha ?? null)}</dd>
-                            {detail?.fit_informative === false && <span className="ml-1 text-slate-500">(ajuste no informativo)</span>}
-                          </div>
+                        <summary className="cursor-pointer font-semibold text-emerald-700">Ver detalle</summary>
+                        <dl className="mt-2 w-max max-w-xs space-y-1">
                           <div data-testid="observed">
-                            <dt className="inline text-slate-500">Campañas observadas: </dt>
+                            <dt className="inline text-slate-500">Serie observada: </dt>
                             <dd className="inline">
                               <span data-testid="observed-span">{observed(detail)}</span>
                               {observedValues(detail, result.presentation_unit) && (
@@ -663,6 +683,13 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                                   {observedValues(detail, result.presentation_unit)}
                                 </span>
                               )}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="inline text-slate-500">Método: </dt>
+                            <dd className="inline">
+                              SES frente a la línea base naive · α <span className="tabular-nums" data-testid="alpha">{formatAlpha(detail?.alpha ?? null)}</span>
+                              {detail?.fit_informative === false && <span className="ml-1 text-slate-500">(ajuste no informativo)</span>}
                             </dd>
                           </div>
                           {result.coverage.campaigns.length > 0 && (

@@ -7,7 +7,6 @@ import {
   SkeletonRow,
   StatusBadge,
   buttonClass,
-  cardClass,
   inputClass,
   labelClass,
   secondaryButtonClass,
@@ -63,17 +62,19 @@ export function CampaignsPage() {
     await Promise.all([refresh(), refreshActiveCampaign()]);
   };
 
-  const stats = useMemo(() => {
+  const counts = useMemo(() => {
     const open = campaigns.filter((campaign) => campaign.status === 'ABIERTA').length;
     const closed = campaigns.filter((campaign) => campaign.status === 'CERRADA').length;
     const planned = campaigns.filter((campaign) => campaign.status === 'PLANIFICADA').length;
-    return { open, closed, planned };
+    return [open && `${open} ${open === 1 ? 'abierta' : 'abiertas'}`, planned && `${planned} ${planned === 1 ? 'planificada' : 'planificadas'}`, closed && `${closed} ${closed === 1 ? 'cerrada' : 'cerradas'}`]
+      .filter(Boolean)
+      .join(' · ');
   }, [campaigns]);
 
   return (
     <AppShell
       title="Campañas"
-      section="Período operativo"
+      section="Gestión"
       actions={
         canManage ? (
           <button className={buttonClass} onClick={() => setCreating(true)}>
@@ -82,27 +83,20 @@ export function CampaignsPage() {
         ) : null
       }
     >
-      <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_2fr]">
-        <div className={cardClass}>
-          <p className={labelClass}>Campaña activa</p>
-          {activeCampaign ? (
-            <div>
-              <p className="text-lg font-bold text-slate-900">{activeCampaign.name}</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Inicio {fmtDate(activeCampaign.startDate)}
-                {activeCampaign.estimatedEndDate ? ` · cierre estimado ${fmtDate(activeCampaign.estimatedEndDate)}` : ''}
-              </p>
-            </div>
-          ) : (
-            <Notice kind="warn">No hay campaña activa. Las operaciones normales quedarán bloqueadas hasta que directiva abra una campaña.</Notice>
-          )}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <MiniStat label="Abiertas" value={stats.open} />
-          <MiniStat label="Planificadas" value={stats.planned} />
-          <MiniStat label="Cerradas" value={stats.closed} />
-        </div>
+      <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-5 py-3" data-testid="active-campaign">
+        <p className={labelClass}>Campaña activa</p>
+        {activeCampaign ? (
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <p className="text-2xl font-bold leading-tight text-slate-900">{activeCampaign.name}</p>
+            <span className="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">Activa</span>
+            <p className="text-sm text-slate-600">
+              Inicio {fmtDate(activeCampaign.startDate)}
+              {activeCampaign.estimatedEndDate ? ` · cierre estimado ${fmtDate(activeCampaign.estimatedEndDate)}` : ''}
+            </p>
+          </div>
+        ) : (
+          <Notice kind="warn" compact>No hay campaña activa. Las operaciones normales quedarán bloqueadas hasta que directiva abra una campaña.</Notice>
+        )}
       </div>
 
       {message && <div className="mb-4"><Notice kind="ok">{message}</Notice></div>}
@@ -113,44 +107,43 @@ export function CampaignsPage() {
         </div>
       )}
 
-      <div className={`${cardClass} mb-5`}>
-        <div className="grid gap-3 md:grid-cols-[1fr_220px_auto] md:items-end">
-          <div>
-            <label htmlFor="campaign-search" className={labelClass}>Buscar</label>
-            <input
-              id="campaign-search"
-              className={inputClass}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Invierno, verano..."
-              autoComplete="off"
-            />
-          </div>
-          <div>
-            <label htmlFor="campaign-status" className={labelClass}>Estado</label>
-            <select
-              id="campaign-status"
-              className={inputClass}
-              value={status}
-              onChange={(event) => setStatus(event.target.value as CampaignStatus | '')}
-            >
-              <option value="">Todos</option>
-              <option value="PLANIFICADA">Planificada</option>
-              <option value="ABIERTA">Abierta</option>
-              <option value="CERRADA">Cerrada</option>
-              <option value="CANCELADA">Cancelada</option>
-            </select>
-          </div>
-          <button className={secondaryButtonClass} onClick={() => void refresh()}>
-            Actualizar
-          </button>
-        </div>
-      </div>
-
       <div className="table-container">
-        <div className="border-b border-slate-100/80 px-5 py-3.5">
-          <h2 className="font-bold text-slate-900">Listado de campañas</h2>
-          <p className="mt-0.5 text-xs text-slate-400">Total: {campaigns.length}</p>
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100/80 px-5 py-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Historial de campañas</h2>
+            <p className="mt-0.5 text-xs text-slate-500">{campaigns.length === 0 ? 'Sin campañas' : counts || `${campaigns.length} campañas`}</p>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="w-44">
+              <label htmlFor="campaign-search" className={labelClass}>Buscar</label>
+              <input
+                id="campaign-search"
+                className={inputClass}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Invierno, verano..."
+                autoComplete="off"
+              />
+            </div>
+            <div className="w-40">
+              <label htmlFor="campaign-status" className={labelClass}>Estado</label>
+              <select
+                id="campaign-status"
+                className={inputClass}
+                value={status}
+                onChange={(event) => setStatus(event.target.value as CampaignStatus | '')}
+              >
+                <option value="">Todos</option>
+                <option value="PLANIFICADA">Planificada</option>
+                <option value="ABIERTA">Abierta</option>
+                <option value="CERRADA">Cerrada</option>
+                <option value="CANCELADA">Cancelada</option>
+              </select>
+            </div>
+            <button className="rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900" onClick={() => void refresh()}>
+              Actualizar
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
@@ -174,9 +167,9 @@ export function CampaignsPage() {
                 </tr>
               ) : (
                 campaigns.map((campaign) => (
-                  <tr key={campaign.id} className={campaign.isActive ? 'bg-emerald-50/40' : ''}>
+                  <tr key={campaign.id} className={campaign.isActive ? 'bg-emerald-50/40' : ''} data-testid={`campaign-row-${campaign.name}`}>
                     <td className="px-5 py-3.5">
-                      <p className="font-semibold text-slate-800">{campaign.name}</p>
+                      <p className="text-base font-semibold text-slate-900">{campaign.name}</p>
                       {campaign.notes && <p className="mt-0.5 max-w-xs truncate text-xs text-slate-500">{campaign.notes}</p>}
                     </td>
                     <td className="px-5 py-3.5">
@@ -232,15 +225,6 @@ export function CampaignsPage() {
         </Modal>
       )}
     </AppShell>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className={cardClass}>
-      <p className={labelClass}>{label}</p>
-      <p className="text-2xl font-bold text-slate-900 tabular-nums">{value}</p>
-    </div>
   );
 }
 

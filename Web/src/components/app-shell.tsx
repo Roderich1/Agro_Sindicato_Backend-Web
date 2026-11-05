@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
-import { fmtDate } from '../lib/format';
+import { useDisclosureMode } from '../lib/data-mode';
 import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor } from '../lib/navigation';
 import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
 
@@ -46,24 +46,36 @@ function NavIcon({ d }: { d: string }) {
   );
 }
 
+/**
+ * Menú de la Directiva (defensa, 2026-11-05): primero el recorrido principal
+ * (Resumen → Propuesta conjunta → Tendencias → Estimación) y la cobertura;
+ * después, bajo «Gestión», campañas, equivalencias de productos y usuarios.
+ * El orden y los permisos siguen viniendo de `menuPathsFor`; aquí sólo se
+ * agrupan para mostrarlos.
+ */
+const NAV_GROUPS: { label: string | null; paths: readonly string[] }[] = [
+  { label: null, paths: [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation, COLLECTIVE_PATHS.coverage] },
+  { label: 'Gestión', paths: ['/campaigns', COLLECTIVE_PATHS.reconciliation, '/users'] },
+];
+
 const NAV_ITEMS: NavItem[] = [
   {
-    label: 'Resumen de campaña',
+    label: 'Resumen colectivo',
     to: COLLECTIVE_PATHS.summary,
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Compra conjunta',
+    label: 'Propuesta conjunta',
     to: COLLECTIVE_PATHS.proposals,
     icon: <NavIcon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
   },
   {
-    label: 'Agricultores',
+    label: 'Cobertura',
     to: COLLECTIVE_PATHS.coverage,
     icon: <NavIcon d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
   },
   {
-    label: 'Historial',
+    label: 'Tendencias',
     to: COLLECTIVE_PATHS.trends,
     icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
   },
@@ -73,7 +85,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M4 19h16M4 15l4-4 3 3 5-6 4 4M16 8h4v4" />,
   },
   {
-    label: 'Reconciliación',
+    label: 'Equivalencias de productos',
     to: COLLECTIVE_PATHS.reconciliation,
     icon: <NavIcon d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />,
   },
@@ -146,6 +158,19 @@ function navItemsFor(role: string | null | undefined): NavItem[] {
     .filter((item): item is NavItem => Boolean(item));
 }
 
+/** Los ítems permitidos, agrupados para el menú lateral; lo que no encaja en un grupo va al final. */
+function navGroupsFor(items: NavItem[]): { label: string | null; items: NavItem[] }[] {
+  const placed = new Set<string>();
+  const groups = NAV_GROUPS.map((group) => ({
+    label: group.label,
+    items: group.paths.map((path) => items.find((item) => item.to === path)).filter((item): item is NavItem => Boolean(item)),
+  }));
+  groups.forEach((group) => group.items.forEach((item) => placed.add(item.to)));
+  const rest = items.filter((item) => !placed.has(item.to));
+  if (rest.length > 0) groups.push({ label: null, items: rest });
+  return groups.filter((group) => group.items.length > 0);
+}
+
 /* ══════════════════════════════════════════
    AVATAR COMPONENT
    ══════════════════════════════════════════ */
@@ -191,51 +216,62 @@ function Sidebar({
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const filteredNav = navItemsFor(user?.role);
+  const groups = navGroupsFor(navItemsFor(user?.role));
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      <div className={`flex items-center gap-3 px-4 py-5 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 shadow-lg shadow-emerald-900/30">
+      <div className={`flex items-center gap-3 px-4 py-4 ${collapsed ? 'justify-center' : ''}`}>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 shadow-lg shadow-emerald-900/30">
           <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
           </svg>
         </div>
         {!collapsed && (
-          <div className="sidebar-item-text">
-            <p className="text-sm font-bold text-white">Agrocuentas</p>
-            <p className="text-[10px] font-medium text-emerald-400/80 tracking-wider uppercase">{user?.tenant?.name}</p>
+          <div className="min-w-0">
+            <p className="text-sm font-bold leading-tight text-white">Agrocuentas</p>
+            {/* El nombre del sindicato se parte en líneas: nunca se trunca. */}
+            <p className="mt-0.5 whitespace-normal break-words text-[11px] font-medium leading-snug text-emerald-200/80" title={user?.tenant?.name}>
+              {user?.tenant?.name}
+            </p>
           </div>
         )}
       </div>
 
       <div className="mx-4 border-t border-white/8" />
 
-      <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Navegación principal">
-        {filteredNav.map((item) => {
-          const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
-          const isSync = item.to === '/sync';
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={onMobileClose}
-              className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
-                isActive ? 'bg-white/12 text-white' : 'text-slate-400 hover:bg-white/6 hover:text-white'
-              } ${collapsed ? 'justify-center' : ''}`}
-            >
-              <span className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-emerald-400'}`}>
-                {item.icon}
-              </span>
-              {!collapsed && <span className="sidebar-item-text">{item.label}</span>}
-              {isSync && offlineQueueCount > 0 && (
-                <span className={`absolute ${collapsed ? '-top-1 -right-1' : 'right-3'} flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white`}>
-                  {offlineQueueCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-4 px-3 py-3" aria-label="Navegación principal">
+        {groups.map((group, index) => (
+          <div key={group.label ?? index} className="space-y-0.5">
+            {group.label && !collapsed && (
+              <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">{group.label}</p>
+            )}
+            {group.items.map((item) => {
+              const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+              const isSync = item.to === '/sync';
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={onMobileClose}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400 ${
+                    isActive ? 'bg-white/12 text-white' : 'text-slate-300 hover:bg-white/6 hover:text-white'
+                  } ${collapsed ? 'justify-center' : ''}`}
+                >
+                  <span className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-emerald-400'}`}>
+                    {item.icon}
+                  </span>
+                  {!collapsed && <span className="sidebar-item-text">{item.label}</span>}
+                  {isSync && offlineQueueCount > 0 && (
+                    <span className={`absolute ${collapsed ? '-top-1 -right-1' : 'right-3'} flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white`}>
+                      {offlineQueueCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="mx-4 border-t border-white/8" />
@@ -275,10 +311,10 @@ function Sidebar({
           onClick={onMobileClose}
         />
       )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[#0f1d15] lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[240px] bg-[#0f1d15] lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {sidebarContent}
       </aside>
-      <aside className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:flex-col bg-[#0f1d15] ${collapsed ? 'lg:w-[72px]' : 'lg:w-[260px]'}`}>
+      <aside className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:flex-col bg-[#0f1d15] ${collapsed ? 'lg:w-[72px]' : 'lg:w-[240px]'}`}>
         {sidebarContent}
       </aside>
     </>
@@ -291,43 +327,53 @@ function Sidebar({
 
 function Header({ title, section, actions, onMenuClick, isOnline }: { title: string; section: string; actions?: ReactNode; onMenuClick: () => void; isOnline: boolean }) {
   const { activeCampaign, isLoading } = useCampaign();
+  const disclosureMode = useDisclosureMode();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-3">
-          <button onClick={onMenuClick} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden">
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur-md">
+      <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <button onClick={onMenuClick} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Abrir menú">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">{section}</p>
-            <h1 className="text-lg font-bold text-slate-900">{title}</h1>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">{section}</p>
+            <h1 className="truncate text-lg font-bold leading-tight text-slate-900">{title}</h1>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
+          {disclosureMode === 'PROVISIONAL_SYNTHETIC' && (
+            <span
+              className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-inset ring-amber-500/30"
+              title="El servidor declara datos sintéticos (modo provisional de la política de divulgación)."
+              data-testid="synthetic-badge"
+            >
+              Datos sintéticos
+            </span>
+          )}
           <Link
             to="/campaigns"
             title="Campaña activa del sindicato"
-            className={`hidden items-center rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset sm:inline-flex ${
+            className={`hidden items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset sm:inline-flex ${
               activeCampaign
-                ? 'bg-emerald-50 text-emerald-700 ring-emerald-500/20'
+                ? 'bg-emerald-50 text-emerald-800 ring-emerald-500/20'
                 : 'bg-amber-50 text-amber-700 ring-amber-500/20'
             }`}
           >
-            {isLoading
-              ? 'Campaña…'
-              : activeCampaign
-                ? (
-                  <>
-                    <span className="mr-1.5 text-[10px] uppercase tracking-wider opacity-70">Activa</span>
-                    {activeCampaign.name} · {fmtDate(activeCampaign.startDate)}
-                  </>
-                )
-                : 'Sin campaña activa'}
+            {isLoading ? (
+              'Campaña…'
+            ) : activeCampaign ? (
+              <>
+                <span className="mr-1.5 text-[10px] uppercase tracking-wider opacity-70">Activa</span>
+                {activeCampaign.name}
+              </>
+            ) : (
+              'Sin campaña activa'
+            )}
           </Link>
-          <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+          <div className={`hidden items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider sm:flex ${isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            {isOnline ? 'Online' : 'Offline'}
+            {isOnline ? 'En línea' : 'Sin conexión'}
           </div>
           {actions}
         </div>
@@ -351,7 +397,7 @@ export function AppShell({ title, section, actions, children }: { title: string;
   const availableNav = navItemsFor(user?.role);
   const preferredMobilePaths = user?.role === 'AGRICULTOR'
     ? ['/dashboard', '/plots', '/inventory', '/applications']
-    : [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.coverage, COLLECTIVE_PATHS.reconciliation];
+    : [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation];
   const mobileNav = preferredMobilePaths
     .map((path) => availableNav.find((item) => item.to === path))
     .filter((item): item is NavItem => Boolean(item));
@@ -377,14 +423,14 @@ export function AppShell({ title, section, actions, children }: { title: string;
         offlineQueueCount={offlineQueueCount}
       />
 
-      <div className={`transition-all duration-300 lg:pl-[260px] ${collapsed ? 'lg:!pl-[72px]' : ''}`}>
+      <div className={`transition-all duration-300 lg:pl-[240px] ${collapsed ? 'lg:!pl-[72px]' : ''}`}>
         <Header title={title} section={section} actions={actions} onMenuClick={() => setMobileOpen(true)} isOnline={isOnline} />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 pb-24 lg:pb-8">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 py-5 pb-24 sm:px-6 lg:px-8 lg:pb-8">{children}</main>
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 border-t border-slate-200 bg-white lg:hidden">
         {mobileNav.map((item) => (
-          <Link key={item.to} to={item.to} className="flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-bold text-slate-500">
+          <Link key={item.to} to={item.to} className="flex flex-1 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] font-bold leading-tight text-slate-500">
             {item.icon}
             {item.label}
           </Link>

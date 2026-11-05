@@ -88,7 +88,7 @@ describe('Resumen colectivo', () => {
     expect(screen.getByTestId('cell-DECLARED_NEED-Enorme-G').textContent).toMatch(/no se trunca/);
 
     // Necesidad y consumo son vistas separadas; no hay totales por encima de la celda.
-    expect(screen.getByRole('region', { name: 'Consumo registrado' }).textContent).toContain('20 KG');
+    expect(screen.getByRole('region', { name: 'Consumo publicado' }).textContent).toContain('20 KG');
     expect(screen.getByRole('region', { name: 'Necesidad declarada' }).textContent).not.toContain('20 KG');
     expect(document.body.textContent).not.toMatch(/45 KG|31 L|Total general/);
 
@@ -98,6 +98,34 @@ describe('Resumen colectivo', () => {
     expect(screen.getByTestId('coverage').textContent).toMatch(/desconocido, no cero/);
     // El resumen muestra la cobertura actual: sin rótulo de fecha histórica.
     expect(screen.getByTestId('coverage').textContent).not.toMatch(/al generar el borrador|No es la cobertura actual/);
+  });
+
+  it('distingue «Oculto por privacidad», «Sin cifra publicada» y un cero divulgado, y enlaza la cobertura', async () => {
+    vi.mocked(collectiveService.summary).mockResolvedValue(
+      summaryWith([
+        cell({ product_name: 'Cero', total_base: '0', total_presentation: '0', contributors: 3 }),
+        cell({ product_name: 'Belator', status: 'SUPPRESSED_UNDER_THRESHOLD', total_base: '7000', contributors: 2 }),
+        cell({ product_name: 'Mancozeb', status: 'SUPPRESSED_REVISION' }),
+      ]),
+    );
+    renderAt(<CollectiveSummaryPage />, { path: PATH });
+    const zero = await screen.findByTestId('cell-DECLARED_NEED-Cero-ML');
+    expect(within(zero).getByText('Publicado')).toBeTruthy();
+    expect(within(zero).getByText('0 L')).toBeTruthy();
+    const privacy = screen.getByTestId('cell-DECLARED_NEED-Belator-ML');
+    expect(within(privacy).getByText('Oculto por privacidad')).toBeTruthy();
+    expect(privacy.textContent).not.toMatch(/7000|7 L|\b2\b|0 L/);
+    const revision = screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML');
+    expect(within(revision).getByText('Sin cifra publicada')).toBeTruthy();
+    expect(revision.textContent).not.toMatch(/0 L/);
+    // Conteo de la cabecera: sólo lo que hay, sin cantidades.
+    expect(screen.getByRole('region', { name: 'Necesidad declarada' }).textContent).toMatch(/1 producto con cifra publicada · 1 oculto por privacidad · 1 sin cifra publicada/);
+    // La tarjeta de cobertura usa los valores de la API y enlaza a la vista de cobertura.
+    const coverage = screen.getByTestId('coverage');
+    expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas/);
+    expect(within(coverage).getByRole('link', { name: 'Ver cobertura' }).getAttribute('href')).toBe(`/colectivo/cobertura?campaign=${CAMPAIGN.id}`);
+    // Una sola acción primaria: «Revisar borrador» lleva a la propuesta de la misma campaña.
+    expect(screen.getByRole('link', { name: 'Revisar borrador' }).getAttribute('href')).toBe(`/colectivo/propuestas?campaign=${CAMPAIGN.id}`);
   });
 
   it('un ?campaign= que no es UUID se ignora: se usa la campaña activa', async () => {

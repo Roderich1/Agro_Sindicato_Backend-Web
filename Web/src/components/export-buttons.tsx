@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { excelExport, type ExcelKind } from '../lib/exports';
-import { buttonClass, secondaryButtonClass } from './app-shell';
+import { secondaryButtonClass } from './app-shell';
 
 /**
- * «Descargar Excel» (principal) y «CSV» (secundaria). El Excel llega con el
- * módulo de la sesión 2 (`lib/exports.ts`); mientras tanto el botón queda
- * deshabilitado con su motivo visible al pasar el ratón.
+ * Exportaciones de una vista, siempre con peso secundario: la acción primaria
+ * de cada pantalla es otra. «Descargar Excel» aparece sólo cuando el módulo de
+ * exportación (`lib/exports.ts`) está integrado; hasta entonces queda el CSV,
+ * que sale del servidor con la misma política de divulgación.
  */
 export function ExportButtons({
   kind,
   reference,
   onCsv,
-  csvLabel = 'CSV',
+  csvLabel = 'Exportar CSV',
   disabled = false,
 }: {
   kind: ExcelKind;
@@ -24,26 +25,26 @@ export function ExportButtons({
 }) {
   const [busy, setBusy] = useState(false);
   const excel = excelExport.download;
-  const excelDisabled = disabled || busy || !excel || !reference;
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="export-buttons">
-      <button
-        type="button"
-        className={buttonClass}
-        disabled={excelDisabled}
-        title={!excel ? excelExport.unavailableReason : undefined}
-        onClick={async () => {
-          if (!excel || !reference) return;
-          setBusy(true);
-          try {
-            await excel(kind, reference);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        {busy ? 'Preparando…' : 'Descargar Excel'}
-      </button>
+      {excel && (
+        <button
+          type="button"
+          className={secondaryButtonClass}
+          disabled={disabled || busy || !reference}
+          onClick={async () => {
+            if (!reference) return;
+            setBusy(true);
+            try {
+              await excel(kind, reference);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? 'Preparando…' : 'Descargar Excel'}
+        </button>
+      )}
       <button type="button" className={secondaryButtonClass} onClick={onCsv} disabled={disabled}>
         {csvLabel}
       </button>
