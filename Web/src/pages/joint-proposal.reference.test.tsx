@@ -211,7 +211,7 @@ describe('Propuesta conjunta: estimación del consumo como referencia (F12-EST-0
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toBe('Cargando…'));
-    fireEvent.change(screen.getByLabelText('Campaña (filtro aplicado)'), { target: { value: OTHER.id } });
+    fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: OTHER.id } });
     await vi.waitFor(() => expect(screen.queryByLabelText('Detalle del borrador')).toBeNull());
     fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
     await screen.findByText(`Borrador · ${OTHER.name}`);
@@ -226,7 +226,7 @@ describe('Propuesta conjunta: estimación del consumo como referencia (F12-EST-0
     vi.mocked(collectiveService.proposal).mockReturnValue(late.promise);
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
-    fireEvent.change(screen.getByLabelText('Campaña (filtro aplicado)'), { target: { value: OTHER.id } });
+    fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: OTHER.id } });
     await screen.findByText('Todavía no hay borradores para esta campaña');
     await act(async () => late.resolve(DRAFT));
     expect(screen.queryByLabelText('Detalle del borrador')).toBeNull();

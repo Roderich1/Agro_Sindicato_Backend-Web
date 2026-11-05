@@ -1,6 +1,14 @@
 import axios from 'axios';
 import type { AnyStatus, SealBlock } from '../types/collective';
 
+/** Estado de una campaña, para personas. */
+export const CAMPAIGN_STATUS_TEXT: Record<string, string> = {
+  PLANIFICADA: 'Planificada',
+  ABIERTA: 'Abierta',
+  CERRADA: 'Cerrada',
+  CANCELADA: 'Cancelada',
+};
+
 /** Motivo comprensible, sin cantidad ni conteo exacto de aportantes. */
 export function statusReason(status: AnyStatus, threshold?: number | null): string | null {
   switch (status) {
