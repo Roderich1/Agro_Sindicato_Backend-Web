@@ -22,6 +22,26 @@ describe("collective disclosure configuration (F06 §5, F07-POL-01)", () => {
   });
 });
 
+describe("experimental DECLARED_NEED variant (2026-11-05, not approved)", () => {
+  it("keeps the combinations rule by default and for any unknown value", () => {
+    expect(config({ NODE_ENV: "test" }).declaredNeedRule).toBe("combinations");
+    expect(config({ NODE_ENV: "test", COLLECTIVE_DECLARED_NEED_RULE: "combinations" }).declaredNeedRule).toBe("combinations");
+    expect(config({ NODE_ENV: "test", COLLECTIVE_DECLARED_NEED_RULE: "THRESHOLD-ONLY" }).declaredNeedRule).toBe("combinations");
+  });
+
+  it("allows threshold-only only outside production; never with real data", () => {
+    expect(config({ NODE_ENV: "test", COLLECTIVE_DECLARED_NEED_RULE: "threshold-only" }).declaredNeedRule).toBe("threshold-only");
+    expect(config({ NODE_ENV: "development", COLLECTIVE_DECLARED_NEED_RULE: "threshold-only" }).declaredNeedRule).toBe("threshold-only");
+    expect(
+      config({
+        NODE_ENV: "production",
+        COLLECTIVE_DISCLOSURE_MODE: "provisional-synthetic",
+        COLLECTIVE_DECLARED_NEED_RULE: "threshold-only",
+      }).declaredNeedRule,
+    ).toBe("combinations");
+  });
+});
+
 describe("collective seal configuration (F07, 2026-10-23)", () => {
   it("keeps the manual seal off unless explicitly enabled", () => {
     expect(config({ NODE_ENV: "test" }).sealingEnabled).toBe(false);
