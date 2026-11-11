@@ -398,6 +398,54 @@
   color: var(--color-brand-700);
 }
 
+/* ══════════════════════════════════════════
+   TELÉFONO EN HORIZONTAL (alto ≤ 500 px), hallazgo H2 del emulador
+   Fuera de capa para ganar a las utilidades (`flex`, `sticky`, `min-h-14`).
+   ══════════════════════════════════════════ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* La barra inferior se oculta: el menú desplegable da acceso a todas las tareas. */
+  .ui-bottom-nav {
+    display: none;
+  }
+
+  .ui-main {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Cabecera compacta y no fija: se va con el contenido. */
+  .ui-shell-header {
+    position: static;
+  }
+
+  .ui-shell-bar {
+    min-height: 2.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  /* El menú desplaza entero dentro del diálogo, en lugar de sólo su lista. */
+  .ui-menu-panel {
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .ui-menu-body {
+    flex: none;
+    min-height: auto;
+  }
+
+  .ui-menu-panel .ui-nav-content {
+    height: auto;
+  }
+
+  .ui-menu-panel .ui-nav-list {
+    flex: none;
+    overflow: visible;
+  }
+}
+
 /* Movimiento reducido: se conservan opacidad y color; se quita todo
    desplazamiento y escala. */
 @media (prefers-reduced-motion: reduce) {

@@ -193,6 +193,13 @@ function sectionFor(pathname: string, fallback: string): string {
   return task?.label ?? fallback;
 }
 
+/** Marca de la entrada del historial que abre el menú del teléfono. */
+const MENU_HISTORY_KEY = 'agroMenu';
+
+function menuEntryToken(state: unknown): unknown {
+  return state && typeof state === 'object' ? (state as Record<string, unknown>)[MENU_HISTORY_KEY] : undefined;
+}
+
 /** Barra inferior del teléfono: cuatro tareas como máximo (contrato §2). */
 const MOBILE_PATHS_COLLECTIVE = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history];
 const MOBILE_PATHS_FARMER = ['/dashboard', '/plots', '/inventory', '/applications'];
@@ -232,14 +239,23 @@ function UserAvatar({ name, size = 'md', gradient }: { name: string; size?: 'sm'
  * tareas y sesión. Superficie clara; el ítem activo lleva acento de marca,
  * peso de texto y `aria-current="page"`. Sin animación al cambiar de ruta.
  */
-function NavContent({ onNavigate, offlineQueueCount, firstLinkRef }: { onNavigate?: () => void; offlineQueueCount: number; firstLinkRef?: Ref<HTMLAnchorElement> }) {
+function NavContent({
+  onNavigate,
+  offlineQueueCount,
+  firstLinkRef,
+}: {
+  /** En el menú del teléfono: cierra el menú y la navegación reemplaza la entrada del historial del menú. */
+  onNavigate?: () => void;
+  offlineQueueCount: number;
+  firstLinkRef?: Ref<HTMLAnchorElement>;
+}) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const groups = navGroupsFor(navItemsFor(user?.role));
   const firstPath = groups[0]?.items[0]?.to;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="ui-nav-content flex h-full flex-col">
       <div className="flex items-start gap-3 px-4 py-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-brand-700 text-white" aria-hidden="true">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -255,7 +271,7 @@ function NavContent({ onNavigate, offlineQueueCount, firstLinkRef }: { onNavigat
         </div>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto overscroll-contain border-t border-line px-3 py-4" aria-label="Navegación principal">
+      <nav className="ui-nav-list flex-1 space-y-5 overflow-y-auto overscroll-contain border-t border-line px-3 py-4" aria-label="Navegación principal">
         {groups.map((group, index) => (
           <div key={group.label ?? index} className="space-y-0.5">
             {group.label && <p className="px-3 pb-1 text-xs font-semibold text-slate-500">{group.label}</p>}
@@ -268,6 +284,7 @@ function NavContent({ onNavigate, offlineQueueCount, firstLinkRef }: { onNavigat
                   ref={item.to === firstPath ? firstLinkRef : undefined}
                   to={item.to}
                   onClick={onNavigate}
+                  replace={Boolean(onNavigate)}
                   aria-current={active ? 'page' : undefined}
                   className={`relative flex min-h-10 items-center gap-3 rounded-control px-3 py-2 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700 ${
                     active
@@ -319,7 +336,7 @@ function NavContent({ onNavigate, offlineQueueCount, firstLinkRef }: { onNavigat
  * primer enlace al abrir, Escape y el botón «Cerrar menú» lo cierran y el foco
  * vuelve al botón que lo abrió. Aparece sin animación.
  */
-function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offlineQueueCount: number }) {
+function MobileMenu({ onClose, onNavigate, offlineQueueCount }: { onClose: () => void; onNavigate: () => void; offlineQueueCount: number }) {
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -363,7 +380,7 @@ function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offli
         aria-modal="true"
         aria-label="Menú"
         tabIndex={-1}
-        className="ui-safe-top ui-safe-bottom absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
+        className="ui-menu-panel ui-safe-top ui-safe-bottom absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
         data-testid="mobile-menu"
       >
         <div className="flex justify-end px-3 pt-3">
@@ -378,8 +395,8 @@ function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offli
             Cerrar menú
           </button>
         </div>
-        <div className="min-h-0 flex-1">
-          <NavContent onNavigate={onClose} offlineQueueCount={offlineQueueCount} firstLinkRef={firstLinkRef} />
+        <div className="ui-menu-body min-h-0 flex-1">
+          <NavContent onNavigate={onNavigate} offlineQueueCount={offlineQueueCount} firstLinkRef={firstLinkRef} />
         </div>
       </div>
     </div>
@@ -413,8 +430,8 @@ function Header({
   const disclosureMode = useDisclosureMode();
 
   return (
-    <header className="ui-safe-top sticky top-0 z-20 border-b border-line bg-surface">
-      <div className="ui-gutter flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+    <header className="ui-shell-header ui-safe-top sticky top-0 z-20 border-b border-line bg-surface">
+      <div className="ui-shell-bar ui-gutter flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
@@ -499,7 +516,45 @@ export function AppShell({ title, section, actions, children }: { title: string;
   const mobileNav = (user?.role === 'AGRICULTOR' ? MOBILE_PATHS_FARMER : MOBILE_PATHS_COLLECTIVE)
     .map((path) => availableNav.find((item) => item.to === path))
     .filter((item): item is NavItem => Boolean(item));
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  /*
+   * El menú del teléfono ocupa una entrada del historial: el botón o gesto
+   * Atrás de Android lo cierra en lugar de salir de la página (hallazgo H1 del
+   * emulador). Cerrarlo con su botón, Escape o un toque fuera deshace esa
+   * entrada; elegir una sección la reemplaza (enlaces con `replace`).
+   */
+  // Cada apertura marca su entrada con una ficha propia: una entrada de menú antigua
+  // (p. ej. de una página restaurada desde la caché) no se confunde con la actual.
+  const menuToken = useRef<string | null>(null);
+  const openMenu = useCallback(() => {
+    const state: unknown = window.history.state;
+    const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    menuToken.current = token;
+    window.history.pushState({ ...(state && typeof state === 'object' ? state : {}), [MENU_HISTORY_KEY]: token }, '');
+    setMenuOpen(true);
+  }, []);
+  const closeMenu = useCallback(() => {
+    if (menuToken.current && menuEntryToken(window.history.state) === menuToken.current) window.history.back(); // el popstate lo cierra
+    else setMenuOpen(false);
+  }, []);
+  const leaveMenu = useCallback(() => setMenuOpen(false), []);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPop = () => {
+      if (menuEntryToken(window.history.state) !== menuToken.current) setMenuOpen(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [menuOpen]);
+
+  // Una página restaurada desde la caché del navegador (bfcache) no vuelve con el menú abierto.
+  useEffect(() => {
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setMenuOpen(false);
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
 
   useEffect(() => {
     const handleStatus = () => setIsOnline(navigator.onLine);
@@ -523,10 +578,10 @@ export function AppShell({ title, section, actions, children }: { title: string;
       <aside className="hidden border-r border-line bg-surface lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[248px] lg:flex-col">
         <NavContent offlineQueueCount={offlineQueueCount} />
       </aside>
-      {menuOpen && <MobileMenu onClose={closeMenu} offlineQueueCount={offlineQueueCount} />}
+      {menuOpen && <MobileMenu onClose={closeMenu} onNavigate={leaveMenu} offlineQueueCount={offlineQueueCount} />}
 
       <div className="lg:pl-[248px]">
-        <Header section={sectionFor(location.pathname, section)} actions={actions} onMenuClick={() => setMenuOpen(true)} menuOpen={menuOpen} isOnline={isOnline} />
+        <Header section={sectionFor(location.pathname, section)} actions={actions} onMenuClick={openMenu} menuOpen={menuOpen} isOnline={isOnline} />
         <main className="ui-gutter ui-main mx-auto max-w-7xl pt-5 lg:pt-6">{children}</main>
       </div>
 
