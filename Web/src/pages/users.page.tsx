@@ -13,6 +13,7 @@ import {
   secondaryButtonClass,
   ROLE_COLORS,
 } from '../components/app-shell';
+import { PageHeader } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import {
   createUser,
@@ -44,9 +45,9 @@ function extractError(err: unknown, fallback: string): string {
     if (data?.message) {
       return Array.isArray(data.message) ? data.message.join(', ') : data.message;
     }
-    if (err.response.status === 401) return 'Sesión expirada. Inicia sesión nuevamente.';
-    if (err.response.status === 403) return 'No tienes permisos para esta acción.';
-    if (err.response.status === 429) return 'Demasiadas solicitudes. Espera un momento.';
+    if (err.response.status === 401) return 'Sesión expirada. Inicie sesión nuevamente.';
+    if (err.response.status === 403) return 'No tiene permisos para esta acción.';
+    if (err.response.status === 429) return 'Demasiadas solicitudes. Espere un momento.';
   }
   return fallback;
 }
@@ -109,10 +110,11 @@ export function UsersPage() {
 
   const headerActions = (
     <button
+      type="button"
       onClick={() => setDialog({ kind: 'create' })}
       className={buttonClass}
     >
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
       </svg>
       Nuevo usuario
@@ -120,7 +122,10 @@ export function UsersPage() {
   );
 
   return (
-    <AppShell title="Administrar usuarios" section="Administración" actions={headerActions}>
+    <AppShell title="Usuarios" section="Administración">
+      <div className="mb-5">
+        <PageHeader title="Usuarios" subtitle="Cuentas de acceso de su organización." actions={headerActions} />
+      </div>
       {/* Search & stats */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex-1 max-w-sm">
@@ -153,7 +158,7 @@ export function UsersPage() {
       </div>
 
       {loadError && (
-        <div role="alert" className="mb-6 flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 animate-fade-in">
+        <div role="alert" className="mb-6 flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           <svg className="h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -162,8 +167,8 @@ export function UsersPage() {
       )}
 
       {isLoading ? (
-        <div className="glass-card flex items-center justify-center px-6 py-20 text-emerald-700 animate-fade-in">
-          <svg className="mr-3 h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
+        <div className="glass-card flex items-center justify-center px-6 py-20 text-emerald-700">
+          <svg className="mr-3 h-6 w-6 animate-spin motion-reduce:animate-none" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
           </svg>
@@ -178,7 +183,7 @@ export function UsersPage() {
               </svg>
             }
             title={search ? 'Sin resultados' : 'No hay usuarios registrados'}
-            description={search ? 'Intenta con otros términos de búsqueda.' : 'Crea el primer usuario de la organización.'}
+            description={search ? 'Intente con otros términos de búsqueda.' : 'Cree el primer usuario de la organización.'}
           />
         </div>
       ) : (
@@ -186,7 +191,7 @@ export function UsersPage() {
           {/* Desktop Table */}
           <div className="hidden md:block table-container">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              <thead className="bg-slate-50 text-xs font-semibold text-slate-600">
                 <tr>
                   <th className="px-5 py-3.5">Usuario</th>
                   <th className="px-5 py-3.5">Rol</th>
@@ -199,14 +204,14 @@ export function UsersPage() {
                 {filtered.map((u) => {
                   const isSelf = u.id === currentUser?.id;
                   return (
-                    <tr key={u.id} className="transition hover:bg-slate-50/60">
+                    <tr key={u.id} className="hover:bg-slate-50">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <UserAvatar name={u.name} size="sm" gradient={ROLE_COLORS[u.role]} />
                           <div>
                             <p className="font-semibold text-slate-800">
                               {u.name}
-                              {isSelf && <span className="ml-1.5 text-[10px] font-medium text-emerald-600">(tú)</span>}
+                              {isSelf && <span className="ml-1.5 text-xs font-medium text-brand-800">(usted)</span>}
                             </p>
                             <p className="text-xs text-slate-500">{u.email}</p>
                           </div>
@@ -216,7 +221,7 @@ export function UsersPage() {
                       <td className="px-5 py-3.5">
                         {u.isActive ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-500/20">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-soft" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
                             Activo
                           </span>
                         ) : (
@@ -251,14 +256,14 @@ export function UsersPage() {
             {filtered.map((u) => {
               const isSelf = u.id === currentUser?.id;
               return (
-                <div key={u.id} className="glass-card p-4 animate-fade-in">
+                <div key={u.id} className="glass-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <UserAvatar name={u.name} size="md" gradient={ROLE_COLORS[u.role]} />
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-slate-800">
                           {u.name}
-                          {isSelf && <span className="ml-1.5 text-[10px] font-medium text-emerald-600">(tú)</span>}
+                          {isSelf && <span className="ml-1.5 text-xs font-medium text-brand-800">(usted)</span>}
                         </p>
                         <p className="truncate text-xs text-slate-500">{u.email}</p>
                       </div>
@@ -266,12 +271,12 @@ export function UsersPage() {
                     <div className="flex flex-col items-end gap-1">
                       <RoleBadge role={u.role} />
                       {u.isActive ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-brand-600" aria-hidden="true" /> Activo
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500">
-                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400" /> Inactivo
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden="true" /> Inactivo
                         </span>
                       )}
                     </div>
@@ -312,9 +317,10 @@ export function UsersPage() {
 function ActionButton({ label, onClick, danger, disabled }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+      className={`ui-press min-h-8 rounded-control px-2.5 py-1.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 ${
         danger
           ? 'border border-red-200 text-red-700 hover:bg-red-50 disabled:text-slate-400 disabled:border-slate-200 disabled:hover:bg-transparent'
           : 'border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
@@ -457,13 +463,13 @@ function EditUserDialog({ user, isSelf, onCancel, onUpdated }: { user: AdminUser
             {USER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </select>
           {isSelf && user.role === 'ADMINISTRADOR' && role !== 'ADMINISTRADOR' && (
-            <FieldError>No puedes quitarte tu propio rol de administrador.</FieldError>
+            <FieldError>No puede quitarse su propio rol de administrador.</FieldError>
           )}
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} disabled={isSubmitting || isSelf} className="accent-emerald-600" />
           <span>Usuario activo</span>
-          {isSelf && <span className="text-xs text-slate-400">(no puedes desactivarte)</span>}
+          {isSelf && <span className="text-xs text-slate-400">(no puede desactivarse a sí mismo)</span>}
         </label>
         {error && <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">{error}</div>}
         <div className="flex justify-end gap-2 pt-2">

@@ -58,3 +58,16 @@ export function fmtMoney(value: string | number | null | undefined): string {
     maximumFractionDigits: 2,
   });
 }
+
+const PERCENT = new Intl.NumberFormat('es-BO', { style: 'percent', maximumFractionDigits: 0 });
+
+/**
+ * Porcentaje para personas (contrato del rediseño §5). Devuelve `null` si el
+ * denominador es 0 o algún valor no es finito: la vista entonces no muestra
+ * porcentaje. Sólo para la cobertura (`members_with_contribution /
+ * linked_members`) y diferencias de estimación comparables.
+ */
+export function fmtPercent(numerator: number, denominator: number): string | null {
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) return null;
+  return PERCENT.format(numerator / denominator);
+}
