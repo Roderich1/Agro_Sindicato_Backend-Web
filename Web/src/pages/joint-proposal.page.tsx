@@ -435,7 +435,7 @@ function ReferenceNote({ proposal, state }: { proposal: Proposal; state: Referen
         suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas ni la huella del borrador. La
         diferencia con la necesidad sólo se escribe si la estimación está vigente y es mayor que cero, y nunca como
         porcentaje.{' '}
-        <Link className="font-semibold text-emerald-700 underline" to={`${COLLECTIVE_PATHS.estimation}?campaign=${encodeURIComponent(proposal.campaign.campaign_ref)}`}>
+        <Link className="font-semibold text-emerald-700 underline" to={`${COLLECTIVE_PATHS.history}?vista=estimacion&campaign=${encodeURIComponent(proposal.campaign.campaign_ref)}`}>
           Detalle en «Estimación del consumo»
         </Link>
         .

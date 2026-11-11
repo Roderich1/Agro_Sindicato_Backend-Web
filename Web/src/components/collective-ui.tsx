@@ -7,6 +7,9 @@ import type { Campaign } from '../types/campaigns';
 import type { AnyStatus, Coverage, SealRef } from '../types/collective';
 import { inputClass, isKnownStatus, KpiTile, labelClass, Notice, StatusChip } from './ui';
 
+/** Conteos (cobertura) con separador de miles es-BO: «1.234 de 2.000». */
+const COUNT = new Intl.NumberFormat('es-BO');
+
 /* Estados de una celda o línea (F07-POL-01). Ninguno inventa ni deduce cifras. */
 
 /**
@@ -137,7 +140,7 @@ export function CoverageBanner({
         <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-800/70">{title}</p>
         <p className="mt-0.5 text-slate-900">
           <span className="text-3xl font-bold leading-tight tabular-nums">
-            {coverage.members_with_contribution} de {coverage.linked_members}
+            {COUNT.format(coverage.members_with_contribution)} de {COUNT.format(coverage.linked_members)}
           </span>{' '}
           <span className="text-sm font-semibold">{headline}</span>
         </p>
@@ -336,14 +339,15 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
           <li key={row.key} className="grid items-center gap-x-4 gap-y-1 px-5 py-2.5 sm:grid-cols-[minmax(11rem,15rem)_1fr_auto]" data-testid={row.testId}>
             <ProductCell name={row.name} unit={row.unit} status={row.status} threshold={threshold} />
             {row.status === 'DISCLOSED' ? (
-              <div className="flex items-center gap-3" title={text ?? undefined}>
-                <div className="h-3 flex-1 rounded-full bg-slate-100">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" title={text ?? undefined}>
+                <div className="h-3 min-w-24 flex-1 rounded-full bg-slate-100">
                   <div
                     className="h-3 rounded-full bg-emerald-600"
                     style={{ width: `${value !== null && value > 0n ? Math.max(width(value), 1) : 0}%` }}
                   />
                 </div>
-                <span className="w-44 whitespace-nowrap text-right text-3xl font-bold leading-none tabular-nums text-slate-900">
+                {/* Ancho mínimo para alinear filas; una cifra larga pasa a su propia línea en vez de desbordar. */}
+                <span className="ml-auto min-w-44 whitespace-nowrap text-right text-2xl font-bold leading-none tabular-nums text-slate-900 sm:text-3xl">
                   {text ?? <span className="text-sm text-red-700">Dato no válido</span>}
                 </span>
               </div>

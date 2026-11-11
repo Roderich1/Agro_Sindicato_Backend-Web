@@ -178,6 +178,21 @@ function isItemActive(item: NavItem, pathname: string): boolean {
   return [item.to, ...(item.also ?? [])].some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+/** Ítems de las cinco tareas (la sección de la barra superior sale de aquí). */
+const TASK_PATHS: readonly string[] = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history, COLLECTIVE_PATHS.catalog];
+
+/**
+ * Etiqueta de sección de la barra superior, derivada de la ruta (etapa 2): el
+ * rótulo de la tarea del menú, «Administración» para Bitácora y Usuarios y,
+ * fuera del menú por tareas (legacy, avisos), el `section` que pasa la vista.
+ */
+function sectionFor(pathname: string, fallback: string): string {
+  const admin = NAV_ITEMS.filter((item) => item.to === AUDIT_LOGS_PATH || item.to === USERS_PATH);
+  if (admin.some((item) => isItemActive(item, pathname))) return 'Administración';
+  const task = NAV_ITEMS.find((item) => TASK_PATHS.includes(item.to) && isItemActive(item, pathname));
+  return task?.label ?? fallback;
+}
+
 /** Barra inferior del teléfono: cuatro tareas como máximo (contrato §2). */
 const MOBILE_PATHS_COLLECTIVE = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history];
 const MOBILE_PATHS_FARMER = ['/dashboard', '/plots', '/inventory', '/applications'];
@@ -240,7 +255,7 @@ function NavContent({ onNavigate, offlineQueueCount, firstLinkRef }: { onNavigat
         </div>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto border-t border-line px-3 py-4" aria-label="Navegación principal">
+      <nav className="flex-1 space-y-5 overflow-y-auto overscroll-contain border-t border-line px-3 py-4" aria-label="Navegación principal">
         {groups.map((group, index) => (
           <div key={group.label ?? index} className="space-y-0.5">
             {group.label && <p className="px-3 pb-1 text-xs font-semibold text-slate-500">{group.label}</p>}
@@ -348,7 +363,7 @@ function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offli
         aria-modal="true"
         aria-label="Menú"
         tabIndex={-1}
-        className="ui-safe-top absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
+        className="ui-safe-top ui-safe-bottom absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
         data-testid="mobile-menu"
       >
         <div className="flex justify-end px-3 pt-3">
@@ -382,14 +397,12 @@ function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offli
  * siempre con texto.
  */
 function Header({
-  title,
   section,
   actions,
   onMenuClick,
   menuOpen,
   isOnline,
 }: {
-  title: string;
   section: string;
   actions?: ReactNode;
   onMenuClick: () => void;
@@ -416,13 +429,13 @@ function Header({
             </svg>
           </button>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-brand-800">{section}</p>
-            <p className="text-sm font-semibold leading-tight text-ink" data-testid="shell-title">
-              {title}
+            {/* Sólo la sección del menú por tareas: el título visible es el h1 de PageHeader. */}
+            <p className="text-xs font-semibold text-brand-800" data-testid="shell-section">
+              {section}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {disclosureMode === 'PROVISIONAL_SYNTHETIC' && (
             <span
               className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-inset ring-amber-600/30"
@@ -435,14 +448,17 @@ function Header({
           <Link
             to={CAMPAIGNS_PATH}
             title="Campaña activa del sindicato"
-            className="hidden max-w-[22rem] items-center gap-1.5 rounded-control px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 sm:inline-flex"
+            className="hidden min-w-0 max-w-[min(22rem,100%)] items-center gap-1.5 rounded-control px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700 sm:inline-flex"
           >
             {isLoading ? (
               'Campaña…'
             ) : activeCampaign ? (
               <>
-                <span className="font-semibold text-brand-800">Activa</span>
-                <span className="break-words font-medium text-ink">{activeCampaign.name}</span>
+                <span className="shrink-0 font-semibold text-brand-800">Activa</span>
+                {/* Una línea: con zoom o nombre largo se recorta y el nombre completo queda en `title`. */}
+                <span className="min-w-0 truncate font-medium text-ink" title={activeCampaign.name} data-testid="active-campaign-name">
+                  {activeCampaign.name}
+                </span>
               </>
             ) : (
               <span className="font-semibold text-amber-900">Sin campaña activa</span>
@@ -467,9 +483,10 @@ function Header({
    ══════════════════════════════════════════ */
 
 /**
- * Armazón de la Web institucional. Firma estable: `title` y `section` se
- * muestran como texto en la barra (el `h1` lo pone `PageHeader`), `actions`
- * a la derecha de la barra.
+ * Armazón de la Web institucional. Firma estable: `title` va al título de la
+ * pestaña (el único título visible es el `h1` de `PageHeader`); la barra muestra
+ * sólo la sección, derivada de la ruta (menú por tareas) y, fuera de él,
+ * `section`; `actions` a la derecha de la barra.
  */
 export function AppShell({ title, section, actions, children }: { title: string; section: string; actions?: ReactNode; children: ReactNode }) {
   const { user } = useAuth();
@@ -496,6 +513,11 @@ export function AppShell({ title, section, actions, children }: { title: string;
 
   useEffect(() => (legacyFarmerWebEnabled() ? subscribeOfflineQueue(setOfflineQueueCount) : undefined), []);
 
+  // El nombre de la vista ya no se repite en la barra: queda en el título de la pestaña.
+  useEffect(() => {
+    document.title = `${title} · Agrocuentas`;
+  }, [title]);
+
   return (
     <div className="min-h-dvh bg-canvas">
       <aside className="hidden border-r border-line bg-surface lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[248px] lg:flex-col">
@@ -504,7 +526,7 @@ export function AppShell({ title, section, actions, children }: { title: string;
       {menuOpen && <MobileMenu onClose={closeMenu} offlineQueueCount={offlineQueueCount} />}
 
       <div className="lg:pl-[248px]">
-        <Header title={title} section={section} actions={actions} onMenuClick={() => setMenuOpen(true)} menuOpen={menuOpen} isOnline={isOnline} />
+        <Header section={sectionFor(location.pathname, section)} actions={actions} onMenuClick={() => setMenuOpen(true)} menuOpen={menuOpen} isOnline={isOnline} />
         <main className="ui-gutter ui-main mx-auto max-w-7xl pt-5 lg:pt-6">{children}</main>
       </div>
 
@@ -610,7 +632,7 @@ export function Modal({ title, children, onClose, size = 'md' }: { title: string
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`relative w-full ${sizeClasses[size]} rounded-card border border-line bg-surface p-6 shadow-raised`}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain ${sizeClasses[size]} rounded-card border border-line bg-surface p-6 shadow-raised`}>
         <div className="mb-5 flex items-center justify-between gap-3">
           <h3 className="text-lg font-bold text-ink">{title}</h3>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="ui-press rounded-control p-1.5 text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
