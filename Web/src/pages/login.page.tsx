@@ -9,9 +9,14 @@ import { ESTIMATION_COPY_PATH } from '../lib/navigation';
 const LOGO_PATH =
   'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064';
 
-/* Rediseño 2026-11-10: superficies claras y sólidas, sin degradados, desenfoques ni animación decorativa. */
+/*
+ * Rediseño 2026-11-10: superficies claras y sólidas, sin degradados, desenfoques ni animación decorativa.
+ * N2 (emulador): con `interactive-widget=resizes-content` el teclado encoge el área visible; la página
+ * (min-h-dvh, sin alto fijo ni overflow oculto) puede desplazarse y el margen de desplazamiento deja el
+ * campo enfocado por encima del teclado cuando el navegador lo lleva a la vista.
+ */
 const fieldClass =
-  'w-full rounded-control border border-slate-300 bg-surface py-3 pl-11 text-sm text-ink placeholder-slate-500 focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-700/25 disabled:opacity-60';
+  'scroll-my-24 w-full rounded-control border border-slate-300 bg-surface py-3 pl-11 text-sm text-ink placeholder-slate-500 focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-700/25 disabled:opacity-60';
 
 function Logo() {
   return (

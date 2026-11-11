@@ -27,7 +27,8 @@ export function PageHeader({ title, subtitle, campaign, actions, headingLevel = 
       {(campaign || actions) && (
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
           {campaign && <div className="min-w-0 flex-1 basis-64">{campaign}</div>}
-          {actions && <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>}
+          {/* En estrecho, las acciones (p. ej. el SegmentedControl «Vista») se alinean a la izquierda, con su etiqueta en el margen (H4). */}
+          {actions && <div className="flex flex-wrap items-center gap-2 sm:ml-auto">{actions}</div>}
         </div>
       )}
     </header>

@@ -1,5 +1,5 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportDisclosureMode } from '../lib/data-mode';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { renderAt } from '../test/render';
@@ -124,7 +124,7 @@ describe('AppShell: teléfono', () => {
     expect(bottom.className).toContain('ui-bottom-nav');
   });
 
-  it('menú desplegable: botón con nombre, foco en el primer enlace, Escape cierra y devuelve el foco', () => {
+  it('menú desplegable: botón con nombre, foco en el primer enlace, Escape cierra y devuelve el foco', async () => {
     renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
     const toggle = screen.getByRole('button', { name: 'Abrir menú' });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
@@ -134,7 +134,8 @@ describe('AppShell: teléfono', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(document.activeElement).toBe(within(dialog).getByRole('link', { name: 'Resumen' }));
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: 'Menú' })).toBeNull();
+    // Escape deshace la entrada del historial del menú; el popstate lo cierra.
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menú' })).toBeNull());
     expect(document.activeElement).toBe(toggle);
   });
 
@@ -148,13 +149,69 @@ describe('AppShell: teléfono', () => {
     expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Cerrar menú' }));
   });
 
-  it('«Cerrar menú» y elegir una sección cierran el menú', () => {
+  it('«Cerrar menú» y elegir una sección cierran el menú', async () => {
     renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
     fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar menú' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('link', { name: 'Resumen' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  /** H1 del emulador: el botón Atrás de Android con el menú abierto salía de la página. */
+  describe('menú y botón Atrás (historial)', () => {
+    const menuEntry = () => Boolean((window.history.state as Record<string, unknown> | null)?.agroMenu);
+    beforeEach(() => window.history.replaceState(null, ''));
+
+    it('abrir el menú añade una entrada del historial y Atrás (popstate) sólo cierra el menú', async () => {
+      renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+      const url = window.location.href;
+      fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
+      expect(menuEntry()).toBe(true);
+      act(() => window.history.back());
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menú' })).toBeNull());
+      expect(menuEntry()).toBe(false);
+      expect(window.location.href).toBe(url);
+    });
+
+    it('cerrar con «Cerrar menú» deshace la entrada del menú (no queda un Atrás de más)', async () => {
+      renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+      const back = vi.spyOn(window.history, 'back');
+      fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar menú' }));
+      expect(back).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(menuEntry()).toBe(false);
+    });
+
+    it('sin entrada del menú (p. ej. restaurada de otra forma), cerrar no retrocede en el historial', () => {
+      renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+      fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
+      window.history.replaceState({}, '');
+      const back = vi.spyOn(window.history, 'back');
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar menú' }));
+      expect(back).not.toHaveBeenCalled();
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('una entrada de menú anterior no impide cerrar el menú actual con Atrás', async () => {
+      window.history.replaceState({ agroMenu: 'antigua' }, '');
+      renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+      fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar menú' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it('una página restaurada desde la caché del navegador (pageshow persisted) no vuelve con el menú abierto', () => {
+      renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+      fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
+      const event = new Event('pageshow') as PageTransitionEvent;
+      Object.defineProperty(event, 'persisted', { value: true });
+      act(() => {
+        window.dispatchEvent(event);
+      });
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
   });
 });

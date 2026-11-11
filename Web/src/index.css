@@ -281,9 +281,20 @@
 
   /* DataTable (components/ui): desplazamiento horizontal interno, cabecera
      pegajosa, cifras alineadas. */
+  /*
+   * Sombra lateral sólo cuando hay más tabla a ese lado (propuesta de C, etapa
+   * 3): dos velos blancos que se desplazan con el contenido (`local`) tapan dos
+   * sombras fijas (`scroll`) al llegar a cada borde. Sin desplazamiento no se ve.
+   */
   .ui-table-scroll {
     overflow: auto;
     overscroll-behavior-x: contain;
+    background:
+      linear-gradient(to right, #fff 30%, rgb(255 255 255 / 0)) left center / 40px 100% no-repeat local,
+      linear-gradient(to left, #fff 30%, rgb(255 255 255 / 0)) right center / 40px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgb(15 23 42 / 0.2), transparent) left center / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(15 23 42 / 0.2), transparent) right center / 12px 100% no-repeat scroll;
+    background-color: var(--color-surface);
   }
 
   .ui-table {
@@ -299,7 +310,8 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: #f8fafc;
+    /* Translúcido: deja ver la sombra lateral también en la fila de cabecera. */
+    background: rgb(248 250 252 / 0.88);
     border-bottom: 1px solid var(--color-line);
     padding: 0.625rem 1rem;
     text-align: left;
@@ -396,6 +408,54 @@
 .input-icon-wrapper input:focus ~ .input-icon,
 .input-icon-wrapper select:focus ~ .input-icon {
   color: var(--color-brand-700);
+}
+
+/* ══════════════════════════════════════════
+   TELÉFONO EN HORIZONTAL (alto ≤ 500 px), hallazgo H2 del emulador
+   Fuera de capa para ganar a las utilidades (`flex`, `sticky`, `min-h-14`).
+   ══════════════════════════════════════════ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* La barra inferior se oculta: el menú desplegable da acceso a todas las tareas. */
+  .ui-bottom-nav {
+    display: none;
+  }
+
+  .ui-main {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Cabecera compacta y no fija: se va con el contenido. */
+  .ui-shell-header {
+    position: static;
+  }
+
+  .ui-shell-bar {
+    min-height: 2.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  /* El menú desplaza entero dentro del diálogo, en lugar de sólo su lista. */
+  .ui-menu-panel {
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .ui-menu-body {
+    flex: none;
+    min-height: auto;
+  }
+
+  .ui-menu-panel .ui-nav-content {
+    height: auto;
+  }
+
+  .ui-menu-panel .ui-nav-list {
+    flex: none;
+    overflow: visible;
+  }
 }
 
 /* Movimiento reducido: se conservan opacidad y color; se quita todo
