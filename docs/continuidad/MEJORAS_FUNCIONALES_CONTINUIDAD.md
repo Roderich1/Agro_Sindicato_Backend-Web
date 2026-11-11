@@ -24,7 +24,7 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 
 Ramas de Back **no** incluidas en la base (decisión: no mezclar en esta etapa): `feat/directiva-agricultores-sincronizacion` (7fd3365, estado de sincronización de agricultores), `test/f07-variante-necesidad-postgres` (variante «threshold-only», experimental), `demo/oe3-demostracion` (tool/demo).
 
-Commits de esta sesión (2026-11-11): se listan en §7.
+Commits de esta sesión (2026-11-11): Back/Web `f395fcd` (back), `9672b80` (web), `2ce79db` (docs, tool) y el commit de cierre de documentación; Mobile `7257816`.
 
 ## 4. Contratos y migraciones
 

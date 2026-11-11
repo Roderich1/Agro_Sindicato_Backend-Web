@@ -22,7 +22,7 @@
 | Web | `npx tsc -b --noEmit`, `npm run lint`, `npm run build` | tsc OK; lint 0 errores (7 avisos antiguos); build OK |
 | Mobile | `flutter analyze` | sin incidencias |
 | Mobile, nuevas | `flutter test test/e1_*.dart test/migration_test.dart test/schema_equivalence_test.dart test/voice_evidence/voice_evidence_exclusion_test.dart` | 70 pruebas en verde (10 foto, 19 store, 18 emisor y lista de rutas, 1 vínculo sin tocar registros privados, 1 pantalla de vínculos, 1 catálogo, 21 migración/esquema/exclusión de voz) |
-| Mobile, suite completa | `flutter test` | ver §5 (resultado de la ejecución final) |
+| Mobile, suite completa | `flutter test` | dos ejecuciones completas en `_wt/ET1-MOB` con código de salida 0 (todas en verde; la ejecución intermedia del agente contó 2 911 aprobadas y 3 omitidas tras ajustar `rec_039` a la versión 15) |
 
 Lo que cubren las PostgreSQL: idempotencia del `PUT` (mismo id, reenvío, id ajeno 409), separación de tenants y roles (agricultor 403 en rutas institucionales; otro tenant 404), foto (tipo falso, tamaño, hash distinto, sin consentimiento 409, reemplazo borra la anterior, retiro → 404, otro tenant 404, almacenamiento no configurado 503 sin bloquear los datos), vincular / crear / diferir con eventos y `AuditLog`, nombre repetido 409, corrección del vínculo, candidatos sin escritura.
 
@@ -79,9 +79,9 @@ Product nuevo: «Fertilizante foliar artesanal ZZ», KG, activo · fotos en disc
 
 APK «AC ET1» (`com.comunidad.agro.agroquimicos.et1`, perfil x64) compilada desde `_wt/ET1-MOB` e instalada en `emulator-5554`. **El recorrido del agricultor en el emulador no se pudo ejecutar:** la app exige un origen HTTPS (`ApiEndpointConfig`) y su primera pantalla es «Activar en línea» (`emulador_activacion_sin_servidor.png`); el túnel HTTPS temporal (`et1.sh tunnel`, cloudflared como en sesiones anteriores) fue **denegado por el modo automático** de esta sesión (ingreso externo). La APK instalada apunta a un origen de relleno (`https://et1.invalid`) y debe recompilarse con el origen real (`et1.sh tunnel` → `build-app` → `install-app`) cuando el túnel esté autorizado. La transferencia teléfono → servidor queda, por tanto, acreditada sólo por las pruebas unitarias del emisor (`MockClient`) y por el recorrido HOST del §2, que usa la misma API y la misma sesión de app.
 
-## 5. Resultado de la suite Mobile completa
+## 5. Commits locales
 
-Se anota al cerrar la sesión (véase el documento de continuidad).
+Back/Web (`_wt/ET1-BE`): `f395fcd` back, `9672b80` web, `2ce79db` docs (+ el commit de este ajuste). Mobile (`_wt/ET1-MOB`): `7257816`. Autoría Roderich1, sin trailers; sin push.
 
 ## 6. Limitaciones declaradas
 
