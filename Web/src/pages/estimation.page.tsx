@@ -656,7 +656,7 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
+            <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600 max-sm:hidden">
               <tr>
                 <th className="px-4 py-2.5">Producto</th>
                 <th className="px-4 py-2.5">Estimación de consumo</th>
@@ -672,14 +672,15 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                 const earlier = latestRun !== null && result.run_ref !== latestRun;
                 const estimated = result.status === 'ESTIMATED';
                 return (
-                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top">
-                    <td className="px-4 py-3 text-base font-semibold text-slate-900">
+                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top max-sm:block max-sm:border-b max-sm:border-slate-200 max-sm:py-2">
+                    <td className="px-4 py-3 text-base font-semibold text-slate-900 [overflow-wrap:anywhere] sm:min-w-48 max-sm:block max-sm:border-0 max-sm:py-1.5">
                       {result.product.name}
                       <span className="ml-1 text-xs font-normal text-slate-400">{result.presentation_unit}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 max-sm:block max-sm:border-0 max-sm:py-1.5">
+                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Estimación de consumo</span>
                       {estimated ? (
-                        <span className="text-3xl leading-none" data-testid="estimate">
+                        <span className="text-xl leading-none sm:text-3xl" data-testid="estimate">
                           <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />
                         </span>
                       ) : (
@@ -695,7 +696,8 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                         </>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 max-sm:block max-sm:border-0 max-sm:py-1.5">
+                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Línea base: último consumo publicado</span>
                       <span className="text-lg" data-testid="naive">
                         <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
                       </span>
@@ -703,7 +705,8 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                         {estimated && baseCampaign ? `Consumo publicado en ${baseCampaign}` : estimated ? 'Último consumo publicado de la serie' : '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 max-sm:block max-sm:border-0 max-sm:py-1.5">
+                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Vigencia</span>
                       <span data-testid="validity">
                         <ValidityBadge validity={result.validity} reason={result.validity_reason} />
                       </span>
@@ -713,10 +716,10 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-600 max-sm:block max-sm:border-0 max-sm:py-1.5">
                       <details>
                         <summary className="cursor-pointer font-semibold text-emerald-700">Ver detalle</summary>
-                        <dl className="mt-2 w-max max-w-xs space-y-1">
+                        <dl className="mt-2 max-w-xs space-y-1 sm:w-max">
                           <div data-testid="observed">
                             <dt className="inline text-slate-500">Serie observada: </dt>
                             <dd className="inline">

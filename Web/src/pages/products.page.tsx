@@ -173,9 +173,9 @@ export function ProductsView({ headingLevel = 1, equivalencesTo = COLLECTIVE_PAT
               </p>
               {groupProducts(shownActive, grouping).map((group) => (
                 <Section key={group.key} title={group.label} note={count(group.products.length, 'producto', 'productos')} testId={`group-${group.key}`}>
-                  <DataTable caption={`Productos: ${group.label}`} minWidth={600}>
+                  <DataTable caption={`Productos: ${group.label}`}>
                     <thead>
-                      <tr>
+                      <tr className="max-sm:hidden">
                         <th>Nombre</th>
                         <th>Unidad</th>
                         <th>Categoría</th>
@@ -244,18 +244,18 @@ function ProductRow({ product, onEdit, onDeactivate }: { product: Product; onEdi
   const unit = unitLabel(product.unit);
   const details = [product.commercialName, product.activeIngredient].filter(Boolean).join(' · ');
   return (
-    <tr data-testid={`product-${product.name}`}>
-      <td className="min-w-52 [overflow-wrap:anywhere]">
+    <tr className="max-sm:block max-sm:border-b max-sm:border-slate-200 max-sm:py-2" data-testid={`product-${product.name}`}>
+      <td className="max-sm:block max-sm:border-0 max-sm:py-1 [overflow-wrap:anywhere] sm:min-w-52">
         <p className="text-base font-semibold text-slate-900">{product.name}</p>
         {details && <p className="text-xs text-slate-600">{details}</p>}
       </td>
-      <td className="text-slate-700">
+      <td className="max-sm:block max-sm:border-0 max-sm:py-1 text-slate-700">
         {unit.text}
         {!unit.linkable && <span className="ml-2 text-xs text-amber-800">no vinculable a cifras colectivas</span>}
       </td>
-      <td className="text-slate-700">{product.category ?? <span className="text-slate-500">—</span>}</td>
-      <td className="ui-num">
-        <div className="flex justify-end gap-2">
+      <td className="max-sm:block max-sm:border-0 max-sm:py-1 text-slate-700 max-sm:text-xs">{product.category ?? <span className="text-slate-500">—</span>}</td>
+      <td className="ui-num max-sm:block max-sm:border-0 max-sm:py-1">
+        <div className="flex gap-2 sm:justify-end">
           <button type="button" className={secondaryButtonClass} onClick={onEdit}>
             Editar
           </button>

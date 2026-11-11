@@ -272,9 +272,10 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
           <DataState state="empty" title="Sin necesidades declaradas publicadas" description="Ausencia de declaración = desconocido, no cero." />
         ) : (
           <div className="mt-3">
-            <DataTable caption="Líneas del borrador" minWidth={820}>
+            {/* En un teléfono (< sm) cada línea se apila: producto, necesidad, aportantes y referencia, sin desplazamiento lateral. */}
+            <DataTable caption="Líneas del borrador">
               <thead>
-                <tr>
+                <tr className="max-sm:hidden">
                   <th>Producto</th>
                   <th>Necesidad declarada</th>
                   <th className="ui-num">Aportantes</th>
@@ -285,11 +286,12 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
               </thead>
               <tbody>
                 {proposal.lines.map((line) => (
-                  <tr key={line.position} data-testid={`line-${line.product_name}-${line.base_unit}`}>
-                    <td className="min-w-48 [overflow-wrap:anywhere]">
+                  <tr key={line.position} className="max-sm:block max-sm:border-b max-sm:border-slate-200 max-sm:py-2" data-testid={`line-${line.product_name}-${line.base_unit}`}>
+                    <td className="max-sm:block max-sm:border-0 max-sm:py-1.5 [overflow-wrap:anywhere] sm:min-w-48">
                       <ProductCell name={line.product_name} unit={line.presentation_unit} status={line.status} />
                     </td>
-                    <td className="min-w-44" data-testid="need">
+                    <td className="max-sm:block max-sm:border-0 max-sm:py-1.5 sm:min-w-44" data-testid="need">
+                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Necesidad declarada</span>
                       <QuantityCell
                         status={line.status}
                         base={line.quantity_base}
@@ -300,11 +302,15 @@ function ProposalDetail({ proposal, reference, onCsv }: { proposal: Proposal; re
                       />
                       {line.status === 'DISCLOSED' && line.pending_changes && <PendingChangesNote />}
                     </td>
-                    <td className="ui-num text-base">
+                    <td className="ui-num text-base max-sm:block max-sm:border-0 max-sm:py-1.5 max-sm:text-left max-sm:text-sm">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Aportantes: </span>
                       {line.status === 'DISCLOSED' ? line.contributors : <span className="text-xs text-slate-500">no revelados</span>}
                     </td>
-                    <td className="min-w-60 border-l border-slate-200 bg-slate-50/60 text-xs text-slate-600" data-testid="reference">
-                      <ReferenceCell line={line} state={reference} />
+                    <td className="border-l border-slate-200 bg-slate-50/60 text-xs text-slate-600 sm:min-w-60 max-sm:mt-1 max-sm:block max-sm:rounded-md max-sm:border-l-0 max-sm:px-3 max-sm:py-2">
+                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Estimación del consumo (referencia)</span>
+                      <div data-testid="reference">
+                        <ReferenceCell line={line} state={reference} />
+                      </div>
                     </td>
                   </tr>
                 ))}
