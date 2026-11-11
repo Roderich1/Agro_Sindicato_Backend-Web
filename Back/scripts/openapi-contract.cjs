@@ -137,6 +137,12 @@ const f06Required = [
   ["/api/v1/collective/proposals/{proposalId}/csv", "get", "200", "401", "403", "404"],
   // F12-EST-08 (#181): the estimation as a separate reference of a proposal.
   ["/api/v1/collective/proposals/{proposalId}/estimation-reference", "get", "200", "401", "403", "404"],
+  // E3: the estimate fixed as a reference of a draft and the products chosen for a call.
+  ["/api/v1/collective/proposals/{proposalId}/estimation-link", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/proposals/{proposalId}/estimation-link/prepare", "post", "200", "400", "401", "403", "404", "409"],
+  ["/api/v1/collective/proposals/{proposalId}/estimation-link/clear", "post", "200", "400", "401", "403", "404", "409"],
+  ["/api/v1/collective/proposals/{proposalId}/selection", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/proposals/{proposalId}/selection", "put", "200", "400", "401", "403", "404", "409", "422"],
   // F07 (2026-10-23): manual seal and trends over sealed versions.
   ["/api/v1/collective/campaigns/{campaignId}/seal", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/campaigns/{campaignId}/seal", "post", "200", "400", "401", "403", "404", "409", "422"],

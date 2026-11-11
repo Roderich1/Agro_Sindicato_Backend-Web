@@ -247,6 +247,8 @@ model Tenant {
   identificationRequests   ProductIdentificationRequest[]
   jointPurchaseCalls       JointPurchaseCall[]
   jointParticipations      JointPurchaseParticipation[]
+  proposalEstimationLinks  JointPurchaseProposalEstimationLink[]
+  proposalSelections       JointPurchaseProposalSelection[]
 }
 
 model User {
@@ -261,49 +263,51 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tenant                    Tenant                         @relation(fields: [tenantId], references: [id])
+  tenant                    Tenant                                @relation(fields: [tenantId], references: [id])
   members                   Member[]
   refreshTokens             RefreshToken[]
   warehouses                Warehouse[]
   inventoryLots             InventoryLot[]
-  stockMovements            StockMovement[]                @relation("StockMovementActor")
-  ownedStockMovements       StockMovement[]                @relation("StockMovementOwner")
+  stockMovements            StockMovement[]                       @relation("StockMovementActor")
+  ownedStockMovements       StockMovement[]                       @relation("StockMovementOwner")
   purchases                 Purchase[]
   purchaseItemAllocations   PurchaseItemAllocation[]
   purchaseParticipants      PurchaseParticipant[]
   payableAccounts           PayableAccount[]
-  payments                  Payment[]                      @relation("PaymentRegistrar")
+  payments                  Payment[]                             @relation("PaymentRegistrar")
   syncOperations            SyncOperation[]
-  createdCampaigns          AgriculturalCampaign[]         @relation("CampaignCreator")
-  closedCampaigns           AgriculturalCampaign[]         @relation("CampaignCloser")
+  createdCampaigns          AgriculturalCampaign[]                @relation("CampaignCreator")
+  closedCampaigns           AgriculturalCampaign[]                @relation("CampaignCloser")
   plots                     Plot[]
   plotCropAssignments       PlotCropAssignment[]
-  ownedApplications         AgrochemicalApplication[]      @relation("AgrochemicalApplicationOwner")
-  appliedApplications       AgrochemicalApplication[]      @relation("AgrochemicalApplicationAppliedBy")
+  ownedApplications         AgrochemicalApplication[]             @relation("AgrochemicalApplicationOwner")
+  appliedApplications       AgrochemicalApplication[]             @relation("AgrochemicalApplicationAppliedBy")
   calendarEvents            CalendarEvent[]
-  auditLogsAsActor          AuditLog[]                     @relation("AuditActor")
-  auditLogsAsOwner          AuditLog[]                     @relation("AuditOwner")
-  productAssociationsMade   ProductCanonicalAssociation[]  @relation("ProductAssociationActor")
-  productAssociationsClosed ProductCanonicalAssociation[]  @relation("ProductAssociationCloser")
-  jointPurchaseProposals    JointPurchaseProposal[]        @relation("JointPurchaseProposalAuthor")
-  collectiveSeals           CollectiveSeal[]               @relation("CollectiveSealActor")
-  estimationRuns            EstimationRun[]                @relation("EstimationRunRequester")
-  estimationJobs            EstimationJob[]                @relation("EstimationJobRequester")
-  comparabilitySeasons      ComparabilitySeason[]          @relation("ComparabilitySeasonCreator")
-  campaignClassifications   CampaignSeasonClassification[] @relation("CampaignSeasonClassifier")
-  identificationsResolved   ProductIdentificationRequest[] @relation("ProductIdentificationResolver")
-  identificationNotes       ProductIdentificationRequest[] @relation("ProductIdentificationNoteAuthor")
-  identificationEvents      ProductIdentificationEvent[]   @relation("ProductIdentificationEventActor")
-  callsAsResponsible        JointPurchaseCall[]            @relation("JointPurchaseCallResponsible")
-  callsCreated              JointPurchaseCall[]            @relation("JointPurchaseCallCreator")
-  callsOpened               JointPurchaseCall[]            @relation("JointPurchaseCallOpener")
-  callsCancelled            JointPurchaseCall[]            @relation("JointPurchaseCallCanceller")
-  callAccessGrants          JointPurchaseCallAccess[]      @relation("JointPurchaseCallAccessHolder")
-  callAccessGranted         JointPurchaseCallAccess[]      @relation("JointPurchaseCallAccessGrantor")
-  callAccessEventsAbout     JointPurchaseCallAccessEvent[] @relation("JointPurchaseCallAccessEventSubject")
-  callAccessEventsActed     JointPurchaseCallAccessEvent[] @relation("JointPurchaseCallAccessEventActor")
-  callEvents                JointPurchaseCallEvent[]       @relation("JointPurchaseCallEventActor")
-  callClosings              JointPurchaseCallClosing[]     @relation("JointPurchaseCallCloser")
+  auditLogsAsActor          AuditLog[]                            @relation("AuditActor")
+  auditLogsAsOwner          AuditLog[]                            @relation("AuditOwner")
+  productAssociationsMade   ProductCanonicalAssociation[]         @relation("ProductAssociationActor")
+  productAssociationsClosed ProductCanonicalAssociation[]         @relation("ProductAssociationCloser")
+  jointPurchaseProposals    JointPurchaseProposal[]               @relation("JointPurchaseProposalAuthor")
+  collectiveSeals           CollectiveSeal[]                      @relation("CollectiveSealActor")
+  estimationRuns            EstimationRun[]                       @relation("EstimationRunRequester")
+  estimationJobs            EstimationJob[]                       @relation("EstimationJobRequester")
+  comparabilitySeasons      ComparabilitySeason[]                 @relation("ComparabilitySeasonCreator")
+  campaignClassifications   CampaignSeasonClassification[]        @relation("CampaignSeasonClassifier")
+  identificationsResolved   ProductIdentificationRequest[]        @relation("ProductIdentificationResolver")
+  identificationNotes       ProductIdentificationRequest[]        @relation("ProductIdentificationNoteAuthor")
+  identificationEvents      ProductIdentificationEvent[]          @relation("ProductIdentificationEventActor")
+  callsAsResponsible        JointPurchaseCall[]                   @relation("JointPurchaseCallResponsible")
+  callsCreated              JointPurchaseCall[]                   @relation("JointPurchaseCallCreator")
+  callsOpened               JointPurchaseCall[]                   @relation("JointPurchaseCallOpener")
+  callsCancelled            JointPurchaseCall[]                   @relation("JointPurchaseCallCanceller")
+  callAccessGrants          JointPurchaseCallAccess[]             @relation("JointPurchaseCallAccessHolder")
+  callAccessGranted         JointPurchaseCallAccess[]             @relation("JointPurchaseCallAccessGrantor")
+  callAccessEventsAbout     JointPurchaseCallAccessEvent[]        @relation("JointPurchaseCallAccessEventSubject")
+  callAccessEventsActed     JointPurchaseCallAccessEvent[]        @relation("JointPurchaseCallAccessEventActor")
+  callEvents                JointPurchaseCallEvent[]              @relation("JointPurchaseCallEventActor")
+  callClosings              JointPurchaseCallClosing[]            @relation("JointPurchaseCallCloser")
+  proposalEstimationLinks   JointPurchaseProposalEstimationLink[] @relation("JointPurchaseProposalEstimationLinkAuthor")
+  proposalSelections        JointPurchaseProposalSelection[]      @relation("JointPurchaseProposalSelectionEditor")
 }
 
 model Member {
@@ -1175,11 +1179,14 @@ model JointPurchaseProposal {
   generatedAt             DateTime                    @default(now())
   generatedByUserId       String
 
-  tenant      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign    AgriculturalCampaign        @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  generatedBy User                        @relation("JointPurchaseProposalAuthor", fields: [generatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  lines       JointPurchaseProposalLine[]
-  calls       JointPurchaseCall[]
+  tenant          Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign        AgriculturalCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  generatedBy     User                                  @relation("JointPurchaseProposalAuthor", fields: [generatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  lines           JointPurchaseProposalLine[]
+  calls           JointPurchaseCall[]
+  /// E3: referencia de consumo estimado fijada (vínculos inmutables) y selección de productos.
+  estimationLinks JointPurchaseProposalEstimationLink[]
+  selection       JointPurchaseProposalSelection?
 
   @@index([tenantId, campaignId, generatedAt])
 }
@@ -1475,10 +1482,11 @@ model EstimationJob {
   stopCode          String?             @db.VarChar(48)
   stopEvidence      Json?
 
-  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  requestedBy    User                 @relation("EstimationJobRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  targetCampaign AgriculturalCampaign @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant         Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy    User                                  @relation("EstimationJobRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetCampaign AgriculturalCampaign                  @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   run            EstimationRun?
+  proposalLinks  JointPurchaseProposalEstimationLink[]
 
   @@unique([tenantId, requestId])
   @@index([status, enqueuedAt])
@@ -1518,15 +1526,16 @@ model EstimationRun {
   contentHash            String               @db.Char(64)
   generatedAt            DateTime             @default(now())
 
-  tenant               Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  job                  EstimationJob                @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  requestedBy          User                         @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  targetCampaign       AgriculturalCampaign         @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  season               ComparabilitySeason          @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  targetClassification CampaignSeasonClassification @relation(fields: [targetClassificationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  previousRun          EstimationRun?               @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  nextRun              EstimationRun?               @relation("EstimationRunSuccession")
+  tenant               Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  job                  EstimationJob                         @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy          User                                  @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetCampaign       AgriculturalCampaign                  @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  season               ComparabilitySeason                   @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetClassification CampaignSeasonClassification          @relation(fields: [targetClassificationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previousRun          EstimationRun?                        @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  nextRun              EstimationRun?                        @relation("EstimationRunSuccession")
   results              EstimationResult[]
+  proposalLinks        JointPurchaseProposalEstimationLink[]
 
   @@unique([previousRunId])
   @@index([tenantId, targetCampaignId, generatedAt])
@@ -1926,4 +1935,53 @@ model JointPurchaseCallClosingParticipantLine {
   participant JointPurchaseCallClosingParticipant @relation(fields: [callId, participationId], references: [callId, participationId], onDelete: Restrict, onUpdate: Restrict)
 
   @@id([callId, participationId, productId])
+}
+
+/// E3 (docs/architecture/E3_ESTIMACION_EN_BORRADOR_CONTRATO.md §3): vínculo
+/// inmutable entre un borrador de propuesta y la ejecución F12 que fija como
+/// referencia de consumo estimado, o el trabajo que la producirá. La vigente
+/// es la de mayor `sequence`; un vínculo CLEAR la quita. El trabajador F12 no
+/// escribe aquí. `requestHash` (SHA-256 del cuerpo canónico de prepare/clear)
+/// distingue la repetición de un `requestId` de su reutilización con otro cuerpo.
+model JointPurchaseProposalEstimationLink {
+  id              String   @id @default(uuid()) @db.Uuid
+  proposalId      String   @db.Uuid
+  tenantId        String
+  sequence        Int
+  requestId       String   @db.Uuid
+  requestHash     String   @db.Char(64)
+  mode            String   @db.VarChar(8)
+  action          String   @db.VarChar(24)
+  runId           String?  @db.Uuid
+  jobId           String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  createdByUserId String
+  createdByRole   String   @db.VarChar(16)
+
+  proposal  JointPurchaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  run       EstimationRun?        @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  job       EstimationJob?        @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy User                  @relation("JointPurchaseProposalEstimationLinkAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([proposalId, sequence])
+  @@unique([proposalId, requestId])
+  @@index([runId])
+  @@index([jobId])
+}
+
+/// E3 §6: la única decisión editable del borrador, qué productos llevar a una
+/// convocatoria; control optimista por `revision`. Cada cambio deja una entrada
+/// de AuditLog. La estimación nunca la cambia.
+model JointPurchaseProposalSelection {
+  proposalId      String   @id @db.Uuid
+  tenantId        String
+  revision        Int
+  productRefs     Json
+  updatedAt       DateTime
+  updatedByUserId String
+
+  proposal  JointPurchaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  updatedBy User                  @relation("JointPurchaseProposalSelectionEditor", fields: [updatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }

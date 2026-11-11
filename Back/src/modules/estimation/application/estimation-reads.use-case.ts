@@ -204,6 +204,62 @@ export class EstimationReadsUseCase {
     };
   }
 
+  /**
+   * E3 (proposal estimation link): the validity facts of §8 for every result
+   * of one run, derived exactly as `run()` and `results()` derive them (the
+   * same `Reading.facts`), so that a caller can tell whether a result is
+   * outdated even when it has no figure (an INSUFFICIENT_DATA whose sources
+   * changed). Nothing is written and no figure F12 would withhold is
+   * delivered: `estimate_base` is null when the result has no figure, when a
+   * source was withdrawn or when the policy is pending. Null when the run is
+   * not of this tenant. It does not refuse under POLICY_PENDING: the caller
+   * decides, and gets no figure.
+   */
+  async resultFacts(tenantId: string, runId: string) {
+    const run = await this.prisma.estimationRun.findFirst({
+      where: { id: runId, tenantId },
+      include: { targetCampaign: { select: CAMPAIGN }, season: true, results: { include: RESULT_INCLUDE } },
+    });
+    if (!run) return null;
+    const chain = await this.chain(tenantId, run.targetCampaignId);
+    const reading = new Reading(this.prisma, this.series, tenantId, chain);
+    const pending = this.collective.mode === "POLICY_PENDING";
+    const index = chain.findIndex((r) => r.id === run.id);
+    const results = [];
+    for (const result of sortResults(run.results)) {
+      const { facts } = await reading.facts(run, result);
+      const { validity, reason } = deriveValidity(facts);
+      const withheld = pending || figuresWithheld(facts);
+      results.push({
+        product_ref: result.canonicalProductId,
+        base_unit: result.baseUnit,
+        status: result.status,
+        reason_code: result.reasonCode,
+        estimate_base: result.estimateBase && !withheld ? result.estimateBase.toFixed(6) : null,
+        validity,
+        validity_reason: reason,
+        facts,
+      });
+    }
+    return {
+      run: {
+        ...summaryOf(run),
+        disclosure: { mode: run.disclosureMode, policy: run.policy, threshold: run.threshold },
+      },
+      /** A later CALCULATED run exists in the chain of the same target (whatever products it includes). */
+      later_calculated_run: chain.slice(index + 1).some((r) => r.outcome === "CALCULATED"),
+      policy_pending: pending,
+      results,
+    };
+  }
+
+  /** E3: the latest CALCULATED run of the chain of a target, or null. */
+  async latestCalculatedRunId(tenantId: string, targetCampaignId: string): Promise<string | null> {
+    const chain = await this.chain(tenantId, targetCampaignId);
+    const calculated = chain.filter((r) => r.outcome === "CALCULATED");
+    return calculated.length > 0 ? calculated[calculated.length - 1]!.id : null;
+  }
+
   private requirePolicy() {
     if (this.collective.mode === "POLICY_PENDING") throw new ConflictException("POLICY_PENDING");
   }
@@ -325,7 +381,7 @@ class Reading {
   }
 
   /** The facts of §8 for one result, and which verified positions are still disclosed. */
-  private async facts(
+  async facts(
     run: { id: string; outcome: string; seasonId: string; targetClassificationId: string },
     result: StoredResult,
   ): Promise<{ facts: ValidityFacts; visible: Set<number> }> {
