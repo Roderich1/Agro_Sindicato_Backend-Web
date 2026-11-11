@@ -1,0 +1,386 @@
+{
+  "when": "2026-11-11T03:10:48.509Z",
+  "url": "http://127.0.0.1:5171",
+  "results": [
+    {
+      "file": "operativa_1366x768.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": true,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 782,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 750,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_1920x1080.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": true,
+      "variantFitsInViewport": true,
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "scrollHeight": 1080,
+      "innerHeight": 1080,
+      "h1": 1,
+      "variantBottom": 732,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_390x844.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1457,
+      "innerHeight": 844,
+      "h1": 1,
+      "variantBottom": 1377,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_320x568.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 320,
+      "innerWidth": 320,
+      "scrollHeight": 1623,
+      "innerHeight": 568,
+      "h1": 1,
+      "variantBottom": 1543,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_1366x768_worst.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 931,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 899,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_390x844_worst.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1625,
+      "innerHeight": 844,
+      "h1": 1,
+      "variantBottom": 1545,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_1366x768_empty.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": true,
+      "variantFitsInViewport": true,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 545,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_390x844_empty.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 990,
+      "innerHeight": 844,
+      "h1": 1,
+      "variantBottom": 910,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_1366x768_reduced-motion.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": true,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 782,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 750,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_1366x768.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 1261,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 1229,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_1920x1080.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": true,
+      "variantFitsInViewport": true,
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "scrollHeight": 1080,
+      "innerHeight": 1080,
+      "h1": 1,
+      "variantBottom": 1026,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_390x844.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1765,
+      "innerHeight": 844,
+      "h1": 1,
+      "variantBottom": 1685,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_320x568.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 320,
+      "innerWidth": 320,
+      "scrollHeight": 2056,
+      "innerHeight": 568,
+      "h1": 1,
+      "variantBottom": 1976,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_1366x768_worst.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 1254,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 1222,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_390x844_worst.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1889,
+      "innerHeight": 844,
+      "h1": 1,
+      "variantBottom": 1809,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_1366x768_empty.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 814,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 782,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_390x844_empty.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1193,
+      "innerHeight": 844,
+      "h1": 1,
+      "variantBottom": 1113,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "analitica_1366x768_reduced-motion.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "scrollHeight": 1261,
+      "innerHeight": 768,
+      "h1": 1,
+      "variantBottom": 1229,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "file": "operativa_390x844_menu.png",
+      "horizontalOverflow": false,
+      "fitsWithoutScroll": false,
+      "variantFitsInViewport": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1457,
+      "innerHeight": 844,
+      "h1": 1,
+      "variantBottom": 1377,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "apiRequests": [
+        "POST /api/v1/auth/refresh",
+        "POST /api/v1/auth/refresh"
+      ]
+    }
+  ]
+}

@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { useDisclosureMode } from '../lib/data-mode';
-import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor } from '../lib/navigation';
+import { AUDIT_LOGS_PATH, CAMPAIGNS_PATH, COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor, USERS_PATH } from '../lib/navigation';
 import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
 import { StatusChip } from './ui';
 
@@ -17,16 +17,21 @@ const ROLE_LABELS: Record<string, string> = {
   AGRICULTOR: 'Agricultor',
 };
 
+/**
+ * Fondo sólido del avatar por rol (rediseño 2026-11-10: sin degradados). El
+ * nombre se conserva por compatibilidad con las vistas que lo importan.
+ */
 const ROLE_COLORS: Record<string, string> = {
-  ADMINISTRADOR: 'from-violet-500 to-purple-600',
-  DIRECTIVA: 'from-teal-500 to-cyan-600',
-  AGRICULTOR: 'from-emerald-500 to-green-600',
+  ADMINISTRADOR: 'bg-brand-800 text-white',
+  DIRECTIVA: 'bg-brand-700 text-white',
+  AGRICULTOR: 'bg-brand-100 text-brand-800',
 };
 
+/** El rol siempre se lee en el texto; el tono sólo acompaña. */
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  ADMINISTRADOR: 'bg-violet-500/10 text-violet-700 ring-violet-500/20',
-  DIRECTIVA: 'bg-teal-500/10 text-teal-700 ring-teal-500/20',
-  AGRICULTOR: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20',
+  ADMINISTRADOR: 'bg-brand-50 text-brand-800 ring-brand-700/25',
+  DIRECTIVA: 'bg-slate-100 text-slate-700 ring-slate-500/25',
+  AGRICULTOR: 'bg-slate-100 text-slate-700 ring-slate-500/25',
 };
 
 /* ══════════════════════════════════════════
@@ -35,76 +40,81 @@ const ROLE_BADGE_COLORS: Record<string, string> = {
 
 interface NavItem {
   label: string;
+  /** Etiqueta corta para la barra inferior del teléfono. */
+  short?: string;
   to: string;
   icon: ReactNode;
+  /** Rutas antiguas o internas que pertenecen a esta sección (ítem activo). */
+  also?: readonly string[];
 }
 
 function NavIcon({ d }: { d: string }) {
   return (
-    <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true" focusable="false">
       <path strokeLinecap="round" strokeLinejoin="round" d={d} />
     </svg>
   );
 }
 
 /**
- * Menú de la Directiva (defensa, 2026-11-05): primero el recorrido principal
- * (Resumen → Propuesta conjunta → Tendencias → Estimación) y la cobertura;
- * después, bajo «Gestión», productos, campañas, equivalencias de productos y
- * usuarios.
- * El orden y los permisos siguen viniendo de `menuPathsFor`; aquí sólo se
- * agrupan para mostrarlos.
+ * Menú por tareas (rediseño 2026-11-10, contrato §2): las cinco tareas de la
+ * Directiva y, bajo «Administración», Bitácora y Usuarios. El orden y los
+ * permisos vienen de `menuPathsFor`; aquí sólo se agrupan. Un grupo sin ítems
+ * para el rol no se muestra.
  */
 const NAV_GROUPS: { label: string | null; paths: readonly string[] }[] = [
-  { label: null, paths: [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation, COLLECTIVE_PATHS.coverage] },
-  { label: 'Gestión', paths: [COLLECTIVE_PATHS.products, '/campaigns', COLLECTIVE_PATHS.reconciliation, '/users'] },
+  { label: null, paths: [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history, COLLECTIVE_PATHS.catalog] },
+  { label: 'Administración', paths: [AUDIT_LOGS_PATH, USERS_PATH] },
 ];
 
 const NAV_ITEMS: NavItem[] = [
   {
-    label: 'Resumen colectivo',
+    label: 'Resumen',
     to: COLLECTIVE_PATHS.summary,
+    // La cobertura sale del menú y se abre desde el Resumen.
+    also: [COLLECTIVE_PATHS.coverage],
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Propuesta conjunta',
+    label: 'Campañas',
+    to: CAMPAIGNS_PATH,
+    icon: <NavIcon d="M8 7V3m8 4V3M5 11h14M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  },
+  {
+    label: 'Necesidades y propuestas',
+    short: 'Necesidades',
     to: COLLECTIVE_PATHS.proposals,
     icon: <NavIcon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
   },
   {
-    label: 'Cobertura',
-    to: COLLECTIVE_PATHS.coverage,
-    icon: <NavIcon d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
-  },
-  {
-    label: 'Tendencias',
-    to: COLLECTIVE_PATHS.trends,
+    label: 'Histórico y estimaciones',
+    short: 'Histórico',
+    to: COLLECTIVE_PATHS.history,
+    also: [COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation],
     icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
   },
   {
-    label: 'Estimación del consumo',
-    to: COLLECTIVE_PATHS.estimation,
-    icon: <NavIcon d="M4 19h16M4 15l4-4 3 3 5-6 4 4M16 8h4v4" />,
-  },
-  {
-    label: 'Productos',
-    to: COLLECTIVE_PATHS.products,
+    label: 'Catálogo y equivalencias',
+    short: 'Catálogo',
+    to: COLLECTIVE_PATHS.catalog,
+    also: [COLLECTIVE_PATHS.products, COLLECTIVE_PATHS.reconciliation],
     icon: <NavIcon d="M9 3h6v4l4 6v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6l4-6V3zm-3 12h12" />,
   },
   {
-    label: 'Equivalencias de productos',
-    to: COLLECTIVE_PATHS.reconciliation,
-    icon: <NavIcon d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />,
+    label: 'Bitácora',
+    to: AUDIT_LOGS_PATH,
+    icon: <NavIcon d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
   },
+  {
+    label: 'Usuarios',
+    to: USERS_PATH,
+    icon: <NavIcon d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />,
+  },
+  /* Legacy del agricultor: sólo con VITE_LEGACY_FARMER_WEB=enabled (#23). */
   {
     label: 'Dashboard',
     to: '/dashboard',
     icon: <NavIcon d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
-  },
-  {
-    label: 'Campañas',
-    to: '/campaigns',
-    icon: <NavIcon d="M8 7V3m8 4V3M5 11h14M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />,
   },
   {
     label: 'Parcelas',
@@ -132,29 +142,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
   },
   {
-    label: 'Bitácora',
-    to: '/audit-logs',
-    icon: <NavIcon d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
-  },
-  {
     label: 'Compras',
     to: '/purchases',
     icon: <NavIcon d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />,
   },
   {
-    label: 'Directiva',
-    to: '/directiva',
-    icon: <NavIcon d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
-  },
-  {
     label: 'Sincronización',
     to: '/sync',
     icon: <NavIcon d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />,
-  },
-  {
-    label: 'Usuarios',
-    to: '/users',
-    icon: <NavIcon d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />,
   },
 ];
 
@@ -165,7 +160,7 @@ function navItemsFor(role: string | null | undefined): NavItem[] {
     .filter((item): item is NavItem => Boolean(item));
 }
 
-/** Los ítems permitidos, agrupados para el menú lateral; lo que no encaja en un grupo va al final. */
+/** Los ítems permitidos, agrupados; lo que no encaja en un grupo va al final. */
 function navGroupsFor(items: NavItem[]): { label: string | null; items: NavItem[] }[] {
   const placed = new Set<string>();
   const groups = NAV_GROUPS.map((group) => ({
@@ -178,10 +173,20 @@ function navGroupsFor(items: NavItem[]): { label: string | null; items: NavItem[
   return groups.filter((group) => group.items.length > 0);
 }
 
+/** La sección está activa en su ruta, en sus subrutas y en sus rutas antiguas. */
+function isItemActive(item: NavItem, pathname: string): boolean {
+  return [item.to, ...(item.also ?? [])].some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+/** Barra inferior del teléfono: cuatro tareas como máximo (contrato §2). */
+const MOBILE_PATHS_COLLECTIVE = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history];
+const MOBILE_PATHS_FARMER = ['/dashboard', '/plots', '/inventory', '/applications'];
+
 /* ══════════════════════════════════════════
    AVATAR COMPONENT
    ══════════════════════════════════════════ */
 
+/** Iniciales sobre fondo sólido; `gradient` conserva su nombre, pero recibe las clases de fondo de `ROLE_COLORS`. */
 function UserAvatar({ name, size = 'md', gradient }: { name: string; size?: 'sm' | 'md' | 'lg'; gradient?: string }) {
   const initials = name
     .split(' ')
@@ -197,80 +202,68 @@ function UserAvatar({ name, size = 'md', gradient }: { name: string; size?: 'sm'
   };
 
   return (
-    <div
-      className={`${sizeClasses[size]} flex items-center justify-center rounded-full bg-gradient-to-br ${gradient ?? 'from-emerald-500 to-green-600'} font-bold text-white shadow-sm ring-2 ring-white/20`}
-    >
+    <div className={`${sizeClasses[size]} flex shrink-0 items-center justify-center rounded-full font-bold ${gradient ?? ROLE_COLORS.AGRICULTOR}`} aria-hidden="true">
       {initials}
     </div>
   );
 }
 
 /* ══════════════════════════════════════════
-   SIDEBAR COMPONENT
+   SIDEBAR
    ══════════════════════════════════════════ */
 
-function Sidebar({
-  collapsed,
-  mobileOpen,
-  onMobileClose,
-  offlineQueueCount = 0,
-}: {
-  collapsed: boolean;
-  mobileOpen: boolean;
-  onMobileClose: () => void;
-  offlineQueueCount?: number;
-}) {
+/**
+ * Contenido de la navegación: marca y sindicato (sin truncar), grupos de
+ * tareas y sesión. Superficie clara; el ítem activo lleva acento de marca,
+ * peso de texto y `aria-current="page"`. Sin animación al cambiar de ruta.
+ */
+function NavContent({ onNavigate, offlineQueueCount, firstLinkRef }: { onNavigate?: () => void; offlineQueueCount: number; firstLinkRef?: Ref<HTMLAnchorElement> }) {
   const { user, logout } = useAuth();
   const location = useLocation();
-
   const groups = navGroupsFor(navItemsFor(user?.role));
+  const firstPath = groups[0]?.items[0]?.to;
 
-  const sidebarContent = (
+  return (
     <div className="flex h-full flex-col">
-      <div className={`flex items-center gap-3 px-4 py-4 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 shadow-lg shadow-emerald-900/30">
-          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="flex items-start gap-3 px-4 py-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-brand-700 text-white" aria-hidden="true">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
           </svg>
         </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-sm font-bold leading-tight text-white">Agrocuentas</p>
-            {/* El nombre del sindicato se parte en líneas: nunca se trunca. */}
-            <p className="mt-0.5 whitespace-normal break-words text-[11px] font-medium leading-snug text-emerald-200/80" title={user?.tenant?.name}>
-              {user?.tenant?.name}
-            </p>
-          </div>
-        )}
+        <div className="min-w-0">
+          <p className="text-sm font-bold leading-tight text-ink">Agrocuentas</p>
+          {/* El nombre del sindicato se parte en líneas: nunca se trunca. */}
+          <p className="mt-0.5 whitespace-normal break-words text-xs font-medium leading-snug text-slate-600" title={user?.tenant?.name}>
+            {user?.tenant?.name}
+          </p>
+        </div>
       </div>
 
-      <div className="mx-4 border-t border-white/8" />
-
-      <nav className="flex-1 space-y-4 px-3 py-3" aria-label="Navegación principal">
+      <nav className="flex-1 space-y-5 overflow-y-auto border-t border-line px-3 py-4" aria-label="Navegación principal">
         {groups.map((group, index) => (
           <div key={group.label ?? index} className="space-y-0.5">
-            {group.label && !collapsed && (
-              <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">{group.label}</p>
-            )}
+            {group.label && <p className="px-3 pb-1 text-xs font-semibold text-slate-500">{group.label}</p>}
             {group.items.map((item) => {
-              const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+              const active = isItemActive(item, location.pathname);
               const isSync = item.to === '/sync';
               return (
                 <Link
                   key={item.to}
+                  ref={item.to === firstPath ? firstLinkRef : undefined}
                   to={item.to}
-                  onClick={onMobileClose}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400 ${
-                    isActive ? 'bg-white/12 text-white' : 'text-slate-300 hover:bg-white/6 hover:text-white'
-                  } ${collapsed ? 'justify-center' : ''}`}
+                  onClick={onNavigate}
+                  aria-current={active ? 'page' : undefined}
+                  className={`relative flex min-h-10 items-center gap-3 rounded-control px-3 py-2 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700 ${
+                    active
+                      ? 'bg-brand-50 font-semibold text-brand-800 before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-brand-700'
+                      : 'font-medium text-slate-700 hover:bg-slate-100 hover:text-ink'
+                  }`}
                 >
-                  <span className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-emerald-400'}`}>
-                    {item.icon}
-                  </span>
-                  {!collapsed && <span className="sidebar-item-text">{item.label}</span>}
+                  <span className={active ? 'text-brand-700' : 'text-slate-500'}>{item.icon}</span>
+                  <span className="min-w-0">{item.label}</span>
                   {isSync && offlineQueueCount > 0 && (
-                    <span className={`absolute ${collapsed ? '-top-1 -right-1' : 'right-3'} flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white`}>
+                    <span className="ml-auto rounded-full bg-red-700 px-1.5 text-[11px] font-bold text-white" aria-label={`${offlineQueueCount} pendientes`}>
                       {offlineQueueCount}
                     </span>
                   )}
@@ -281,77 +274,158 @@ function Sidebar({
         ))}
       </nav>
 
-      <div className="mx-4 border-t border-white/8" />
-
-      <div className={`p-4 ${collapsed ? 'flex flex-col items-center' : ''}`}>
+      <div className="border-t border-line p-4">
         {user && (
-          <div className={`flex items-center gap-3 ${collapsed ? 'flex-col' : ''}`}>
+          <div className="flex items-center gap-3">
             <UserAvatar name={user.name} size="md" gradient={ROLE_COLORS[user.role]} />
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{user.name}</p>
-                <p className="text-[11px] text-slate-400">{ROLE_LABELS[user.role] ?? user.role}</p>
-              </div>
-            )}
+            <div className="min-w-0 flex-1">
+              <p className="break-words text-sm font-semibold text-ink">{user.name}</p>
+              <p className="text-xs text-slate-600">{ROLE_LABELS[user.role] ?? user.role}</p>
+            </div>
           </div>
         )}
         <button
+          type="button"
           onClick={() => void logout()}
-          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 ${collapsed ? 'mt-1' : ''}`}
+          className="ui-press mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-control border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
-          {!collapsed && <span>Cerrar sesión</span>}
+          <span>Cerrar sesión</span>
         </button>
       </div>
     </div>
   );
+}
+
+/**
+ * Menú desplegable del teléfono (≤ lg): diálogo modal con nombre, foco en el
+ * primer enlace al abrir, Escape y el botón «Cerrar menú» lo cierran y el foco
+ * vuelve al botón que lo abrió. Aparece sin animación.
+ */
+function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offlineQueueCount: number }) {
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    (firstLinkRef.current ?? panelRef.current)?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      // El foco no sale del menú mientras está abierto (diálogo modal).
+      if (event.key === 'Tab' && panelRef.current) {
+        const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'));
+        const firstEl = focusables[0];
+        const lastEl = focusables[focusables.length - 1];
+        if (!firstEl || !lastEl) return;
+        if (event.shiftKey && document.activeElement === firstEl) {
+          event.preventDefault();
+          lastEl.focus();
+        } else if (!event.shiftKey && document.activeElement === lastEl) {
+          event.preventDefault();
+          firstEl.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
+  }, [onClose]);
 
   return (
-    <>
-      {mobileOpen && (
-        <button
-          type="button"
-          aria-label="Cerrar menu"
-          className="fixed inset-0 z-40 cursor-default bg-transparent lg:hidden"
-          onClick={onMobileClose}
-        />
-      )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[240px] bg-[#0f1d15] lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {sidebarContent}
-      </aside>
-      <aside className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:flex-col bg-[#0f1d15] ${collapsed ? 'lg:w-[72px]' : 'lg:w-[240px]'}`}>
-        {sidebarContent}
-      </aside>
-    </>
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div className="modal-backdrop absolute inset-0" aria-hidden="true" onClick={onClose} />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú"
+        tabIndex={-1}
+        className="ui-safe-top absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
+        data-testid="mobile-menu"
+      >
+        <div className="flex justify-end px-3 pt-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="ui-press inline-flex min-h-10 items-center gap-1.5 rounded-control px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cerrar menú
+          </button>
+        </div>
+        <div className="min-h-0 flex-1">
+          <NavContent onNavigate={onClose} offlineQueueCount={offlineQueueCount} firstLinkRef={firstLinkRef} />
+        </div>
+      </div>
+    </div>
   );
 }
 
 /* ══════════════════════════════════════════
-   HEADER COMPONENT
+   HEADER
    ══════════════════════════════════════════ */
 
-function Header({ title, section, actions, onMenuClick, isOnline }: { title: string; section: string; actions?: ReactNode; onMenuClick: () => void; isOnline: boolean }) {
+/**
+ * Barra superior. No lleva el `h1` (lo pone `PageHeader` en cada vista):
+ * conserva la sección y el nombre de la vista como texto, la etiqueta «Datos
+ * sintéticos» cuando el servidor la declara, la campaña activa y la conexión,
+ * siempre con texto.
+ */
+function Header({
+  title,
+  section,
+  actions,
+  onMenuClick,
+  menuOpen,
+  isOnline,
+}: {
+  title: string;
+  section: string;
+  actions?: ReactNode;
+  onMenuClick: () => void;
+  menuOpen: boolean;
+  isOnline: boolean;
+}) {
   const { activeCampaign, isLoading } = useCampaign();
   const disclosureMode = useDisclosureMode();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur-md">
-      <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <button onClick={onMenuClick} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Abrir menú">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+    <header className="ui-safe-top sticky top-0 z-20 border-b border-line bg-surface">
+      <div className="ui-gutter flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Abrir menú"
+            aria-expanded={menuOpen}
+            aria-haspopup="dialog"
+            className="ui-press -ml-1 inline-flex h-10 w-10 items-center justify-center rounded-control text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700 lg:hidden"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
           </button>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">{section}</p>
-            <h1 className="truncate text-lg font-bold leading-tight text-slate-900">{title}</h1>
+            <p className="text-xs font-semibold text-brand-800">{section}</p>
+            <p className="text-sm font-semibold leading-tight text-ink" data-testid="shell-title">
+              {title}
+            </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {disclosureMode === 'PROVISIONAL_SYNTHETIC' && (
             <span
-              className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-inset ring-amber-500/30"
+              className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-inset ring-amber-600/30"
               title="El servidor declara datos sintéticos (modo provisional de la política de divulgación)."
               data-testid="synthetic-badge"
             >
@@ -359,33 +433,31 @@ function Header({ title, section, actions, onMenuClick, isOnline }: { title: str
             </span>
           )}
           <Link
-            to="/campaigns"
+            to={CAMPAIGNS_PATH}
             title="Campaña activa del sindicato"
-            className={`hidden items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset sm:inline-flex ${
-              activeCampaign
-                ? 'bg-emerald-50 text-emerald-800 ring-emerald-500/20'
-                : 'bg-amber-50 text-amber-700 ring-amber-500/20'
-            }`}
+            className="hidden max-w-[22rem] items-center gap-1.5 rounded-control px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 sm:inline-flex"
           >
             {isLoading ? (
               'Campaña…'
             ) : activeCampaign ? (
               <>
-                <span className="mr-1.5 text-[10px] uppercase tracking-wider opacity-70">Activa</span>
-                {activeCampaign.name}
+                <span className="font-semibold text-brand-800">Activa</span>
+                <span className="break-words font-medium text-ink">{activeCampaign.name}</span>
               </>
             ) : (
-              'Sin campaña activa'
+              <span className="font-semibold text-amber-900">Sin campaña activa</span>
             )}
           </Link>
-          <div className={`hidden items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider sm:flex ${isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
+          <span
+            className={`items-center gap-1.5 text-xs font-medium ${isOnline ? 'hidden text-slate-600 sm:inline-flex' : 'inline-flex text-red-800'}`}
+            data-testid="connection"
+          >
+            <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-brand-600' : 'bg-red-700'}`} aria-hidden="true" />
             {isOnline ? 'En línea' : 'Sin conexión'}
-          </div>
+          </span>
           {actions}
         </div>
       </div>
-      <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600" />
     </header>
   );
 }
@@ -394,20 +466,23 @@ function Header({ title, section, actions, onMenuClick, isOnline }: { title: str
    APP SHELL
    ══════════════════════════════════════════ */
 
+/**
+ * Armazón de la Web institucional. Firma estable: `title` y `section` se
+ * muestran como texto en la barra (el `h1` lo pone `PageHeader`), `actions`
+ * a la derecha de la barra.
+ */
 export function AppShell({ title, section, actions, children }: { title: string; section: string; actions?: ReactNode; children: ReactNode }) {
   const { user } = useAuth();
-  const collapsed = false;
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   // La cola offline legacy sólo se lee con el flag de rollback (#23).
   const [offlineQueueCount, setOfflineQueueCount] = useState(() => (legacyFarmerWebEnabled() ? readOfflineQueue().length : 0));
   const availableNav = navItemsFor(user?.role);
-  const preferredMobilePaths = user?.role === 'AGRICULTOR'
-    ? ['/dashboard', '/plots', '/inventory', '/applications']
-    : [COLLECTIVE_PATHS.summary, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation];
-  const mobileNav = preferredMobilePaths
+  const mobileNav = (user?.role === 'AGRICULTOR' ? MOBILE_PATHS_FARMER : MOBILE_PATHS_COLLECTIVE)
     .map((path) => availableNav.find((item) => item.to === path))
     .filter((item): item is NavItem => Boolean(item));
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   useEffect(() => {
     const handleStatus = () => setIsOnline(navigator.onLine);
@@ -422,27 +497,37 @@ export function AppShell({ title, section, actions, children }: { title: string;
   useEffect(() => (legacyFarmerWebEnabled() ? subscribeOfflineQueue(setOfflineQueueCount) : undefined), []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Sidebar
-        collapsed={collapsed}
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-        offlineQueueCount={offlineQueueCount}
-      />
+    <div className="min-h-dvh bg-canvas">
+      <aside className="hidden border-r border-line bg-surface lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[248px] lg:flex-col">
+        <NavContent offlineQueueCount={offlineQueueCount} />
+      </aside>
+      {menuOpen && <MobileMenu onClose={closeMenu} offlineQueueCount={offlineQueueCount} />}
 
-      <div className={`transition-all duration-300 lg:pl-[240px] ${collapsed ? 'lg:!pl-[72px]' : ''}`}>
-        <Header title={title} section={section} actions={actions} onMenuClick={() => setMobileOpen(true)} isOnline={isOnline} />
-        <main className="mx-auto max-w-7xl px-4 py-5 pb-24 sm:px-6 lg:px-8 lg:pb-8">{children}</main>
+      <div className="lg:pl-[248px]">
+        <Header title={title} section={section} actions={actions} onMenuClick={() => setMenuOpen(true)} menuOpen={menuOpen} isOnline={isOnline} />
+        <main className="ui-gutter ui-main mx-auto max-w-7xl pt-5 lg:pt-6">{children}</main>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 border-t border-slate-200 bg-white lg:hidden">
-        {mobileNav.map((item) => (
-          <Link key={item.to} to={item.to} className="flex flex-1 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] font-bold leading-tight text-slate-500">
-            {item.icon}
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      {mobileNav.length > 0 && (
+        <nav className="ui-bottom-nav fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface lg:hidden" aria-label="Navegación rápida">
+          {mobileNav.map((item) => {
+            const active = isItemActive(item, location.pathname);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={active ? 'page' : undefined}
+                className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[11px] font-semibold leading-tight focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700 ${
+                  active ? 'text-brand-800' : 'text-slate-600'
+                }`}
+              >
+                <span className={`rounded-full px-3 py-0.5 ${active ? 'bg-brand-50 text-brand-700' : ''}`}>{item.icon}</span>
+                <span>{item.short ?? item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }
@@ -461,24 +546,28 @@ export function SkeletonRow({ cols = 5 }: { cols?: number }) {
 export function EmptyState({ icon, title, description, compact = false }: { icon?: ReactNode; title: string; description?: string; compact?: boolean }) {
   return (
     <div className={`flex flex-col items-center justify-center text-center ${compact ? 'py-7' : 'py-16'}`}>
-      {icon && <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-300">{icon}</div>}
-      <p className="text-sm font-semibold text-slate-600">{title}</p>
-      {description && <p className="mt-1.5 max-w-xs text-xs text-slate-400">{description}</p>}
+      {icon && <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-card bg-slate-100 text-slate-500" aria-hidden="true">{icon}</div>}
+      <p className="text-sm font-semibold text-slate-700">{title}</p>
+      {description && <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-slate-600">{description}</p>}
     </div>
   );
 }
 
-export function StatCard({ label, value, icon, trend, color = 'emerald' }: { label: string; value: string | number; icon?: ReactNode; trend?: string; color?: 'emerald' | 'red' | 'amber' | 'sky' | 'violet' | 'slate' }) {
-  const colorClasses: Record<string, string> = { emerald: 'from-emerald-500 to-green-600', red: 'from-red-500 to-rose-600', amber: 'from-amber-500 to-orange-500', sky: 'from-sky-500 to-blue-600', violet: 'from-violet-500 to-purple-600', slate: 'from-slate-500 to-slate-700' };
+/**
+ * Tarjeta de cifra de las vistas heredadas (bitácora y legacy). Rediseño
+ * 2026-11-10: superficie sólida, sin degradado; `color` se conserva en la
+ * firma pero ya no tiñe el icono (un solo acento).
+ */
+export function StatCard({ label, value, icon, trend }: { label: string; value: string | number; icon?: ReactNode; trend?: string; color?: 'emerald' | 'red' | 'amber' | 'sky' | 'violet' | 'slate' }) {
   return (
     <div className="glass-card p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{label}</p>
-          <p className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">{value}</p>
-          {trend && <p className="mt-1 text-xs font-medium text-slate-400">{trend}</p>}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-slate-600">{label}</p>
+          <p className="mt-1.5 text-2xl font-bold text-ink tabular-nums">{value}</p>
+          {trend && <p className="mt-1 text-xs font-medium text-slate-600">{trend}</p>}
         </div>
-        {icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-sm`}>{icon}</div>}
+        {icon && <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-slate-100 text-slate-600" aria-hidden="true">{icon}</div>}
       </div>
     </div>
   );
@@ -521,10 +610,10 @@ export function Modal({ title, children, onClose, size = 'md' }: { title: string
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div ref={ref} className={`relative w-full ${sizeClasses[size]} rounded-2xl bg-white p-6 shadow-xl`}>
-        <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-          <button onClick={onClose} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`relative w-full ${sizeClasses[size]} rounded-card border border-line bg-surface p-6 shadow-raised`}>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-bold text-ink">{title}</h3>
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="ui-press rounded-control p-1.5 text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
         {children}
       </div>

@@ -35,7 +35,14 @@ export function CampaignSelector({ campaigns, selected, onSelect, showActiveBadg
         <label className={labelClass} htmlFor={id}>
           {label}
         </label>
-        <select id={id} className={inputClass} value={selected ?? ''} onChange={(event) => onSelect(event.target.value)}>
+        <select
+          id={id}
+          className={inputClass}
+          value={selected ?? ''}
+          // El nombre completo, aunque el cuadro cerrado lo recorte.
+          title={current ? optionText(current) : undefined}
+          onChange={(event) => onSelect(event.target.value)}
+        >
           {current === null && <option value="">Seleccione una campaña</option>}
           {campaigns.map((campaign) => (
             <option key={campaign.id} value={campaign.id}>
