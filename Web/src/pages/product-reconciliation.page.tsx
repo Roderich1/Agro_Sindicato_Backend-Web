@@ -24,6 +24,12 @@ type Dialog =
   | { kind: 'associate'; product: CatalogEntry }
   | { kind: 'close'; association: Association };
 
+/**
+ * Sombra en el borde por el que una tabla sigue (sin JavaScript): los degradados blancos se desplazan con el
+ * contenido (`local`) y tapan la sombra fija (`scroll`) sólo cuando se llega a ese borde. Sin desplazamiento no se ve.
+ */
+const SCROLL_HINT = '[&_.ui-table-scroll]:[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const matches = (query: string, ...names: string[]) => {
   const wanted = normalizeName(query);
@@ -130,6 +136,9 @@ export function ProductReconciliationView({ headingLevel = 1 }: { headingLevel?:
             <input
               id="association-search"
               type="search"
+              enterKeyHint="search"
+              inputMode="search"
+              autoComplete="off"
               className={inputClass}
               value={query}
               placeholder="Nombre de la denominación o del producto canónico"
@@ -147,7 +156,7 @@ export function ProductReconciliationView({ headingLevel = 1 }: { headingLevel?:
             ) : shownUnassociated.length === 0 ? (
               noMatch('denominación sin asociar')
             ) : (
-              <DataTable caption="Denominaciones sin asociar" minWidth={520}>
+              <div className={SCROLL_HINT}><DataTable caption="Denominaciones sin asociar" minWidth={520}>
                 <tbody>
                   {shownUnassociated.map((product) => {
                     const aliases = aliasCount.get(product.product_ref) ?? 0;
@@ -180,7 +189,7 @@ export function ProductReconciliationView({ headingLevel = 1 }: { headingLevel?:
                     );
                   })}
                 </tbody>
-              </DataTable>
+              </DataTable></div>
             )}
           </Section>
 
@@ -190,7 +199,7 @@ export function ProductReconciliationView({ headingLevel = 1 }: { headingLevel?:
             ) : shownCurrent.length === 0 ? (
               noMatch('equivalencia vigente')
             ) : (
-              <DataTable caption="Equivalencias vigentes" minWidth={640}>
+              <div className={SCROLL_HINT}><DataTable caption="Equivalencias vigentes" minWidth={640}>
                 <tbody>
                   {shownCurrent.map((row) => (
                     <tr key={row.association_ref} data-testid={`current-${row.product_name}`}>
@@ -216,7 +225,7 @@ export function ProductReconciliationView({ headingLevel = 1 }: { headingLevel?:
                     </tr>
                   ))}
                 </tbody>
-              </DataTable>
+              </DataTable></div>
             )}
           </Section>
 
@@ -227,7 +236,7 @@ export function ProductReconciliationView({ headingLevel = 1 }: { headingLevel?:
             ) : shownHistory.length === 0 ? (
               noMatch('asociación del historial')
             ) : (
-              <DataTable caption="Historial de equivalencias" minWidth={760}>
+              <div className={SCROLL_HINT}><DataTable caption="Historial de equivalencias" minWidth={760}>
                 <thead>
                   <tr>
                     <th>Denominación → canónico</th>
@@ -252,7 +261,7 @@ export function ProductReconciliationView({ headingLevel = 1 }: { headingLevel?:
                     </tr>
                   ))}
                 </tbody>
-              </DataTable>
+              </DataTable></div>
             )}
           </Collapsible>
         </>

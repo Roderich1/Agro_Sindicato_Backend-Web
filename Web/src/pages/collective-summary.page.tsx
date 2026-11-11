@@ -2,17 +2,17 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
-import { DisclosureNotice, PendingChangesNote } from '../components/collective-ui';
+import { DisclosureNotice } from '../components/collective-ui';
 import { CoverageCard } from '../components/coverage-card';
 import { ExportButtons } from '../components/export-buttons';
+import { NeedsBars } from '../components/needs-bars';
 import { SealPanel } from '../components/seal-panel';
-import { Button, buttonClass, CampaignSelector, DataState, KpiTile, Notice, PageHeader, Section, StatusChip, surfaceClass } from '../components/ui';
+import { Button, buttonClass, CampaignSelector, DataState, Notice, PageHeader, Section, StatusChip, surfaceClass } from '../components/ui';
 import { useCampaign } from '../hooks/use-campaign';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
-import { collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
+import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
-import { formatQuantity, isBaseQuantity } from '../lib/quantity';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveSummary, SealRef, SummaryCell } from '../types/collective';
 
@@ -21,12 +21,13 @@ import type { CollectiveSummary, SealRef, SummaryCell } from '../types/collectiv
  * lo que decidió el servidor (F07-POL-01): no suma, no resta y no deduce cifras
  * ocultas. F07 (2026-10-23): versión sellada y panel de sellado.
  *
- * Rediseño (sesión B, 2026-11-10): campaña y estado en la barra; «Cifra más
- * reciente» (regla de presentación: el resumen no tiene marca global, matriz
- * R11); acciones pendientes sólo cuando el dato existe; tres indicadores sin
- * duplicar (necesidades por estado, cobertura, versión); «Necesidades declaradas
- * por producto» como bloque principal, L y KG en escalas separadas y ordenadas
- * por nombre (nunca por cantidad); «Consumo publicado» aparte.
+ * Variante «Analítica comparativa» (elegida por el autor, 2026-11-10): una sola
+ * acción primaria («Revisar borrador»); tarjetas de cobertura y versión
+ * sellada; «Necesidades declaradas por producto» con barras por producto dentro
+ * de su unidad (L y KG en escalas separadas, orden por nombre, nunca por
+ * cantidad); «Consumo publicado» aparte; «Pendiente según los datos» como lista
+ * secundaria al final, sólo con lo que un dato sustenta. «Cifra más reciente»
+ * es una regla de presentación (el resumen no tiene marca global, matriz R11).
  *
  * `GET …/summary` sobre una campaña sin sellar ejecuta la decisión de
  * divulgación en el servidor: una sola llamada por campaña y visita, sin
@@ -73,11 +74,11 @@ export function CollectiveSummaryPage() {
 
   return (
     <AppShell title="Resumen colectivo" section="Colectivo">
-      <div className="space-y-4">
+      <div className="space-y-5">
         <PageHeader
           testId="toolbar"
           title="Resumen"
-          subtitle="Necesidades declaradas por producto, cobertura y versión de la campaña seleccionada."
+          subtitle="Cuánto declaró necesitar cada producto, comparado dentro de su unidad, con la cobertura y la versión de la campaña."
           campaign={<CampaignSelector campaigns={campaigns} selected={selected} onSelect={select} />}
           actions={
             selected && (
@@ -106,10 +107,8 @@ export function CollectiveSummaryPage() {
         )}
         {loading && <DataState state="loading" compact />}
         {summary && !loading && <LatestFigure cells={summary.cells} />}
-        {(summary || noActive) && !loading && (
-          <PendingActions summary={summary} noActive={noActive} campaignId={selected} />
-        )}
         {summary && !loading && <SummaryBody summary={summary} />}
+        {(summary || noActive) && !loading && <PendingActions summary={summary} noActive={noActive} campaignId={selected} />}
         {selected && summary && !loading && !summary.seal && (
           <div id="sellado">
             <SealPanel key={`${selected}:${reloads}`} campaignId={selected} onSealed={() => void load(selected)} />
@@ -155,18 +154,24 @@ interface PendingAction {
   key: string;
   title: string;
   description: string;
+  /** De qué dato sale: se muestra al lado para que nada parezca inventado. */
+  source: string;
   link?: ReactNode;
 }
 
-/** Sólo acciones que un dato del servidor sustenta; ninguna se deduce de cantidades. */
+/**
+ * «Pendiente según los datos»: lista secundaria al final. Sólo acciones que un
+ * dato del servidor sustenta; ninguna se deduce de cantidades.
+ */
 function PendingActions({ summary, noActive, campaignId }: { summary: CollectiveSummary | null; noActive: boolean; campaignId: string | null }) {
   const actions: PendingAction[] = [];
-  const linkClass = 'shrink-0 text-sm font-semibold text-brand-800 underline underline-offset-2 hover:text-ink';
+  const linkClass = 'font-semibold text-brand-800 underline underline-offset-2 hover:text-ink';
   if (noActive) {
     actions.push({
       key: 'no-active',
-      title: 'Sin campaña activa',
-      description: 'El servidor no tiene ninguna campaña abierta y activa. Los agricultores no pueden registrar en una campaña hasta que se abra una.',
+      title: 'Sin campaña activa.',
+      description: 'Los agricultores no pueden registrar en una campaña hasta que se abra una.',
+      source: 'campaña activa del servidor',
       link: <Link to="/campaigns" className={linkClass}>Ir a Campañas</Link>,
     });
   }
@@ -174,8 +179,9 @@ function PendingActions({ summary, noActive, campaignId }: { summary: Collective
     if (summary.campaign.status === 'CERRADA' && summary.seal === null) {
       actions.push({
         key: 'closed-unsealed',
-        title: 'Campaña cerrada sin sellar',
-        description: 'Cerrar no es sellar. Revise la versión colectiva y, si corresponde, séllela.',
+        title: 'Campaña cerrada sin sellar.',
+        description: 'Cerrar no es sellar: revise la versión colectiva y, si corresponde, séllela.',
+        source: 'estado de la campaña y sellado',
         link: <a href="#sellado" className={linkClass}>Ir al sellado</a>,
       });
     }
@@ -183,14 +189,16 @@ function PendingActions({ summary, noActive, campaignId }: { summary: Collective
     if (pending > 0) {
       actions.push({
         key: 'pending-changes',
-        title: 'Hay cambios recibidos sin publicar',
+        title: 'Hay cambios recibidos sin publicar.',
         description: `${pending === 1 ? 'Una fila tiene' : `${pending} filas tienen`} cambios recibidos que aún no alcanzan el umbral para publicarse; mientras tanto se muestra lo publicado antes.`,
+        source: 'cambios pendientes del servidor',
       });
     }
     actions.push({
       key: 'review',
-      title: 'Revisar borrador',
+      title: 'Revisar borrador.',
       description: 'Revise el último borrador de propuesta de esta campaña o genere uno nuevo con un botón explícito.',
+      source: 'necesidades declaradas',
       link: (
         <Link to={`${COLLECTIVE_PATHS.proposals}?campaign=${encodeURIComponent(campaignId)}`} className={linkClass}>
           Abrir Necesidades y propuestas
@@ -198,34 +206,33 @@ function PendingActions({ summary, noActive, campaignId }: { summary: Collective
       ),
     });
   }
-  if (actions.length === 0) return null;
   return (
-    <Section title="Acciones pendientes" testId="pending-actions">
-      <ul className="divide-y divide-slate-100">
+    <section aria-labelledby="pendiente-segun-datos" className="px-1" data-testid="pending-actions">
+      <h2 id="pendiente-segun-datos" className="text-sm font-semibold text-slate-700">
+        Pendiente según los datos
+      </h2>
+      <ul className="mt-1 list-disc space-y-1.5 pl-5 text-sm text-slate-700">
         {actions.map((action) => (
-          <li key={action.key} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-5 py-3" data-testid={`action-${action.key}`}>
-            <div className="min-w-0 flex-1 basis-64">
-              <p className="text-sm font-semibold text-slate-900">{action.title}</p>
-              <p className="text-xs leading-relaxed text-slate-600">{action.description}</p>
-            </div>
-            {action.link}
+          <li key={action.key} data-testid={`action-${action.key}`}>
+            <span className="font-semibold text-ink">{action.title}</span> {action.description}{' '}
+            <span className="text-xs text-slate-600">({action.source})</span>
+            {action.link && <> {action.link}</>}
           </li>
         ))}
       </ul>
-    </Section>
+    </section>
   );
 }
 
 function SummaryBody({ summary }: { summary: CollectiveSummary }) {
   const { disclosure } = summary;
-  const needs = sortByName(summary.cells.filter((cell) => cell.projection_type === 'DECLARED_NEED'));
-  const consumption = sortByName(summary.cells.filter((cell) => cell.projection_type === 'CONSUMPTION_TOTAL'));
+  const needs = summary.cells.filter((cell) => cell.projection_type === 'DECLARED_NEED');
+  const consumption = summary.cells.filter((cell) => cell.projection_type === 'CONSUMPTION_TOTAL');
   const synthetic = disclosure.mode === 'PROVISIONAL_SYNTHETIC';
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <DisclosureNotice mode={disclosure.mode} threshold={disclosure.threshold} />
-      <div className="grid gap-3 md:grid-cols-3" data-testid="summary-kpis">
-        {synthetic && <NeedsCountTile cells={needs} />}
+      <div className="grid gap-4 md:grid-cols-2" data-testid="summary-cards">
         {summary.coverage && (
           <CoverageCard
             coverage={summary.coverage}
@@ -233,61 +240,60 @@ function SummaryBody({ summary }: { summary: CollectiveSummary }) {
             link={`${COLLECTIVE_PATHS.coverage}?campaign=${encodeURIComponent(summary.campaign.campaign_ref)}`}
           />
         )}
-        <VersionTile seal={summary.seal} />
+        <VersionCard seal={summary.seal} status={summary.campaign.status} />
       </div>
       {synthetic && (
         <>
-          <NeedsSection cells={needs} threshold={disclosure.threshold} />
-          <ConsumptionSection cells={consumption} threshold={disclosure.threshold} />
+          <Section
+            title="Necesidades declaradas por producto"
+            note={
+              <>
+                <NeedsCounts cells={needs} /> Lo que cada agricultor declaró que necesita; no es pronóstico, consumo ni cantidad comprada.
+                {needs.length > 0 && ' Cada unidad tiene su propia escala (litros y kilogramos no se comparan ni se suman); ordenado por nombre del producto.'}
+              </>
+            }
+          >
+            {needs.length === 0 ? (
+              <DataState state="empty" title="Sin necesidades publicadas" description="Ningún agricultor publicó una necesidad declarada en esta campaña. Eso no significa cero." />
+            ) : (
+              <NeedsBars cells={needs} threshold={disclosure.threshold} />
+            )}
+          </Section>
+          <Section
+            title="Consumo publicado"
+            note="Consumo que los agricultores registraron y publicaron desde la app. Es un dato distinto de la necesidad declarada: no se resta ni se compara con ella."
+          >
+            {consumption.length === 0 ? (
+              <p className="px-5 py-3 text-sm text-slate-600">Sin consumo publicado en esta campaña. Eso no significa cero.</p>
+            ) : (
+              <NeedsBars cells={consumption} threshold={disclosure.threshold} bars={false} />
+            )}
+          </Section>
         </>
       )}
     </div>
   );
 }
 
-/** Orden alfabético por nombre de producto y unidad: nunca por cantidad (no es una prioridad). */
-function sortByName(cells: SummaryCell[]): SummaryCell[] {
-  return [...cells].sort(
-    (a, b) => a.product_name.localeCompare(b.product_name, 'es', { sensitivity: 'base' }) || a.presentation_unit.localeCompare(b.presentation_unit),
-  );
-}
-
-/** «2 productos con cifra publicada · 1 oculto por privacidad · 1 sin cifra publicada», sólo con lo que hay. */
-function countsNote(cells: SummaryCell[]): { published: number; rest: string } {
+/** Conteo de filas por estado (nunca una cantidad): «5 productos con cifra publicada · 1 oculto por privacidad». */
+function NeedsCounts({ cells }: { cells: SummaryCell[] }) {
+  if (cells.length === 0) {
+    return (
+      <span className="font-semibold text-slate-700" data-testid="needs-counts">
+        Sin necesidades publicadas.
+      </span>
+    );
+  }
   const published = cells.filter((cell) => cell.status === 'DISCLOSED').length;
   const privacy = cells.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
   const other = cells.length - published - privacy;
-  const parts: string[] = [];
+  const parts = [`${published} ${published === 1 ? 'producto con cifra publicada' : 'productos con cifra publicada'}`];
   if (privacy > 0) parts.push(`${privacy} ${privacy === 1 ? 'oculto' : 'ocultos'} por privacidad`);
   if (other > 0) parts.push(`${other} sin cifra publicada`);
-  return { published, rest: parts.join(' · ') };
-}
-
-/** Un conteo de filas por estado (nunca una cantidad): cuántos productos tienen cifra publicada. */
-function NeedsCountTile({ cells }: { cells: SummaryCell[] }) {
-  if (cells.length === 0) {
-    return (
-      <KpiTile
-        testId="needs-counts"
-        label="Necesidades por producto"
-        value={<span className="text-lg">Sin necesidades publicadas</span>}
-        note="Ningún agricultor publicó una necesidad declarada en esta campaña."
-      />
-    );
-  }
-  const { published, rest } = countsNote(cells);
   return (
-    <KpiTile
-      testId="needs-counts"
-      label="Necesidades por producto"
-      value={
-        <>
-          {published}{' '}
-          <span className="text-sm font-semibold">{published === 1 ? 'producto con cifra publicada' : 'productos con cifra publicada'}</span>
-        </>
-      }
-      note={rest || undefined}
-    />
+    <span className="font-semibold text-slate-700" data-testid="needs-counts">
+      {parts.join(' · ')}.
+    </span>
   );
 }
 
@@ -295,145 +301,31 @@ function NeedsCountTile({ cells }: { cells: SummaryCell[] }) {
  * Versión sellada (F07) o «Sin sellar». «Datos aceptados hasta» es el instante
  * de la decisión sellada; cada cifra vale por su propia fecha.
  */
-function VersionTile({ seal }: { seal: SealRef | null }) {
-  if (!seal) {
-    return (
-      <KpiTile
-        testId="version-tile"
-        label="Versión"
-        value={<span className="text-lg">Sin sellar</span>}
-        note="Las cifras pueden cambiar mientras la campaña no tenga una versión sellada."
-      />
-    );
-  }
+function VersionCard({ seal, status }: { seal: SealRef | null; status: string }) {
   return (
-    <KpiTile
-      testId="seal-banner"
-      label="Versión"
-      value={<span className="text-lg">Versión {seal.version} sellada</span>}
-      note={
-        <span className="[overflow-wrap:anywhere]">
-          El {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} ({seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) ·
-          datos aceptados hasta {fmtDateTime(seal.accepted_until)} · ref. <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>. Cada
-          cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor no puede asegurar que
-          todos los teléfonos publicaron todo.
-        </span>
-      }
-    />
-  );
-}
-
-function NeedsSection({ cells, threshold }: { cells: SummaryCell[]; threshold: number | null }) {
-  const units = (['L', 'KG'] as const).filter((unit) => cells.some((cell) => cell.presentation_unit === unit));
-  return (
-    <Section
-      title="Necesidades declaradas por producto"
-      note={`Lo que cada agricultor declaró que necesita para la campaña; no es pronóstico, consumo ni cantidad comprada.${
-        cells.length > 0 ? ' Ordenado por nombre del producto; litros y kilogramos van en escalas separadas y no se suman.' : ''
-      }`}
-    >
-      {cells.length === 0 ? (
-        <p className="px-5 py-3 text-sm text-slate-600">Ningún agricultor publicó una necesidad declarada en esta campaña. Eso no significa cero.</p>
+    <article className={`min-w-0 px-5 py-4 ${surfaceClass}`} data-testid={seal ? 'seal-banner' : 'version-tile'}>
+      <h2 className="text-sm font-semibold text-slate-700">Versión sellada</h2>
+      {seal ? (
+        <>
+          <p className="mt-1 text-4xl font-bold leading-tight text-ink tabular-nums">Versión {seal.version} sellada</p>
+          <p className="mt-1 text-sm text-slate-700 [overflow-wrap:anywhere]">
+            El {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} ({seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) · datos
+            aceptados hasta {fmtDateTime(seal.accepted_until)} · ref. <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            Cada cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor no puede asegurar que
+            todos los teléfonos publicaron todo.
+          </p>
+        </>
       ) : (
-        units.map((unit) => (
-          <div key={unit}>
-            <p className="border-b border-slate-100 bg-slate-50 px-5 py-1.5 text-xs font-semibold text-slate-600">
-              {unit === 'L' ? 'En litros (L)' : 'En kilogramos (KG)'}
-            </p>
-            <FigureRows cells={cells.filter((cell) => cell.presentation_unit === unit)} unit={unit} threshold={threshold} bars />
-          </div>
-        ))
+        <>
+          <p className="mt-1 text-4xl font-bold leading-tight text-ink">Sin sellar</p>
+          <p className="mt-1 text-sm text-slate-700">
+            <StatusChip status={status} /> <span className="ml-1">Las cifras pueden cambiar. Sólo se sella una campaña cerrada.</span>
+          </p>
+        </>
       )}
-    </Section>
-  );
-}
-
-function ConsumptionSection({ cells, threshold }: { cells: SummaryCell[]; threshold: number | null }) {
-  return (
-    <Section
-      title="Consumo publicado"
-      note="Consumo que los agricultores registraron y publicaron desde la app. Es un dato distinto de la necesidad declarada: no se resta ni se compara con ella."
-    >
-      {cells.length === 0 ? (
-        <p className="px-5 py-3 text-sm text-slate-600">Sin consumo publicado en esta campaña. Eso no significa cero.</p>
-      ) : (
-        (['L', 'KG'] as const)
-          .filter((unit) => cells.some((cell) => cell.presentation_unit === unit))
-          .map((unit) => (
-            <FigureRows key={unit} cells={cells.filter((cell) => cell.presentation_unit === unit)} unit={unit} threshold={threshold} />
-          ))
-      )}
-    </Section>
-  );
-}
-
-const COUNT = new Intl.NumberFormat('es-BO');
-
-/**
- * Una fila por producto y unidad: nombre y estado, cifra exacta (o el motivo por
- * el que no se publica, nunca un número ni un cero), aportantes y «datos hasta».
- * Con `bars`, una barra decorativa por fila en la escala de su unidad: la cifra
- * exacta siempre está escrita al lado.
- */
-function FigureRows({ cells, unit, threshold, bars = false }: { cells: SummaryCell[]; unit: 'L' | 'KG'; threshold: number | null; bars?: boolean }) {
-  const values = cells.map((cell) => (cell.status === 'DISCLOSED' && isBaseQuantity(cell.total_base) ? BigInt(cell.total_base) : null));
-  const max = values.reduce<bigint>((top, value) => (value !== null && value > top ? value : top), 0n);
-  const width = (value: bigint | null) => (value === null || value === 0n || max === 0n ? 0 : Math.max(Number((value * 1000n) / max) / 10, 1));
-  return (
-    <ul className="divide-y divide-slate-100" aria-label={unit === 'L' ? 'En litros' : 'En kilogramos'}>
-      {cells.map((cell, index) => {
-        const disclosed = cell.status === 'DISCLOSED';
-        const text = disclosed ? formatQuantity(cell.total_base, cell.base_unit, cell.total_presentation) : null;
-        return (
-          <li
-            key={`${cell.product_ref}|${cell.base_unit}`}
-            className="grid gap-x-4 gap-y-1.5 px-5 py-3 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)_minmax(8.5rem,auto)] md:items-center"
-            data-testid={`cell-${cell.projection_type}-${cell.product_name}-${cell.base_unit}`}
-          >
-            <div className="min-w-0">
-              <span className="text-base font-semibold text-ink [overflow-wrap:anywhere]">{cell.product_name}</span>{' '}
-              <span className="whitespace-nowrap text-xs text-slate-600">{cell.presentation_unit}</span>{' '}
-              <StatusChip status={cell.status} threshold={threshold} />
-            </div>
-            {disclosed ? (
-              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                {text === null ? (
-                  <span className="text-sm font-semibold text-red-700">Dato no válido recibido del servidor; no se muestra.</span>
-                ) : (
-                  <>
-                    {bars && values[index]! > 0n && (
-                      <div className="h-3 min-w-24 flex-1 rounded-full bg-slate-100" aria-hidden="true">
-                        <div className="h-3 rounded-full bg-brand-700" style={{ width: `${width(values[index]!)}%` }} />
-                      </div>
-                    )}
-                    <span className="text-2xl font-bold leading-tight tabular-nums text-ink [overflow-wrap:anywhere]">{text}</span>
-                  </>
-                )}
-              </div>
-            ) : (
-              <p className="min-w-0 text-xs leading-snug text-slate-600">{statusReason(cell.status, threshold)}</p>
-            )}
-            <div className="text-xs text-slate-500 md:text-right">
-              {disclosed && cell.contributors !== null ? (
-                <>
-                  <span className="block text-sm font-semibold text-slate-700 tabular-nums">
-                    {COUNT.format(cell.contributors)} {cell.contributors === 1 ? 'aportante' : 'aportantes'}
-                  </span>
-                  <span className="tabular-nums">datos hasta {fmtDateTime(cell.data_as_of)}</span>
-                </>
-              ) : (
-                <span className="text-slate-500">aportantes no revelados</span>
-              )}
-            </div>
-            {cell.pending_changes && disclosed && (
-              <div className="md:col-span-3">
-                <PendingChangesNote />
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    </article>
   );
 }
 

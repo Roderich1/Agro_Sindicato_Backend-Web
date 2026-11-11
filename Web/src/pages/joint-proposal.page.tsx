@@ -435,7 +435,7 @@ function ReferenceNote({ proposal, state }: { proposal: Proposal; state: Referen
         suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas ni la huella del borrador. La
         diferencia con la necesidad sólo se escribe si la estimación está vigente y es mayor que cero, y nunca como
         porcentaje.{' '}
-        <Link className="font-semibold text-emerald-700 underline" to={`${COLLECTIVE_PATHS.estimation}?campaign=${encodeURIComponent(proposal.campaign.campaign_ref)}`}>
+        <Link className="font-semibold text-emerald-700 underline" to={`${COLLECTIVE_PATHS.history}?vista=estimacion&campaign=${encodeURIComponent(proposal.campaign.campaign_ref)}`}>
           Detalle en «Estimación del consumo»
         </Link>
         .
@@ -455,6 +455,12 @@ function ReferenceNote({ proposal, state }: { proposal: Proposal; state: Referen
     </div>
   );
 }
+
+/**
+ * Sombra en el borde por el que una tabla sigue (sin JavaScript): los degradados blancos se desplazan con el
+ * contenido (`local`) y tapan la sombra fija (`scroll`) sólo cuando se llega a ese borde. Sin desplazamiento no se ve.
+ */
+const SCROLL_HINT = '[&_.ui-table-scroll]:[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
 
 function linesText(count: number): string {
   if (count === 0) return 'sin líneas';
@@ -484,7 +490,7 @@ function HistorySection({
       {history.length === 0 ? (
         <DataState state="empty" compact title="Todavía no hay borradores para esta campaña" description="" />
       ) : (
-        <DataTable caption="Borradores de la campaña" minWidth={640}>
+        <div className={SCROLL_HINT}><DataTable caption="Borradores de la campaña" minWidth={640}>
           <thead>
             <tr>
               <th>Generado el</th>
@@ -522,7 +528,7 @@ function HistorySection({
               );
             })}
           </tbody>
-        </DataTable>
+        </DataTable></div>
       )}
     </Collapsible>
   );

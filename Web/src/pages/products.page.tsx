@@ -38,6 +38,12 @@ const GROUPINGS: { value: ProductGrouping; label: string }[] = [
   { value: 'none', label: 'Sin agrupar' },
 ];
 
+/**
+ * Sombra en el borde por el que una tabla sigue (sin JavaScript): los degradados blancos se desplazan con el
+ * contenido (`local`) y tapan la sombra fija (`scroll`) sólo cuando se llega a ese borde. Sin desplazamiento no se ve.
+ */
+const SCROLL_HINT = '[&_.ui-table-scroll]:[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
+
 const count = (n: number, one: string, many: string) => `${new Intl.NumberFormat('es-BO').format(n)} ${n === 1 ? one : many}`;
 
 /**
@@ -63,7 +69,7 @@ export function ProductsPage() {
   );
 }
 
-export function ProductsView({ headingLevel = 1, equivalencesTo = COLLECTIVE_PATHS.reconciliation }: { headingLevel?: 1 | 2; equivalencesTo?: To }) {
+export function ProductsView({ headingLevel = 1, equivalencesTo = `${COLLECTIVE_PATHS.catalog}?vista=equivalencias` }: { headingLevel?: 1 | 2; equivalencesTo?: To }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; forbidden: boolean } | null>(null);
@@ -138,6 +144,9 @@ export function ProductsView({ headingLevel = 1, equivalencesTo = COLLECTIVE_PAT
               <input
                 id="product-search"
                 type="search"
+                enterKeyHint="search"
+                inputMode="search"
+                autoComplete="off"
                 className={inputClass}
                 value={query}
                 placeholder="Nombre, nombre comercial o ingrediente activo"
@@ -202,6 +211,7 @@ export function ProductsView({ headingLevel = 1, equivalencesTo = COLLECTIVE_PAT
             {shownInactive.length === 0 ? (
               <DataState state={filtered && inactive.length > 0 ? 'no-match' : 'empty'} compact title={filtered && inactive.length > 0 ? 'Ningún inactivo coincide' : 'No hay productos inactivos'} description="" />
             ) : (
+              <div className={SCROLL_HINT}>
               <DataTable caption="Productos inactivos" minWidth={480}>
                 <tbody>
                   {shownInactive.map((product) => (
@@ -214,6 +224,7 @@ export function ProductsView({ headingLevel = 1, equivalencesTo = COLLECTIVE_PAT
                   ))}
                 </tbody>
               </DataTable>
+              </div>
             )}
           </Collapsible>
         </>

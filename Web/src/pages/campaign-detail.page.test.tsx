@@ -38,7 +38,10 @@ describe('Detalle de campaña', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 10, 10, 9, 0));
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
 
   it('compone la fila de la lista, el resumen, el sellado y los borradores con una sola lectura del resumen (StrictMode)', async () => {
     show(fixtures.worst, { strict: true });
@@ -118,6 +121,8 @@ describe('Detalle de campaña', () => {
   });
 
   it('agricultor: datos generales sí, participación y borradores no (sin pedirlos)', async () => {
+    // Un agricultor sólo llega a la Web con el flag de rollback; sin él no se pide nada.
+    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
     show(fixtures.worst, { role: 'AGRICULTOR' });
     expect(await screen.findByTestId('collective-forbidden')).toBeTruthy();
     expect(screen.getByTestId('general')).toBeTruthy();

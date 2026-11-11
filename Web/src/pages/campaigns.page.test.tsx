@@ -34,7 +34,10 @@ describe('Campañas', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 10, 10, 9, 0));
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
 
   it('worst: lista todas las ABIERTA, «Activa» sólo con isActive, y separa fin estimado de cierre registrado', async () => {
     show(fixtures.worst);
@@ -84,9 +87,14 @@ describe('Campañas', () => {
     expect(screen.getByText(/Cerrar no es sellar/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar campaña' }));
     await waitFor(() => expect(campaignsService.close).toHaveBeenCalledWith(CAMPAIGN_IDS.worstActive, { notes: null }));
+    // Tras cerrar se vuelven a pedir la lista y la activa de la sesión.
+    await waitFor(() => expect(campaignsService.list).toHaveBeenCalledTimes(2));
+    expect(campaignsService.active).toHaveBeenCalledTimes(2);
   });
 
   it('agricultor: sólo consulta, sin «Nueva campaña» ni acciones', async () => {
+    // Un agricultor sólo llega a la Web con el flag de rollback; sin él no se pide nada.
+    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
     show(fixtures.worst, { role: 'AGRICULTOR' });
     await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`);
     expect(screen.queryByRole('button', { name: 'Nueva campaña' })).toBeNull();
@@ -105,7 +113,10 @@ describe('Campañas', () => {
     vi.mocked(campaignsService.list).mockResolvedValue(fixtures.demo);
     fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
     await screen.findByTestId('campaign-row-Campaña invierno 2026');
-    expect(campaignsService.list).toHaveBeenLastCalledWith({ status: undefined, search: undefined });
+    // Sin filtros vuelve la lista de la sesión, sin otra petición: una del proveedor y una del filtro.
+    expect(campaignsService.list).toHaveBeenCalledTimes(2);
+    expect(campaignsService.list).toHaveBeenNthCalledWith(1);
+    expect(campaignsService.list).toHaveBeenNthCalledWith(2, { status: 'CANCELADA', search: undefined });
   });
 
   it('empty: «Todavía no hay campañas», sin campaña activa', async () => {
@@ -130,5 +141,21 @@ describe('Campañas', () => {
     vi.mocked(campaignsService.list).mockResolvedValue(fixtures.one);
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
     await screen.findByTestId('campaign-row-Campaña única 2026');
+  });
+
+  it('crear una campaña vuelve a pedir la lista de la sesión, y la nueva aparece', async () => {
+    show(fixtures.one);
+    await screen.findByTestId('campaign-row-Campaña única 2026');
+    expect(campaignsService.list).toHaveBeenCalledTimes(1);
+    const created: Campaign = { ...fixtures.one[0], id: 'c0000003-0000-4000-8000-000000000002', name: 'Campaña nueva 2027', status: 'PLANIFICADA', isActive: false };
+    vi.mocked(campaignsService.create).mockResolvedValue(created);
+    vi.mocked(campaignsService.list).mockResolvedValue([...fixtures.one, created]);
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva campaña' }));
+    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Campaña nueva 2027' } });
+    fireEvent.change(screen.getByLabelText('Inicio *'), { target: { value: '2027-01-10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+    await screen.findByTestId('campaign-row-Campaña nueva 2027');
+    expect(campaignsService.create).toHaveBeenCalledTimes(1);
+    expect(campaignsService.list).toHaveBeenCalledTimes(2);
   });
 });
