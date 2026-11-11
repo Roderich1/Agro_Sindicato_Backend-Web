@@ -9,30 +9,35 @@ import { useSelectedCampaign } from '../../../hooks/use-selected-campaign';
 import { collectiveError } from '../../../lib/collective-text';
 import { reportDisclosureMode } from '../../../lib/data-mode';
 import { CollectiveSummaryPage } from '../../../pages/collective-summary.page';
+import { auditLogsService } from '../../../services/audit-logs.service';
 import { collectiveService } from '../../../services/collective.service';
 import { estimationService } from '../../../services/estimation.service';
 import type { CollectiveSummary } from '../../../types/collective';
 import { Accion } from './accion';
 import { Comparacion } from './comparacion';
 import { DATASETS, datasetFor, type ResumenDataset } from './datasets';
-import { estimationView, type EstimationView } from './model';
+import { Ejecutivo } from './ejecutivo';
+import { estimationView, type ActivityView, type EstimationView } from './model';
 import { Panorama } from './panorama';
 import { ProtoPicker } from './picker';
 import type { LoadState, VariantProps } from './parts';
 
 /**
  * Arnés de los prototipos del Resumen (2026-11-11), sólo en desarrollo: las
- * tres variantes y la vista actual («Actual» = `CollectiveSummaryPage` real)
- * con el MISMO conjunto de datos sintético, una a la vez, a tamaño real dentro
- * del armazón. Los servicios están sustituidos (`stubs.ts`): ninguna petición
- * sale a un servidor y toda escritura se rechaza. `?v=` y `?datos=` viven en
- * la URL; `?campaign=` funciona como en la vista real.
+ * variantes y la vista actual («Actual» = `CollectiveSummaryPage` real) con el
+ * MISMO conjunto de datos sintético, una a la vez, a tamaño real dentro del
+ * armazón. Los servicios están sustituidos (`stubs.ts`): ninguna petición sale
+ * a un servidor y toda escritura se rechaza. `?v=` y `?datos=` viven en la
+ * URL; `?campaign=` funciona como en la vista real. «Ejecutivo» (2026-11-11,
+ * tarde) responde a la propuesta de tablero del autor con los datos que la API
+ * sirve hoy a la Directiva: añade la lectura de la bitácora de la campaña.
  */
-export const VARIANTS: { name: string; slug: string; Component: ((props: VariantProps) => JSX.Element) | null; estimation: boolean }[] = [
-  { name: 'Actual', slug: 'actual', Component: null, estimation: false },
-  { name: 'Panorama', slug: 'panorama', Component: Panorama, estimation: false },
-  { name: 'Acción', slug: 'accion', Component: Accion, estimation: false },
-  { name: 'Comparación', slug: 'comparacion', Component: Comparacion, estimation: true },
+export const VARIANTS: { name: string; slug: string; Component: ((props: VariantProps) => JSX.Element) | null; estimation: boolean; activity: boolean }[] = [
+  { name: 'Actual', slug: 'actual', Component: null, estimation: false, activity: false },
+  { name: 'Panorama', slug: 'panorama', Component: Panorama, estimation: false, activity: false },
+  { name: 'Acción', slug: 'accion', Component: Accion, estimation: false, activity: false },
+  { name: 'Comparación', slug: 'comparacion', Component: Comparacion, estimation: true, activity: false },
+  { name: 'Ejecutivo', slug: 'ejecutivo', Component: Ejecutivo, estimation: true, activity: true },
 ];
 
 const NARROW = '(max-width: 1023px)';
@@ -100,7 +105,7 @@ export function ResumenPrototypes({ onDataset }: { onDataset: (dataset: ResumenD
           </span>
         </div>
         <div data-variant={variant.slug} key={`${dataset.key}:${variant.slug}:${mount}`}>
-          {variant.Component ? <Stage Variant={variant.Component} withEstimation={variant.estimation} /> : <CollectiveSummaryPageInner />}
+          {variant.Component ? <Stage Variant={variant.Component} withEstimation={variant.estimation} withActivity={variant.activity} /> : <CollectiveSummaryPageInner />}
         </div>
       </AppShell>
       <ProtoPicker names={VARIANTS.map((entry) => entry.name)} current={current} onSelect={select} onReplay={replay} position={narrow ? 'top' : undefined} />
@@ -122,11 +127,12 @@ function CollectiveSummaryPageInner() {
  * una lectura por campaña y visita (también bajo StrictMode), «Actualizar» y
  * «Reintentar» explícitos, nunca un sondeo, ninguna escritura al abrir.
  */
-function Stage({ Variant, withEstimation }: { Variant: (props: VariantProps) => JSX.Element; withEstimation: boolean }) {
+function Stage({ Variant, withEstimation, withActivity }: { Variant: (props: VariantProps) => JSX.Element; withEstimation: boolean; withActivity: boolean }) {
   const { campaigns, selected, select, error: campaignsError, refresh } = useSelectedCampaign();
   const { activeCampaign, isLoading: activeLoading, error: activeError, campaignsLoading } = useCampaign();
   const [state, setState] = useState<LoadState>({ kind: 'idle' });
   const [estimation, setEstimation] = useState<EstimationView | null>(null);
+  const [activity, setActivity] = useState<ActivityView | null>(null);
   const [reloads, setReloads] = useState(0);
   const current = useRef<string | null>(null);
   const requested = useRef<string | null>(null);
@@ -135,7 +141,15 @@ function Stage({ Variant, withEstimation }: { Variant: (props: VariantProps) => 
     async (campaignId: string) => {
       setState({ kind: 'loading' });
       setEstimation(withEstimation ? { kind: 'loading' } : null);
+      setActivity(withActivity ? { kind: 'loading' } : null);
       setReloads((value) => value + 1);
+      // La bitácora de la campaña (C14) no depende del resumen: se pide a la vez, una sola vez por campaña.
+      if (withActivity) {
+        void auditLogsService
+          .list({ campaignId })
+          .then((logs) => current.current === campaignId && setActivity({ kind: 'ready', logs }))
+          .catch((err: unknown) => current.current === campaignId && setActivity({ kind: 'error', text: collectiveError(err, 'No fue posible consultar la bitácora.') }));
+      }
       const readSummary = async (): Promise<CollectiveSummary | null> => {
         try {
           const data = await collectiveService.summary(campaignId);
@@ -167,7 +181,7 @@ function Stage({ Variant, withEstimation }: { Variant: (props: VariantProps) => 
         setEstimation(policy ? { kind: 'policy' } : { kind: 'error', text: collectiveError(err, 'No fue posible consultar la estimación del consumo.') });
       }
     },
-    [withEstimation],
+    [withEstimation, withActivity],
   );
 
   useEffect(() => {
@@ -197,6 +211,7 @@ function Stage({ Variant, withEstimation }: { Variant: (props: VariantProps) => 
       onReload={() => selected && void load(selected)}
       estimation={estimation}
       seal={seal}
+      activity={activity}
     />
   );
 }

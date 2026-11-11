@@ -5,6 +5,7 @@
  * prototipo no envía nada a ningún servidor.
  */
 import axios from 'axios';
+import { auditLogsService } from '../../../services/audit-logs.service';
 import { campaignsService } from '../../../services/campaigns.service';
 import { collectiveService } from '../../../services/collective.service';
 import { estimationService } from '../../../services/estimation.service';
@@ -87,5 +88,19 @@ export function installStubs(current: () => ResumenDataset, latency = 180): void
     runs: never,
     run: never,
     download: never,
+  });
+  Object.assign(auditLogsService, {
+    list: async (params?: { campaignId?: string }) => {
+      await sleep(latency);
+      const dataset = current();
+      const activity = dataset.activity ?? {};
+      if (params?.campaignId) {
+        const answer = activity[params.campaignId];
+        if (!answer) return [];
+        if (answer.kind === 'error') throw httpError(502);
+        return answer.logs;
+      }
+      return Object.values(activity).flatMap((answer) => (answer.kind === 'logs' ? answer.logs : []));
+    },
   });
 }

@@ -184,3 +184,76 @@ Si el autor prefiere una mezcla (por ejemplo, Panorama con la columna de «Sigui
 - Suite completa de la Web sobre esta composición: `npx vitest run --no-file-parallelism` → **49 archivos, 432 pruebas, 432 pasan** (411 anteriores + 21 del arnés). En este worktree, vitest 5 con el paralelismo por defecto falla entera («Vitest failed to find the current suite») incluso sin los archivos nuevos, mientras que en `_wt/WEBR-B` corre en paralelo sin problema: es un defecto del entorno de este worktree, no de las pruebas; se anota como limitación y se usa un solo proceso.
 - Ninguna escritura al servidor ni efecto al abrir la vista; sin dependencias nuevas; `Back/`, Flutter, voz, autenticación y la DEMO oficial sin cambios.
 - Siguiente paso: **la elección del autor**. Después: integrar sólo la variante elegida en `pages/collective-summary.page.tsx` (componentes propios del Resumen), retirar la página de prototipos, contrastar cifras con la API de la copia «rica», pruebas, lint, tipos y build, y entregar evidencia visual y funcional por separado.
+
+## 11. Segunda entrega (2026-11-11, tarde): la propuesta de tablero ejecutivo y la variante D «Ejecutivo»
+
+Tras la primera entrega, el autor envió una propuesta de «dashboard ejecutivo» con siete bloques (estado operativo, centro de alertas, productos prioritarios, comparación con la referencia histórica, compras conjuntas, resumen de tendencias, actividad reciente), una lista de lo que debe salir del tablero y una estructura nueva del menú. Antes de dibujar nada se contrastó cada bloque con lo que la API sirve hoy a la Directiva (matriz `docs/web-rediseno/02_MATRIZ_DATOS_WEB.md`, controladores del Back y reglas §4 y §7 del encargo). El resultado es una cuarta composición, **D «Ejecutivo»**, que materializa la propuesta con datos reales y deja fuera, con su razón, lo que no tiene dato, permiso o regla.
+
+### 11.1 Contraste de la propuesta con los datos y permisos existentes
+
+| Bloque propuesto | Qué existe hoy | En la variante D | Por qué |
+|---|---|---|---|
+| Campaña activa | `GET /campaigns/active` + `summary.campaign` (R1, R2) | Tarjeta «Campaña consultada» con su estado y si es la activa | Dato disponible. |
+| Cobertura y participantes (61 %, 45/74) | `summary.coverage` (`members_with_contribution` de `linked_members`, porcentaje sólo con denominador > 0) | Una sola tarjeta «Cobertura»: «6 de 9 (67 %)» + aviso de filas sin cifra | Son el mismo dato; el encargo pide combinarlos (§4). |
+| Productos reportados | Celdas `DECLARED_NEED` del resumen (R5, R8) | Tarjeta «Necesidades declaradas»: publicadas de total, ocultas por privacidad, sin cifra | Dato disponible; ningún conteo de aportantes de filas ocultas. |
+| Compras conjuntas activas (tarjeta y sección) | `GET /purchases` y `GET /purchases/:id` son **sólo AGRICULTOR** (`purchases.controller.ts:29-45`, F10-SEC-02 #45, ADR-003); la Directiva sólo tiene `POST /purchases/joint`, cerrado; no existen «participantes» ni «fecha de cierre» | **No se muestra** | Sin lectura para la Directiva. Añadirla es un cambio en `Back/` (fuera de este bloque, §8) y una decisión de política (los datos de compra son privados). |
+| Centro de alertas 🟢🟡🔴 | Estados reales: sin campaña activa; campaña cerrada sin sellar; cambios recibidos sin publicar; estimación desactualizada; fallo de una lectura; sin necesidades publicadas | «Requiere atención»: avisos con color y texto (amarillo = atención, rojo = error, gris = información), fuente del dato y acción existente | Sólo hechos del servidor (§4). «Cobertura suficiente para consolidar» exigiría un umbral que no existe (§7); «compra conjunta cierra en 4 días» no tiene dato; «denominaciones pendientes de reconciliación» no es un estado del servidor (K9: los candidatos se derivan en el cliente y CU-18 no admite sugerencias automáticas). |
+| Productos prioritarios / ranking de demanda | Celdas publicadas, ordenables por cantidad **dentro de cada unidad** | «Mayor necesidad declarada»: las cinco primeras por unidad, el resto a un clic («Ver 12 productos más en litros (2 sin cifra)»); orden «Mayor a menor» / «Por nombre» | Litros y kilogramos no entran en un ranking único ni el orden se llama prioridad de compra (§4). |
+| Comparación con la referencia histórica | `GET /estimation/results?target_campaign_ref=` (F12-EST-08: referencia, nunca se suma) | Tabla «Necesidad declarada y estimación del consumo»: dos columnas distintas, vigencia y fecha de cada estimación, ausencias con su motivo («Sin estimación», «Datos insuficientes», «Cifra retirada») | Dato disponible. **Sin observaciones automáticas** («125 % superior»): sería un cálculo y un porcentaje nuevos (§4, §7) y una lectura de la estimación como meta, que RN-29/F12 prohíben. Si el autor las quiere, hay que decidir la regla y escribirla en el contrato antes. |
+| Resumen de tendencias (🟢 estable, 🟡 +18 %) | `GET /collective/trends` existe (series por producto entre versiones selladas) y tiene su vista en Histórico | Sólo el enlace «Tendencias» en «Dónde seguir» | Un hallazgo con porcentaje o la palabra «estable» es un cálculo y un umbral nuevos (§7). La serie completa ya se ve en `/colectivo/tendencias`. |
+| Actividad reciente | `GET /audit-logs?campaignId=` (C14): la Directiva ve las entradas sin `ownerUserId`; el Back escribe crear, actualizar, abrir y cerrar campaña y el sellado (`campaign-management.use-case.ts`, `collective-seal.use-case.ts`) | «Actividad reciente»: las 5 entradas más recientes de la campaña (acción, resumen del servidor, fecha, responsable) y «Ver bitácora» | Dato disponible. **No** registra la generación de borradores ni las equivalencias (K6: el catálogo no escribe bitácora): «Borrador consolidado generado» y «Asociación de denominaciones confirmada» del ejemplo no pueden aparecer hoy. Es una lectura más por visita. |
+| Sacar del tablero: metodología, historial técnico, sellados y auditorías, tendencias, reconciliación | — | Definiciones, tabla completa y consumo plegados; sellado al final (sigue siendo la única forma de sellar desde el Resumen); nada de reconciliación ni tendencias | Coincide con §4–§5 del encargo. |
+| Estructura final del menú | Menú vigente: Resumen, Campañas, Necesidades y propuestas, Histórico y estimaciones (con Tendencias y Estimación dentro), Catálogo y equivalencias; Administración: Bitácora, Usuarios | **Sin cambios** | El encargo limita este bloque al Resumen (§8). Además «Compras conjuntas» no tendría lista que abrir y «Tendencias» ya vive bajo Histórico. Queda como decisión aparte. |
+
+### 11.2 Composición de la variante D «Ejecutivo»
+
+- **Cabecera** igual a las otras: título, selector de campaña, Actualizar, Excel, «Revisar borrador».
+- **Cuatro tarjetas** (`KpiTile` de `components/ui`): Campaña consultada · Cobertura · Necesidades declaradas · Versión (en ámbar sólo cuando la campaña está cerrada sin sellar, con el texto que lo dice).
+- **Dos columnas en escritorio** (`minmax(0,1fr) 22rem`): a la izquierda «Mayor necesidad declarada» (barras compactas, cinco por unidad) y debajo la tabla necesidad/estimación con el pie de vigencia; a la derecha «Requiere atención» (o una línea «Ningún estado requiere atención…» cuando no hay hechos), «Actividad reciente» y «Dónde seguir» (Necesidades y propuestas, Ver cobertura, Histórico y estimaciones, Tendencias, Campañas: todas rutas existentes). En teléfono: una columna, con la atención antes de las barras.
+- **Plegado**: Consumo publicado, Tabla completa (cifras, aportantes y fechas), Qué significan estas cifras; después el panel real de sellado (`#sellado`).
+- **Lecturas por visita**: `GET …/summary` + `GET /estimation/results` + `GET /audit-logs?campaignId=` (una vez por campaña; «Actualizar» las repite). Las dos extra no tienen efectos ni encolan trabajos. Ninguna escritura.
+- Código: `Web/src/dev/prototypes/resumen/ejecutivo.tsx` (nuevo), `parts.tsx` (`AttentionNotices`, `ActivityList`, `EstimationFooter` compartido), `model.ts` (`executiveAttention`, `recentActivity`, `activityLabel`), `datasets.ts` (bitácora sintética por conjunto; el conjunto «Lecturas extra en error» hace fallar estimación y bitácora a la vez), `stubs.ts` (`auditLogsService.list` sustituido), `harness.tsx` (variante 5 con `activity: true`).
+
+### 11.3 Comprobación visual (break-ui) de la variante D
+
+30 capturas en `d_capturas_ejecutivo/` (`resultados.json` con las medidas): demo a 1366, 1920, 390, 320 y zoom 200 %, movimiento reducido, plegables abiertos, recorrido por teclado, y los 12 conjuntos restantes a 1366 más «Peor caso» y «Muchos productos» a 390. Resultado: **0 desbordamientos horizontales de la página, 0 errores de consola, 0 peticiones a `/api`, un solo `h1`**. A 390 px los únicos elementos más anchos que la ventana son las celdas de la tabla necesidad/estimación y de la tabla completa, dentro de su propio contenedor con desplazamiento (`ui-table-scroll`), como en las otras variantes.
+
+| Medida (prototipo con la franja de datos sintéticos incluida) | Actual | Panorama | Acción | Comparación | **Ejecutivo** |
+|---|---|---|---|---|---|
+| Demo, 1366×768: alto de página | 1 363 px | 1 142 px | 1 144 px | 1 459 px | **1 633 px** |
+| Demo, 1366×768: caracteres visibles | 2 240 | 1 455 | 1 491 | 2 087 | **4 584** |
+| Muchos productos, 1366×768: alto | 4 314 px | 1 908 px | 2 108 px | 2 802 px | **3 198 px** |
+| Peor caso, 390×844: alto | — | — | — | 5 081 px | **4 787 px** |
+
+Lectura: es la variante más densa, por diseño (la propuesta pide más bloques permanentes: atención, actividad, referencia). Las barras entran en la primera pantalla a 1366 sólo sin la franja del prototipo; a 1920 entran dos. Con 29 productos, la tabla necesidad/estimación lista los 26 publicados completos (3 198 px frente a 1 908 px de Panorama); plegarla por defecto bajaría la altura pero escondería la referencia que la propuesta quiere visible: decisión del autor.
+
+Ajustes hechos tras la primera captura: barras en una sola columna dentro de la columna izquierda (a dos columnas el motivo de las filas ocultas se apretaba en 8 líneas), nota de cobertura acortada (la tarjeta medía 210 px), columna «Producto» de la tabla con ancho mínimo en teléfono (partía «Glifosato» en dos líneas).
+
+Hallazgos abiertos de esta variante (ninguno rompe):
+
+| # | Tipo | Dónde | Qué pasa | Qué haría |
+|---|---|---|---|---|
+| D6 | Feo | Tarjeta «Campaña consultada», nombre de 158 caracteres | La tarjeta crece a 7 líneas y estira la fila de tarjetas. | Recortar a 3 líneas con el nombre completo en `title`, o mostrar sólo el estado y dejar el nombre al selector. |
+| D7 | Feo | «Actividad reciente» con nombres largos de campaña | Cada entrada repite el nombre completo de la campaña (viene en `summary` del servidor) y ocupa 6 líneas. | Omitir el nombre cuando coincide con la campaña consultada (el servidor no separa acción y nombre: habría que recortar el texto literal). |
+| D8 | Frágil | Tabla necesidad/estimación a 390 px | Desplazamiento horizontal dentro de la tabla; en Comparación la misma información va en filas apiladas. | Si se elige D, apilar las columnas en teléfono como en Comparación. |
+
+### 11.4 Pruebas
+
+- `harness.test.tsx`: 30 pruebas (21 anteriores extendidas a la variante 5 + 9 nuevas de D): mismas cifras publicadas que las otras variantes; tarjetas; referencia sin diferencias ni porcentajes; bitácora de **esa** campaña, más reciente primero, cinco de siete, sin correos; corte a cinco por unidad y «Ver N productos más»; vacía (aviso «Sin necesidades publicadas todavía» con enlace); lecturas extra en error (dos avisos y el resto de la vista intacta); sellada (entrada «Otro · Consolidado colectivo sellado (versión 1)»); sin «Próximamente» ni «Compras conjuntas»; ninguna petición.
+- Suite completa de la Web: ver el cierre de abajo (§11.6).
+
+### 11.5 Lo que la propuesta pide y hoy no se puede mostrar (decisiones del autor, fuera de este bloque)
+
+1. **Compras conjuntas** para la Directiva: haría falta un endpoint de lectura nuevo en `Back/` y una decisión de política sobre qué partes de una compra conjunta son colectivas (hoy toda compra es privada por F10-SEC-02).
+2. **Observaciones automáticas** («125 % superior a la referencia») y **hallazgos de tendencias** («incremento del 18 %», «tendencia estable»): cálculos y umbrales nuevos; exigen regla escrita (qué se compara, con qué vigencia, qué cuenta como «estable») y revisión frente a RN-29 antes de programarlos.
+3. **Denominaciones pendientes de reconciliación**: el servidor no tiene ese estado; mostrarlo obligaría a inventar la regla en el cliente.
+4. **«Cobertura suficiente para consolidar»**: no hay umbral de cobertura definido en ningún contrato.
+5. **Actividad de borradores y equivalencias**: el Back no las escribe en la bitácora (P3, K6).
+6. **Menú**: cambio aparte del Resumen; «Compras conjuntas» no tendría destino.
+
+### 11.6 Cierre de la segunda entrega
+
+- Cómo abrir: `http://127.0.0.1:5174/src/dev/resumen-prototipos.html?v=5&datos=demo` (tecla `5`; las otras variantes siguen en `1`–`4`).
+- Suite completa de la Web sobre esta composición: `npx vitest run --no-file-parallelism` → **49 archivos, 441 pruebas, 441 pasan** (432 anteriores + 9 nuevas; las 21 del arnés ahora cubren la variante 5). `tsc` sin errores; `eslint` 0 errores (las 5 advertencias `react-refresh` de antes); `vite build` correcto y la página de prototipos sigue fuera de `dist/`.
+- Ninguna escritura al servidor ni efecto al abrir la vista; sin dependencias nuevas; `Back/`, Flutter, voz, autenticación, la DEMO oficial y el menú sin cambios.
+- Recomendación (sigue sin ser una elección): si el autor quiere el tablero de su propuesta, **D «Ejecutivo»** es lo más cercano que los datos permiten hoy, a cambio de ser la vista más densa y de dos lecturas más por visita; si pesa la lectura en 15 segundos, **Panorama** sigue siendo la más breve. Lo que falta de la propuesta (compras conjuntas, porcentajes automáticos, tendencias con hallazgos, denominaciones pendientes, menú) son decisiones aparte, listadas en §11.5.

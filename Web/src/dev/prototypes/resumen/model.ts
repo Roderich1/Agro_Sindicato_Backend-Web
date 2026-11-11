@@ -10,6 +10,7 @@ import { VALIDITY_REASON_TEXT, VALIDITY_TEXT, REASON_TEXT } from '../../../lib/e
 import { fmtPercent } from '../../../lib/format';
 import { COLLECTIVE_PATHS } from '../../../lib/navigation';
 import { formatDecimalQuantity, formatQuantity, isBaseQuantity } from '../../../lib/quantity';
+import type { AuditLog } from '../../../types/audit-logs';
 import type { Campaign } from '../../../types/campaigns';
 import type { CollectiveSummary, Coverage, SealRef, SummaryCell } from '../../../types/collective';
 import type { InstitutionalResult, InstitutionalResults, Validity } from '../../../types/estimation';
@@ -181,7 +182,9 @@ export function versionView(seal: SealRef | null, status?: string): VersionView 
 /* ── Atención y siguiente paso ────────────────────────────────────────────── */
 
 export interface Attention {
-  key: 'no-active' | 'closed-unsealed' | 'pending-changes' | 'estimation-outdated' | 'estimation-error';
+  key: 'no-active' | 'closed-unsealed' | 'pending-changes' | 'estimation-outdated' | 'estimation-error' | 'no-needs' | 'activity-error';
+  /** Gravedad para el color (siempre acompañado del texto): `warn` por omisión. */
+  level?: 'warn' | 'error' | 'info';
   /** El hecho, en una frase. */
   title: string;
   /** Qué significa para quien lee. */
@@ -242,12 +245,75 @@ export function attention(
   if (estimation?.kind === 'error') {
     items.push({
       key: 'estimation-error',
+      level: 'error',
       title: 'La estimación no se pudo consultar.',
       description: estimation.text,
       source: 'consulta de la estimación',
     });
   }
   return items;
+}
+
+/**
+ * Centro de atención de la variante Ejecutivo: los mismos hechos y, además,
+ * «sin necesidades publicadas» (campaña abierta sin ninguna cifra) y el fallo de
+ * la bitácora. Nada sale de umbrales ni de comparar cantidades.
+ */
+export function executiveAttention(
+  summary: CollectiveSummary | null,
+  noActive: boolean,
+  estimation: EstimationView | null,
+  activity: ActivityView | null,
+): Attention[] {
+  const items = attention(summary, noActive, estimation);
+  if (summary && summary.disclosure.mode === 'PROVISIONAL_SYNTHETIC' && summary.campaign.status === 'ABIERTA' && counts(summary).total === 0) {
+    items.push({
+      key: 'no-needs',
+      level: 'info',
+      title: 'Sin necesidades publicadas todavía.',
+      description: 'Ningún agricultor publicó una necesidad declarada en esta campaña; no hay borrador que revisar. Eso no significa cero.',
+      source: 'cifras publicadas del servidor',
+      link: { to: proposalsLink(summary.campaign.campaign_ref), label: 'Abrir Necesidades y propuestas' },
+    });
+  }
+  if (activity?.kind === 'error') {
+    items.push({
+      key: 'activity-error',
+      level: 'error',
+      title: 'La bitácora no se pudo consultar.',
+      description: activity.text,
+      source: 'consulta de la bitácora',
+      link: { to: '/audit-logs', label: 'Abrir Bitácora' },
+    });
+  }
+  return items;
+}
+
+/* ── Actividad reciente: lo que la bitácora registra para la campaña (C14) ── */
+
+export type ActivityView = { kind: 'loading' } | { kind: 'ready'; logs: AuditLog[] } | { kind: 'error'; text: string };
+
+/** Las mismas etiquetas que la Bitácora (`pages/audit-logs.page.tsx`); una acción desconocida se muestra tal cual, legible. */
+const ACTION_TEXT: Record<string, string> = {
+  CREAR: 'Crear',
+  ACTUALIZAR: 'Actualizar',
+  INACTIVAR: 'Inactivar',
+  ELIMINAR: 'Eliminar',
+  ABRIR_CAMPANA: 'Abrir campaña',
+  CERRAR_CAMPANA: 'Cerrar campaña',
+  AJUSTAR_STOCK: 'Ajustar stock',
+  REGISTRAR_PAGO: 'Registrar pago',
+  SINCRONIZAR: 'Sincronizar',
+  OTRO: 'Otro',
+};
+
+export function activityLabel(action: string): string {
+  return ACTION_TEXT[action] ?? action.replace(/_/g, ' ');
+}
+
+/** Las entradas más recientes primero; el servidor no garantiza el orden. Nada se agrupa ni se cuenta por tipo. */
+export function recentActivity(logs: AuditLog[], limit = 5): AuditLog[] {
+  return [...logs].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, limit);
 }
 
 export const proposalsLink = (campaignId: string) => `${COLLECTIVE_PATHS.proposals}?campaign=${encodeURIComponent(campaignId)}`;

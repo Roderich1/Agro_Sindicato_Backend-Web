@@ -7,14 +7,18 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ExportButtons } from '../../../components/export-buttons';
-import { Button, buttonClass, CampaignSelector, Collapsible, DataState, DataTable, PageHeader, SegmentedControl, StatusChip, surfaceClass } from '../../../components/ui';
+import { Button, buttonClass, CampaignSelector, Collapsible, DataState, DataTable, Notice, PageHeader, SegmentedControl, StatusChip, surfaceClass } from '../../../components/ui';
 import { ICON } from '../../../components/ui/icon-paths';
 import { Icon } from '../../../components/ui/icons';
 import { fmtDateTime } from '../../../lib/collective-text';
+import { COLLECTIVE_PATHS } from '../../../lib/navigation';
 import type { Campaign } from '../../../types/campaigns';
 import type { CollectiveSummary } from '../../../types/collective';
 import {
+  activityLabel,
   attention as attentionOf,
+  recentActivity,
+  type ActivityView,
   coverageLink,
   coverageView,
   counts,
@@ -56,6 +60,8 @@ export interface VariantProps {
   estimation: EstimationView | null;
   /** Panel real de sellado para la campaña (ya con `key`), o `null` si está sellada. */
   seal: ReactNode;
+  /** Bitácora de la campaña (sólo la pide la variante que la muestra); `null` = no se consulta. */
+  activity: ActivityView | null;
 }
 
 export const ORDER_OPTIONS: { value: Order; label: string }[] = [
@@ -473,6 +479,98 @@ function AttentionLink({ link }: { link: NonNullable<Attention['link']> }) {
     <Link to={link.to} className={cls}>
       {link.label}
     </Link>
+  );
+}
+
+/**
+ * Avisos del centro de atención (variante Ejecutivo): cada hecho con su color
+ * por gravedad y el texto que lo porta, su dato de origen y la acción existente.
+ */
+export function AttentionNotices({ items }: { items: Attention[] }) {
+  return (
+    <ul className="space-y-2" data-testid="pending-actions" aria-label="Requiere atención">
+      {items.map((item) => (
+        <li key={item.key} data-testid={`action-${item.key}`}>
+          <Notice kind={item.level ?? 'warn'} compact>
+            <p className="text-sm leading-snug">
+              <span className="font-semibold">{item.title}</span> {item.description}
+            </p>
+            <p className="mt-0.5 text-[11px] text-slate-600">
+              Fuente: {item.source}
+              {item.link && (
+                <>
+                  {' · '}
+                  <AttentionLink link={item.link} />
+                </>
+              )}
+            </p>
+          </Notice>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ── Estado de la referencia de estimación (vigencia, temporada, aviso) ────── */
+
+/** Bajo una sección con referencia: vigencia, temporada y aviso del servidor, o por qué no hay. Nunca pide una ejecución. */
+export function EstimationFooter({ estimation, campaignId, onRetry }: { estimation: EstimationView | null; campaignId: string; onRetry: () => void }) {
+  const history = `${COLLECTIVE_PATHS.history}?vista=estimacion&campaign=${encodeURIComponent(campaignId)}`;
+  if (!estimation) return null;
+  const link = (
+    <Link to={history} className={quietLink}>
+      Histórico y estimaciones
+    </Link>
+  );
+  const none = <DataState state="empty" title="Sin estimación para esta campaña" description="No hay ejecuciones de la estimación del consumo. Se pide en Histórico y estimaciones; nunca se calcula al abrir esta vista." compact action={link} />;
+  return (
+    <div className="border-t border-slate-100 px-5 py-3 text-xs leading-relaxed text-slate-600" data-testid="estimation-footer">
+      {estimation.kind === 'loading' && <DataState state="loading" compact />}
+      {estimation.kind === 'policy' && <DataState state="restricted" title="Estimación restringida" description="La política de divulgación no está aprobada: no se muestran cifras estimadas." compact />}
+      {estimation.kind === 'error' && <DataState state="error" title="La estimación no se pudo consultar" description={estimation.text} onRetry={onRetry} compact />}
+      {estimation.kind === 'none' && none}
+      {estimation.kind === 'results' &&
+        (estimation.results.results.length === 0 ? (
+          none
+        ) : (
+          <p>
+            <span className="font-semibold text-slate-700">Estimación del consumo (referencia):</span> vigencia evaluada el {fmtDateTime(estimation.results.evaluated_at)}
+            {estimation.results.season ? ` · temporada ${estimation.results.season.key}` : ''}. {estimation.results.notice} {link}
+          </p>
+        ))}
+    </div>
+  );
+}
+
+/* ── Actividad reciente: entradas de la bitácora para la campaña ───────────── */
+
+export function ActivityList({ activity, onRetry, limit = 5 }: { activity: ActivityView | null; onRetry: () => void; limit?: number }) {
+  if (!activity) return null;
+  if (activity.kind === 'loading') return <DataState state="loading" compact />;
+  if (activity.kind === 'error') return <DataState state="error" title="La bitácora no se pudo consultar" description={activity.text} onRetry={onRetry} compact testId="activity-error" />;
+  const recent = recentActivity(activity.logs, limit);
+  if (recent.length === 0) {
+    return (
+      <p className="text-sm text-slate-600" data-testid="activity-empty">
+        La bitácora no registra acciones para esta campaña. Los aportes de los agricultores no aparecen aquí.
+      </p>
+    );
+  }
+  return (
+    <ol className="divide-y divide-slate-100" aria-label="Actividad reciente" data-testid="activity">
+      {recent.map((log) => (
+        <li key={log.id} className="flex items-start gap-3 py-2 text-sm leading-snug first:pt-0 last:pb-0" data-testid={`activity-${log.action}`}>
+          <span className="mt-0.5 inline-flex shrink-0 rounded-control bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">{activityLabel(log.action)}</span>
+          <span className="min-w-0">
+            <span className="block font-medium text-ink [overflow-wrap:anywhere]">{log.summary ?? 'Acción registrada'}</span>
+            <span className="block text-xs text-slate-600 [overflow-wrap:anywhere]">
+              {fmtDateTime(log.createdAt)}
+              {log.actor?.name && ` · ${log.actor.name}`}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

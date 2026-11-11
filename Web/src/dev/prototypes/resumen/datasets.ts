@@ -9,12 +9,15 @@ import * as campaignsFixtures from '../../fixtures/campaigns-fixtures';
 import { CAMPAIGN_IDS } from '../../fixtures/campaigns-fixtures';
 import * as summaryFixtures from '../../fixtures/summary-fixtures';
 import type { SummaryFixture } from '../../fixtures/summary-fixtures';
+import type { AuditLog } from '../../../types/audit-logs';
 import type { Campaign } from '../../../types/campaigns';
 import type { CollectiveSummary, SealState, SummaryCell } from '../../../types/collective';
 import type { InstitutionalResult, InstitutionalResults } from '../../../types/estimation';
 
 /** Qué devuelve `GET /estimation/results` para una campaña del conjunto. */
 export type EstimationAnswer = { kind: 'results'; results: InstitutionalResults } | { kind: 'policy' } | { kind: 'error' };
+/** Qué devuelve `GET /audit-logs?campaignId=` para una campaña del conjunto (variante Ejecutivo). */
+export type ActivityAnswer = { kind: 'logs'; logs: AuditLog[] } | { kind: 'error' };
 
 export interface ResumenDataset {
   key: string;
@@ -28,6 +31,8 @@ export interface ResumenDataset {
   sealStates: Record<string, SealState | null>;
   /** `GET /estimation/results` por campaña; sin entrada: sin ejecuciones (`results: []`). */
   estimations: Record<string, EstimationAnswer>;
+  /** `GET /audit-logs?campaignId=` por campaña; sin entrada: bitácora vacía para esa campaña. */
+  activity?: Record<string, ActivityAnswer>;
   /** Resultado de toda lectura del resumen, cuando el conjunto simula un fallo. */
   failure?: 'error' | 'forbidden' | 'loading';
   /** Campaña que el conjunto quiere mostrar (`?campaign=`); sin ella, la activa. */
@@ -155,6 +160,86 @@ const una = fromFixture('una', 'Una cifra', summaryFixtures.one, {
   results: resultsOf(summaryFixtures.one.summary, [resultFor(summaryFixtures.one.summary.cells[0]!, { estimate_base: '1000.000000', naive_base: '1000', span_length: 1 })]),
 });
 
+/* ── bitácora: lo que el servidor registra hoy para una campaña (C14) ─────── */
+
+type Step = [action: string, summary: string, createdAt: string, entityName?: string];
+
+/** Entradas sintéticas con la forma de `AuditLog`; sólo las acciones que el Back escribe (crear, actualizar, abrir, cerrar, sellar). */
+function logsFor(campaign: Campaign, actorName: string, steps: Step[]): ActivityAnswer {
+  return {
+    kind: 'logs',
+    logs: steps.map(([action, summary, createdAt, entityName = 'AgriculturalCampaign'], index) => ({
+      id: `log-${campaign.id.slice(-4)}-${index}`,
+      campaignId: campaign.id,
+      campaign: { id: campaign.id, name: campaign.name, status: campaign.status },
+      ownerUserId: null,
+      actorUserId: 'u-directiva',
+      actor: { id: 'u-directiva', name: actorName, email: 'directiva@example.test', role: 'DIRECTIVA' },
+      action,
+      entityName,
+      entityId: entityName === 'AgriculturalCampaign' ? campaign.id : 'seal-0001',
+      summary,
+      before: null,
+      after: null,
+      metadata: null,
+      createdAt,
+    })),
+  };
+}
+
+const campaignOf = (list: Campaign[], id: string) => list.find((entry) => entry.id === id)!;
+const demoActive = campaignOf(campaignsFixtures.demo, CAMPAIGN_IDS.demoActive);
+const demoClosed = campaignOf(campaignsFixtures.demo, CAMPAIGN_IDS.demoClosed);
+const demoActivity: Record<string, ActivityAnswer> = {
+  [CAMPAIGN_IDS.demoActive]: logsFor(demoActive, 'Directiva sintética', [
+    ['CREAR', `Campana creada: ${demoActive.name}`, '2026-05-20T13:05:00.000Z'],
+    ['ACTUALIZAR', `Campana actualizada: ${demoActive.name}`, '2026-05-28T16:40:00.000Z'],
+    ['ABRIR_CAMPANA', `Campana abierta: ${demoActive.name}`, '2026-06-01T12:00:00.000Z'],
+  ]),
+  [CAMPAIGN_IDS.demoClosed]: logsFor(demoClosed, 'Directiva sintética', [
+    ['CREAR', `Campana creada: ${demoClosed.name}`, '2025-12-15T13:05:00.000Z'],
+    ['ABRIR_CAMPANA', `Campana abierta: ${demoClosed.name}`, '2026-01-10T12:00:00.000Z'],
+    ['CERRAR_CAMPANA', `Campana cerrada: ${demoClosed.name}`, '2026-06-02T21:14:00.000Z'],
+  ]),
+};
+demo.activity = demoActivity;
+una.activity = {
+  [CAMPAIGN_IDS.one]: logsFor(campaignOf(campaignsFixtures.one, CAMPAIGN_IDS.one), 'Directiva sintética', [
+    ['CREAR', 'Campana creada: Campaña única 2026', '2026-05-02T10:00:00.000Z'],
+    ['ABRIR_CAMPANA', 'Campana abierta: Campaña única 2026', '2026-05-03T10:00:00.000Z'],
+  ]),
+};
+const worstActive = campaignOf(campaignsFixtures.worst, CAMPAIGN_IDS.worstActive);
+/** Siete entradas (la vista muestra las cinco más recientes), autora y nombre largos. */
+worst.activity = {
+  [CAMPAIGN_IDS.worstActive]: logsFor(worstActive, summaryFixtures.LONG_AUTHOR, [
+    ['CREAR', `Campana creada: ${worstActive.name}`, '2026-04-01T09:00:00.000Z'],
+    ['ACTUALIZAR', `Campana actualizada: ${worstActive.name}`, '2026-04-03T09:30:00.000Z'],
+    ['ACTUALIZAR', `Campana actualizada: ${worstActive.name}`, '2026-04-09T11:45:00.000Z'],
+    ['ABRIR_CAMPANA', `Campana abierta: ${worstActive.name}`, '2026-04-15T12:00:00.000Z'],
+    ['ACTUALIZAR', `Campana actualizada: ${worstActive.name}`, '2026-07-21T15:10:00.000Z'],
+    ['ACTUALIZAR', `Campana actualizada: ${worstActive.name}`, '2026-09-30T18:25:00.000Z'],
+    ['ACTUALIZAR', `Campana actualizada: ${worstActive.name}`, '2026-11-09T23:58:00.000Z'],
+  ]),
+};
+const sealedCampaign = campaignOf(campaignsFixtures.worst, CAMPAIGN_IDS.worstClosedSealed);
+sellada.activity = {
+  [CAMPAIGN_IDS.worstClosedSealed]: logsFor(sealedCampaign, summaryFixtures.LONG_AUTHOR, [
+    ['CREAR', `Campana creada: ${sealedCampaign.name}`, '2025-04-01T09:00:00.000Z'],
+    ['ABRIR_CAMPANA', `Campana abierta: ${sealedCampaign.name}`, '2025-05-01T12:00:00.000Z'],
+    ['CERRAR_CAMPANA', `Campana cerrada: ${sealedCampaign.name}`, '2025-10-30T20:00:00.000Z'],
+    ['OTRO', 'Consolidado colectivo sellado (versión 1)', '2025-11-02T14:30:00.000Z', 'CollectiveSeal'],
+  ]),
+};
+const unsealedCampaign = campaignOf(campaignsFixtures.worst, CAMPAIGN_IDS.worstClosedUnsealed);
+cerrada.activity = {
+  [CAMPAIGN_IDS.worstClosedUnsealed]: logsFor(unsealedCampaign, 'Directiva sintética', [
+    ['CREAR', `Campana creada: ${unsealedCampaign.name}`, '2025-10-01T09:00:00.000Z'],
+    ['ABRIR_CAMPANA', `Campana abierta: ${unsealedCampaign.name}`, '2025-11-01T12:00:00.000Z'],
+    ['CERRAR_CAMPANA', `Campana cerrada: ${unsealedCampaign.name}`, '2026-04-30T20:00:00.000Z'],
+  ]),
+};
+
 /* ── muchos: 29 necesidades (17 L y 12 KG) y 9 consumos ──────────────────── */
 
 const MANY_L: [string, string | null, number][] = [
@@ -241,6 +326,7 @@ const muchos: ResumenDataset = {
   selected: manyCampaign.id,
   summaries: { [manyCampaign.id]: manySummary },
   sealStates: { [manyCampaign.id]: notSealed(manySummary) },
+  activity: demoActivity,
   estimations: {
     [manyCampaign.id]: {
       kind: 'results',
@@ -267,8 +353,14 @@ const error: ResumenDataset = { ...demo, key: 'error', label: 'Error de consulta
 const sinpermiso: ResumenDataset = { ...demo, key: 'sinpermiso', label: 'Sin permiso', failure: 'forbidden', estimations: {} };
 const cargando: ResumenDataset = { ...demo, key: 'cargando', label: 'Cargando', failure: 'loading', estimations: {} };
 const sincampanas: ResumenDataset = { key: 'sincampanas', label: 'Sin campañas', campaigns: [], active: null, selected: undefined, summaries: {}, sealStates: {}, estimations: {} };
-/** Campaña activa con cifras pero `GET /estimation/results` falla (p. ej. 502): la referencia queda en error, el resto no. */
-const estimacionError: ResumenDataset = { ...demo, key: 'estimacion-error', label: 'Estimación en error', estimations: { [CAMPAIGN_IDS.demoActive]: { kind: 'error' } } };
+/** Campaña activa con cifras pero las lecturas complementarias (`GET /estimation/results`, `GET /audit-logs`) fallan (p. ej. 502): la referencia y la actividad quedan en error, el resto no. */
+const estimacionError: ResumenDataset = {
+  ...demo,
+  key: 'estimacion-error',
+  label: 'Lecturas extra en error',
+  estimations: { [CAMPAIGN_IDS.demoActive]: { kind: 'error' } },
+  activity: { [CAMPAIGN_IDS.demoActive]: { kind: 'error' } },
+};
 
 export const DATASETS: readonly ResumenDataset[] = [demo, worst, muchos, sellada, cerrada, politica, vacia, una, estimacionError, error, sinpermiso, sincampanas, cargando];
 

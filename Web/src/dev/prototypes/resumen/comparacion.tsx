@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Collapsible, DataState, Section } from '../../../components/ui';
 import { fmtDateTime } from '../../../lib/collective-text';
-import { COLLECTIVE_PATHS } from '../../../lib/navigation';
-import { coverageLink, countsText, counts, groups, latestDataAsOf, type EstimationView, type Order } from './model';
-import { AttentionList, attentionItems, Bars, Definitions, DetailTable, ConsumptionList, Gate, Header, OrderControl, PolicyPending, quietLink, Stats, statsFor, type VariantProps } from './parts';
+import { coverageLink, countsText, counts, groups, latestDataAsOf, type Order } from './model';
+import { AttentionList, attentionItems, Bars, Definitions, DetailTable, ConsumptionList, EstimationFooter, Gate, Header, OrderControl, PolicyPending, quietLink, Stats, statsFor, type VariantProps } from './parts';
 
 /**
  * Variante C «Comparación» (eje: necesidad frente a referencia histórica).
@@ -79,34 +78,6 @@ export function Comparacion(props: VariantProps) {
         </>
       )}
       {!summary && props.state.kind !== 'loading' && <AttentionList items={items} />}
-    </div>
-  );
-}
-
-/** Estado de la referencia bajo la sección: vigencia, temporada y aviso del servidor, o por qué no hay. */
-function EstimationFooter({ estimation, campaignId, onRetry }: { estimation: EstimationView | null; campaignId: string; onRetry: () => void }) {
-  const history = `${COLLECTIVE_PATHS.history}?vista=estimacion&campaign=${encodeURIComponent(campaignId)}`;
-  if (!estimation) return null;
-  const link = (
-    <Link to={history} className={quietLink}>
-      Histórico y estimaciones
-    </Link>
-  );
-  return (
-    <div className="border-t border-slate-100 px-5 py-3 text-xs leading-relaxed text-slate-600" data-testid="estimation-footer">
-      {estimation.kind === 'loading' && <DataState state="loading" compact />}
-      {estimation.kind === 'policy' && <DataState state="restricted" title="Estimación restringida" description="La política de divulgación no está aprobada: no se muestran cifras estimadas." compact />}
-      {estimation.kind === 'error' && <DataState state="error" title="La estimación no se pudo consultar" description={estimation.text} onRetry={onRetry} compact />}
-      {estimation.kind === 'none' && <DataState state="empty" title="Sin estimación para esta campaña" description="No hay ejecuciones de la estimación del consumo. Se pide en Histórico y estimaciones; nunca se calcula al abrir esta vista." compact action={link} />}
-      {estimation.kind === 'results' &&
-        (estimation.results.results.length === 0 ? (
-          <DataState state="empty" title="Sin estimación para esta campaña" description="No hay ejecuciones de la estimación del consumo. Se pide en Histórico y estimaciones; nunca se calcula al abrir esta vista." compact action={link} />
-        ) : (
-          <p>
-            <span className="font-semibold text-slate-700">Estimación del consumo (referencia):</span> vigencia evaluada el {fmtDateTime(estimation.results.evaluated_at)}
-            {estimation.results.season ? ` · temporada ${estimation.results.season.key}` : ''}. {estimation.results.notice} {link}
-          </p>
-        ))}
     </div>
   );
 }

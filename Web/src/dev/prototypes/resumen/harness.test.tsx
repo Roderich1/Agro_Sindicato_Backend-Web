@@ -10,7 +10,7 @@ import { installStubs } from './stubs';
 
 /** Cantidad con unidad («0 L», «1.234,5 KG»): nunca en una fila sin cifra publicada. */
 const QUANTITY = /\d[\d.,]*\s?(L|KG)\b/;
-const NEW = [2, 3, 4] as const;
+const NEW = [2, 3, 4, 5] as const;
 
 let dataset: ResumenDataset = datasetFor('demo');
 installStubs(() => dataset, 0);
@@ -50,7 +50,7 @@ function show(search: string) {
 const variant = () => document.querySelector('[data-variant]') as HTMLElement;
 const cell = (name: string, unit: 'ML' | 'G') => within(variant()).getByTestId(`cell-DECLARED_NEED-${name}-${unit}`);
 
-describe('prototipos del Resumen: las tres variantes con el mismo fixture', () => {
+describe('prototipos del Resumen: las variantes con el mismo fixture', () => {
   it.each(NEW)('variante %i, worst: filas sin cifra sin número, barra ni cero; L y KG en listas separadas; ninguna petición', async (v) => {
     show(`?v=${v}&datos=worst`);
     await screen.findByTestId('needs-counts');
@@ -154,7 +154,7 @@ describe('prototipos del Resumen: las tres variantes con el mismo fixture', () =
     expect(document.getElementById('sellado')).toBeNull();
   });
 
-  it('las tres variantes muestran las mismas cifras publicadas (worst)', async () => {
+  it('las variantes muestran las mismas cifras publicadas (worst)', async () => {
     const figures: string[][] = [];
     for (const v of NEW) {
       show(`?v=${v}&datos=worst`);
@@ -164,6 +164,7 @@ describe('prototipos del Resumen: las tres variantes con el mismo fixture', () =
     }
     expect(figures[1]).toEqual(figures[0]);
     expect(figures[2]).toEqual(figures[0]);
+    expect(figures[3]).toEqual(figures[0]);
     expect(figures[0]).toContain('0,025 KG');
   });
 
@@ -219,10 +220,92 @@ describe('prototipos del Resumen: las tres variantes con el mismo fixture', () =
     expect((await within(variant()).findByTestId('next-step')).textContent).toMatch(/Esperar aportes/);
   });
 
-  it('el selector persiste ?v= y las variantes son las cuatro esperadas', async () => {
+  it('Ejecutivo, demo: tarjetas, referencia junto a la necesidad, actividad de la bitácora (más reciente primero) y enlaces existentes', async () => {
+    show('?v=5&datos=demo');
+    await screen.findByTestId('needs-counts');
+    const root = within(variant());
+    expect(root.getByTestId('campaign-tile').textContent).toMatch(/Campaña invierno 2026/);
+    expect(root.getByTestId('campaign-tile').textContent).toMatch(/Es la campaña activa/);
+    expect(root.getByTestId('coverage').textContent).toMatch(/6 de 9/);
+    expect(root.getByTestId('needs-tile').textContent).toMatch(/2 de 3/);
+    expect(root.getByTestId('version-tile').textContent).toMatch(/Sin sellar/);
+    // Necesidad y estimación son dos columnas distintas; ninguna diferencia ni porcentaje entre ellas.
+    const table = await root.findByRole('region', { name: 'Necesidad declarada y estimación del consumo por producto' });
+    const glifosato = within(table).getByTestId('reference-cell-DECLARED_NEED-Glifosato 480 SL-ML');
+    expect(glifosato.textContent).toMatch(/42,5 L/);
+    expect(within(glifosato).getByTestId('reference').textContent).toMatch(/39,80025 L/);
+    expect(glifosato.textContent).toMatch(/Vigente/);
+    expect(variant().textContent).not.toMatch(/diferencia|superior|inferior|%\s*(más|menos)/i);
+    // Bitácora: las entradas de ESTA campaña, la más reciente primero, con el enlace a la Bitácora.
+    const activity = await root.findByTestId('activity');
+    const entries = within(activity).getAllByRole('listitem');
+    expect(entries).toHaveLength(3);
+    expect(entries[0]!.textContent).toMatch(/Abrir campaña.*Campana abierta: Campaña invierno 2026/);
+    expect(entries[2]!.textContent).toMatch(/Campana creada/);
+    expect(activity.textContent).not.toMatch(/Campaña verano 2026/);
+    expect(activity.textContent).not.toMatch(/@/);
+    expect(root.getByRole('link', { name: 'Ver bitácora' }).getAttribute('href')).toBe('/audit-logs');
+    expect(root.getByRole('link', { name: 'Tendencias' }).getAttribute('href')).toBe('/colectivo/tendencias');
+    expect(root.getByRole('link', { name: 'Necesidades y propuestas' }).getAttribute('href')).toBe(`/colectivo/propuestas?campaign=${CAMPAIGN_IDS.demoActive}`);
+    expect(document.body.textContent).not.toMatch(/Próximamente|Compras conjuntas/i);
+    expect(xhrOpen).not.toHaveBeenCalled();
+  });
+
+  it('Ejecutivo, worst: la bitácora muestra las cinco más recientes de siete', async () => {
+    show('?v=5&datos=worst');
+    const activity = await within(variant()).findByTestId('activity');
+    const entries = within(activity).getAllByRole('listitem');
+    expect(entries).toHaveLength(5);
+    expect(entries[0]!.textContent).toMatch(/Actualizar/);
+    expect(entries[0]!.textContent).toContain(summaryFixtures.LONG_AUTHOR);
+    expect(activity.textContent).not.toMatch(/Campana creada/);
+  });
+
+  it('Ejecutivo, muchos: cinco primeros por unidad y el resto a un clic, con las filas sin cifra contadas', async () => {
+    show('?v=5&datos=muchos');
+    await screen.findByTestId('needs-counts');
+    const root = within(variant());
+    const liters = () => within(root.getByTestId('top-L')).getAllByRole('listitem');
+    expect(liters()).toHaveLength(5);
+    const toggle = root.getByTestId('top-toggle-L');
+    expect(toggle.textContent).toBe('Ver 12 productos más en litros (2 sin cifra)');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(toggle);
+    expect(liters()).toHaveLength(17);
+    expect(root.getByTestId('top-toggle-L').textContent).toMatch(/Mostrar sólo los 5 primeros en litros/);
+    expect(within(root.getByTestId('top-KG')).getAllByRole('listitem')).toHaveLength(5);
+    expect(root.getByTestId('top-toggle-KG').textContent).toBe('Ver 7 productos más en kilogramos (1 sin cifra)');
+  });
+
+  it('Ejecutivo, vacía / lecturas extra en error / sellada: hechos reales en el centro de atención, nunca inventados', async () => {
+    show('?v=5&datos=vacia');
+    await screen.findByTestId('needs-counts');
+    const noNeeds = within(variant()).getByTestId('action-no-needs');
+    expect(noNeeds.textContent).toMatch(/Sin necesidades publicadas todavía/);
+    expect(within(noNeeds).getByRole('link', { name: 'Abrir Necesidades y propuestas' })).toBeTruthy();
+    expect(await within(variant()).findByTestId('activity-empty')).toBeTruthy();
+    expect(within(variant()).queryByTestId('pending-actions-none')).toBeNull();
+    cleanup();
+
+    show('?v=5&datos=estimacion-error');
+    await screen.findByTestId('needs-counts');
+    expect(await within(variant()).findByTestId('action-activity-error')).toBeTruthy();
+    expect(await within(variant()).findByTestId('activity-error')).toBeTruthy();
+    expect(await within(variant()).findByTestId('action-estimation-error')).toBeTruthy();
+    expect(within(variant()).getByTestId('coverage').textContent).toMatch(/6 de 9/);
+    cleanup();
+
+    show('?v=5&datos=sellada');
+    await screen.findByTestId('seal-banner');
+    const activity = await within(variant()).findByTestId('activity');
+    expect(within(activity).getAllByRole('listitem')[0]!.textContent).toMatch(/Otro.*Consolidado colectivo sellado \(versión 1\)/);
+    expect(within(variant()).getByTestId('campaign-tile').textContent).toMatch(/no es la campaña activa/);
+  });
+
+  it('el selector persiste ?v= y las variantes son las cinco esperadas', async () => {
     show('?v=3&datos=demo');
     await screen.findByTestId('needs-counts');
-    expect(VARIANTS.map((entry) => entry.name)).toEqual(['Actual', 'Panorama', 'Acción', 'Comparación']);
+    expect(VARIANTS.map((entry) => entry.name)).toEqual(['Actual', 'Panorama', 'Acción', 'Comparación', 'Ejecutivo']);
     const picker = screen.getByRole('navigation', { name: 'Prototype variants' });
     expect(within(picker).getByRole('button', { name: 'Acción' }).getAttribute('aria-current')).toBe('true');
     fireEvent.click(within(picker).getByRole('button', { name: 'Panorama' }));
