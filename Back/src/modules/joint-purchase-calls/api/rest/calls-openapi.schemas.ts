@@ -128,7 +128,7 @@ export const farmerListSchema: SchemaObject = closed(["contractVersion", "server
 const productTotals: Record<string, SchemaObject> = {
   participant_count: { type: "integer" },
   total_quantity_base: { ...quantity, nullable: true, description: "null bajo el umbral (E2-D7) para quien no es responsable" },
-  visibility: { type: "string", enum: ["VISIBLE", "UNDER_THRESHOLD"] },
+  visibility: { type: "string", enum: ["VISIBLE", "UNDER_THRESHOLD", "RESPONSIBLE_ONLY"] },
 };
 
 export const callSummaryListSchema: SchemaObject = closed(["contractVersion", "calls"], {

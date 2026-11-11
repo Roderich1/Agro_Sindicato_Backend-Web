@@ -2597,7 +2597,8 @@
                                 "type": "string",
                                 "enum": [
                                   "VISIBLE",
-                                  "UNDER_THRESHOLD"
+                                  "UNDER_THRESHOLD",
+                                  "RESPONSIBLE_ONLY"
                                 ]
                               }
                             }
@@ -3622,7 +3623,8 @@
                                 "type": "string",
                                 "enum": [
                                   "VISIBLE",
-                                  "UNDER_THRESHOLD"
+                                  "UNDER_THRESHOLD",
+                                  "RESPONSIBLE_ONLY"
                                 ]
                               }
                             }
@@ -4280,7 +4282,8 @@
                                 "type": "string",
                                 "enum": [
                                   "VISIBLE",
-                                  "UNDER_THRESHOLD"
+                                  "UNDER_THRESHOLD",
+                                  "RESPONSIBLE_ONLY"
                                 ]
                               }
                             }
@@ -5171,7 +5174,8 @@
                                 "type": "string",
                                 "enum": [
                                   "VISIBLE",
-                                  "UNDER_THRESHOLD"
+                                  "UNDER_THRESHOLD",
+                                  "RESPONSIBLE_ONLY"
                                 ]
                               }
                             }
@@ -5985,7 +5989,8 @@
                                 "type": "string",
                                 "enum": [
                                   "VISIBLE",
-                                  "UNDER_THRESHOLD"
+                                  "UNDER_THRESHOLD",
+                                  "RESPONSIBLE_ONLY"
                                 ]
                               }
                             }
@@ -6606,7 +6611,8 @@
                             "type": "string",
                             "enum": [
                               "VISIBLE",
-                              "UNDER_THRESHOLD"
+                              "UNDER_THRESHOLD",
+                              "RESPONSIBLE_ONLY"
                             ]
                           }
                         }
@@ -7600,7 +7606,8 @@
                             "type": "string",
                             "enum": [
                               "VISIBLE",
-                              "UNDER_THRESHOLD"
+                              "UNDER_THRESHOLD",
+                              "RESPONSIBLE_ONLY"
                             ]
                           }
                         }

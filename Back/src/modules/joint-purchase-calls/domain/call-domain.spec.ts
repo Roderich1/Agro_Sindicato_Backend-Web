@@ -218,6 +218,17 @@ describe("E2 visibility (E2-D7)", () => {
     });
   });
 
+  it("E2-P1: live totals of an OPEN call are withheld from anyone without the permission, even at or above k", () => {
+    for (const persons of [1, 3, 10]) {
+      expect(productTotalView(1500n, persons, false, 3, true)).toEqual({
+        participant_count: persons,
+        total_quantity_base: null,
+        visibility: "RESPONSIBLE_ONLY",
+      });
+    }
+    expect(productTotalView(1500n, 1, true, 3, true)).toEqual({ participant_count: 1, total_quantity_base: "1500", visibility: "VISIBLE" });
+  });
+
   it("shows every total to the holder of the permission", () => {
     expect(productTotalView(700n, 1, true)).toEqual({ participant_count: 1, total_quantity_base: "700", visibility: "VISIBLE" });
   });

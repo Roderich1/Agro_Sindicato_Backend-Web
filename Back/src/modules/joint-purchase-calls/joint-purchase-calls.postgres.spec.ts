@@ -348,8 +348,8 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
         expect(detail.body.can_view_participants).toBe(false);
         expect(detail.body.participant_count).toBe(2);
         expect(detail.body.products.map((p: any) => p.totals)).toEqual([
-          { participant_count: 2, total_quantity_base: null, visibility: "UNDER_THRESHOLD" },
-          { participant_count: 1, total_quantity_base: null, visibility: "UNDER_THRESHOLD" },
+          { participant_count: 2, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" },
+          { participant_count: 1, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" },
         ]);
         const text = JSON.stringify(detail.body);
         expect(text).not.toContain("farmerA");

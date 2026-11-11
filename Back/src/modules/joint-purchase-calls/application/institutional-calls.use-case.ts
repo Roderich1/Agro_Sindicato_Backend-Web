@@ -620,7 +620,7 @@ export class InstitutionalCallsUseCase {
           base_unit: product.baseUnit,
           is_active: product.product.isActive,
           reference: referenceOf(product.sourceLine, disclosureAuthorized),
-          totals: productTotalView(total.total, total.count, canView),
+          totals: productTotalView(total.total, total.count, canView, CALL_TOTALS_THRESHOLD, totals.source === "LIVE"),
         };
       }),
       history: sortHistory(
