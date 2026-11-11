@@ -3,12 +3,19 @@ import { randomUUID } from "node:crypto";
 /**
  * Minimal in-memory stand-in for the Prisma calls of the E1 use cases (unit
  * tests only; the PostgreSQL spec covers the real queries, CHECKs and lock).
- * `where` supports equality and `{ equals, mode: "insensitive" }`.
+ * `where` supports equality, `{ equals, mode: "insensitive" }`, `{ in }` and
+ * `{ lt }` (dates).
  */
 function matches(row: any, where: Record<string, any> = {}): boolean {
   return Object.entries(where).every(([key, expected]) => {
     if (expected && typeof expected === "object" && "equals" in expected) {
       return String(row[key]).toLowerCase() === String(expected.equals).toLowerCase();
+    }
+    if (expected && typeof expected === "object" && "in" in expected) {
+      return (expected.in as unknown[]).includes(row[key]);
+    }
+    if (expected && typeof expected === "object" && "lt" in expected) {
+      return row[key] instanceof Date && row[key].getTime() < (expected.lt as Date).getTime();
     }
     return row[key] === expected;
   });
@@ -27,7 +34,20 @@ export class FakeIdentificationPrisma {
     return 1;
   };
 
-  $transaction = async (body: (tx: any) => Promise<unknown>) => body(this);
+  /** Rolls the requests and events back if the body throws, as PostgreSQL would. */
+  $transaction = async (body: (tx: any) => Promise<unknown>) => {
+    const requests = this.requests.map((row) => ({ ...row }));
+    const events = [...this.events];
+    try {
+      return await body(this);
+    } catch (error) {
+      // In place: tests keep references to the row objects.
+      this.requests = this.requests.filter((row) => requests.some((saved) => saved.id === row.id));
+      for (const saved of requests) Object.assign(this.requests.find((row) => row.id === saved.id), saved);
+      this.events = events;
+      throw error;
+    }
+  };
 
   private withProduct = (row: any) => ({
     ...row,

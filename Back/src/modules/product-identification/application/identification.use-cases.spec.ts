@@ -5,7 +5,8 @@ import { Readable } from "node:stream";
 import { IdentificationHttpError } from "../domain/identification-error";
 import { FakeIdentificationPrisma } from "../test-support/fake-identification-prisma";
 import { InMemoryPhotoStorage } from "../test-support/in-memory-photo-storage";
-import { jpeg, png } from "../test-support/images";
+import { corruptJpeg, headerOnlyJpeg, jpeg, jpegWithExif, png, truncatedJpeg } from "../test-support/images";
+import * as decoder from "../infrastructure/image-decoder";
 import { FarmerIdentificationUseCase, parsePhotoHeaders } from "./farmer-identification.use-case";
 import { InstitutionalIdentificationUseCase } from "./institutional-identification.use-case";
 
@@ -53,6 +54,10 @@ function upload(bytes: Buffer, overrides: Partial<{ contentType: string; content
     stream: Readable.from([bytes]),
   };
 }
+
+// Images are encoded with sharp at test time; under the full parallel suite
+// that can exceed Jest's default 5 s per test.
+jest.setTimeout(30_000);
 
 describe("E1 farmer identification use case", () => {
   let prisma: FakeIdentificationPrisma;
@@ -142,7 +147,7 @@ describe("E1 farmer identification use case", () => {
     });
 
     it("stores a valid JPEG, answers the same SHA-256 as a no-op and replaces removing the old object", async () => {
-      const first = jpeg(1600, 1200);
+      const first = await jpeg(1600, 1200);
       const a = upload(first);
       const stored = await farmer.storePhoto(FARMER, id, a.headers, a.stream);
       expect(stored.created).toBe(true);
@@ -156,7 +161,7 @@ describe("E1 farmer identification use case", () => {
       expect(prisma.requests[0].photoStorageKey).toBe(oldKey);
       expect(storage.staging.size).toBe(0);
 
-      const second = png(800, 600);
+      const second = await png(800, 600);
       const b = upload(second);
       const replaced = await farmer.storePhoto(FARMER, id, b.headers, b.stream);
       expect(replaced.view.photo.sha256).toBe(sha(second));
@@ -170,9 +175,9 @@ describe("E1 farmer identification use case", () => {
       const text = Buffer.from("esto no es una imagen, aunque se llame etiqueta.jpg");
       const fake = upload(text);
       expect(await code(farmer.storePhoto(FARMER, id, fake.headers, fake.stream))).toBe("422 IMAGE_INVALID");
-      const tiny = upload(jpeg(32, 32));
+      const tiny = upload(await jpeg(32, 32));
       expect(await code(farmer.storePhoto(FARMER, id, tiny.headers, tiny.stream))).toBe("422 IMAGE_INVALID");
-      const bytes = jpeg(800, 600);
+      const bytes = await jpeg(800, 600);
       const mismatch = upload(bytes, { sha256: "0".repeat(64) });
       expect(await code(farmer.storePhoto(FARMER, id, mismatch.headers, mismatch.stream))).toBe("422 CONTENT_HASH_MISMATCH");
       expect(storage.objects.size).toBe(0);
@@ -180,17 +185,43 @@ describe("E1 farmer identification use case", () => {
       expect(prisma.requests[0].photoState).toBe("NONE");
     });
 
+    it("decodes the whole file: a valid header with a corrupt body, metadata or a header-only file is 422", async () => {
+      for (const bytes of [await corruptJpeg(), await truncatedJpeg(), await jpegWithExif(), headerOnlyJpeg(800, 600)]) {
+        const attempt = upload(bytes);
+        expect(await code(farmer.storePhoto(FARMER, id, attempt.headers, attempt.stream))).toBe("422 IMAGE_INVALID");
+      }
+      expect(storage.objects.size).toBe(0);
+      expect(storage.staging.size).toBe(0);
+      expect(prisma.requests[0].photoState).toBe("NONE");
+      expect(prisma.events.map((e) => e.kind)).toEqual(["RECEIVED"]);
+    });
+
+    it("refuses a decode that disagrees with the header and stores the decoded metadata otherwise", async () => {
+      const bytes = await jpeg(800, 600);
+      const spy = jest.spyOn(decoder, "decodeImageFully").mockResolvedValueOnce({ format: "jpeg", width: 600, height: 800 });
+      const mismatch = upload(bytes);
+      expect(await code(farmer.storePhoto(FARMER, id, mismatch.headers, mismatch.stream))).toBe("422 IMAGE_INVALID");
+      spy.mockResolvedValueOnce({ format: "png", width: 800, height: 600 });
+      const otherType = upload(bytes);
+      expect(await code(farmer.storePhoto(FARMER, id, otherType.headers, otherType.stream))).toBe("422 IMAGE_INVALID");
+      expect(storage.objects.size).toBe(0);
+      const accepted = upload(bytes);
+      await farmer.storePhoto(FARMER, id, accepted.headers, accepted.stream);
+      expect(spy).toHaveBeenCalledTimes(3);
+      expect(prisma.requests[0]).toMatchObject({ photoContentType: "image/jpeg", photoWidth: 800, photoHeight: 600 });
+    });
+
     it("needs a registered consent and an own request", async () => {
       const noConsent = uuid4();
       await farmer.upsert(FARMER, noConsent, body({ photo_consent: null }));
-      const a = upload(jpeg(800, 600));
+      const a = upload(await jpeg(800, 600));
       expect(await code(farmer.storePhoto(FARMER, noConsent, a.headers, a.stream))).toBe("409 PHOTO_CONSENT_REQUIRED");
-      const b = upload(jpeg(800, 600));
+      const b = upload(await jpeg(800, 600));
       expect(await code(farmer.storePhoto(FARMER_2, id, b.headers, b.stream))).toBe("404 REQUEST_NOT_FOUND");
     });
 
     it("removal deletes the binary first and is idempotent", async () => {
-      const a = upload(jpeg(800, 600));
+      const a = upload(await jpeg(800, 600));
       await farmer.storePhoto(FARMER, id, a.headers, a.stream);
       storage.removeFailures = 1;
       expect(await code(farmer.removePhoto(FARMER, id))).toBe("503 PHOTO_STORAGE_UNAVAILABLE");
@@ -204,7 +235,7 @@ describe("E1 farmer identification use case", () => {
 
     it("without storage the photo routes are 503 and the data route still works", async () => {
       const withoutStorage = new FarmerIdentificationUseCase(prisma as any, null);
-      const a = upload(jpeg(800, 600));
+      const a = upload(await jpeg(800, 600));
       expect(await code(withoutStorage.storePhoto(FARMER, id, a.headers, a.stream))).toBe("503 PHOTO_STORAGE_UNAVAILABLE");
       expect(await code(withoutStorage.removePhoto(FARMER, id))).toBe("503 PHOTO_STORAGE_UNAVAILABLE");
       expect((await withoutStorage.upsert(FARMER, uuid4(), body())).created).toBe(true);

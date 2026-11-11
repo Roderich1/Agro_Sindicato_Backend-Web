@@ -11902,7 +11902,7 @@
             }
           },
           "422": {
-            "description": "IMAGE_INVALID: no es JPEG/PNG por firma o dimensiones fuera de [64, 4096] o cabecera ilegible. CONTENT_HASH_MISMATCH.",
+            "description": "IMAGE_INVALID: no es JPEG/PNG por firma, cabecera ilegible o dimensiones fuera de [64, 4096]; o la decodificación completa falla (archivo truncado o corrupto, más de 4096 × 4096 píxeles, animado o de varias páginas, datos tras el marcador final, metadatos EXIF/XMP/IPTC, tipo o dimensiones distintos de la cabecera, más de 5 s). CONTENT_HASH_MISMATCH.",
             "content": {
               "application/json": {
                 "schema": {

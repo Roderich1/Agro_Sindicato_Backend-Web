@@ -106,6 +106,13 @@ export const envSchema = z.object({
   PRODUCT_PHOTO_STORAGE_PROVIDER: optionalText(z.enum(["disk", "b2"])),
   // One segment ending in "/", distinct from BACKUP_S3_PREFIX.
   PRODUCT_PHOTO_S3_PREFIX: optionalText(z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}\/$/)),
+  // E1 §10: photo sweep inside the API process (orphans and staging
+  // leftovers older than 24 h, photos past their retention). Empty = no
+  // periodic sweep (the operator runs `npm run product-photos:sweep`).
+  PRODUCT_PHOTO_SWEEP_INTERVAL_MS: optionalText(z.coerce.number().int().min(60_000).max(604_800_000)),
+  // Days a LINKED request keeps its photo after the last link decision
+  // (empty = 90). PENDING requests always keep it.
+  PRODUCT_PHOTO_RETENTION_DAYS_AFTER_LINK: optionalText(z.coerce.number().int().min(1).max(3650)),
   // #81 PHASE 6: the farmer's legacy private writes are closed (403
   // LEGACY_ROUTE_CLOSED). `enabled` is an operational rollback of this
   // server only, never the normal path; it authorises nothing.
