@@ -5,34 +5,17 @@ import { CAMPAIGN_STATUS_TEXT, fmtDateTime, statusReason } from '../lib/collecti
 import { formatQuantity, isBaseQuantity, type BaseUnit } from '../lib/quantity';
 import type { Campaign } from '../types/campaigns';
 import type { AnyStatus, Coverage, SealRef } from '../types/collective';
-import { inputClass, labelClass, Notice } from './app-shell';
+import { inputClass, isKnownStatus, KpiTile, labelClass, Notice, StatusChip } from './ui';
 
 /* Estados de una celda o línea (F07-POL-01). Ninguno inventa ni deduce cifras. */
 
-const STATUS_TEXT: Record<AnyStatus, { label: string; cls: string }> = {
-  DISCLOSED: { label: 'Publicado', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-  SUPPRESSED_UNDER_THRESHOLD: { label: 'Oculto por privacidad', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
-  SUPPRESSED_REVISION: { label: 'Sin cifra publicada', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
-  OVERFLOW: { label: 'Fuera de rango', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-  WITHDRAWN: { label: 'Retirado', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
-  SUPERSEDED: { label: 'Sustituido', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
-  POLICY_PENDING: { label: 'Política pendiente', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
-  WITHDRAWN_AFTER_SEAL: { label: 'Retirado tras sellar', cls: 'bg-amber-500/10 text-amber-800 ring-amber-500/20' },
-  NO_DATA: { label: 'Sin cifra publicada', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
-  NOT_SEALED: { label: 'Sin sellar', cls: 'bg-slate-500/10 text-slate-700 ring-slate-500/20' },
-};
-
+/**
+ * Unificado en `StatusChip` (components/ui): texto del estado y motivo en
+ * `title`. Un estado desconocido se trata, como antes, como «Política
+ * pendiente» (sin cifra), nunca como un código en bruto.
+ */
 export function StatusBadge({ status, threshold }: { status: AnyStatus; threshold?: number | null }) {
-  const { label, cls } = STATUS_TEXT[status] ?? STATUS_TEXT.POLICY_PENDING;
-  const reason = statusReason(status, threshold);
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${cls}`}
-      title={reason ?? undefined}
-    >
-      {label}
-    </span>
-  );
+  return <StatusChip status={isKnownStatus(status) ? status : 'POLICY_PENDING'} threshold={threshold} />;
 }
 
 /**
@@ -312,88 +295,13 @@ export function PageNote({ children, testId }: { children: ReactNode; testId?: s
   );
 }
 
-/** Cabecera de una sección en tarjeta: título breve y, si hace falta, una línea de contexto. */
-export function SectionHeader({ title, note, actions, badge }: { title: ReactNode; note?: ReactNode; actions?: ReactNode; badge?: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-3">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-base font-bold text-slate-900">{title}</h2>
-          {badge}
-        </div>
-        {note && <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{note}</p>}
-      </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-    </div>
-  );
-}
-
-/** Indicador grande para proyector: etiqueta, cifra y una línea de contexto. */
+/** Indicador grande para proyector; delega en `KpiTile` (components/ui). */
 export function StatTile({ label, value, note, testId, tone = 'default' }: { label: string; value: ReactNode; note?: ReactNode; testId?: string; tone?: 'default' | 'muted' }) {
-  return (
-    <div className={`rounded-2xl border px-5 py-4 ${tone === 'muted' ? 'border-slate-200 bg-white/60' : 'border-emerald-100 bg-emerald-50/50'}`} data-testid={testId}>
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-bold leading-tight text-slate-900 tabular-nums">{value}</p>
-      {note && <p className="mt-1 text-xs leading-relaxed text-slate-500">{note}</p>}
-    </div>
-  );
+  return <KpiTile label={label} value={value} note={note} testId={testId} tone={tone} />;
 }
 
-/** Sección secundaria plegada: lo que no hace falta para decidir, a un clic. */
-export function Collapsible({ title, children, testId, label, defaultOpen = false }: { title: string; children: ReactNode; testId?: string; label?: string; defaultOpen?: boolean }) {
-  return (
-    <details className="glass-card group overflow-hidden" data-testid={testId} aria-label={label ?? title} open={defaultOpen}>
-      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600">
-        {title}
-        <span className="text-xs font-medium text-emerald-700 group-open:hidden">Ver</span>
-        <span className="hidden text-xs font-medium text-slate-500 group-open:inline">Ocultar</span>
-      </summary>
-      <div className="border-t border-slate-100">{children}</div>
-    </details>
-  );
-}
-
-/**
- * Dos o tres opciones visibles a la vez (en lugar de un desplegable), manejables
- * con teclado: cada opción es un botón con estado `aria-pressed`.
- */
-export function SegmentedControl<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-  testId,
-}: {
-  label: string;
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-  testId?: string;
-}) {
-  return (
-    <div>
-      <p className={labelClass}>{label}</p>
-      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5" role="group" aria-label={label} data-testid={testId}>
-        {options.map((option) => {
-          const active = option.value === value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onChange(option.value)}
-              className={`rounded-[10px] px-3.5 py-2 text-sm font-semibold transition-colors ${
-                active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+/* Movidos a `components/ui` (rediseño 2026-11-10); se re-exportan para no romper importaciones. */
+export { Collapsible, SectionHeader, SegmentedControl } from './ui';
 
 /** Una fila comparable: producto, barra (sólo con cifra publicada), cifra grande y aportantes. */
 export interface BarRow {

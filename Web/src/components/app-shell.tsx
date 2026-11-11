@@ -5,6 +5,7 @@ import { useCampaign } from '../hooks/use-campaign';
 import { useDisclosureMode } from '../lib/data-mode';
 import { COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor } from '../lib/navigation';
 import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
+import { StatusChip } from './ui';
 
 /* ══════════════════════════════════════════
    CONSTANTS
@@ -450,22 +451,8 @@ export function AppShell({ title, section, actions, children }: { title: string;
    NOTICE / TOAST
    ══════════════════════════════════════════ */
 
-export function Notice({ kind, children, compact = false }: { kind: 'ok' | 'error' | 'info' | 'warn'; children: ReactNode; compact?: boolean }) {
-  const configs = {
-    ok: { bg: 'bg-emerald-50/80', text: 'text-emerald-800', border: 'border-emerald-200', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    error: { bg: 'bg-red-50/80', text: 'text-red-800', border: 'border-red-200', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    warn: { bg: 'bg-amber-50/80', text: 'text-amber-800', border: 'border-amber-200', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-    info: { bg: 'bg-sky-50/80', text: 'text-sky-800', border: 'border-sky-200', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  };
-
-  const c = configs[kind];
-  return (
-    <div className={`flex items-start gap-3 rounded-xl border text-sm backdrop-blur-sm ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-3'} ${c.bg} ${c.text} ${c.border}`}>
-      <svg className={`shrink-0 ${compact ? 'h-4 w-4' : 'h-5 w-5'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={c.icon} /></svg>
-      <div className="flex-1">{children}</div>
-    </div>
-  );
-}
+/** Movido a `components/ui` (rediseño 2026-11-10); se re-exporta para no romper importaciones. */
+export { Notice } from './ui';
 
 export function SkeletonRow({ cols = 5 }: { cols?: number }) {
   return <tr>{Array.from({ length: cols }).map((_, i) => <td key={i} className="px-5 py-3.5"><div className="skeleton h-4 w-full rounded-md" /></td>)}</tr>;
@@ -508,46 +495,9 @@ export function CriticalityBadge({ value }: { value: string }) {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${cls}`}>{label}</span>;
 }
 
+/** Unificado en `StatusChip` (components/ui): mismos textos, motivo de divulgación en `title`. */
 export function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    PENDIENTE: { label: 'Pendiente', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
-    PARCIAL: { label: 'Parcial', cls: 'bg-blue-500/10 text-blue-700 ring-blue-500/20' },
-    PAGADA: { label: 'Pagada', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    VENCIDA: { label: 'Vencida', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    PLANIFICADA: { label: 'Planificada', cls: 'bg-sky-500/10 text-sky-700 ring-sky-500/20' },
-    ABIERTA: { label: 'Abierta', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    CERRADA: { label: 'Cerrada', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
-    CANCELADA: { label: 'Cancelada', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    ACTIVA: { label: 'Activa', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    INACTIVA: { label: 'Inactiva', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
-    ACTIVO: { label: 'Activo', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    CAMBIADO: { label: 'Cambiado', cls: 'bg-sky-500/10 text-sky-700 ring-sky-500/20' },
-    FINALIZADO: { label: 'Finalizado', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
-    ENTRADA: { label: 'Entrada', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    SALIDA: { label: 'Salida', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    AJUSTE: { label: 'Ajuste', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
-    REGISTRADA: { label: 'Registrada', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    ANULADA: { label: 'Anulada', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    BORRADOR: { label: 'Borrador', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
-    PROGRAMADA: { label: 'Programada', cls: 'bg-sky-500/10 text-sky-700 ring-sky-500/20' },
-    CONFIRMADA: { label: 'Confirmada', cls: 'bg-blue-500/10 text-blue-700 ring-blue-500/20' },
-    RECIBIDA_PARCIAL: { label: 'Recepción parcial', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
-    RECIBIDA: { label: 'Recibida', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    COMPLETADO: { label: 'Completado', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    CANCELADO: { label: 'Cancelado', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    CREAR: { label: 'Crear', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    ACTUALIZAR: { label: 'Actualizar', cls: 'bg-sky-500/10 text-sky-700 ring-sky-500/20' },
-    INACTIVAR: { label: 'Inactivar', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
-    ELIMINAR: { label: 'Eliminar', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    ABRIR_CAMPANA: { label: 'Abrir campaña', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-    CERRAR_CAMPANA: { label: 'Cerrar campaña', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
-    AJUSTAR_STOCK: { label: 'Ajustar stock', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
-    REGISTRAR_PAGO: { label: 'Registrar pago', cls: 'bg-blue-500/10 text-blue-700 ring-blue-500/20' },
-    SINCRONIZAR: { label: 'Sincronizar', cls: 'bg-violet-500/10 text-violet-700 ring-violet-500/20' },
-    OTRO: { label: 'Otro', cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' },
-  };
-  const { label, cls } = map[status] ?? { label: status, cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' };
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${cls}`}>{label}</span>;
+  return <StatusChip status={status} />;
 }
 
 export function RoleBadge({ role }: { role: string }) {
@@ -586,20 +536,8 @@ export function Modal({ title, children, onClose, size = 'md' }: { title: string
    SHARED STYLE CLASSES
    ══════════════════════════════════════════ */
 
-export const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-all duration-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:shadow-sm disabled:bg-slate-50 disabled:text-slate-500 hover:border-slate-300';
-
-export const labelClass = 'block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 mb-1.5';
-
-export const buttonClass =
-  'inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-700 hover:to-green-700 hover:shadow-md hover:shadow-emerald-600/25 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:shadow-sm active:scale-[0.98]';
-
-export const secondaryButtonClass =
-  'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]';
-
-export const dangerButtonClass =
-  'inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-all duration-200 hover:bg-red-100 hover:border-red-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]';
-
-export const cardClass = 'glass-card p-5';
+/* Clases movidas a `components/ui/classes.ts` con los tokens nuevos; se re-exportan. */
+// eslint-disable-next-line react-refresh/only-export-components -- re-exportación de compatibilidad de constantes
+export { buttonClass, cardClass, dangerButtonClass, inputClass, labelClass, secondaryButtonClass } from './ui';
 
 export { UserAvatar, ROLE_LABELS, ROLE_COLORS, ROLE_BADGE_COLORS };
