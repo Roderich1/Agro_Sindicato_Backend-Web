@@ -1,0 +1,23 @@
+/* Cromo del arnés (sólo desarrollo). La variante «Actual» monta la vista real con su
+   propio armazón dentro del armazón del arnés: se ocultan su barra lateral, su cabecera
+   y su barra inferior para que quede sólo el contenido, comparable con las demás. */
+.proto-nested-shell > div > aside,
+.proto-nested-shell > div > header,
+.proto-nested-shell > div > div > header,
+.proto-nested-shell > div > nav {
+  display: none !important;
+}
+
+.proto-nested-shell > div {
+  min-height: 0 !important;
+  background: transparent !important;
+}
+
+.proto-nested-shell > div > div {
+  padding-left: 0 !important;
+}
+
+.proto-nested-shell main {
+  padding: 0 !important;
+  max-width: none !important;
+}

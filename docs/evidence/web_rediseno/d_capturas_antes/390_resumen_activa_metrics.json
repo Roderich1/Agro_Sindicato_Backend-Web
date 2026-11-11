@@ -1,0 +1,55 @@
+{
+  "scrollHeight": 3049,
+  "vh": 844,
+  "mainChars": 3783,
+  "heads": [
+    "H1 Resumen @77",
+    "H2 Versión sellada @685",
+    "H2 Necesidades declaradas por producto @848",
+    "H3 Litros (L) @1001",
+    "H3 Kilogramos (KG) @1608",
+    "H2 Consumo publicado @2097",
+    "H3 Litros (L) @2211",
+    "H3 Kilogramos (KG) @2480",
+    "H2 Pendiente según los datos @2681"
+  ],
+  "cardsWithBorder": 6,
+  "buttons": [
+    "Actualizar",
+    "Descargar Excel",
+    "Revisar borrador",
+    "Ver cobertura",
+    "Abrir Necesidades y propuestas"
+  ],
+  "chips": 17,
+  "longParagraphs": 9,
+  "firstScreen": [
+    "h1: Resumen",
+    "select: Invierno 2026 (DEMO) · Abierta · ActivaInvierno 2025 (DEMO) · CerradaInvierno 2024 (DEMO) · CerradaInvierno 20",
+    "button: Actualizar",
+    "button: Descargar Excel",
+    "a: Revisar borrador",
+    "p: Cifra más reciente: datos hasta 5 nov de 2026, 3:54 p. m. · cada cifra indica su propia fecha.",
+    "p: Cobertura",
+    "a: Ver cobertura",
+    "p: 13 de 15 agricultores vinculados con cifras publicadas (87%)",
+    "p: Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan. Ausencia de aporte = desconocido, no ",
+    "h2: Versión sellada",
+    "p: Sin sellar",
+    "p: Abierta Las cifras pueden cambiar. Sólo se sella una campaña cerrada."
+  ],
+  "campaigns": [
+    "d6a02d5d-baae-49cc-8a95-7f7f5255406c | Invierno 2026 (DEMO) · Abierta · Activa",
+    "a484c2c8-8e9e-42ef-9f5b-5b4a9dce9c33 | Invierno 2025 (DEMO) · Cerrada",
+    "aaadddab-bcf9-4a0b-b082-223f83432dbe | Invierno 2024 (DEMO) · Cerrada",
+    "fc5ed041-b3da-4c95-ba16-ef641ad69af1 | Invierno 2023 (DEMO) · Cerrada",
+    "a30030cb-e64c-4213-bd2d-fc9342f89e51 | Invierno 2022 (DEMO) · Cerrada",
+    "ddb826ae-8363-4405-ba0a-7b0cdcb19408 | Invierno 2021 (DEMO) · Cerrada",
+    "f1e504fd-1932-420f-b71e-d91d475fd3af | Invierno 2020 (DEMO) · Cerrada",
+    "112cc627-3bfa-4a8a-9c4d-3098f5a3bf7c | Invierno 2019 (DEMO) · Cerrada",
+    "940ccf34-d345-4768-86ce-63daf33576ab | Invierno 2018 (DEMO) · Cerrada",
+    "9a6aedf6-7d38-47f0-a245-96417b94b250 | Invierno 2017 (DEMO) · Cerrada",
+    "3e8c5576-d277-40a6-b7e7-00422ece272b | Invierno 2016 (DEMO) · Cerrada",
+    "8f59e32e-e81b-4da7-930f-d5e9f744585a | Invierno 2015 (DEMO) · Cerrada"
+  ]
+}

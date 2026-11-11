@@ -1,0 +1,2751 @@
+{
+  "when": "2026-11-11T11:51:19.253Z",
+  "url": "http://127.0.0.1:5174/src/dev/resumen-prototipos.html",
+  "plan": "completo",
+  "results": [
+    {
+      "file": "actual_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1363,
+      "chars": 2489,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "42,5 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1920x1080_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1192,
+      "chars": 2489,
+      "barsFirstScreen": 2,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "42,5 L",
+        "Kilogramos (KG)",
+        "350 KG",
+        "Consumo publicado",
+        "Litros (L)",
+        "18 L",
+        "Pendiente según los datos"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_390x844_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 2047,
+      "chars": 2489,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_320x568_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 2417,
+      "chars": 2489,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_zoom200_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1624,
+      "chars": 2489,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_demo_reduced-motion",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1363,
+      "chars": 2489,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "42,5 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_demo_abierto",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1363,
+      "chars": 2489,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "42,5 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 1363,
+      "chars": 2489,
+      "barsFirstScreen": 2,
+      "firstScreen": [
+        "Litros (L)",
+        "42,5 L",
+        "Kilogramos (KG)",
+        "350 KG",
+        "Consumo publicado",
+        "Litros (L)",
+        "18 L",
+        "Pendiente según los datos"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": [
+        {
+          "tag": "a",
+          "text": "Resumen",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Campañas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Necesidades y propuestas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Histórico y estimaciones",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Catálogo y equivalencias",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Bitácora",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrar sesión",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "ActivaCampaña invierno 2026",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Demo",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Peor caso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Muchos productos",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sellada",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrada sin sellar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Política pendiente",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin aportes",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Una cifra",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Estimación en error",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Error de consulta",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin permiso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin campañas",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cargando",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "select",
+          "text": "Campaña invierno 2026 · Abierta · ActivaCampaña ve",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actualizar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Descargar Excel",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Revisar borrador",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Ver cobertura",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Abrir Necesidades y propuestas",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actual",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Panorama",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Acción",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Comparación",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "file": "actual_1366x768_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1987,
+      "chars": 4339,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "0 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 4314,
+      "chars": 6522,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "61,5 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_sellada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1274,
+      "chars": 3415,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_cerrada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1346,
+      "chars": 3590,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Kilogramos (KG)"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_politica",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 1943,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Pendiente según los datos"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_vacia",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1065,
+      "chars": 1836,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Consumo publicado"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_una",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1085,
+      "chars": 2031,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "1 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_estimacion-error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1363,
+      "chars": 2489,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Versión sellada",
+        "Necesidades declaradas por producto",
+        "Litros (L)",
+        "42,5 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 962,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_sinpermiso",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 889,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_sincampanas",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 900,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Pendiente según los datos"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_1366x768_cargando",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 827,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_390x844_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 2974,
+      "chars": 4339,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "actual_390x844_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 5490,
+      "chars": 6522,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1142,
+      "chars": 3390,
+      "barsFirstScreen": 2,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1920x1080_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1118,
+      "chars": 3390,
+      "barsFirstScreen": 3,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG",
+        "Litros (L)1 de 1 con cifra",
+        "18 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_390x844_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 27,
+      "fits": false,
+      "h1": 1,
+      "height": 1946,
+      "chars": 3390,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_320x568_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 32,
+      "fits": false,
+      "h1": 1,
+      "height": 2177,
+      "chars": 3390,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_zoom200_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 16,
+      "fits": false,
+      "h1": 1,
+      "height": 1415,
+      "chars": 3390,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_demo_reduced-motion",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1142,
+      "chars": 3390,
+      "barsFirstScreen": 2,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_demo_abierto",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1801,
+      "chars": 3390,
+      "barsFirstScreen": 2,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 1142,
+      "chars": 3390,
+      "barsFirstScreen": 3,
+      "firstScreen": [
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG",
+        "Litros (L)1 de 1 con cifra",
+        "18 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": [
+        {
+          "tag": "a",
+          "text": "Resumen",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Campañas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Necesidades y propuestas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Histórico y estimaciones",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Catálogo y equivalencias",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Bitácora",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrar sesión",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "ActivaCampaña invierno 2026",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Demo",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Peor caso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Muchos productos",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sellada",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrada sin sellar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Política pendiente",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin aportes",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Una cifra",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Estimación en error",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Error de consulta",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin permiso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin campañas",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cargando",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "select",
+          "text": "Campaña invierno 2026 · Abierta · ActivaCampaña ve",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actualizar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Descargar Excel",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Revisar borrador",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Ver cobertura",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Mayor a menor",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Por nombre",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Consumo publicado (1 producto)VerOcultar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Tabla completa: cifras, aportantes y fechasVerOcul",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Qué significan estas cifrasVerOcultar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Ver cobertura",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actual",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Panorama",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Acción",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Comparación",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "file": "panorama_1366x768_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1391,
+      "chars": 5608,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Requiere atención",
+        "Necesidades declaradas por producto",
+        "Litros (L)3 de 4 con cifra",
+        "Kilogramos (KG)2 de 4 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1908,
+      "chars": 7678,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Requiere atención",
+        "Necesidades declaradas por producto",
+        "Litros (L)15 de 17 con cifra",
+        "Kilogramos (KG)11 de 12 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_sellada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1127,
+      "chars": 3957,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura al sellar (20 may de 2025, 12:30 p. m.)",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Requiere atención",
+        "Necesidades declaradas por producto",
+        "Litros (L)0 de 1 con cifra",
+        "Kilogramos (KG)1 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_cerrada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1351,
+      "chars": 4126,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Requiere atención",
+        "Necesidades declaradas por producto",
+        "Kilogramos (KG)0 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_politica",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 833,
+      "chars": 2266,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Versión"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_vacia",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1074,
+      "chars": 2294,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Necesidades declaradas por producto"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_una",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1056,
+      "chars": 2572,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "1 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_estimacion-error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1142,
+      "chars": 3390,
+      "barsFirstScreen": 2,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 565,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_sinpermiso",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 482,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_sincampanas",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 517,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_1366x768_cargando",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 430,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_390x844_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 53,
+      "fits": false,
+      "h1": 1,
+      "height": 2532,
+      "chars": 5608,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "panorama_390x844_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 137,
+      "fits": false,
+      "h1": 1,
+      "height": 4272,
+      "chars": 7678,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1144,
+      "chars": 3424,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1920x1080_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 1101,
+      "chars": 3424,
+      "barsFirstScreen": 3,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG",
+        "Litros (L)1 de 1 con cifra",
+        "18 L",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_390x844_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 27,
+      "fits": false,
+      "h1": 1,
+      "height": 2032,
+      "chars": 3424,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_320x568_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 32,
+      "fits": false,
+      "h1": 1,
+      "height": 2307,
+      "chars": 3424,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_zoom200_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 16,
+      "fits": false,
+      "h1": 1,
+      "height": 1495,
+      "chars": 3424,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_demo_reduced-motion",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1144,
+      "chars": 3424,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_demo_abierto",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1933,
+      "chars": 3424,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 1144,
+      "chars": 3424,
+      "barsFirstScreen": 3,
+      "firstScreen": [
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG",
+        "Litros (L)1 de 1 con cifra",
+        "18 L",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": [
+        {
+          "tag": "a",
+          "text": "Resumen",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Campañas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Necesidades y propuestas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Histórico y estimaciones",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Catálogo y equivalencias",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Bitácora",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrar sesión",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "ActivaCampaña invierno 2026",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Demo",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Peor caso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Muchos productos",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sellada",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrada sin sellar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Política pendiente",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin aportes",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Una cifra",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Estimación en error",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Error de consulta",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin permiso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin campañas",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cargando",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "select",
+          "text": "Campaña invierno 2026 · Abierta · ActivaCampaña ve",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actualizar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Descargar Excel",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Ver cobertura",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Mayor a menor",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Por nombre",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Consumo publicadoVerOcultar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Tabla completa: cifras, aportantes y fechasVerOcul",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Qué significan estas cifrasVerOcultar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Revisar borrador",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Ver cobertura",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actual",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Panorama",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Acción",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Comparación",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "file": "accion_1366x768_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1476,
+      "chars": 5641,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Revisar el borrador de propuesta",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 2108,
+      "chars": 7711,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Revisar el borrador de propuesta",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_sellada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1200,
+      "chars": 4004,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura al sellar (20 may de 2025, 12:30 p. m.)",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Revisar el borrador de propuesta",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_cerrada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1319,
+      "chars": 4206,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Necesidades declaradas por producto",
+        "Kilogramos (KG)0 de 1 con cifra",
+        "Revisar y sellar la versión colectiva",
+        "Requiere atención",
+        "Sellado de la versión colectiva"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_politica",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 905,
+      "chars": 2393,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Versión",
+        "Esperar aportes"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_vacia",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1056,
+      "chars": 2337,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Necesidades declaradas por producto",
+        "Esperar aportes"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_una",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 989,
+      "chars": 2619,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "1 L",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_estimacion-error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1144,
+      "chars": 3424,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Cifra más reciente: datos hasta",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Revisar el borrador de propuesta"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 547,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_sinpermiso",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 464,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_sincampanas",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 905,
+      "chars": 641,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Abrir una campaña",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_1366x768_cargando",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 412,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_390x844_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 53,
+      "fits": false,
+      "h1": 1,
+      "height": 2638,
+      "chars": 5641,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Revisar el borrador de propuesta",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "accion_390x844_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 137,
+      "fits": false,
+      "h1": 1,
+      "height": 4051,
+      "chars": 7711,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Revisar el borrador de propuesta",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1459,
+      "chars": 4025,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas y estimación del consumo",
+        "Litros (L)1 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1920x1080_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1419,
+      "chars": 4025,
+      "barsFirstScreen": 2,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas y estimación del consumo",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_390x844_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 27,
+      "fits": false,
+      "h1": 1,
+      "height": 2262,
+      "chars": 4025,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_320x568_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 32,
+      "fits": false,
+      "h1": 1,
+      "height": 2508,
+      "chars": 4025,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_zoom200_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 16,
+      "fits": false,
+      "h1": 1,
+      "height": 1714,
+      "chars": 4025,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_demo_reduced-motion",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1459,
+      "chars": 4025,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas y estimación del consumo",
+        "Litros (L)1 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_demo_abierto",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 2118,
+      "chars": 4025,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas y estimación del consumo",
+        "Litros (L)1 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_demo",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 1459,
+      "chars": 4025,
+      "barsFirstScreen": 3,
+      "firstScreen": [
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra",
+        "350 KG",
+        "Litros (L)1 de 1 con cifra",
+        "18 L"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": [
+        {
+          "tag": "a",
+          "text": "Resumen",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Campañas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Necesidades y propuestas",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Histórico y estimaciones",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Catálogo y equivalencias",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Bitácora",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrar sesión",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "ActivaCampaña invierno 2026",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Demo",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Peor caso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Muchos productos",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sellada",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cerrada sin sellar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Política pendiente",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin aportes",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Una cifra",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Estimación en error",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Error de consulta",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin permiso",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Sin campañas",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Cargando",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "select",
+          "text": "Campaña invierno 2026 · Abierta · ActivaCampaña ve",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actualizar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Descargar Excel",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Revisar borrador",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Ver cobertura",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Mayor a menor",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Por nombre",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Histórico y estimaciones",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Consumo publicadoVerOcultar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Tabla completa: cifras, aportantes y fechasVerOcul",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "summary",
+          "text": "Qué significan estas cifrasVerOcultar",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "a",
+          "text": "Ver cobertura",
+          "inMain": true,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Actual",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Panorama",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Acción",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        },
+        {
+          "tag": "button",
+          "text": "Comparación",
+          "inMain": false,
+          "outline": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "file": "comparacion_1366x768_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1903,
+      "chars": 6747,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas y estimación del consumo",
+        "Litros (L)3 de 4 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 2802,
+      "chars": 9997,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas y estimación del consumo",
+        "Litros (L)15 de 17 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_sellada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1252,
+      "chars": 3952,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura al sellar (20 may de 2025, 12:30 p. m.)",
+        "Necesidades declaradas",
+        "Versión",
+        "Necesidades declaradas por producto",
+        "Litros (L)0 de 1 con cifra",
+        "Kilogramos (KG)1 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_cerrada",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1460,
+      "chars": 4225,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Necesidades declaradas por producto",
+        "Kilogramos (KG)0 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_politica",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 867,
+      "chars": 2379,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Estimación del consumo",
+        "Versión"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_vacia",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1143,
+      "chars": 2393,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Versión",
+        "Necesidades declaradas por producto"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_una",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1269,
+      "chars": 3055,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas y estimación del consumo",
+        "Litros (L)1 de 1 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_estimacion-error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": false,
+      "h1": 1,
+      "height": 1320,
+      "chars": 3506,
+      "barsFirstScreen": 1,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo",
+        "Versión",
+        "Necesidades declaradas por producto",
+        "Litros (L)1 de 1 con cifra",
+        "42,5 L",
+        "Kilogramos (KG)1 de 2 con cifra"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_error",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 568,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_sinpermiso",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 485,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_sincampanas",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 520,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Requiere atención"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_1366x768_cargando",
+      "horizontalOverflow": false,
+      "overflowingElements": 0,
+      "fits": true,
+      "h1": 1,
+      "height": 768,
+      "chars": 433,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_390x844_worst",
+      "horizontalOverflow": false,
+      "overflowingElements": 53,
+      "fits": false,
+      "h1": 1,
+      "height": 3032,
+      "chars": 6747,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    },
+    {
+      "file": "comparacion_390x844_muchos",
+      "horizontalOverflow": false,
+      "overflowingElements": 137,
+      "fits": false,
+      "h1": 1,
+      "height": 5081,
+      "chars": 9997,
+      "barsFirstScreen": 0,
+      "firstScreen": [
+        "Resumen",
+        "Cobertura",
+        "Necesidades declaradas",
+        "Estimación del consumo"
+      ],
+      "consoleErrors": [],
+      "api": [],
+      "focus": null
+    }
+  ]
+}
