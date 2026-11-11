@@ -422,7 +422,7 @@ function Header({
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {disclosureMode === 'PROVISIONAL_SYNTHETIC' && (
             <span
               className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-inset ring-amber-600/30"
@@ -435,14 +435,17 @@ function Header({
           <Link
             to={CAMPAIGNS_PATH}
             title="Campaña activa del sindicato"
-            className="hidden max-w-[22rem] items-center gap-1.5 rounded-control px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 sm:inline-flex"
+            className="hidden min-w-0 max-w-[min(22rem,100%)] items-center gap-1.5 rounded-control px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700 sm:inline-flex"
           >
             {isLoading ? (
               'Campaña…'
             ) : activeCampaign ? (
               <>
-                <span className="font-semibold text-brand-800">Activa</span>
-                <span className="break-words font-medium text-ink">{activeCampaign.name}</span>
+                <span className="shrink-0 font-semibold text-brand-800">Activa</span>
+                {/* Una línea: con zoom o nombre largo se recorta y el nombre completo queda en `title`. */}
+                <span className="min-w-0 truncate font-medium text-ink" title={activeCampaign.name} data-testid="active-campaign-name">
+                  {activeCampaign.name}
+                </span>
               </>
             ) : (
               <span className="font-semibold text-amber-900">Sin campaña activa</span>

@@ -72,6 +72,14 @@ describe('AppShell: cabecera', () => {
     expect(screen.getByTitle('Campaña activa del sindicato').textContent).toMatch(/Activa.*Campaña sintética/);
   });
 
+  it('la campaña activa no desborda la cabecera: una línea recortada con el nombre completo en title', () => {
+    renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+    const name = screen.getByTestId('active-campaign-name');
+    expect(name.getAttribute('title')).toBe('Campaña sintética');
+    expect(name.className).toMatch(/truncate/);
+    expect(name.className).toMatch(/min-w-0/);
+  });
+
   it('la conexión se dice con texto', () => {
     renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
     expect(screen.getByTestId('connection').textContent).toMatch(/En línea|Sin conexión/);
