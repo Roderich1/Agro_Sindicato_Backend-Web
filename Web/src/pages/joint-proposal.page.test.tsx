@@ -9,7 +9,19 @@ import { CAMPAIGN, renderAt } from '../test/render';
 import { JointProposalPage } from './joint-proposal.page';
 
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { proposals: vi.fn(), generateProposal: vi.fn(), proposal: vi.fn(), proposalCsv: vi.fn(), proposalEstimationReference: vi.fn(() => new Promise(() => undefined)) },
+  collectiveService: {
+    proposals: vi.fn(),
+    generateProposal: vi.fn(),
+    proposal: vi.fn(),
+    proposalCsv: vi.fn(),
+    proposalEstimationReference: vi.fn(() => new Promise(() => undefined)),
+    // E3: la referencia fijada y la selección se leen aparte; aquí no responden (no ocultan el borrador).
+    estimationLink: vi.fn(() => new Promise(() => undefined)),
+    proposalSelection: vi.fn(() => new Promise(() => undefined)),
+    prepareEstimationLink: vi.fn(),
+    clearEstimationLink: vi.fn(),
+    saveProposalSelection: vi.fn(),
+  },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
 

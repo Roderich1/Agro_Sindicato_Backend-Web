@@ -1,25 +1,53 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { demo, empty, one, worst, type ProposalFixture } from '../dev/fixtures/proposal-fixtures';
-import { compareNeedWithEstimate } from '../lib/estimation-compare';
+import {
+  BLOCKER_MESSAGE,
+  comparableWith,
+  demo,
+  empty,
+  linkViewFor,
+  one,
+  worst,
+  type ProposalFixture,
+} from '../dev/fixtures/proposal-fixtures';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
 import { CAMPAIGN, renderAt } from '../test/render';
+import type { EstimationLinkView } from '../types/estimation-link';
 import { JointProposalPage } from './joint-proposal.page';
 
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { proposals: vi.fn(), generateProposal: vi.fn(), proposal: vi.fn(), proposalCsv: vi.fn(), proposalEstimationReference: vi.fn() },
+  collectiveService: {
+    proposals: vi.fn(),
+    generateProposal: vi.fn(),
+    proposal: vi.fn(),
+    proposalCsv: vi.fn(),
+    proposalEstimationReference: vi.fn(),
+    estimationLink: vi.fn(),
+    prepareEstimationLink: vi.fn(),
+    clearEstimationLink: vi.fn(),
+    proposalSelection: vi.fn(),
+    saveProposalSelection: vi.fn(),
+  },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
+vi.mock('../services/estimation.service', () => ({ estimationService: { run: vi.fn() } }));
 
-/** Rediseño, sesión C (2026-11-10): fixtures sintéticos demo, worst, empty y one. */
+/** Rediseño, sesión C (2026-11-10): fixtures sintéticos demo, worst, empty y one. E3: la referencia fijada. */
 const PATH = `/colectivo/propuestas?campaign=${CAMPAIGN.id}`;
 const OTHER = { ...CAMPAIGN, id: '22222222-2222-4222-8222-222222222222', name: 'Otra campaña sintética', isActive: false };
 
-function serve(fixture: ProposalFixture) {
+function serve(fixture: ProposalFixture, link: EstimationLinkView | null = fixture.link) {
   vi.mocked(collectiveService.proposals).mockResolvedValue(fixture.history);
   vi.mocked(collectiveService.proposal).mockImplementation(async () => fixture.proposal!);
-  vi.mocked(collectiveService.proposalEstimationReference).mockImplementation(async () => fixture.reference!);
+  vi.mocked(collectiveService.estimationLink).mockImplementation(async () => link!);
+  vi.mocked(collectiveService.proposalSelection).mockImplementation(async () => fixture.selection!);
+}
+
+/** La vista del fixture con algunas líneas declaradas comparables por el servidor. */
+function withComparable(fixture: ProposalFixture, comparisons: Record<number, ReturnType<typeof comparableWith>>): EstimationLinkView {
+  const view = fixture.link!;
+  return { ...view, lines: view.lines.map((line) => (comparisons[line.position] ? { ...line, comparison: comparisons[line.position]! } : line)) };
 }
 
 const row = (name: string, unit: 'ML' | 'G' = 'ML') => screen.getByTestId(`line-${name}-${unit}`);
@@ -30,6 +58,9 @@ describe('Necesidades y propuestas (rediseño)', () => {
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN, OTHER]);
     vi.mocked(collectiveService.generateProposal).mockReset();
     vi.mocked(collectiveService.proposalCsv).mockReset();
+    vi.mocked(collectiveService.prepareEstimationLink).mockReset();
+    vi.mocked(collectiveService.clearEstimationLink).mockReset();
+    vi.mocked(collectiveService.saveProposalSelection).mockReset();
   });
 
   it('al entrar, al cambiar de campaña y al volver no hace ningún POST: sólo consulta', async () => {
@@ -40,23 +71,38 @@ describe('Necesidades y propuestas (rediseño)', () => {
     await waitFor(() => expect(collectiveService.proposals).toHaveBeenCalledWith(OTHER.id));
     fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: CAMPAIGN.id } });
     await screen.findByText(`Borrador · ${demo.proposal!.campaign.name}`);
+    await screen.findByText('295 L');
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
     expect(collectiveService.proposalCsv).not.toHaveBeenCalled();
+    // E3-D2: ni obtener, ni quitar, ni guardar la selección sin un botón.
+    expect(collectiveService.prepareEstimationLink).not.toHaveBeenCalled();
+    expect(collectiveService.clearEstimationLink).not.toHaveBeenCalled();
+    expect(collectiveService.saveProposalSelection).not.toHaveBeenCalled();
   });
 
-  it('rótulo del contrato y diferencia sólo en la línea comparable, en la misma unidad y sin porcentaje', async () => {
+  it('rótulo E3 y, con los datos de hoy, sin diferencia: el motivo del servidor una sola vez, sin porcentaje', async () => {
     serve(demo);
     renderAt(<JointProposalPage />, { path: PATH });
     await screen.findByText('295 L');
-    expect(screen.getByTestId('reference-header').textContent).toBe('Estimación del consumo (referencia)');
+    // E3 §8: Producto · Necesidad declarada · Consumo estimado (antes «Estimación del consumo (referencia)», F12 §7.1).
+    expect(screen.getByTestId('reference-header').textContent).toBe('Consumo estimado');
+    expect([...screen.getByRole('table', { name: 'Líneas del borrador' }).querySelectorAll('thead th')].map((th) => th.textContent)).toEqual([
+      'Producto',
+      'Necesidad declarada',
+      'Consumo estimado',
+    ]);
     // El detalle abre el contenedor «Histórico y estimaciones» en la vista de la estimación, con la misma campaña.
     expect(screen.getByRole('link', { name: 'Detalle en «Estimación del consumo»' }).getAttribute('href')).toBe(
       `/colectivo/historico?vista=estimacion&campaign=${demo.proposal!.campaign.campaign_ref}`,
     );
-    expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toMatch(
-      /^La estimación es 15 L menor que la necesidad declarada\./,
-    );
-    expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/2,5005 KG mayor/);
+    // Antes la Web restaba en el navegador («15 L menor», «2,5005 KG mayor»): ahora el servidor dice que no es comparable.
+    expect(within(reference('Glifosato')).queryByTestId('reference-difference')).toBeNull();
+    expect(within(reference('Urea', 'G')).queryByTestId('reference-difference')).toBeNull();
+    expect(document.body.textContent).not.toMatch(/15 L|2,5005 KG/);
+    // El motivo (población no comprobada) se dice una vez, no en cada fila.
+    expect(screen.getByTestId('comparison-note').textContent).toBe(BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED);
+    expect(screen.queryAllByTestId('comparison-message')).toHaveLength(0);
+    expect(document.body.textContent!.split('cubran a las mismas personas').length - 1).toBe(1);
     // Datos insuficientes y necesidad oculta: no se compara.
     expect(within(reference('Cipermetrina')).queryByTestId('reference-difference')).toBeNull();
     expect(within(reference('Amina')).queryByTestId('reference-difference')).toBeNull();
@@ -64,6 +110,32 @@ describe('Necesidades y propuestas (rediseño)', () => {
     expect(within(row('Glifosato')).getByTestId('need').textContent).toMatch(/310 L/);
     expect(document.body.textContent).not.toMatch(/605|%/);
     expect(screen.getByTestId('lines-summary').textContent).toMatch(/4 productos en el borrador: 3 con cifra publicada y 1 sin cifra/);
+    // Los aportantes siguen a la vista, dentro de la necesidad.
+    expect(within(row('Glifosato')).getByTestId('contributors').textContent).toBe('7 aportantes');
+    expect(within(row('Amina')).getByTestId('contributors').textContent).toBe('Aportantes no revelados');
+  });
+
+  it('cuando el servidor declara comparable una línea, escribe su texto tal cual en esa línea y en ninguna otra', async () => {
+    serve(
+      demo,
+      withComparable(demo, {
+        0: comparableWith({ difference_base: '15000.000000', difference_percent: '5.0847', direction: 'ABOVE', observation: 'La necesidad declarada supera en 15 L la estimación de consumo para el mismo período y alcance.' }),
+        2: comparableWith({ difference_base: '-2500.500000', difference_percent: '-9.0900', direction: 'BELOW', observation: 'La necesidad declarada es inferior en 2,501 KG a la estimación de consumo para el mismo período y alcance.' }),
+      }),
+    );
+    renderAt(<JointProposalPage />, { path: PATH });
+    await screen.findByText('295 L');
+    expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toMatch(
+      /^La necesidad declarada supera en 15 L la estimación de consumo para el mismo período y alcance\. Sólo informativo/,
+    );
+    // El texto es el del servidor, redondeado allí (no la resta exacta del navegador, 2,5005 KG).
+    expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/es inferior en 2,501 KG a la estimación/);
+    expect(document.body.textContent).not.toMatch(/2,5005/);
+    // Sin porcentaje ni sumas aunque el servidor lo entregue.
+    expect(document.body.textContent).not.toMatch(/5,0847|5\.0847|%|605/);
+    expect(within(reference('Cipermetrina')).queryByTestId('reference-difference')).toBeNull();
+    // Ninguna línea comparable queda pendiente: no se repite el motivo de población.
+    expect(screen.queryByTestId('comparison-note')).toBeNull();
   });
 
   it('peor caso: nombres largos, cifras grandes y pequeñas, retiradas, sustituidas y referencias no comparables', async () => {
@@ -71,11 +143,13 @@ describe('Necesidades y propuestas (rediseño)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     const long = 'Herbicida sistémico de amplio espectro para barbecho químico 480 g/L';
     await waitFor(() => expect(within(row(long)).getByTestId('need').textContent).toMatch(/123\.456\.789,012 L/));
-    // 123456800000,25 mL − 123456789012 mL = 10988,25 mL, exacto (más allá de 2^53 no se pierde nada).
-    await waitFor(() => expect(within(reference(long)).getByTestId('reference-difference').textContent).toMatch(/10,98825 L mayor/));
+    // La cifra grande de la estimación se presenta exacta, sin restarla a la necesidad.
+    await waitFor(() => expect(reference(long).textContent).toMatch(/123\.456\.800,00025 L/));
+    expect(within(reference(long)).queryByTestId('reference-difference')).toBeNull();
     expect(within(row('Urea', 'G')).getByTestId('need').textContent).toMatch(/0,025 KG/);
-    // No vigente, sin resultado, datos insuficientes, necesidad oculta, política pendiente, retirada y referencia cero: sin diferencia.
+    // No vigente, sin resultado, datos insuficientes, necesidad oculta, error, retirada y referencia cero: sin diferencia.
     for (const [name, unit] of [
+      [long, 'ML'],
       ['Urea', 'G'],
       ['Fungicida protectante a base de mancozeb 80 % WP (polvo mojable)', 'G'],
       ['Insecticida piretroide Cipermetrina 25 % EC', 'ML'],
@@ -87,11 +161,23 @@ describe('Necesidades y propuestas (rediseño)', () => {
       expect(within(reference(name, unit)).queryByTestId('reference-difference')).toBeNull();
       expect(reference(name, unit).textContent).not.toMatch(/%/);
     }
-    expect(reference('Glifosato').textContent).toMatch(/Cifra retirada/);
+    expect(reference('Urea', 'G').textContent).toMatch(/Desactualizada/);
+    expect(reference('Urea', 'G').textContent).toMatch(/0,030123456 KG/);
+    expect(reference('Glifosato').textContent).toMatch(/Restringida/);
+    expect(reference('Glifosato').textContent).toMatch(/ya no se divulga/);
     expect(reference('Glifosato').textContent).not.toMatch(/\d[\d.,]* L\b/);
-    expect(reference('Coadyuvante siliconado no iónico').textContent).toMatch(/política de divulgación no está aprobada/);
+    // Antes: «política de divulgación no está aprobada» (F12-EST-08 por línea). En E3 la política pendiente
+    // restringe toda la referencia; dentro de una referencia fijada, esta línea es un error de cálculo.
+    expect(reference('Coadyuvante siliconado no iónico').textContent).toMatch(/Error: sin cifra/);
+    expect(reference('Coadyuvante siliconado no iónico').textContent).toMatch(/El cálculo de este producto falló/);
+    expect(reference('GLIFÓSATO').textContent).toMatch(/0 L/);
     expect(row('Fungicida protectante a base de mancozeb 80 % WP (polvo mojable)', 'G').textContent).toMatch(/Genere un borrador nuevo/);
     expect(row('Insecticida piretroide Cipermetrina 25 % EC').textContent).toMatch(/Sustituido/);
+    // Dos líneas con las dos cifras (la grande y la de estimación cero) comparten el motivo: una sola vez.
+    expect(screen.getByTestId('comparison-note').textContent).toBe(BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED);
+    // La franja ofrece la actualización explícita, con su motivo.
+    expect(screen.getByTestId('link-detail').textContent).toMatch(/Alguna línea quedó desactualizada/);
+    expect(screen.getByRole('button', { name: 'Actualizar referencia' })).toBeTruthy();
     // Huella oculta en el borrador mostrado y en el historial; plurales correctos.
     expect(screen.getAllByText('huella oculta').length).toBeGreaterThanOrEqual(2);
     const history = screen.getByLabelText('Historial de borradores');
@@ -99,6 +185,7 @@ describe('Necesidades y propuestas (rediseño)', () => {
     expect(history.textContent).toMatch(/1 línea(?!s)/);
     expect(history.textContent).toMatch(/sin líneas/);
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
+    expect(collectiveService.prepareEstimationLink).not.toHaveBeenCalled();
   });
 
   it('sin borradores: lo dice sin cifras y no genera ninguno', async () => {
@@ -108,14 +195,16 @@ describe('Necesidades y propuestas (rediseño)', () => {
     expect(screen.queryByLabelText('Detalle del borrador')).toBeNull();
     expect(collectiveService.proposal).not.toHaveBeenCalled();
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
+    expect(collectiveService.estimationLink).not.toHaveBeenCalled();
   });
 
-  it('un solo borrador con una sola línea: singulares y «coincide»', async () => {
-    serve(one);
+  it('un solo borrador con una sola línea: singulares y «coincide» cuando el servidor la declara comparable', async () => {
+    serve(one, withComparable(one, { 0: comparableWith({ direction: 'EQUAL', observation: 'La necesidad declarada coincide con la estimación de consumo para el mismo período y alcance.' }) }));
     renderAt(<JointProposalPage />, { path: PATH });
-    await waitFor(() => expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/coincide con la necesidad declarada/));
+    await waitFor(() => expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/coincide con la estimación de consumo/));
     expect(screen.getByTestId('lines-summary').textContent).toMatch(/^1 producto en el borrador: 1 con cifra publicada\./);
     expect(screen.getByLabelText('Historial de borradores').textContent).toMatch(/\(1 borrador\)/);
+    expect(screen.getByRole('button', { name: 'Preparar convocatoria (0 productos)' })).toBeTruthy();
   });
 
   it('un 403 al cargar el historial es «sin permiso», sin cifras', async () => {
@@ -131,26 +220,55 @@ describe('Necesidades y propuestas (rediseño)', () => {
   });
 });
 
-describe('compareNeedWithEstimate', () => {
-  const need = demo.proposal!.lines[0]!;
-  const ref = demo.reference!.lines[0]!;
-  const withEstimate = (estimate: string | null, overrides = {}) => ({ ...ref, estimation: { ...ref.estimation!, estimate_base: estimate, ...overrides } });
-
-  it('sólo con estimación vigente, mayor que cero y necesidad publicada', () => {
-    expect(compareNeedWithEstimate(need, ref)).toEqual({ kind: 'smaller', difference: '15 L' });
-    expect(compareNeedWithEstimate(need, withEstimate('0.000000'))).toBeNull();
-    expect(compareNeedWithEstimate(need, withEstimate(null))).toBeNull();
-    expect(compareNeedWithEstimate(need, withEstimate('295000.000000', { validity: 'OUTDATED', validity_reason: 'SOURCES_CHANGED' }))).toBeNull();
-    expect(compareNeedWithEstimate(need, withEstimate('295000.000000', { status: 'INSUFFICIENT_DATA' }))).toBeNull();
-    expect(compareNeedWithEstimate({ ...need, status: 'SUPPRESSED_UNDER_THRESHOLD', quantity_base: null }, ref)).toBeNull();
-    expect(compareNeedWithEstimate(need, { ...ref, base_unit: 'G', presentation_unit: 'KG' })).toBeNull();
-    expect(compareNeedWithEstimate(need, { ...ref, absence: 'NO_RESULT' })).toBeNull();
-    expect(compareNeedWithEstimate(need, null)).toBeNull();
+/**
+ * Antes: pruebas de `compareNeedWithEstimate` (lib/estimation-compare, borrada en E3). La resta exacta,
+ * la estimación cero y la cifra ausente las prueba ahora el servidor (Back `proposal-link.spec`); aquí se
+ * comprueba que la Web no compara por su cuenta en ninguno de esos casos.
+ */
+describe('La comparación es la del servidor', () => {
+  it('sin `comparable`, ninguna diferencia, aunque las cifras se pudieran restar (vigente > 0, cero, ausente, desactualizada, otra unidad)', async () => {
+    const proposal = demo.proposal!;
+    const view = linkViewFor(proposal, [
+      { state: 'AVAILABLE', status: 'ESTIMATED', estimate_base: '295000.000000', validity: 'CURRENT', comparison: { comparable: false, blockers: ['UNIT_MISMATCH'], message: BLOCKER_MESSAGE.UNIT_MISMATCH, difference: null } },
+      { state: 'OUTDATED', status: 'ESTIMATED', estimate_base: '48000.000000', validity: 'SUPERSEDED', validity_reason: 'LATER_RUN' },
+      { state: 'AVAILABLE', status: 'ESTIMATED', estimate_base: '0.000000', validity: 'CURRENT' },
+      { state: 'AVAILABLE', status: 'ESTIMATED', estimate_base: '12000.000000', validity: 'CURRENT' },
+    ]);
+    serve(demo, view);
+    renderAt(<JointProposalPage />, { path: PATH });
+    await screen.findByText('295 L');
+    expect(screen.queryAllByTestId('reference-difference')).toHaveLength(0);
+    // Mensajes distintos entre las líneas que tienen las dos cifras: cada una lleva el suyo.
+    expect(screen.queryByTestId('comparison-note')).toBeNull();
+    expect(within(reference('Glifosato')).getByTestId('comparison-message').textContent).toBe(BLOCKER_MESSAGE.UNIT_MISMATCH);
+    expect(within(reference('Urea', 'G')).getByTestId('comparison-message').textContent).toBe(BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED);
+    // La desactualizada lleva su cifra rotulada, sin diferencia ni mensaje de comparación.
+    expect(reference('Cipermetrina').textContent).toMatch(/48 L/);
+    expect(reference('Cipermetrina').textContent).toMatch(/Desactualizada/);
+    expect(within(reference('Cipermetrina')).queryByTestId('comparison-message')).toBeNull();
+    // Necesidad oculta: sin mensaje de comparación (la celda ya lo explica).
+    expect(within(reference('Amina')).queryByTestId('comparison-message')).toBeNull();
+    expect(document.body.textContent).not.toMatch(/mayor que la necesidad|menor que la necesidad|%/);
   });
 
-  it('exacta con cifras grandes y decimales, sin Number', () => {
-    const big = { ...need, quantity_base: '9007199254740993', quantity_presentation: '9007199254740.993' };
-    expect(compareNeedWithEstimate(big, withEstimate('9007199254740993.000001'))).toEqual({ kind: 'greater', difference: '0,000000001 L' });
-    expect(compareNeedWithEstimate(big, withEstimate('9007199254740993'))).toEqual({ kind: 'equal' });
+  it('estimación cero comparable: el texto del servidor, sin porcentaje (no definido)', async () => {
+    const proposal = demo.proposal!;
+    serve(
+      demo,
+      linkViewFor(proposal, [
+        {
+          state: 'AVAILABLE',
+          status: 'ESTIMATED',
+          estimate_base: '0.000000',
+          validity: 'CURRENT',
+          comparison: comparableWith({ difference_base: '310000.000000', difference_percent: null, percent_undefined: 'ESTIMATE_ZERO', direction: 'ABOVE', observation: 'La necesidad declarada supera en 310 L la estimación de consumo para el mismo período y alcance.' }),
+        },
+      ]),
+    );
+    renderAt(<JointProposalPage />, { path: PATH });
+    const difference = await waitFor(() => within(reference('Glifosato')).getByTestId('reference-difference'));
+    expect(difference.textContent).toMatch(/supera en 310 L la estimación/);
+    expect(reference('Glifosato').textContent).toMatch(/0 L/);
+    expect(document.body.textContent).not.toMatch(/%|Infinity|NaN|recomendad|excesiv/i);
   });
 });

@@ -6,14 +6,28 @@
  */
 import type { Proposal, ProposalLine, ProposalSummary } from '../../types/collective';
 import type { ProposalEstimationReference, ReferenceEstimation, ReferenceLine } from '../../types/estimation';
+import type {
+  ComparisonBlocker,
+  EstimationLink,
+  EstimationLinkLine,
+  EstimationLinkRun,
+  EstimationLinkView,
+  LinkComparison,
+  LinkDifference,
+  ProposalSelection,
+} from '../../types/estimation-link';
 
 export interface ProposalFixture {
   /** `GET /collective/campaigns/:id/proposals`, de la más reciente a la más antigua. */
   history: ProposalSummary[];
   /** El último borrador (el que la vista abre por consulta), o `null` si no hay ninguno. */
   proposal: Proposal | null;
-  /** `GET /collective/proposals/:id/estimation-reference` del borrador anterior. */
+  /** `GET /collective/proposals/:id/estimation-reference` del borrador anterior (F12-EST-08; lo usa la exportación). */
   reference: ProposalEstimationReference | null;
+  /** E3: `GET /collective/proposals/:id/estimation-link` del borrador anterior (la referencia fijada). */
+  link: EstimationLinkView | null;
+  /** E3: `GET /collective/proposals/:id/selection` del borrador anterior. */
+  selection: ProposalSelection | null;
 }
 
 export const PROPOSAL_CAMPAIGN_REF = '0c0c0c0c-0000-4000-8000-000000000001';
@@ -104,6 +118,149 @@ function referenceFor(proposal: Proposal, perLine: Pick<ReferenceLine, 'absence'
   };
 }
 
+/* ── E3: referencia fijada en el borrador ─────────────────────────────── */
+
+/** Mensajes del servidor (Back `domain/proposal-link.ts`, BLOCKER_MESSAGE). */
+export const BLOCKER_MESSAGE: Record<ComparisonBlocker, string> = {
+  NEED_NOT_DISCLOSED: 'No se calcula la diferencia: la necesidad declarada no tiene una cifra divulgada.',
+  ESTIMATE_NOT_AVAILABLE: 'No se calcula la diferencia: no hay una estimación con cifra.',
+  ESTIMATE_NOT_CURRENT: 'No se calcula la diferencia: la estimación no está vigente.',
+  PRODUCT_MISMATCH: 'No se calcula la diferencia: no es el mismo producto.',
+  UNIT_MISMATCH: 'No se calcula la diferencia: no es la misma unidad.',
+  PERIOD_MISMATCH: 'No se calcula la diferencia: la estimación no es para la campaña del borrador.',
+  POPULATION_NOT_VERIFIED:
+    'No se calcula la diferencia: no hay datos para comprobar que la necesidad y la estimación cubran a las mismas personas.',
+};
+
+export const LINK_RUN_REF = 'run-0000-4000-8000-000000000002';
+
+export function linkRunFor(proposal: Proposal, overrides: Partial<EstimationLinkRun> = {}): EstimationLinkRun {
+  return {
+    run_ref: LINK_RUN_REF,
+    job_ref: 'job-0000-4000-8000-000000000002',
+    generated_at: '2026-10-15T10:00:00.000Z',
+    outcome: 'CALCULATED',
+    failure_code: null,
+    method: 'SES_NAIVE',
+    method_version: '1.0.0',
+    season: { season_ref: 'season-1', key: 'INVIERNO', definition: 'Siembra de invierno (sintética)', duration_days: 180 },
+    target: {
+      campaign_ref: proposal.campaign.campaign_ref,
+      name: proposal.campaign.name,
+      status: 'ABIERTA',
+      start_date: '2026-05-01T00:00:00.000Z',
+      end_date: '2026-10-31T00:00:00.000Z',
+    },
+    disclosure: { mode: 'PROVISIONAL_SYNTHETIC', policy: 'F07-POL-01', threshold: 3 },
+    ...overrides,
+  };
+}
+
+export function linkOf(overrides: Partial<EstimationLink> = {}): EstimationLink {
+  return {
+    link_ref: 'link-000-4000-8000-000000000001',
+    sequence: 1,
+    mode: 'INITIAL',
+    action: 'LINK_EXISTING_RUN',
+    created_at: '2026-10-16T12:05:00.000Z',
+    created_by: { user_ref: 'u-dir', name: 'Directiva sintética', role: 'DIRECTIVA' },
+    run_ref: LINK_RUN_REF,
+    job_ref: null,
+    job_status: null,
+    stop_code: null,
+    failure_code: null,
+    ...overrides,
+  };
+}
+
+/** Lo que una línea trae de la estimación; la comparación se deriva como en el servidor si no se da. */
+export type LinkLineSpec = Partial<EstimationLinkLine['estimation']> & { comparison?: LinkComparison };
+
+/**
+ * Comparación como la decide hoy el servidor (§5): sin metadatos de población,
+ * nunca comparable. El primer blocker da el mensaje.
+ */
+export function serverComparison(need: EstimationLinkLine['need'], estimation: EstimationLinkLine['estimation']): LinkComparison {
+  const blockers: ComparisonBlocker[] = [];
+  if (need.status !== 'DISCLOSED' || need.quantity_base === null) blockers.push('NEED_NOT_DISCLOSED');
+  const figure = (estimation.state === 'AVAILABLE' || estimation.state === 'OUTDATED') && estimation.estimate_base !== null;
+  if (!figure) blockers.push('ESTIMATE_NOT_AVAILABLE');
+  if (figure && estimation.state !== 'AVAILABLE') blockers.push('ESTIMATE_NOT_CURRENT');
+  blockers.push('POPULATION_NOT_VERIFIED');
+  return { comparable: false, blockers, message: BLOCKER_MESSAGE[blockers[0]!], difference: null };
+}
+
+/** Una comparación válida, como la daría el servidor si pudiera comprobar la población. */
+export function comparableWith(difference: Partial<LinkDifference> & Pick<LinkDifference, 'observation'>): LinkComparison {
+  return {
+    comparable: true,
+    blockers: [],
+    message: null,
+    difference: { difference_base: '0.000000', difference_percent: null, percent_undefined: null, direction: 'ABOVE', ...difference },
+  };
+}
+
+/** `GET …/estimation-link` de un borrador: una línea por línea del borrador, con su estimación y su comparación. */
+export function linkViewFor(proposal: Proposal, perLine: LinkLineSpec[], overrides: Partial<EstimationLinkView> = {}): EstimationLinkView {
+  const state = overrides.state ?? 'LINKED';
+  const link = overrides.link === undefined ? (state === 'NONE' ? null : linkOf()) : overrides.link;
+  const fallback: EstimationLinkLine['estimation']['state'] =
+    state === 'NONE' ? 'NONE' : state === 'CALCULATING' ? 'CALCULATING' : state === 'UNAVAILABLE' ? 'ERROR' : state === 'RESTRICTED' ? 'RESTRICTED' : 'NO_RESULT';
+  const lines = proposal.lines.map((line, index): EstimationLinkLine => {
+    const { comparison, ...spec } = perLine[index] ?? {};
+    const need = { status: line.status, quantity_base: line.quantity_base, quantity_presentation: line.quantity_presentation };
+    const estimation: EstimationLinkLine['estimation'] = {
+      state: fallback,
+      status: null,
+      reason_code: null,
+      estimate_base: null,
+      validity: null,
+      validity_reason: null,
+      ...spec,
+    };
+    return {
+      position: line.position,
+      product: { product_ref: line.product_ref, name: line.product_name },
+      base_unit: line.base_unit,
+      presentation_unit: line.presentation_unit,
+      need,
+      estimation,
+      comparison: comparison ?? serverComparison(need, estimation),
+    };
+  });
+  return {
+    contract_version: 1,
+    proposal_ref: proposal.proposal_ref,
+    target_campaign_ref: proposal.campaign.campaign_ref,
+    state,
+    link,
+    run: state === 'LINKED' || state === 'RESTRICTED' ? linkRunFor(proposal) : null,
+    update: { available: false, reason: null },
+    prepare_blocker: null,
+    lines,
+    history: link ? [{ ...link, current: true }] : [],
+    evaluated_at: '2026-10-18T09:00:00.000Z',
+    notice: 'Consumo estimado: referencia fijada para este borrador. No se suma a la necesidad declarada.',
+    ...overrides,
+  };
+}
+
+/** Estimación vigente con cifra (AVAILABLE). */
+export function available(estimate: string, overrides: LinkLineSpec = {}): LinkLineSpec {
+  return { state: 'AVAILABLE', status: 'ESTIMATED', estimate_base: estimate, validity: 'CURRENT', ...overrides };
+}
+
+/** `GET …/selection`: revisión 0 y lista vacía si nunca se eligió. */
+export function selectionFor(proposal: Proposal, productRefs: string[] = [], revision = productRefs.length > 0 ? 1 : 0): ProposalSelection {
+  return {
+    contract_version: 1,
+    proposal_ref: proposal.proposal_ref,
+    revision,
+    product_refs: productRefs,
+    updated_at: revision > 0 ? '2026-10-16T12:10:00.000Z' : null,
+  };
+}
+
 /* ── demo: parecido a la DEMO ─────────────────────────────────────────── */
 
 const demoProposal = draft({
@@ -125,6 +282,13 @@ export const demo: ProposalFixture = {
     { absence: null, estimation: estimated({ estimate_base: '27500.500000' }) },
     { absence: 'NO_RESULT', estimation: null },
   ]),
+  link: linkViewFor(demoProposal, [
+    available('295000.000000'),
+    { state: 'INSUFFICIENT_DATA', status: 'INSUFFICIENT_DATA', reason_code: 'SPAN_TOO_SHORT', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
+    available('27500.500000'),
+    { state: 'NO_RESULT' },
+  ]),
+  selection: selectionFor(demoProposal),
 };
 
 /* ── worst: catálogo break-ui ─────────────────────────────────────────── */
@@ -179,11 +343,31 @@ export const worst: ProposalFixture = {
     ],
     { evaluated_at: '2026-10-18T23:59:00.000Z' },
   ),
+  link: linkViewFor(
+    worstProposal,
+    [
+      // Cifra grande vigente: hoy el servidor no compara (población no comprobada).
+      available('123456800000.250000'),
+      // Desactualizada: cifra rotulada, sin diferencia.
+      { state: 'OUTDATED', status: 'ESTIMATED', estimate_base: '30.123456', validity: 'OUTDATED', validity_reason: 'SOURCES_CHANGED' },
+      { state: 'NO_RESULT' },
+      { state: 'INSUFFICIENT_DATA', status: 'INSUFFICIENT_DATA', reason_code: 'LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
+      // Necesidad oculta: la estimación se muestra rotulada, sin diferencia.
+      available('12000.000000'),
+      { state: 'ERROR', status: 'CALCULATION_FAILED', reason_code: 'CALCULATION_ERROR', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
+      // Fuente retirada: restringida, sin cifra.
+      { state: 'RESTRICTED', status: 'ESTIMATED', validity: 'OUTDATED', validity_reason: 'SOURCES_WITHDRAWN' },
+      // Estimación cero.
+      available('0.000000'),
+    ],
+    { evaluated_at: '2026-10-18T23:59:00.000Z', update: { available: true, reason: 'OUTDATED' } },
+  ),
+  selection: selectionFor(worstProposal, ['prod-0', 'prod-1'], 3),
 };
 
 /* ── empty y one ──────────────────────────────────────────────────────── */
 
-export const empty: ProposalFixture = { history: [], proposal: null, reference: null };
+export const empty: ProposalFixture = { history: [], proposal: null, reference: null, link: null, selection: null };
 
 const oneProposal = draft({
   proposal_ref: 'prop-one-0000-4000-8000-000000000001',
@@ -195,6 +379,8 @@ export const one: ProposalFixture = {
   history: [summaryOf(oneProposal)],
   proposal: oneProposal,
   reference: referenceFor(oneProposal, [{ absence: null, estimation: estimated({ estimate_base: '1000.000000' }) }]),
+  link: linkViewFor(oneProposal, [available('1000.000000')]),
+  selection: selectionFor(oneProposal),
 };
 
 export const proposalFixtures = { demo, worst, empty, one } as const;

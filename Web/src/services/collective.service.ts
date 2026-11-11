@@ -10,6 +10,13 @@ import type {
   SealState,
 } from '../types/collective';
 import type { ProposalEstimationReference } from '../types/estimation';
+import type {
+  ClearLinkBody,
+  EstimationLinkActionResult,
+  EstimationLinkView,
+  PrepareLinkBody,
+  ProposalSelection,
+} from '../types/estimation-link';
 
 /** Cada identificador se codifica antes de componer la ruta. */
 const seg = encodeURIComponent;
@@ -33,6 +40,25 @@ export const collectiveService = {
     api
       .get<ProposalEstimationReference>(`/collective/proposals/${seg(proposalId)}/estimation-reference`)
       .then((r) => r.data),
+  /** E3 §4: la referencia de consumo estimado fijada en el borrador. Sólo lee: nunca calcula ni fija nada. */
+  estimationLink: (proposalId: string) =>
+    api.get<EstimationLinkView>(`/collective/proposals/${seg(proposalId)}/estimation-link`).then((r) => r.data),
+  /** E3 §4: obtener o actualizar la referencia (idempotente por `request_id`). Sólo con un botón, nunca al montar. */
+  prepareEstimationLink: (proposalId: string, body: PrepareLinkBody) =>
+    api
+      .post<EstimationLinkActionResult>(`/collective/proposals/${seg(proposalId)}/estimation-link/prepare`, body)
+      .then((r) => r.data),
+  /** E3 §4: quitar la referencia vista (`expected_link_ref`). */
+  clearEstimationLink: (proposalId: string, body: ClearLinkBody) =>
+    api
+      .post<EstimationLinkActionResult>(`/collective/proposals/${seg(proposalId)}/estimation-link/clear`, body)
+      .then((r) => r.data),
+  /** E3 §6: productos del borrador elegidos para una convocatoria. */
+  proposalSelection: (proposalId: string) =>
+    api.get<ProposalSelection>(`/collective/proposals/${seg(proposalId)}/selection`).then((r) => r.data),
+  /** E3 §6: guarda la selección con control optimista (`expected_revision`). */
+  saveProposalSelection: (proposalId: string, body: { expected_revision: number; product_refs: string[] }) =>
+    api.put<ProposalSelection>(`/collective/proposals/${seg(proposalId)}/selection`, body).then((r) => r.data),
   /** El CSV lo genera el servidor con la misma política que el JSON, con la referencia en columnas aparte. */
   proposalCsv: (proposalId: string) =>
     api.get<Blob>(`/collective/proposals/${seg(proposalId)}/csv`, { responseType: 'blob' }).then((r) => r.data),
