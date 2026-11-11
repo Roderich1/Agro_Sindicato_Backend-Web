@@ -13,7 +13,7 @@ export function WebNotForFarmersPage() {
   if (!user) return <Navigate to="/login" replace />;
   if (isCollectiveRole(user.role) || legacyFarmerWebEnabled()) return <Navigate to={homePathFor(user.role)} replace />;
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f8faf4] px-4">
+    <main className="flex min-h-dvh items-center justify-center bg-[#f8faf4] px-4">
       <section aria-labelledby="web-not-for-farmers" className="max-w-md rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
         <h1 id="web-not-for-farmers" className="text-lg font-bold text-slate-900">
           Esta Web es para la Directiva y el Administrador
