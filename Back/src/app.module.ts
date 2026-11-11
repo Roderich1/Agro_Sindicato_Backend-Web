@@ -14,6 +14,7 @@ import { IamModule } from './modules/iam/iam.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { PlotsModule } from './modules/plots/plots.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
+import { ProductIdentificationModule } from './modules/product-identification/product-identification.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { SyncV1Module } from './modules/sync-v1/sync-v1.module';
@@ -47,6 +48,7 @@ import { HealthController } from './bootstrap/health.controller';
     CollectiveModule,
     EstimationModule,
     BackupsModule,
+    ProductIdentificationModule,
     UsersModule
   ],
   controllers: [HealthController],

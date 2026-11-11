@@ -40,12 +40,22 @@ async function main() {
     }, null, 2)}
 `;
     const f08Target = resolve(__dirname, "../../docs/api/openapi-f08-backups.json");
+    // E1 identification of reported products (farmer and institutional routes).
+    const e1Spec = `${JSON.stringify({
+      ...document,
+      paths: Object.fromEntries(
+        Object.entries(document.paths).filter(([path]) => path.startsWith("/api/v1/catalog/identification-requests")),
+      ),
+    }, null, 2)}
+`;
+    const e1Target = resolve(__dirname, "../../docs/api/openapi-e1-identification.json");
     if (process.argv.includes("--check")) {
       if (
         readFileSync(target, "utf8") !== spec ||
         readFileSync(f05Target, "utf8") !== f05Spec ||
         readFileSync(f06Target, "utf8") !== f06Spec ||
-        readFileSync(f08Target, "utf8") !== f08Spec
+        readFileSync(f08Target, "utf8") !== f08Spec ||
+        readFileSync(e1Target, "utf8") !== e1Spec
       ) {
         throw new Error("OpenAPI drift: run npm run openapi:generate and review the diff");
       }
@@ -54,6 +64,7 @@ async function main() {
       writeFileSync(f05Target, f05Spec, "utf8");
       writeFileSync(f06Target, f06Spec, "utf8");
       writeFileSync(f08Target, f08Spec, "utf8");
+      writeFileSync(e1Target, e1Spec, "utf8");
       const output = process.argv[2] && !process.argv[2].startsWith("--")
         ? resolve(process.argv[2]) : target;
       mkdirSync(dirname(output), { recursive: true });

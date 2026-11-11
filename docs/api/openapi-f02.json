@@ -9954,6 +9954,4898 @@
         ]
       }
     },
+    "/api/v1/catalog/identification-requests": {
+      "get": {
+        "operationId": "FarmerIdentificationController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Sólo Directiva/Administrador; por defecto PENDING. El agricultor no envía parámetros.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "LINKED",
+                "ALL"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "requests"
+                  ],
+                  "description": "Agricultor (sesión móvil Auth V2): sus solicitudes (vista del §4.1). Directiva/Administrador: las del tenant (vista del §4.2).",
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "contractVersion",
+                              "request_id",
+                              "status",
+                              "local_name",
+                              "active_ingredient",
+                              "unit",
+                              "base_unit",
+                              "received_at",
+                              "updated_at",
+                              "photo",
+                              "resolution",
+                              "pending_note"
+                            ],
+                            "properties": {
+                              "contractVersion": {
+                                "type": "integer",
+                                "enum": [
+                                  1
+                                ]
+                              },
+                              "request_id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "description": "UUID v4 generado por el teléfono"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "PENDING",
+                                  "LINKED"
+                                ]
+                              },
+                              "local_name": {
+                                "type": "string"
+                              },
+                              "active_ingredient": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "unit": {
+                                "type": "string",
+                                "enum": [
+                                  "L",
+                                  "KG"
+                                ]
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "received_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "resolution": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "product_ref",
+                                  "product_name",
+                                  "unit",
+                                  "base_unit",
+                                  "is_active",
+                                  "resolved_at"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LINKED_EXISTING",
+                                      "CREATED_PRODUCT"
+                                    ]
+                                  },
+                                  "product_ref": {
+                                    "type": "string"
+                                  },
+                                  "product_name": {
+                                    "type": "string"
+                                  },
+                                  "unit": {
+                                    "type": "string",
+                                    "description": "Unidad del catálogo central tal como se guarda"
+                                  },
+                                  "base_unit": {
+                                    "type": "string",
+                                    "enum": [
+                                      "ML",
+                                      "G"
+                                    ],
+                                    "nullable": true
+                                  },
+                                  "is_active": {
+                                    "type": "boolean"
+                                  },
+                                  "resolved_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              },
+                              "pending_note": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "text",
+                                  "at"
+                                ],
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                },
+                                "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                              },
+                              "photo": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "sha256",
+                                  "consent_version"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NONE",
+                                      "STORED",
+                                      "REMOVED"
+                                    ]
+                                  },
+                                  "sha256": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "SHA-256 de la foto almacenada; null si no hay"
+                                  },
+                                  "consent_version": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "Versión del consentimiento de foto registrado"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "contractVersion",
+                              "request_id",
+                              "status",
+                              "local_name",
+                              "active_ingredient",
+                              "unit",
+                              "base_unit",
+                              "received_at",
+                              "updated_at",
+                              "photo",
+                              "resolution",
+                              "pending_note"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "description": "Id del servidor (rutas institucionales)"
+                              },
+                              "contractVersion": {
+                                "type": "integer",
+                                "enum": [
+                                  1
+                                ]
+                              },
+                              "request_id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "description": "UUID v4 generado por el teléfono"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "PENDING",
+                                  "LINKED"
+                                ]
+                              },
+                              "local_name": {
+                                "type": "string"
+                              },
+                              "active_ingredient": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "unit": {
+                                "type": "string",
+                                "enum": [
+                                  "L",
+                                  "KG"
+                                ]
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "received_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "resolution": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "product_ref",
+                                  "product_name",
+                                  "unit",
+                                  "base_unit",
+                                  "is_active",
+                                  "resolved_at"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LINKED_EXISTING",
+                                      "CREATED_PRODUCT"
+                                    ]
+                                  },
+                                  "product_ref": {
+                                    "type": "string"
+                                  },
+                                  "product_name": {
+                                    "type": "string"
+                                  },
+                                  "unit": {
+                                    "type": "string",
+                                    "description": "Unidad del catálogo central tal como se guarda"
+                                  },
+                                  "base_unit": {
+                                    "type": "string",
+                                    "enum": [
+                                      "ML",
+                                      "G"
+                                    ],
+                                    "nullable": true
+                                  },
+                                  "is_active": {
+                                    "type": "boolean"
+                                  },
+                                  "resolved_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              },
+                              "pending_note": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "text",
+                                  "at"
+                                ],
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                },
+                                "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                              },
+                              "photo": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "sha256",
+                                  "consent_version",
+                                  "content_type",
+                                  "width",
+                                  "height",
+                                  "stored_at"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NONE",
+                                      "STORED",
+                                      "REMOVED"
+                                    ]
+                                  },
+                                  "sha256": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "SHA-256 de la foto almacenada; null si no hay"
+                                  },
+                                  "consent_version": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "Versión del consentimiento de foto registrado"
+                                  },
+                                  "content_type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "image/jpeg",
+                                      "image/png"
+                                    ],
+                                    "nullable": true
+                                  },
+                                  "width": {
+                                    "type": "integer",
+                                    "nullable": true
+                                  },
+                                  "height": {
+                                    "type": "integer",
+                                    "nullable": true
+                                  },
+                                  "stored_at": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetro de consulta inválido (el agricultor no envía ninguno).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido: ni agricultor con instalación vigente ni Directiva/Administrador.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Agricultor: sus solicitudes (sin parámetros). Directiva/Administrador: las del tenant por estado, por fecha de recepción ascendente",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{requestId}": {
+      "put": {
+        "operationId": "FarmerIdentificationController_upsert",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "description": "UUID v4 en minúsculas generado por el teléfono",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertIdentificationRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ya existía para este agricultor: estado vigente (actualizada si estaba PENDING y cambió nombre, ingrediente o consentimiento).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "request_id",
+                    "status",
+                    "local_name",
+                    "active_ingredient",
+                    "unit",
+                    "base_unit",
+                    "received_at",
+                    "updated_at",
+                    "photo",
+                    "resolution",
+                    "pending_note"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "UUID v4 generado por el teléfono"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "LINKED"
+                      ]
+                    },
+                    "local_name": {
+                      "type": "string"
+                    },
+                    "active_ingredient": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "L",
+                        "KG"
+                      ]
+                    },
+                    "base_unit": {
+                      "type": "string",
+                      "enum": [
+                        "ML",
+                        "G"
+                      ]
+                    },
+                    "received_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "resolution": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "product_ref",
+                        "product_name",
+                        "unit",
+                        "base_unit",
+                        "is_active",
+                        "resolved_at"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "LINKED_EXISTING",
+                            "CREATED_PRODUCT"
+                          ]
+                        },
+                        "product_ref": {
+                          "type": "string"
+                        },
+                        "product_name": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "description": "Unidad del catálogo central tal como se guarda"
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ],
+                          "nullable": true
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "resolved_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "pending_note": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "text",
+                        "at"
+                      ],
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                    },
+                    "photo": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "sha256",
+                        "consent_version"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "STORED",
+                            "REMOVED"
+                          ]
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "SHA-256 de la foto almacenada; null si no hay"
+                        },
+                        "consent_version": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Versión del consentimiento de foto registrado"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Solicitud creada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "request_id",
+                    "status",
+                    "local_name",
+                    "active_ingredient",
+                    "unit",
+                    "base_unit",
+                    "received_at",
+                    "updated_at",
+                    "photo",
+                    "resolution",
+                    "pending_note"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "UUID v4 generado por el teléfono"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "LINKED"
+                      ]
+                    },
+                    "local_name": {
+                      "type": "string"
+                    },
+                    "active_ingredient": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "L",
+                        "KG"
+                      ]
+                    },
+                    "base_unit": {
+                      "type": "string",
+                      "enum": [
+                        "ML",
+                        "G"
+                      ]
+                    },
+                    "received_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "resolution": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "product_ref",
+                        "product_name",
+                        "unit",
+                        "base_unit",
+                        "is_active",
+                        "resolved_at"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "LINKED_EXISTING",
+                            "CREATED_PRODUCT"
+                          ]
+                        },
+                        "product_ref": {
+                          "type": "string"
+                        },
+                        "product_name": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "description": "Unidad del catálogo central tal como se guarda"
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ],
+                          "nullable": true
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "resolved_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "pending_note": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "text",
+                        "at"
+                      ],
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                    },
+                    "photo": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "sha256",
+                        "consent_version"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "STORED",
+                            "REMOVED"
+                          ]
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "SHA-256 de la foto almacenada; null si no hay"
+                        },
+                        "consent_version": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Versión del consentimiento de foto registrado"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID: JSON, clave extra, longitudes o request_id inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sesión, Member, registro de cliente o rol no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "UNIT_IMMUTABLE: cambio de unidad. REQUEST_ID_CONFLICT: request_id de otro agricultor del tenant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "UNIT_UNSUPPORTED: unidad distinta de L o KG.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear o reenviar una solicitud de identificación (idempotente por request_id)",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{requestId}/photo": {
+      "put": {
+        "operationId": "FarmerIdentificationController_uploadPhoto",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Content-SHA256",
+            "in": "header",
+            "description": "SHA-256 hex en minúsculas del cuerpo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Content-Length",
+            "in": "header",
+            "description": "Obligatoria, como máximo 2097152",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mismo SHA-256 que la foto almacenada: nada se reescribe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "request_id",
+                    "status",
+                    "local_name",
+                    "active_ingredient",
+                    "unit",
+                    "base_unit",
+                    "received_at",
+                    "updated_at",
+                    "photo",
+                    "resolution",
+                    "pending_note"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "UUID v4 generado por el teléfono"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "LINKED"
+                      ]
+                    },
+                    "local_name": {
+                      "type": "string"
+                    },
+                    "active_ingredient": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "L",
+                        "KG"
+                      ]
+                    },
+                    "base_unit": {
+                      "type": "string",
+                      "enum": [
+                        "ML",
+                        "G"
+                      ]
+                    },
+                    "received_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "resolution": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "product_ref",
+                        "product_name",
+                        "unit",
+                        "base_unit",
+                        "is_active",
+                        "resolved_at"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "LINKED_EXISTING",
+                            "CREATED_PRODUCT"
+                          ]
+                        },
+                        "product_ref": {
+                          "type": "string"
+                        },
+                        "product_name": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "description": "Unidad del catálogo central tal como se guarda"
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ],
+                          "nullable": true
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "resolved_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "pending_note": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "text",
+                        "at"
+                      ],
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                    },
+                    "photo": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "sha256",
+                        "consent_version"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "STORED",
+                            "REMOVED"
+                          ]
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "SHA-256 de la foto almacenada; null si no hay"
+                        },
+                        "consent_version": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Versión del consentimiento de foto registrado"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Foto almacenada (primera o reemplazo; la anterior se borra).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "request_id",
+                    "status",
+                    "local_name",
+                    "active_ingredient",
+                    "unit",
+                    "base_unit",
+                    "received_at",
+                    "updated_at",
+                    "photo",
+                    "resolution",
+                    "pending_note"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "UUID v4 generado por el teléfono"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "LINKED"
+                      ]
+                    },
+                    "local_name": {
+                      "type": "string"
+                    },
+                    "active_ingredient": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "L",
+                        "KG"
+                      ]
+                    },
+                    "base_unit": {
+                      "type": "string",
+                      "enum": [
+                        "ML",
+                        "G"
+                      ]
+                    },
+                    "received_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "resolution": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "product_ref",
+                        "product_name",
+                        "unit",
+                        "base_unit",
+                        "is_active",
+                        "resolved_at"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "LINKED_EXISTING",
+                            "CREATED_PRODUCT"
+                          ]
+                        },
+                        "product_ref": {
+                          "type": "string"
+                        },
+                        "product_name": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "description": "Unidad del catálogo central tal como se guarda"
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ],
+                          "nullable": true
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "resolved_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "pending_note": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "text",
+                        "at"
+                      ],
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                    },
+                    "photo": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "sha256",
+                        "consent_version"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "STORED",
+                            "REMOVED"
+                          ]
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "SHA-256 de la foto almacenada; null si no hay"
+                        },
+                        "consent_version": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Versión del consentimiento de foto registrado"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID: cabeceras inválidas o transferencia incompleta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND: solicitud ajena o inexistente (indistinguibles).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PHOTO_CONSENT_REQUIRED: la solicitud no tiene consentimiento de foto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "IMAGE_TOO_LARGE: mayor que 2 MiB o sin Content-Length.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type distinto de application/octet-stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "IMAGE_INVALID: no es JPEG/PNG por firma o dimensiones fuera de [64, 4096] o cabecera ilegible. CONTENT_HASH_MISMATCH.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "PHOTO_STORAGE_UNAVAILABLE: almacenamiento de fotos no configurado o no disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subir o reemplazar la foto de la etiqueta (cuerpo binario, requiere consentimiento registrado)",
+        "tags": [
+          "catalog identification"
+        ]
+      },
+      "delete": {
+        "operationId": "FarmerIdentificationController_removePhoto",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sin foto almacenada."
+          },
+          "400": {
+            "description": "request_id inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND: solicitud ajena o inexistente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "PHOTO_STORAGE_UNAVAILABLE.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retirar la foto (se borra el binario del servidor; idempotente)",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{id}/candidates": {
+      "get": {
+        "operationId": "InstitutionalIdentificationController_candidates",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "candidates"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "candidates": {
+                      "type": "array",
+                      "maxItems": 5,
+                      "description": "Sugerencias por parecido del nombre o ingrediente activo igual; nunca se vincula por similitud",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "product_ref",
+                          "product_name",
+                          "unit",
+                          "base_unit",
+                          "is_active",
+                          "is_alias",
+                          "canonical_product_ref",
+                          "similarity",
+                          "matched_on"
+                        ],
+                        "properties": {
+                          "product_ref": {
+                            "type": "string"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "unit": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          },
+                          "is_alias": {
+                            "type": "boolean",
+                            "description": "Tiene una asociación vigente con otro producto canónico"
+                          },
+                          "canonical_product_ref": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "similarity": {
+                            "type": "string",
+                            "enum": [
+                              "ALTA",
+                              "MEDIA",
+                              "BAJA"
+                            ]
+                          },
+                          "matched_on": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "name",
+                                "active_ingredient"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND: inexistente o de otro tenant (indistinguibles).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Hasta 5 productos de la misma dimensión parecidos por nombre o ingrediente (sólo sugerencia)",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{id}/history": {
+      "get": {
+        "operationId": "InstitutionalIdentificationController_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "events"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "at",
+                          "kind",
+                          "actor",
+                          "product_ref",
+                          "product_name",
+                          "detail"
+                        ],
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "RECEIVED",
+                              "UPDATED",
+                              "PHOTO_RECEIVED",
+                              "PHOTO_REPLACED",
+                              "PHOTO_REMOVED",
+                              "LINKED",
+                              "RELINKED",
+                              "PRODUCT_CREATED",
+                              "NOTE"
+                            ]
+                          },
+                          "actor": {
+                            "type": "object",
+                            "nullable": true,
+                            "additionalProperties": false,
+                            "required": [
+                              "name"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "description": "Sólo en decisiones institucionales; null en los eventos del agricultor, que nunca se nombra"
+                          },
+                          "product_ref": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "product_name": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "detail": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Eventos de la solicitud; actor sólo en decisiones institucionales",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{id}/photo": {
+      "get": {
+        "operationId": "InstitutionalIdentificationController_photo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes verificados contra su SHA-256; cabeceras X-Content-SHA256, Content-Disposition inline y Cache-Control: private, no-store.",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PHOTO_NOT_FOUND: sin foto, retirada, o solicitud de otro tenant (indistinguibles).",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "PHOTO_INTEGRITY_FAILED: el binario no coincide con su SHA-256; no se entrega.",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "PHOTO_STORAGE_UNAVAILABLE.",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Foto de la etiqueta (acceso autorizado; nunca una URL pública)",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{id}/link": {
+      "post": {
+        "operationId": "InstitutionalIdentificationController_link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkIdentificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "changed=false si ya era el vínculo vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changed",
+                    "request"
+                  ],
+                  "properties": {
+                    "changed": {
+                      "type": "boolean",
+                      "description": "false: el vínculo pedido ya era el vigente"
+                    },
+                    "product_ref": {
+                      "type": "string",
+                      "description": "Sólo en create-product: el producto creado"
+                    },
+                    "request": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "contractVersion",
+                        "request_id",
+                        "status",
+                        "local_name",
+                        "active_ingredient",
+                        "unit",
+                        "base_unit",
+                        "received_at",
+                        "updated_at",
+                        "photo",
+                        "resolution",
+                        "pending_note"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "Id del servidor (rutas institucionales)"
+                        },
+                        "contractVersion": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "UUID v4 generado por el teléfono"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "LINKED"
+                          ]
+                        },
+                        "local_name": {
+                          "type": "string"
+                        },
+                        "active_ingredient": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "L",
+                            "KG"
+                          ]
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ]
+                        },
+                        "received_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "resolution": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "kind",
+                            "product_ref",
+                            "product_name",
+                            "unit",
+                            "base_unit",
+                            "is_active",
+                            "resolved_at"
+                          ],
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "LINKED_EXISTING",
+                                "CREATED_PRODUCT"
+                              ]
+                            },
+                            "product_ref": {
+                              "type": "string"
+                            },
+                            "product_name": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": "string",
+                              "description": "Unidad del catálogo central tal como se guarda"
+                            },
+                            "base_unit": {
+                              "type": "string",
+                              "enum": [
+                                "ML",
+                                "G"
+                              ],
+                              "nullable": true
+                            },
+                            "is_active": {
+                              "type": "boolean"
+                            },
+                            "resolved_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "pending_note": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "text",
+                            "at"
+                          ],
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                        },
+                        "photo": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "sha256",
+                            "consent_version",
+                            "content_type",
+                            "width",
+                            "height",
+                            "stored_at"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "STORED",
+                                "REMOVED"
+                              ]
+                            },
+                            "sha256": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "SHA-256 de la foto almacenada; null si no hay"
+                            },
+                            "consent_version": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Versión del consentimiento de foto registrado"
+                            },
+                            "content_type": {
+                              "type": "string",
+                              "enum": [
+                                "image/jpeg",
+                                "image/png"
+                              ],
+                              "nullable": true
+                            },
+                            "width": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "height": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "stored_at": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND o PRODUCT_NOT_FOUND (inexistente o de otro tenant).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "CONFIRMATION_REQUIRED, REASON_REQUIRED, PRODUCT_INACTIVE o UNIT_DIMENSION_MISMATCH.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vincular (o corregir el vínculo) a un producto existente, con confirmación y motivo",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{id}/create-product": {
+      "post": {
+        "operationId": "InstitutionalIdentificationController_createProduct",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIdentifiedProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changed",
+                    "request"
+                  ],
+                  "properties": {
+                    "changed": {
+                      "type": "boolean",
+                      "description": "false: el vínculo pedido ya era el vigente"
+                    },
+                    "product_ref": {
+                      "type": "string",
+                      "description": "Sólo en create-product: el producto creado"
+                    },
+                    "request": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "contractVersion",
+                        "request_id",
+                        "status",
+                        "local_name",
+                        "active_ingredient",
+                        "unit",
+                        "base_unit",
+                        "received_at",
+                        "updated_at",
+                        "photo",
+                        "resolution",
+                        "pending_note"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "Id del servidor (rutas institucionales)"
+                        },
+                        "contractVersion": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "UUID v4 generado por el teléfono"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "LINKED"
+                          ]
+                        },
+                        "local_name": {
+                          "type": "string"
+                        },
+                        "active_ingredient": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "L",
+                            "KG"
+                          ]
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ]
+                        },
+                        "received_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "resolution": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "kind",
+                            "product_ref",
+                            "product_name",
+                            "unit",
+                            "base_unit",
+                            "is_active",
+                            "resolved_at"
+                          ],
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "LINKED_EXISTING",
+                                "CREATED_PRODUCT"
+                              ]
+                            },
+                            "product_ref": {
+                              "type": "string"
+                            },
+                            "product_name": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": "string",
+                              "description": "Unidad del catálogo central tal como se guarda"
+                            },
+                            "base_unit": {
+                              "type": "string",
+                              "enum": [
+                                "ML",
+                                "G"
+                              ],
+                              "nullable": true
+                            },
+                            "is_active": {
+                              "type": "boolean"
+                            },
+                            "resolved_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "pending_note": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "text",
+                            "at"
+                          ],
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                        },
+                        "photo": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "sha256",
+                            "consent_version",
+                            "content_type",
+                            "width",
+                            "height",
+                            "stored_at"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "STORED",
+                                "REMOVED"
+                              ]
+                            },
+                            "sha256": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "SHA-256 de la foto almacenada; null si no hay"
+                            },
+                            "consent_version": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Versión del consentimiento de foto registrado"
+                            },
+                            "content_type": {
+                              "type": "string",
+                              "enum": [
+                                "image/jpeg",
+                                "image/png"
+                              ],
+                              "nullable": true
+                            },
+                            "width": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "height": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "stored_at": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID: nombre de 2 a 160 caracteres.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PRODUCT_NAME_TAKEN: ya existe un producto con ese nombre (sin distinguir mayúsculas); vincularlo en su lugar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "CONFIRMATION_REQUIRED o REASON_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear el producto colectivo (unidad de la solicitud) y vincularlo",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
+    "/api/v1/catalog/identification-requests/{id}/defer": {
+      "post": {
+        "operationId": "InstitutionalIdentificationController_defer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeferIdentificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changed",
+                    "request"
+                  ],
+                  "properties": {
+                    "changed": {
+                      "type": "boolean",
+                      "description": "false: el vínculo pedido ya era el vigente"
+                    },
+                    "product_ref": {
+                      "type": "string",
+                      "description": "Sólo en create-product: el producto creado"
+                    },
+                    "request": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "contractVersion",
+                        "request_id",
+                        "status",
+                        "local_name",
+                        "active_ingredient",
+                        "unit",
+                        "base_unit",
+                        "received_at",
+                        "updated_at",
+                        "photo",
+                        "resolution",
+                        "pending_note"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "Id del servidor (rutas institucionales)"
+                        },
+                        "contractVersion": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "UUID v4 generado por el teléfono"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "LINKED"
+                          ]
+                        },
+                        "local_name": {
+                          "type": "string"
+                        },
+                        "active_ingredient": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "L",
+                            "KG"
+                          ]
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ]
+                        },
+                        "received_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "resolution": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "kind",
+                            "product_ref",
+                            "product_name",
+                            "unit",
+                            "base_unit",
+                            "is_active",
+                            "resolved_at"
+                          ],
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "LINKED_EXISTING",
+                                "CREATED_PRODUCT"
+                              ]
+                            },
+                            "product_ref": {
+                              "type": "string"
+                            },
+                            "product_name": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": "string",
+                              "description": "Unidad del catálogo central tal como se guarda"
+                            },
+                            "base_unit": {
+                              "type": "string",
+                              "enum": [
+                                "ML",
+                                "G"
+                              ],
+                              "nullable": true
+                            },
+                            "is_active": {
+                              "type": "boolean"
+                            },
+                            "resolved_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "pending_note": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "text",
+                            "at"
+                          ],
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                        },
+                        "photo": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "sha256",
+                            "consent_version",
+                            "content_type",
+                            "width",
+                            "height",
+                            "stored_at"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "STORED",
+                                "REMOVED"
+                              ]
+                            },
+                            "sha256": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "SHA-256 de la foto almacenada; null si no hay"
+                            },
+                            "consent_version": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Versión del consentimiento de foto registrado"
+                            },
+                            "content_type": {
+                              "type": "string",
+                              "enum": [
+                                "image/jpeg",
+                                "image/png"
+                              ],
+                              "nullable": true
+                            },
+                            "width": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "height": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "stored_at": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REQUEST_ALREADY_LINKED: un vínculo se corrige, no se deshace (E1-P3).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "CONFIRMATION_REQUIRED o REASON_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dejar pendiente por falta de información, con una nota",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
     "/api/v1/users": {
       "post": {
         "operationId": "UsersController_create",
@@ -11495,6 +16387,140 @@
           "contract_version",
           "request_id",
           "target_campaign_ref"
+        ]
+      },
+      "PhotoConsentDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "FOTO-1",
+            "description": "Versión del texto de consentimiento mostrado en el teléfono"
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-11T18:20:00.000Z"
+          }
+        },
+        "required": [
+          "version",
+          "accepted_at"
+        ]
+      },
+      "UpsertIdentificationRequestDto": {
+        "type": "object",
+        "properties": {
+          "contractVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "local_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "1–120 caracteres tras recortar espacios"
+          },
+          "active_ingredient": {
+            "type": "object",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "L",
+              "KG"
+            ],
+            "description": "Otra unidad: 422 UNIT_UNSUPPORTED. Inmutable."
+          },
+          "photo_consent": {
+            "nullable": true,
+            "description": "Consentimiento aparte para la foto (E1-D11); una vez registrado no se borra con un PUT posterior",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoConsentDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "contractVersion",
+          "local_name",
+          "unit"
+        ]
+      },
+      "LinkIdentificationDto": {
+        "type": "object",
+        "properties": {
+          "product_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Producto del catálogo del tenant"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Vacío o > 280: 422 REASON_REQUIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita (RF-33); distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "product_ref",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "CreateIdentifiedProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160,
+            "description": "Nombre del producto colectivo (2–160 tras recortar)"
+          },
+          "active_ingredient": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 160
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "DeferIdentificationDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Nota para el agricultor, sin nombre del autor hacia él"
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "note",
+          "confirmed"
         ]
       },
       "CreateUserDto": {

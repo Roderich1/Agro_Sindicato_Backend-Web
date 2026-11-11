@@ -97,6 +97,15 @@ export const envSchema = z.object({
   BACKUP_S3_SECRET_ACCESS_KEY: optionalText(z.string().regex(/^\S{1,256}$/)),
   // One segment ending in "/" (e.g. `ensayo-f08/`): never the bucket root.
   BACKUP_S3_PREFIX: optionalText(z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}\/$/)),
+  // E1-D8: private storage of label photos (second instance of the F08
+  // storage). Empty or `disk` = PRODUCT_PHOTO_STORAGE_DIR (never the backups'
+  // directory); `b2` = the BACKUP_S3_* bucket and credentials with the
+  // photos' own prefix. Unset or incomplete: photo routes answer 503 and the
+  // request data routes keep working.
+  PRODUCT_PHOTO_STORAGE_DIR: optionalText(z.string()),
+  PRODUCT_PHOTO_STORAGE_PROVIDER: optionalText(z.enum(["disk", "b2"])),
+  // One segment ending in "/", distinct from BACKUP_S3_PREFIX.
+  PRODUCT_PHOTO_S3_PREFIX: optionalText(z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}\/$/)),
   // #81 PHASE 6: the farmer's legacy private writes are closed (403
   // LEGACY_ROUTE_CLOSED). `enabled` is an operational rollback of this
   // server only, never the normal path; it authorises nothing.

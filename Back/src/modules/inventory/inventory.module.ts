@@ -18,6 +18,7 @@ import { ProductReconciliationUseCase } from './application/use-cases/product-re
     InventoryAdjustmentUseCase,
     ProductReconciliationUseCase,
   ],
-  exports: [InventoryStockUseCase],
+  // ProductCatalogUseCase: E1 create-product reuses the catalogue creation.
+  exports: [InventoryStockUseCase, ProductCatalogUseCase],
 })
 export class InventoryModule {}

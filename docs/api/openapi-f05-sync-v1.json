@@ -2776,6 +2776,140 @@
           "target_campaign_ref"
         ]
       },
+      "PhotoConsentDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "FOTO-1",
+            "description": "Versión del texto de consentimiento mostrado en el teléfono"
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-11T18:20:00.000Z"
+          }
+        },
+        "required": [
+          "version",
+          "accepted_at"
+        ]
+      },
+      "UpsertIdentificationRequestDto": {
+        "type": "object",
+        "properties": {
+          "contractVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "local_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "1–120 caracteres tras recortar espacios"
+          },
+          "active_ingredient": {
+            "type": "object",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "L",
+              "KG"
+            ],
+            "description": "Otra unidad: 422 UNIT_UNSUPPORTED. Inmutable."
+          },
+          "photo_consent": {
+            "nullable": true,
+            "description": "Consentimiento aparte para la foto (E1-D11); una vez registrado no se borra con un PUT posterior",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoConsentDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "contractVersion",
+          "local_name",
+          "unit"
+        ]
+      },
+      "LinkIdentificationDto": {
+        "type": "object",
+        "properties": {
+          "product_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Producto del catálogo del tenant"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Vacío o > 280: 422 REASON_REQUIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita (RF-33); distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "product_ref",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "CreateIdentifiedProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160,
+            "description": "Nombre del producto colectivo (2–160 tras recortar)"
+          },
+          "active_ingredient": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 160
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "DeferIdentificationDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Nota para el agricultor, sin nombre del autor hacia él"
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "note",
+          "confirmed"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {

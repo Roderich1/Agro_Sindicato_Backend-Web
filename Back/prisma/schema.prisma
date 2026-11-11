@@ -244,6 +244,7 @@ model Tenant {
   comparabilitySeasons     ComparabilitySeason[]
   campaignClassifications  CampaignSeasonClassification[]
   estimationJobs           EstimationJob[]
+  identificationRequests   ProductIdentificationRequest[]
 }
 
 model User {
@@ -288,6 +289,9 @@ model User {
   estimationJobs            EstimationJob[]                @relation("EstimationJobRequester")
   comparabilitySeasons      ComparabilitySeason[]          @relation("ComparabilitySeasonCreator")
   campaignClassifications   CampaignSeasonClassification[] @relation("CampaignSeasonClassifier")
+  identificationsResolved   ProductIdentificationRequest[] @relation("ProductIdentificationResolver")
+  identificationNotes       ProductIdentificationRequest[] @relation("ProductIdentificationNoteAuthor")
+  identificationEvents      ProductIdentificationEvent[]   @relation("ProductIdentificationEventActor")
 }
 
 model Member {
@@ -299,13 +303,14 @@ model Member {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
-  user                    User                     @relation(fields: [userId], references: [id])
+  tenant                  Tenant                         @relation(fields: [tenantId], references: [id])
+  user                    User                           @relation(fields: [userId], references: [id])
   clientRegistrations     ClientRegistration[]
   authSessions            AuthSession[]
   syncV1OperationJournals SyncV1OperationJournal[]
   syncV1Contributions     SyncV1Contribution[]
   backupMetadata          BackupMetadata[]
+  identificationRequests  ProductIdentificationRequest[]
 
   @@unique([tenantId, userId])
   // Referenced by the journal's composite FK: Member must belong to its tenant.
@@ -398,20 +403,22 @@ model Product {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  tenant                     Tenant                        @relation(fields: [tenantId], references: [id])
+  tenant                     Tenant                         @relation(fields: [tenantId], references: [id])
   inventoryLots              InventoryLot[]
   movements                  StockMovement[]
   purchaseItems              PurchaseItem[]
   demandForecasts            DemandForecast[]
   agrochemicalApplications   AgrochemicalApplication[]
   syncV1Contributions        SyncV1Contribution[]
-  denominationAssociations   ProductCanonicalAssociation[] @relation("ProductAssociationDenomination")
-  canonicalAssociations      ProductCanonicalAssociation[] @relation("ProductAssociationCanonical")
+  denominationAssociations   ProductCanonicalAssociation[]  @relation("ProductAssociationDenomination")
+  canonicalAssociations      ProductCanonicalAssociation[]  @relation("ProductAssociationCanonical")
   collectiveReleases         CollectiveRelease[]
   jointPurchaseProposalLines JointPurchaseProposalLine[]
   collectiveSealEntries      CollectiveSealEntry[]
   consumptionSeries          ConsumptionSeries[]
   estimationResults          EstimationResult[]
+  identificationRequests     ProductIdentificationRequest[] @relation("ProductIdentificationProduct")
+  identificationEvents       ProductIdentificationEvent[]   @relation("ProductIdentificationEventProduct")
 
   @@unique([tenantId, name])
   @@unique([tenantId, qrCodeValue])
@@ -1534,4 +1541,103 @@ model EstimationResult {
 
   @@id([runId, canonicalProductId, baseUnit])
   @@index([seriesId])
+}
+
+/// E1 (etapa 1): solicitud de identificación de un producto reportado por el
+/// agricultor. No es un `Product`: queda PENDING hasta que la Directiva (o el
+/// Administrador del mismo tenant) lo vincula a un producto existente o crea
+/// uno colectivo. El vínculo en el teléfono sigue siendo una elección del
+/// agricultor (E1-D4).
+enum ProductIdentificationStatus {
+  PENDING
+  LINKED
+}
+
+enum ProductIdentificationResolution {
+  LINKED_EXISTING
+  CREATED_PRODUCT
+}
+
+enum ProductIdentificationPhotoState {
+  NONE
+  STORED
+  REMOVED
+}
+
+enum ProductIdentificationEventKind {
+  RECEIVED
+  UPDATED
+  PHOTO_RECEIVED
+  PHOTO_REPLACED
+  PHOTO_REMOVED
+  LINKED
+  RELINKED
+  PRODUCT_CREATED
+  NOTE
+}
+
+/// E1 §3. Sólo metadatos de la foto: el binario vive en el almacenamiento
+/// privado (E1-D8), bajo una clave UUID generada por el servidor.
+model ProductIdentificationRequest {
+  id                  String                           @id @default(uuid()) @db.Uuid
+  tenantId            String
+  memberId            String
+  /// UUID v4 generado por el teléfono (idempotencia, E1-D3).
+  clientRequestId     String                           @db.Uuid
+  localName           String                           @db.VarChar(120)
+  activeIngredient    String?                          @db.VarChar(120)
+  /// "L" | "KG" (CHECK en la migración); inmutable.
+  unit                String                           @db.VarChar(2)
+  baseUnit            SyncV1BaseUnit
+  status              ProductIdentificationStatus      @default(PENDING)
+  resolution          ProductIdentificationResolution?
+  productId           String?
+  resolvedByUserId    String?
+  resolvedAt          DateTime?
+  resolutionReason    String?                          @db.VarChar(280)
+  pendingNote         String?                          @db.VarChar(280)
+  pendingNoteByUserId String?
+  pendingNoteAt       DateTime?
+  photoState          ProductIdentificationPhotoState  @default(NONE)
+  photoStorageKey     String?                          @unique @db.Uuid
+  photoSha256         String?                          @db.Char(64)
+  photoContentType    String?                          @db.VarChar(16)
+  photoSizeBytes      Int?
+  photoWidth          Int?
+  photoHeight         Int?
+  photoConsentVersion String?                          @db.VarChar(16)
+  photoConsentAt      DateTime?
+  photoStoredAt       DateTime?
+  photoRemovedAt      DateTime?
+  receivedAt          DateTime                         @default(now())
+  updatedAt           DateTime                         @updatedAt
+
+  tenant        Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member        Member                       @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  product       Product?                     @relation("ProductIdentificationProduct", fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  resolvedBy    User?                        @relation("ProductIdentificationResolver", fields: [resolvedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  pendingNoteBy User?                        @relation("ProductIdentificationNoteAuthor", fields: [pendingNoteByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  events        ProductIdentificationEvent[]
+
+  @@unique([tenantId, memberId, clientRequestId])
+  @@index([tenantId, status, receivedAt])
+}
+
+/// E1-D13: historial de una solicitud. No se borra ni se modifica (trigger en
+/// la migración). `actorUserId` null = el agricultor, que nunca se nombra.
+model ProductIdentificationEvent {
+  id          String                         @id @default(uuid()) @db.Uuid
+  requestId   String                         @db.Uuid
+  at          DateTime                       @default(now())
+  kind        ProductIdentificationEventKind
+  actorUserId String?
+  productId   String?
+  /// Motivo o nota; nunca nombres de personas ni rutas de archivo.
+  detail      String?                        @db.VarChar(280)
+
+  request ProductIdentificationRequest @relation(fields: [requestId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor   User?                        @relation("ProductIdentificationEventActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  product Product?                     @relation("ProductIdentificationEventProduct", fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([requestId, at])
 }
