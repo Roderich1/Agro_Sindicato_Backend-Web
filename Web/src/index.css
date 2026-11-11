@@ -165,6 +165,55 @@
 }
 
 /* ══════════════════════════════════════════
+   ARMAZÓN: márgenes y zonas seguras (viewport-fit=cover)
+   Con el contenido bajo la muesca, los bordes se separan de ella con
+   env(safe-area-inset-*); sin muesca, env() vale 0 y quedan los márgenes.
+   ══════════════════════════════════════════ */
+
+@layer components {
+  .ui-gutter {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .ui-gutter {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .ui-gutter {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  .ui-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Barra inferior del teléfono: por encima del indicador de inicio. */
+  .ui-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* El contenido no queda tapado por la barra inferior (4 rem + zona segura). */
+  .ui-main {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 1024px) {
+    .ui-main {
+      padding-bottom: 2rem;
+    }
+  }
+}
+
+/* ══════════════════════════════════════════
    SUPERFICIES (sólidas: sin cristal, sin desenfoque, sin degradados)
    Los nombres se conservan porque las vistas actuales los usan.
    ══════════════════════════════════════════ */
