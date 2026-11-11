@@ -33,10 +33,13 @@ export function userWith(role: string): AuthUser {
   };
 }
 
-/** Renderiza `ui` en `path` con sesión y campaña activa simuladas. */
+/**
+ * Renderiza `ui` en `path` con sesión y campaña activa simuladas. `routePath`
+ * (opcional) es el patrón de la ruta cuando la vista lee parámetros (`:id`).
+ */
 export function renderAt(
   ui: ReactNode,
-  { role = 'DIRECTIVA', path = '/', routes = [] as { path: string; element: ReactNode }[] } = {},
+  { role = 'DIRECTIVA', path = '/', routePath = undefined as string | undefined, routes = [] as { path: string; element: ReactNode }[] } = {},
 ) {
   const user = role ? userWith(role) : null;
   return render(
@@ -52,7 +55,7 @@ export function renderAt(
       >
         <MemoryRouter initialEntries={[path]}>
           <Routes>
-            <Route path={path.split('?')[0]} element={ui} />
+            <Route path={routePath ?? path.split('?')[0]} element={ui} />
             {routes.map((route) => (
               <Route key={route.path} path={route.path} element={route.element} />
             ))}

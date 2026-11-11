@@ -48,6 +48,13 @@ const AuditLogsPage = lazy(() =>
 /* Rediseño 2026-11-10 (contrato §2): contenedores por tareas y detalle de campaña. */
 const HistoryPage = lazy(() => import('./pages/history.page').then((module) => ({ default: module.HistoryPage })));
 const CatalogPage = lazy(() => import('./pages/catalog.page').then((module) => ({ default: module.CatalogPage })));
+/* E2 §6 (2026-11-11): convocatorias de compra conjunta (lista y detalle). */
+const JointPurchaseCallsPage = lazy(() =>
+  import('./pages/joint-purchase-calls.page').then((module) => ({ default: module.JointPurchaseCallsPage })),
+);
+const JointPurchaseCallDetailPage = lazy(() =>
+  import('./pages/joint-purchase-call-detail.page').then((module) => ({ default: module.JointPurchaseCallDetailPage })),
+);
 const CampaignDetailPage = lazy(() =>
   import('./pages/campaign-detail.page').then((module) => ({ default: module.CampaignDetailPage })),
 );
@@ -89,6 +96,24 @@ function AppRoutes() {
         element={
           <CollectiveRoute>
             <JointProposalPage />
+          </CollectiveRoute>
+        }
+      />
+      {/* E2 §6: convocatorias de compra conjunta. Ver participantes exige además el permiso del responsable
+          (E2-D6), que decide el servidor. */}
+      <Route
+        path={COLLECTIVE_PATHS.jointPurchaseCalls}
+        element={
+          <CollectiveRoute>
+            <JointPurchaseCallsPage />
+          </CollectiveRoute>
+        }
+      />
+      <Route
+        path={`${COLLECTIVE_PATHS.jointPurchaseCalls}/:id`}
+        element={
+          <CollectiveRoute>
+            <JointPurchaseCallDetailPage />
           </CollectiveRoute>
         }
       />

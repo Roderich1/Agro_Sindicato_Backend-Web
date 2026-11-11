@@ -247,7 +247,8 @@ describe('prototipos del Resumen: las variantes con el mismo fixture', () => {
     expect(root.getByRole('link', { name: 'Ver bitácora' }).getAttribute('href')).toBe('/audit-logs');
     expect(root.getByRole('link', { name: 'Tendencias' }).getAttribute('href')).toBe('/colectivo/tendencias');
     expect(root.getByRole('link', { name: 'Necesidades y propuestas' }).getAttribute('href')).toBe(`/colectivo/propuestas?campaign=${CAMPAIGN_IDS.demoActive}`);
-    expect(document.body.textContent).not.toMatch(/Próximamente|Compras conjuntas/i);
+    // El prototipo no inventa compras conjuntas; el menú real sí tiene «Compras conjuntas» desde E2 §6 (2026-11-11).
+    expect(variant().textContent).not.toMatch(/Próximamente|Compras conjuntas/i);
     expect(xhrOpen).not.toHaveBeenCalled();
   });
 

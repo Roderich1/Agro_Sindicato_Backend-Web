@@ -19,11 +19,12 @@ function mainNav() {
 
 /** Rediseño 2026-11-10 (contrato §2 y §11): navegación por tareas, barra lateral clara, sin h1 en el armazón. */
 describe('AppShell: menú por tareas', () => {
-  it('DIRECTIVA: cinco tareas y, bajo «Administración», sólo la Bitácora', () => {
+  it('DIRECTIVA: seis tareas (con «Compras conjuntas», E2 §6) y, bajo «Administración», sólo la Bitácora', () => {
     renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
     const nav = mainNav();
     const labels = within(nav).getAllByRole('link').map((link) => link.textContent?.trim());
-    expect(labels).toEqual(['Resumen', 'Campañas', 'Necesidades y propuestas', 'Histórico y estimaciones', 'Catálogo y equivalencias', 'Bitácora']);
+    expect(labels).toEqual(['Resumen', 'Campañas', 'Necesidades y propuestas', 'Compras conjuntas', 'Histórico y estimaciones', 'Catálogo y equivalencias', 'Bitácora']);
+    expect(within(nav).getByRole('link', { name: 'Compras conjuntas' }).getAttribute('href')).toBe(COLLECTIVE_PATHS.jointPurchaseCalls);
     expect(within(nav).getByText('Administración')).toBeTruthy();
     expect(within(nav).getByRole('link', { name: 'Histórico y estimaciones' }).getAttribute('href')).toBe(COLLECTIVE_PATHS.history);
     expect(within(nav).getByRole('link', { name: 'Catálogo y equivalencias' }).getAttribute('href')).toBe(COLLECTIVE_PATHS.catalog);
@@ -71,6 +72,7 @@ describe('AppShell: cabecera', () => {
     ['/campaigns/11111111-1111-4111-8111-111111111111', 'Gestión', 'Campañas'],
     [COLLECTIVE_PATHS.estimation, 'Colectivo', 'Histórico y estimaciones'],
     [COLLECTIVE_PATHS.catalog, 'Gestión', 'Catálogo y equivalencias'],
+    ['/colectivo/compras-conjuntas/c-1', 'Colectivo', 'Compras conjuntas'],
     [COLLECTIVE_PATHS.coverage, 'Colectivo', 'Resumen'],
     ['/audit-logs', 'Trazabilidad', 'Administración'],
   ])('en %s la sección es la del menú («%s» → «%s»), aunque la vista pase otra', (path, given, expected) => {

@@ -34,6 +34,10 @@ export const COLLECTIVE_PATHS = {
    * `identificacion` = «Por identificar», E1 §6).
    */
   catalog: '/colectivo/catalogo',
+  /** E2 §6: convocatorias de compra conjunta (lista; el detalle es `jointPurchaseCallDetail`). */
+  jointPurchaseCalls: '/colectivo/compras-conjuntas',
+  /** Detalle de una convocatoria: `/colectivo/compras-conjuntas/<id>`. */
+  jointPurchaseCallDetail: (id: string) => jointPurchaseCallPath(id),
   /** Detalle de una campaña: `/campaigns/<id>` (no es una ruta colectiva: `PrivateRoute`). */
   campaignDetail: (id: string) => campaignDetailPath(id),
 } as const;
@@ -41,6 +45,11 @@ export const COLLECTIVE_PATHS = {
 /** Detalle de una campaña (rediseño 2026-11-10, contrato §2). */
 export function campaignDetailPath(id: string): string {
   return `/campaigns/${encodeURIComponent(id)}`;
+}
+
+/** Detalle de una convocatoria de compra conjunta (E2 §6). */
+export function jointPurchaseCallPath(id: string): string {
+  return `/colectivo/compras-conjuntas/${encodeURIComponent(id)}`;
 }
 
 /** Rutas que no son colectivas pero sí están en el menú institucional. */
@@ -79,8 +88,9 @@ export function homePathFor(role: string | null | undefined): string {
 
 /**
  * Menú por tareas de DIRECTIVA/ADMINISTRADOR (rediseño 2026-11-10, contrato
- * §2), en este orden: Resumen, Campañas, Necesidades y propuestas, Histórico
- * y estimaciones, Catálogo y equivalencias y, bajo «Administración»,
+ * §2), en este orden: Resumen, Campañas, Necesidades y propuestas, Compras
+ * conjuntas (E2 §6, 2026-11-11), Histórico y estimaciones, Catálogo y
+ * equivalencias y, bajo «Administración»,
  * Bitácora y Usuarios. La cobertura sale del menú (se enlaza desde el
  * Resumen y el detalle de campaña) y su ruta se conserva. Las pantallas
  * legacy del agricultor siguen fuera del menú (#81, F10-SEC-02 #45).
@@ -89,6 +99,7 @@ export const COLLECTIVE_MENU: readonly string[] = [
   COLLECTIVE_PATHS.summary,
   CAMPAIGNS_PATH,
   COLLECTIVE_PATHS.proposals,
+  COLLECTIVE_PATHS.jointPurchaseCalls,
   COLLECTIVE_PATHS.history,
   COLLECTIVE_PATHS.catalog,
   AUDIT_LOGS_PATH,

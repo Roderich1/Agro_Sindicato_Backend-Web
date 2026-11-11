@@ -46,11 +46,12 @@ describe('rutas colectivas F07 por rol', () => {
 });
 
 describe('menú por tareas (F07-WEB-01; rediseño 2026-11-10, contrato §2)', () => {
-  it('DIRECTIVA: Resumen, Campañas, Necesidades y propuestas, Histórico, Catálogo y Bitácora; sin pantallas operativas legacy', () => {
+  it('DIRECTIVA: Resumen, Campañas, Necesidades y propuestas, Compras conjuntas (E2 §6), Histórico, Catálogo y Bitácora; sin pantallas operativas legacy', () => {
     expect(menuPathsFor('DIRECTIVA')).toEqual([
       COLLECTIVE_PATHS.summary,
       '/campaigns',
       COLLECTIVE_PATHS.proposals,
+      COLLECTIVE_PATHS.jointPurchaseCalls,
       COLLECTIVE_PATHS.history,
       COLLECTIVE_PATHS.catalog,
       '/audit-logs',
@@ -73,6 +74,8 @@ describe('menú por tareas (F07-WEB-01; rediseño 2026-11-10, contrato §2)', ()
     expect(COLLECTIVE_PATHS.products).toBe('/colectivo/productos');
     expect(COLLECTIVE_PATHS.reconciliation).toBe('/colectivo/reconciliacion');
     expect(COLLECTIVE_PATHS.campaignDetail('11111111-1111-4111-8111-111111111111')).toBe('/campaigns/11111111-1111-4111-8111-111111111111');
+    expect(COLLECTIVE_PATHS.jointPurchaseCalls).toBe('/colectivo/compras-conjuntas');
+    expect(COLLECTIVE_PATHS.jointPurchaseCallDetail('a/b')).toBe('/colectivo/compras-conjuntas/a%2Fb');
   });
 
   it('ningún menú institucional incluye CRUD del agricultor ni cola offline', () => {
