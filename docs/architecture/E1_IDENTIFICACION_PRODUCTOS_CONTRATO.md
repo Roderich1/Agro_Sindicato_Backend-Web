@@ -268,12 +268,14 @@ Vista nueva en `/colectivo/catalogo?vista=identificacion` («Por identificar»),
 | Web: lista, foto autorizada, tres acciones, errores visibles | Vitest |
 | Recorrido completo emulador → API aislada → Web | Evidencia manual (emulador, no teléfono) |
 
-## 8. Decisiones abiertas para Roderich
+## 8. Decisiones (antes abiertas) y su resolución
 
-- **E1-P1** Identidad del agricultor ante la Directiva (E1-D5): hoy oculta.
-- **E1-P2** Límite de 2 MiB y 1600 px: valores iniciales; ajustar si la legibilidad de etiquetas lo exige. Los límites técnicos de la decodificación del servidor (§9: 4096 px por lado, 16,7 MP, 5 s, 2 decodificaciones simultáneas) están por encima de lo que produce el teléfono.
-- **E1-P3** ¿Debe la Directiva poder **deshacer** un vínculo (volver a `PENDING`)? Esta etapa permite corregirlo a otro producto, no deshacerlo.
-- **E1-P4** Retención del binario tras `REMOVED` y tras el vínculo. *Propuesta implementada (§10), pendiente de la aceptación de Roderich:* el binario se borra en el acto al retirar o reemplazar; tras el vínculo se conserva 90 días (configurable) y luego se borra; no se guardan versiones anteriores.
+Criterios dados por Roderich en su mensaje del 2026-11-11 (tarde); la aplicación de cada criterio la redactó Claude y queda para su revisión.
+
+- **E1-P1 — resuelta.** Criterio: «La identificación de productos no necesita revelar quién los reportó a la Directiva. La identidad de participantes de convocatorias será un mecanismo distinto, con autorización específica.» Se mantiene E1-D5: ninguna vista institucional, evento ni bitácora de la identificación lleva identidad del agricultor. La identidad en convocatorias se rige por el contrato E2 (permiso específico del responsable).
+- **E1-P2 — resuelta.** Criterio: «Los límites técnicos de imagen pueden definirse razonadamente y documentarse.» Límites: el teléfono guarda JPEG de lado mayor ≤ 1600 px, calidad 82, sin metadatos; el servidor acepta ≤ 2 MiB, 64–4096 px por lado, ≤ 16,7 MP, una sola imagen, sin EXIF/XMP/IPTC, sin bytes tras el final, decodificación completa en ≤ 5 s y como mucho 2 a la vez. Una etiqueta de 1000×1400 px ocupó 150–160 KB en el recorrido del emulador: queda margen holgado.
+- **E1-P3 — resuelta.** Criterio: «Corregir un vínculo no debe reescribir registros privados ni alterar silenciosamente cifras cerradas.» Así funciona: corregir (`link` sobre una solicitud ya identificada, evento `RELINKED`) sólo cambia la identificación del servidor; no crea ni cierra asociaciones canónicas, no toca contribuciones, divulgaciones ni sellados (F07), y el teléfono no cambia su vínculo hasta que el agricultor lo confirma con el flujo existente, que además rechaza revincular con un aporte vivo. No hay «deshacer a pendiente» en esta etapa.
+- **E1-P4 — resuelta.** Criterio: «No conservar versiones retiradas de fotos indefinidamente por defecto; define su acceso y ciclo de eliminación, incluyendo fallos y archivos huérfanos.» Aplicado en §10: borrado en el acto al reemplazar o retirar; huérfanos y restos de subida borrados por el barrido tras 24 h; foto de una solicitud identificada borrada a los 90 días (configurable); acceso sólo institucional, privado y sin caché, 404 tras el retiro. Pendiente operativo: activar el barrido (`PRODUCT_PHOTO_SWEEP_INTERVAL_MS`) donde se despliegue.
 
 ## 9. Resoluciones de la implementación (2026-11-11, tarde)
 

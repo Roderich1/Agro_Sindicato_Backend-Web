@@ -88,7 +88,13 @@ try {
   await shot(`${action}_01_lista`);
   if (action === 'lista') { /* nada más */ }
   if (action === 'foto') {
-    await clickText('button', /^Ver foto$/);
+    if (target) {
+      for (const li of await page.$$('ul[aria-label="Solicitudes pendientes"] > li')) {
+        if (!(await li.evaluate((e) => e.textContent ?? '')).includes(target)) continue;
+        for (const b of await li.$$('button')) if (/^Ver foto$/.test(await b.evaluate((e) => e.textContent ?? ''))) await b.click();
+      }
+      await sleep(800);
+    } else await clickText('button', /^Ver foto$/);
     await sleep(2000);
     await shot('foto_02_modal');
     say(`respuesta de la foto: ${JSON.stringify(state.photo)}`);
@@ -98,7 +104,15 @@ try {
   if (action === 'vincular' || action === 'crear' || action === 'pendiente') {
     // Abre la primera solicitud (o la que contenga el texto objetivo).
     const openerRe = { vincular: /^Vincular/, crear: /^Crear producto colectivo/, pendiente: /^Dejar pendiente/ }[action];
-    const opener = await byText('button', openerRe);
+    let opener = null;
+    if (target) {
+      // Tarjeta de la solicitud que contiene el texto objetivo y, dentro, el botón de la acción.
+      for (const li of await page.$$('ul[aria-label="Solicitudes pendientes"] > li')) {
+        const t = await li.evaluate((e) => e.textContent ?? '');
+        if (!t.includes(target)) continue;
+        for (const b of await li.$$('button')) if (openerRe.test(await b.evaluate((e) => e.textContent ?? ''))) opener = b;
+      }
+    } else opener = await byText('button', openerRe);
     if (!opener) throw new Error('no se encontró el botón de la solicitud');
     await opener.click();
     await sleep(2000);
