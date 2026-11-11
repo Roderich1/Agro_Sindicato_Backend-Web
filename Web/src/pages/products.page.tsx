@@ -1,10 +1,26 @@
+import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { AppShell, buttonClass, dangerButtonClass, EmptyState, Modal, Notice, secondaryButtonClass, SkeletonRow } from '../components/app-shell';
-import { Collapsible, PageNote, SectionHeader } from '../components/collective-ui';
+import { Link, type To } from 'react-router-dom';
+import { AppShell, Modal } from '../components/app-shell';
 import { ProductForm } from '../components/product-form';
-import { productError } from '../lib/product-text';
+import {
+  Button,
+  Collapsible,
+  DataState,
+  DataTable,
+  dangerButtonClass,
+  inputClass,
+  labelClass,
+  Notice,
+  PageHeader,
+  Section,
+  SegmentedControl,
+  secondaryButtonClass,
+} from '../components/ui';
+import { fmtDateTime } from '../lib/collective-text';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
+import { groupProducts, matchesProduct, type ProductGrouping } from '../lib/product-text';
+import { productError } from '../lib/product-text';
 import { productsService } from '../services/inventory.service';
 import type { Product } from '../types/inventory';
 
@@ -16,6 +32,14 @@ function unitLabel(unit: string): { text: string; linkable: boolean } {
   return { text: unit, linkable: false };
 }
 
+const GROUPINGS: { value: ProductGrouping; label: string }[] = [
+  { value: 'category', label: 'Categoría' },
+  { value: 'unit', label: 'Unidad' },
+  { value: 'none', label: 'Sin agrupar' },
+];
+
+const count = (n: number, one: string, many: string) => `${new Intl.NumberFormat('es-BO').format(n)} ${n === 1 ? one : many}`;
+
 /**
  * Gestión → Productos (defensa, 2026-11-05): el catálogo del sindicato. La
  * Directiva crea los productos canónicos; los agricultores declaran sobre esta
@@ -23,15 +47,32 @@ function unitLabel(unit: string): { text: string; linkable: boolean } {
  * productos». Una sola acción primaria («Nuevo producto»); editar e inactivar
  * son secundarias. Inactivar no borra: conserva cifras, equivalencias e
  * historial. Ruta protegida por `CollectiveRoute`; el servidor autoriza.
+ *
+ * Rediseño (sesión C, 2026-11-10): el cuerpo es `ProductsView`, que también usa
+ * el contenedor «Catálogo y equivalencias» (`?vista=productos`). Búsqueda por
+ * nombre, nombre comercial o ingrediente activo sin distinguir mayúsculas ni
+ * tildes, y agrupación por categoría o unidad con los datos que ya existen. No
+ * hay reactivación ni historial de cambios del catálogo en el sistema: no se
+ * simulan.
  */
 export function ProductsPage() {
+  return (
+    <AppShell title="Productos" section="Gestión">
+      <ProductsView />
+    </AppShell>
+  );
+}
+
+export function ProductsView({ headingLevel = 1, equivalencesTo = COLLECTIVE_PATHS.reconciliation }: { headingLevel?: 1 | 2; equivalencesTo?: To }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; forbidden: boolean } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [deactivating, setDeactivating] = useState<Product | null>(null);
+  const [query, setQuery] = useState('');
+  const [grouping, setGrouping] = useState<ProductGrouping>('category');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,7 +80,8 @@ export function ProductsPage() {
       setProducts(await productsService.list());
       setError(null);
     } catch (err) {
-      setError(productError(err, 'No fue posible cargar los productos.'));
+      setProducts([]);
+      setError({ message: productError(err, 'No fue posible cargar los productos.'), forbidden: axios.isAxiosError(err) && err.response?.status === 403 });
     } finally {
       setLoading(false);
     }
@@ -51,7 +93,10 @@ export function ProductsPage() {
 
   const active = products.filter((product) => product.isActive);
   const inactive = products.filter((product) => !product.isActive);
+  const shownActive = active.filter((product) => matchesProduct(product, query));
+  const shownInactive = inactive.filter((product) => matchesProduct(product, query));
   const existing = products.map((product) => ({ id: product.id, name: product.name, isActive: product.isActive }));
+  const filtered = query.trim().length > 0;
 
   const saved = async (text: string) => {
     setCreating(false);
@@ -62,78 +107,117 @@ export function ProductsPage() {
   };
 
   return (
-    <AppShell
-      title="Productos"
-      section="Gestión"
-      actions={
-        <button type="button" className={buttonClass} onClick={() => setCreating(true)}>
-          Nuevo producto
-        </button>
-      }
-    >
-      <div className="space-y-4">
-        <PageNote>
-          Catálogo de productos del sindicato. Los agricultores declaran sobre esta lista; los nombres que llegan distintos
-          se asocian a un producto en{' '}
-          <Link to={COLLECTIVE_PATHS.reconciliation} className="font-semibold text-emerald-700 underline">
-            Ver equivalencias
-          </Link>
-          .
-        </PageNote>
-        {message && <Notice kind="ok">{message}</Notice>}
-        {error && <Notice kind="error">{error}</Notice>}
-
-        <section className="glass-card overflow-hidden" aria-label="Productos activos">
-          <SectionHeader
-            title="Productos activos"
-            note={loading ? 'Cargando…' : `${active.length} ${active.length === 1 ? 'producto' : 'productos'}`}
-          />
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-5 py-2.5">Nombre</th>
-                  <th className="px-5 py-2.5">Unidad</th>
-                  <th className="px-5 py-2.5">Categoría</th>
-                  <th className="px-5 py-2.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, index) => <SkeletonRow key={index} cols={4} />)
-                ) : active.length === 0 ? (
-                  <tr>
-                    <td colSpan={4}>
-                      <EmptyState compact title="Todavía no hay productos activos" description="Cree el primero con «Nuevo producto»." />
-                    </td>
-                  </tr>
-                ) : (
-                  active.map((product) => <ProductRow key={product.id} product={product} onEdit={() => setEditing(product)} onDeactivate={() => setDeactivating(product)} />)
-                )}
-              </tbody>
-            </table>
+    <div className="space-y-4">
+      <PageHeader
+        headingLevel={headingLevel}
+        title="Productos"
+        subtitle={
+          <>
+            Catálogo de productos del sindicato. Los agricultores declaran sobre esta lista; los nombres que llegan distintos
+            se asocian a un producto en{' '}
+            <Link to={equivalencesTo} className="font-semibold text-emerald-700 underline">
+              Ver equivalencias
+            </Link>
+            .
+          </>
+        }
+        actions={<Button onClick={() => setCreating(true)}>Nuevo producto</Button>}
+      />
+      {message && <Notice kind="ok">{message}</Notice>}
+      {error ? (
+        <Section>
+          <DataState compact state={error.forbidden ? 'forbidden' : 'error'} description={error.message} onRetry={error.forbidden ? undefined : () => void load()} />
+        </Section>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-end gap-4" data-testid="catalog-filters">
+            <div className="w-full min-w-0 sm:w-96">
+              <label className={labelClass} htmlFor="product-search">
+                Buscar producto
+              </label>
+              <input
+                id="product-search"
+                type="search"
+                className={inputClass}
+                value={query}
+                placeholder="Nombre, nombre comercial o ingrediente activo"
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+            <SegmentedControl label="Agrupar por" testId="catalog-grouping" options={GROUPINGS} value={grouping} onChange={setGrouping} />
           </div>
-        </section>
 
-        <Collapsible title={`Ver inactivos (${inactive.length})`} label="Productos inactivos" testId="inactive-products">
-          <p className="px-5 pt-3 text-xs text-slate-500">Un producto inactivo no se borra: sus cifras, equivalencias e historial se conservan.</p>
-          {inactive.length === 0 ? (
-            <EmptyState compact title="No hay productos inactivos" />
+          {loading ? (
+            <Section>
+              <DataState state="loading" compact />
+            </Section>
+          ) : active.length === 0 ? (
+            <Section title="Productos activos">
+              <DataState state="empty" title="Todavía no hay productos activos" description="Cree el primero con «Nuevo producto»." />
+            </Section>
+          ) : shownActive.length === 0 ? (
+            <Section title="Productos activos">
+              <DataState
+                state="no-match"
+                description={`Ningún producto activo coincide con «${query.trim()}» (nombre, nombre comercial o ingrediente activo).`}
+                onClearFilters={() => setQuery('')}
+                testId="products-no-match"
+              />
+            </Section>
           ) : (
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-100">
-                {inactive.map((product) => (
-                  <tr key={product.id} data-testid={`inactive-${product.name}`}>
-                    <td className="px-5 py-2.5 font-medium text-slate-600">{product.name}</td>
-                    <td className="px-5 py-2.5 text-slate-500">{unitLabel(product.unit).text}</td>
-                    <td className="px-5 py-2.5 text-slate-500">{product.category ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <section className="space-y-3" aria-label="Productos activos">
+              <p className="text-sm text-slate-700" data-testid="products-count">
+                {filtered
+                  ? `${count(shownActive.length, 'producto activo coincide', 'productos activos coinciden')} con «${query.trim()}» (de ${new Intl.NumberFormat('es-BO').format(active.length)}).`
+                  : `${count(active.length, 'producto activo', 'productos activos')}.`}
+              </p>
+              {groupProducts(shownActive, grouping).map((group) => (
+                <Section key={group.key} title={group.label} note={count(group.products.length, 'producto', 'productos')} testId={`group-${group.key}`}>
+                  <DataTable caption={`Productos: ${group.label}`} minWidth={600}>
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Unidad</th>
+                        <th>Categoría</th>
+                        <th className="ui-num">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.products.map((product) => (
+                        <ProductRow key={product.id} product={product} onEdit={() => setEditing(product)} onDeactivate={() => setDeactivating(product)} />
+                      ))}
+                    </tbody>
+                  </DataTable>
+                </Section>
+              ))}
+            </section>
           )}
-        </Collapsible>
-      </div>
+
+          <Collapsible title={`Ver inactivos (${shownInactive.length})`} label="Productos inactivos" testId="inactive-products">
+            <p className="px-5 pt-3 text-xs text-slate-600">
+              Un producto inactivo no se borra: sus cifras, equivalencias e historial se conservan. El sistema no ofrece
+              reactivar un producto ni guarda un historial de cambios del catálogo (sólo la fecha de la última
+              modificación).
+            </p>
+            {shownInactive.length === 0 ? (
+              <DataState state={filtered && inactive.length > 0 ? 'no-match' : 'empty'} compact title={filtered && inactive.length > 0 ? 'Ningún inactivo coincide' : 'No hay productos inactivos'} description="" />
+            ) : (
+              <DataTable caption="Productos inactivos" minWidth={480}>
+                <tbody>
+                  {shownInactive.map((product) => (
+                    <tr key={product.id} data-testid={`inactive-${product.name}`}>
+                      <td className="min-w-40 font-medium text-slate-700 [overflow-wrap:anywhere]">{product.name}</td>
+                      <td className="text-slate-600">{unitLabel(product.unit).text}</td>
+                      <td className="text-slate-600">{product.category ?? '—'}</td>
+                      <td className="whitespace-nowrap text-xs text-slate-500">modificado el {fmtDateTime(product.updatedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            )}
+          </Collapsible>
+        </>
+      )}
 
       {(creating || editing) && (
         <Modal title={editing ? `Editar «${editing.name}»` : 'Nuevo producto'} onClose={() => { setCreating(false); setEditing(null); }} size="lg">
@@ -152,7 +236,7 @@ export function ProductsPage() {
           onDone={(product) => void saved(`«${product.name}» quedó inactivo. Sus cifras e historial se conservan.`)}
         />
       )}
-    </AppShell>
+    </div>
   );
 }
 
@@ -161,16 +245,16 @@ function ProductRow({ product, onEdit, onDeactivate }: { product: Product; onEdi
   const details = [product.commercialName, product.activeIngredient].filter(Boolean).join(' · ');
   return (
     <tr data-testid={`product-${product.name}`}>
-      <td className="px-5 py-3">
+      <td className="min-w-52 [overflow-wrap:anywhere]">
         <p className="text-base font-semibold text-slate-900">{product.name}</p>
-        {details && <p className="text-xs text-slate-500">{details}</p>}
+        {details && <p className="text-xs text-slate-600">{details}</p>}
       </td>
-      <td className="px-5 py-3 text-slate-700">
+      <td className="text-slate-700">
         {unit.text}
-        {!unit.linkable && <span className="ml-2 text-xs text-amber-700">no vinculable a cifras colectivas</span>}
+        {!unit.linkable && <span className="ml-2 text-xs text-amber-800">no vinculable a cifras colectivas</span>}
       </td>
-      <td className="px-5 py-3 text-slate-700">{product.category ?? <span className="text-slate-400">—</span>}</td>
-      <td className="px-5 py-3">
+      <td className="text-slate-700">{product.category ?? <span className="text-slate-500">—</span>}</td>
+      <td className="ui-num">
         <div className="flex justify-end gap-2">
           <button type="button" className={secondaryButtonClass} onClick={onEdit}>
             Editar
@@ -204,6 +288,7 @@ function DeactivateDialog({ product, onClose, onDone }: { product: Product; onCl
           El producto queda marcado como inactivo. No se borra: sus cifras publicadas, sus equivalencias y su historial se
           conservan.
         </p>
+        <p className="text-xs text-slate-600">El sistema no ofrece reactivarlo después.</p>
         {error && <Notice kind="error">{error}</Notice>}
         <div className="flex justify-end gap-2">
           <button type="button" className={secondaryButtonClass} onClick={onClose}>
