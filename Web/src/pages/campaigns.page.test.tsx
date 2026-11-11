@@ -103,6 +103,30 @@ describe('Campañas', () => {
     expect(screen.getByText(/Puede consultar las campañas/)).toBeTruthy();
   });
 
+  it('N1: Directiva y Administrador ven crear, editar, abrir y cerrar (campaigns.controller.ts los admite), sin «Sólo consulta»', async () => {
+    for (const role of ['DIRECTIVA', 'ADMINISTRADOR']) {
+      const { unmount } = show(fixtures.worst, { role });
+      const active = await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`);
+      expect(screen.getByRole('button', { name: 'Nueva campaña' })).toBeTruthy();
+      expect(within(active).getByRole('button', { name: 'Editar' })).toBeTruthy();
+      expect(within(active).getByRole('button', { name: 'Cerrar' })).toBeTruthy();
+      expect(within(row('Campaña de verano 2026')).getByRole('button', { name: 'Abrir' })).toBeTruthy();
+      expect(screen.queryByText('Sólo consulta')).toBeNull();
+      unmount();
+    }
+    expectNoWrites();
+  });
+
+  it('H6: la búsqueda declara tipo, tecla «buscar» y modo de entrada para el teclado del teléfono', async () => {
+    show(fixtures.one);
+    await screen.findByTestId('campaign-row-Campaña única 2026');
+    const input = screen.getByLabelText('Buscar');
+    expect(input.getAttribute('type')).toBe('search');
+    expect(input.getAttribute('enterkeyhint')).toBe('search');
+    expect(input.getAttribute('inputmode')).toBe('search');
+    expect(input.getAttribute('autocomplete')).toBe('off');
+  });
+
   it('sin coincidencias se distingue de sin registros y «Quitar filtros» vuelve a la lista completa', async () => {
     show(fixtures.demo);
     await screen.findByTestId('campaign-row-Campaña invierno 2026');

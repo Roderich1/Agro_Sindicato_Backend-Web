@@ -168,6 +168,9 @@ export function CampaignsPage() {
                 <label htmlFor="campaign-search" className={labelClass}>Buscar</label>
                 <input
                   id="campaign-search"
+                  type="search"
+                  enterKeyHint="search"
+                  inputMode="search"
                   className={inputClass}
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
