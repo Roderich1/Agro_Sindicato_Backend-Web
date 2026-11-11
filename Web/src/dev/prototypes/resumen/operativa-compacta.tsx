@@ -45,13 +45,12 @@ function Body({ summary, campaign }: { summary: NonNullable<VariantProps['summar
           {counts.total === 0 ? 'Ninguna declarada' : `${counts.published} de ${plural(counts.total, 'producto', 'productos')}`}
         </Stat>
         <Stat
-          label="Cobertura"
+          label="Cobertura: agricultores vinculados"
           testId="coverage"
           note={
             summary.coverage && (
               <>
-                agricultores vinculados con cifras publicadas.{summary.coverage.suppressed_cells && ' Hay filas sin cifra cuyos aportes no se cuentan.'} Ausencia de
-                aporte = desconocido, no cero.{' '}
+                con cifras publicadas.{summary.coverage.suppressed_cells && ' No cuenta filas sin cifra.'} Sin aporte = desconocido, no cero.{' '}
                 <Link to={coverageLink(summary)} className="font-semibold text-brand-800 underline underline-offset-2">
                   Ver cobertura
                 </Link>
@@ -122,7 +121,7 @@ function Body({ summary, campaign }: { summary: NonNullable<VariantProps['summar
                               {row.pending && <span className="block text-xs font-medium text-amber-900">Cambios pendientes: cifra anterior</span>}
                             </td>
                             <td className="ui-num text-slate-700">{row.contributors}</td>
-                            <td className="text-xs text-slate-600">{fmtDateTime(row.asOf)}</td>
+                            <td className="whitespace-nowrap text-xs text-slate-600">{fmtDateTime(row.asOf)}</td>
                           </>
                         ) : (
                           <td colSpan={3} className="text-xs leading-snug text-slate-600">
