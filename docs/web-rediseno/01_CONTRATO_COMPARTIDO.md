@@ -129,3 +129,13 @@ Servidor de datos para ver la Web: la copia aislada «rica» (API **3342**, §4 
 2. **B** y **C**, en paralelo: análisis de sus módulos contra la matriz de datos (`02_MATRIZ_DATOS_WEB.md`), fixtures sintéticos, componentes específicos y pruebas; maquetan con los componentes actuales y adoptan `ui/` antes de integrar.
 3. Elección de la variante del Resumen por el autor → la coordinadora lo comunica; A promueve la variante y B la aplica al Resumen real.
 4. Integración, validación conjunta, capturas y entrega.
+
+## 11. Decisiones de la coordinadora tras la fase 1 de A (2026-11-10, noche)
+
+- La rama `feat/web-rediseno-a-sistema-navegacion` (`fd6e290`, `fe39657`, `15cc704`) queda **aprobada como contrato vigente de `components/ui`** (verificado por la coordinadora: lint 0 errores, `tsc` OK, vitest 36 archivos / 288 pruebas). B y C la incorporan con `git merge --no-ff feat/web-rediseno-a-sistema-navegacion` en su propia rama y adoptan `components/ui` (importando sólo desde el índice) antes de integrar.
+- Props opcionales añadidas por A, **aprobadas**: `DataState.onClearFilters`, `.status`/`.threshold`, `.action`, `.testId`; `PageHeader.headingLevel`; `DataTable.maxHeight` (la cabecera pegajosa sólo con `maxHeight`); `label`, `id` y `testId` donde existan.
+- **Un solo `h1` por vista:** lo pone `PageHeader`. En la fase 2, `AppShell` deja de renderizar el título como `h1` (conserva la etiqueta de sección y el nombre de la vista como texto de la barra, o la retira si `PageHeader` ya lo muestra). B y C usan `PageHeader` con `headingLevel` por defecto (1).
+- **Barra lateral sobre fondo claro** (dirección visual «fondos claros y contraste legible»): superficie clara, ítem activo con acento de marca y texto, iconos siempre con etiqueta.
+- **Rutas nuevas y redirecciones** (`/colectivo/historico`, `/colectivo/catalogo`, `/campaigns/:id`, y los `Navigate` de las rutas antiguas): las **añade la coordinadora en la integración**, porque las páginas destino viven en las ramas de B y C. A entrega en su fase 2: `navigation.ts` (claves `history`, `catalog`, `campaignDetail`, menú nuevo), el componente `Web/src/components/redirect-with-query.tsx` (`Navigate replace` conservando la cadena de consulta y fijando `?vista=`), la barra inferior y las pruebas. Los enlaces del menú a rutas aún inexistentes en el worktree de A no se consideran defecto en esa fase.
+- `vite.config.ts`: A puede cambiar **sólo** `manifest.theme_color` a `#ffffff` para que coincida con `index.html`.
+- Limpieza de clases huérfanas (`gradient-mesh`, `animate-float`, `animate-pulse-soft`, `backdrop-blur`, `transition-all`) en `login.page.tsx` y `users.page.tsx`: la hace **A** (páginas sin otro dueño). Las páginas legacy del agricultor no se tocan.
