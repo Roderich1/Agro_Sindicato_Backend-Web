@@ -240,8 +240,8 @@ export function CampaignsPage() {
                     <td className="tabular-nums text-slate-700" data-testid="closed-at">
                       {campaign.closedAt ? `Cerrada el ${fmtDateTime(campaign.closedAt)}` : <span className="text-slate-500">Sin cierre registrado</span>}
                     </td>
-                    <td>
-                      <div className="flex flex-wrap justify-end gap-2">
+                    <td className="whitespace-nowrap">
+                      <div className="flex flex-nowrap items-center justify-end gap-2">
                         <Link to={`/campaigns/${encodeURIComponent(campaign.id)}`} className={buttonClassFor('ghost', 'sm')} aria-label={`Ver detalle de ${campaign.name}`}>
                           Ver detalle
                         </Link>
@@ -325,7 +325,7 @@ export function CampaignActions({ campaign, onChanged }: { campaign: Campaign; o
         </Button>
       )}
       {error && (
-        <div className="basis-full">
+        <div className="max-w-xs basis-full whitespace-normal">
           <Notice kind="error" compact>{error}</Notice>
         </div>
       )}

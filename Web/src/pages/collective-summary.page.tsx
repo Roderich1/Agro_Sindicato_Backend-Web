@@ -401,7 +401,7 @@ function FigureRows({ cells, unit, threshold, bars = false }: { cells: SummaryCe
                   <span className="text-sm font-semibold text-red-700">Dato no válido recibido del servidor; no se muestra.</span>
                 ) : (
                   <>
-                    {bars && (
+                    {bars && values[index]! > 0n && (
                       <div className="h-3 min-w-24 flex-1 rounded-full bg-slate-100" aria-hidden="true">
                         <div className="h-3 rounded-full bg-brand-700" style={{ width: `${width(values[index]!)}%` }} />
                       </div>

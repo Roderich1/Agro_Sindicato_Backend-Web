@@ -61,6 +61,9 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
     expect(within(liters).getByText('123.456.789,012 L')).toBeTruthy();
     expect(within(kilos).getByText('0,025 KG')).toBeTruthy();
     expect(within(liters).getByText('0 L')).toBeTruthy();
+    // break-ui: un cero divulgado se escribe «0 L» sin barra (ni pista vacía); una cifra positiva sí lleva barra.
+    expect(screen.getByTestId('cell-DECLARED_NEED-Adherente agrícola no iónico-ML').querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(screen.getByTestId(`cell-DECLARED_NEED-${fixtures.LONG_PRODUCT}-ML`).querySelector('[aria-hidden="true"]')).not.toBeNull();
     // Orden alfabético dentro de cada unidad, no por cantidad.
     const names = within(liters)
       .getAllByRole('listitem')
