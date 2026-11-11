@@ -281,9 +281,20 @@
 
   /* DataTable (components/ui): desplazamiento horizontal interno, cabecera
      pegajosa, cifras alineadas. */
+  /*
+   * Sombra lateral sólo cuando hay más tabla a ese lado (propuesta de C, etapa
+   * 3): dos velos blancos que se desplazan con el contenido (`local`) tapan dos
+   * sombras fijas (`scroll`) al llegar a cada borde. Sin desplazamiento no se ve.
+   */
   .ui-table-scroll {
     overflow: auto;
     overscroll-behavior-x: contain;
+    background:
+      linear-gradient(to right, #fff 30%, rgb(255 255 255 / 0)) left center / 40px 100% no-repeat local,
+      linear-gradient(to left, #fff 30%, rgb(255 255 255 / 0)) right center / 40px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgb(15 23 42 / 0.2), transparent) left center / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(15 23 42 / 0.2), transparent) right center / 12px 100% no-repeat scroll;
+    background-color: var(--color-surface);
   }
 
   .ui-table {
@@ -299,7 +310,8 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: #f8fafc;
+    /* Translúcido: deja ver la sombra lateral también en la fila de cabecera. */
+    background: rgb(248 250 252 / 0.88);
     border-bottom: 1px solid var(--color-line);
     padding: 0.625rem 1rem;
     text-align: left;
