@@ -49,6 +49,10 @@ describe('Necesidades y propuestas (rediseño)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     await screen.findByText('295 L');
     expect(screen.getByTestId('reference-header').textContent).toBe('Estimación del consumo (referencia)');
+    // El detalle abre el contenedor «Histórico y estimaciones» en la vista de la estimación, con la misma campaña.
+    expect(screen.getByRole('link', { name: 'Detalle en «Estimación del consumo»' }).getAttribute('href')).toBe(
+      `/colectivo/historico?vista=estimacion&campaign=${demo.proposal!.campaign.campaign_ref}`,
+    );
     expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toMatch(
       /^La estimación es 15 L menor que la necesidad declarada\./,
     );

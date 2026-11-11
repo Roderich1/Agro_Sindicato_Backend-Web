@@ -63,7 +63,7 @@ export function ProductsPage() {
   );
 }
 
-export function ProductsView({ headingLevel = 1, equivalencesTo = COLLECTIVE_PATHS.reconciliation }: { headingLevel?: 1 | 2; equivalencesTo?: To }) {
+export function ProductsView({ headingLevel = 1, equivalencesTo = `${COLLECTIVE_PATHS.catalog}?vista=equivalencias` }: { headingLevel?: 1 | 2; equivalencesTo?: To }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; forbidden: boolean } | null>(null);

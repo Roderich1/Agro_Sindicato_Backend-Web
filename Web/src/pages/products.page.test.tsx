@@ -69,7 +69,7 @@ describe('Gestión → Productos', () => {
     expect(within(inactive).getByTestId('inactive-Retirado sintético')).toBeTruthy();
     // Una sola acción primaria y el enlace a las equivalencias.
     expect(screen.getByRole('button', { name: 'Nuevo producto' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Ver equivalencias' }).getAttribute('href')).toBe(COLLECTIVE_PATHS.reconciliation);
+    expect(screen.getByRole('link', { name: 'Ver equivalencias' }).getAttribute('href')).toBe(`${COLLECTIVE_PATHS.catalog}?vista=equivalencias`);
   });
 
   it('la Directiva crea un producto con nombre y unidad (opcionales aparte) y aparece en el listado', async () => {
