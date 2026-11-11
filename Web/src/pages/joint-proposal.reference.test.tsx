@@ -110,7 +110,8 @@ describe('Propuesta conjunta: estimación del consumo como referencia (F12-EST-0
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
     await screen.findByText('295 L');
-    expect(screen.getByTestId('reference-header').textContent).toMatch(/^Referencia de consumo/);
+    // Rótulo del contrato F12_EST_01 §7.1 (antes «Referencia de consumo (estimación del servidor)»).
+    expect(screen.getByTestId('reference-header').textContent).toBe('Estimación del consumo (referencia)');
     expect(cell('Glifosato').textContent).toMatch(/295 L/);
     expect(cell('Glifosato').textContent).toMatch(/Vigente/);
     expect(cell('Glifosato').textContent).toMatch(/anterior al borrador/);
