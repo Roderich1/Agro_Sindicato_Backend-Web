@@ -3,7 +3,9 @@ import type {
   CreateJointPurchaseCallBody,
   EligibleResponsible,
   JointPurchaseCallClosing,
+  JointPurchaseCallCollaborators,
   JointPurchaseCallDetail,
+  JointPurchaseCallGrant,
   JointPurchaseCallList,
   JointPurchaseCallParticipants,
   JointPurchaseCallStatus,
@@ -55,4 +57,17 @@ export const jointPurchaseCallsService = {
     api
       .get<{ contractVersion: 1; users: EligibleResponsible[] }>(`${BASE}/eligible-responsibles`)
       .then((r) => r.data.users),
+  /** §10.2: colaboradores vigentes e historial de concesiones y revocaciones (sin datos de agricultores). */
+  collaborators: (id: string) =>
+    api.get<JointPurchaseCallCollaborators>(`${BASE}/${seg(id)}/collaborators`).then((r) => r.data),
+  /** Sólo el responsable (403 `COLLABORATORS_FORBIDDEN`); idempotente. Responde la lista actualizada. */
+  grant: (id: string, userRef: string, grant: JointPurchaseCallGrant) =>
+    api
+      .post<JointPurchaseCallCollaborators>(`${BASE}/${seg(id)}/collaborators`, { user_ref: userRef, grant, confirmed: true })
+      .then((r) => r.data),
+  /** El responsable revoca, o el propio colaborador renuncia; idempotente. Responde la lista actualizada. */
+  revoke: (id: string, userRef: string, grant: JointPurchaseCallGrant) =>
+    api
+      .post<JointPurchaseCallCollaborators>(`${BASE}/${seg(id)}/collaborators/revoke`, { user_ref: userRef, grant })
+      .then((r) => r.data),
 };

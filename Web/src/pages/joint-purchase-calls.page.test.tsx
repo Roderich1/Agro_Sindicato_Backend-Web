@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../App.tsx?raw';
 import { AppShell } from '../components/app-shell';
 import { CollectiveRoute } from '../components/collective-route';
-import { RESPONSIBLE_NOTICE } from '../lib/joint-purchase-call-text';
+import { prepareCallPath, readPreparedCall, RESPONSIBLE_NOTICE } from '../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS, menuPathsFor, WEB_NOT_FOR_FARMERS_PATH } from '../lib/navigation';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
@@ -27,6 +27,9 @@ vi.mock('../services/joint-purchase-calls.service', () => ({
     participants: vi.fn(),
     closing: vi.fn(),
     eligibleResponsibles: vi.fn(),
+    collaborators: vi.fn(),
+    grant: vi.fn(),
+    revoke: vi.fn(),
   },
 }));
 vi.mock('../services/collective.service', () => ({
@@ -74,7 +77,7 @@ const CREATED: JointPurchaseCallDetail = {
   created_at: '2026-11-11T10:00:00.000Z',
   updated_at: '2026-11-11T10:00:00.000Z',
   server_time: '2026-11-11T10:00:00.000Z',
-  responsible: { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
+  responsible: { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR', eligible: true },
   created_by: { user_ref: 'u-1', name: 'Usuario sintético' },
   opened_by: null,
   cancelled_by: null,
@@ -84,6 +87,10 @@ const CREATED: JointPurchaseCallDetail = {
   totals_threshold: 3,
   can_view_participants: false,
   is_responsible: false,
+  can_manage: true,
+  can_cancel_or_close: true,
+  my_grants: ['MANAGE'],
+  collaborator_count: 0,
   products: [
     {
       position: 0,
@@ -326,6 +333,122 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
     expect(await within(dialog()).findByText(/no es un usuario activo de la Directiva o la Administración/)).toBeTruthy();
     expect(screen.queryByTestId('detail-probe')).toBeNull();
+  });
+});
+
+/** La consulta de la URL actual, para comprobar qué parámetros quedan. */
+function SearchProbe() {
+  return <p data-testid="search-probe">{useLocation().search}</p>;
+}
+const renderPrepared = (path: string) =>
+  renderAt(
+    <>
+      <JointPurchaseCallsPage />
+      <SearchProbe />
+    </>,
+    { path, routePath: COLLECTIVE_PATHS.jointPurchaseCalls, routes: [DETAIL_ROUTE] },
+  );
+const searchParams = () => new URLSearchParams(screen.getByTestId('search-probe').textContent ?? '');
+
+describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de propuesta', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN]);
+    vi.mocked(jointPurchaseCallsService.list).mockResolvedValue([ROW]);
+    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue(RESPONSIBLES);
+    vi.mocked(collectiveService.catalog).mockResolvedValue(CATALOG);
+    vi.mocked(collectiveService.associations).mockResolvedValue(ASSOCIATIONS);
+    vi.mocked(collectiveService.proposals).mockResolvedValue(DRAFTS);
+    vi.mocked(collectiveService.proposal).mockResolvedValue(PROPOSAL);
+    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue({ ...CREATED, source_proposal_ref: 'pr-1' });
+  });
+
+  it('la URL usa la ruta de la lista y codifica los valores; se lee igual', () => {
+    const path = prepareCallPath(CAMPAIGN.id, 'pr 1/á', ['p-1', 'p&2']);
+    expect(path.startsWith(`${COLLECTIVE_PATHS.jointPurchaseCalls}?nueva=1&`)).toBe(true);
+    expect(path).not.toMatch(/ |&2|\/á/);
+    expect(readPreparedCall(new URLSearchParams(path.split('?')[1]))).toEqual({
+      campaignId: CAMPAIGN.id,
+      proposalId: 'pr 1/á',
+      productRefs: ['p-1', 'p&2'],
+    });
+    expect(readPreparedCall(new URLSearchParams('nueva=1&campana=no-uuid&propuesta=pr-1'))).toBeNull();
+    expect(readPreparedCall(new URLSearchParams(`campana=${CAMPAIGN.id}&propuesta=pr-1`))).toBeNull();
+  });
+
+  it('abre el formulario con la campaña, el borrador y sólo sus líneas de esos productos; avisa de los ignorados; nada se envía sin confirmar', async () => {
+    renderPrepared(prepareCallPath(CAMPAIGN.id, 'pr-1', ['p-1', 'p-9', 'p-8']));
+    const form = await screen.findByRole('dialog', { name: 'Nueva convocatoria' });
+    expect(within(form).getByText(CAMPAIGN.name)).toBeTruthy();
+    expect(within(form).getByTestId('prepared-notice').textContent).toMatch(/No se crea nada ni se inscribe a nadie/);
+    expect(within(form).getByRole('button', { name: 'Tomar productos de un borrador de propuesta' }).getAttribute('aria-pressed')).toBe('true');
+    expect(((await within(form).findByLabelText('Borrador de propuesta')) as HTMLSelectElement).value).toBe('pr-1');
+    await waitFor(() => expect((within(within(form).getByTestId('proposal-line-0')).getByRole('checkbox') as HTMLInputElement).checked).toBe(true));
+    // Urea (p-3) es línea del borrador pero no se pidió: queda sin elegir.
+    expect((within(within(form).getByTestId('proposal-line-1')).getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
+    expect(within(form).getByTestId('prepared-ignored').textContent).toBe(
+      '2 productos indicados no son líneas de este borrador de propuesta y no se preseleccionaron.',
+    );
+    expect(collectiveService.proposal).toHaveBeenCalledWith('pr-1');
+    expect(collectiveService.proposals).toHaveBeenCalledWith(CAMPAIGN.id);
+    // Nombre, plazo y responsable siguen vacíos: la persona los completa.
+    expect((within(form).getByLabelText('Nombre') as HTMLInputElement).value).toBe('');
+    expect((within(form).getByLabelText('Fecha y hora límite') as HTMLInputElement).value).toBe('');
+    expect((within(form).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('');
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
+
+    // Sin completar, «Crear borrador» no envía nada.
+    fireEvent.click(within(form).getByRole('button', { name: 'Crear borrador' }));
+    expect(within(form).getByText('Escriba el nombre de la convocatoria.')).toBeTruthy();
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
+
+    fireEvent.change(within(form).getByLabelText('Nombre'), { target: { value: 'Desde el borrador' } });
+    fireEvent.change(within(form).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
+    await waitFor(() => expect(within(form).getByRole('option', { name: 'Responsable sintética · Directiva' })).toBeTruthy());
+    fireEvent.change(within(form).getByLabelText('Responsable'), { target: { value: 'u-2' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'Crear borrador' }));
+    await waitFor(() =>
+      expect(jointPurchaseCallsService.create).toHaveBeenCalledWith({
+        campaign_id: CAMPAIGN.id,
+        name: 'Desde el borrador',
+        deadline_at: new Date('2099-12-01T18:00').toISOString(),
+        responsible_user_id: 'u-2',
+        products: [{ product_ref: 'p-1' }],
+        source_proposal_id: 'pr-1',
+      }),
+    );
+    expect(jointPurchaseCallsService.create).toHaveBeenCalledTimes(1);
+    expect((await screen.findByTestId('detail-probe')).textContent).toBe('detalle de la convocatoria c-9');
+  });
+
+  it('todos los productos son líneas del borrador: los preselecciona sin aviso', async () => {
+    renderPrepared(prepareCallPath(CAMPAIGN.id, 'pr-1', ['p-1', 'p-3']));
+    const form = await screen.findByRole('dialog', { name: 'Nueva convocatoria' });
+    await waitFor(() => expect((within(within(form).getByTestId('proposal-line-1')).getByRole('checkbox') as HTMLInputElement).checked).toBe(true));
+    expect((within(within(form).getByTestId('proposal-line-0')).getByRole('checkbox') as HTMLInputElement).checked).toBe(true);
+    expect(within(form).queryByTestId('prepared-ignored')).toBeNull();
+  });
+
+  it('cerrar el formulario quita los parámetros de la URL, conserva la campaña y no crea nada', async () => {
+    renderPrepared(prepareCallPath(CAMPAIGN.id, 'pr-1', ['p-1']));
+    const form = await screen.findByRole('dialog', { name: 'Nueva convocatoria' });
+    await waitFor(() => expect((within(within(form).getByTestId('proposal-line-0')).getByRole('checkbox') as HTMLInputElement).checked).toBe(true));
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const params = searchParams();
+    for (const name of ['nueva', 'campana', 'propuesta', 'productos']) expect(params.has(name)).toBe(false);
+    expect(params.get('campaign')).toBe(CAMPAIGN.id);
+    expect(await screen.findByTestId('call-row-c-1')).toBeTruthy();
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
+  });
+
+  it('una campaña que no está disponible: no abre el formulario, lo avisa y quita los parámetros', async () => {
+    renderPrepared(prepareCallPath('22222222-2222-4222-8222-222222222222', 'pr-1', ['p-1']));
+    expect((await screen.findByTestId('prepare-problem')).textContent).toMatch(/No se pudo preparar la convocatoria/);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(searchParams().has('nueva')).toBe(false));
+    expect(collectiveService.proposal).not.toHaveBeenCalled();
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
   });
 });
 

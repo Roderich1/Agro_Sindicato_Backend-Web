@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import {
   Button,
@@ -15,7 +15,13 @@ import {
 } from '../components/ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { fmtDateTime } from '../lib/collective-text';
-import { CALL_STATUS_CHIP, CALL_STATUS_LABEL, callError } from '../lib/joint-purchase-call-text';
+import {
+  CALL_STATUS_CHIP,
+  CALL_STATUS_LABEL,
+  callError,
+  PREPARE_CALL_PARAMS,
+  readPreparedCall,
+} from '../lib/joint-purchase-call-text';
 import { jointPurchaseCallPath } from '../lib/navigation';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import type { JointPurchaseCallStatus, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
@@ -36,6 +42,11 @@ const FILTERS: { value: Filter; label: string }[] = [
  * convocatorias de la campaña elegida (`?campaign=`), filtradas por estado.
  * La lista no muestra identidades de agricultores: sólo cuántas personas
  * participan. Crear un borrador no lo muestra a nadie hasta abrirlo.
+ *
+ * «Preparar convocatoria» (`?nueva=1&campana=&propuesta=&productos=`, desde un
+ * borrador de propuesta): abre el formulario de creación con esa campaña, ese
+ * borrador y sus líneas de esos productos. No crea nada por sí solo; al cerrar
+ * el formulario se quitan esos parámetros de la URL.
  */
 export function JointPurchaseCallsPage() {
   const navigate = useNavigate();
@@ -45,6 +56,11 @@ export function JointPurchaseCallsPage() {
   const [problem, setProblem] = useState<{ message: string; forbidden: boolean } | null>(null);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
+  const prepared = readPreparedCall(params);
+  const preparing = params.get('nueva') === '1';
+  const preparedCampaign = prepared ? (campaigns.find((item) => item.id === prepared.campaignId) ?? null) : null;
+  const [prepareProblem, setPrepareProblem] = useState<string | null>(null);
   const key = `${selected ?? ''}|${filter}`;
   const keyRef = useRef(key);
   useEffect(() => {
@@ -71,6 +87,47 @@ export function JointPurchaseCallsPage() {
     void Promise.resolve().then(() => load(selected, filter, key));
   }, [selected, filter, key, load]);
 
+  /** Quita los parámetros de «Preparar convocatoria»; la lista queda en la campaña elegida (`keep`). */
+  const clearPrepared = useCallback(
+    (keep: string | null) =>
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const name of PREPARE_CALL_PARAMS) next.delete(name);
+          if (keep) next.set('campaign', keep);
+          return next;
+        },
+        { replace: true },
+      ),
+    [setParams],
+  );
+
+  // «Preparar convocatoria»: la lista muestra la campaña del borrador; si los datos no sirven, se avisa y se quitan.
+  const preparedCampaignId = preparedCampaign?.id ?? null;
+  const requestedCampaign = params.get('campaign');
+  const invalidPrepare = preparing && (!prepared || (campaigns.length > 0 && !preparedCampaign));
+  useEffect(() => {
+    if (preparedCampaignId && requestedCampaign !== preparedCampaignId) {
+      void Promise.resolve().then(() =>
+        setParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('campaign', preparedCampaignId);
+            return next;
+          },
+          { replace: true },
+        ),
+      );
+    }
+  }, [preparedCampaignId, requestedCampaign, setParams]);
+  useEffect(() => {
+    if (!invalidPrepare) return;
+    void Promise.resolve().then(() => {
+      setPrepareProblem('No se pudo preparar la convocatoria: la campaña o el borrador de propuesta indicados no están disponibles.');
+      clearPrepared(null);
+    });
+  }, [invalidPrepare, clearPrepared]);
+
   const campaign = campaigns.find((item) => item.id === selected) ?? null;
   const retry = selected ? () => void load(selected, filter, key) : undefined;
 
@@ -88,6 +145,11 @@ export function JointPurchaseCallsPage() {
           }
         />
         {message && <Notice kind="ok">{message}</Notice>}
+        {prepareProblem && (
+          <Notice kind="warn">
+            <span data-testid="prepare-problem">{prepareProblem}</span>
+          </Notice>
+        )}
 
         {campaignsError ? (
           <Section>
@@ -170,6 +232,22 @@ export function JointPurchaseCallsPage() {
         )}
       </div>
 
+      {prepared && preparedCampaign && !creating && (
+        <JointPurchaseCallForm
+          campaignId={preparedCampaign.id}
+          campaignName={preparedCampaign.name}
+          preset={{ proposalId: prepared.proposalId, productRefs: prepared.productRefs }}
+          onClose={() => clearPrepared(preparedCampaign.id)}
+          onSaved={({ id, text }) => {
+            if (id) navigate(`${jointPurchaseCallPath(id)}?campaign=${encodeURIComponent(preparedCampaign.id)}`, { state: { message: text } });
+            else {
+              setMessage(text);
+              clearPrepared(preparedCampaign.id);
+              void load(preparedCampaign.id, filter, `${preparedCampaign.id}|${filter}`);
+            }
+          }}
+        />
+      )}
       {creating && selected && campaign && (
         <JointPurchaseCallForm
           campaignId={selected}

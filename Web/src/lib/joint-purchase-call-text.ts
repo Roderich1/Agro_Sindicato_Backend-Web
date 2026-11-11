@@ -2,11 +2,13 @@ import axios from 'axios';
 import type {
   JointPurchaseCallCloseMode,
   JointPurchaseCallEventKind,
+  JointPurchaseCallGrant,
   JointPurchaseCallStatus,
   JointPurchaseCallTotalVisibility,
   JointPurchaseParticipationStatus,
 } from '../types/joint-purchase-calls';
 import { collectiveError } from './collective-text';
+import { COLLECTIVE_PATHS } from './navigation';
 import { formatQuantity, type BaseUnit } from './quantity';
 
 /**
@@ -37,6 +39,21 @@ export const CALL_EVENT_LABEL: Record<JointPurchaseCallEventKind, string> = {
   CLOSED: 'Convocatoria cerrada',
   CANCELLED: 'Convocatoria cancelada',
   RESPONSIBLE_ASSIGNED: 'Responsable asignado',
+  ACCESS_GRANTED: 'Permiso concedido',
+  ACCESS_REVOKED: 'Permiso retirado',
+};
+
+/** E2-P3 (§10.2): nombres de los permisos por convocatoria, como los publica el servidor (`GRANT_LABEL`). */
+export const GRANT_LABEL: Record<JointPurchaseCallGrant, string> = {
+  PARTICIPANTS: 'Consultar participantes y cantidades',
+  MANAGE: 'Administrar la convocatoria',
+};
+
+/** Qué permite cada permiso (§10.2). */
+export const GRANT_DESCRIPTION: Record<JointPurchaseCallGrant, string> = {
+  PARTICIPANTS:
+    'Ver los nombres y las cantidades solicitadas por persona, sólo de quienes aceptaron el consentimiento vigente, y el detalle del consolidado al cierre.',
+  MANAGE: 'Editar el borrador, abrirla, cancelarla y cerrarla a mano. No permite ver participantes ni conceder permisos.',
 };
 
 export const CLOSE_MODE_LABEL: Record<JointPurchaseCallCloseMode, string> = {
@@ -55,8 +72,31 @@ export const ROLE_LABEL: Record<string, string> = {
 };
 
 export const RESPONSIBLE_NOTICE =
-  'El responsable podrá ver el nombre y las cantidades de quienes participen. No se puede cambiar después de abrir.';
-export const PARTICIPANTS_FORBIDDEN_TEXT = 'Sólo el responsable de esta convocatoria puede ver a los participantes.';
+  'El responsable podrá ver el nombre y las cantidades de quienes participen y autorizar a otras personas de la Directiva o la Administración para coordinarla. No se puede cambiar después de abrir.';
+export const PARTICIPANTS_FORBIDDEN_TEXT =
+  'Sólo la persona responsable de esta convocatoria y quienes ella autorice pueden ver a los participantes.';
+/** §10.2: el permiso se perdió mientras la página mostraba participantes; texto exacto del contrato. */
+export const PARTICIPANTS_REVOKED_TEXT =
+  'Ya no tiene permiso para ver a los participantes de esta convocatoria. Lo que se haya copiado, impreso o capturado antes no se puede retirar desde aquí.';
+/** §10.2: sin `can_manage` ni `can_cancel_or_close` no hay acciones de estado. */
+export const MANAGE_ONLY_TEXT =
+  'Sólo la persona responsable o quien tenga el permiso «Administrar la convocatoria» puede editarla, abrirla, cancelarla o cerrarla.';
+/** §10.2: el responsable dejó de ser elegible; cualquier Directiva o Administración puede cancelar o cerrar. */
+export const RESPONSIBLE_INELIGIBLE_TEXT =
+  'La persona responsable ya no es un usuario activo de la Directiva o la Administración: cualquiera de ellas puede cancelar o cerrar esta convocatoria, pero no ver a sus participantes.';
+/** El servidor respondió `MANAGE_FORBIDDEN`: el permiso cambió mientras la página estaba abierta. */
+export const MANAGE_LOST_TEXT =
+  'Ya no puede administrar esta convocatoria: el permiso cambió. Se volvió a cargar con sus permisos actuales.';
+/** El servidor respondió `COLLABORATORS_FORBIDDEN`: quien consulta ya no es la persona responsable. */
+export const COLLABORATORS_LOST_TEXT =
+  'Ya no puede conceder ni retirar permisos en esta convocatoria: sólo la persona responsable puede hacerlo. Se volvió a cargar con sus permisos actuales.';
+
+/** §10.2: aviso de participaciones con `CONV-1`, si el servidor no lo envió. */
+export function hiddenParticipantsText(count: number): string {
+  return count === 1
+    ? '1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable.'
+    : `${count} participaciones aceptadas con un consentimiento anterior: sólo las ve la persona responsable.`;
+}
 export const PROVISIONAL_NOTE = 'Puede cambiar hasta el cierre. Son cantidades solicitadas, no compras ni deudas.';
 export const NOT_A_PURCHASE_TEXT = 'Son cantidades solicitadas: no son compras, entregas ni deudas.';
 export const OPEN_IMPLICATIONS = [
@@ -65,16 +105,28 @@ export const OPEN_IMPLICATIONS = [
 ];
 export const CLOSE_IMPLICATION = 'Se consolidan las participaciones recibidas hasta ahora con la hora del servidor. No se puede reabrir.';
 
+/** §10.3: total retenido porque incluye participaciones que quien consulta no puede ver (abierta o cerrada). */
+export const RESPONSIBLE_ONLY_HIDDEN_TEXT =
+  'Total visible sólo para la persona responsable: incluye participaciones aceptadas con un consentimiento anterior, que usted no puede ver.';
+
 /**
- * Texto en lugar de un total retenido (E2-D7 / E2-P1); nunca se muestra 0.
- * `RESPONSIBLE_ONLY`: convocatoria abierta, quien consulta no es el
- * responsable. `UNDER_THRESHOLD`: al cierre, menos del umbral de personas.
+ * Texto en lugar de un total retenido (E2-D7 / E2-P1 / §10.3); nunca se
+ * muestra 0. `RESPONSIBLE_ONLY` con la convocatoria abierta, para quien no
+ * tiene `PARTICIPANTS`: E2-P1. `RESPONSIBLE_ONLY` en el consolidado, o para un
+ * colaborador con `PARTICIPANTS`: el total incluye participaciones ocultas para
+ * él (`hidden`). `UNDER_THRESHOLD`: al cierre, menos del umbral de personas.
  */
-export function withheldTotalText(visibility: JointPurchaseCallTotalVisibility, threshold: number | null | undefined): string {
+export function withheldTotalText(
+  visibility: JointPurchaseCallTotalVisibility,
+  threshold: number | null | undefined,
+  hidden = false,
+): string {
   const k = threshold ?? 3;
-  return visibility === 'RESPONSIBLE_ONLY'
-    ? `Total visible sólo para el responsable mientras la convocatoria está abierta; al cierre se muestra si hay ${k} o más personas en el producto.`
-    : `Total no visible: menos de ${k} personas pidieron este producto.`;
+  if (visibility === 'RESPONSIBLE_ONLY')
+    return hidden
+      ? RESPONSIBLE_ONLY_HIDDEN_TEXT
+      : `Total visible sólo para el responsable mientras la convocatoria está abierta; al cierre se muestra si hay ${k} o más personas en el producto.`;
+  return `Total no visible: menos de ${k} personas pidieron este producto.`;
 }
 
 /**
@@ -107,6 +159,10 @@ const ERROR_TEXT: Record<string, string> = {
   CALL_NOT_EDITABLE: 'Sólo un borrador se puede modificar: la convocatoria ya se abrió, se cerró o se canceló.',
   CALL_NOT_CLOSED: 'El consolidado sólo existe cuando la convocatoria está cerrada.',
   PARTICIPANTS_FORBIDDEN: PARTICIPANTS_FORBIDDEN_TEXT,
+  MANAGE_FORBIDDEN: `No tiene permiso para administrar esta convocatoria. ${MANAGE_ONLY_TEXT}`,
+  COLLABORATORS_FORBIDDEN: 'Sólo la persona responsable de esta convocatoria puede conceder o retirar permisos.',
+  COLLABORATOR_NOT_ELIGIBLE:
+    'Esa persona no puede recibir o perder este permiso: debe ser otro usuario activo de la Directiva o la Administración, distinto de la persona responsable y de usted. Los permisos de la persona responsable no se retiran.',
   CALL_NOT_OPEN: 'La convocatoria ya no está abierta.',
   STALE_SEQUENCE: 'La participación cambió desde otro envío. Recargue la página.',
   OPERATION_ID_REUSED: 'La operación ya se había enviado con otros datos. Recargue la página.',
@@ -200,4 +256,42 @@ export function fromLocalInput(value: string): string | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+/**
+ * «Preparar convocatoria» desde un borrador de propuesta: la lista de
+ * convocatorias abre el formulario de creación con esa campaña, ese borrador y
+ * esos productos preseleccionados. No crea nada: la persona completa el resto
+ * y confirma. `/colectivo/compras-conjuntas?nueva=1&campana=…&propuesta=…&productos=a,b`.
+ */
+export const PREPARE_CALL_PARAMS = ['nueva', 'campana', 'propuesta', 'productos'] as const;
+const PREPARE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_PREPARED_PRODUCTS = 50;
+
+export function prepareCallPath(campaignRef: string, proposalRef: string, productRefs: readonly string[]): string {
+  const query = new URLSearchParams({ nueva: '1', campana: campaignRef, propuesta: proposalRef, productos: productRefs.join(',') });
+  return `${COLLECTIVE_PATHS.jointPurchaseCalls}?${query.toString()}`;
+}
+
+export interface PreparedCall {
+  campaignId: string;
+  proposalId: string;
+  productRefs: string[];
+}
+
+/** Lee los parámetros de «Preparar convocatoria»; `null` si falta `nueva=1`, la campaña no es un UUID o falta el borrador. */
+export function readPreparedCall(params: URLSearchParams): PreparedCall | null {
+  if (params.get('nueva') !== '1') return null;
+  const campaignId = params.get('campana') ?? '';
+  const proposalId = (params.get('propuesta') ?? '').trim();
+  if (!PREPARE_UUID.test(campaignId) || !proposalId || proposalId.length > 128) return null;
+  const productRefs = [
+    ...new Set(
+      (params.get('productos') ?? '')
+        .split(',')
+        .map((ref) => ref.trim())
+        .filter((ref) => ref.length > 0 && ref.length <= 128),
+    ),
+  ].slice(0, MAX_PREPARED_PRODUCTS);
+  return { campaignId, proposalId, productRefs };
 }

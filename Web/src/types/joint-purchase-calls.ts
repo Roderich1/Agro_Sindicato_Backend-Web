@@ -9,17 +9,34 @@ import type { BaseUnit } from '../lib/quantity';
  * **solicitada**: no es una compra, una entrega ni una deuda.
  */
 export type JointPurchaseCallStatus = 'DRAFT' | 'OPEN' | 'CLOSED' | 'CANCELLED';
-export type JointPurchaseCallEventKind = 'CREATED' | 'UPDATED' | 'OPENED' | 'CLOSED' | 'CANCELLED' | 'RESPONSIBLE_ASSIGNED';
+export type JointPurchaseCallEventKind =
+  | 'CREATED'
+  | 'UPDATED'
+  | 'OPENED'
+  | 'CLOSED'
+  | 'CANCELLED'
+  | 'RESPONSIBLE_ASSIGNED'
+  | 'ACCESS_GRANTED'
+  | 'ACCESS_REVOKED';
 export type JointPurchaseParticipationStatus = 'ACTIVE' | 'WITHDRAWN';
 export type JointPurchaseCallCloseMode = 'MANUAL' | 'AUTOMATIC';
 
 /**
- * E2-D7 / E2-P1: `VISIBLE` con el total; `UNDER_THRESHOLD` (sólo al cierre)
- * cuando menos del umbral de personas pidieron el producto; `RESPONSIBLE_ONLY`
- * mientras la convocatoria está abierta, para quien no tiene el permiso del
- * responsable. Fuera de `VISIBLE` el total llega como `null`, nunca como 0.
+ * E2-D7 / E2-P1 / §10.3: `VISIBLE` con el total; `UNDER_THRESHOLD` (sólo al
+ * cierre) cuando menos del umbral de personas pidieron el producto;
+ * `RESPONSIBLE_ONLY` mientras la convocatoria está abierta, para quien no tiene
+ * el permiso del responsable, y también (abierta o cerrada) cuando el total
+ * incluye participaciones ocultas para quien consulta (aceptadas con `CONV-1`).
+ * Fuera de `VISIBLE` el total llega como `null`, nunca como 0.
  */
 export type JointPurchaseCallTotalVisibility = 'VISIBLE' | 'UNDER_THRESHOLD' | 'RESPONSIBLE_ONLY';
+
+/**
+ * E2-P3 (§10.2): permisos por convocatoria. `PARTICIPANTS` («Consultar
+ * participantes y cantidades»), `MANAGE` («Administrar la convocatoria»).
+ * Ningún rol los concede por sí solo.
+ */
+export type JointPurchaseCallGrant = 'PARTICIPANTS' | 'MANAGE';
 
 /** Usuario institucional (responsable, autor de una acción). Nunca un agricultor. */
 export interface JointPurchaseCallUserRef {
@@ -105,7 +122,8 @@ export interface JointPurchaseCallDetail {
   created_at: string;
   updated_at: string;
   server_time: string;
-  responsible: JointPurchaseCallUserRef & { role: string | null };
+  /** `eligible: false`: el responsable dejó de ser un usuario activo (cuenta, Member o rol). */
+  responsible: JointPurchaseCallUserRef & { role: string | null; eligible: boolean };
   created_by: JointPurchaseCallUserRef;
   opened_by: JointPurchaseCallUserRef | null;
   cancelled_by: JointPurchaseCallUserRef | null;
@@ -115,9 +133,17 @@ export interface JointPurchaseCallDetail {
   totals_source: 'NONE' | 'LIVE' | 'CLOSING';
   /** Umbral de E2-D7 (provisional, 3). */
   totals_threshold: number;
-  /** Permiso específico E2-D6 de quien consulta (sólo el responsable, tras abrir). */
+  /** Permiso `PARTICIPANTS` de quien consulta (el responsable tras abrir, o un colaborador autorizado). */
   can_view_participants: boolean;
   is_responsible: boolean;
+  /** §10.2: responsable o `MANAGE` (editar el borrador, abrir, cancelar y cerrar). */
+  can_manage: boolean;
+  /** §10.2: `can_manage`, o el responsable ya no es elegible (cualquier Directiva/Administración puede cancelar o cerrar). */
+  can_cancel_or_close: boolean;
+  /** Permisos que quien consulta tiene ahora (el responsable tiene `MANAGE` por serlo). */
+  my_grants: JointPurchaseCallGrant[];
+  /** Usuarios con algún permiso concedido por el responsable (nunca agricultores). */
+  collaborator_count: number;
   products: JointPurchaseCallProduct[];
   history: JointPurchaseCallEvent[];
 }
@@ -147,6 +173,10 @@ export interface JointPurchaseCallParticipants {
   /** Aviso del servidor (p. ej. «Lista provisional…» mientras está abierta), o `null`. */
   notice: string | null;
   participant_count: number;
+  /** §10.2: participaciones con `CONV-1` que un colaborador no ve por nombre (0 para el responsable). */
+  hidden_participant_count: number;
+  /** Aviso del servidor sobre esas participaciones, o `null`. */
+  hidden_notice: string | null;
   participants: JointPurchaseCallParticipant[];
 }
 
@@ -180,8 +210,11 @@ export interface JointPurchaseCallClosing {
   totals_threshold: number;
   can_view_participants: boolean;
   lines: JointPurchaseCallClosingLine[];
-  /** Sólo con el permiso E2-D6; `null` en otro caso. */
+  /** Sólo con `PARTICIPANTS` (§10.3); `null` en otro caso. Un colaborador recibe sólo las de `CONV-2`. */
   participants: JointPurchaseCallClosingParticipant[] | null;
+  /** §10.2: participaciones congeladas ocultas para este colaborador (0 en otro caso). */
+  hidden_participant_count: number;
+  hidden_notice: string | null;
 }
 
 /** Producto pedido al crear o editar: sólo su referencia (el servidor deduce la línea del borrador de origen). */
@@ -206,4 +239,41 @@ export interface EligibleResponsible {
   user_ref: string;
   name: string;
   role: string;
+}
+
+/** Un permiso vigente de un colaborador: quién lo concedió y cuándo. */
+export interface JointPurchaseCallCollaboratorGrant {
+  grant: JointPurchaseCallGrant;
+  label: string;
+  granted_at: string;
+  granted_by: JointPurchaseCallUserRef;
+}
+
+/** Colaborador vigente (usuario institucional, nunca un agricultor). */
+export interface JointPurchaseCallCollaborator {
+  user_ref: string;
+  name: string;
+  role: string | null;
+  grants: JointPurchaseCallCollaboratorGrant[];
+}
+
+/** Concesión o revocación registrada (`JointPurchaseCallAccessEvent`). */
+export interface JointPurchaseCallAccessEvent {
+  at: string;
+  action: 'GRANTED' | 'REVOKED';
+  grant: JointPurchaseCallGrant;
+  user: JointPurchaseCallUserRef;
+  actor: JointPurchaseCallUserRef;
+}
+
+/** `GET`/`POST /:id/collaborators` y `POST /:id/collaborators/revoke` (§10.2). */
+export interface JointPurchaseCallCollaborators {
+  contractVersion: 1;
+  call_id: string;
+  status: JointPurchaseCallStatus;
+  responsible: JointPurchaseCallUserRef;
+  /** Sólo el responsable concede y revoca. */
+  can_grant: boolean;
+  collaborators: JointPurchaseCallCollaborator[];
+  history: JointPurchaseCallAccessEvent[];
 }

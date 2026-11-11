@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '../components/app-shell';
 import { Button, DataState, inputClass, labelClass, Notice, SegmentedControl } from '../components/ui';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import {
   callError,
+  callErrorCode,
   fromLocalInput,
   referenceText,
   RESPONSIBLE_NOTICE,
@@ -51,6 +52,8 @@ export function JointPurchaseCallForm({
   call,
   onClose,
   onSaved,
+  onManageForbidden,
+  preset,
 }: {
   campaignId: string;
   campaignName: string;
@@ -58,16 +61,25 @@ export function JointPurchaseCallForm({
   call?: JointPurchaseCallDetail;
   onClose: () => void;
   onSaved: (saved: { id: string | null; text: string }) => void;
+  /** §10.2: el servidor respondió 403 `MANAGE_FORBIDDEN` al editar; quien abrió el formulario explica y recarga. */
+  onManageForbidden?: () => void;
+  /**
+   * «Preparar convocatoria» desde un borrador de propuesta (sólo al crear):
+   * ese borrador como origen y preseleccionadas sólo las líneas de esos
+   * productos. No envía nada: la persona completa el resto y confirma.
+   */
+  preset?: { proposalId: string; productRefs: readonly string[] };
 }) {
   const editing = Boolean(call);
+  const prepared = !call && preset ? preset : null;
   const [name, setName] = useState(call?.name ?? '');
   const [deadline, setDeadline] = useState(toLocalInput(call?.deadline_at));
   const [responsibleId, setResponsibleId] = useState(call?.responsible.user_ref ?? '');
-  const [source, setSource] = useState<Source>(call?.source_proposal_ref ? 'proposal' : 'catalog');
+  const [source, setSource] = useState<Source>(call?.source_proposal_ref || prepared ? 'proposal' : 'catalog');
   const [catalogRefs, setCatalogRefs] = useState<Set<string>>(
     () => new Set(call && !call.source_proposal_ref ? call.products.map((product) => product.product_ref) : []),
   );
-  const [proposalId, setProposalId] = useState(call?.source_proposal_ref ?? '');
+  const [proposalId, setProposalId] = useState(call?.source_proposal_ref ?? prepared?.proposalId ?? '');
   const [positions, setPositions] = useState<Set<number>>(
     () =>
       new Set(
@@ -111,6 +123,22 @@ export function JointPurchaseCallForm({
   };
 
   const [proposal, setProposal] = useState<Proposal | null>(null);
+  /** Productos pedidos al preparar que no son líneas del borrador: se ignoran y se avisa. */
+  const [ignored, setIgnored] = useState(0);
+  const presetRef = useRef(prepared);
+
+  /** Al llegar el borrador preparado, una sola vez: sus líneas de los productos pedidos quedan elegidas. */
+  const showProposal = useCallback((shown: Proposal | null) => {
+    setProposal(shown);
+    const pending = presetRef.current;
+    if (!shown || !pending || shown.proposal_ref !== pending.proposalId) return;
+    presetRef.current = null;
+    const wanted = new Set(pending.productRefs);
+    const lines = shown.lines.filter((line) => wanted.has(line.product_ref));
+    const found = new Set(lines.map((line) => line.product_ref));
+    setPositions(new Set(lines.map((line) => line.position)));
+    setIgnored([...wanted].filter((ref) => !found.has(ref)).length);
+  }, []);
 
   const chosenProducts = (): JointPurchaseCallProductInput[] => {
     if (source === 'catalog') return [...catalogRefs].map((product_ref) => ({ product_ref }));
@@ -145,6 +173,10 @@ export function JointPurchaseCallForm({
         onSaved({ id: created?.call_id ?? null, text: `Borrador «${base.name}» creado. Los agricultores todavía no lo ven: ábralo cuando esté listo.` });
       }
     } catch (err) {
+      if (call && onManageForbidden && callErrorCode(err) === 'MANAGE_FORBIDDEN') {
+        onManageForbidden();
+        return;
+      }
       setServerError(callError(err, 'No fue posible guardar el borrador.'));
       setBusy(false);
     }
@@ -157,6 +189,14 @@ export function JointPurchaseCallForm({
           Campaña: <span className="font-semibold">{campaignName}</span>
         </p>
         {serverError && <Notice kind="error">{serverError}</Notice>}
+        {prepared && (
+          <Notice kind="info" compact>
+            <span data-testid="prepared-notice">
+              Preparada desde un borrador de propuesta. Complete el nombre, la fecha límite y el responsable, revise los productos y
+              confirme con «Crear borrador». No se crea nada ni se inscribe a nadie hasta entonces.
+            </span>
+          </Notice>
+        )}
 
         <div>
           <label className={labelClass} htmlFor="call-name">
@@ -235,14 +275,25 @@ export function JointPurchaseCallForm({
               campaignId={campaignId}
               proposalId={proposalId}
               onProposalId={(id) => {
+                presetRef.current = null;
+                setIgnored(0);
                 setProposalId(id);
                 setPositions(new Set());
               }}
               proposal={proposal}
-              onProposal={setProposal}
+              onProposal={showProposal}
               selected={positions}
               onChange={setPositions}
             />
+          )}
+          {ignored > 0 && source === 'proposal' && (
+            <Notice kind="warn" compact>
+              <span data-testid="prepared-ignored">
+                {ignored === 1
+                  ? '1 producto indicado no es una línea de este borrador de propuesta y no se preseleccionó.'
+                  : `${ignored} productos indicados no son líneas de este borrador de propuesta y no se preseleccionaron.`}
+              </span>
+            </Notice>
           )}
           <FieldError id="call-products-error" text={errors.products} />
         </fieldset>
