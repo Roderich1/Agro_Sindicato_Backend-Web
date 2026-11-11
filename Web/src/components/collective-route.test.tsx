@@ -45,17 +45,15 @@ describe('rutas colectivas F07 por rol', () => {
   });
 });
 
-describe('menú congelado (F07-WEB-01)', () => {
-  it('DIRECTIVA: sólo vistas colectivas y campañas, sin pantallas operativas legacy', () => {
+describe('menú por tareas (F07-WEB-01; rediseño 2026-11-10, contrato §2)', () => {
+  it('DIRECTIVA: Resumen, Campañas, Necesidades y propuestas, Histórico, Catálogo y Bitácora; sin pantallas operativas legacy', () => {
     expect(menuPathsFor('DIRECTIVA')).toEqual([
       COLLECTIVE_PATHS.summary,
-      COLLECTIVE_PATHS.proposals,
-      COLLECTIVE_PATHS.coverage,
-      COLLECTIVE_PATHS.trends,
-      COLLECTIVE_PATHS.estimation,
-      COLLECTIVE_PATHS.reconciliation,
-      COLLECTIVE_PATHS.products,
       '/campaigns',
+      COLLECTIVE_PATHS.proposals,
+      COLLECTIVE_PATHS.history,
+      COLLECTIVE_PATHS.catalog,
+      '/audit-logs',
     ]);
   });
 
@@ -63,9 +61,23 @@ describe('menú congelado (F07-WEB-01)', () => {
     expect(menuPathsFor('ADMINISTRADOR')).toEqual([...menuPathsFor('DIRECTIVA'), '/users']);
   });
 
-  it('ningún menú institucional incluye CRUD del agricultor, cola offline ni bitácora heredada', () => {
+  it('la cobertura y las rutas antiguas salen del menú, pero se conservan', () => {
     for (const role of ['DIRECTIVA', 'ADMINISTRADOR']) {
-      for (const legacy of ['/inventory', '/purchases', '/plots', '/applications', '/sync', '/calendar', '/reports', '/directiva', '/audit-logs', '/dashboard']) {
+      for (const old of [COLLECTIVE_PATHS.coverage, COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation, COLLECTIVE_PATHS.products, COLLECTIVE_PATHS.reconciliation]) {
+        expect(menuPathsFor(role)).not.toContain(old);
+      }
+    }
+    expect(COLLECTIVE_PATHS.coverage).toBe('/colectivo/cobertura');
+    expect(COLLECTIVE_PATHS.trends).toBe('/colectivo/tendencias');
+    expect(COLLECTIVE_PATHS.estimation).toBe('/colectivo/estimacion');
+    expect(COLLECTIVE_PATHS.products).toBe('/colectivo/productos');
+    expect(COLLECTIVE_PATHS.reconciliation).toBe('/colectivo/reconciliacion');
+    expect(COLLECTIVE_PATHS.campaignDetail('11111111-1111-4111-8111-111111111111')).toBe('/campaigns/11111111-1111-4111-8111-111111111111');
+  });
+
+  it('ningún menú institucional incluye CRUD del agricultor ni cola offline', () => {
+    for (const role of ['DIRECTIVA', 'ADMINISTRADOR']) {
+      for (const legacy of ['/inventory', '/purchases', '/plots', '/applications', '/sync', '/calendar', '/reports', '/directiva', '/dashboard']) {
         expect(menuPathsFor(role)).not.toContain(legacy);
       }
     }

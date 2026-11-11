@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { collectiveError, fmtDateTime, sealBlockText } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import type { SealState } from '../types/collective';
-import { buttonClass, Modal, Notice, secondaryButtonClass } from './app-shell';
+import { Modal } from './app-shell';
+import { buttonClass, Notice, secondaryButtonClass, surfaceClass } from './ui';
 
 /**
  * F07 (F07_SEALED_HISTORY_CONTRACT §3): revisión previa y sellado manual de la
@@ -31,9 +32,15 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
     }
   }, [campaignId]);
 
+  // `GET …/seal` sobre una campaña sellable ejecuta la decisión de divulgación
+  // en el servidor: una sola lectura por montaje, aunque StrictMode repita el
+  // efecto. Una recarga explícita del resumen vuelve a montar el panel (`key`).
+  const requested = useRef<string | null>(null);
   useEffect(() => {
+    if (requested.current === campaignId) return;
+    requested.current = campaignId;
     void Promise.resolve().then(load);
-  }, [load]);
+  }, [campaignId, load]);
 
   const seal = async () => {
     if (!state?.review || busy) return;
@@ -64,7 +71,7 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
   if (!state.can_seal || !state.review) {
     return (
       <section
-        className="rounded-xl border border-slate-200 bg-white/60 px-4 py-3 text-xs text-slate-600"
+        className="rounded-card border border-line bg-surface px-4 py-3 text-xs text-slate-600"
         aria-label="Sellado de la versión colectiva"
         data-testid="seal-panel"
       >
@@ -87,7 +94,7 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
   }
 
   return (
-    <section className="glass-card space-y-4 p-5" aria-label="Sellado de la versión colectiva" data-testid="seal-panel">
+    <section className={`space-y-4 p-5 ${surfaceClass}`} aria-label="Sellado de la versión colectiva" data-testid="seal-panel">
       <div>
         <h2 className="text-base font-bold text-slate-900">Sellado de la versión colectiva</h2>
         <p className="mt-0.5 text-xs text-slate-500">
@@ -99,14 +106,14 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
       {error && <Notice kind="error">{error}</Notice>}
       <dl className="grid gap-3 text-sm sm:grid-cols-2" data-testid="seal-review">
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">Cobertura</dt>
+          <dt className="text-xs font-semibold text-slate-600">Cobertura</dt>
           <dd className="font-semibold text-slate-900">
             {state.review.coverage.members_with_contribution} de {state.review.coverage.linked_members} agricultores
             vinculados con cifras publicadas
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">Datos aceptados hasta</dt>
+          <dt className="text-xs font-semibold text-slate-600">Datos aceptados hasta</dt>
           <dd className="font-semibold text-slate-900">{fmtDateTime(state.review.accepted_until)}</dd>
         </div>
       </dl>
