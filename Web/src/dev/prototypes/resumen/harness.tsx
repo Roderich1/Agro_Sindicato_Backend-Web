@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type JSX } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AppShell } from '../../../components/app-shell';
-import { SegmentedControl } from '../../../components/ui';
 import { AuthContext, type AuthContextValue } from '../../../contexts/auth.context';
 import { CampaignContext, type CampaignContextValue } from '../../../contexts/campaign.context';
 import { reportDisclosureMode } from '../../../lib/data-mode';
@@ -85,16 +84,25 @@ export default function ResumenPrototypes() {
     <AuthContext.Provider value={PROTO_AUTH}>
       <CampaignContext.Provider value={campaignValue}>
         <AppShell title="Resumen" section="Prototipo · sólo desarrollo">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 rounded-card border border-dashed border-slate-300 bg-surface px-4 py-3" data-testid="proto-data">
-            <SegmentedControl
-              label="Datos del prototipo (sintéticos)"
-              options={DATASETS.map((entry) => ({ value: entry.key, label: entry.label }))}
-              value={dataset.key}
-              onChange={(value) => update({ datos: value })}
-            />
-            <p className="max-w-md text-xs text-slate-600">
-              Variante {current + 1} de {VARIANTS.length}: {VARIANTS[current]!.name}. Teclas 1–{VARIANTS.length} o ←/→ para cambiar. Ninguna petición al servidor.
-            </p>
+          {/* Cromo del arnés (no se evalúa): conmutador de datos break-ui, en una línea. */}
+          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-600" data-testid="proto-data">
+            <span className="font-semibold">Datos del prototipo (sintéticos):</span>
+            <span className="inline-flex flex-wrap gap-1" role="group" aria-label="Datos del prototipo">
+              {DATASETS.map((entry) => (
+                <button
+                  key={entry.key}
+                  type="button"
+                  aria-pressed={entry.key === dataset.key}
+                  onClick={() => update({ datos: entry.key })}
+                  className={`rounded-control px-2 py-0.5 font-semibold ${entry.key === dataset.key ? 'bg-slate-800 text-white' : 'text-slate-700 hover:bg-slate-100'}`}
+                >
+                  {entry.label}
+                </button>
+              ))}
+            </span>
+            <span>
+              Variante {current + 1} de {VARIANTS.length}: {VARIANTS[current]!.name} · teclas 1–{VARIANTS.length} o ←/→ · ninguna petición al servidor
+            </span>
           </div>
           <Stage key={`${dataset.key}:${current}:${mount}`} dataset={dataset} Variant={Variant} />
         </AppShell>

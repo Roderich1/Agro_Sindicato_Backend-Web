@@ -154,7 +154,7 @@ describe('selector de variantes (PICKER.md)', () => {
 
   it('?datos= conserva la variante elegida', () => {
     renderProto('?v=2');
-    fireEvent.click(screen.getByRole('button', { name: 'Peor caso' }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Datos del prototipo' })).getByRole('button', { name: 'Peor caso' }));
     expect(screen.getByTestId('where').textContent).toMatch(/v=2/);
     expect(screen.getByTestId('where').textContent).toMatch(/datos=worst/);
     expect(variantRoot().getAttribute('data-variant')).toBe('analitica-comparativa');
