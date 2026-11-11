@@ -89,7 +89,8 @@ describe('Resumen colectivo', () => {
 
     // Necesidad y consumo son vistas separadas; no hay totales por encima de la celda.
     expect(screen.getByRole('region', { name: 'Consumo publicado' }).textContent).toContain('20 KG');
-    expect(screen.getByRole('region', { name: 'Necesidad declarada' }).textContent).not.toContain('20 KG');
+    // Rediseño B (2026-11-10): «Necesidad declarada» pasa a «Necesidades declaradas por producto».
+    expect(screen.getByRole('region', { name: 'Necesidades declaradas por producto' }).textContent).not.toContain('20 KG');
     expect(document.body.textContent).not.toMatch(/45 KG|31 L|Total general/);
 
     expect(screen.getByTestId('coverage').textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas/);
@@ -118,8 +119,9 @@ describe('Resumen colectivo', () => {
     const revision = screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML');
     expect(within(revision).getByText('Sin cifra publicada')).toBeTruthy();
     expect(revision.textContent).not.toMatch(/0 L/);
-    // Conteo de la cabecera: sólo lo que hay, sin cantidades.
-    expect(screen.getByRole('region', { name: 'Necesidad declarada' }).textContent).toMatch(/1 producto con cifra publicada · 1 oculto por privacidad · 1 sin cifra publicada/);
+    // Conteo: sólo lo que hay, sin cantidades. Rediseño B: pasa de la cabecera de la sección al indicador.
+    expect(screen.getByTestId('needs-counts').textContent).toMatch(/1 producto con cifra publicada/);
+    expect(screen.getByTestId('needs-counts').textContent).toMatch(/1 oculto por privacidad · 1 sin cifra publicada/);
     // La tarjeta de cobertura usa los valores de la API y enlaza a la vista de cobertura.
     const coverage = screen.getByTestId('coverage');
     expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas/);
