@@ -1,0 +1,89 @@
+{
+  "steps": [
+    {
+      "name": "PUT solicitud 1 (con consentimiento)",
+      "status": 201,
+      "code": null
+    },
+    {
+      "name": "PUT solicitud 1 reenvío idéntico (idempotente)",
+      "status": 200,
+      "code": null
+    },
+    {
+      "name": "PUT solicitud 1 con unidad distinta (inmutable)",
+      "status": 409,
+      "code": "UNIT_IMMUTABLE"
+    },
+    {
+      "name": "PUT con clave extra (rechazo cerrado)",
+      "status": 400,
+      "code": "PAYLOAD_INVALID"
+    },
+    {
+      "name": "PUT solicitud 2 (sin consentimiento de foto)",
+      "status": 201,
+      "code": null
+    },
+    {
+      "name": "PUT foto sin consentimiento → 409",
+      "status": 409,
+      "code": "PHOTO_CONSENT_REQUIRED"
+    },
+    {
+      "name": "PUT foto con tipo falso → 422",
+      "status": 422,
+      "code": "IMAGE_INVALID"
+    },
+    {
+      "name": "PUT foto con hash distinto → 422",
+      "status": 422,
+      "code": "CONTENT_HASH_MISMATCH"
+    },
+    {
+      "name": "PUT foto válida → 201",
+      "status": 201,
+      "code": null
+    },
+    {
+      "name": "PUT misma foto → 200 sin reescribir",
+      "status": 200,
+      "code": null
+    },
+    {
+      "name": "PUT foto como JSON → 415",
+      "status": 415,
+      "code": "UNSUPPORTED_MEDIA_TYPE"
+    },
+    {
+      "name": "PUT solicitud 3",
+      "status": 201,
+      "code": null
+    },
+    {
+      "name": "GET propias",
+      "status": 200,
+      "code": null
+    },
+    {
+      "name": "GET /{id}/candidates como agricultor → 401/403",
+      "status": 403,
+      "code": "AUTH_CONTEXT_FORBIDDEN"
+    },
+    {
+      "name": "GET propias con ?status (agricultor) → 400",
+      "status": 400,
+      "code": "PAYLOAD_INVALID"
+    }
+  ],
+  "photoView": {
+    "state": "STORED",
+    "sha256": "be620b9f3116d475adce344b24d0863a488b41bf3948e971d8ba0ed7a6b37fd2",
+    "consent_version": "FOTO-1"
+  },
+  "ownList": {
+    "count": 3,
+    "leaksEmail": false,
+    "leaksMember": false
+  }
+}

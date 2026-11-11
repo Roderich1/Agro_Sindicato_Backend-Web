@@ -1,0 +1,30 @@
+sesión iniciada como directiva (ruta /colectivo/resumen)
+vista cargada; contiene «Por identificar»: true; solicitudes visibles: 3
+captura vincular_01_lista.png
+captura vincular_02_dialogo.png
+diálogo: parecido true; aclaración true
+captura vincular_03_formulario.png
+captura vincular_04_resultado.png
+resultado: La decisión queda en la bitácora
+peticiones API: 19; errores de consola: 2
+  consola: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  consola: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+POST /api/v1/auth/login
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+GET /api/v1/catalog/identification-requests?status=PENDING
+GET /api/v1/catalog/identification-requests?status=PENDING
+GET /api/v1/catalog/identification-requests/<id>/candidates
+GET /api/v1/collective/product-associations/catalog
+GET /api/v1/catalog/identification-requests/<id>/history
+GET /api/v1/catalog/identification-requests/<id>/candidates
+GET /api/v1/collective/product-associations/catalog
+GET /api/v1/catalog/identification-requests/<id>/history
+POST /api/v1/catalog/identification-requests/<id>/link
+GET /api/v1/catalog/identification-requests?status=PENDING
