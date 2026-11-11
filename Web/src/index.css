@@ -198,6 +198,11 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
+  /* Paneles a toda altura (menú del teléfono): el pie queda sobre el indicador de inicio. */
+  .ui-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   /* Barra inferior del teléfono: por encima del indicador de inicio. */
   .ui-bottom-nav {
     padding-bottom: env(safe-area-inset-bottom, 0px);

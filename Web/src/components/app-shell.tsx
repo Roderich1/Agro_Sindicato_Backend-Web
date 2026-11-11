@@ -363,7 +363,7 @@ function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offli
         aria-modal="true"
         aria-label="Menú"
         tabIndex={-1}
-        className="ui-safe-top absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
+        className="ui-safe-top ui-safe-bottom absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
         data-testid="mobile-menu"
       >
         <div className="flex justify-end px-3 pt-3">
