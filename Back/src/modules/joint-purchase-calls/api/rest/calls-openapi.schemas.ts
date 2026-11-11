@@ -73,13 +73,7 @@ const productRef = closed(["product_ref", "name", "unit", "base_unit"], {
   base_unit: baseUnit,
 });
 
-export const farmerListSchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls"], {
-  contractVersion: { type: "integer", enum: [1] },
-  server_time: dateTime,
-  consent: closed(["version", "text"], { version: { type: "string" }, text: { type: "string" } }),
-  calls: {
-    type: "array",
-    items: closed(
+const farmerCallSchema: SchemaObject = closed(
       [
         "call_id",
         "name",
@@ -121,8 +115,33 @@ export const farmerListSchema: SchemaObject = closed(["contractVersion", "server
           { nullable: true },
         ),
       },
-    ),
-  },
+    );
+
+const consentSchema = closed(["version", "text"], {
+  version: { type: "string", example: "CONV-2", description: "Versión vigente (el servidor también acepta CONV-1)" },
+  text: { type: "string" },
+});
+
+export const farmerListSchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls", "history"], {
+  contractVersion: { type: "integer", enum: [1] },
+  server_time: dateTime,
+  consent: consentSchema,
+  calls: { type: "array", items: farmerCallSchema },
+  history: closed(["older_count"], {
+    older_count: {
+      type: "integer",
+      minimum: 0,
+      description: "Convocatorias terminadas con participación propia anteriores a los 180 días (se consultan en history)",
+    },
+  }),
+});
+
+export const farmerHistorySchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls", "next_cursor"], {
+  contractVersion: { type: "integer", enum: [1] },
+  server_time: dateTime,
+  consent: consentSchema,
+  calls: { type: "array", items: farmerCallSchema, description: "Sólo CLOSED/CANCELLED con participación propia, de la más reciente a la más antigua" },
+  next_cursor: { type: "string", nullable: true, description: "Opaco; null en la última página" },
 });
 
 const productTotals: Record<string, SchemaObject> = {
@@ -193,6 +212,10 @@ export const callDetailSchema: SchemaObject = closed(
     "totals_threshold",
     "can_view_participants",
     "is_responsible",
+    "can_manage",
+    "can_cancel_or_close",
+    "my_grants",
+    "collaborator_count",
     "products",
     "history",
   ],
@@ -214,10 +237,11 @@ export const callDetailSchema: SchemaObject = closed(
     created_at: dateTime,
     updated_at: dateTime,
     server_time: dateTime,
-    responsible: closed(["user_ref", "name", "role"], {
+    responsible: closed(["user_ref", "name", "role", "eligible"], {
       user_ref: { type: "string" },
       name: { type: "string" },
       role: { type: "string", nullable: true, enum: ["DIRECTIVA", "ADMINISTRADOR", "AGRICULTOR"] },
+      eligible: { type: "boolean", description: "Cuenta, Member y rol institucional activos (E2-D5)" },
     }),
     created_by: userRef,
     opened_by: nullableUserRef,
@@ -226,8 +250,15 @@ export const callDetailSchema: SchemaObject = closed(
     participant_count: { type: "integer", description: "Personas con participación vigente (o del consolidado)" },
     totals_source: { type: "string", enum: ["NONE", "LIVE", "CLOSING"] },
     totals_threshold: { type: "integer", example: 3 },
-    can_view_participants: { type: "boolean" },
+    can_view_participants: { type: "boolean", description: "Tiene PARTICIPANTS ahora (responsable o colaborador)" },
     is_responsible: { type: "boolean" },
+    can_manage: { type: "boolean", description: "Responsable o MANAGE: editar el borrador, abrir, cancelar y cerrar (§10.2)" },
+    can_cancel_or_close: {
+      type: "boolean",
+      description: "can_manage, o cualquier DIRECTIVA/ADMINISTRADOR si el responsable dejó de ser elegible",
+    },
+    my_grants: { type: "array", items: { type: "string", enum: ["MANAGE", "PARTICIPANTS"] } },
+    collaborator_count: { type: "integer", description: "Usuarios con algún permiso concedido por el responsable" },
     products: {
       type: "array",
       items: closed(["position", "product_ref", "name", "unit", "base_unit", "is_active", "reference", "totals"], {
@@ -257,7 +288,10 @@ export const callDetailSchema: SchemaObject = closed(
       type: "array",
       items: closed(["at", "kind", "actor", "detail"], {
         at: dateTime,
-        kind: { type: "string", enum: ["CREATED", "UPDATED", "OPENED", "CLOSED", "CANCELLED", "RESPONSIBLE_ASSIGNED"] },
+        kind: {
+          type: "string",
+          enum: ["CREATED", "UPDATED", "OPENED", "CLOSED", "CANCELLED", "RESPONSIBLE_ASSIGNED", "ACCESS_GRANTED", "ACCESS_REVOKED"],
+        },
         actor: nullableUserRef,
         detail: { type: "string", nullable: true },
       }),
@@ -272,15 +306,24 @@ const namedLine = closed(["product_ref", "product_name", "base_unit", "quantity_
   quantity_base: quantity,
 });
 
+const hiddenFields: Record<string, SchemaObject> = {
+  hidden_participant_count: {
+    type: "integer",
+    description: "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable",
+  },
+  hidden_notice: { type: "string", nullable: true },
+};
+
 export const participantsSchema: SchemaObject = closed(
-  ["contractVersion", "call_id", "status", "provisional", "notice", "participant_count", "participants"],
+  ["contractVersion", "call_id", "status", "provisional", "notice", "participant_count", "hidden_participant_count", "hidden_notice", "participants"],
   {
     contractVersion: { type: "integer", enum: [1] },
     call_id: { type: "string", format: "uuid" },
     status: callStatus,
     provisional: { type: "boolean" },
     notice: { type: "string", nullable: true },
-    participant_count: { type: "integer" },
+    participant_count: { type: "integer", description: "Todas las participaciones vigentes, vistas o no" },
+    ...hiddenFields,
     participants: {
       type: "array",
       items: closed(["participation_ref", "name", "status", "accepted_at", "lines"], {
@@ -310,6 +353,8 @@ export const closingSchema: SchemaObject = closed(
     "can_view_participants",
     "lines",
     "participants",
+    "hidden_participant_count",
+    "hidden_notice",
   ],
   {
     contractVersion: { type: "integer", enum: [1] },
@@ -337,7 +382,7 @@ export const closingSchema: SchemaObject = closed(
     participants: {
       type: "array",
       nullable: true,
-      description: "Sólo con el permiso específico (E2-D6); null en otro caso",
+      description: "Sólo con PARTICIPANTS; un colaborador recibe sólo las de CONV-2 (§10.3); null en otro caso",
       items: closed(["participation_ref", "name", "accepted_at", "lines"], {
         participation_ref: { type: "string", format: "uuid" },
         name: { type: "string" },
@@ -345,7 +390,49 @@ export const closingSchema: SchemaObject = closed(
         lines: { type: "array", items: namedLine },
       }),
     },
+    ...hiddenFields,
   },
+);
+
+const grantEnum: SchemaObject = { type: "string", enum: ["PARTICIPANTS", "MANAGE"] };
+
+export const collaboratorsSchema: SchemaObject = closed(
+  ["contractVersion", "call_id", "status", "responsible", "can_grant", "collaborators", "history"],
+  {
+    contractVersion: { type: "integer", enum: [1] },
+    call_id: { type: "string", format: "uuid" },
+    status: callStatus,
+    responsible: userRef,
+    can_grant: { type: "boolean", description: "Sólo el responsable concede y revoca" },
+    collaborators: {
+      type: "array",
+      items: closed(["user_ref", "name", "role", "grants"], {
+        user_ref: { type: "string" },
+        name: { type: "string" },
+        role: { type: "string", nullable: true, enum: ["DIRECTIVA", "ADMINISTRADOR", "AGRICULTOR"] },
+        grants: {
+          type: "array",
+          items: closed(["grant", "label", "granted_at", "granted_by"], {
+            grant: grantEnum,
+            label: { type: "string" },
+            granted_at: dateTime,
+            granted_by: userRef,
+          }),
+        },
+      }),
+    },
+    history: {
+      type: "array",
+      items: closed(["at", "action", "grant", "user", "actor"], {
+        at: dateTime,
+        action: { type: "string", enum: ["GRANTED", "REVOKED"] },
+        grant: grantEnum,
+        user: userRef,
+        actor: userRef,
+      }),
+    },
+  },
+  { description: "Sin datos de agricultores" },
 );
 
 export const eligibleResponsiblesSchema: SchemaObject = closed(["contractVersion", "users"], {

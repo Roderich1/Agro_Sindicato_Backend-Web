@@ -71,6 +71,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
         members: { create: { id: memberId, tenantId, role } },
       },
     });
+    userOf[memberId] = userId;
     return memberId;
   }
 
@@ -157,12 +158,27 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     });
   }
 
-  async function openCall(products: string[], options: Parameters<typeof createDraft>[1] = {}): Promise<string> {
+  /**
+   * E2-P3 (§10.2): opening needs the responsible or MANAGE, so the call is
+   * opened by its responsible (director2 by default) unless `openBy` says
+   * otherwise. Before §10.2 the creator (any Directiva) opened it.
+   */
+  async function openCall(
+    products: string[],
+    options: Parameters<typeof createDraft>[1] & { openBy?: TestSession } = {},
+  ): Promise<string> {
     const draft = await createDraft(products, options);
     expect(draft.status).toBe(201);
-    const opened = await post(options.by ?? director, `${INST}/${draft.body.call_id}/open`, { confirmed: true });
+    const opened = await post(options.openBy ?? options.responsible ?? director2, `${INST}/${draft.body.call_id}/open`, { confirmed: true });
     expect(opened.status).toBe(200);
     return draft.body.call_id;
+  }
+
+  /** §10.2: the responsible grants a permission to another institutional user. */
+  async function grantAccess(callId: string, to: TestSession, grant: "PARTICIPANTS" | "MANAGE", by: TestSession = director2) {
+    const res = await post(by, `${INST}/${callId}/collaborators`, { user_ref: userIdOf(to), grant, confirmed: true });
+    expect(res.status).toBe(200);
+    return res;
   }
 
   function confirm(session: TestSession, callId: string, lines: [string, string][], sequence: number, operationId = randomUUID(), consent: object | null = CONSENT) {
@@ -187,24 +203,26 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(draft.body.history.map((e: any) => e.kind)).toEqual(["CREATED", "RESPONSIBLE_ASSIGNED"]);
       const id = draft.body.call_id;
 
-      const renamed = await patch(director, `${INST}/${id}`, { name: "Compra conjunta renombrada" });
+      // E2-P3: the creator (director) is not the responsible (director2) and holds no MANAGE.
+      expect((await patch(director, `${INST}/${id}`, { name: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      const renamed = await patch(director2, `${INST}/${id}`, { name: "Compra conjunta renombrada" });
       expect(renamed.status).toBe(200);
       expect(renamed.body.name).toBe("Compra conjunta renombrada");
 
-      expect((await post(director, `${INST}/${id}/close`, { confirmed: true })).body).toEqual({
+      expect((await post(director2, `${INST}/${id}/close`, { confirmed: true })).body).toEqual({
         errorCode: "INVALID_TRANSITION",
         status: "DRAFT",
       });
-      expect((await post(director, `${INST}/${id}/open`, {})).body).toEqual({ errorCode: "CONFIRMATION_REQUIRED" });
-      const opened = await post(director, `${INST}/${id}/open`, { confirmed: true });
+      expect((await post(director2, `${INST}/${id}/open`, {})).body).toEqual({ errorCode: "CONFIRMATION_REQUIRED" });
+      const opened = await post(director2, `${INST}/${id}/open`, { confirmed: true });
       expect(opened.status).toBe(200);
       expect(opened.body.status).toBe("OPEN");
       expect(opened.body.opened_at).not.toBeNull();
 
-      const again = await post(director, `${INST}/${id}/open`, { confirmed: true });
+      const again = await post(director2, `${INST}/${id}/open`, { confirmed: true });
       expect(again.status).toBe(409);
       expect(again.body).toEqual({ errorCode: "INVALID_TRANSITION", status: "OPEN" });
-      const edit = await patch(director, `${INST}/${id}`, { name: "Otro nombre" });
+      const edit = await patch(director2, `${INST}/${id}`, { name: "Otro nombre" });
       expect(edit.status).toBe(409);
       expect(edit.body).toEqual({ errorCode: "CALL_NOT_EDITABLE", status: "OPEN" });
 
@@ -219,9 +237,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       await expect(prisma.jointPurchaseCallEvent.update({ where: { id: event.id }, data: { detail: "x" } })).rejects.toThrow();
       await expect(prisma.jointPurchaseCallEvent.delete({ where: { id: event.id } })).rejects.toThrow();
 
-      const closed = await post(director, `${INST}/${id}/close`, { confirmed: true });
+      const closed = await post(director2, `${INST}/${id}/close`, { confirmed: true });
       expect(closed.status).toBe(200);
-      expect((await post(director, `${INST}/${id}/cancel`, { confirmed: true, reason: "Motivo sintético" })).body).toEqual({
+      expect((await post(director2, `${INST}/${id}/cancel`, { confirmed: true, reason: "Motivo sintético" })).body).toEqual({
         errorCode: "INVALID_TRANSITION",
         status: "CLOSED",
       });
@@ -264,7 +282,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       // A deadline that passes while the call is a draft is refused at opening.
       const draft = await createDraft([ok], { deadlineInMs: HOUR });
       clock.advance(2 * HOUR);
-      const late = await post(director, `${INST}/${draft.body.call_id}/open`, { confirmed: true });
+      const late = await post(director2, `${INST}/${draft.body.call_id}/open`, { confirmed: true });
       expect(late.status).toBe(422);
       expect(late.body).toEqual({ errorCode: "DEADLINE_IN_PAST" });
     });
@@ -281,10 +299,11 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   describe("open products are unique per campaign (E2-D3)", () => {
     it("lets exactly one of two concurrent openings win in the same campaign", async () => {
       const shared = await newProduct();
+      // E2-P3: each call is opened by its own responsible (two different users, as before).
       const one = await createDraft([shared]);
-      const two = await createDraft([shared, await newProduct()]);
+      const two = await createDraft([shared, await newProduct()], { responsible: admin });
       const results = await Promise.all([
-        post(director, `${INST}/${one.body.call_id}/open`, { confirmed: true }),
+        post(director2, `${INST}/${one.body.call_id}/open`, { confirmed: true }),
         post(admin, `${INST}/${two.body.call_id}/open`, { confirmed: true }),
       ]);
       expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
@@ -295,8 +314,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       // Cancelling the winner releases the product for the other call.
       const winner = results[0].status === 200 ? one : two;
       const loser = results[0].status === 200 ? two : one;
-      expect((await post(director, `${INST}/${winner.body.call_id}/cancel`, { confirmed: true, reason: "Sintético" })).status).toBe(200);
-      expect((await post(director, `${INST}/${loser.body.call_id}/open`, { confirmed: true })).status).toBe(200);
+      const responsibleOf = (draft: Res) => (draft === one ? director2 : admin);
+      expect((await post(responsibleOf(winner), `${INST}/${winner.body.call_id}/cancel`, { confirmed: true, reason: "Sintético" })).status).toBe(200);
+      expect((await post(responsibleOf(loser), `${INST}/${loser.body.call_id}/open`, { confirmed: true })).status).toBe(200);
     });
 
     it("allows the same product open in different campaigns", async () => {
@@ -304,8 +324,8 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const one = await createDraft([shared]);
       const two = await createDraft([shared], { campaignId: campaignA2 });
       const results = await Promise.all([
-        post(director, `${INST}/${one.body.call_id}/open`, { confirmed: true }),
-        post(director, `${INST}/${two.body.call_id}/open`, { confirmed: true }),
+        post(director2, `${INST}/${one.body.call_id}/open`, { confirmed: true }),
+        post(director2, `${INST}/${two.body.call_id}/open`, { confirmed: true }),
       ]);
       expect(results.map((r) => r.status)).toEqual([200, 200]);
     });
@@ -367,6 +387,10 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(responsibleDetail.body.products[0].totals).toEqual({ participant_count: 2, total_quantity_base: "2000", visibility: "VISIBLE" });
 
       // Closing: totals and counts for everyone (E2-D7); per-person detail only for the responsible.
+      // E2-P3: closing by hand needs MANAGE; the responsible grants it to director, who closes and
+      // still sees what anyone without PARTICIPANTS sees (MANAGE never shows participants).
+      expect((await post(director, `${INST}/${id}/close`, { confirmed: true })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      await grantAccess(id, director, "MANAGE");
       const closed = await post(director, `${INST}/${id}/close`, { confirmed: true });
       expect(closed.status).toBe(200);
       expect(closed.body).toMatchObject({ status: "CLOSED", mode: "MANUAL", participant_count: 2, can_view_participants: false, participants: null });
@@ -477,7 +501,8 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       await confirm(farmerA, id, [[p, "70"]], 1);
       const mine = await get(farmerA, ME);
       expect(mine.status).toBe(200);
-      expect(mine.body.consent.version).toBe("CONV-1");
+      // E2-P3 (§10.2): CONV-2 is the published version now (CONV-1 is still accepted).
+      expect(mine.body.consent.version).toBe("CONV-2");
       const item = mine.body.calls.find((c: any) => c.call_id === id);
       expect(item).toMatchObject({
         status: "OPEN",
@@ -529,7 +554,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
         const id = await openCall([p]);
         await confirm(farmerA, id, [[p, "10"]], 1);
         const [closeRes, confirmRes] = await Promise.all([
-          post(director, `${INST}/${id}/close`, { confirmed: true }),
+          post(director2, `${INST}/${id}/close`, { confirmed: true }),
           confirm(farmerA2, id, [[p, "20"]], 1),
         ]);
         expect(closeRes.status).toBe(200);
@@ -550,6 +575,10 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       await confirm(farmerA, id, [[p1, "100"], [p2, "5"]], 1);
       await confirm(farmerA2, id, [[p1, "200"]], 1);
       await confirm(farmerA3, id, [[p1, "300"], [p2, "7"]], 1);
+      // E2-P3: director and admin close with MANAGE granted by the responsible; their view of the
+      // closing is still that of anyone without PARTICIPANTS (threshold k), as before.
+      await grantAccess(id, director, "MANAGE");
+      await grantAccess(id, admin, "MANAGE");
       const first = await post(director, `${INST}/${id}/close`, { confirmed: true });
       const second = await post(admin, `${INST}/${id}/close`, { confirmed: true });
       expect(first.status).toBe(200);
@@ -574,11 +603,13 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p = await newProduct();
       const id = await openCall([p]);
       await confirm(farmerA, id, [[p, "80"]], 1);
-      expect((await post(director, `${INST}/${id}/cancel`, { confirmed: true })).body).toEqual({ errorCode: "REASON_REQUIRED" });
-      const cancelled = await post(director, `${INST}/${id}/cancel`, { confirmed: true, reason: "Proveedor sintético sin stock" });
+      // E2-P3: cancelled by its responsible (director2); director has no MANAGE.
+      expect((await post(director, `${INST}/${id}/cancel`, { confirmed: true, reason: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      expect((await post(director2, `${INST}/${id}/cancel`, { confirmed: true })).body).toEqual({ errorCode: "REASON_REQUIRED" });
+      const cancelled = await post(director2, `${INST}/${id}/cancel`, { confirmed: true, reason: "Proveedor sintético sin stock" });
       expect(cancelled.status).toBe(200);
       expect(cancelled.body).toMatchObject({ status: "CANCELLED", cancel_reason: "Proveedor sintético sin stock" });
-      expect((await post(director, `${INST}/${id}/cancel`, { confirmed: true, reason: "Otra vez" })).status).toBe(200);
+      expect((await post(director2, `${INST}/${id}/cancel`, { confirmed: true, reason: "Otra vez" })).status).toBe(200);
       expect(await prisma.jointPurchaseParticipation.count({ where: { callId: id, status: "ACTIVE" } })).toBe(1);
       expect(await prisma.jointPurchaseCallClosing.count({ where: { callId: id } })).toBe(0);
       expect((await get(director, `${INST}/${id}/closing`)).body).toEqual({ errorCode: "CALL_NOT_CLOSED", status: "CANCELLED" });
@@ -625,6 +656,294 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(after.body.products[0].reference).toMatchObject({ status: "NO_FIGURE", label: "Sin cifra", quantity_base: null });
       const wrongCampaign = await createDraft([p], { proposalId: proposal.id, campaignId: campaignA2 });
       expect(wrongCampaign.body).toEqual({ errorCode: "PROPOSAL_CAMPAIGN_MISMATCH" });
+    });
+  });
+
+  describe("E2-P2 history of the farmer (§10.1)", () => {
+    it("serves recent finished calls by default, counts the older ones and pages them with an opaque cursor", async () => {
+      // A farmer of their own, so that earlier tests' calls do not enter the counts.
+      const farmerH = await createSession(prisma, jwt, await addPerson("farmerH", f.tenantA, "AGRICULTOR"));
+      const p = await newProduct();
+      const older1 = await openCall([p]);
+      expect((await confirm(farmerH, older1, [[p, "11"]], 1)).status).toBe(200);
+      expect((await post(director2, `${INST}/${older1}/close`, { confirmed: true })).status).toBe(200);
+      clock.advance(HOUR);
+      const older2 = await openCall([await newProduct()]);
+      const older2Product = (await get(director2, `${INST}/${older2}`)).body.products[0].product_ref;
+      expect((await confirm(farmerH, older2, [[older2Product, "12"]], 1)).status).toBe(200);
+      expect((await post(director2, `${INST}/${older2}/cancel`, { confirmed: true, reason: "Sintético" })).status).toBe(200);
+      clock.advance(HOUR);
+      // Finished without farmerH: never in their history; another farmer's quantity never shows.
+      const foreign = await openCall([await newProduct()]);
+      const foreignProduct = (await get(director2, `${INST}/${foreign}`)).body.products[0].product_ref;
+      expect((await confirm(farmerA2, foreign, [[foreignProduct, "9876543"]], 1)).status).toBe(200);
+      expect((await post(director2, `${INST}/${foreign}/close`, { confirmed: true })).status).toBe(200);
+
+      clock.advance(181 * 24 * HOUR);
+      const recentProduct = await newProduct();
+      const recent = await openCall([recentProduct]);
+      expect((await confirm(farmerH, recent, [[recentProduct, "13"]], 1)).status).toBe(200);
+      expect((await post(director2, `${INST}/${recent}/close`, { confirmed: true })).status).toBe(200);
+
+      const callsBefore = await prisma.jointPurchaseCall.count();
+      const participationsBefore = await prisma.jointPurchaseParticipation.count();
+      const view = await get(farmerH, ME);
+      expect(view.status).toBe(200);
+      expect(view.body.history).toEqual({ older_count: 2 });
+      const ids = view.body.calls.map((c: any) => c.call_id);
+      expect(ids).toContain(recent);
+      expect(ids).not.toContain(older1);
+      expect(ids).not.toContain(older2);
+
+      const page1 = await get(farmerH, `${ME}/history?limit=1`);
+      expect(page1.status).toBe(200);
+      expect(page1.headers["cache-control"]).toBe("no-store");
+      expect(page1.body.calls.map((c: any) => c.call_id)).toEqual([older2]);
+      expect(page1.body.calls[0]).toMatchObject({ status: "CANCELLED", participation: { status: "ACTIVE", lines: [{ quantity_base: "12" }] }, closing: null });
+      expect(page1.body.next_cursor).toEqual(expect.any(String));
+      const page2 = await get(farmerH, `${ME}/history?limit=1&before=${page1.body.next_cursor}`);
+      expect(page2.body.calls.map((c: any) => c.call_id)).toEqual([older1]);
+      expect(page2.body.calls[0]).toMatchObject({ status: "CLOSED", closing: { included: true, lines: [{ product_ref: p, quantity_base: "11" }] } });
+      // The last page says so.
+      expect(page2.body.next_cursor).toBeNull();
+      const whole = await get(farmerH, `${ME}/history`);
+      expect(whole.body.calls.map((c: any) => c.call_id)).toEqual([older2, older1]);
+      expect(whole.body.next_cursor).toBeNull();
+      expect(whole.body.calls.every((c: any) => c.status !== "OPEN")).toBe(true);
+      expect(JSON.stringify(whole.body)).not.toMatch(/9876543/);
+      expect(JSON.stringify(whole.body)).not.toContain(foreign);
+
+      for (const bad of ["no-es-un-cursor", Buffer.from(JSON.stringify(["E2H1", "x", "y"])).toString("base64url"), "%00"]) {
+        const res = await get(farmerH, `${ME}/history?before=${bad}`);
+        expect(res.status).toBe(400);
+        expect(res.body).toEqual({ errorCode: "PAYLOAD_INVALID" });
+      }
+      for (const limit of ["0", "51", "x"]) expect((await get(farmerH, `${ME}/history?limit=${limit}`)).body).toEqual({ errorCode: "PAYLOAD_INVALID" });
+      expect((await get(director, `${ME}/history`)).status).toBe(403);
+      // Another farmer with nothing older: no data of farmerH.
+      const otherHistory = await get(farmerA3, `${ME}/history`);
+      expect(otherHistory.body.calls.some((c: any) => [older1, older2].includes(c.call_id))).toBe(false);
+      // Reading deletes nothing.
+      expect(await prisma.jointPurchaseCall.count()).toBe(callsBefore);
+      expect(await prisma.jointPurchaseParticipation.count()).toBe(participationsBefore);
+    });
+  });
+
+  describe("E2-P3 collaborators (§10.2)", () => {
+    it("only the responsible grants, to another eligible user of the tenant; idempotent; recorded in three places without farmer data", async () => {
+      const p = await newProduct();
+      const id = await openCall([p]);
+      await confirm(farmerA, id, [[p, "7654321"]], 1);
+      const inactiveMember = await addPerson("directorInactivo", f.tenantA, "DIRECTIVA");
+      await prisma.member.update({ where: { id: inactiveMember }, data: { isActive: false } });
+      const grantBody = (to: string, grant = "PARTICIPANTS") => ({ user_ref: to, grant, confirmed: true });
+
+      const notResponsible = await post(director, `${INST}/${id}/collaborators`, grantBody(userIdOf(admin)));
+      expect(notResponsible.status).toBe(403);
+      expect(notResponsible.body).toEqual({ errorCode: "COLLABORATORS_FORBIDDEN" });
+      // Nobody grants to themselves: the responsible to themselves, nor a collaborator.
+      for (const to of [userIdOf(director2), userOf[inactiveMember]!, userIdOf(directorB), userIdOf(farmerA), randomUUID()]) {
+        const res = await post(director2, `${INST}/${id}/collaborators`, grantBody(to));
+        expect(res.status).toBe(422);
+        expect(res.body).toEqual({ errorCode: "COLLABORATOR_NOT_ELIGIBLE" });
+      }
+      expect((await post(director2, `${INST}/${id}/collaborators`, { user_ref: userIdOf(director), grant: "ALL", confirmed: true })).body).toEqual({
+        errorCode: "PAYLOAD_INVALID",
+      });
+      expect((await post(director2, `${INST}/${id}/collaborators`, { user_ref: userIdOf(director), grant: "MANAGE" })).body).toEqual({
+        errorCode: "CONFIRMATION_REQUIRED",
+      });
+      expect(await prisma.jointPurchaseCallAccessEvent.count({ where: { callId: id } })).toBe(0);
+
+      const granted = await grantAccess(id, director, "PARTICIPANTS");
+      expect(granted.body).toMatchObject({
+        can_grant: true,
+        collaborators: [{ user_ref: userIdOf(director), name: "Usuario sintético directorA", role: "DIRECTIVA", grants: [{ grant: "PARTICIPANTS", granted_by: { user_ref: userIdOf(director2) } }] }],
+        history: [{ action: "GRANTED", grant: "PARTICIPANTS", user: { user_ref: userIdOf(director) }, actor: { user_ref: userIdOf(director2) } }],
+      });
+      // A collaborator cannot grant (no chains), not even with MANAGE.
+      await grantAccess(id, director, "MANAGE");
+      expect((await post(director, `${INST}/${id}/collaborators`, grantBody(userIdOf(admin)))).body).toEqual({ errorCode: "COLLABORATORS_FORBIDDEN" });
+      // Granting again: 200, no new event.
+      const events = await prisma.jointPurchaseCallAccessEvent.count({ where: { callId: id } });
+      await grantAccess(id, director, "PARTICIPANTS");
+      expect(await prisma.jointPurchaseCallAccessEvent.count({ where: { callId: id } })).toBe(events);
+      // Revoking what does not exist: 200, no new event.
+      expect((await post(director2, `${INST}/${id}/collaborators/revoke`, { user_ref: userIdOf(admin), grant: "PARTICIPANTS" })).status).toBe(200);
+      expect(await prisma.jointPurchaseCallAccessEvent.count({ where: { callId: id } })).toBe(events);
+      // The responsible's own permission is not a collaborator grant.
+      expect((await post(director2, `${INST}/${id}/collaborators/revoke`, { user_ref: userIdOf(director2), grant: "PARTICIPANTS" })).body).toEqual({
+        errorCode: "COLLABORATOR_NOT_ELIGIBLE",
+      });
+      // Someone else's grant cannot be revoked by a non-responsible; the collaborator renounces their own.
+      expect((await post(admin, `${INST}/${id}/collaborators/revoke`, { user_ref: userIdOf(director), grant: "MANAGE" })).body).toEqual({
+        errorCode: "COLLABORATORS_FORBIDDEN",
+      });
+      const renounced = await post(director, `${INST}/${id}/collaborators/revoke`, { user_ref: userIdOf(director), grant: "MANAGE" });
+      expect(renounced.status).toBe(200);
+      expect(renounced.body.collaborators[0].grants.map((g: any) => g.grant)).toEqual(["PARTICIPANTS"]);
+
+      // Anyone of the Directiva/Administración sees the collaborators; another tenant does not.
+      const listed = await get(admin, `${INST}/${id}/collaborators`);
+      expect(listed.status).toBe(200);
+      expect(listed.body.can_grant).toBe(false);
+      expect(listed.body.history.map((h: any) => [h.action, h.grant])).toEqual([["GRANTED", "PARTICIPANTS"], ["GRANTED", "MANAGE"], ["REVOKED", "MANAGE"]]);
+      expect((await get(directorB, `${INST}/${id}/collaborators`)).status).toBe(404);
+      expect((await get(farmerA, `${INST}/${id}/collaborators`)).status).toBe(403);
+
+      const detail = await get(director, `${INST}/${id}`);
+      expect(detail.body).toMatchObject({ can_view_participants: true, can_manage: false, my_grants: ["PARTICIPANTS"], collaborator_count: 1 });
+      expect(detail.body.history.filter((e: any) => e.kind.startsWith("ACCESS_")).map((e: any) => e.kind)).toEqual(["ACCESS_GRANTED", "ACCESS_GRANTED", "ACCESS_REVOKED"]);
+      expect(detail.body.history.find((e: any) => e.kind === "ACCESS_REVOKED").detail).toBe(
+        "Usuario sintético directorA renunció al permiso «Administrar la convocatoria».",
+      );
+      const responsibleDetail = await get(director2, `${INST}/${id}`);
+      expect(responsibleDetail.body).toMatchObject({ can_manage: true, my_grants: ["MANAGE", "PARTICIPANTS"], is_responsible: true });
+      const accessEvents = await prisma.jointPurchaseCallAccessEvent.findMany({ where: { callId: id } });
+      expect(accessEvents).toHaveLength(3);
+      const audit = await prisma.auditLog.findMany({ where: { entityId: id } });
+      expect(audit.filter((a) => /Permiso|Renuncia/.test(a.summary ?? ""))).toHaveLength(3);
+      expect(audit.every((a) => a.ownerUserId === null)).toBe(true);
+      const recorded = JSON.stringify({ audit, accessEvents, history: detail.body.history });
+      expect(recorded).not.toMatch(/farmerA|7654321/);
+
+      // The database keeps the record: no change, no deletion; the responsible's row is not revoked.
+      await expect(prisma.jointPurchaseCallAccessEvent.update({ where: { id: accessEvents[0]!.id }, data: { grant: "MANAGE" } })).rejects.toThrow();
+      await expect(prisma.jointPurchaseCallAccessEvent.delete({ where: { id: accessEvents[0]!.id } })).rejects.toThrow();
+      await expect(
+        prisma.jointPurchaseCallAccess.delete({ where: { callId_userId_grant: { callId: id, userId: userIdOf(director2), grant: "PARTICIPANTS" } } }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.jointPurchaseCallAccess.create({ data: { callId: id, userId: userIdOf(admin), grant: "PARTICIPANTS", grantedByUserId: userIdOf(admin) } }),
+      ).rejects.toThrow();
+
+      // Never after a cancellation; revoking stays possible in any state.
+      const cancelledDraft = (await createDraft([await newProduct()])).body.call_id;
+      await grantAccess(cancelledDraft, admin, "MANAGE");
+      expect((await post(director2, `${INST}/${cancelledDraft}/cancel`, { confirmed: true, reason: "Sintético" })).status).toBe(200);
+      expect((await post(director2, `${INST}/${cancelledDraft}/collaborators`, grantBody(userIdOf(director)))).body).toEqual({
+        errorCode: "INVALID_TRANSITION",
+        status: "CANCELLED",
+      });
+      const revokedInCancelled = await post(director2, `${INST}/${cancelledDraft}/collaborators/revoke`, { user_ref: userIdOf(admin), grant: "MANAGE" });
+      expect(revokedInCancelled.status).toBe(200);
+      expect(revokedInCancelled.body.collaborators).toEqual([]);
+    });
+
+    it("requires MANAGE to edit, open, cancel and close; an ineligible responsible lets the Directiva only cancel or close", async () => {
+      const p = await newProduct();
+      const draft = await createDraft([p]);
+      const id = draft.body.call_id;
+      expect(draft.body).toMatchObject({ can_manage: false, my_grants: [], collaborator_count: 0, responsible: { eligible: true } });
+      for (const res of [
+        await patch(admin, `${INST}/${id}`, { name: "Sin permiso" }),
+        await post(admin, `${INST}/${id}/open`, { confirmed: true }),
+        await post(admin, `${INST}/${id}/cancel`, { confirmed: true, reason: "Sin permiso" }),
+      ]) {
+        expect(res.status).toBe(403);
+        expect(res.body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      }
+      // Granted in DRAFT, MANAGE lets the collaborator edit and open, and never shows participants.
+      await grantAccess(id, admin, "MANAGE");
+      expect((await patch(admin, `${INST}/${id}`, { name: "Editada con MANAGE" })).status).toBe(200);
+      const opened = await post(admin, `${INST}/${id}/open`, { confirmed: true });
+      expect(opened.status).toBe(200);
+      expect(opened.body).toMatchObject({ can_manage: true, can_view_participants: false, my_grants: ["MANAGE"] });
+      expect((await get(admin, `${INST}/${id}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+      // The responsible's permission is created at opening, whoever opens.
+      expect((await get(director2, `${INST}/${id}/participants`)).status).toBe(200);
+
+      // An ineligible responsible: any Directiva/Administración may cancel or close, never edit or see participants.
+      const director3Member = await addPerson("directorA3", f.tenantA, "DIRECTIVA");
+      const director3 = await createSession(prisma, jwt, director3Member);
+      const q = await newProduct();
+      const orphan = await openCall([q], { responsible: director3 });
+      await confirm(farmerA, orphan, [[q, "55"]], 1);
+      expect((await post(director, `${INST}/${orphan}/close`, { confirmed: true })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      await prisma.member.update({ where: { id: director3Member }, data: { isActive: false } });
+      const orphanDetail = await get(director, `${INST}/${orphan}`);
+      expect(orphanDetail.body).toMatchObject({ responsible: { eligible: false }, can_manage: false, can_cancel_or_close: true });
+      const closedByOther = await post(director, `${INST}/${orphan}/close`, { confirmed: true });
+      expect(closedByOther.status).toBe(200);
+      expect(closedByOther.body).toMatchObject({ can_view_participants: false, participants: null });
+      expect((await get(director, `${INST}/${orphan}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+      const orphanDraft = await createDraft([await newProduct()], { responsible: director2 });
+      await prisma.member.update({ where: { id: director3Member }, data: { isActive: true } });
+      const draft3 = await createDraft([await newProduct()], { responsible: director3 });
+      await prisma.member.update({ where: { id: director3Member }, data: { isActive: false } });
+      expect((await patch(admin, `${INST}/${draft3.body.call_id}`, { name: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      expect((await post(admin, `${INST}/${draft3.body.call_id}/cancel`, { confirmed: true, reason: "Responsable inactivo" })).status).toBe(200);
+      // An eligible responsible keeps the exception closed.
+      expect((await post(admin, `${INST}/${orphanDraft.body.call_id}/cancel`, { confirmed: true, reason: "Sin permiso" })).body).toEqual({
+        errorCode: "MANAGE_FORBIDDEN",
+      });
+    });
+
+    it("CONV-1 only for the responsible, CONV-2 also for collaborators; hidden participations withhold totals, open and closed", async () => {
+      const CONV2 = { version: "CONV-2", accepted_at: "2026-11-11T20:00:00.000Z" };
+      const p1 = await newProduct();
+      const p2 = await newProduct();
+      const id = await openCall([p1, p2]);
+      expect((await confirm(farmerA, id, [[p1, "100"]], 1)).body.participation.consent.version).toBe("CONV-1");
+      expect((await confirm(farmerA2, id, [[p1, "200"], [p2, "20"]], 1, randomUUID(), CONV2)).body.participation.consent.version).toBe("CONV-2");
+      expect((await confirm(farmerA3, id, [[p1, "300"], [p2, "30"]], 1, randomUUID(), CONV2)).status).toBe(200);
+      await grantAccess(id, director, "PARTICIPANTS");
+
+      const responsibleList = await get(director2, `${INST}/${id}/participants`);
+      expect(responsibleList.body).toMatchObject({ participant_count: 3, hidden_participant_count: 0, hidden_notice: null });
+      expect(responsibleList.body.participants).toHaveLength(3);
+      const collaboratorList = await get(director, `${INST}/${id}/participants`);
+      expect(collaboratorList.status).toBe(200);
+      expect(collaboratorList.body).toMatchObject({
+        participant_count: 3,
+        hidden_participant_count: 1,
+        hidden_notice: "1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable.",
+      });
+      expect(collaboratorList.body.participants.map((x: any) => x.name).sort()).toEqual(["Usuario sintético farmerA2", "Usuario sintético farmerA3"]);
+      expect(JSON.stringify(collaboratorList.body)).not.toMatch(/Usuario sintético farmerA"|"100"/);
+
+      // Open: the collaborator gets p2 (no hidden participation) but not p1; the rest gets no live total.
+      const totals = async (session: TestSession) => (await get(session, `${INST}/${id}`)).body.products.map((x: any) => [x.totals.total_quantity_base, x.totals.visibility]);
+      expect(await totals(director2)).toEqual([["600", "VISIBLE"], ["50", "VISIBLE"]]);
+      expect(await totals(director)).toEqual([[null, "RESPONSIBLE_ONLY"], ["50", "VISIBLE"]]);
+      expect(await totals(admin)).toEqual([[null, "RESPONSIBLE_ONLY"], [null, "RESPONSIBLE_ONLY"]]);
+
+      // Revocation during OPEN applies from the next request.
+      await grantAccess(id, admin, "PARTICIPANTS");
+      expect((await get(admin, `${INST}/${id}/participants`)).status).toBe(200);
+      expect((await post(director2, `${INST}/${id}/collaborators/revoke`, { user_ref: userIdOf(admin), grant: "PARTICIPANTS" })).status).toBe(200);
+      const after = await get(admin, `${INST}/${id}/participants`);
+      expect(after.status).toBe(403);
+      expect(after.body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+      expect((await get(admin, `${INST}/${id}`)).body.can_view_participants).toBe(false);
+
+      expect((await post(director2, `${INST}/${id}/close`, { confirmed: true })).status).toBe(200);
+      const closingOf = async (session: TestSession) => (await get(session, `${INST}/${id}/closing`)).body;
+      const lines = (body: any) => body.lines.map((l: any) => [l.participant_count, l.total_quantity_base, l.visibility]);
+      const responsibleClosing = await closingOf(director2);
+      expect(lines(responsibleClosing)).toEqual([[3, "600", "VISIBLE"], [2, "50", "VISIBLE"]]);
+      expect(responsibleClosing.participants).toHaveLength(3);
+      const collaboratorClosing = await closingOf(director);
+      expect(lines(collaboratorClosing)).toEqual([[3, null, "RESPONSIBLE_ONLY"], [2, "50", "VISIBLE"]]);
+      expect(collaboratorClosing.participants.map((x: any) => x.name).sort()).toEqual(["Usuario sintético farmerA2", "Usuario sintético farmerA3"]);
+      expect(collaboratorClosing.hidden_participant_count).toBe(1);
+      // Someone who never held PARTICIPANTS: the threshold of the closing.
+      const thirdParty = await addPerson("directorA4", f.tenantA, "DIRECTIVA");
+      const directorA4 = await createSession(prisma, jwt, thirdParty);
+      expect(lines(await closingOf(directorA4))).toEqual([[3, "600", "VISIBLE"], [2, null, "UNDER_THRESHOLD"]]);
+      // Admin held PARTICIPANTS while open (revoked since): no total for p1, which has a CONV-1 participation.
+      expect(lines(await closingOf(admin))).toEqual([[3, null, "RESPONSIBLE_ONLY"], [2, null, "UNDER_THRESHOLD"]]);
+      expect((await get(admin, `${INST}/${id}`)).body.products.map((x: any) => x.totals.visibility)).toEqual(["RESPONSIBLE_ONLY", "UNDER_THRESHOLD"]);
+
+      // Revoking after the close: 403 at the next request and the "after a revocation" rule.
+      expect((await post(director2, `${INST}/${id}/collaborators/revoke`, { user_ref: userIdOf(director), grant: "PARTICIPANTS" })).status).toBe(200);
+      expect((await get(director, `${INST}/${id}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+      const revokedClosing = await closingOf(director);
+      expect(revokedClosing).toMatchObject({ can_view_participants: false, participants: null, hidden_participant_count: 0 });
+      expect(lines(revokedClosing)).toEqual([[3, null, "RESPONSIBLE_ONLY"], [2, null, "UNDER_THRESHOLD"]]);
+      // Granting is still possible in CLOSED.
+      await grantAccess(id, directorA4, "PARTICIPANTS");
+      expect(lines(await closingOf(directorA4))).toEqual([[3, null, "RESPONSIBLE_ONLY"], [2, "50", "VISIBLE"]]);
     });
   });
 

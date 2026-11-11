@@ -14862,7 +14862,8 @@
                     "contractVersion",
                     "server_time",
                     "consent",
-                    "calls"
+                    "calls",
+                    "history"
                   ],
                   "properties": {
                     "contractVersion": {
@@ -14884,7 +14885,9 @@
                       ],
                       "properties": {
                         "version": {
-                          "type": "string"
+                          "type": "string",
+                          "example": "CONV-2",
+                          "description": "Versión vigente (el servidor también acepta CONV-1)"
                         },
                         "text": {
                           "type": "string"
@@ -15161,6 +15164,20 @@
                           }
                         }
                       }
+                    },
+                    "history": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "older_count"
+                      ],
+                      "properties": {
+                        "older_count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Convocatorias terminadas con participación propia anteriores a los 180 días (se consultan en history)"
+                        }
+                      }
                     }
                   }
                 }
@@ -15203,6 +15220,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15280,6 +15300,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15357,6 +15380,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15404,7 +15430,690 @@
             "bearer": []
           }
         ],
-        "summary": "Convocatorias OPEN del tenant y las CLOSED/CANCELLED en las que participó (180 días), con la participación propia",
+        "summary": "Convocatorias OPEN del tenant y las CLOSED/CANCELLED recientes (180 días) en las que participó, con la participación propia y el número de anteriores (history.older_count)",
+        "tags": [
+          "joint purchase calls"
+        ]
+      }
+    },
+    "/api/v1/me/joint-purchase-calls/history": {
+      "get": {
+        "operationId": "FarmerCallsController_history",
+        "parameters": [
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Cursor opaco emitido por el servidor (next_cursor); otro: 400 PAYLOAD_INVALID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "server_time",
+                    "consent",
+                    "calls",
+                    "next_cursor"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "server_time": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "consent": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "version",
+                        "text"
+                      ],
+                      "properties": {
+                        "version": {
+                          "type": "string",
+                          "example": "CONV-2",
+                          "description": "Versión vigente (el servidor también acepta CONV-1)"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "calls": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "call_id",
+                          "name",
+                          "status",
+                          "campaign",
+                          "opened_at",
+                          "deadline_at",
+                          "closed_at",
+                          "cancelled_at",
+                          "server_time",
+                          "accepts_operations",
+                          "responsible",
+                          "products",
+                          "participation",
+                          "closing"
+                        ],
+                        "properties": {
+                          "call_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "OPEN",
+                              "CLOSED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "campaign": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "campaign_ref",
+                              "name"
+                            ],
+                            "properties": {
+                              "campaign_ref": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "opened_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "deadline_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "closed_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "cancelled_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "server_time": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "accepts_operations": {
+                            "type": "boolean"
+                          },
+                          "responsible": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "product_ref",
+                                "name",
+                                "unit",
+                                "base_unit"
+                              ],
+                              "properties": {
+                                "product_ref": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": "string",
+                                  "enum": [
+                                    "L",
+                                    "KG"
+                                  ]
+                                },
+                                "base_unit": {
+                                  "type": "string",
+                                  "enum": [
+                                    "ML",
+                                    "G"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "participation": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "status",
+                              "lines",
+                              "last_sequence",
+                              "last_operation_id",
+                              "accepted_at",
+                              "consent"
+                            ],
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "ACTIVE",
+                                  "WITHDRAWN"
+                                ]
+                              },
+                              "lines": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "product_ref",
+                                    "base_unit",
+                                    "quantity_base"
+                                  ],
+                                  "properties": {
+                                    "product_ref": {
+                                      "type": "string"
+                                    },
+                                    "base_unit": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ML",
+                                        "G"
+                                      ]
+                                    },
+                                    "quantity_base": {
+                                      "type": "string",
+                                      "pattern": "^(0|[1-9][0-9]*)$",
+                                      "description": "Entero decimal en la unidad base"
+                                    }
+                                  }
+                                }
+                              },
+                              "last_sequence": {
+                                "type": "integer"
+                              },
+                              "last_operation_id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "accepted_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Hora del servidor de la última operación aceptada"
+                              },
+                              "consent": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "version",
+                                  "accepted_at",
+                                  "received_at"
+                                ],
+                                "properties": {
+                                  "version": {
+                                    "type": "string",
+                                    "example": "CONV-1"
+                                  },
+                                  "accepted_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "Declarada por el teléfono"
+                                  },
+                                  "received_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "Hora del servidor"
+                                  }
+                                }
+                              }
+                            },
+                            "nullable": true
+                          },
+                          "closing": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "cutoff_at",
+                              "closed_at",
+                              "included",
+                              "lines"
+                            ],
+                            "properties": {
+                              "cutoff_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "closed_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "included": {
+                                "type": "boolean",
+                                "description": "false: «no incluida» en el consolidado"
+                              },
+                              "lines": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "product_ref",
+                                    "base_unit",
+                                    "quantity_base"
+                                  ],
+                                  "properties": {
+                                    "product_ref": {
+                                      "type": "string"
+                                    },
+                                    "base_unit": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ML",
+                                        "G"
+                                      ]
+                                    },
+                                    "quantity_base": {
+                                      "type": "string",
+                                      "pattern": "^(0|[1-9][0-9]*)$",
+                                      "description": "Entero decimal en la unidad base"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "nullable": true
+                          }
+                        }
+                      },
+                      "description": "Sólo CLOSED/CANCELLED con participación propia, de la más reciente a la más antigua"
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Opaco; null en la última página"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID: cursor no emitido por el servidor, limit fuera de 1–50 o parámetro desconocido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sesión, Member, registro de cliente o rol no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Historial (E2-P2): convocatorias CLOSED/CANCELLED con participación propia terminadas antes de los 180 días, de la más reciente a la más antigua, con cursor opaco",
         "tags": [
           "joint purchase calls"
         ]
@@ -15582,6 +16291,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15659,6 +16371,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15736,6 +16451,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15813,6 +16531,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15890,6 +16611,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -15967,6 +16691,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16044,6 +16771,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16269,6 +16999,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16346,6 +17079,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16423,6 +17159,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16500,6 +17239,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16577,6 +17319,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16654,6 +17399,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16894,6 +17642,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -16971,6 +17722,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -17048,6 +17802,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -17145,6 +17902,10 @@
                     "totals_threshold",
                     "can_view_participants",
                     "is_responsible",
+                    "can_manage",
+                    "can_cancel_or_close",
+                    "my_grants",
+                    "collaborator_count",
                     "products",
                     "history"
                   ],
@@ -17232,7 +17993,8 @@
                       "required": [
                         "user_ref",
                         "name",
-                        "role"
+                        "role",
+                        "eligible"
                       ],
                       "properties": {
                         "user_ref": {
@@ -17249,6 +18011,10 @@
                             "ADMINISTRADOR",
                             "AGRICULTOR"
                           ]
+                        },
+                        "eligible": {
+                          "type": "boolean",
+                          "description": "Cuenta, Member y rol institucional activos (E2-D5)"
                         }
                       }
                     },
@@ -17324,10 +18090,33 @@
                       "example": 3
                     },
                     "can_view_participants": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Tiene PARTICIPANTS ahora (responsable o colaborador)"
                     },
                     "is_responsible": {
                       "type": "boolean"
+                    },
+                    "can_manage": {
+                      "type": "boolean",
+                      "description": "Responsable o MANAGE: editar el borrador, abrir, cancelar y cerrar (§10.2)"
+                    },
+                    "can_cancel_or_close": {
+                      "type": "boolean",
+                      "description": "can_manage, o cualquier DIRECTIVA/ADMINISTRADOR si el responsable dejó de ser elegible"
+                    },
+                    "my_grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "MANAGE",
+                          "PARTICIPANTS"
+                        ]
+                      }
+                    },
+                    "collaborator_count": {
+                      "type": "integer",
+                      "description": "Usuarios con algún permiso concedido por el responsable"
                     },
                     "products": {
                       "type": "array",
@@ -17475,7 +18264,9 @@
                               "OPENED",
                               "CLOSED",
                               "CANCELLED",
-                              "RESPONSIBLE_ASSIGNED"
+                              "RESPONSIBLE_ASSIGNED",
+                              "ACCESS_GRANTED",
+                              "ACCESS_REVOKED"
                             ]
                           },
                           "actor": {
@@ -17543,6 +18334,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -17620,6 +18414,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -17697,6 +18494,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -17774,6 +18574,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -17851,6 +18654,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -17995,6 +18801,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -18072,6 +18881,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -18171,6 +18983,10 @@
                     "totals_threshold",
                     "can_view_participants",
                     "is_responsible",
+                    "can_manage",
+                    "can_cancel_or_close",
+                    "my_grants",
+                    "collaborator_count",
                     "products",
                     "history"
                   ],
@@ -18258,7 +19074,8 @@
                       "required": [
                         "user_ref",
                         "name",
-                        "role"
+                        "role",
+                        "eligible"
                       ],
                       "properties": {
                         "user_ref": {
@@ -18275,6 +19092,10 @@
                             "ADMINISTRADOR",
                             "AGRICULTOR"
                           ]
+                        },
+                        "eligible": {
+                          "type": "boolean",
+                          "description": "Cuenta, Member y rol institucional activos (E2-D5)"
                         }
                       }
                     },
@@ -18350,10 +19171,33 @@
                       "example": 3
                     },
                     "can_view_participants": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Tiene PARTICIPANTS ahora (responsable o colaborador)"
                     },
                     "is_responsible": {
                       "type": "boolean"
+                    },
+                    "can_manage": {
+                      "type": "boolean",
+                      "description": "Responsable o MANAGE: editar el borrador, abrir, cancelar y cerrar (§10.2)"
+                    },
+                    "can_cancel_or_close": {
+                      "type": "boolean",
+                      "description": "can_manage, o cualquier DIRECTIVA/ADMINISTRADOR si el responsable dejó de ser elegible"
+                    },
+                    "my_grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "MANAGE",
+                          "PARTICIPANTS"
+                        ]
+                      }
+                    },
+                    "collaborator_count": {
+                      "type": "integer",
+                      "description": "Usuarios con algún permiso concedido por el responsable"
                     },
                     "products": {
                       "type": "array",
@@ -18501,7 +19345,9 @@
                               "OPENED",
                               "CLOSED",
                               "CANCELLED",
-                              "RESPONSIBLE_ASSIGNED"
+                              "RESPONSIBLE_ASSIGNED",
+                              "ACCESS_GRANTED",
+                              "ACCESS_REVOKED"
                             ]
                           },
                           "actor": {
@@ -18569,6 +19415,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -18646,6 +19495,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -18723,6 +19575,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -18770,7 +19625,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle: productos con referencia, totales según E2-D7, historial y can_view_participants",
+        "summary": "Detalle: productos con referencia, totales según §10.3, historial, can_view_participants, can_manage, my_grants y collaborator_count",
         "tags": [
           "joint purchase calls"
         ]
@@ -18830,6 +19685,10 @@
                     "totals_threshold",
                     "can_view_participants",
                     "is_responsible",
+                    "can_manage",
+                    "can_cancel_or_close",
+                    "my_grants",
+                    "collaborator_count",
                     "products",
                     "history"
                   ],
@@ -18917,7 +19776,8 @@
                       "required": [
                         "user_ref",
                         "name",
-                        "role"
+                        "role",
+                        "eligible"
                       ],
                       "properties": {
                         "user_ref": {
@@ -18934,6 +19794,10 @@
                             "ADMINISTRADOR",
                             "AGRICULTOR"
                           ]
+                        },
+                        "eligible": {
+                          "type": "boolean",
+                          "description": "Cuenta, Member y rol institucional activos (E2-D5)"
                         }
                       }
                     },
@@ -19009,10 +19873,33 @@
                       "example": 3
                     },
                     "can_view_participants": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Tiene PARTICIPANTS ahora (responsable o colaborador)"
                     },
                     "is_responsible": {
                       "type": "boolean"
+                    },
+                    "can_manage": {
+                      "type": "boolean",
+                      "description": "Responsable o MANAGE: editar el borrador, abrir, cancelar y cerrar (§10.2)"
+                    },
+                    "can_cancel_or_close": {
+                      "type": "boolean",
+                      "description": "can_manage, o cualquier DIRECTIVA/ADMINISTRADOR si el responsable dejó de ser elegible"
+                    },
+                    "my_grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "MANAGE",
+                          "PARTICIPANTS"
+                        ]
+                      }
+                    },
+                    "collaborator_count": {
+                      "type": "integer",
+                      "description": "Usuarios con algún permiso concedido por el responsable"
                     },
                     "products": {
                       "type": "array",
@@ -19160,7 +20047,9 @@
                               "OPENED",
                               "CLOSED",
                               "CANCELLED",
-                              "RESPONSIBLE_ASSIGNED"
+                              "RESPONSIBLE_ASSIGNED",
+                              "ACCESS_GRANTED",
+                              "ACCESS_REVOKED"
                             ]
                           },
                           "actor": {
@@ -19228,6 +20117,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -19305,6 +20197,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -19347,7 +20242,7 @@
             }
           },
           "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN: ni responsable ni permiso MANAGE (§10.2).",
             "content": {
               "application/json": {
                 "schema": {
@@ -19382,6 +20277,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -19459,6 +20357,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -19536,6 +20437,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -19613,6 +20517,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -19722,6 +20629,10 @@
                     "totals_threshold",
                     "can_view_participants",
                     "is_responsible",
+                    "can_manage",
+                    "can_cancel_or_close",
+                    "my_grants",
+                    "collaborator_count",
                     "products",
                     "history"
                   ],
@@ -19809,7 +20720,8 @@
                       "required": [
                         "user_ref",
                         "name",
-                        "role"
+                        "role",
+                        "eligible"
                       ],
                       "properties": {
                         "user_ref": {
@@ -19826,6 +20738,10 @@
                             "ADMINISTRADOR",
                             "AGRICULTOR"
                           ]
+                        },
+                        "eligible": {
+                          "type": "boolean",
+                          "description": "Cuenta, Member y rol institucional activos (E2-D5)"
                         }
                       }
                     },
@@ -19901,10 +20817,33 @@
                       "example": 3
                     },
                     "can_view_participants": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Tiene PARTICIPANTS ahora (responsable o colaborador)"
                     },
                     "is_responsible": {
                       "type": "boolean"
+                    },
+                    "can_manage": {
+                      "type": "boolean",
+                      "description": "Responsable o MANAGE: editar el borrador, abrir, cancelar y cerrar (§10.2)"
+                    },
+                    "can_cancel_or_close": {
+                      "type": "boolean",
+                      "description": "can_manage, o cualquier DIRECTIVA/ADMINISTRADOR si el responsable dejó de ser elegible"
+                    },
+                    "my_grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "MANAGE",
+                          "PARTICIPANTS"
+                        ]
+                      }
+                    },
+                    "collaborator_count": {
+                      "type": "integer",
+                      "description": "Usuarios con algún permiso concedido por el responsable"
                     },
                     "products": {
                       "type": "array",
@@ -20052,7 +20991,9 @@
                               "OPENED",
                               "CLOSED",
                               "CANCELLED",
-                              "RESPONSIBLE_ASSIGNED"
+                              "RESPONSIBLE_ASSIGNED",
+                              "ACCESS_GRANTED",
+                              "ACCESS_REVOKED"
                             ]
                           },
                           "actor": {
@@ -20120,6 +21061,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -20162,7 +21106,7 @@
             }
           },
           "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN: ni responsable ni permiso MANAGE (§10.2).",
             "content": {
               "application/json": {
                 "schema": {
@@ -20197,6 +21141,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -20274,6 +21221,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -20351,6 +21301,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -20428,6 +21381,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -20537,6 +21493,10 @@
                     "totals_threshold",
                     "can_view_participants",
                     "is_responsible",
+                    "can_manage",
+                    "can_cancel_or_close",
+                    "my_grants",
+                    "collaborator_count",
                     "products",
                     "history"
                   ],
@@ -20624,7 +21584,8 @@
                       "required": [
                         "user_ref",
                         "name",
-                        "role"
+                        "role",
+                        "eligible"
                       ],
                       "properties": {
                         "user_ref": {
@@ -20641,6 +21602,10 @@
                             "ADMINISTRADOR",
                             "AGRICULTOR"
                           ]
+                        },
+                        "eligible": {
+                          "type": "boolean",
+                          "description": "Cuenta, Member y rol institucional activos (E2-D5)"
                         }
                       }
                     },
@@ -20716,10 +21681,33 @@
                       "example": 3
                     },
                     "can_view_participants": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Tiene PARTICIPANTS ahora (responsable o colaborador)"
                     },
                     "is_responsible": {
                       "type": "boolean"
+                    },
+                    "can_manage": {
+                      "type": "boolean",
+                      "description": "Responsable o MANAGE: editar el borrador, abrir, cancelar y cerrar (§10.2)"
+                    },
+                    "can_cancel_or_close": {
+                      "type": "boolean",
+                      "description": "can_manage, o cualquier DIRECTIVA/ADMINISTRADOR si el responsable dejó de ser elegible"
+                    },
+                    "my_grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "MANAGE",
+                          "PARTICIPANTS"
+                        ]
+                      }
+                    },
+                    "collaborator_count": {
+                      "type": "integer",
+                      "description": "Usuarios con algún permiso concedido por el responsable"
                     },
                     "products": {
                       "type": "array",
@@ -20867,7 +21855,9 @@
                               "OPENED",
                               "CLOSED",
                               "CANCELLED",
-                              "RESPONSIBLE_ASSIGNED"
+                              "RESPONSIBLE_ASSIGNED",
+                              "ACCESS_GRANTED",
+                              "ACCESS_REVOKED"
                             ]
                           },
                           "actor": {
@@ -20935,6 +21925,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -20977,7 +21970,7 @@
             }
           },
           "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN: ni responsable ni MANAGE, salvo que el responsable ya no sea elegible (§10.2).",
             "content": {
               "application/json": {
                 "schema": {
@@ -21012,6 +22005,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21089,6 +22085,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21166,6 +22165,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21243,6 +22245,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21342,7 +22347,9 @@
                     "totals_threshold",
                     "can_view_participants",
                     "lines",
-                    "participants"
+                    "participants",
+                    "hidden_participant_count",
+                    "hidden_notice"
                   ],
                   "properties": {
                     "contractVersion": {
@@ -21466,7 +22473,7 @@
                     "participants": {
                       "type": "array",
                       "nullable": true,
-                      "description": "Sólo con el permiso específico (E2-D6); null en otro caso",
+                      "description": "Sólo con PARTICIPANTS; un colaborador recibe sólo las de CONV-2 (§10.3); null en otro caso",
                       "items": {
                         "type": "object",
                         "additionalProperties": false,
@@ -21523,6 +22530,14 @@
                           }
                         }
                       }
+                    },
+                    "hidden_participant_count": {
+                      "type": "integer",
+                      "description": "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable"
+                    },
+                    "hidden_notice": {
+                      "type": "string",
+                      "nullable": true
                     }
                   }
                 }
@@ -21565,6 +22580,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21607,7 +22625,7 @@
             }
           },
           "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN: ni responsable ni MANAGE, salvo que el responsable ya no sea elegible (§10.2).",
             "content": {
               "application/json": {
                 "schema": {
@@ -21642,6 +22660,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21719,6 +22740,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21796,6 +22820,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21873,6 +22900,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -21955,6 +22985,8 @@
                     "provisional",
                     "notice",
                     "participant_count",
+                    "hidden_participant_count",
+                    "hidden_notice",
                     "participants"
                   ],
                   "properties": {
@@ -21985,7 +23017,16 @@
                       "nullable": true
                     },
                     "participant_count": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Todas las participaciones vigentes, vistas o no"
+                    },
+                    "hidden_participant_count": {
+                      "type": "integer",
+                      "description": "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable"
+                    },
+                    "hidden_notice": {
+                      "type": "string",
+                      "nullable": true
                     },
                     "participants": {
                       "type": "array",
@@ -22094,6 +23135,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -22171,6 +23215,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -22248,6 +23295,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -22295,7 +23345,7 @@
             "bearer": []
           }
         ],
-        "summary": "Participantes identificados vigentes: sólo con el permiso específico (E2-D6); provisional mientras OPEN",
+        "summary": "Participantes identificados vigentes: sólo con PARTICIPANTS (E2-D6); un colaborador ve sólo los de CONV-2 y el número de los demás (§10.3); provisional mientras OPEN",
         "tags": [
           "joint purchase calls"
         ]
@@ -22337,7 +23387,9 @@
                     "totals_threshold",
                     "can_view_participants",
                     "lines",
-                    "participants"
+                    "participants",
+                    "hidden_participant_count",
+                    "hidden_notice"
                   ],
                   "properties": {
                     "contractVersion": {
@@ -22461,7 +23513,7 @@
                     "participants": {
                       "type": "array",
                       "nullable": true,
-                      "description": "Sólo con el permiso específico (E2-D6); null en otro caso",
+                      "description": "Sólo con PARTICIPANTS; un colaborador recibe sólo las de CONV-2 (§10.3); null en otro caso",
                       "items": {
                         "type": "object",
                         "additionalProperties": false,
@@ -22518,6 +23570,14 @@
                           }
                         }
                       }
+                    },
+                    "hidden_participant_count": {
+                      "type": "integer",
+                      "description": "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable"
+                    },
+                    "hidden_notice": {
+                      "type": "string",
+                      "nullable": true
                     }
                   }
                 }
@@ -22560,6 +23620,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -22637,6 +23700,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -22714,6 +23780,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -22791,6 +23860,9 @@
                         "CALL_NOT_EDITABLE",
                         "CALL_NOT_CLOSED",
                         "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
                         "CALL_NOT_OPEN",
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
@@ -22838,7 +23910,1835 @@
             "bearer": []
           }
         ],
-        "summary": "Consolidado al cierre (cantidades solicitadas): totales según E2-D7; detalle sólo con permiso",
+        "summary": "Consolidado al cierre (cantidades solicitadas): totales y detalle por persona según §10.3",
+        "tags": [
+          "joint purchase calls"
+        ]
+      }
+    },
+    "/api/v1/joint-purchase-calls/{id}/collaborators": {
+      "get": {
+        "operationId": "InstitutionalCallsController_collaborators",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "call_id",
+                    "status",
+                    "responsible",
+                    "can_grant",
+                    "collaborators",
+                    "history"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "call_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "responsible": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "user_ref",
+                        "name"
+                      ],
+                      "properties": {
+                        "user_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "can_grant": {
+                      "type": "boolean",
+                      "description": "Sólo el responsable concede y revoca"
+                    },
+                    "collaborators": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "user_ref",
+                          "name",
+                          "role",
+                          "grants"
+                        ],
+                        "properties": {
+                          "user_ref": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                              "DIRECTIVA",
+                              "ADMINISTRADOR",
+                              "AGRICULTOR"
+                            ]
+                          },
+                          "grants": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "grant",
+                                "label",
+                                "granted_at",
+                                "granted_by"
+                              ],
+                              "properties": {
+                                "grant": {
+                                  "type": "string",
+                                  "enum": [
+                                    "PARTICIPANTS",
+                                    "MANAGE"
+                                  ]
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "granted_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "granted_by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "user_ref",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "user_ref": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "at",
+                          "action",
+                          "grant",
+                          "user",
+                          "actor"
+                        ],
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "GRANTED",
+                              "REVOKED"
+                            ]
+                          },
+                          "grant": {
+                            "type": "string",
+                            "enum": [
+                              "PARTICIPANTS",
+                              "MANAGE"
+                            ]
+                          },
+                          "user": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "user_ref",
+                              "name"
+                            ],
+                            "properties": {
+                              "user_ref": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "actor": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "user_ref",
+                              "name"
+                            ],
+                            "properties": {
+                              "user_ref": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Sin datos de agricultores"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALL_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Colaboradores vigentes y su historial de concesiones y revocaciones (§10.2); sin datos de agricultores",
+        "tags": [
+          "joint purchase calls"
+        ]
+      },
+      "post": {
+        "operationId": "InstitutionalCallsController_grant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantCollaboratorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "call_id",
+                    "status",
+                    "responsible",
+                    "can_grant",
+                    "collaborators",
+                    "history"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "call_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "responsible": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "user_ref",
+                        "name"
+                      ],
+                      "properties": {
+                        "user_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "can_grant": {
+                      "type": "boolean",
+                      "description": "Sólo el responsable concede y revoca"
+                    },
+                    "collaborators": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "user_ref",
+                          "name",
+                          "role",
+                          "grants"
+                        ],
+                        "properties": {
+                          "user_ref": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                              "DIRECTIVA",
+                              "ADMINISTRADOR",
+                              "AGRICULTOR"
+                            ]
+                          },
+                          "grants": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "grant",
+                                "label",
+                                "granted_at",
+                                "granted_by"
+                              ],
+                              "properties": {
+                                "grant": {
+                                  "type": "string",
+                                  "enum": [
+                                    "PARTICIPANTS",
+                                    "MANAGE"
+                                  ]
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "granted_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "granted_by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "user_ref",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "user_ref": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "at",
+                          "action",
+                          "grant",
+                          "user",
+                          "actor"
+                        ],
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "GRANTED",
+                              "REVOKED"
+                            ]
+                          },
+                          "grant": {
+                            "type": "string",
+                            "enum": [
+                              "PARTICIPANTS",
+                              "MANAGE"
+                            ]
+                          },
+                          "user": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "user_ref",
+                              "name"
+                            ],
+                            "properties": {
+                              "user_ref": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "actor": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "user_ref",
+                              "name"
+                            ],
+                            "properties": {
+                              "user_ref": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Sin datos de agricultores"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID: user_ref o grant inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o COLLABORATORS_FORBIDDEN: no es el responsable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALL_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "INVALID_TRANSITION (con status): convocatoria cancelada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "CONFIRMATION_REQUIRED o COLLABORATOR_NOT_ELIGIBLE (sin distinguir el motivo).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Conceder PARTICIPANTS o MANAGE a otro usuario institucional activo del tenant (sólo el responsable; DRAFT, OPEN o CLOSED); idempotente",
+        "tags": [
+          "joint purchase calls"
+        ]
+      }
+    },
+    "/api/v1/joint-purchase-calls/{id}/collaborators/revoke": {
+      "post": {
+        "operationId": "InstitutionalCallsController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeCollaboratorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "call_id",
+                    "status",
+                    "responsible",
+                    "can_grant",
+                    "collaborators",
+                    "history"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "call_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "responsible": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "user_ref",
+                        "name"
+                      ],
+                      "properties": {
+                        "user_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "can_grant": {
+                      "type": "boolean",
+                      "description": "Sólo el responsable concede y revoca"
+                    },
+                    "collaborators": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "user_ref",
+                          "name",
+                          "role",
+                          "grants"
+                        ],
+                        "properties": {
+                          "user_ref": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                              "DIRECTIVA",
+                              "ADMINISTRADOR",
+                              "AGRICULTOR"
+                            ]
+                          },
+                          "grants": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "grant",
+                                "label",
+                                "granted_at",
+                                "granted_by"
+                              ],
+                              "properties": {
+                                "grant": {
+                                  "type": "string",
+                                  "enum": [
+                                    "PARTICIPANTS",
+                                    "MANAGE"
+                                  ]
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "granted_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "granted_by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "user_ref",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "user_ref": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "at",
+                          "action",
+                          "grant",
+                          "user",
+                          "actor"
+                        ],
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "GRANTED",
+                              "REVOKED"
+                            ]
+                          },
+                          "grant": {
+                            "type": "string",
+                            "enum": [
+                              "PARTICIPANTS",
+                              "MANAGE"
+                            ]
+                          },
+                          "user": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "user_ref",
+                              "name"
+                            ],
+                            "properties": {
+                              "user_ref": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "actor": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "user_ref",
+                              "name"
+                            ],
+                            "properties": {
+                              "user_ref": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Sin datos de agricultores"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o COLLABORATORS_FORBIDDEN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALL_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "COLLABORATOR_NOT_ELIGIBLE: los permisos del responsable no se revocan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revocar un permiso (el responsable) o renunciar al propio (el colaborador), en cualquier estado; idempotente; rige desde la petición siguiente",
         "tags": [
           "joint purchase calls"
         ]
@@ -24526,8 +27426,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-1",
-            "description": "Versión del texto mostrado; distinta de CONV-1: 409 CONSENT_REQUIRED"
+            "example": "CONV-2",
+            "description": "Versión del texto mostrado: CONV-2 (vigente) o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED"
           },
           "accepted_at": {
             "type": "string",
@@ -24734,6 +27634,51 @@
         "required": [
           "confirmed",
           "reason"
+        ]
+      },
+      "GrantCollaboratorDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string",
+            "description": "Otro usuario DIRECTIVA o ADMINISTRADOR activo del tenant, distinto del responsable"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ],
+            "description": "PARTICIPANTS: consultar participantes y cantidades; MANAGE: administrar la convocatoria"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant",
+          "confirmed"
+        ]
+      },
+      "RevokeCollaboratorDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ]
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant"
         ]
       },
       "CreateUserDto": {

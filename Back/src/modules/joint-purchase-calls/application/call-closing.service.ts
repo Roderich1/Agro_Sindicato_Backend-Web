@@ -28,11 +28,21 @@ export class CallClosingService {
     @Inject(JOINT_PURCHASE_CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** Manual close by the responsible or the Directiva/Administración; idempotent from CLOSED. */
-  async closeManually(tenantId: string, callId: string, actorUserId: string): Promise<CloseOutcome> {
+  /**
+   * Manual close; idempotent from CLOSED. `authorize` runs under the call's
+   * lock, before anything else (§10.2: the responsible, MANAGE, or anyone of
+   * the Directiva/Administración when the responsible is no longer eligible).
+   */
+  async closeManually(
+    tenantId: string,
+    callId: string,
+    actorUserId: string,
+    authorize?: (tx: Tx, call: { id: string; tenantId: string; responsibleUserId: string }) => Promise<void>,
+  ): Promise<CloseOutcome> {
     return this.prisma.$transaction(async (tx) => {
       if (!(await lockCallRow(tx, tenantId, callId))) throw new CallHttpError(404, "CALL_NOT_FOUND");
       const call = await tx.jointPurchaseCall.findUniqueOrThrow({ where: { id: callId }, select: CALL_SELECT });
+      if (authorize) await authorize(tx, call);
       if (call.status === "CLOSED") return { callId, alreadyClosed: true };
       if (call.status !== "OPEN") throw new CallHttpError(409, "INVALID_TRANSITION", { status: call.status });
       await this.closeLocked(tx, call, "MANUAL", actorUserId);
@@ -155,6 +165,7 @@ export class CallClosingService {
 const CALL_SELECT = {
   id: true,
   tenantId: true,
+  responsibleUserId: true,
   campaignId: true,
   name: true,
   status: true,

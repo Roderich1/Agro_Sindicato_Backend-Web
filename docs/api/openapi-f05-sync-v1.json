@@ -2915,8 +2915,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-1",
-            "description": "Versión del texto mostrado; distinta de CONV-1: 409 CONSENT_REQUIRED"
+            "example": "CONV-2",
+            "description": "Versión del texto mostrado: CONV-2 (vigente) o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED"
           },
           "accepted_at": {
             "type": "string",
@@ -3123,6 +3123,51 @@
         "required": [
           "confirmed",
           "reason"
+        ]
+      },
+      "GrantCollaboratorDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string",
+            "description": "Otro usuario DIRECTIVA o ADMINISTRADOR activo del tenant, distinto del responsable"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ],
+            "description": "PARTICIPANTS: consultar participantes y cantidades; MANAGE: administrar la convocatoria"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant",
+          "confirmed"
+        ]
+      },
+      "RevokeCollaboratorDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ]
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant"
         ]
       },
       "CreateUserDto": {

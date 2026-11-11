@@ -1,12 +1,12 @@
-import { Body, Controller, Get, Header, HttpCode, HttpStatus, Param, Post, Put, Req, UseFilters, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Header, HttpCode, HttpStatus, Param, Post, Put, Query, Req, UseFilters, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Public } from "@/modules/iam/api/rest/decorators/public.decorator";
 import { SyncV1AuthGuard, SyncV1Request } from "@/modules/sync-v1/api/rest/sync-v1-auth.guard";
 import { FarmerParticipationUseCase } from "../../application/farmer-participation.use-case";
 import { CallHttpError, FarmerContext } from "../../domain/call-error";
-import { ConfirmParticipationDto, WithdrawParticipationDto } from "./calls.dto";
+import { ConfirmParticipationDto, FarmerHistoryQueryDto, WithdrawParticipationDto } from "./calls.dto";
 import { CallsExceptionFilter } from "./calls-exception.filter";
-import { acceptedSchema, callErrorSchema, farmerListSchema } from "./calls-openapi.schemas";
+import { acceptedSchema, callErrorSchema, farmerHistorySchema, farmerListSchema } from "./calls-openapi.schemas";
 
 const error = (status: number, description: string) => ApiResponse({ status, description, schema: callErrorSchema });
 
@@ -35,7 +35,7 @@ export class FarmerCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "Convocatorias OPEN del tenant y las CLOSED/CANCELLED en las que participó (180 días), con la participación propia",
+      "Convocatorias OPEN del tenant y las CLOSED/CANCELLED recientes (180 días) en las que participó, con la participación propia y el número de anteriores (history.older_count)",
   })
   @ApiResponse({ status: 200, schema: farmerListSchema })
   @error(401, "Credencial ausente, inválida o expirada.")
@@ -43,6 +43,21 @@ export class FarmerCallsController {
   @error(429, "Límite de solicitudes.")
   list(@Req() request: SyncV1Request) {
     return this.farmer.list(farmerOf(request));
+  }
+
+  @Get("history")
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({
+    summary:
+      "Historial (E2-P2): convocatorias CLOSED/CANCELLED con participación propia terminadas antes de los 180 días, de la más reciente a la más antigua, con cursor opaco",
+  })
+  @ApiResponse({ status: 200, schema: farmerHistorySchema })
+  @error(400, "PAYLOAD_INVALID: cursor no emitido por el servidor, limit fuera de 1–50 o parámetro desconocido.")
+  @error(401, "Credencial ausente, inválida o expirada.")
+  @error(403, "Sesión, Member, registro de cliente o rol no permitido.")
+  @error(429, "Límite de solicitudes.")
+  history(@Req() request: SyncV1Request, @Query() query: FarmerHistoryQueryDto) {
+    return this.farmer.history(farmerOf(request), { before: query.before, limit: query.limit });
   }
 
   @Put(":id/participation")

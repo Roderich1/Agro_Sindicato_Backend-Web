@@ -4,7 +4,7 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { QUANTITY_MAX } from "@/modules/sync-v1/domain/envelope";
 import { CallErrorCode, CallHttpError, FarmerContext } from "../domain/call-error";
 import { notOpenReason } from "../domain/call-state";
-import { CONSENT_TEXT, CONSENT_VERSION, isCurrentConsent } from "../domain/consent";
+import { CONSENT_TEXT, CONSENT_VERSION, isAcceptedConsent } from "../domain/consent";
 import {
   ConfirmInput,
   normalizeConfirm,
@@ -23,8 +23,14 @@ import {
 } from "./call-views";
 import { Clock, JOINT_PURCHASE_CLOCK } from "./clock";
 
-/** E2-P2: closed or cancelled calls the farmer took part in stay visible this long. */
-export const FINISHED_VISIBLE_DAYS = 180;
+/**
+ * E2-P2 (§10.1): presentation filter of the default view. Closed or cancelled
+ * calls the farmer took part in that ended within this many days are
+ * «recientes»; older ones are served by `history`. Nothing is deleted.
+ */
+export const RECENT_FINISHED_DAYS = 180;
+export const HISTORY_PAGE_DEFAULT = 20;
+export const HISTORY_PAGE_MAX = 50;
 
 export interface AcceptedResponse {
   outcome: "ACCEPTED";
@@ -66,15 +72,23 @@ export class FarmerParticipationUseCase {
     @Inject(JOINT_PURCHASE_CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** `GET /me/joint-purchase-calls`. */
+  /**
+   * `GET /me/joint-purchase-calls` (E2-P2, §10.1): the OPEN calls of the tenant
+   * and the recent finished ones (closed or cancelled in the last
+   * `RECENT_FINISHED_DAYS`) in which the farmer has a participation row, plus
+   * how many older finished ones there are (`history.older_count`, a count of
+   * the farmer's own data). The window is only a presentation filter: nothing
+   * is deleted on the server and the older ones are served by `history`.
+   */
   async list(context: FarmerContext): Promise<{
     contractVersion: 1;
     server_time: string;
     consent: { version: string; text: string };
     calls: FarmerCallView[];
+    history: { older_count: number };
   }> {
     const now = this.clock.now();
-    const since = new Date(now.getTime() - FINISHED_VISIBLE_DAYS * 24 * 3600 * 1000);
+    const since = recentSince(now);
     const rows = await this.prisma.jointPurchaseCall.findMany({
       where: {
         tenantId: context.tenantId,
@@ -88,65 +102,66 @@ export class FarmerParticipationUseCase {
         ],
       },
       orderBy: [{ deadlineAt: "asc" }, { id: "asc" }],
-      include: {
-        campaign: { select: { id: true, name: true } },
-        responsible: { select: { name: true } },
-        products: { orderBy: { position: "asc" }, include: { product: { select: { name: true } } } },
-        participations: { where: { memberId: context.memberId }, include: PARTICIPATION_INCLUDE },
-        closing: {
-          select: {
-            cutoffAt: true,
-            closedAt: true,
-            participants: { where: { memberId: context.memberId }, include: { lines: true } },
-          },
-        },
-      },
+      include: farmerCallInclude(context.memberId),
     });
+    const olderCount = await this.prisma.jointPurchaseCall.count({ where: olderWhere(context, since) });
     const serverTime = now.toISOString();
     return {
       contractVersion: 1,
       server_time: serverTime,
       consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
-      calls: rows.map((row) => {
-        const baseOf = new Map(row.products.map((p) => [p.productId, p.baseUnit]));
-        const own = row.closing?.participants[0] ?? null;
-        return {
-          call_id: row.id,
-          name: row.name,
-          status: row.status as FarmerCallView["status"],
-          campaign: { campaign_ref: row.campaign.id, name: row.campaign.name },
-          opened_at: iso(row.openedAt),
-          deadline_at: row.deadlineAt.toISOString(),
-          closed_at: iso(row.closedAt),
-          cancelled_at: iso(row.cancelledAt),
-          server_time: serverTime,
-          accepts_operations: notOpenReason(row, now) === null,
-          responsible: { name: row.responsible.name },
-          products: row.products.map((p) => ({
-            product_ref: p.productId,
-            name: p.product.name,
-            unit: presentationUnit(p.baseUnit),
-            base_unit: p.baseUnit,
-          })),
-          participation: toParticipationView(row.participations[0] ?? null),
-          closing: row.closing
-            ? {
-                cutoff_at: row.closing.cutoffAt.toISOString(),
-                closed_at: row.closing.closedAt.toISOString(),
-                included: own !== null,
-                lines: own
-                  ? [...own.lines]
-                      .sort((a, b) => (a.productId < b.productId ? -1 : a.productId > b.productId ? 1 : 0))
-                      .map((line) => ({
-                        product_ref: line.productId,
-                        base_unit: baseOf.get(line.productId) ?? "ML",
-                        quantity_base: line.quantityBase.toString(),
-                      }))
-                  : [],
-              }
-            : null,
-        };
-      }),
+      calls: rows.map((row) => toFarmerCallView(row, now)),
+      history: { older_count: olderCount },
+    };
+  }
+
+  /**
+   * `GET /me/joint-purchase-calls/history` (§10.1): the farmer's finished
+   * calls (CLOSED or CANCELLED, with a participation row of theirs) that ended
+   * before the recent window, newest first (end date, then id), in pages of
+   * `limit` (1–50, 20 by default). Same shape as the default view; never an
+   * OPEN call nor another farmer's data. The cursor is opaque: one the server
+   * did not issue is 400 PAYLOAD_INVALID.
+   */
+  async history(
+    context: FarmerContext,
+    query: { before?: string; limit?: number },
+  ): Promise<{ contractVersion: 1; server_time: string; consent: { version: string; text: string }; calls: FarmerCallView[]; next_cursor: string | null }> {
+    const limit = query.limit ?? HISTORY_PAGE_DEFAULT;
+    if (!Number.isInteger(limit) || limit < 1 || limit > HISTORY_PAGE_MAX) throw new CallHttpError(400, "PAYLOAD_INVALID");
+    const before = query.before === undefined ? null : decodeHistoryCursor(query.before);
+    const now = this.clock.now();
+    const since = recentSince(now);
+    // The end date is closedAt or cancelledAt (exactly one is set, CHECK of the
+    // E2 migration); timestamps are stored in UTC without a zone.
+    const ids = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT c."id"
+      FROM "JointPurchaseCall" c
+      WHERE c."tenantId" = ${context.tenantId}
+        AND c."status" IN ('CLOSED', 'CANCELLED')
+        AND EXISTS (SELECT 1 FROM "JointPurchaseParticipation" p WHERE p."callId" = c."id" AND p."memberId" = ${context.memberId})
+        AND COALESCE(c."closedAt", c."cancelledAt") < (${since.toISOString()}::timestamptz AT TIME ZONE 'UTC')
+        AND (
+          ${before === null}::boolean
+          OR (COALESCE(c."closedAt", c."cancelledAt"), c."id")
+             < ((${before?.endedAt.toISOString() ?? null}::timestamptz AT TIME ZONE 'UTC'), ${before?.id ?? null}::uuid)
+        )
+      ORDER BY COALESCE(c."closedAt", c."cancelledAt") DESC, c."id" DESC
+      LIMIT ${limit + 1}`;
+    const page = ids.slice(0, limit).map((row) => row.id);
+    const rows = await this.prisma.jointPurchaseCall.findMany({
+      where: { id: { in: page }, tenantId: context.tenantId },
+      include: farmerCallInclude(context.memberId),
+    });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const ordered = page.map((id) => byId.get(id)!).filter(Boolean);
+    const last = ordered[ordered.length - 1];
+    return {
+      contractVersion: 1,
+      server_time: now.toISOString(),
+      consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
+      calls: ordered.map((row) => toFarmerCallView(row, now)),
+      next_cursor: ids.length > limit && last ? encodeHistoryCursor((last.closedAt ?? last.cancelledAt)!, last.id) : null,
     };
   }
 
@@ -239,7 +254,7 @@ export class FarmerParticipationUseCase {
 
     let participation = existing;
     if (operation.lines.length > 0) {
-      if (!operation.consent || !isCurrentConsent(operation.consent.version)) return reject("CONSENT_REQUIRED", 409);
+      if (!operation.consent || !isAcceptedConsent(operation.consent.version)) return reject("CONSENT_REQUIRED", 409);
       const baseOf = new Map(call.products.map((p) => [p.productId, p.baseUnit]));
       if (operation.lines.some((line) => !baseOf.has(line.productRef))) return reject("PRODUCT_NOT_IN_CALL", 422);
       // The call's totals stay within int64, so its closing can always be stored.
@@ -299,4 +314,112 @@ export class FarmerParticipationUseCase {
       body: { outcome: "ACCEPTED", participation: toParticipationView(participation) } as unknown as Record<string, unknown>,
     });
   }
+}
+
+const DAY_MS = 24 * 3600 * 1000;
+
+function recentSince(now: Date): Date {
+  return new Date(now.getTime() - RECENT_FINISHED_DAYS * DAY_MS);
+}
+
+/** Finished calls of the farmer that ended before the recent window (`history`). */
+function olderWhere(context: FarmerContext, since: Date): Prisma.JointPurchaseCallWhereInput {
+  return {
+    tenantId: context.tenantId,
+    participations: { some: { memberId: context.memberId } },
+    OR: [
+      { status: "CLOSED", closedAt: { lt: since } },
+      { status: "CANCELLED", cancelledAt: { lt: since } },
+    ],
+  };
+}
+
+function farmerCallInclude(memberId: string) {
+  return {
+    campaign: { select: { id: true, name: true } },
+    responsible: { select: { name: true } },
+    products: { orderBy: { position: "asc" as const }, include: { product: { select: { name: true } } } },
+    participations: { where: { memberId }, include: PARTICIPATION_INCLUDE },
+    closing: {
+      select: {
+        cutoffAt: true,
+        closedAt: true,
+        participants: { where: { memberId }, include: { lines: true } },
+      },
+    },
+  } satisfies Prisma.JointPurchaseCallInclude;
+}
+
+type FarmerCallRow = Prisma.JointPurchaseCallGetPayload<{ include: ReturnType<typeof farmerCallInclude> }>;
+
+/** One call as the farmer sees it: never another farmer's data. */
+function toFarmerCallView(row: FarmerCallRow, now: Date): FarmerCallView {
+  const baseOf = new Map(row.products.map((p) => [p.productId, p.baseUnit]));
+  const own = row.closing?.participants[0] ?? null;
+  return {
+    call_id: row.id,
+    name: row.name,
+    status: row.status as FarmerCallView["status"],
+    campaign: { campaign_ref: row.campaign.id, name: row.campaign.name },
+    opened_at: iso(row.openedAt),
+    deadline_at: row.deadlineAt.toISOString(),
+    closed_at: iso(row.closedAt),
+    cancelled_at: iso(row.cancelledAt),
+    server_time: now.toISOString(),
+    accepts_operations: notOpenReason(row, now) === null,
+    responsible: { name: row.responsible.name },
+    products: row.products.map((p) => ({
+      product_ref: p.productId,
+      name: p.product.name,
+      unit: presentationUnit(p.baseUnit),
+      base_unit: p.baseUnit,
+    })),
+    participation: toParticipationView(row.participations[0] ?? null),
+    closing: row.closing
+      ? {
+          cutoff_at: row.closing.cutoffAt.toISOString(),
+          closed_at: row.closing.closedAt.toISOString(),
+          included: own !== null,
+          lines: own
+            ? [...own.lines]
+                .sort((a, b) => (a.productId < b.productId ? -1 : a.productId > b.productId ? 1 : 0))
+                .map((line) => ({
+                  product_ref: line.productId,
+                  base_unit: baseOf.get(line.productId) ?? "ML",
+                  quantity_base: line.quantityBase.toString(),
+                }))
+            : [],
+        }
+      : null,
+  };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+function encodeHistoryCursor(endedAt: Date, id: string): string {
+  return Buffer.from(JSON.stringify(["E2H1", endedAt.toISOString(), id]), "utf8").toString("base64url");
+}
+
+/** A cursor this route did not issue is a bad request, never a silent first page. */
+function decodeHistoryCursor(cursor: string): { endedAt: Date; id: string } {
+  let parsed: unknown = null;
+  if (/^[A-Za-z0-9_-]{1,256}$/.test(cursor)) {
+    try {
+      parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    } catch {
+      parsed = null;
+    }
+  }
+  if (
+    Array.isArray(parsed) &&
+    parsed.length === 3 &&
+    parsed[0] === "E2H1" &&
+    typeof parsed[1] === "string" &&
+    typeof parsed[2] === "string" &&
+    UUID.test(parsed[2])
+  ) {
+    const endedAt = new Date(parsed[1]);
+    if (!Number.isNaN(endedAt.getTime()) && endedAt.toISOString() === parsed[1]) return { endedAt, id: parsed[2] };
+  }
+  throw new CallHttpError(400, "PAYLOAD_INVALID");
 }

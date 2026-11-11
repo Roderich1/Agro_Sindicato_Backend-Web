@@ -4,6 +4,12 @@
  * always `{ errorCode }`, plus `reason` (CALL_NOT_OPEN), `status`
  * (INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED) or `participation`
  * (STALE_SEQUENCE). Nothing from the request is echoed.
+ *
+ * E2-P3 (§10.2): 403 MANAGE_FORBIDDEN (editing, opening, cancelling or
+ * closing without being the responsible nor holding MANAGE), 403
+ * COLLABORATORS_FORBIDDEN (granting or revoking without being the
+ * responsible) and 422 COLLABORATOR_NOT_ELIGIBLE (the grantee is not another
+ * active DIRECTIVA/ADMINISTRADOR of the tenant; never says why).
  */
 export type CallErrorCode =
   | "PAYLOAD_INVALID"
@@ -28,6 +34,9 @@ export type CallErrorCode =
   | "CALL_NOT_EDITABLE"
   | "CALL_NOT_CLOSED"
   | "PARTICIPANTS_FORBIDDEN"
+  | "MANAGE_FORBIDDEN"
+  | "COLLABORATORS_FORBIDDEN"
+  | "COLLABORATOR_NOT_ELIGIBLE"
   | "CALL_NOT_OPEN"
   | "STALE_SEQUENCE"
   | "OPERATION_ID_REUSED"
@@ -60,6 +69,9 @@ export const CALL_ERROR_CODES: readonly CallErrorCode[] = [
   "CALL_NOT_EDITABLE",
   "CALL_NOT_CLOSED",
   "PARTICIPANTS_FORBIDDEN",
+  "MANAGE_FORBIDDEN",
+  "COLLABORATORS_FORBIDDEN",
+  "COLLABORATOR_NOT_ELIGIBLE",
   "CALL_NOT_OPEN",
   "STALE_SEQUENCE",
   "OPERATION_ID_REUSED",

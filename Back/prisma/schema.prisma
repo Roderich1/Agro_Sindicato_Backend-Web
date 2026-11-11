@@ -298,7 +298,10 @@ model User {
   callsCreated              JointPurchaseCall[]            @relation("JointPurchaseCallCreator")
   callsOpened               JointPurchaseCall[]            @relation("JointPurchaseCallOpener")
   callsCancelled            JointPurchaseCall[]            @relation("JointPurchaseCallCanceller")
-  callAccessGrants          JointPurchaseCallAccess[]
+  callAccessGrants          JointPurchaseCallAccess[]      @relation("JointPurchaseCallAccessHolder")
+  callAccessGranted         JointPurchaseCallAccess[]      @relation("JointPurchaseCallAccessGrantor")
+  callAccessEventsAbout     JointPurchaseCallAccessEvent[] @relation("JointPurchaseCallAccessEventSubject")
+  callAccessEventsActed     JointPurchaseCallAccessEvent[] @relation("JointPurchaseCallAccessEventActor")
   callEvents                JointPurchaseCallEvent[]       @relation("JointPurchaseCallEventActor")
   callClosings              JointPurchaseCallClosing[]     @relation("JointPurchaseCallCloser")
 }
@@ -1677,6 +1680,15 @@ enum JointPurchaseCallEventKind {
   CLOSED
   CANCELLED
   RESPONSIBLE_ASSIGNED
+  /// E2-P3 (§10.2): concesión y revocación de permisos de colaboradores.
+  ACCESS_GRANTED
+  ACCESS_REVOKED
+}
+
+/// E2-P3 (§10.2): acción registrada en JointPurchaseCallAccessEvent.
+enum JointPurchaseCallAccessAction {
+  GRANTED
+  REVOKED
 }
 
 enum JointPurchaseParticipationStatus {
@@ -1722,6 +1734,7 @@ model JointPurchaseCall {
   operations     JointPurchaseParticipationOperation[]
   events         JointPurchaseCallEvent[]
   access         JointPurchaseCallAccess[]
+  accessEvents   JointPurchaseCallAccessEvent[]
   closing        JointPurchaseCallClosing?
 
   @@index([tenantId, campaignId, status])
@@ -1750,18 +1763,42 @@ model JointPurchaseCallProduct {
   @@unique([callId, productId])
 }
 
-/// E2-D6: permiso específico; el sistema lo crea sólo para el responsable al
-/// abrir. Ningún rol lo concede por sí solo.
+/// E2-D6 y E2-P3 (§10.2): permisos por convocatoria, `PARTICIPANTS` o
+/// `MANAGE`. El sistema crea `PARTICIPANTS` para el responsable al abrir
+/// (`grantedByUserId` nulo); los de colaboradores los concede el responsable.
+/// Ningún rol los concede por sí solo. Revocar borra la fila; la traza queda
+/// en JointPurchaseCallAccessEvent.
 model JointPurchaseCallAccess {
-  callId    String   @db.Uuid
-  userId    String
-  grant     String   @db.VarChar(16)
-  grantedAt DateTime @default(now())
+  callId          String   @db.Uuid
+  userId          String
+  grant           String   @db.VarChar(16)
+  grantedAt       DateTime @default(now())
+  grantedByUserId String?
 
-  call JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  user User              @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  call      JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user      User              @relation("JointPurchaseCallAccessHolder", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  grantedBy User?             @relation("JointPurchaseCallAccessGrantor", fields: [grantedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@id([callId, userId, grant])
+}
+
+/// E2-P3 (§10.2): registro sólo de inserción (disparador en la migración) de
+/// cada concesión y revocación de un permiso de colaborador.
+model JointPurchaseCallAccessEvent {
+  id          String                        @id @default(uuid()) @db.Uuid
+  callId      String                        @db.Uuid
+  userId      String
+  grant       String                        @db.VarChar(16)
+  action      JointPurchaseCallAccessAction
+  actorUserId String
+  at          DateTime                      @default(now())
+
+  call  JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user  User              @relation("JointPurchaseCallAccessEventSubject", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor User              @relation("JointPurchaseCallAccessEventActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([callId, at])
+  @@index([callId, userId, grant])
 }
 
 /// E2-D8/D9: una participación por (convocatoria, Member), con el

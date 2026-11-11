@@ -161,7 +161,7 @@ export interface CallDetailView {
   created_at: string;
   updated_at: string;
   server_time: string;
-  responsible: UserRefView & { role: UserRole | null };
+  responsible: UserRefView & { role: UserRole | null; eligible: boolean };
   created_by: UserRefView;
   opened_by: UserRefView | null;
   cancelled_by: UserRefView | null;
@@ -172,6 +172,14 @@ export interface CallDetailView {
   totals_threshold: number;
   can_view_participants: boolean;
   is_responsible: boolean;
+  /** §10.2: the responsible or MANAGE (edit the draft, open, cancel, close). */
+  can_manage: boolean;
+  /** §10.2: when the responsible is no longer eligible, any DIRECTIVA/ADMINISTRADOR may cancel or close. */
+  can_cancel_or_close: boolean;
+  /** Grants this user holds now (the responsible holds MANAGE by being the responsible). */
+  my_grants: ("MANAGE" | "PARTICIPANTS")[];
+  /** Users with a grant from the responsible now (never farmers). */
+  collaborator_count: number;
   products: InstitutionalCallProductView[];
   history: HistoryEntryView[];
 }
@@ -190,7 +198,11 @@ export interface ParticipantsView {
   status: JointPurchaseCallStatus;
   provisional: boolean;
   notice: string | null;
+  /** Every current (ACTIVE) participation, seen or not. */
   participant_count: number;
+  /** §10.2: CONV-1 participations a collaborator may not see by name (0 for the responsible). */
+  hidden_participant_count: number;
+  hidden_notice: string | null;
   participants: ParticipantView[];
 }
 
@@ -222,8 +234,58 @@ export interface ClosingView {
   totals_threshold: number;
   can_view_participants: boolean;
   lines: ClosingLineView[];
-  /** Only with the specific permission (E2-D6); null otherwise. */
+  /** Only with PARTICIPANTS (E2-D6, §10.3); null otherwise. A collaborator gets only the CONV-2 ones. */
   participants: ClosingParticipantView[] | null;
+  /** §10.2: frozen participations hidden from this collaborator (0 otherwise). */
+  hidden_participant_count: number;
+  hidden_notice: string | null;
+}
+
+// ------------------------------------------------------------ collaborators (§10.2)
+
+export interface CollaboratorGrantView {
+  grant: "PARTICIPANTS" | "MANAGE";
+  label: string;
+  granted_at: string;
+  granted_by: UserRefView;
+}
+
+export interface CollaboratorView {
+  user_ref: string;
+  name: string;
+  role: UserRole | null;
+  grants: CollaboratorGrantView[];
+}
+
+export interface AccessHistoryEntryView {
+  at: string;
+  action: "GRANTED" | "REVOKED";
+  grant: "PARTICIPANTS" | "MANAGE";
+  user: UserRefView;
+  actor: UserRefView;
+}
+
+export interface CollaboratorsView {
+  contractVersion: 1;
+  call_id: string;
+  status: JointPurchaseCallStatus;
+  responsible: UserRefView;
+  /** Only the responsible grants and revokes. */
+  can_grant: boolean;
+  collaborators: CollaboratorView[];
+  history: AccessHistoryEntryView[];
+}
+
+export const GRANT_LABEL: Record<"PARTICIPANTS" | "MANAGE", string> = {
+  PARTICIPANTS: "Consultar participantes y cantidades",
+  MANAGE: "Administrar la convocatoria",
+};
+
+export function hiddenNotice(count: number): string | null {
+  if (count === 0) return null;
+  return count === 1
+    ? "1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable."
+    : `${count} participaciones aceptadas con un consentimiento anterior: sólo las ve la persona responsable.`;
 }
 
 export const CLOSING_LABEL = "Consolidado al cierre: cantidades solicitadas";

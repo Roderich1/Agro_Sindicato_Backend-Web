@@ -1,9 +1,9 @@
 import { CallHttpError } from "./call-error";
 import { canTransition, closingCutoff, isEditable, isFinal, notOpenReason } from "./call-state";
 import { computeClosing } from "./closing";
-import { CONSENT_TEXT, CONSENT_VERSION, isCurrentConsent } from "./consent";
+import { CONSENT_TEXT, CONSENT_V1_TEXT, CONSENT_V1_VERSION, CONSENT_VERSION, consentCoversCollaborators, isAcceptedConsent } from "./consent";
 import { normalizeConfirm, normalizeWithdraw, parseQuantity } from "./participation-input";
-import { productTotalView } from "./visibility";
+import { CallViewer, CallVisibility, productTotalView } from "./visibility";
 import { closeIntervalFrom } from "../application/joint-purchase-config";
 
 const OP = "3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
@@ -50,15 +50,27 @@ describe("E2 state machine (E2-D2)", () => {
   });
 });
 
-describe("E2 consent (E2-D9)", () => {
-  it("has the exact CONV-1 text and accepts only the current version", () => {
-    expect(CONSENT_VERSION).toBe("CONV-1");
-    expect(CONSENT_TEXT).toBe(
+describe("E2 consent (E2-D9, E2-P3 §10.2)", () => {
+  it("keeps the exact CONV-1 text, still accepted from phones not yet updated", () => {
+    expect(CONSENT_V1_VERSION).toBe("CONV-1");
+    expect(CONSENT_V1_TEXT).toBe(
       "El responsable de esta compra conjunta podrá ver tu nombre y las cantidades que solicitas para coordinar la compra y la entrega. Esta confirmación no genera una deuda.",
     );
-    expect(isCurrentConsent("CONV-1")).toBe(true);
-    expect(isCurrentConsent("CONV-2")).toBe(false);
-    expect(isCurrentConsent(undefined)).toBe(false);
+    expect(isAcceptedConsent("CONV-1")).toBe(true);
+  });
+
+  it("publishes CONV-2 as current with its exact text; any other version is refused", () => {
+    expect(CONSENT_VERSION).toBe("CONV-2");
+    expect(CONSENT_TEXT).toBe(
+      "La persona responsable de esta compra conjunta y quienes ella autorice para coordinarla podrán ver tu nombre y las cantidades que solicitas, para coordinar la compra y la entrega. Esta confirmación no genera una deuda.",
+    );
+    expect(isAcceptedConsent("CONV-2")).toBe(true);
+    for (const other of ["CONV-0", "CONV-3", "conv-2", "", undefined, null, 2]) expect(isAcceptedConsent(other)).toBe(false);
+  });
+
+  it("extends nothing retroactively: only CONV-2 covers collaborators", () => {
+    expect(consentCoversCollaborators("CONV-2")).toBe(true);
+    expect(consentCoversCollaborators("CONV-1")).toBe(false);
   });
 });
 
@@ -231,6 +243,44 @@ describe("E2 visibility (E2-D7)", () => {
 
   it("shows every total to the holder of the permission", () => {
     expect(productTotalView(700n, 1, true)).toEqual({ participant_count: 1, total_quantity_base: "700", visibility: "VISIBLE" });
+  });
+});
+
+describe("E2-P3 visibility (§10.3): one decision for detail, participants and closing", () => {
+  const visibility = (kind: CallViewer["kind"], formerParticipantsHolder = false) =>
+    new CallVisibility({ kind, formerParticipantsHolder }, consentCoversCollaborators);
+  const v1 = { consentVersion: "CONV-1", productIds: ["p"] };
+  const v2 = { consentVersion: "CONV-2", productIds: ["p"] };
+
+  it("identified participants: all for the responsible, CONV-2 for a collaborator, none otherwise", () => {
+    expect([visibility("RESPONSIBLE").canSeeParticipation("CONV-1"), visibility("RESPONSIBLE").canSeeParticipation("CONV-2")]).toEqual([true, true]);
+    expect([visibility("COLLABORATOR").canSeeParticipation("CONV-1"), visibility("COLLABORATOR").canSeeParticipation("CONV-2")]).toEqual([false, true]);
+    expect([visibility("NONE").canSeeParticipation("CONV-1"), visibility("NONE", true).canSeeParticipation("CONV-2")]).toEqual([false, false]);
+    expect(visibility("COLLABORATOR").hiddenCount([v1, v2, v1])).toBe(2);
+    expect(visibility("RESPONSIBLE").hiddenCount([v1, v2])).toBe(0);
+  });
+
+  it("totals of an open call: the responsible always; a collaborator only without hidden participations; nobody else", () => {
+    expect(visibility("RESPONSIBLE").productTotal(900n, 2, [v1, v2], "LIVE")).toEqual({ participant_count: 2, total_quantity_base: "900", visibility: "VISIBLE" });
+    expect(visibility("COLLABORATOR").productTotal(900n, 2, [v2, v2], "LIVE")).toEqual({ participant_count: 2, total_quantity_base: "900", visibility: "VISIBLE" });
+    expect(visibility("COLLABORATOR").productTotal(900n, 2, [v1, v2], "LIVE")).toEqual({ participant_count: 2, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" });
+    expect(visibility("NONE").productTotal(900n, 5, [v2, v2, v2, v2, v2], "LIVE")).toEqual({ participant_count: 5, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" });
+  });
+
+  it("closing: a collaborator gets no total with a hidden participation (subtracting would reveal it); others get the threshold", () => {
+    const three = [v1, v2, v2];
+    expect(visibility("COLLABORATOR").productTotal(900n, 3, three, "CLOSING").visibility).toBe("RESPONSIBLE_ONLY");
+    expect(visibility("COLLABORATOR").productTotal(900n, 2, [v2, v2], "CLOSING").visibility).toBe("VISIBLE");
+    expect(visibility("NONE").productTotal(900n, 3, three, "CLOSING")).toEqual({ participant_count: 3, total_quantity_base: "900", visibility: "VISIBLE" });
+    expect(visibility("NONE").productTotal(900n, 2, [v2, v2], "CLOSING").visibility).toBe("UNDER_THRESHOLD");
+    expect(visibility("RESPONSIBLE").productTotal(900n, 1, [v1], "CLOSING").visibility).toBe("VISIBLE");
+  });
+
+  it("after a revocation, a former collaborator never gets the total of a product with a participation hidden from them", () => {
+    const three = [v1, v2, v2];
+    expect(visibility("NONE", true).productTotal(900n, 3, three, "CLOSING")).toEqual({ participant_count: 3, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" });
+    // Without hidden participations the threshold applies as to anyone else.
+    expect(visibility("NONE", true).productTotal(900n, 3, [v2, v2, v2], "CLOSING").visibility).toBe("VISIBLE");
   });
 });
 

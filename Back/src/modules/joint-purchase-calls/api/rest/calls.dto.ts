@@ -11,7 +11,9 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from "class-validator";
 import { CONSENT_VERSION } from "../../domain/consent";
@@ -132,7 +134,10 @@ export class ListCallsQueryDto {
 }
 
 export class ParticipationConsentDto {
-  @ApiProperty({ example: CONSENT_VERSION, description: "Versión del texto mostrado; distinta de CONV-1: 409 CONSENT_REQUIRED" })
+  @ApiProperty({
+    example: CONSENT_VERSION,
+    description: "Versión del texto mostrado: CONV-2 (vigente) o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED",
+  })
   @IsString()
   @MaxLength(16)
   version!: string;
@@ -192,4 +197,52 @@ export class WithdrawParticipationDto {
   @ApiProperty({ minimum: 1, maximum: 2147483647 })
   @IsInt()
   sequence!: number;
+}
+
+/** E2-P3 (§10.2): `POST /joint-purchase-calls/{id}/collaborators`. */
+export class GrantCollaboratorDto {
+  @ApiProperty({ description: "Otro usuario DIRECTIVA o ADMINISTRADOR activo del tenant, distinto del responsable" })
+  @IsString()
+  @MaxLength(64)
+  user_ref!: string;
+
+  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"], description: "PARTICIPANTS: consultar participantes y cantidades; MANAGE: administrar la convocatoria" })
+  @IsString()
+  @MaxLength(16)
+  grant!: string;
+
+  @ApiProperty({ description: "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED" })
+  @IsOptional()
+  @IsBoolean()
+  confirmed?: boolean;
+}
+
+/** E2-P3 (§10.2): `POST /joint-purchase-calls/{id}/collaborators/revoke` (el responsable, o el propio colaborador para renunciar). */
+export class RevokeCollaboratorDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(64)
+  user_ref!: string;
+
+  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"] })
+  @IsString()
+  @MaxLength(16)
+  grant!: string;
+}
+
+/** E2-P2 (§10.1): `GET /me/joint-purchase-calls/history`. */
+export class FarmerHistoryQueryDto {
+  @ApiPropertyOptional({ description: "Cursor opaco emitido por el servidor (next_cursor); otro: 400 PAYLOAD_INVALID" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  before?: string;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 50, default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
 }

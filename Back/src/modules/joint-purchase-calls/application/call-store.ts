@@ -28,4 +28,8 @@ export async function lockCallRow(tx: Tx, tenantId: string, callId: string): Pro
 }
 
 export const ACCESS_PARTICIPANTS = "PARTICIPANTS";
+/** E2-P3 (§10.2): edit the draft, open, cancel and close by hand. */
+export const ACCESS_MANAGE = "MANAGE";
+export const CALL_GRANTS = [ACCESS_PARTICIPANTS, ACCESS_MANAGE] as const;
+export type CallGrant = (typeof CALL_GRANTS)[number];
 export const ENTITY_NAME = "JointPurchaseCall";
