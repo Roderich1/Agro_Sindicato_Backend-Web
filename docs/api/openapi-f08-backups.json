@@ -2626,6 +2626,221 @@
           "confirmed"
         ]
       },
+      "ParticipationConsentDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "CONV-1",
+            "description": "Versión del texto mostrado; distinta de CONV-1: 409 CONSENT_REQUIRED"
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de aceptación en el teléfono"
+          }
+        },
+        "required": [
+          "version",
+          "accepted_at"
+        ]
+      },
+      "ParticipationLineDto": {
+        "type": "object",
+        "properties": {
+          "product_ref": {
+            "type": "string",
+            "description": "Producto de la convocatoria; otro: 422 PRODUCT_NOT_IN_CALL"
+          },
+          "quantity_base": {
+            "type": "string",
+            "example": "2500",
+            "pattern": "^[1-9][0-9]*$",
+            "description": "Entero decimal > 0 en la unidad base (ML/G), como Sync v1; inválido: 422 QUANTITY_INVALID"
+          }
+        },
+        "required": [
+          "product_ref",
+          "quantity_base"
+        ]
+      },
+      "ConfirmParticipationDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 en minúsculas generado por el teléfono (idempotencia)"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Creciente por convocatoria en ese teléfono"
+          },
+          "consent": {
+            "nullable": true,
+            "description": "Obligatorio si hay líneas",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ParticipationConsentDto"
+              }
+            ]
+          },
+          "lines": {
+            "maxItems": 50,
+            "description": "Vacía = retiro (E2-D8)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParticipationLineDto"
+            }
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence",
+          "lines"
+        ]
+      },
+      "WithdrawParticipationDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence"
+        ]
+      },
+      "CallProductRefDto": {
+        "type": "object",
+        "properties": {
+          "product_ref": {
+            "type": "string",
+            "description": "Producto colectivo del catálogo del tenant (activo, L o KG, canónico)"
+          }
+        },
+        "required": [
+          "product_ref"
+        ]
+      },
+      "CreateCallDto": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "description": "Campaña agrícola del tenant (PLANIFICADA o ABIERTA)"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "1–120 caracteres tras recortar espacios"
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Hora del servidor; debe ser posterior a ahora (y a la apertura)"
+          },
+          "responsible_user_id": {
+            "type": "string",
+            "description": "Usuario DIRECTIVA o ADMINISTRADOR activo del tenant (ver eligible-responsibles)"
+          },
+          "products": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallProductRefDto"
+            }
+          },
+          "source_proposal_id": {
+            "type": "object",
+            "nullable": true,
+            "format": "uuid",
+            "description": "Borrador de propuesta (F07) de la misma campaña: cada producto que tenga línea en él guarda la referencia (propuesta, posición)"
+          }
+        },
+        "required": [
+          "campaign_id",
+          "name",
+          "deadline_at",
+          "responsible_user_id",
+          "products"
+        ]
+      },
+      "PatchCallDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responsible_user_id": {
+            "type": "string"
+          },
+          "products": {
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Reemplaza la lista completa",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallProductRefDto"
+            }
+          },
+          "source_proposal_id": {
+            "type": "object",
+            "nullable": true,
+            "format": "uuid",
+            "description": "null quita el origen"
+          }
+        }
+      },
+      "ConfirmActionDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "confirmed"
+        ]
+      },
+      "CancelCallDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280,
+            "description": "Vacío o > 280: 422 REASON_REQUIRED"
+          }
+        },
+        "required": [
+          "confirmed",
+          "reason"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {

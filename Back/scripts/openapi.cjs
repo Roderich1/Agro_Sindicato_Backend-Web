@@ -49,13 +49,25 @@ async function main() {
     }, null, 2)}
 `;
     const e1Target = resolve(__dirname, "../../docs/api/openapi-e1-identification.json");
+    // E2 joint purchase calls (institutional and farmer routes).
+    const e2Spec = `${JSON.stringify({
+      ...document,
+      paths: Object.fromEntries(
+        Object.entries(document.paths).filter(
+          ([path]) => path.startsWith("/api/v1/joint-purchase-calls") || path.startsWith("/api/v1/me/joint-purchase-calls"),
+        ),
+      ),
+    }, null, 2)}
+`;
+    const e2Target = resolve(__dirname, "../../docs/api/openapi-e2-joint-purchase-calls.json");
     if (process.argv.includes("--check")) {
       if (
         readFileSync(target, "utf8") !== spec ||
         readFileSync(f05Target, "utf8") !== f05Spec ||
         readFileSync(f06Target, "utf8") !== f06Spec ||
         readFileSync(f08Target, "utf8") !== f08Spec ||
-        readFileSync(e1Target, "utf8") !== e1Spec
+        readFileSync(e1Target, "utf8") !== e1Spec ||
+        readFileSync(e2Target, "utf8") !== e2Spec
       ) {
         throw new Error("OpenAPI drift: run npm run openapi:generate and review the diff");
       }
@@ -65,6 +77,7 @@ async function main() {
       writeFileSync(f06Target, f06Spec, "utf8");
       writeFileSync(f08Target, f08Spec, "utf8");
       writeFileSync(e1Target, e1Spec, "utf8");
+      writeFileSync(e2Target, e2Spec, "utf8");
       const output = process.argv[2] && !process.argv[2].startsWith("--")
         ? resolve(process.argv[2]) : target;
       mkdirSync(dirname(output), { recursive: true });

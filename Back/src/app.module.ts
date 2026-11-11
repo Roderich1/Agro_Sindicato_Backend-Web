@@ -12,6 +12,7 @@ import { CollectiveModule } from './modules/collective/collective.module';
 import { EstimationModule } from './modules/estimation/estimation.module';
 import { IamModule } from './modules/iam/iam.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { JointPurchaseCallsModule } from './modules/joint-purchase-calls/joint-purchase-calls.module';
 import { PlotsModule } from './modules/plots/plots.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { ProductIdentificationModule } from './modules/product-identification/product-identification.module';
@@ -49,6 +50,7 @@ import { HealthController } from './bootstrap/health.controller';
     EstimationModule,
     BackupsModule,
     ProductIdentificationModule,
+    JointPurchaseCallsModule,
     UsersModule
   ],
   controllers: [HealthController],

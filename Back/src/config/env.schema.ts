@@ -120,6 +120,18 @@ export const envSchema = z.object({
   ESTIMATION_LEASE_MS: optionalText(z.coerce.number().int().min(100).max(86_400_000)),
   ESTIMATION_MAX_PRODUCTS: optionalText(z.coerce.number().int().positive().max(10_000)),
   ESTIMATION_MAX_ATTEMPTS: optionalText(z.coerce.number().int().positive().max(20)),
+  // E2-D12: automatic close of joint purchase calls whose deadline passed
+  // (cutoff = deadline, never later). Empty = every 60000 ms; `0` or
+  // `disabled` = off in this process.
+  JOINT_PURCHASE_CLOSE_INTERVAL_MS: optionalText(
+    z.union([
+      z.literal("disabled"),
+      z.coerce
+        .number()
+        .int()
+        .refine((value) => value === 0 || (value >= 100 && value <= 3_600_000), "0, or 100–3600000"),
+    ]),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

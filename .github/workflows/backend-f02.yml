@@ -81,6 +81,8 @@ jobs:
       - run: F07_REC_01_PG_TEST_URL="$DATABASE_URL" npx jest product-reconciliation.postgres.spec.ts --runInBand
       # E1 (etapa 1): identificación de productos reportados y foto de la etiqueta, por HTTP; crea su propia base.
       - run: E1_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest product-identification.postgres.spec.ts --runInBand
+      # E2 (etapa 2): convocatorias de compra conjunta y participación identificada, por HTTP con reloj inyectado; crea su propia base.
+      - run: E2_PG_TEST_URL="postgresql://postgres:f02_ci_only@localhost:5432/postgres?schema=public" npx jest joint-purchase-calls.postgres.spec.ts --runInBand
       - run: F08_BKP_PG_TEST_URL="$DATABASE_URL" npx jest backups.postgres.spec.ts --runInBand
       - run: F10_SEC_PG_TEST_URL="$DATABASE_URL" npx jest f10-sec-02-legacy-boundary.postgres.spec.ts --runInBand
       - run: F10_SEC_PG_TEST_URL="$DATABASE_URL" npx jest f81-phase6-legacy-writes.postgres.spec.ts --runInBand
