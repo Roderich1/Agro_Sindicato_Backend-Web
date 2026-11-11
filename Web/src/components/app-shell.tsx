@@ -240,7 +240,7 @@ function NavContent({ onNavigate, offlineQueueCount, firstLinkRef }: { onNavigat
         </div>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto border-t border-line px-3 py-4" aria-label="Navegación principal">
+      <nav className="flex-1 space-y-5 overflow-y-auto overscroll-contain border-t border-line px-3 py-4" aria-label="Navegación principal">
         {groups.map((group, index) => (
           <div key={group.label ?? index} className="space-y-0.5">
             {group.label && <p className="px-3 pb-1 text-xs font-semibold text-slate-500">{group.label}</p>}
@@ -613,7 +613,7 @@ export function Modal({ title, children, onClose, size = 'md' }: { title: string
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`relative w-full ${sizeClasses[size]} rounded-card border border-line bg-surface p-6 shadow-raised`}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain ${sizeClasses[size]} rounded-card border border-line bg-surface p-6 shadow-raised`}>
         <div className="mb-5 flex items-center justify-between gap-3">
           <h3 className="text-lg font-bold text-ink">{title}</h3>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="ui-press rounded-control p-1.5 text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
