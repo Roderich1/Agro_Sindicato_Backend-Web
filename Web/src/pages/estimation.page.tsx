@@ -61,6 +61,12 @@ import type {
   SeriesPoint,
 } from '../types/estimation';
 
+/**
+ * Sombra en el borde por el que una tabla sigue (sin JavaScript): los degradados blancos se desplazan con el
+ * contenido (`local`) y tapan la sombra fija (`scroll`) sólo cuando se llega a ese borde. Sin desplazamiento no se ve.
+ */
+const SCROLL_HINT = '[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
+
 /** Cada cuánto se consulta un trabajo en cola o en proceso. */
 export const POLL_MS = 2000;
 const ELIGIBLE = ['PLANIFICADA', 'ABIERTA'];
@@ -654,7 +660,7 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
       {results.results.length === 0 ? (
         <DataState state="empty" title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra: eso no significa cero." />
       ) : (
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto ${SCROLL_HINT}`}>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600 max-sm:hidden">
               <tr>
@@ -887,7 +893,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
                 {result.fit_informative === false && ' (ajuste no informativo)'}
               </p>
               {result.points.length > 0 && (
-                <div className="overflow-x-auto">
+                <div className={`overflow-x-auto ${SCROLL_HINT}`}>
                   <table className="w-full text-xs">
                     <thead className="bg-slate-50 text-left uppercase tracking-wider text-slate-500">
                       <tr>
