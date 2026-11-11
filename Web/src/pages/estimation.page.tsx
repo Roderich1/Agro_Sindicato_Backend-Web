@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AppShell, buttonClass, EmptyState, Notice, secondaryButtonClass } from '../components/app-shell';
-import { Collapsible, CollectiveToolbar, SectionHeader } from '../components/collective-ui';
+import { AppShell } from '../components/app-shell';
 import { ExportButtons } from '../components/export-buttons';
+import {
+  Button,
+  CampaignSelector,
+  Collapsible,
+  DataState,
+  type DataStateKind,
+  Notice,
+  PageHeader,
+  Section,
+  SectionHeader,
+  secondaryButtonClass,
+} from '../components/ui';
 import { saveBlob } from '../lib/exports';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
@@ -82,8 +93,21 @@ function byCodeUnits(a: string, b: string): number {
  * cero, y cada cifra dice de qué ejecución viene. El CSV exporta la consulta tal
  * como respondió el servidor y requiere conexión; no es la copia descargada para
  * consultar sin conexión (RF-40, F12-EST-07), que esta pantalla sí ofrece aparte.
+ *
+ * Rediseño (sesión C, 2026-11-10): el cuerpo es `EstimationView`, que también
+ * usa el contenedor «Histórico y estimaciones» (`?vista=estimacion`). Muestra
+ * cuándo se evaluó la vigencia (`evaluated_at`) y la ejecución de cada cifra en
+ * «Ver detalle». Abrir la vista sólo consulta: no pide estimaciones ni copias.
  */
 export function EstimationPage() {
+  return (
+    <AppShell title="Estimación del consumo" section="Colectivo">
+      <EstimationView />
+    </AppShell>
+  );
+}
+
+export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
   const { user } = useAuth();
   const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
   const [results, setResults] = useState<InstitutionalResults | null>(null);
@@ -333,26 +357,35 @@ export function EstimationPage() {
   const offline = error?.kind === 'offline';
   const blocked = error?.kind === 'policy' || error?.kind === 'forbidden' || error?.kind === 'session';
   return (
-    <AppShell title="Estimación del consumo" section="Colectivo">
       <div className="space-y-5">
-        <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select}>
-          <ExportButtons
-            kind="estimation"
-            reference={selected}
-            onCsv={exportCsv}
-            csvLabel="Exportar CSV de la consulta"
-            disabled={stale || !results || results.results.length === 0}
-          />
-          {!blocked && selected && (
-            <button type="button" className={buttonClass} onClick={() => void request()} disabled={busy || !eligible}>
-              {busy ? 'Generando…' : 'Generar estimación'}
-            </button>
-          )}
-        </CollectiveToolbar>
+        <PageHeader
+          headingLevel={headingLevel}
+          title="Estimación del consumo"
+          subtitle="Estimación exploratoria que calcula el servidor para una campaña comparable. Es una referencia aparte: no se suma a la necesidad declarada ni crea compras."
+          campaign={<CampaignSelector campaigns={campaigns} selected={selected} onSelect={select} />}
+          actions={
+            <>
+              <ExportButtons
+                kind="estimation"
+                reference={selected}
+                onCsv={exportCsv}
+                csvLabel="Exportar CSV de la consulta"
+                disabled={stale || !results || results.results.length === 0}
+              />
+              {!blocked && selected && (
+                <Button onClick={() => void request()} disabled={busy || !eligible}>
+                  {busy ? 'Generando…' : 'Generar estimación'}
+                </Button>
+              )}
+            </>
+          }
+        />
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && (
           <div data-testid={`error-${error.kind}`}>
-            <Notice kind={error.kind === 'offline' ? 'warn' : 'error'}>{error.message}</Notice>
+            <Section>
+              <DataState compact state={ERROR_STATE[error.kind]} title={ERROR_TITLE[error.kind]} description={error.message} />
+            </Section>
           </div>
         )}
         {stale && (
@@ -370,7 +403,7 @@ export function EstimationPage() {
             {job && <JobPanel job={job} polling={polling} onRecheck={() => void recheckJob()} />}
           </div>
         )}
-        {loading && <p className="text-sm text-slate-500">Cargando…</p>}
+        {loading && <DataState state="loading" compact />}
         {results && <ResultsSection results={results} details={details} latestRun={job?.run_ref ?? null} />}
         {opened && <RunDetail run={opened} onClose={() => setOpened(null)} />}
         {results && (
@@ -387,9 +420,28 @@ export function EstimationPage() {
         )}
         {!blocked && offline && copy && <EstimationCopyView copy={copy} />}
       </div>
-    </AppShell>
   );
 }
+
+/** Cómo se presenta cada clase de error de INT-09 (§4 del contrato compartido). */
+const ERROR_STATE: Record<EstimationError['kind'], DataStateKind> = {
+  offline: 'stale',
+  session: 'forbidden',
+  forbidden: 'forbidden',
+  policy: 'restricted',
+  'not-found': 'error',
+  invalid: 'error',
+  other: 'error',
+};
+const ERROR_TITLE: Record<EstimationError['kind'], string> = {
+  offline: 'Sin conexión',
+  session: 'Sesión vencida',
+  forbidden: 'Sin permiso',
+  policy: 'Información restringida',
+  'not-found': 'No disponible',
+  invalid: 'Solicitud no admitida',
+  other: 'No fue posible completar la consulta',
+};
 
 /**
  * F12-EST-07-WEB (#180): la copia para consultar sin conexión. Se descarga a
@@ -466,9 +518,14 @@ function RequestOptions({
 }) {
   const toggle = (ref: string) => onChoose(chosen.includes(ref) ? chosen.filter((r) => r !== ref) : [...chosen, ref]);
   const hasCatalog = Boolean(catalog && catalog.length > 0);
-  if (!hasCatalog && eligible) return null;
   return (
     <section className="text-sm" aria-label="Opciones de la estimación">
+      {eligible && (
+        <p className="text-xs text-slate-600" data-testid="classification-note">
+          Además, la campaña debe estar clasificada en una temporada comparable. Esta pantalla no puede comprobarlo antes
+          de pedir: si no lo está, el servidor lo rechaza sin calcular nada y aquí se explica el motivo.
+        </p>
+      )}
       {!eligible && campaignStatus && (
         <p className="text-xs text-slate-600" data-testid="not-eligible">
           Esta campaña está {campaignStatus.toLowerCase()}: sólo se genera una estimación para una campaña planificada o
@@ -586,9 +643,16 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
     <section className="glass-card overflow-hidden" aria-label="Resultados por producto">
       <SectionHeader
         title={`Resultados para ${results.target.name}`}
+        note={
+          <span data-testid="results-evaluated">
+            Vigencia evaluada el {fmtDateTime(results.evaluated_at)}
+            {results.season ? ` · temporada ${results.season.key}` : ''}. Cada cifra es una estimación puntual para esta
+            campaña, con la fecha de su ejecución; no es un rango histórico.
+          </span>
+        }
       />
       {results.results.length === 0 ? (
-        <EmptyState compact title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra." />
+        <DataState state="empty" title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra: eso no significa cero." />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -681,7 +745,12 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                           )}
                           <div>
                             <dt className="inline text-slate-500">Ejecución: </dt>
-                            <dd className="inline" data-testid="run">{fmtDateTime(result.generated_at)}</dd>
+                            <dd className="inline">
+                              <span data-testid="run">{fmtDateTime(result.generated_at)}</span>{' '}
+                              <span className="text-slate-500">
+                                (ref. <code title={result.run_ref}>{result.run_ref.slice(0, 8)}</code>)
+                              </span>
+                            </dd>
                           </div>
                         </dl>
                       </details>
@@ -726,7 +795,7 @@ function HistorySection({
     <Collapsible title={`Ejecuciones anteriores (${runs.length}${hasMore ? '+' : ''})`} label="Ejecuciones anteriores">
       <p className="px-5 pt-3 text-xs text-slate-500">De la más reciente a la más antigua, incluidas las fallidas. Ninguna se modifica.</p>
       {runs.length === 0 ? (
-        <EmptyState compact title="Sin ejecuciones" />
+        <DataState state="empty" compact title="Sin ejecuciones" description="" />
       ) : (
         <ul className="divide-y divide-slate-100">
           {runs.map((run) => (
@@ -794,7 +863,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
         }
       />
       {useful.length === 0 ? (
-        <EmptyState compact title="Sin resultados" description="Esta ejecución no registró resultados por producto." />
+        <DataState state="empty" title="Sin resultados" description="Esta ejecución no registró resultados por producto." />
       ) : (
         <div className="space-y-5 p-5">
           {useful.map((result) => (
