@@ -16,7 +16,7 @@ export default defineConfig({
         // F07-WEB-01 (#23): Web online-first de Directiva/Administrador; el
         // service worker sólo cachea el app-shell, nunca respuestas del API.
         description: 'Vistas colectivas de la Directiva y el Administrador del sindicato (en línea).',
-        theme_color: '#166534',
+        theme_color: '#ffffff',
         background_color: '#f8faf4',
         display: 'standalone',
         start_url: '/',
