@@ -9,6 +9,7 @@ import { InstitutionalIdentificationController } from "./api/rest/institutional-
 import { FarmerIdentificationUseCase } from "./application/farmer-identification.use-case";
 import { InstitutionalIdentificationUseCase } from "./application/institutional-identification.use-case";
 import { ProductPhotoConfig } from "./application/product-photo-config";
+import { ProductPhotoSweep } from "./application/product-photo-sweep";
 import {
   createProductPhotoStorage,
   PRODUCT_PHOTO_STORAGE,
@@ -21,7 +22,9 @@ import {
  * (`SyncV1AuthGuard`, provided here with its own JWT registration) without
  * touching Sync v1 routes, envelopes or tables. Photos live in a second
  * instance of the F08 private storage (E1-D8); without it, the photo routes
- * answer 503 and the request data routes keep working.
+ * answer 503 and the request data routes keep working. Orphans, staging
+ * leftovers and photos past their retention are removed by the photo sweep
+ * (contract §10; opt-in interval or `npm run product-photos:sweep`).
  */
 @Module({
   imports: [
@@ -42,6 +45,7 @@ import {
     ProductPhotoConfig,
     FarmerIdentificationUseCase,
     InstitutionalIdentificationUseCase,
+    ProductPhotoSweep,
     {
       provide: PRODUCT_PHOTO_STORAGE,
       inject: [ProductPhotoConfig],

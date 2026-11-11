@@ -140,7 +140,10 @@ export class FarmerIdentificationController {
   @error(409, "PHOTO_CONSENT_REQUIRED: la solicitud no tiene consentimiento de foto.")
   @error(413, "IMAGE_TOO_LARGE: mayor que 2 MiB o sin Content-Length.")
   @error(415, "Content-Type distinto de application/octet-stream.")
-  @error(422, "IMAGE_INVALID: no es JPEG/PNG por firma o dimensiones fuera de [64, 4096] o cabecera ilegible. CONTENT_HASH_MISMATCH.")
+  @error(
+    422,
+    "IMAGE_INVALID: no es JPEG/PNG por firma, cabecera ilegible o dimensiones fuera de [64, 4096]; o la decodificación completa falla (archivo truncado o corrupto, más de 4096 × 4096 píxeles, animado o de varias páginas, datos tras el marcador final, metadatos EXIF/XMP/IPTC, tipo o dimensiones distintos de la cabecera, más de 5 s). CONTENT_HASH_MISMATCH.",
+  )
   @error(429, "Límite de solicitudes.")
   @error(503, "PHOTO_STORAGE_UNAVAILABLE: almacenamiento de fotos no configurado o no disponible.")
   async uploadPhoto(

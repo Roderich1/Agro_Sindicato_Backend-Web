@@ -12,12 +12,15 @@ import {
 import { FarmerContext, IdentificationHttpError } from "../domain/identification-error";
 import { FarmerRequestView, toFarmerView } from "../domain/identification-views";
 import {
+  decodedMatchesHeader,
   dimensionsAllowed,
   IMAGE_MAX_BYTES,
+  ImageContentType,
   imageSignature,
   readImageDimensions,
 } from "../domain/image-validation";
 import { CLIENT_REQUEST_ID, normalizeRequestInput, UpsertInput } from "../domain/request-input";
+import { decodeImageFully } from "../infrastructure/image-decoder";
 import { PRODUCT_PHOTO_STORAGE } from "../infrastructure/product-photo-storage";
 import { lockTenant, PHOTO_TRANSACTION_OPTIONS, VIEW_INCLUDE } from "./identification-store";
 
@@ -152,9 +155,11 @@ export class FarmerIdentificationUseCase {
   /**
    * `PUT /{request_id}/photo`. The body is streamed to a private staging
    * object while it is hashed and counted (at most 2 MiB), then checked:
-   * declared SHA-256, real type by signature and header dimensions. Only a
-   * valid photo is committed; a replacement is committed before the previous
-   * object is removed, and the same SHA-256 is a no-op.
+   * declared SHA-256, real type by signature and header dimensions (cheap
+   * gate), then a full decode under limits that must agree with the header
+   * (E1-D9). Only a valid photo is committed, with the decoded type and
+   * dimensions; a replacement is committed before the previous object is
+   * removed, and the same SHA-256 is a no-op.
    */
   async storePhoto(
     context: FarmerContext,
@@ -174,11 +179,18 @@ export class FarmerIdentificationUseCase {
     try {
       if (bytes !== declared.length) throw INVALID();
       if (sha256 !== declared.sha256) throw new IdentificationHttpError(422, "CONTENT_HASH_MISMATCH");
-      const contentType = imageSignature(content);
-      const dimensions = contentType ? readImageDimensions(content) : null;
-      if (!contentType || !dimensions || !dimensionsAllowed(dimensions)) {
+      const signature = imageSignature(content);
+      const header = signature ? readImageDimensions(content) : null;
+      if (!signature || !header || !dimensionsAllowed(header)) {
         throw new IdentificationHttpError(422, "IMAGE_INVALID");
       }
+      // The header proves nothing about the rest: the whole file is decoded.
+      const decoded = await decodeImageFully(content);
+      if (!decoded || !decodedMatchesHeader(signature, header, decoded)) {
+        throw new IdentificationHttpError(422, "IMAGE_INVALID");
+      }
+      const contentType: ImageContentType = `image/${decoded.format}`;
+      const dimensions = { width: decoded.width, height: decoded.height };
       if (current.photoState === "STORED" && current.photoSha256 === sha256) {
         // Same bytes as the stored photo: nothing is rewritten.
         await staged.discard();
@@ -292,7 +304,7 @@ export class FarmerIdentificationUseCase {
     declaredLength: number,
     body: Readable,
   ): Promise<{ staged: StagedBackupObject; bytes: number; sha256: string; content: Buffer }> {
-    // The whole photo (<= 2 MiB) is kept to read its header structure.
+    // The whole photo (<= 2 MiB) is kept: its header is read and it is decoded.
     const meter = new Sha256Meter(IMAGE_MAX_BYTES, declaredLength);
     finished(body, (error) => {
       if (error) meter.destroy(new BackupTransferIncompleteError());
@@ -318,6 +330,8 @@ export class FarmerIdentificationUseCase {
     try {
       await storage.remove(key);
     } catch (error) {
+      // Left as an orphan: no row references it and the §10 sweep removes it
+      // after the grace period.
       this.logger.warn(`Product photo object removal pending (${error instanceof Error ? error.name : typeof error})`);
     }
   }

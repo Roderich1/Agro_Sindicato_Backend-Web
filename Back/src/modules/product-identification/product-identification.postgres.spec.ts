@@ -4,7 +4,7 @@ import { afterAll, beforeAll } from "@jest/globals";
 import { createHash, randomUUID } from "node:crypto";
 import { request as httpRequest } from "node:http";
 import type { AddressInfo, Server } from "node:net";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
@@ -18,8 +18,9 @@ import {
   seedFixture,
   TestSession,
 } from "@/modules/sync-v1/test-support/sync-v1-test-app";
+import { ProductPhotoSweep, RETENTION_DETAIL } from "./application/product-photo-sweep";
 import { createE1App } from "./test-support/e1-test-app";
-import { jpeg, png } from "./test-support/images";
+import { corruptJpeg, jpeg, jpegWithExif, png } from "./test-support/images";
 
 /**
  * E1 (etapa 1), §7 rows 1–6: identification of products reported by the
@@ -310,12 +311,12 @@ describePostgres("E1 product identification on PostgreSQL", () => {
     it("refuses missing consent, fake type, oversize, hash mismatch and a non-binary body", async () => {
       const noConsent = randomUUID();
       await put(farmerA, noConsent, data({ photo_consent: null }));
-      expect((await putPhoto(farmerA, noConsent, jpeg(800, 600))).body).toEqual({ errorCode: "PHOTO_CONSENT_REQUIRED" });
+      expect((await putPhoto(farmerA, noConsent, await jpeg(800, 600))).body).toEqual({ errorCode: "PHOTO_CONSENT_REQUIRED" });
 
       const fake = await putPhoto(farmerA, id, Buffer.from("texto con extension jpg, no una imagen"));
       expect(fake.status).toBe(422);
       expect(fake.body).toEqual({ errorCode: "IMAGE_INVALID" });
-      expect((await putPhoto(farmerA, id, png(20, 20))).body).toEqual({ errorCode: "IMAGE_INVALID" });
+      expect((await putPhoto(farmerA, id, await png(20, 20))).body).toEqual({ errorCode: "IMAGE_INVALID" });
 
       const tooLarge = await headersOnly(farmerA, id, {
         "Content-Length": String(2 * 1024 * 1024 + 1),
@@ -325,7 +326,7 @@ describePostgres("E1 product identification on PostgreSQL", () => {
       const chunked = await headersOnly(farmerA, id, { "Transfer-Encoding": "chunked", "X-Content-SHA256": "a".repeat(64) });
       expect(chunked).toEqual({ status: 413, body: { errorCode: "IMAGE_TOO_LARGE" } });
 
-      const mismatch = await putPhoto(farmerA, id, jpeg(800, 600), { sha256: "0".repeat(64) });
+      const mismatch = await putPhoto(farmerA, id, await jpeg(800, 600), { sha256: "0".repeat(64) });
       expect(mismatch.status).toBe(422);
       expect(mismatch.body).toEqual({ errorCode: "CONTENT_HASH_MISMATCH" });
 
@@ -337,14 +338,30 @@ describePostgres("E1 product identification on PostgreSQL", () => {
       expect(json.status).toBe(415);
       expect(json.body).toEqual({ errorCode: "UNSUPPORTED_MEDIA_TYPE" });
 
-      const foreign = await putPhoto(farmerA2, id, jpeg(800, 600));
+      const foreign = await putPhoto(farmerA2, id, await jpeg(800, 600));
       expect(foreign.status).toBe(404);
       expect(storedObjects()).toHaveLength(0);
       expect(readdirSync(join(photoDir, "staging"))).toHaveLength(0);
     });
 
+    it("decodes the whole file: a corrupt JPEG with a valid header or EXIF metadata is 422 and nothing is stored", async () => {
+      const before = await prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id: sid } });
+      for (const bytes of [await corruptJpeg(), await jpegWithExif()]) {
+        const res = await putPhoto(farmerA, id, bytes);
+        expect(res.status).toBe(422);
+        expect(res.body).toEqual({ errorCode: "IMAGE_INVALID" });
+        expect(res.headers["cache-control"]).toBe("no-store");
+      }
+      expect(storedObjects()).toHaveLength(0);
+      expect(readdirSync(join(photoDir, "staging"))).toHaveLength(0);
+      const after = await prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id: sid } });
+      expect(after).toEqual(before);
+      const events = await prisma.productIdentificationEvent.findMany({ where: { requestId: sid } });
+      expect(events.map((e) => e.kind)).toEqual(["RECEIVED"]);
+    });
+
     it("stores, no-ops on the same hash, replaces removing the old binary, serves it only to its tenant", async () => {
-      const first = jpeg(1600, 1200);
+      const first = await jpeg(1600, 1200);
       const stored = await putPhoto(farmerA, id, first);
       expect(stored.status).toBe(201);
       expect(stored.body.photo).toEqual({ state: "STORED", sha256: sha(first), consent_version: "FOTO-1" });
@@ -355,12 +372,15 @@ describePostgres("E1 product identification on PostgreSQL", () => {
       expect(same.status).toBe(200);
       expect(storedObjects()).toEqual([firstKey]);
 
-      const second = png(1024, 768);
+      const second = await png(1024, 768);
       const replaced = await putPhoto(farmerA, id, second);
       expect(replaced.status).toBe(201);
       const row = await prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id: sid } });
       expect(storedObjects()).toEqual([row.photoStorageKey]);
       expect(row.photoStorageKey).not.toBe(firstKey);
+      // §10: the replaced binary is gone at once; no version of it is kept.
+      expect(storedObjects()).not.toContain(firstKey);
+      await expect(new LocalDiskBackupStorage(photoDir).open(firstKey!)).rejects.toThrow("BACKUP_OBJECT_MISSING");
       expect(row).toMatchObject({ photoContentType: "image/png", photoWidth: 1024, photoHeight: 768, photoSizeBytes: second.length });
 
       const download: Res = await http()
@@ -395,7 +415,7 @@ describePostgres("E1 product identification on PostgreSQL", () => {
     it("another tenant's photo is 404", async () => {
       const foreignClientId = randomUUID();
       await put(farmerB, foreignClientId, data());
-      expect((await putPhoto(farmerB, foreignClientId, jpeg(640, 480))).status).toBe(201);
+      expect((await putPhoto(farmerB, foreignClientId, await jpeg(640, 480))).status).toBe(201);
       const foreignId = await serverId(foreignClientId, f.tenantB);
       const res: Res = await http().get(`${BASE}/${foreignId}/photo`).set("Authorization", auth(director));
       expect(res.status).toBe(404);
@@ -410,6 +430,8 @@ describePostgres("E1 product identification on PostgreSQL", () => {
       expect((await http().delete(`${BASE}/${id}/photo`).set("Authorization", auth(farmerA))).status).toBe(204);
       const gone: Res = await http().get(`${BASE}/${sid}/photo`).set("Authorization", auth(director));
       expect(gone.status).toBe(404);
+      expect(gone.body).toEqual({ errorCode: "PHOTO_NOT_FOUND" });
+      expect(gone.headers["cache-control"]).toContain("no-store");
       const own: Res = await http().get(BASE).set("Authorization", auth(farmerA));
       expect(own.body.requests.find((r: any) => r.request_id === id).photo).toEqual({
         state: "REMOVED",
@@ -422,7 +444,7 @@ describePostgres("E1 product identification on PostgreSQL", () => {
       const other = randomUUID();
       const created = await put(farmerA, other, data({ local_name: "Sin almacenamiento" }), unavailableApp);
       expect(created.status).toBe(201);
-      const photo = await putPhoto(farmerA, other, jpeg(800, 600), { target: unavailableApp });
+      const photo = await putPhoto(farmerA, other, await jpeg(800, 600), { target: unavailableApp });
       expect(photo.status).toBe(503);
       expect(photo.body).toEqual({ errorCode: "PHOTO_STORAGE_UNAVAILABLE" });
       const removal: Res = await http(unavailableApp).delete(`${BASE}/${other}/photo`).set("Authorization", auth(farmerA));
@@ -573,6 +595,93 @@ describePostgres("E1 product identification on PostgreSQL", () => {
       await expect(
         prisma.$executeRawUnsafe(`UPDATE "ProductIdentificationRequest" SET "unit" = 'GL' WHERE "id" = '${sid}'`),
       ).rejects.toThrow();
+    });
+  });
+
+  describe("§10: photo lifecycle sweep (orphans, staging leftovers, retention after the link)", () => {
+    const post = (session: TestSession, path: string, body: unknown): Promise<Res> =>
+      http().post(`${BASE}/${path}`).set("Authorization", auth(session)).send(body as object);
+    const twoDaysAgo = () => new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+    function plant(area: "objects" | "staging", name: string, at: Date) {
+      mkdirSync(join(photoDir, area), { recursive: true });
+      const path = join(photoDir, area, name);
+      writeFileSync(path, Buffer.from("resto sintetico"));
+      utimesSync(path, at, at);
+    }
+
+    it("removes old orphans and staging leftovers, purges photos linked past the retention, keeps pending ones", async () => {
+      const linkedId = randomUUID();
+      await put(farmerA, linkedId, data({ local_name: "Fungicida con foto vencida" }));
+      expect((await putPhoto(farmerA, linkedId, await jpeg(640, 480, { seed: 21 }))).status).toBe(201);
+      const linkedSid = await serverId(linkedId);
+      const link = await post(director, `${linkedSid}/link`, { product_ref: f.products.liquidA, reason: "misma etiqueta", confirmed: true });
+      expect(link.status).toBe(200);
+      const linkedKey = (await prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id: linkedSid } })).photoStorageKey!;
+      // Time passes: the link decision is 100 days old (default retention 90).
+      await prisma.productIdentificationRequest.update({
+        where: { id: linkedSid },
+        data: { resolvedAt: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000) },
+      });
+
+      const pendingId = randomUUID();
+      await put(farmerA, pendingId, data({ local_name: "Acaricida pendiente con foto" }));
+      expect((await putPhoto(farmerA, pendingId, await jpeg(640, 480, { seed: 22 }))).status).toBe(201);
+      const pendingSid = await serverId(pendingId);
+      const pendingKey = (await prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id: pendingSid } })).photoStorageKey!;
+
+      const orphan = randomUUID();
+      const youngOrphan = randomUUID();
+      const leftover = randomUUID();
+      plant("objects", orphan, twoDaysAgo());
+      plant("objects", youngOrphan, new Date());
+      plant("staging", `${leftover}.0123456789abcdef.part`, twoDaysAgo());
+      plant("objects", "nota-del-operador.txt", twoDaysAgo());
+
+      const report = await app.get(ProductPhotoSweep).run();
+      expect(report).not.toBeNull();
+      expect(report!.retention.removed).toBeGreaterThanOrEqual(1);
+      expect(report!.orphans).toMatchObject({ removed: 1, failed: 0 });
+      expect(report!.staging).toMatchObject({ removed: 1, failed: 0 });
+      expect(report!.foreign).toBe(1);
+
+      const objects = storedObjects();
+      expect(objects).not.toContain(orphan);
+      expect(objects).not.toContain(linkedKey);
+      expect(objects).toContain(youngOrphan);
+      expect(objects).toContain(pendingKey);
+      expect(objects).toContain("nota-del-operador.txt");
+      expect(readdirSync(join(photoDir, "staging"))).toHaveLength(0);
+
+      const linked = await prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id: linkedSid } });
+      expect(linked).toMatchObject({
+        status: "LINKED",
+        photoState: "REMOVED",
+        photoStorageKey: null,
+        photoSha256: null,
+        photoContentType: null,
+        photoSizeBytes: null,
+        photoWidth: null,
+        photoHeight: null,
+        photoConsentVersion: "FOTO-1",
+      });
+      const events = await prisma.productIdentificationEvent.findMany({ where: { requestId: linkedSid }, orderBy: { at: "asc" } });
+      expect(events.at(-1)).toMatchObject({ kind: "PHOTO_REMOVED", actorUserId: null, detail: RETENTION_DETAIL });
+      const gone: Res = await http().get(`${BASE}/${linkedSid}/photo`).set("Authorization", auth(director));
+      expect(gone.status).toBe(404);
+      expect(gone.body).toEqual({ errorCode: "PHOTO_NOT_FOUND" });
+      const history: Res = await http().get(`${BASE}/${linkedSid}/history`).set("Authorization", auth(director));
+      expect(history.body.events.at(-1)).toMatchObject({ kind: "PHOTO_REMOVED", actor: null, detail: RETENTION_DETAIL });
+
+      const pending = await prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id: pendingSid } });
+      expect(pending).toMatchObject({ status: "PENDING", photoState: "STORED", photoStorageKey: pendingKey });
+      expect((await http().get(`${BASE}/${pendingSid}/photo`).set("Authorization", auth(director))).status).toBe(200);
+
+      // Nothing left to do on a second run.
+      const again = await app.get(ProductPhotoSweep).run();
+      expect(again).toMatchObject({ retention: { planned: 0 }, orphans: { planned: 0 }, staging: { planned: 0 } });
+      rmSync(join(photoDir, "objects", youngOrphan), { force: true });
+      rmSync(join(photoDir, "objects", "nota-del-operador.txt"), { force: true });
     });
   });
 });

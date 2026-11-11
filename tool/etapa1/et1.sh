@@ -22,7 +22,7 @@ RICA=$ROOT/_wt/ET1-BE/tool/demo-rica/demo-rica.cjs
 TUNNEL=$ROOT/_wt/RICA-MOB/tool/f03_res_01/tunnel.sh
 CLOUDFLARED=$ROOT/_wt/tools/cloudflared-2026.10.0/cloudflared-windows-amd64.exe
 RUN=${ET1_RUN:-${TMPDIR:-/c/Users/MSI/AppData/Local/Temp}/agro_et1}; mkdir -p "$RUN" "$RUN/photos" "$RUN/backups"
-PG=agro_et1_pg; VOLUME=agro_et1_pgdata; PGPORT=15434; API=3350; OBS=3351; WEBPORT=5175
+PG=agro_et1_pg; VOLUME=agro_et1_pgdata; PGPORT=15434; API=3350; OBS=3351; GATE=3352; WEBPORT=5175
 SERIAL=${ET1_SERIAL:-emulator-5554}; SUFFIX=.et1; LABEL="AC ET1"; PKG=com.comunidad.agro.agroquimicos$SUFFIX
 export DEMO_PG_ADMIN_URL="postgresql://postgres@127.0.0.1:${PGPORT}/postgres"
 export DEMO_API="http://127.0.0.1:${API}/api/v1"
@@ -69,10 +69,17 @@ case "${1:-}" in
   password-pipe) rica password-pipe "${2:?rol}" ;;
   credential) rica credential-adb "${2:?rol}" "$SERIAL" ;;
   tunnel)
-    F03_BE_DIR=$BE F03_CLOUDFLARED=$CLOUDFLARED F03_API_PORT=$API F03_OBSERVER_PORT=$OBS F03_RUN_DIR=$RUN \
+    # Túnel → observador $OBS → compuerta $GATE (sólo /api/v1/) → API $API. Nada más se expone.
+    if [ -z "$(listener $GATE)" ]; then
+      ET1_GATE_PHOTO_FAIL_FILE="$(cygpath -w "$RUN/gate.photo-fail")" \
+        nohup node "$(cygpath -w "$(dirname "$0")/api_gate.cjs")" "$GATE" "$API" > "$RUN/gate.out" 2>&1 &
+      echo $! > "$RUN/gate.pid"; sleep 1
+    fi
+    [ -n "$(listener $GATE)" ] || { echo "la compuerta $GATE no arrancó: no se abre el túnel"; exit 1; }
+    F03_BE_DIR=$BE F03_CLOUDFLARED=$CLOUDFLARED F03_API_PORT=$GATE F03_OBSERVER_PORT=$OBS F03_RUN_DIR=$RUN \
       F03_PG_CONTAINER=$PG bash "$TUNNEL" ;;
   untunnel)
-    for f in tunnel observer; do [ -f "$RUN/$f.pid" ] && kill "$(cat "$RUN/$f.pid")" 2>/dev/null; rm -f "$RUN/$f.pid"; done
+    for f in tunnel observer gate; do [ -f "$RUN/$f.pid" ] && kill "$(cat "$RUN/$f.pid")" 2>/dev/null; rm -f "$RUN/$f.pid"; done
     rm -f "$RUN/origin"; echo "túnel y observador cerrados" ;;
   build-app)
     origin=${ET1_ORIGIN:-$(cat "$RUN/origin" 2>/dev/null || true)}; [ -n "$origin" ] || { echo "sin origen HTTPS: primero et1.sh tunnel o ET1_ORIGIN"; exit 1; }

@@ -11,6 +11,7 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "backups:inventory": "node dist/modules/backups/cli/backups-inventory.js",
+    "product-photos:sweep": "node dist/modules/product-identification/cli/product-photo-sweep.js",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -41,6 +42,7 @@
     "prisma": "^6.19.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "0.35.5",
     "zod": "^3.25.0"
   },
   "devDependencies": {

@@ -5,6 +5,9 @@ import type { S3BackupStorageSettings } from "@/modules/backups/infrastructure/s
 
 export type ProductPhotoStorageProvider = "disk" | "b2";
 
+/** §10 default: a linked request keeps its photo 90 days, then the sweep removes it. */
+export const DEFAULT_RETENTION_DAYS_AFTER_LINK = 90;
+
 /**
  * E1-D8: private storage of label photos, separate from the backups' root or
  * prefix (same `BackupStorage` interface, own location). Without a complete
@@ -17,6 +20,24 @@ export class ProductPhotoConfig {
 
   private read(name: string): string | undefined {
     return this.config.get<string>(name) || undefined;
+  }
+
+  /**
+   * §10: how often this process sweeps the photo storage (orphans, staging
+   * leftovers, retention after the link); null (empty) = never, the operator
+   * runs `npm run product-photos:sweep` instead.
+   */
+  get sweepIntervalMs(): number | null {
+    const value = Number(this.config.get<string | number>("PRODUCT_PHOTO_SWEEP_INTERVAL_MS") ?? Number.NaN);
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }
+
+  /** §10: days a LINKED request keeps its photo after the (last) link decision. */
+  get retentionDaysAfterLink(): number {
+    const value = Number(
+      this.config.get<string | number>("PRODUCT_PHOTO_RETENTION_DAYS_AFTER_LINK") ?? DEFAULT_RETENTION_DAYS_AFTER_LINK,
+    );
+    return Number.isInteger(value) && value >= 1 ? value : DEFAULT_RETENTION_DAYS_AFTER_LINK;
   }
 
   /** `disk` unless `b2` is chosen explicitly. */

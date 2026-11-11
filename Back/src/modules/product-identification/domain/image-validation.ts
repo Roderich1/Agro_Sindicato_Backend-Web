@@ -1,9 +1,10 @@
 /**
- * E1-D9: server-side checks of a label photo. Real type by signature,
- * dimensions read from the header (JPEG SOF0/1/2, PNG IHDR).
- *
- * Declared limitation: there is no image library in Back, so "decodable" is
- * checked by header structure, not by a full decode.
+ * E1-D9: server-side checks of a label photo, first gate. Real type by
+ * signature, dimensions read from the header (JPEG SOF0/1/2, PNG IHDR). It is
+ * cheap and runs before anything else; a header proves nothing about the
+ * rest of the file, so a photo that passes it is then decoded in full
+ * (`infrastructure/image-decoder.ts`) and must agree with it
+ * (`decodedMatchesHeader`).
  */
 
 export type ImageContentType = "image/jpeg" | "image/png";
@@ -104,4 +105,20 @@ function readJpegDimensions(bytes: Buffer): ImageDimensions | null {
     offset += length;
   }
   return null;
+}
+
+/**
+ * The full decode must confirm the header gate: same type as the signature
+ * and the same dimensions as the header. Anything else is refused.
+ */
+export function decodedMatchesHeader(
+  contentType: ImageContentType,
+  header: ImageDimensions,
+  decoded: { format: "jpeg" | "png"; width: number; height: number },
+): boolean {
+  return (
+    `image/${decoded.format}` === contentType &&
+    decoded.width === header.width &&
+    decoded.height === header.height
+  );
 }
