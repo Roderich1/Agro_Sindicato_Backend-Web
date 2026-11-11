@@ -24,6 +24,12 @@ const TYPES: { type: ProjectionType; label: string; description: string }[] = [
   },
 ];
 
+/**
+ * Sombra en el borde por el que una tabla sigue (sin JavaScript): los degradados blancos se desplazan con el
+ * contenido (`local`) y tapan la sombra fija (`scroll`) sólo cuando se llega a ese borde. Sin desplazamiento no se ve.
+ */
+const SCROLL_HINT = '[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
+
 const seriesKey = (line: TrendSeries) => `${line.product_ref}|${line.base_unit}`;
 
 /** Un problema de carga, con el estado del §4 con el que se presenta. */
@@ -196,7 +202,7 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
       {campaigns.length === 0 ? (
         <DataState state="empty" compact title="Sin campañas" description="Todavía no hay campañas en el histórico." />
       ) : (
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto ${SCROLL_HINT}`}>
           <table className="w-full min-w-[36rem] text-sm">
             <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600">
               <tr>
@@ -237,7 +243,7 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
       data-testid={`series-${line.projection_type}-${line.product_name}-${line.base_unit}`}
     >
       <SectionHeader title={<span className="[overflow-wrap:anywhere]">{title}</span>} note="Una fila por campaña. Los huecos son campañas sin cifra publicada; no son ceros." />
-      <div className="overflow-x-auto">
+      <div className={`overflow-x-auto ${SCROLL_HINT}`}>
         <table className="w-full min-w-[30rem] text-sm">
           <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600">
             <tr>
