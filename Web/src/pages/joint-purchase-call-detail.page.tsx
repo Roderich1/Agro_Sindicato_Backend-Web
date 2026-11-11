@@ -23,7 +23,6 @@ import {
   CLOSE_MODE_LABEL,
   callError,
   callErrorCode,
-  hiddenTotalText,
   NOT_A_PURCHASE_TEXT,
   OPEN_IMPLICATIONS,
   PARTICIPANTS_FORBIDDEN_TEXT,
@@ -31,14 +30,18 @@ import {
   PROVISIONAL_NOTE,
   quantityText,
   referenceText,
+  withheldTotalText,
 } from '../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
-import { presentationUnit, type BaseUnit } from '../lib/quantity';
+import type { BaseUnit } from '../lib/quantity';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import type {
   JointPurchaseCallClosing,
   JointPurchaseCallDetail,
-  JointPurchaseCallParticipant,
+  JointPurchaseCallParticipants,
+  JointPurchaseCallProductTotal,
+  JointPurchaseParticipantLine,
+  JointPurchaseParticipationStatus,
 } from '../types/joint-purchase-calls';
 import { JointPurchaseCallForm } from './joint-purchase-call-form';
 
@@ -84,7 +87,7 @@ export function JointPurchaseCallDetailPage() {
     await load();
   };
 
-  const campaignId = call?.campaign?.campaign_ref ?? params.get('campaign');
+  const campaignId = call?.campaign.campaign_ref ?? params.get('campaign');
   const backTo = `${COLLECTIVE_PATHS.jointPurchaseCalls}${campaignId ? `?campaign=${encodeURIComponent(campaignId)}` : ''}`;
   const back = (
     <Link to={backTo} className="text-sm font-semibold text-brand-800 underline-offset-2 hover:underline">
@@ -133,7 +136,7 @@ export function JointPurchaseCallDetailPage() {
       )}
     </div>
   );
-  const version = `${call.status}|${call.updated_at ?? ''}`;
+  const version = `${call.status}|${call.updated_at}`;
 
   return (
     <AppShell title={call.name} section="Colectivo">
@@ -199,10 +202,10 @@ export function JointPurchaseCallDetailPage() {
         <ConfirmDialog
           title="Abrir la convocatoria"
           actionLabel="Abrir convocatoria"
-          confirmText={`Confirmo que se abre «${call.name}» con ${call.responsible?.name ?? 'el responsable elegido'} como responsable.`}
+          confirmText={`Confirmo que se abre «${call.name}» con ${call.responsible.name} como responsable.`}
           onClose={() => setDialog(null)}
           onConfirm={async () => {
-            await jointPurchaseCallsService.open(call.id);
+            await jointPurchaseCallsService.open(call.call_id);
             await done('Convocatoria abierta. Los agricultores la verán al actualizar su aplicación.');
           }}
         >
@@ -211,7 +214,7 @@ export function JointPurchaseCallDetailPage() {
               <li key={line}>{line}</li>
             ))}
             <li>
-              {call.responsible?.name ?? 'El responsable'} podrá ver el nombre y las cantidades de quienes participen; el resto de la
+              {call.responsible.name} podrá ver el nombre y las cantidades de quienes participen; el resto de la
               Directiva verá sólo cuántas personas participan.
             </li>
             <li>Fecha límite: {fmtDateTime(call.deadline_at)} (hora del servidor del sindicato).</li>
@@ -225,7 +228,7 @@ export function JointPurchaseCallDetailPage() {
           confirmText={`Confirmo que se cierra «${call.name}».`}
           onClose={() => setDialog(null)}
           onConfirm={async () => {
-            await jointPurchaseCallsService.close(call.id);
+            await jointPurchaseCallsService.close(call.call_id);
             await done('Convocatoria cerrada. El consolidado al cierre ya no cambia.');
           }}
         >
@@ -243,7 +246,7 @@ export function JointPurchaseCallDetailPage() {
           confirmText={`Confirmo que se cancela «${call.name}». No se puede deshacer.`}
           onClose={() => setDialog(null)}
           onConfirm={async (reason) => {
-            await jointPurchaseCallsService.cancel(call.id, reason);
+            await jointPurchaseCallsService.cancel(call.call_id, reason);
             await done('Convocatoria cancelada.');
           }}
         >
@@ -260,8 +263,8 @@ export function JointPurchaseCallDetailPage() {
 
 function CallFacts({ call }: { call: JointPurchaseCallDetail }) {
   const facts: [string, ReactNode][] = [
-    ['Campaña', call.campaign?.name ?? '—'],
-    ['Responsable', call.responsible?.name ?? '—'],
+    ['Campaña', call.campaign.name],
+    ['Responsable', call.responsible.name],
     ['Fecha límite', `${fmtDateTime(call.deadline_at)} (hora del servidor)`],
     ['Abierta el', call.opened_at ? fmtDateTime(call.opened_at) : 'Todavía no se abrió'],
   ];
@@ -302,23 +305,12 @@ function ProductsTable({ call }: { call: JointPurchaseCallDetail }) {
       <tbody>
         {call.products.map((product) => (
           <tr key={product.product_ref} data-testid={`call-product-${product.product_ref}`}>
-            <td className="[overflow-wrap:anywhere]">{product.product_name}</td>
-            <td>{product.unit ?? presentationUnit(product.base_unit)}</td>
+            <td className="[overflow-wrap:anywhere]">{product.name}</td>
+            <td>{product.unit}</td>
             <td className="text-xs text-slate-700">{product.reference ? referenceText(product.reference, product.base_unit) : 'Del catálogo, sin referencia'}</td>
             {showTotals && (
               <td className="text-sm">
-                {product.total?.total_quantity_base != null ? (
-                  <>
-                    <span className="tabular-nums">{quantityText(product.total.total_quantity_base, product.base_unit)}</span>
-                    {product.total.participant_count != null && (
-                      <span className="ml-1 text-xs text-slate-600">· {participantsText(product.total.participant_count)}</span>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-xs text-slate-600" data-testid="hidden-total">
-                    {hiddenTotalText(call.totals_threshold)}
-                  </span>
-                )}
+                <TotalCell total={product.totals} baseUnit={product.base_unit} threshold={call.totals_threshold} withCount />
               </td>
             )}
           </tr>
@@ -328,10 +320,54 @@ function ProductsTable({ call }: { call: JointPurchaseCallDetail }) {
   );
 }
 
+/**
+ * Total solicitado de un producto (E2-D7 / E2-P1). Si el servidor lo retiene
+ * (`total_quantity_base: null`), se explica por qué; nunca se muestra 0. El
+ * número de personas es un conteo y se muestra siempre.
+ */
+function TotalCell({
+  total,
+  baseUnit,
+  threshold,
+  withCount = false,
+}: {
+  total: JointPurchaseCallProductTotal;
+  baseUnit: BaseUnit;
+  threshold: number;
+  withCount?: boolean;
+}) {
+  const count = withCount ? <span className="ml-1 text-xs text-slate-600">· {participantsText(total.participant_count)}</span> : null;
+  if (total.visibility === 'VISIBLE' && total.total_quantity_base !== null) {
+    return (
+      <>
+        <span className="tabular-nums">{quantityText(total.total_quantity_base, baseUnit)}</span>
+        {count}
+      </>
+    );
+  }
+  return (
+    <>
+      <span className="text-xs text-slate-600" data-testid="hidden-total">
+        {withheldTotalText(total.visibility, threshold)}
+      </span>
+      {count}
+    </>
+  );
+}
+
+interface ParticipantRow {
+  participation_ref: string;
+  name: string;
+  /** Ausente en el consolidado al cierre: ahí sólo están las participaciones vigentes al corte. */
+  status?: JointPurchaseParticipationStatus;
+  accepted_at: string;
+  lines: JointPurchaseParticipantLine[];
+}
+
 /** Tabla de participantes identificados: nombre, producto, cantidad solicitada, estado y hora de aceptación. Nada más. */
-function ParticipantsTable({ participants, call, caption }: { participants: JointPurchaseCallParticipant[]; call: JointPurchaseCallDetail; caption: string }) {
-  const unitOf = (ref: string, fallback: BaseUnit) => call.products.find((product) => product.product_ref === ref)?.base_unit ?? fallback;
-  const nameOf = (ref: string, fallback?: string) => fallback ?? call.products.find((product) => product.product_ref === ref)?.product_name ?? '—';
+function ParticipantsTable({ participants, call, caption }: { participants: ParticipantRow[]; call: JointPurchaseCallDetail; caption: string }) {
+  const showStatus = participants.some((participant) => participant.status !== undefined);
+  const nameOf = (ref: string, fallback: string) => fallback || call.products.find((product) => product.product_ref === ref)?.name || '—';
   return (
     <DataTable caption={caption} minWidth={720}>
       <thead>
@@ -339,7 +375,7 @@ function ParticipantsTable({ participants, call, caption }: { participants: Join
           <th>Nombre</th>
           <th>Producto</th>
           <th className="ui-num">Cantidad solicitada</th>
-          <th>Estado</th>
+          {showStatus && <th>Estado</th>}
           <th>Aceptada el</th>
         </tr>
       </thead>
@@ -350,8 +386,8 @@ function ParticipantsTable({ participants, call, caption }: { participants: Join
             <tr key={`${participant.participation_ref}-${line?.product_ref ?? 'none'}`} data-testid="participant-row">
               <td className="[overflow-wrap:anywhere]">{index === 0 ? participant.name : ''}</td>
               <td className="[overflow-wrap:anywhere]">{line ? nameOf(line.product_ref, line.product_name) : 'Sin productos'}</td>
-              <td className="ui-num">{line ? quantityText(line.quantity_base, unitOf(line.product_ref, line.base_unit)) : '—'}</td>
-              <td>{PARTICIPATION_STATUS_LABEL[participant.status] ?? participant.status}</td>
+              <td className="ui-num">{line ? quantityText(line.quantity_base, line.base_unit) : '—'}</td>
+              {showStatus && <td>{participant.status ? (PARTICIPATION_STATUS_LABEL[participant.status] ?? participant.status) : ''}</td>}
               <td>{fmtDateTime(participant.accepted_at)}</td>
             </tr>
           ));
@@ -364,18 +400,18 @@ function ParticipantsTable({ participants, call, caption }: { participants: Join
 /** Sólo con `can_view_participants` se piden los participantes; un 403 se explica con el mismo texto. */
 function ParticipantsPanel({ call }: { call: JointPurchaseCallDetail }) {
   const allowed = call.can_view_participants === true;
-  const [participants, setParticipants] = useState<JointPurchaseCallParticipant[] | null>(null);
+  const [participants, setParticipants] = useState<JointPurchaseCallParticipants | null>(null);
   const [problem, setProblem] = useState<{ message: string; forbidden: boolean } | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setParticipants(await jointPurchaseCallsService.participants(call.id));
+      setParticipants(await jointPurchaseCallsService.participants(call.call_id));
       setProblem(null);
     } catch (err) {
       const forbidden = (axios.isAxiosError(err) && err.response?.status === 403) || callErrorCode(err) === 'PARTICIPANTS_FORBIDDEN';
       setProblem({ message: forbidden ? PARTICIPANTS_FORBIDDEN_TEXT : callError(err, 'No fue posible cargar los participantes.'), forbidden });
     }
-  }, [call.id]);
+  }, [call.call_id]);
 
   useEffect(() => {
     if (allowed) void Promise.resolve().then(load);
@@ -383,6 +419,8 @@ function ParticipantsPanel({ call }: { call: JointPurchaseCallDetail }) {
 
   const open = call.status === 'OPEN';
   const title = open ? 'Participantes (lista provisional)' : 'Participantes (convocatoria cancelada, sin consolidado)';
+  // El aviso del servidor («Lista provisional…» mientras está abierta) manda; si no llegó, el propio.
+  const notice = participants?.notice ?? (open ? PROVISIONAL_NOTE : null);
   if (!allowed || problem?.forbidden) {
     return (
       <Section title="Participantes" testId="participants-panel">
@@ -396,15 +434,15 @@ function ParticipantsPanel({ call }: { call: JointPurchaseCallDetail }) {
     );
   }
   return (
-    <Section title={title} note={open ? <span data-testid="provisional-note">{PROVISIONAL_NOTE}</span> : undefined} testId="participants-panel">
+    <Section title={title} note={notice ? <span data-testid="provisional-note">{notice}</span> : undefined} testId="participants-panel">
       {problem ? (
         <DataState compact state="error" description={problem.message} onRetry={() => void load()} />
       ) : !participants ? (
         <DataState compact state="loading" />
-      ) : participants.length === 0 ? (
+      ) : participants.participants.length === 0 ? (
         <DataState compact state="empty" title="Sin participantes" description="Todavía nadie confirmó su participación." />
       ) : (
-        <ParticipantsTable participants={participants} call={call} caption="Participantes de la convocatoria" />
+        <ParticipantsTable participants={participants.participants} call={call} caption="Participantes de la convocatoria" />
       )}
     </Section>
   );
@@ -417,12 +455,12 @@ function ClosingPanel({ call }: { call: JointPurchaseCallDetail }) {
 
   const load = useCallback(async () => {
     try {
-      setClosing(await jointPurchaseCallsService.closing(call.id));
+      setClosing(await jointPurchaseCallsService.closing(call.call_id));
       setProblem(null);
     } catch (err) {
       setProblem(callError(err, 'No fue posible cargar el consolidado al cierre.'));
     }
-  }, [call.id]);
+  }, [call.call_id]);
 
   useEffect(() => {
     void Promise.resolve().then(load);
@@ -440,6 +478,9 @@ function ClosingPanel({ call }: { call: JointPurchaseCallDetail }) {
         <DataState compact state="loading" />
       ) : (
         <div className="space-y-4 px-5 py-4">
+          <p className="text-sm font-semibold text-slate-900" data-testid="closing-label">
+            {closing.label}
+          </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <KpiTile label="Corte" value={fmtDateTime(closing.cutoff_at)} note={`Cerrada el ${fmtDateTime(closing.closed_at)}`} testId="closing-cutoff" />
             <KpiTile
@@ -469,13 +510,9 @@ function ClosingPanel({ call }: { call: JointPurchaseCallDetail }) {
                   <tr key={line.product_ref} data-testid={`closing-line-${line.product_ref}`}>
                     <td className="[overflow-wrap:anywhere]">{line.product_name}</td>
                     <td className="ui-num">
-                      {line.total_quantity_base != null ? (
-                        quantityText(line.total_quantity_base, line.base_unit)
-                      ) : (
-                        <span className="text-xs text-slate-600">{hiddenTotalText(call.totals_threshold)}</span>
-                      )}
+                      <TotalCell total={line} baseUnit={line.base_unit} threshold={closing.totals_threshold} />
                     </td>
-                    <td className="ui-num">{line.participant_count ?? '—'}</td>
+                    <td className="ui-num">{line.participant_count}</td>
                   </tr>
                 ))}
               </tbody>

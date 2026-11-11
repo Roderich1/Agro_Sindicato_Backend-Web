@@ -145,10 +145,10 @@ export function JointPurchaseCallsPage() {
                 </thead>
                 <tbody>
                   {calls.map((call) => (
-                    <tr key={call.id} data-testid={`call-row-${call.id}`}>
+                    <tr key={call.call_id} data-testid={`call-row-${call.call_id}`}>
                       <td>
                         <Link
-                          to={`${jointPurchaseCallPath(call.id)}?campaign=${encodeURIComponent(selected)}`}
+                          to={`${jointPurchaseCallPath(call.call_id)}?campaign=${encodeURIComponent(selected)}`}
                           className="font-semibold text-brand-800 underline-offset-2 hover:underline [overflow-wrap:anywhere]"
                         >
                           {call.name}
@@ -159,8 +159,8 @@ export function JointPurchaseCallsPage() {
                       </td>
                       <td className="[overflow-wrap:anywhere]">{call.campaign?.name ?? campaign?.name ?? '—'}</td>
                       <td>{fmtDateTime(call.deadline_at)}</td>
-                      <td className="[overflow-wrap:anywhere]">{call.responsible?.name ?? '—'}</td>
-                      <td className="ui-num">{call.participant_count ?? '—'}</td>
+                      <td className="[overflow-wrap:anywhere]">{call.responsible.name}</td>
+                      <td className="ui-num">{call.participant_count}</td>
                     </tr>
                   ))}
                 </tbody>

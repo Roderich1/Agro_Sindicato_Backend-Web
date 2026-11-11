@@ -6,7 +6,6 @@ import {
   NOT_A_PURCHASE_TEXT,
   OPEN_IMPLICATIONS,
   PARTICIPANTS_FORBIDDEN_TEXT,
-  PROVISIONAL_NOTE,
 } from '../lib/joint-purchase-call-text';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
@@ -14,8 +13,9 @@ import { jointPurchaseCallsService } from '../services/joint-purchase-calls.serv
 import { CAMPAIGN, renderAt } from '../test/render';
 import type {
   JointPurchaseCallClosing,
+  JointPurchaseCallClosingParticipant,
   JointPurchaseCallDetail,
-  JointPurchaseCallParticipant,
+  JointPurchaseCallParticipants,
 } from '../types/joint-purchase-calls';
 import { JointPurchaseCallDetailPage } from './joint-purchase-call-detail.page';
 
@@ -38,56 +38,93 @@ vi.mock('../services/collective.service', () => ({
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn(), active: vi.fn() } }));
 
-/** E2 §6: detalle de una convocatoria. Datos sintéticos: ningún agricultor, producto ni cifra real. */
+/**
+ * E2 §6: detalle de una convocatoria, con las formas que responde el servidor
+ * (`call-views.ts`). Datos sintéticos: ningún agricultor, producto ni cifra real.
+ */
+const RESPONSIBLE = { user_ref: 'u-2', name: 'Responsable sintética' };
 const DRAFT: JointPurchaseCallDetail = {
-  id: 'c-1',
+  contractVersion: 1,
+  call_id: 'c-1',
   name: 'Herbicidas de la siembra',
   status: 'DRAFT',
-  campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name },
+  campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name, status: 'ABIERTA' },
   deadline_at: '2026-12-01T22:00:00.000Z',
   opened_at: null,
   closed_at: null,
   cancelled_at: null,
-  responsible: { id: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
-  participant_count: 0,
+  cancel_reason: null,
   created_at: '2026-11-11T10:00:00.000Z',
   updated_at: '2026-11-11T10:00:00.000Z',
+  server_time: '2026-11-11T10:00:00.000Z',
+  responsible: { ...RESPONSIBLE, role: 'DIRECTIVA' },
+  created_by: RESPONSIBLE,
+  opened_by: null,
+  cancelled_by: null,
+  source_proposal_ref: 'pr-1',
+  participant_count: 0,
+  totals_source: 'NONE',
+  totals_threshold: 3,
+  can_view_participants: false,
+  is_responsible: false,
   products: [
     {
       position: 0,
       product_ref: 'p-1',
-      product_name: 'Glifosato 48 SL',
-      base_unit: 'ML',
+      name: 'Glifosato 48 SL',
       unit: 'L',
-      reference: { source_proposal_ref: 'pr-1', source_position: 0, status: 'DISCLOSED', quantity_base: '120000', quantity_presentation: '120' },
+      base_unit: 'ML',
+      is_active: true,
+      reference: {
+        proposal_ref: 'pr-1',
+        position: 0,
+        status: 'DISCLOSED',
+        label: 'Cifra divulgada en el borrador',
+        quantity_base: '120000',
+        contributors: 5,
+        released_at: '2026-11-10T15:00:00.000Z',
+      },
+      totals: { participant_count: 0, total_quantity_base: null, visibility: 'UNDER_THRESHOLD' },
     },
     {
       position: 1,
       product_ref: 'p-3',
-      product_name: 'Urea',
-      base_unit: 'G',
+      name: 'Urea',
       unit: 'KG',
-      reference: { source_proposal_ref: 'pr-1', source_position: 1, status: 'SUPPRESSED_UNDER_THRESHOLD', quantity_base: null },
+      base_unit: 'G',
+      is_active: true,
+      reference: { proposal_ref: 'pr-1', position: 1, status: 'NO_FIGURE', label: 'Sin cifra', quantity_base: null, contributors: null, released_at: null },
+      totals: { participant_count: 0, total_quantity_base: null, visibility: 'UNDER_THRESHOLD' },
     },
   ],
-  source_proposal_ref: 'pr-1',
-  cancel_reason: null,
-  can_view_participants: false,
-  totals_threshold: 3,
-  history: [{ at: '2026-11-11T10:00:00.000Z', kind: 'CREATED', actor: { name: 'Responsable sintética' }, detail: null }],
+  history: [{ at: '2026-11-11T10:00:00.000Z', kind: 'CREATED', actor: RESPONSIBLE, detail: 'Borrador creado.' }],
 };
 
+/** Abierta, vista por quien no es el responsable: E2-P1 retiene todos los totales en vivo. */
 const OPEN: JointPurchaseCallDetail = {
   ...DRAFT,
   status: 'OPEN',
   opened_at: '2026-11-11T12:00:00.000Z',
+  opened_by: RESPONSIBLE,
   updated_at: '2026-11-11T12:00:00.000Z',
   participant_count: 4,
+  totals_source: 'LIVE',
   products: [
-    { ...DRAFT.products[0]!, total: { total_quantity_base: '9500', participant_count: 3 } },
-    { ...DRAFT.products[1]!, total: { total_quantity_base: null, participant_count: null } },
+    { ...DRAFT.products[0]!, totals: { participant_count: 3, total_quantity_base: null, visibility: 'RESPONSIBLE_ONLY' } },
+    { ...DRAFT.products[1]!, totals: { participant_count: 1, total_quantity_base: null, visibility: 'RESPONSIBLE_ONLY' } },
   ],
-  history: [...DRAFT.history, { at: '2026-11-11T12:00:00.000Z', kind: 'OPENED', actor: { name: 'Responsable sintética' }, detail: null }],
+  history: [...DRAFT.history, { at: '2026-11-11T12:00:00.000Z', kind: 'OPENED', actor: RESPONSIBLE, detail: 'Convocatoria abierta.' }],
+};
+
+/** Abierta, vista por el responsable (permiso E2-D6): todos los totales. */
+const OPEN_RESPONSIBLE: JointPurchaseCallDetail = {
+  ...OPEN,
+  can_view_participants: true,
+  is_responsible: true,
+  products: [
+    { ...DRAFT.products[0]!, totals: { participant_count: 3, total_quantity_base: '9500', visibility: 'VISIBLE' } },
+    { ...DRAFT.products[1]!, totals: { participant_count: 1, total_quantity_base: '50000', visibility: 'VISIBLE' } },
+  ],
 };
 
 const CLOSED: JointPurchaseCallDetail = {
@@ -95,46 +132,74 @@ const CLOSED: JointPurchaseCallDetail = {
   status: 'CLOSED',
   closed_at: '2026-12-01T22:00:05.000Z',
   updated_at: '2026-12-01T22:00:05.000Z',
+  totals_source: 'CLOSING',
+  products: [
+    { ...DRAFT.products[0]!, totals: { participant_count: 3, total_quantity_base: '9500', visibility: 'VISIBLE' } },
+    { ...DRAFT.products[1]!, totals: { participant_count: 1, total_quantity_base: null, visibility: 'UNDER_THRESHOLD' } },
+  ],
   history: [...OPEN.history, { at: '2026-12-01T22:00:05.000Z', kind: 'CLOSED', actor: null, detail: null }],
 };
 
 /** El servidor nunca envía correos; si lo hiciera, la vista no los muestra. */
-const PARTICIPANTS = [
-  {
-    participation_ref: 'pa-1',
-    name: 'Agricultora sintética',
-    email: 'agricultora@example.test',
-    phone: '70000000',
-    status: 'ACTIVE',
-    accepted_at: '2026-11-12T08:00:00.000Z',
-    lines: [
-      { product_ref: 'p-1', base_unit: 'ML', quantity_base: '2500' },
-      { product_ref: 'p-3', base_unit: 'G', quantity_base: '50000' },
-    ],
-  },
-  {
-    participation_ref: 'pa-2',
-    name: 'Agricultor sintético',
-    email: 'agricultor@example.test',
-    status: 'ACTIVE',
-    accepted_at: '2026-11-12T09:00:00.000Z',
-    lines: [{ product_ref: 'p-1', base_unit: 'ML', quantity_base: '7000' }],
-  },
-] as unknown as JointPurchaseCallParticipant[];
+const PARTICIPANTS = {
+  contractVersion: 1,
+  call_id: 'c-1',
+  status: 'OPEN',
+  provisional: true,
+  notice: 'Lista provisional: puede cambiar hasta el cierre',
+  participant_count: 2,
+  participants: [
+    {
+      participation_ref: 'pa-1',
+      name: 'Agricultora sintética',
+      email: 'agricultora@example.test',
+      phone: '70000000',
+      status: 'ACTIVE',
+      accepted_at: '2026-11-12T08:00:00.000Z',
+      lines: [
+        { product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', quantity_base: '2500' },
+        { product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', quantity_base: '50000' },
+      ],
+    },
+    {
+      participation_ref: 'pa-2',
+      name: 'Agricultor sintético',
+      email: 'agricultor@example.test',
+      status: 'ACTIVE',
+      accepted_at: '2026-11-12T09:00:00.000Z',
+      lines: [{ product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', quantity_base: '7000' }],
+    },
+  ],
+} as unknown as JointPurchaseCallParticipants;
+
+/** Detalle congelado al cierre: sin `status` (sólo participaciones vigentes al corte). */
+const CLOSING_PARTICIPANTS = PARTICIPANTS.participants.map((participant) =>
+  Object.fromEntries(Object.entries(participant).filter(([key]) => key !== 'status')),
+) as unknown as JointPurchaseCallClosingParticipant[];
 
 const CLOSING: JointPurchaseCallClosing = {
+  contractVersion: 1,
   call_id: 'c-1',
+  name: 'Herbicidas de la siembra',
+  status: 'CLOSED',
+  label: 'Consolidado al cierre: cantidades solicitadas',
   mode: 'MANUAL',
   cutoff_at: '2026-12-01T22:00:00.000Z',
   closed_at: '2026-12-01T22:00:05.000Z',
-  closed_by: { name: 'Responsable sintética' },
+  closed_by: RESPONSIBLE,
   participant_count: 4,
+  totals_threshold: 3,
+  can_view_participants: false,
   lines: [
-    { product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', total_quantity_base: '9500', participant_count: 3 },
-    { product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', total_quantity_base: null, participant_count: null },
+    { product_ref: 'p-1', product_name: 'Glifosato 48 SL', unit: 'L', base_unit: 'ML', participant_count: 3, total_quantity_base: '9500', visibility: 'VISIBLE' },
+    { product_ref: 'p-3', product_name: 'Urea', unit: 'KG', base_unit: 'G', participant_count: 1, total_quantity_base: null, visibility: 'UNDER_THRESHOLD' },
   ],
   participants: null,
 };
+
+const RESPONSIBLE_ONLY_TEXT =
+  'Total visible sólo para el responsable mientras la convocatoria está abierta; al cierre se muestra si hay 3 o más personas en el producto.';
+const UNDER_THRESHOLD_TEXT = 'Total no visible: menos de 3 personas pidieron este producto.';
 
 function axiosError(status: number, data: unknown = {}) {
   const error = new AxiosError(String(status), String(status));
@@ -158,9 +223,9 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(DRAFT);
     vi.mocked(jointPurchaseCallsService.participants).mockResolvedValue(PARTICIPANTS);
     vi.mocked(jointPurchaseCallsService.closing).mockResolvedValue(CLOSING);
-    vi.mocked(jointPurchaseCallsService.open).mockResolvedValue({});
-    vi.mocked(jointPurchaseCallsService.close).mockResolvedValue({});
-    vi.mocked(jointPurchaseCallsService.cancel).mockResolvedValue({});
+    vi.mocked(jointPurchaseCallsService.open).mockResolvedValue(OPEN);
+    vi.mocked(jointPurchaseCallsService.close).mockResolvedValue(CLOSING);
+    vi.mocked(jointPurchaseCallsService.cancel).mockResolvedValue({ ...DRAFT, status: 'CANCELLED' });
   });
 
   it('borrador: estado, datos, productos con su referencia, historial y acciones Editar, Abrir y Cancelar', async () => {
@@ -200,6 +265,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     [409, 'PRODUCT_IN_OPEN_CALL', /ya está en otra convocatoria abierta de esta campaña/],
     [422, 'DEADLINE_IN_PAST', /La fecha límite ya pasó según la hora del servidor/],
     [422, 'CONFIRMATION_REQUIRED', /Falta la confirmación/],
+    [422, 'CAMPAIGN_NOT_ELIGIBLE', /La campaña no admite convocatorias/],
   ])('abrir con %s %s: el motivo se explica en español y el diálogo sigue abierto', async (status, errorCode, text) => {
     vi.mocked(jointPurchaseCallsService.open).mockRejectedValue(axiosError(status, { errorCode }));
     render();
@@ -209,6 +275,15 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     expect(await within(dialog()).findByText(text)).toBeTruthy();
     expect(within(dialog()).queryByText(errorCode)).toBeNull();
     expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('abrir con 409 INVALID_TRANSITION y status: dice el estado actual en español', async () => {
+    vi.mocked(jointPurchaseCallsService.open).mockRejectedValue(axiosError(409, { errorCode: 'INVALID_TRANSITION', status: 'CANCELLED' }));
+    render();
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    fireEvent.click(confirmBox());
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Abrir convocatoria' }));
+    expect(await within(dialog()).findByText(/cambió de estado mientras tanto.*Estado actual: Cancelada\./)).toBeTruthy();
   });
 
   it('cancelar exige motivo y confirmación; envía el motivo', async () => {
@@ -237,11 +312,11 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     const catalogDraft: JointPurchaseCallDetail = {
       ...DRAFT,
       source_proposal_ref: null,
-      products: [{ position: 0, product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', unit: 'KG', reference: null }],
+      products: [{ ...DRAFT.products[1]!, position: 0, reference: null }],
     };
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(catalogDraft);
     vi.mocked(jointPurchaseCallsService.update).mockResolvedValue(catalogDraft);
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([{ id: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' }]);
+    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([{ user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' }]);
     vi.mocked(collectiveService.catalog).mockResolvedValue([
       { product_ref: 'p-1', product_name: 'Glifosato 48 SL', unit: 'L', base_unit: 'ML', is_active: true },
       { product_ref: 'p-3', product_name: 'Urea', unit: 'kg', base_unit: 'G', is_active: true },
@@ -281,34 +356,40 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     expect(screen.queryByRole('button', { name: 'Abrir' })).toBeNull();
   });
 
-  it('abierta sin permiso: no pide participantes, lo explica y oculta los totales bajo el umbral', async () => {
+  it('abierta sin permiso (E2-P1): no pide participantes y retiene todos los totales, sin un 0, con el número de personas', async () => {
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN);
     render();
     expect((await screen.findByTestId('participants-forbidden')).textContent).toBe(PARTICIPANTS_FORBIDDEN_TEXT);
     expect(jointPurchaseCallsService.participants).not.toHaveBeenCalled();
     expect(screen.queryByText('Agricultora sintética')).toBeNull();
-    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/9,5 L/);
-    expect(within(screen.getByTestId('call-product-p-3')).getByTestId('hidden-total').textContent).toBe(
-      'Total visible sólo para el responsable o con 3 o más participantes en el producto',
-    );
+    for (const ref of ['p-1', 'p-3']) {
+      const row = screen.getByTestId(`call-product-${ref}`);
+      expect(within(row).getByTestId('hidden-total').textContent).toBe(RESPONSIBLE_ONLY_TEXT);
+      expect(row.textContent).not.toMatch(/\b0 (L|KG)\b|9,5 L/);
+    }
+    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/3 personas/);
+    expect(screen.getByTestId('call-product-p-3').textContent).toMatch(/1 persona/);
     expect(screen.getByTestId('participants-panel').textContent).toMatch(/4 personas/);
   });
 
   it('abierta con permiso pero 403 PARTICIPANTS_FORBIDDEN: el mismo texto, sin datos', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN, can_view_participants: true });
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN_RESPONSIBLE);
     vi.mocked(jointPurchaseCallsService.participants).mockRejectedValue(axiosError(403, { errorCode: 'PARTICIPANTS_FORBIDDEN' }));
     render();
     expect((await screen.findByTestId('participants-forbidden')).textContent).toBe(PARTICIPANTS_FORBIDDEN_TEXT);
     expect(jointPurchaseCallsService.participants).toHaveBeenCalledWith('c-1');
   });
 
-  it('abierta con permiso: lista provisional con nombre, producto, cantidad en L/KG, estado y hora; nunca el correo', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN, can_view_participants: true });
+  it('abierta con permiso: totales visibles y lista provisional con el aviso del servidor, nombre, producto, cantidad, estado y hora; nunca el correo', async () => {
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN_RESPONSIBLE);
     render();
     const panel = await screen.findByTestId('participants-panel');
     await within(panel).findByText('Agricultora sintética');
+    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/9,5 L.*3 personas/);
+    expect(screen.getByTestId('call-product-p-3').textContent).toMatch(/50 KG.*1 persona/);
+    expect(screen.queryByTestId('hidden-total')).toBeNull();
     expect(within(panel).getByRole('heading', { name: 'Participantes (lista provisional)' })).toBeTruthy();
-    expect(within(panel).getByTestId('provisional-note').textContent).toBe(PROVISIONAL_NOTE);
+    expect(within(panel).getByTestId('provisional-note').textContent).toBe(PARTICIPANTS.notice);
     const rows = within(panel).getAllByTestId('participant-row').map((row) => row.textContent);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toMatch(/Agricultora sintética.*Glifosato 48 SL.*2,5 L.*Vigente/);
@@ -327,7 +408,10 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     expect(within(panel).getByTestId('closing-mode').textContent).toMatch(/Manual/);
     expect(within(panel).getByTestId('closing-participants').textContent).toMatch(/4 personas/);
     expect(within(panel).getByTestId('closing-line-p-1').textContent).toMatch(/9,5 L/);
-    expect(within(panel).getByTestId('closing-line-p-3').textContent).toMatch(/Total visible sólo para el responsable/);
+    expect(within(panel).getByTestId('closing-label').textContent).toBe(CLOSING.label);
+    const under = within(panel).getByTestId('closing-line-p-3');
+    expect(within(under).getByTestId('hidden-total').textContent).toBe(UNDER_THRESHOLD_TEXT);
+    expect(under.textContent).not.toMatch(/\b0 KG\b/);
     expect(within(panel).getByText('Cantidad solicitada (total)')).toBeTruthy();
     expect(within(panel).getByTestId('closing-detail-hidden')).toBeTruthy();
     expect(within(panel).queryByText('Agricultora sintética')).toBeNull();
@@ -341,8 +425,14 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
   });
 
   it('cerrada con permiso: detalle por participante congelado, sin correo', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...CLOSED, can_view_participants: true });
-    vi.mocked(jointPurchaseCallsService.closing).mockResolvedValue({ ...CLOSING, mode: 'AUTOMATIC', closed_by: null, participants: PARTICIPANTS });
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...CLOSED, can_view_participants: true, is_responsible: true });
+    vi.mocked(jointPurchaseCallsService.closing).mockResolvedValue({
+      ...CLOSING,
+      mode: 'AUTOMATIC',
+      closed_by: null,
+      can_view_participants: true,
+      participants: CLOSING_PARTICIPANTS,
+    });
     render();
     const panel = await screen.findByTestId('closing-panel');
     expect(await within(panel).findByText('Agricultora sintética')).toBeTruthy();

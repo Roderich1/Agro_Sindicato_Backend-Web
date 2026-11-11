@@ -62,7 +62,7 @@ export function JointPurchaseCallForm({
   const editing = Boolean(call);
   const [name, setName] = useState(call?.name ?? '');
   const [deadline, setDeadline] = useState(toLocalInput(call?.deadline_at));
-  const [responsibleId, setResponsibleId] = useState(call?.responsible?.id ?? '');
+  const [responsibleId, setResponsibleId] = useState(call?.responsible.user_ref ?? '');
   const [source, setSource] = useState<Source>(call?.source_proposal_ref ? 'proposal' : 'catalog');
   const [catalogRefs, setCatalogRefs] = useState<Set<string>>(
     () => new Set(call && !call.source_proposal_ref ? call.products.map((product) => product.product_ref) : []),
@@ -72,7 +72,7 @@ export function JointPurchaseCallForm({
     () =>
       new Set(
         call?.source_proposal_ref
-          ? call.products.map((product) => product.reference?.source_position).filter((value): value is number => typeof value === 'number')
+          ? call.products.map((product) => product.reference?.position).filter((value): value is number => typeof value === 'number')
           : [],
       ),
   );
@@ -114,9 +114,9 @@ export function JointPurchaseCallForm({
 
   const chosenProducts = (): JointPurchaseCallProductInput[] => {
     if (source === 'catalog') return [...catalogRefs].map((product_ref) => ({ product_ref }));
-    return (proposal?.lines ?? [])
-      .filter((line) => positions.has(line.position))
-      .map((line) => ({ product_ref: line.product_ref, source_position: line.position }));
+    // `CreateCallDto` sólo admite `product_ref`: el servidor guarda la línea de origen (propuesta, posición) por sí mismo.
+    const refs = (proposal?.lines ?? []).filter((line) => positions.has(line.position)).map((line) => line.product_ref);
+    return [...new Set(refs)].map((product_ref) => ({ product_ref }));
   };
 
   const submit = async () => {
@@ -134,15 +134,15 @@ export function JointPurchaseCallForm({
     try {
       if (call) {
         // PATCH sólo en DRAFT: se envía el borrador completo; sin borrador de origen, `source_proposal_id: null`.
-        await jointPurchaseCallsService.update(call.id, { ...base, source_proposal_id: source === 'proposal' ? proposalId : null });
-        onSaved({ id: call.id, text: 'Borrador guardado.' });
+        await jointPurchaseCallsService.update(call.call_id, { ...base, source_proposal_id: source === 'proposal' ? proposalId : null });
+        onSaved({ id: call.call_id, text: 'Borrador guardado.' });
       } else {
         const created = await jointPurchaseCallsService.create({
           campaign_id: campaignId,
           ...base,
           ...(source === 'proposal' ? { source_proposal_id: proposalId } : {}),
         });
-        onSaved({ id: created?.id ?? null, text: `Borrador «${base.name}» creado. Los agricultores todavía no lo ven: ábralo cuando esté listo.` });
+        onSaved({ id: created?.call_id ?? null, text: `Borrador «${base.name}» creado. Los agricultores todavía no lo ven: ábralo cuando esté listo.` });
       }
     } catch (err) {
       setServerError(callError(err, 'No fue posible guardar el borrador.'));
@@ -212,7 +212,7 @@ export function JointPurchaseCallForm({
             >
               <option value="">{responsibles ? 'Seleccione…' : 'Cargando…'}</option>
               {(responsibles ?? []).map((user) => (
-                <option key={user.id} value={user.id}>
+                <option key={user.user_ref} value={user.user_ref}>
                   {user.name}
                   {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
                 </option>

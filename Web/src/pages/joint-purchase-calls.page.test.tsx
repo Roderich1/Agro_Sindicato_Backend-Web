@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
+import { useLocation, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../App.tsx?raw';
 import { AppShell } from '../components/app-shell';
@@ -11,7 +12,7 @@ import { collectiveService } from '../services/collective.service';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import { CAMPAIGN, renderAt } from '../test/render';
 import type { AssociationList, CatalogEntry, Proposal, ProposalSummary } from '../types/collective';
-import type { EligibleResponsible, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
+import type { EligibleResponsible, JointPurchaseCallDetail, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
 import { JointPurchaseCallsPage } from './joint-purchase-calls.page';
 
 vi.mock('../services/joint-purchase-calls.service', () => ({
@@ -33,9 +34,12 @@ vi.mock('../services/collective.service', () => ({
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn(), active: vi.fn() } }));
 
-/** E2 §6: «Compras conjuntas». Datos sintéticos: ningún agricultor, producto ni cifra real. */
+/**
+ * E2 §6: «Compras conjuntas», con las formas que responde el servidor
+ * (`call-views.ts`). Datos sintéticos: ningún agricultor, producto ni cifra real.
+ */
 const ROW: JointPurchaseCallSummary = {
-  id: 'c-1',
+  call_id: 'c-1',
   name: 'Herbicidas de la siembra',
   status: 'OPEN',
   campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name },
@@ -43,15 +47,57 @@ const ROW: JointPurchaseCallSummary = {
   opened_at: '2026-11-11T12:00:00.000Z',
   closed_at: null,
   cancelled_at: null,
-  responsible: { id: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
+  created_at: '2026-11-11T10:00:00.000Z',
+  responsible: { user_ref: 'u-2', name: 'Responsable sintética' },
+  product_count: 2,
   participant_count: 4,
 };
-const DRAFT_ROW: JointPurchaseCallSummary = { ...ROW, id: 'c-2', name: 'Fertilizantes', status: 'DRAFT', opened_at: null, participant_count: 0 };
+const DRAFT_ROW: JointPurchaseCallSummary = { ...ROW, call_id: 'c-2', name: 'Fertilizantes', status: 'DRAFT', opened_at: null, participant_count: 0 };
 
 const RESPONSIBLES: EligibleResponsible[] = [
-  { id: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
-  { id: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
+  { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
+  { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
 ];
+
+/** Respuesta 201 de `POST /joint-purchase-calls`: el detalle del borrador, identificado por `call_id`. */
+const CREATED: JointPurchaseCallDetail = {
+  contractVersion: 1,
+  call_id: 'c-9',
+  name: 'Herbicidas de verano',
+  status: 'DRAFT',
+  campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name, status: 'ABIERTA' },
+  deadline_at: '2099-12-01T22:00:00.000Z',
+  opened_at: null,
+  closed_at: null,
+  cancelled_at: null,
+  cancel_reason: null,
+  created_at: '2026-11-11T10:00:00.000Z',
+  updated_at: '2026-11-11T10:00:00.000Z',
+  server_time: '2026-11-11T10:00:00.000Z',
+  responsible: { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
+  created_by: { user_ref: 'u-1', name: 'Usuario sintético' },
+  opened_by: null,
+  cancelled_by: null,
+  source_proposal_ref: null,
+  participant_count: 0,
+  totals_source: 'NONE',
+  totals_threshold: 3,
+  can_view_participants: false,
+  is_responsible: false,
+  products: [
+    {
+      position: 0,
+      product_ref: 'p-3',
+      name: 'Urea',
+      unit: 'KG',
+      base_unit: 'G',
+      is_active: true,
+      reference: null,
+      totals: { participant_count: 0, total_quantity_base: null, visibility: 'UNDER_THRESHOLD' },
+    },
+  ],
+  history: [],
+};
 
 const CATALOG: CatalogEntry[] = [
   { product_ref: 'p-1', product_name: 'Glifosato 48 SL', unit: 'L', base_unit: 'ML', is_active: true },
@@ -124,7 +170,17 @@ function axiosError(status: number, data: unknown = {}) {
   return error;
 }
 
-const DETAIL_ROUTE = { path: '/colectivo/compras-conjuntas/:id', element: <p>detalle de la convocatoria</p> };
+/** La ruta del detalle muestra el `:id` al que se navegó y el mensaje recibido. */
+function DetailProbe() {
+  const { id } = useParams();
+  const message = (useLocation().state as { message?: string } | null)?.message ?? '';
+  return (
+    <p data-testid="detail-probe" data-message={message}>
+      detalle de la convocatoria {id}
+    </p>
+  );
+}
+const DETAIL_ROUTE = { path: '/colectivo/compras-conjuntas/:id', element: <DetailProbe /> };
 const render = (role = 'DIRECTIVA') =>
   renderAt(<JointPurchaseCallsPage />, { role, path: COLLECTIVE_PATHS.jointPurchaseCalls, routes: [DETAIL_ROUTE] });
 const dialog = () => screen.getByRole('dialog');
@@ -180,8 +236,8 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     expect(jointPurchaseCallsService.list).toHaveBeenLastCalledWith({ campaignId: CAMPAIGN.id, status: 'CANCELLED' });
   });
 
-  it('nuevo borrador: valida los campos, avisa qué podrá ver el responsable y crea con productos del catálogo', async () => {
-    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue({ ...ROW, id: 'c-9' } as never);
+  it('nuevo borrador: valida los campos, avisa qué podrá ver el responsable, crea con productos del catálogo y navega por el call_id de la respuesta', async () => {
+    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
     render();
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
@@ -221,11 +277,13 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
         products: [{ product_ref: 'p-3' }],
       }),
     );
-    expect(await screen.findByText('detalle de la convocatoria')).toBeTruthy();
+    const probe = await screen.findByTestId('detail-probe');
+    expect(probe.textContent).toBe('detalle de la convocatoria c-9');
+    expect(probe.getAttribute('data-message')).toMatch(/Borrador «Herbicidas de verano» creado/);
   });
 
   it('productos de un borrador de propuesta: la cifra es sólo «referencia» divulgada, nunca una cantidad comprometida', async () => {
-    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue({ ...ROW, id: 'c-9' } as never);
+    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue({ ...CREATED, source_proposal_ref: 'pr-1' });
     render();
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
@@ -249,13 +307,14 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ source_proposal_id: 'pr-1', products: [{ product_ref: 'p-1', source_position: 0 }] }),
+        // `CreateCallDto`: los productos llevan sólo `product_ref`; el servidor deduce la línea de origen.
+        expect.objectContaining({ source_proposal_id: 'pr-1', products: [{ product_ref: 'p-1' }] }),
       ),
     );
   });
 
   it('un error del servidor al crear se explica en español por su errorCode', async () => {
-    vi.mocked(jointPurchaseCallsService.create).mockRejectedValue(axiosError(422, { errorCode: 'RESPONSIBLE_INVALID' }));
+    vi.mocked(jointPurchaseCallsService.create).mockRejectedValue(axiosError(422, { errorCode: 'RESPONSIBLE_NOT_ELIGIBLE' }));
     render();
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
@@ -266,7 +325,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(await within(dialog()).findByRole('checkbox', { name: /Glifosato 48 SL/ }));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
     expect(await within(dialog()).findByText(/no es un usuario activo de la Directiva o la Administración/)).toBeTruthy();
-    expect(screen.queryByText('detalle de la convocatoria')).toBeNull();
+    expect(screen.queryByTestId('detail-probe')).toBeNull();
   });
 });
 

@@ -1,102 +1,130 @@
 import type { BaseUnit } from '../lib/quantity';
-import type { ProposalLineStatus } from './collective';
 
 /**
  * E2 (convocatorias de compra conjunta): formas de la API institucional
  * `/joint-purchase-calls` (contrato
- * `docs/architecture/E2_CONVOCATORIAS_COMPRA_CONJUNTA_CONTRATO.md` §4.1). Los
- * campos van en snake_case, tal como responde el servidor. Una participación
- * es una cantidad **solicitada**: no es una compra, una entrega ni una deuda.
+ * `docs/architecture/E2_CONVOCATORIAS_COMPRA_CONJUNTA_CONTRATO.md` §4.1), tal
+ * como las responde el servidor (`Back/src/modules/joint-purchase-calls/application/call-views.ts`).
+ * Los campos van en snake_case. Una participación es una cantidad
+ * **solicitada**: no es una compra, una entrega ni una deuda.
  */
 export type JointPurchaseCallStatus = 'DRAFT' | 'OPEN' | 'CLOSED' | 'CANCELLED';
 export type JointPurchaseCallEventKind = 'CREATED' | 'UPDATED' | 'OPENED' | 'CLOSED' | 'CANCELLED' | 'RESPONSIBLE_ASSIGNED';
 export type JointPurchaseParticipationStatus = 'ACTIVE' | 'WITHDRAWN';
 export type JointPurchaseCallCloseMode = 'MANUAL' | 'AUTOMATIC';
 
-/** Usuario institucional (responsable, autor de una acción). Nunca un agricultor. */
-export interface JointPurchaseCallUser {
-  id: string;
-  name: string;
-  role?: 'DIRECTIVA' | 'ADMINISTRADOR' | string;
-}
+/**
+ * E2-D7 / E2-P1: `VISIBLE` con el total; `UNDER_THRESHOLD` (sólo al cierre)
+ * cuando menos del umbral de personas pidieron el producto; `RESPONSIBLE_ONLY`
+ * mientras la convocatoria está abierta, para quien no tiene el permiso del
+ * responsable. Fuera de `VISIBLE` el total llega como `null`, nunca como 0.
+ */
+export type JointPurchaseCallTotalVisibility = 'VISIBLE' | 'UNDER_THRESHOLD' | 'RESPONSIBLE_ONLY';
 
-export interface JointPurchaseCallCampaign {
-  campaign_ref: string;
+/** Usuario institucional (responsable, autor de una acción). Nunca un agricultor. */
+export interface JointPurchaseCallUserRef {
+  user_ref: string;
   name: string;
-  status?: string;
 }
 
 /** Fila de la lista (`GET /joint-purchase-calls`): sin identidades de agricultores. */
 export interface JointPurchaseCallSummary {
-  id: string;
+  call_id: string;
   name: string;
   status: JointPurchaseCallStatus;
-  campaign: JointPurchaseCallCampaign;
+  campaign: { campaign_ref: string; name: string };
   deadline_at: string;
   opened_at: string | null;
   closed_at: string | null;
   cancelled_at: string | null;
-  responsible: JointPurchaseCallUser | null;
+  created_at: string;
+  responsible: JointPurchaseCallUserRef;
+  product_count: number;
   /** Personas con participación vigente (cada una cuenta una vez, E2-D8). */
   participant_count: number;
-  product_count?: number;
-  created_at?: string;
-  updated_at?: string;
+}
+
+export interface JointPurchaseCallList {
+  contractVersion: 1;
+  calls: JointPurchaseCallSummary[];
 }
 
 /**
- * Cifra de la línea del borrador de propuesta del que salió el producto (E2-D14):
- * la cifra **ya divulgada** de esa línea, o `null` si estaba suprimida. Es una
- * referencia; nunca una cantidad comprometida.
+ * Referencia de la línea del borrador de propuesta del que salió el producto
+ * (E2-D14): la cifra **ya divulgada** (`DISCLOSED`) o «sin cifra»
+ * (`NO_FIGURE`). Nunca una cantidad comprometida.
  */
 export interface JointPurchaseCallReference {
-  source_proposal_ref: string;
-  source_position: number;
-  status: ProposalLineStatus;
+  proposal_ref: string;
+  position: number;
+  status: 'DISCLOSED' | 'NO_FIGURE';
+  label: string;
   quantity_base: string | null;
-  quantity_presentation?: string | null;
+  contributors: number | null;
+  released_at: string | null;
 }
 
-/** Total por producto según E2-D7: `null` cuando quien consulta no puede verlo. */
+/** Total por producto según E2-D7 / E2-P1: `null` cuando quien consulta no puede verlo. */
 export interface JointPurchaseCallProductTotal {
+  participant_count: number;
   total_quantity_base: string | null;
-  participant_count: number | null;
+  visibility: JointPurchaseCallTotalVisibility;
 }
 
 export interface JointPurchaseCallProduct {
   position: number;
   product_ref: string;
-  product_name: string;
+  name: string;
+  unit: 'L' | 'KG';
   base_unit: BaseUnit;
-  unit?: 'L' | 'KG';
+  is_active: boolean;
   reference: JointPurchaseCallReference | null;
-  /** Ausente en un borrador; en una convocatoria abierta o cerrada, según E2-D7. */
-  total?: JointPurchaseCallProductTotal | null;
+  totals: JointPurchaseCallProductTotal;
 }
 
 export interface JointPurchaseCallEvent {
   at: string;
   kind: JointPurchaseCallEventKind;
   /** Usuario institucional; `null` en el cierre automático. */
-  actor: { name: string } | null;
+  actor: JointPurchaseCallUserRef | null;
   detail: string | null;
 }
 
-export interface JointPurchaseCallDetail extends JointPurchaseCallSummary {
-  products: JointPurchaseCallProduct[];
-  source_proposal_ref: string | null;
+/** Detalle (`GET`/`PATCH /:id`, y la respuesta de crear, abrir y cancelar). */
+export interface JointPurchaseCallDetail {
+  contractVersion: 1;
+  call_id: string;
+  name: string;
+  status: JointPurchaseCallStatus;
+  campaign: { campaign_ref: string; name: string; status: string };
+  deadline_at: string;
+  opened_at: string | null;
+  closed_at: string | null;
+  cancelled_at: string | null;
   cancel_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  server_time: string;
+  responsible: JointPurchaseCallUserRef & { role: string | null };
+  created_by: JointPurchaseCallUserRef;
+  opened_by: JointPurchaseCallUserRef | null;
+  cancelled_by: JointPurchaseCallUserRef | null;
+  source_proposal_ref: string | null;
+  participant_count: number;
+  /** `CLOSING` (instantánea del cierre), `LIVE` (provisional mientras está abierta) o `NONE` (borrador). */
+  totals_source: 'NONE' | 'LIVE' | 'CLOSING';
+  /** Umbral de E2-D7 (provisional, 3). */
+  totals_threshold: number;
   /** Permiso específico E2-D6 de quien consulta (sólo el responsable, tras abrir). */
   can_view_participants: boolean;
-  /** Umbral de E2-D7 (provisional, 3). */
-  totals_threshold?: number | null;
+  is_responsible: boolean;
+  products: JointPurchaseCallProduct[];
   history: JointPurchaseCallEvent[];
-  server_time?: string;
 }
 
 export interface JointPurchaseParticipantLine {
   product_ref: string;
-  product_name?: string;
+  product_name: string;
   base_unit: BaseUnit;
   quantity_base: string;
 }
@@ -110,35 +138,58 @@ export interface JointPurchaseCallParticipant {
   lines: JointPurchaseParticipantLine[];
 }
 
-export interface JointPurchaseCallClosingLine {
-  product_ref: string;
-  product_name: string;
-  base_unit: BaseUnit;
-  /** `null` cuando quien consulta no puede ver el total (E2-D7). */
-  total_quantity_base: string | null;
-  participant_count: number | null;
+/** `GET /:id/participants` (sólo con el permiso E2-D6). */
+export interface JointPurchaseCallParticipants {
+  contractVersion: 1;
+  call_id: string;
+  status: JointPurchaseCallStatus;
+  provisional: boolean;
+  /** Aviso del servidor (p. ej. «Lista provisional…» mientras está abierta), o `null`. */
+  notice: string | null;
+  participant_count: number;
+  participants: JointPurchaseCallParticipant[];
 }
 
-/** «Consolidado al cierre» (E2-D13): instantánea inmutable de cantidades **solicitadas**. */
+export interface JointPurchaseCallClosingLine extends JointPurchaseCallProductTotal {
+  product_ref: string;
+  product_name: string;
+  unit: 'L' | 'KG';
+  base_unit: BaseUnit;
+}
+
+export interface JointPurchaseCallClosingParticipant {
+  participation_ref: string;
+  name: string;
+  accepted_at: string;
+  lines: JointPurchaseParticipantLine[];
+}
+
+/** «Consolidado al cierre» (E2-D13, `GET /:id/closing` y `POST /:id/close`): instantánea inmutable de cantidades **solicitadas**. */
 export interface JointPurchaseCallClosing {
+  contractVersion: 1;
   call_id: string;
+  name: string;
+  status: 'CLOSED';
+  label: string;
   mode: JointPurchaseCallCloseMode;
   cutoff_at: string;
   closed_at: string;
-  closed_by: { name: string } | null;
+  closed_by: JointPurchaseCallUserRef | null;
   /** Personas incluidas en el consolidado. */
   participant_count: number;
+  totals_threshold: number;
+  can_view_participants: boolean;
   lines: JointPurchaseCallClosingLine[];
-  /** Sólo con el permiso E2-D6; `null` o ausente en otro caso. */
-  participants?: JointPurchaseCallParticipant[] | null;
+  /** Sólo con el permiso E2-D6; `null` en otro caso. */
+  participants: JointPurchaseCallClosingParticipant[] | null;
 }
 
+/** Producto pedido al crear o editar: sólo su referencia (el servidor deduce la línea del borrador de origen). */
 export interface JointPurchaseCallProductInput {
   product_ref: string;
-  /** Posición de la línea del borrador de propuesta de origen. */
-  source_position?: number;
 }
 
+/** `CreateCallDto` del servidor: cualquier otra clave se rechaza con 400 `PAYLOAD_INVALID`. */
 export interface CreateJointPurchaseCallBody {
   campaign_id: string;
   name: string;
@@ -148,10 +199,11 @@ export interface CreateJointPurchaseCallBody {
   source_proposal_id?: string | null;
 }
 
+/** `PatchCallDto`: lo mismo sin la campaña; `source_proposal_id: null` quita el origen. */
 export type UpdateJointPurchaseCallBody = Partial<Omit<CreateJointPurchaseCallBody, 'campaign_id'>>;
 
 export interface EligibleResponsible {
-  id: string;
+  user_ref: string;
   name: string;
-  role: 'DIRECTIVA' | 'ADMINISTRADOR' | string;
+  role: string;
 }
