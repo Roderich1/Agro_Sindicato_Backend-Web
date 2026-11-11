@@ -85,7 +85,7 @@ supone una única campaña abierta**: lista todas las que reciba, aunque haya
 varias `ABIERTA`, y la «activa» es sólo la que el servidor marca con
 `isActive`. Si la seleccionada no es la activa, lo dice con el texto «Distinta
 de la activa» (`data-testid="campaign-differs"`, con `title` que nombra la
-activa). Si ninguna está marcada como activa, no muestra ninguna de las dos.
+activa); si lo es, «Activa» (`data-testid="campaign-active"`). Si ninguna está marcada como activa, no muestra ninguna de las dos.
 
 ```tsx
 const { campaigns, selected, select } = useSelectedCampaign(); // hooks/use-selected-campaign.ts
@@ -158,6 +158,12 @@ siguen exportándose y delegan aquí). Siempre muestra un texto en español
 divulgación, `title` lleva el motivo de `statusReason`. Un estado desconocido se
 muestra tal cual, en gris.
 
+`statusChipLabel(status: string): string` da el mismo texto sin el componente
+(p. ej. para exportaciones) e `isKnownStatus(status: string): boolean` dice si
+el estado tiene texto propio. El `StatusBadge` de `collective-ui.tsx` conserva
+su regla anterior: un estado de divulgación desconocido se muestra como
+«Política pendiente», nunca como código.
+
 ```tsx
 <StatusChip status={cell.status} threshold={summary.disclosure.threshold} />
 <StatusChip status={campaign.status} />
@@ -197,8 +203,9 @@ interface SectionHeaderProps {
   note?: ReactNode;
   actions?: ReactNode;
   badge?: ReactNode;
+  headingId?: string;               // id del <h2>; Section lo asigna solo
 }
-interface SectionProps extends Partial<SectionHeaderProps> {
+interface SectionProps extends Partial<Omit<SectionHeaderProps, 'headingId'>> {
   children: ReactNode;
   /** Nombre accesible de la región cuando `title` no es texto. */
   label?: string;
@@ -310,6 +317,7 @@ const dangerButtonClass: string;     // = buttonClassFor('danger')
 const inputClass: string;
 const labelClass: string;
 const cardClass: string;
+const surfaceClass: string;          // borde + fondo sólido + sombra suave (Section, Collapsible)
 ```
 
 `:active` con `scale(0.98)` en 120 ms (`ui-press`), foco visible, sin sombras
