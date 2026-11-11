@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { AppShell, buttonClass, EmptyState, Notice } from '../components/app-shell';
-import { CollectiveToolbar, DisclosureNotice, PendingChangesNote, StatusBadge } from '../components/collective-ui';
+import { AppShell } from '../components/app-shell';
+import { DisclosureNotice, PendingChangesNote } from '../components/collective-ui';
 import { CoverageCard } from '../components/coverage-card';
 import { ExportButtons } from '../components/export-buttons';
 import { SealPanel } from '../components/seal-panel';
+import { Button, buttonClass, CampaignSelector, DataState, KpiTile, Notice, PageHeader, Section, StatusChip, surfaceClass } from '../components/ui';
 import { useCampaign } from '../hooks/use-campaign';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
@@ -34,7 +36,7 @@ export function CollectiveSummaryPage() {
   const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
   const { activeCampaign, isLoading: activeLoading, error: activeError } = useCampaign();
   const [summary, setSummary] = useState<CollectiveSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ kind: 'error' | 'forbidden'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
   // Cambia en cada recarga para que el panel de sellado relea su estado.
   const [reloads, setReloads] = useState(0);
@@ -53,7 +55,7 @@ export function CollectiveSummaryPage() {
       setSummary(data);
     } catch (err) {
       if (current.current !== campaignId) return;
-      setError(collectiveError(err, 'No fue posible cargar el resumen colectivo.'));
+      setError({ kind: forbidden(err) ? 'forbidden' : 'error', text: collectiveError(err, 'No fue posible cargar el resumen colectivo.') });
     } finally {
       if (current.current === campaignId) setLoading(false);
     }
@@ -72,43 +74,37 @@ export function CollectiveSummaryPage() {
   return (
     <AppShell title="Resumen colectivo" section="Colectivo">
       <div className="space-y-4">
-        {/* ui: PageHeader + CampaignSelector */}
-        <CollectiveToolbar campaigns={campaigns} selected={selected} onSelect={select}>
-          {selected && (
-            <>
-              <button
-                type="button"
-                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-60"
-                onClick={() => void load(selected)}
-                disabled={loading}
-              >
-                Actualizar
-              </button>
-              <ExportButtons kind="summary" reference={selected} disabled={!summary || loading} />
-              <Link to={`${COLLECTIVE_PATHS.proposals}?campaign=${encodeURIComponent(selected)}`} className={buttonClass}>
-                Revisar borrador
-              </Link>
-            </>
-          )}
-        </CollectiveToolbar>
+        <PageHeader
+          testId="toolbar"
+          title="Resumen"
+          subtitle="Necesidades declaradas por producto, cobertura y versión de la campaña seleccionada."
+          campaign={<CampaignSelector campaigns={campaigns} selected={selected} onSelect={select} />}
+          actions={
+            selected && (
+              <>
+                <Button variant="ghost" onClick={() => void load(selected)} disabled={loading}>
+                  Actualizar
+                </Button>
+                <ExportButtons kind="summary" reference={selected} disabled={!summary || loading} />
+                <Link to={`${COLLECTIVE_PATHS.proposals}?campaign=${encodeURIComponent(selected)}`} className={buttonClass}>
+                  Revisar borrador
+                </Link>
+              </>
+            )
+          }
+        />
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && (
-          // ui: DataState state="error"
-          <div className="space-y-2" data-testid="summary-error">
-            <Notice kind="error">{error}</Notice>
-            {selected && (
-              <button type="button" className={buttonClass} onClick={() => void load(selected)}>
-                Reintentar
-              </button>
-            )}
+          <div className={surfaceClass}>
+            <DataState
+              state={error.kind}
+              description={error.text}
+              onRetry={selected ? () => void load(selected) : undefined}
+              testId="summary-error"
+            />
           </div>
         )}
-        {loading && (
-          // ui: DataState state="loading"
-          <p className="text-sm text-slate-500" role="status">
-            Cargando…
-          </p>
-        )}
+        {loading && <DataState state="loading" compact />}
         {summary && !loading && <LatestFigure cells={summary.cells} />}
         {(summary || noActive) && !loading && (
           <PendingActions summary={summary} noActive={noActive} campaignId={selected} />
@@ -120,8 +116,9 @@ export function CollectiveSummaryPage() {
           </div>
         )}
         {!selected && !campaignsError && (
-          // ui: DataState state="empty"
-          <EmptyState title="No hay campañas" description="Cree o abra una campaña compartida." />
+          <div className={surfaceClass}>
+            <DataState state="empty" title="No hay campañas" description="Cree o abra una campaña compartida en Campañas." />
+          </div>
         )}
       </div>
     </AppShell>
@@ -164,7 +161,7 @@ interface PendingAction {
 /** Sólo acciones que un dato del servidor sustenta; ninguna se deduce de cantidades. */
 function PendingActions({ summary, noActive, campaignId }: { summary: CollectiveSummary | null; noActive: boolean; campaignId: string | null }) {
   const actions: PendingAction[] = [];
-  const linkClass = 'shrink-0 text-sm font-semibold text-emerald-800 underline underline-offset-2 hover:text-emerald-900';
+  const linkClass = 'shrink-0 text-sm font-semibold text-brand-800 underline underline-offset-2 hover:text-ink';
   if (noActive) {
     actions.push({
       key: 'no-active',
@@ -203,9 +200,7 @@ function PendingActions({ summary, noActive, campaignId }: { summary: Collective
   }
   if (actions.length === 0) return null;
   return (
-    // ui: Section
-    <section className="rounded-2xl border border-slate-200 bg-white" aria-label="Acciones pendientes" data-testid="pending-actions">
-      <h2 className="border-b border-slate-100 px-5 py-3 text-base font-bold text-slate-900">Acciones pendientes</h2>
+    <Section title="Acciones pendientes" testId="pending-actions">
       <ul className="divide-y divide-slate-100">
         {actions.map((action) => (
           <li key={action.key} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-5 py-3" data-testid={`action-${action.key}`}>
@@ -217,7 +212,7 @@ function PendingActions({ summary, noActive, campaignId }: { summary: Collective
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
   );
 }
 
@@ -268,34 +263,31 @@ function countsNote(cells: SummaryCell[]): { published: number; rest: string } {
   return { published, rest: parts.join(' · ') };
 }
 
-function Tile({ label, children, testId }: { label: string; children: ReactNode; testId?: string }) {
-  // ui: KpiTile
-  return (
-    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-5 py-4" data-testid={testId}>
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
-      {children}
-    </div>
-  );
-}
-
+/** Un conteo de filas por estado (nunca una cantidad): cuántos productos tienen cifra publicada. */
 function NeedsCountTile({ cells }: { cells: SummaryCell[] }) {
   if (cells.length === 0) {
     return (
-      <Tile label="Necesidades por producto" testId="needs-counts">
-        <p className="mt-1 text-lg font-bold text-slate-900">Sin necesidades publicadas</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">Ningún agricultor publicó una necesidad declarada en esta campaña.</p>
-      </Tile>
+      <KpiTile
+        testId="needs-counts"
+        label="Necesidades por producto"
+        value={<span className="text-lg">Sin necesidades publicadas</span>}
+        note="Ningún agricultor publicó una necesidad declarada en esta campaña."
+      />
     );
   }
   const { published, rest } = countsNote(cells);
   return (
-    <Tile label="Necesidades por producto" testId="needs-counts">
-      <p className="mt-1 text-slate-900">
-        <span className="text-3xl font-bold leading-tight tabular-nums">{published}</span>{' '}
-        <span className="text-sm font-semibold">{published === 1 ? 'producto con cifra publicada' : 'productos con cifra publicada'}</span>
-      </p>
-      {rest && <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{rest}</p>}
-    </Tile>
+    <KpiTile
+      testId="needs-counts"
+      label="Necesidades por producto"
+      value={
+        <>
+          {published}{' '}
+          <span className="text-sm font-semibold">{published === 1 ? 'producto con cifra publicada' : 'productos con cifra publicada'}</span>
+        </>
+      }
+      note={rest || undefined}
+    />
   );
 }
 
@@ -306,66 +298,62 @@ function NeedsCountTile({ cells }: { cells: SummaryCell[] }) {
 function VersionTile({ seal }: { seal: SealRef | null }) {
   if (!seal) {
     return (
-      <Tile label="Versión" testId="version-tile">
-        <p className="mt-1 text-lg font-bold text-slate-900">Sin sellar</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">Las cifras pueden cambiar mientras la campaña no tenga una versión sellada.</p>
-      </Tile>
+      <KpiTile
+        testId="version-tile"
+        label="Versión"
+        value={<span className="text-lg">Sin sellar</span>}
+        note="Las cifras pueden cambiar mientras la campaña no tenga una versión sellada."
+      />
     );
   }
   return (
-    <Tile label="Versión" testId="seal-banner">
-      <p className="mt-1 text-lg font-bold text-slate-900">Versión {seal.version} sellada</p>
-      <p className="mt-0.5 text-xs leading-relaxed text-slate-600 [overflow-wrap:anywhere]">
-        El {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} ({seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) · datos
-        aceptados hasta {fmtDateTime(seal.accepted_until)} · ref. <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>
-      </p>
-      <p className="mt-1 text-xs leading-relaxed text-slate-500">
-        Cada cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor no puede
-        asegurar que todos los teléfonos publicaron todo.
-      </p>
-    </Tile>
+    <KpiTile
+      testId="seal-banner"
+      label="Versión"
+      value={<span className="text-lg">Versión {seal.version} sellada</span>}
+      note={
+        <span className="[overflow-wrap:anywhere]">
+          El {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} ({seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) ·
+          datos aceptados hasta {fmtDateTime(seal.accepted_until)} · ref. <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>. Cada
+          cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor no puede asegurar que
+          todos los teléfonos publicaron todo.
+        </span>
+      }
+    />
   );
 }
 
 function NeedsSection({ cells, threshold }: { cells: SummaryCell[]; threshold: number | null }) {
   const units = (['L', 'KG'] as const).filter((unit) => cells.some((cell) => cell.presentation_unit === unit));
   return (
-    // ui: Section
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="Necesidades declaradas por producto">
-      <div className="border-b border-slate-100 px-5 py-3">
-        <h2 className="text-base font-bold text-slate-900">Necesidades declaradas por producto</h2>
-        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-          Lo que cada agricultor declaró que necesita para la campaña; no es pronóstico, consumo ni cantidad comprada.
-          {cells.length > 0 && ' Ordenado por nombre del producto; litros y kilogramos van en escalas separadas y no se suman.'}
-        </p>
-      </div>
+    <Section
+      title="Necesidades declaradas por producto"
+      note={`Lo que cada agricultor declaró que necesita para la campaña; no es pronóstico, consumo ni cantidad comprada.${
+        cells.length > 0 ? ' Ordenado por nombre del producto; litros y kilogramos van en escalas separadas y no se suman.' : ''
+      }`}
+    >
       {cells.length === 0 ? (
         <p className="px-5 py-3 text-sm text-slate-600">Ningún agricultor publicó una necesidad declarada en esta campaña. Eso no significa cero.</p>
       ) : (
         units.map((unit) => (
           <div key={unit}>
-            <p className="border-b border-slate-100 bg-slate-50 px-5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <p className="border-b border-slate-100 bg-slate-50 px-5 py-1.5 text-xs font-semibold text-slate-600">
               {unit === 'L' ? 'En litros (L)' : 'En kilogramos (KG)'}
             </p>
             <FigureRows cells={cells.filter((cell) => cell.presentation_unit === unit)} unit={unit} threshold={threshold} bars />
           </div>
         ))
       )}
-    </section>
+    </Section>
   );
 }
 
 function ConsumptionSection({ cells, threshold }: { cells: SummaryCell[]; threshold: number | null }) {
   return (
-    // ui: Section
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="Consumo publicado">
-      <div className="border-b border-slate-100 px-5 py-3">
-        <h2 className="text-base font-bold text-slate-900">Consumo publicado</h2>
-        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-          Consumo que los agricultores registraron y publicaron desde la app. Es un dato distinto de la necesidad declarada: no se
-          resta ni se compara con ella.
-        </p>
-      </div>
+    <Section
+      title="Consumo publicado"
+      note="Consumo que los agricultores registraron y publicaron desde la app. Es un dato distinto de la necesidad declarada: no se resta ni se compara con ella."
+    >
       {cells.length === 0 ? (
         <p className="px-5 py-3 text-sm text-slate-600">Sin consumo publicado en esta campaña. Eso no significa cero.</p>
       ) : (
@@ -375,7 +363,7 @@ function ConsumptionSection({ cells, threshold }: { cells: SummaryCell[]; thresh
             <FigureRows key={unit} cells={cells.filter((cell) => cell.presentation_unit === unit)} unit={unit} threshold={threshold} />
           ))
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -403,12 +391,9 @@ function FigureRows({ cells, unit, threshold, bars = false }: { cells: SummaryCe
             data-testid={`cell-${cell.projection_type}-${cell.product_name}-${cell.base_unit}`}
           >
             <div className="min-w-0">
-              <span className="text-base font-semibold text-slate-900 [overflow-wrap:anywhere]">{cell.product_name}</span>{' '}
-              <span className="whitespace-nowrap text-xs text-slate-500">{cell.presentation_unit}</span>{' '}
-              {/* ui: StatusChip */}
-              <span className="inline-block">
-                <StatusBadge status={cell.status} threshold={threshold} />
-              </span>
+              <span className="text-base font-semibold text-ink [overflow-wrap:anywhere]">{cell.product_name}</span>{' '}
+              <span className="whitespace-nowrap text-xs text-slate-600">{cell.presentation_unit}</span>{' '}
+              <StatusChip status={cell.status} threshold={threshold} />
             </div>
             {disclosed ? (
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -418,10 +403,10 @@ function FigureRows({ cells, unit, threshold, bars = false }: { cells: SummaryCe
                   <>
                     {bars && (
                       <div className="h-3 min-w-24 flex-1 rounded-full bg-slate-100" aria-hidden="true">
-                        <div className="h-3 rounded-full bg-emerald-600" style={{ width: `${width(values[index]!)}%` }} />
+                        <div className="h-3 rounded-full bg-brand-700" style={{ width: `${width(values[index]!)}%` }} />
                       </div>
                     )}
-                    <span className="text-2xl font-bold leading-tight tabular-nums text-slate-900 [overflow-wrap:anywhere]">{text}</span>
+                    <span className="text-2xl font-bold leading-tight tabular-nums text-ink [overflow-wrap:anywhere]">{text}</span>
                   </>
                 )}
               </div>
@@ -450,4 +435,8 @@ function FigureRows({ cells, unit, threshold, bars = false }: { cells: SummaryCe
       })}
     </ul>
   );
+}
+
+function forbidden(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 403;
 }

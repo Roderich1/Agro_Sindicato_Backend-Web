@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { fmtDateTime } from '../lib/collective-text';
+import { fmtPercent } from '../lib/format';
 import type { Coverage } from '../types/collective';
+import { surfaceClass } from './ui';
 
 /**
  * Cobertura de participación de una campaña (F06 contrato:93-95; F10-SEC-02),
@@ -34,10 +36,10 @@ export function CoverageCard({
 }) {
   const title = sealedAt ? `Cobertura al sellar (${fmtDateTime(sealedAt)})` : 'Cobertura';
   if (!coverage) {
-    // ui: DataState state="restricted"
+    // Estado «información restringida» (contrato §4).
     return (
-      <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-5 py-4" data-testid={testId}>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{title}</p>
+      <div className={`min-w-0 px-5 py-4 ${surfaceClass}`} data-testid={testId}>
+        <p className="text-xs font-semibold text-slate-600">{title}</p>
         <p className="mt-1 text-sm font-semibold text-slate-800">Cobertura no disponible</p>
         <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
           Sin política de divulgación aprobada el servidor no publica conteos. Eso no significa cero.
@@ -46,13 +48,13 @@ export function CoverageCard({
     );
   }
   const { linked_members: linked, members_with_contribution: within } = coverage;
-  const percent = percentOrNull(within, linked);
+  const percent = fmtPercent(within, linked);
   return (
-    <div className="min-w-0 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-5 py-4" data-testid={testId}>
+    <div className={`min-w-0 px-5 py-4 ${surfaceClass}`} data-testid={testId}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-900/70">{title}</p>
+        <p className="text-xs font-semibold text-slate-600">{title}</p>
         {link && (
-          <Link to={link} className="shrink-0 text-sm font-semibold text-emerald-800 underline underline-offset-2 hover:text-emerald-900">
+          <Link to={link} className="shrink-0 text-sm font-semibold text-brand-800 underline underline-offset-2 hover:text-ink">
             Ver cobertura
           </Link>
         )}
@@ -73,7 +75,7 @@ export function CoverageCard({
         Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
       </p>
       {variant === 'full' && (
-        <dl className="mt-3 grid gap-2 border-t border-emerald-100 pt-3 text-xs leading-relaxed text-slate-600 sm:grid-cols-2">
+        <dl className="mt-3 grid gap-2 border-t border-line pt-3 text-xs leading-relaxed text-slate-600 sm:grid-cols-2">
           <div className="min-w-0">
             <dt className="font-semibold text-slate-800">Vinculados ({fmtCount(linked)})</dt>
             <dd>Agricultores con vínculo y cuenta activos en el sindicato, aporten o no. No es el padrón del sindicato.</dd>
@@ -95,12 +97,4 @@ const COUNT = new Intl.NumberFormat('es-BO');
 
 function fmtCount(value: number): string {
   return COUNT.format(value);
-}
-
-const PERCENT = new Intl.NumberFormat('es-BO', { style: 'percent', maximumFractionDigits: 0 });
-
-// ui: fmtPercent (lib/format.ts, sesión A) sustituirá a esta función con la misma regla.
-function percentOrNull(numerator: number, denominator: number): string | null {
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) return null;
-  return PERCENT.format(numerator / denominator);
 }
