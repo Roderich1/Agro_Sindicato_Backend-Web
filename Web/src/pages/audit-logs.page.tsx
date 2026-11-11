@@ -12,6 +12,7 @@ import {
   labelClass,
   secondaryButtonClass,
 } from '../components/app-shell';
+import { PageHeader } from '../components/ui';
 import { extractError, fmtDate } from '../lib/format';
 import { auditLogsService } from '../services/audit-logs.service';
 import { campaignsService } from '../services/campaigns.service';
@@ -137,7 +138,11 @@ export function AuditLogsPage() {
     setFilters((current) => ({ ...current, [field]: value }));
 
   return (
-    <AppShell title="Bitácora" section="Trazabilidad">
+    <AppShell title="Bitácora" section="Administración">
+      {/* Rediseño 2026-11-10: el armazón ya no pone el h1; lo pone PageHeader. */}
+      <div className="mb-5">
+        <PageHeader title="Bitácora" subtitle="Acciones importantes registradas por el servidor, de la más reciente a la más antigua." />
+      </div>
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard label="Acciones visibles" value={logs.length} color="slate" />
         <StatCard label="Con campaña" value={logs.filter((log) => log.campaignId).length} color="emerald" />
