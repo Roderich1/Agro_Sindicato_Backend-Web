@@ -51,12 +51,6 @@ const CatalogPage = lazy(() => import('./pages/catalog.page').then((module) => (
 const CampaignDetailPage = lazy(() =>
   import('./pages/campaign-detail.page').then((module) => ({ default: module.CampaignDetailPage })),
 );
-/**
- * Prototipos del Resumen (rediseño 2026-11-10, contrato §7): sólo en desarrollo,
- * sin guarda ni API. En producción la condición es falsa y el módulo no entra
- * en el paquete.
- */
-const ResumenPrototypes = import.meta.env.DEV ? lazy(() => import('./dev/prototypes/resumen/harness')) : null;
 
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -255,7 +249,6 @@ function AppRoutes() {
       />
       {/* F10-SEC-02 (#45): la pantalla heredada ejecutaba compras y pagos; el camino vigente es la propuesta */}
       <Route path="/directiva" element={<LegacyDirectivaRedirect />} />
-      {ResumenPrototypes && <Route path="/prototipos/resumen" element={<ResumenPrototypes />} />}
     </Routes>
   );
 }
