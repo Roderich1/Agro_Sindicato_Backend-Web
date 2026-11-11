@@ -88,7 +88,9 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
   const loadedFor = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (isAuthLoading) return;
-    const identity = user ? `${user.id}|${user.role}` : null;
+    // Identidad = persona, rol y sindicato: al cerrar sesión (user nulo) la lista
+    // se vacía; con otra persona, rol o sindicato se vuelve a pedir.
+    const identity = user ? `${user.id}|${user.role}|${user.tenantId}` : null;
     if (loadedFor.current === identity) return;
     loadedFor.current = identity;
     void Promise.resolve().then(() => Promise.all([refreshActiveCampaign(), refreshCampaigns()]));

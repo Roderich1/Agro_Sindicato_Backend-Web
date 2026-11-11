@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { DisclosureNotice } from '../components/collective-ui';
 import { CoverageCard } from '../components/coverage-card';
-import { buttonClassFor, CampaignSelector, Collapsible, DataState, Notice, PageHeader, Section, surfaceClass } from '../components/ui';
+import { buttonClassFor, CampaignSelector, Collapsible, DataState, PageHeader, Section, surfaceClass } from '../components/ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
@@ -27,7 +27,7 @@ import type { CollectiveSummary } from '../types/collective';
  * de divulgación en el servidor si no está sellada).
  */
 export function CoveragePage() {
-  const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
+  const { campaigns, selected, select, error: campaignsError, refresh: refreshCampaigns } = useSelectedCampaign();
   const [summary, setSummary] = useState<CollectiveSummary | null>(null);
   const [error, setError] = useState<{ kind: 'error' | 'forbidden'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,7 +76,9 @@ export function CoveragePage() {
             )
           }
         />
-        {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
+        {campaignsError && (
+          <DataState state="error" description={campaignsError} onRetry={() => void refreshCampaigns()} testId="campaigns-list-error" />
+        )}
         {loading && <DataState state="loading" compact />}
         {error && (
           <div className={surfaceClass}>

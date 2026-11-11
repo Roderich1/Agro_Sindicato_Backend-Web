@@ -93,4 +93,56 @@ describe('Campañas de la sesión en caché (CampaignProvider)', () => {
     expect(campaignsService.list).not.toHaveBeenCalled();
     expect(campaignsService.active).not.toHaveBeenCalled();
   });
+
+  it('al cerrar sesión la lista se vacía y con otra identidad (otro sindicato) se vuelve a pedir', async () => {
+    const tree = (user: ReturnType<typeof userWith> | null) => (
+      <AuthContext.Provider value={{ user, isLoading: false, login: async () => undefined, logout: async () => undefined }}>
+        <CampaignProvider>
+          <MemoryRouter initialEntries={['/campaigns']}>
+            <Routes>
+              <Route path="/campaigns" element={<CampaignsPage />} />
+            </Routes>
+          </MemoryRouter>
+        </CampaignProvider>
+      </AuthContext.Provider>
+    );
+    const view = render(tree(userWith('DIRECTIVA')));
+    await screen.findByTestId(`campaign-row-${fixtures.LONG_CAMPAIGN_NAME}`);
+    expect(campaignsService.list).toHaveBeenCalledTimes(1);
+
+    // Cierre de sesión: sin persona no hay lista (ni se pide).
+    view.rerender(tree(null));
+    await screen.findByText('Todavía no hay campañas');
+    expect(screen.queryByTestId(`campaign-row-${fixtures.LONG_CAMPAIGN_NAME}`)).toBeNull();
+    expect(campaignsService.list).toHaveBeenCalledTimes(1);
+
+    // Otra identidad (mismo rol, otro sindicato): se vuelve a pedir, no se reutiliza.
+    const other = { ...userWith('DIRECTIVA'), id: 'u-2', tenantId: 't-2', tenant: { id: 't-2', name: 'Otro sindicato', slug: 'otro' } };
+    view.rerender(tree(other));
+    await screen.findByTestId(`campaign-row-${fixtures.LONG_CAMPAIGN_NAME}`);
+    expect(campaignsService.list).toHaveBeenCalledTimes(2);
+    expect(campaignsService.active).toHaveBeenCalledTimes(2);
+  });
+
+  it('«Actualizar» en Campañas vuelve a pedir la lista y la activa (cambios hechos por otra persona), sin sondeo', async () => {
+    app('/campaigns');
+    await screen.findByTestId(`campaign-row-${fixtures.LONG_CAMPAIGN_NAME}`);
+    expect(campaignsService.list).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
+    await waitFor(() => expect(campaignsService.list).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(campaignsService.active).toHaveBeenCalledTimes(2));
+    expect(campaignsService.list).toHaveBeenLastCalledWith();
+  });
+
+  it('si la lista falla, el Resumen ofrece «Reintentar» y vuelve a pedirla', async () => {
+    const { AxiosError } = await import('axios');
+    vi.mocked(campaignsService.list).mockRejectedValueOnce(new AxiosError('Network Error', 'ERR_NETWORK'));
+    app('/colectivo/resumen');
+    const error = await screen.findByTestId('campaigns-list-error');
+    expect(error.textContent).toMatch(/Sin conexión con el servidor/);
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(campaignsService.list).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByTestId('campaigns-list-error')).toBeNull());
+    expect((screen.getByLabelText('Campaña') as HTMLSelectElement).value).toBe(CAMPAIGN_IDS.worstActive);
+  });
 });

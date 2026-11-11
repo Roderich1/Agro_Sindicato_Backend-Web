@@ -12,7 +12,7 @@ import {
 } from '../components/collective-ui';
 import { Figure, ValidityBadge } from '../components/estimation-figure';
 import { ExportButtons } from '../components/export-buttons';
-import { Button, CampaignSelector, Collapsible, DataState, DataTable, Notice, PageHeader, Section } from '../components/ui';
+import { Button, CampaignSelector, Collapsible, DataState, DataTable, PageHeader, Section } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
@@ -70,7 +70,7 @@ interface Problem {
  */
 export function JointProposalPage() {
   const { user } = useAuth();
-  const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
+  const { campaigns, selected, select, error: campaignsError, refresh: refreshCampaigns } = useSelectedCampaign();
   const [history, setHistory] = useState<ProposalSummary[]>([]);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [reference, setReference] = useState<ReferenceState | null>(null);
@@ -214,7 +214,9 @@ export function JointProposalPage() {
             </Button>
           }
         />
-        {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
+        {campaignsError && (
+          <DataState state="error" description={campaignsError} onRetry={() => void refreshCampaigns()} testId="campaigns-list-error" />
+        )}
         {problem && (
           <Section>
             <DataState

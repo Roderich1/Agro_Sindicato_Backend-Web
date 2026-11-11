@@ -7,7 +7,7 @@ import { CoverageCard } from '../components/coverage-card';
 import { ExportButtons } from '../components/export-buttons';
 import { NeedsBars } from '../components/needs-bars';
 import { SealPanel } from '../components/seal-panel';
-import { Button, buttonClass, CampaignSelector, DataState, Notice, PageHeader, Section, StatusChip, surfaceClass } from '../components/ui';
+import { Button, buttonClass, CampaignSelector, DataState, PageHeader, Section, StatusChip, surfaceClass } from '../components/ui';
 import { useCampaign } from '../hooks/use-campaign';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
@@ -34,7 +34,7 @@ import type { CollectiveSummary, SealRef, SummaryCell } from '../types/collectiv
  * sondeo; «Actualizar» y «Reintentar» son acciones explícitas.
  */
 export function CollectiveSummaryPage() {
-  const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
+  const { campaigns, selected, select, error: campaignsError, refresh: refreshCampaigns } = useSelectedCampaign();
   const { activeCampaign, isLoading: activeLoading, error: activeError } = useCampaign();
   const [summary, setSummary] = useState<CollectiveSummary | null>(null);
   const [error, setError] = useState<{ kind: 'error' | 'forbidden'; text: string } | null>(null);
@@ -94,7 +94,9 @@ export function CollectiveSummaryPage() {
             )
           }
         />
-        {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
+        {campaignsError && (
+          <DataState state="error" description={campaignsError} onRetry={() => void refreshCampaigns()} testId="campaigns-list-error" />
+        )}
         {error && (
           <div className={surfaceClass}>
             <DataState

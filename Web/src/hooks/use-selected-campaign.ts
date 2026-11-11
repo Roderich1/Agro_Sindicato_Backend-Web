@@ -58,7 +58,7 @@ export function useCampaignList(): CampaignList {
 /** Campaña elegida, en la URL (`?campaign=`), por defecto la activa. Sólo se acepta un UUID. */
 export function useSelectedCampaign() {
   const { activeCampaign } = useCampaign();
-  const { campaigns, error } = useCampaignList();
+  const { campaigns, error, refresh } = useCampaignList();
   const [params, setParams] = useSearchParams();
   const requested = params.get('campaign');
   const selected = (requested && UUID.test(requested) ? requested : null) ?? activeCampaign?.id ?? campaigns[0]?.id ?? null;
@@ -68,5 +68,6 @@ export function useSelectedCampaign() {
     next.set('campaign', id);
     return next;
   });
-  return { campaigns, selected, select, error };
+  /** `refresh` vuelve a pedir la lista de la sesión (p. ej. «Reintentar» tras un fallo). */
+  return { campaigns, selected, select, error, refresh };
 }

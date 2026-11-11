@@ -58,7 +58,7 @@ const COUNT_TEXT: [CampaignStatus, string, string][] = [
  */
 export function CampaignsPage() {
   const { user } = useAuth();
-  const { activeCampaign } = useCampaign();
+  const { activeCampaign, refreshActiveCampaign } = useCampaign();
   const session = useCampaignList();
   const [found, setFound] = useState<Campaign[]>([]);
   const [status, setStatus] = useState<CampaignStatus | ''>('');
@@ -101,7 +101,13 @@ export function CampaignsPage() {
   const campaigns = filtered ? found : session.campaigns;
   const isLoading = filtered ? findLoading : session.loading;
   const error = filtered ? findError : session.error ? { kind: 'error' as const, text: session.error } : null;
-  const refresh = filtered ? find : session.refresh;
+  // «Actualizar» es la forma explícita de ver cambios hechos por otra persona:
+  // vuelve a pedir la lista (o la búsqueda) y la campaña activa. Sin sondeo.
+  const refreshSession = session.refresh;
+  const refresh = useCallback(async () => {
+    await (filtered ? find() : refreshSession());
+    await refreshActiveCampaign();
+  }, [filtered, find, refreshSession, refreshActiveCampaign]);
 
   const changed = async (text: string) => {
     setMessage(text);
