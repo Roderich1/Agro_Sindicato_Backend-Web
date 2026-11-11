@@ -1,0 +1,35 @@
+sesión iniciada como directiva
+captura crear_directiva_01_lista.png
+producto Herbicida DEMO: elegido
+producto Abono foliar casero: elegido
+captura crear_directiva_02_borrador_formulario.png
+captura crear_directiva_03_borrador_creado.png
+ruta tras crear: /colectivo/compras-conjuntas/97d993e8-5621-4d63-8773-09c7f612b9aa
+captura crear_directiva_04_abrir_dialogo.png
+captura crear_directiva_05_abierta.png
+estado mostrado: Abierta
+peticiones API: 24; errores de consola: 2
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+POST /api/v1/auth/login
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+GET /api/v1/joint-purchase-calls
+GET /api/v1/joint-purchase-calls
+GET /api/v1/collective/product-associations/catalog
+GET /api/v1/collective/product-associations
+GET /api/v1/joint-purchase-calls/eligible-responsibles
+GET /api/v1/collective/product-associations/catalog
+GET /api/v1/collective/product-associations
+GET /api/v1/joint-purchase-calls/eligible-responsibles
+POST /api/v1/joint-purchase-calls
+GET /api/v1/joint-purchase-calls/<id>
+GET /api/v1/joint-purchase-calls/<id>
+POST /api/v1/joint-purchase-calls/<id>/open
+GET /api/v1/joint-purchase-calls/<id>
+GET /api/v1/joint-purchase-calls/<id>/participants
+GET /api/v1/joint-purchase-calls/<id>/participants

@@ -1,0 +1,19 @@
+sesión iniciada como directiva
+captura cerrar_directiva_01_consolidado.png
+consolidado: true; menciona comprado/entregado fuera de la negación: false
+peticiones API: 15; errores de consola: 3
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+POST /api/v1/auth/login
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+GET /api/v1/joint-purchase-calls
+GET /api/v1/joint-purchase-calls
+GET /api/v1/joint-purchase-calls/<id>
+GET /api/v1/joint-purchase-calls/<id>
+GET /api/v1/joint-purchase-calls/<id>/closing
+GET /api/v1/joint-purchase-calls/<id>/closing
