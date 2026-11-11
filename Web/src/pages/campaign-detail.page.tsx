@@ -6,11 +6,10 @@ import { CoverageCard } from '../components/coverage-card';
 import { SealPanel } from '../components/seal-panel';
 import { buttonClassFor, DataState, DataTable, Notice, PageHeader, Section, StatusChip, surfaceClass } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
+import { useCampaignList } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
-import { extractError } from '../lib/format';
 import { COLLECTIVE_PATHS, isCollectiveRole } from '../lib/navigation';
-import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
 import type { Campaign } from '../types/campaigns';
 import type { CollectiveSummary, ProposalSummary } from '../types/collective';
@@ -40,9 +39,12 @@ export function CampaignDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { user } = useAuth();
   const collective = isCollectiveRole(user?.role);
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
-  const [rowState, setRowState] = useState<'loading' | 'found' | 'missing'>('loading');
-  const [rowError, setRowError] = useState<Failure | null>(null);
+  const session = useCampaignList();
+  const campaign: Campaign | null = session.campaigns.find((row) => row.id === id) ?? null;
+  // Un id que no está en la lista de la sesión puede ser una campaña recién creada
+  // en otra pestaña: se vuelve a pedir la lista una sola vez antes de decir que no existe.
+  const [rechecked, setRechecked] = useState<string | null>(null);
+  const recheckedRef = useRef<string | null>(null);
   const [summary, setSummary] = useState<CollectiveSummary | null>(null);
   const [summaryError, setSummaryError] = useState<Failure | null>(null);
   const [proposals, setProposals] = useState<ProposalSummary[] | null>(null);
@@ -50,24 +52,6 @@ export function CampaignDetailPage() {
   const [message, setMessage] = useState<string | null>(null);
   const current = useRef(id);
   const requested = useRef<string | null>(null);
-
-  const loadRow = useCallback(async (campaignId: string) => {
-    setRowError(null);
-    try {
-      const rows = await campaignsService.list();
-      if (current.current !== campaignId) return null;
-      const found = rows.find((row) => row.id === campaignId) ?? null;
-      setCampaign(found);
-      setRowState(found ? 'found' : 'missing');
-      return found;
-    } catch (err) {
-      if (current.current !== campaignId) return null;
-      setCampaign(null);
-      setRowState('missing');
-      setRowError(failure(err, 'No fue posible cargar la campaña.', extractError));
-      return null;
-    }
-  }, []);
 
   const loadSummary = useCallback(async (campaignId: string) => {
     setSummary(null);
@@ -93,27 +77,30 @@ export function CampaignDetailPage() {
     }
   }, []);
 
-  const visit = useCallback(
-    async (campaignId: string) => {
-      setRowState('loading');
-      const found = await loadRow(campaignId);
-      if (!found || !collective) return;
-      await Promise.all([loadSummary(campaignId), loadProposals(campaignId)]);
-    },
-    [collective, loadRow, loadSummary, loadProposals],
-  );
-
+  const found = Boolean(campaign);
+  const { loading: listLoading, error: listError, refresh: refreshList } = session;
   useEffect(() => {
     current.current = id;
+    if (listLoading || listError) return;
+    if (!found) {
+      if (recheckedRef.current !== id) {
+        recheckedRef.current = id;
+        void Promise.resolve().then(() => {
+          setRechecked(id);
+          return refreshList();
+        });
+      }
+      return;
+    }
     // Una sola visita por campaña aunque el efecto se repita (StrictMode).
-    if (requested.current === id) return;
+    if (!collective || requested.current === id) return;
     requested.current = id;
-    void Promise.resolve().then(() => visit(id));
-  }, [id, visit]);
+    void Promise.resolve().then(() => Promise.all([loadSummary(id), loadProposals(id)]));
+  }, [id, found, collective, listLoading, listError, refreshList, loadSummary, loadProposals]);
 
   const changed = async (text: string) => {
     setMessage(text);
-    await loadRow(id);
+    await refreshList();
   };
 
   const backLink = (
@@ -122,20 +109,17 @@ export function CampaignDetailPage() {
     </Link>
   );
 
-  if (rowState === 'loading' || rowState === 'missing' || !campaign) {
+  if (!campaign) {
+    const waiting = listLoading || (!listError && rechecked !== id);
     return (
       <AppShell title="Campaña" section="Gestión">
         <div className="space-y-4">
           <PageHeader title="Detalle de campaña" actions={backLink} />
           <div className={surfaceClass}>
-            {rowState === 'loading' ? (
+            {waiting ? (
               <DataState state="loading" title="Cargando la campaña…" />
-            ) : rowError ? (
-              <DataState
-                state={rowError.kind}
-                description={rowError.kind === 'forbidden' ? undefined : rowError.text}
-                onRetry={() => void visit(id)}
-              />
+            ) : listError ? (
+              <DataState state="error" description={listError} onRetry={() => void refreshList()} />
             ) : (
               <DataState state="empty" title="Campaña no encontrada" description="No existe o no pertenece a su organización." testId="campaign-missing" />
             )}

@@ -1,3 +1,4 @@
+import { fmtCalendarDate } from '../lib/format';
 import type { Campaign } from '../types/campaigns';
 
 /**
@@ -6,15 +7,11 @@ import type { Campaign } from '../types/campaigns';
  * `startDate` y `estimatedEndDate` son días de calendario: el servidor guarda
  * `new Date('2026-10-15')`, medianoche UTC (`campaign-management.use-case.ts:79-80`).
  * Formatearlos en la zona local (UTC−4) mostraría el día anterior, así que se
- * formatean en UTC. `closedAt` sí es un instante (hora del servidor al cerrar)
- * y se muestra con `fmtDateTime`.
+ * formatean en UTC con `fmtCalendarDate` (`lib/format.ts`). `closedAt` sí es un
+ * instante (hora del servidor al cerrar) y se muestra con `fmtDateTime`.
  */
-const DAY = new Intl.DateTimeFormat('es-BO', { year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC' });
-
 export function fmtCampaignDay(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : DAY.format(date);
+  return fmtCalendarDate(value);
 }
 
 /** Texto literal de la regla de presentación «fin estimado vencido». */
