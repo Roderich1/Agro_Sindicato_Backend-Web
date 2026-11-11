@@ -16,6 +16,7 @@ import { Button, CampaignSelector, Collapsible, DataState, DataTable, Notice, Pa
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { formatBaseValue, formatDecimalQuantity, formatRoundedEstimate } from '../lib/quantity';
 import { prepareCallPath } from '../lib/joint-purchase-call-text';
 import { reportDisclosureMode } from '../lib/data-mode';
 import {
@@ -154,7 +155,17 @@ export function JointProposalPage() {
     const current = () => contextRef.current === at && shownRef.current === proposalRef && linkEpochRef.current === epoch;
     try {
       const view = await collectiveService.estimationLink(proposalRef);
-      if (current() && view.proposal_ref === proposalRef) setLink({ status: 'ready', view });
+      if (current() && view.proposal_ref === proposalRef) {
+        setLink({ status: 'ready', view });
+        // Una consulta periódica que encuentra el cálculo terminado sustituye el aviso «consulta su estado…».
+        if (quiet && view.state !== 'CALCULATING') {
+          setLinkFeedback(
+            view.state === 'LINKED'
+              ? { kind: 'ok', message: 'Cálculo terminado: la referencia quedó fijada con su resultado. Sus elecciones del borrador no cambiaron.' }
+              : { kind: 'warn', message: 'El cálculo terminó sin cifras utilizables; el motivo está en la franja.' },
+          );
+        }
+      }
     } catch (err) {
       if (!current()) return;
       if (quiet) {
@@ -804,7 +815,13 @@ function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkL
         </p>
       )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Figure value={e.estimate_base} unit={ref.base_unit} kind="estimate" status="ESTIMATED" validityReason={e.validity_reason} />
+        <span
+          className="font-semibold tabular-nums text-slate-900"
+          title={`Cifra exacta: ${formatDecimalQuantity(e.estimate_base, ref.base_unit) ?? ''} (${formatBaseValue(e.estimate_base, ref.base_unit) ?? ''})`}
+          data-testid="estimate-figure"
+        >
+          {formatRoundedEstimate(e.estimate_base, ref.base_unit) ?? 'Cifra no válida'}
+        </span>
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
             e.state === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-amber-50 text-amber-800 ring-amber-600/20'

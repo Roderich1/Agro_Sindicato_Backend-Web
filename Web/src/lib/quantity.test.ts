@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { formatQuantity, groupDecimal, isBaseQuantity, toPresentation } from './quantity';
+import { formatQuantity, formatRoundedEstimate, groupDecimal, isBaseQuantity, toPresentation } from './quantity';
+
+describe('estimación redondeada sólo para presentar (E3 §5)', () => {
+  it('redondea a la décima, mitad hacia arriba, sin pasar por Number', () => {
+    expect(formatRoundedEstimate('428929.385090', 'G')).toBe('≈ 428,9 KG');
+    expect(formatRoundedEstimate('70500.000000', 'ML')).toBe('70,5 L');
+    expect(formatRoundedEstimate('111000.000000', 'ML')).toBe('111 L');
+    expect(formatRoundedEstimate('14150.000000', 'ML')).toBe('≈ 14,2 L');
+    expect(formatRoundedEstimate('14149.999999', 'ML')).toBe('≈ 14,1 L');
+    expect(formatRoundedEstimate('123456800000.000250', 'ML')).toBe('≈ 123.456.800 L');
+  });
+  it('por debajo de 1 L/KG usa mL/g para no mostrar «≈ 0»; el cero es cero', () => {
+    expect(formatRoundedEstimate('30.123456', 'G')).toBe('≈ 30,1 g');
+    expect(formatRoundedEstimate('0.292613', 'ML')).toBe('≈ 0,3 mL');
+    expect(formatRoundedEstimate('999.960000', 'ML')).toBe('≈ 1.000 mL');
+    expect(formatRoundedEstimate('0.000000', 'ML')).toBe('0 L');
+  });
+  it('rechaza lo que no es un decimal válido', () => {
+    expect(formatRoundedEstimate(null, 'ML')).toBeNull();
+    expect(formatRoundedEstimate('-1', 'ML')).toBeNull();
+    expect(formatRoundedEstimate('1.1234567', 'ML')).toBeNull();
+  });
+});
 
 describe('cantidades exactas (BigInt/strings)', () => {
   it('convierte base → L/KG sin redondeo', () => {

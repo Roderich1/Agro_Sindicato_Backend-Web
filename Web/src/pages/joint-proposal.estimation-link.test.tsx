@@ -162,6 +162,9 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS));
     await screen.findByText('295 L');
     expect(screen.getByTestId('link-state').textContent).toBe('Referencia fijada');
+    // El aviso «consulta su estado…» no queda colgado: pasa a decir que terminó.
+    expect(screen.getByTestId('link-feedback').textContent).not.toMatch(/Cálculo solicitado/);
+    expect(screen.getByTestId('link-feedback').textContent).toMatch(/Cálculo terminado/);
     const after = vi.mocked(collectiveService.estimationLink).mock.calls.length;
     await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS * 5));
     expect(vi.mocked(collectiveService.estimationLink).mock.calls.length).toBe(after);

@@ -143,8 +143,10 @@ describe('Necesidades y propuestas (rediseño)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     const long = 'Herbicida sistémico de amplio espectro para barbecho químico 480 g/L';
     await waitFor(() => expect(within(row(long)).getByTestId('need').textContent).toMatch(/123\.456\.789,012 L/));
-    // La cifra grande de la estimación se presenta exacta, sin restarla a la necesidad.
-    await waitFor(() => expect(reference(long).textContent).toMatch(/123\.456\.800,00025 L/));
+    // La cifra grande de la estimación se presenta redondeada a la décima (E3 §5: sólo al presentar), con la exacta
+    // en el título, y sin restarla a la necesidad.
+    await waitFor(() => expect(within(reference(long)).getByTestId('estimate-figure').textContent).toBe('≈ 123.456.800 L'));
+    expect(within(reference(long)).getByTestId('estimate-figure').getAttribute('title')).toMatch(/123\.456\.800,00025 L/);
     expect(within(reference(long)).queryByTestId('reference-difference')).toBeNull();
     expect(within(row('Urea', 'G')).getByTestId('need').textContent).toMatch(/0,025 KG/);
     // No vigente, sin resultado, datos insuficientes, necesidad oculta, error, retirada y referencia cero: sin diferencia.
@@ -162,7 +164,9 @@ describe('Necesidades y propuestas (rediseño)', () => {
       expect(reference(name, unit).textContent).not.toMatch(/%/);
     }
     expect(reference('Urea', 'G').textContent).toMatch(/Desactualizada/);
-    expect(reference('Urea', 'G').textContent).toMatch(/0,030123456 KG/);
+    // Menos de 1 KG: en gramos con una décima (no «≈ 0 KG»); la exacta, en el título.
+    expect(within(reference('Urea', 'G')).getByTestId('estimate-figure').textContent).toBe('≈ 30,1 g');
+    expect(within(reference('Urea', 'G')).getByTestId('estimate-figure').getAttribute('title')).toMatch(/0,030123456 KG/);
     expect(reference('Glifosato').textContent).toMatch(/Restringida/);
     expect(reference('Glifosato').textContent).toMatch(/ya no se divulga/);
     expect(reference('Glifosato').textContent).not.toMatch(/\d[\d.,]* L\b/);
