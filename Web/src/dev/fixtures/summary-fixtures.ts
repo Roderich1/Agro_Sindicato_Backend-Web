@@ -7,7 +7,7 @@ import { CAMPAIGN_IDS } from './campaigns-fixtures';
  * Escenarios sintéticos del Resumen, del detalle de campaña y de la Cobertura,
  * con la forma exacta de `CollectiveSummary`, `SealState`, `ProposalSummary[]`
  * (`types/collective.ts`) y `Campaign[]` (`types/campaigns.ts`). Sólo para
- * pruebas y prototipos (contrato §7): nunca se envían a un servidor.
+ * pruebas y el arnés de desarrollo (contrato §7): nunca se envían a un servidor.
  *
  * Las cantidades son enteros en unidad base (ML/G) dentro de un string y su
  * `total_presentation` coincide con `toPresentation` (`lib/quantity.ts`): si no

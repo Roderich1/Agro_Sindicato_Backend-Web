@@ -17,6 +17,7 @@ import {
 } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
+import { useCampaignList } from '../hooks/use-selected-campaign';
 import { fmtDateTime } from '../lib/collective-text';
 import { extractError } from '../lib/format';
 import { campaignsService } from '../services/campaigns.service';
@@ -49,49 +50,63 @@ const COUNT_TEXT: [CampaignStatus, string, string][] = [
  * La lista no supone una sola campaña abierta: muestra todas las `ABIERTA` que
  * lleguen y «Activa» sólo con `isActive`. Sin reabrir ni cancelar (no existen
  * rutas, C10). Cada fila enlaza a su detalle `/campaigns/:id`.
+ *
+ * Sin filtros, la lista es la de la sesión (`CampaignProvider`, una sola
+ * `GET /campaigns`). Con búsqueda o estado se consulta al servidor (la búsqueda
+ * espera a que la persona deje de escribir). Tras crear, editar, abrir o cerrar
+ * se vuelve a pedir la lista de la sesión.
  */
 export function CampaignsPage() {
   const { user } = useAuth();
   const { activeCampaign } = useCampaign();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const session = useCampaignList();
+  const [found, setFound] = useState<Campaign[]>([]);
   const [status, setStatus] = useState<CampaignStatus | ''>('');
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [term, setTerm] = useState('');
+  const [findLoading, setFindLoading] = useState(false);
+  const [findError, setFindError] = useState<{ kind: 'error' | 'forbidden'; text: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<{ kind: 'error' | 'forbidden'; text: string } | null>(null);
   const [creating, setCreating] = useState(false);
 
   const canManage = Boolean(user && MANAGER_ROLES.includes(user.role));
-  const filtered = Boolean(status || search.trim());
+  const filtered = Boolean(status || term);
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  // La búsqueda consulta al servidor cuando la persona deja de escribir, no en cada tecla.
+  useEffect(() => {
+    const timer = setTimeout(() => setTerm(search.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const find = useCallback(async () => {
+    setFindLoading(true);
+    setFindError(null);
     try {
-      const data = await campaignsService.list({
-        status: status || undefined,
-        search: search.trim() || undefined,
-      });
-      setCampaigns(data);
+      setFound(await campaignsService.list({ status: status || undefined, search: term || undefined }));
     } catch (err) {
-      setCampaigns([]);
-      setError({
+      setFound([]);
+      setFindError({
         kind: axios.isAxiosError(err) && err.response?.status === 403 ? 'forbidden' : 'error',
         text: extractError(err, 'No fue posible cargar las campañas.'),
       });
     } finally {
-      setIsLoading(false);
+      setFindLoading(false);
     }
-  }, [search, status]);
+  }, [status, term]);
 
   useEffect(() => {
-    void Promise.resolve().then(refresh);
-  }, [refresh]);
+    if (filtered) void Promise.resolve().then(find);
+  }, [filtered, find]);
+
+  const campaigns = filtered ? found : session.campaigns;
+  const isLoading = filtered ? findLoading : session.loading;
+  const error = filtered ? findError : session.error ? { kind: 'error' as const, text: session.error } : null;
+  const refresh = filtered ? find : session.refresh;
 
   const changed = async (text: string) => {
     setMessage(text);
     setCreating(false);
-    await refresh();
+    await (filtered ? Promise.all([session.refresh(), find()]) : session.refresh());
   };
 
   const counts = useMemo(
@@ -188,9 +203,10 @@ export function CampaignsPage() {
             filtered ? (
               <DataState
                 state="no-match"
-                description={`Ninguna campaña coincide con el filtro aplicado (${[search.trim() && `«${search.trim()}»`, status && STATUS_FILTER_TEXT[status]].filter(Boolean).join(', ')}).`}
+                description={`Ninguna campaña coincide con el filtro aplicado (${[term && `«${term}»`, status && STATUS_FILTER_TEXT[status]].filter(Boolean).join(', ')}).`}
                 onClearFilters={() => {
                   setSearch('');
+                  setTerm('');
                   setStatus('');
                 }}
               />
