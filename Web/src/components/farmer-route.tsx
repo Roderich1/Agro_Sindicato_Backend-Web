@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { RedirectWithQuery } from './redirect-with-query';
 import type { ReactNode } from 'react';
 import { useAuth } from '../hooks/use-auth';
 import { COLLECTIVE_PATHS, homePathFor, legacyFarmerWebEnabled } from '../lib/navigation';
@@ -26,5 +27,6 @@ export function FarmerRoute({ children }: { children: ReactNode }) {
  * en el código para la transición, pero la ruta ya no la muestra.
  */
 export function LegacyDirectivaRedirect() {
-  return <Navigate to={COLLECTIVE_PATHS.proposals} replace />;
+  // Etapa 2 del rediseño: conserva la consulta (p. ej. `?campaign=`), como las demás rutas antiguas.
+  return <RedirectWithQuery to={COLLECTIVE_PATHS.proposals} />;
 }
