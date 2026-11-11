@@ -67,6 +67,12 @@ import type {
  */
 const SCROLL_HINT = '[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
 
+/**
+ * H3 (emulador, 2026-11-11): al desplazar una tabla a lo ancho, la primera columna (campaña o producto)
+ * queda fija a la izquierda con fondo opaco y un borde, para que ninguna cifra pierda su fila.
+ */
+const STICKY_EDGE = 'shadow-[inset_-1px_0_0_#e2e8f0]';
+
 /** Cada cuánto se consulta un trabajo en cola o en proceso. */
 export const POLL_MS = 2000;
 const ELIGIBLE = ['PLANIFICADA', 'ABIERTA'];
@@ -664,7 +670,7 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600 max-sm:hidden">
               <tr>
-                <th className="px-4 py-2.5">Producto</th>
+                <th className={`bg-slate-50 px-4 py-2.5 sm:sticky sm:left-0 sm:z-[1] sm:shadow-[inset_-1px_0_0_#e2e8f0]`}>Producto</th>
                 <th className="px-4 py-2.5">Estimación de consumo</th>
                 <th className="px-4 py-2.5">Línea base: último consumo publicado</th>
                 <th className="px-4 py-2.5">Vigencia</th>
@@ -679,7 +685,7 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                 const estimated = result.status === 'ESTIMATED';
                 return (
                   <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top max-sm:block max-sm:border-b max-sm:border-slate-200 max-sm:py-2">
-                    <td className="px-4 py-3 text-base font-semibold text-slate-900 [overflow-wrap:anywhere] sm:min-w-48 max-sm:block max-sm:border-0 max-sm:py-1.5">
+                    <td className="px-4 py-3 text-base font-semibold text-slate-900 [overflow-wrap:anywhere] sm:sticky sm:left-0 sm:z-[1] sm:min-w-48 sm:bg-white sm:shadow-[inset_-1px_0_0_#e2e8f0] max-sm:block max-sm:border-0 max-sm:py-1.5">
                       {result.product.name}
                       <span className="ml-1 text-xs font-normal text-slate-400">{result.presentation_unit}</span>
                     </td>
@@ -897,7 +903,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
                   <table className="w-full text-xs">
                     <thead className="bg-slate-50 text-left uppercase tracking-wider text-slate-500">
                       <tr>
-                        <th className="px-3 py-2">Campaña</th>
+                        <th className={`sticky left-0 z-[1] bg-slate-50 px-3 py-2 ${STICKY_EDGE}`}>Campaña</th>
                         <th className="px-3 py-2">Clase</th>
                         <th className="px-3 py-2">Consumo publicado</th>
                         <th className="px-3 py-2">En el tramo</th>
@@ -907,7 +913,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
                     <tbody className="divide-y divide-slate-100">
                       {result.points.map((point) => (
                         <tr key={point.position} data-testid={`point-${point.campaign.name}`}>
-                          <td className="px-3 py-2">{point.campaign.name}</td>
+                          <td className={`sticky left-0 z-[1] min-w-28 bg-white px-3 py-2 [overflow-wrap:anywhere] ${STICKY_EDGE}`}>{point.campaign.name}</td>
                           <td className="px-3 py-2">{KIND_TEXT[point.kind]}</td>
                           <td className="px-3 py-2 tabular-nums">
                             {point.kind === 'VERIFIED_CONSUMPTION' && point.quantity_base !== null

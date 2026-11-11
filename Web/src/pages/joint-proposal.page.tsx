@@ -493,7 +493,7 @@ function HistorySection({
         <div className={SCROLL_HINT}><DataTable caption="Borradores de la campaña" minWidth={640}>
           <thead>
             <tr>
-              <th>Generado el</th>
+              <th className="sticky left-0 z-[2] shadow-[inset_-1px_0_0_#e2e8f0]">Generado el</th>
               <th>Por</th>
               <th>Huella</th>
               <th className="ui-num">Líneas</th>
@@ -506,8 +506,8 @@ function HistorySection({
             {history.map((entry) => {
               const shown = entry.proposal_ref === current?.proposal_ref;
               return (
-                <tr key={entry.proposal_ref} className={shown ? 'bg-emerald-50/60' : ''}>
-                  <td className="whitespace-nowrap font-medium text-slate-800">{fmtDateTime(entry.generated_at)}</td>
+                <tr key={entry.proposal_ref} className={shown ? 'bg-emerald-50' : ''}>
+                  <td className={`sticky left-0 z-[1] whitespace-nowrap font-medium text-slate-800 shadow-[inset_-1px_0_0_#e2e8f0] ${shown ? 'bg-emerald-50' : 'bg-white'}`}>{fmtDateTime(entry.generated_at)}</td>
                   <td className="min-w-40 text-slate-700">{entry.generated_by.name}</td>
                   <td className="text-xs text-slate-600">
                     <Fingerprint value={entry.inputs_fingerprint} />

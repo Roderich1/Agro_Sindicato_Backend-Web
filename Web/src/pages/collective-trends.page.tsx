@@ -30,6 +30,13 @@ const TYPES: { type: ProjectionType; label: string; description: string }[] = [
  */
 const SCROLL_HINT = '[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
 
+/**
+ * H3 (emulador, 2026-11-11): al desplazar una tabla a lo ancho, la primera columna (campaña o producto)
+ * queda fija a la izquierda con fondo opaco y un borde, para que ninguna cifra pierda su fila.
+ */
+const STICKY_HEAD = 'sticky left-0 z-[1] shadow-[inset_-1px_0_0_#e2e8f0] bg-slate-50';
+const STICKY_CELL = 'sticky left-0 z-[1] shadow-[inset_-1px_0_0_#e2e8f0] bg-white';
+
 const seriesKey = (line: TrendSeries) => `${line.product_ref}|${line.base_unit}`;
 
 /** Un problema de carga, con el estado del §4 con el que se presenta. */
@@ -203,24 +210,24 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
         <DataState state="empty" compact title="Sin campañas" description="Todavía no hay campañas en el histórico." />
       ) : (
         <div className={`overflow-x-auto ${SCROLL_HINT}`}>
-          <table className="w-full min-w-[36rem] text-sm">
+          <table className="w-full min-w-[32rem] text-sm">
             <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600">
               <tr>
-                <th className="px-5 py-2.5">Campaña</th>
-                <th className="px-5 py-2.5">Estado</th>
-                <th className="px-5 py-2.5">Versión sellada</th>
-                <th className="px-5 py-2.5">Cobertura al sellar</th>
+                <th className={`px-3 py-2.5 sm:px-5 ${STICKY_HEAD}`}>Campaña</th>
+                <th className="px-3 py-2.5 sm:px-5">Estado</th>
+                <th className="px-3 py-2.5 sm:px-5">Versión sellada</th>
+                <th className="px-3 py-2.5 sm:px-5">Cobertura al sellar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {campaigns.map((campaign) => (
                 <tr key={campaign.campaign_ref} data-testid={`campaign-${campaign.name}`}>
-                  <td className="min-w-40 px-5 py-2.5 font-medium text-slate-800">{campaign.name}</td>
-                  <td className="px-5 py-2.5 text-xs text-slate-700">{CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}</td>
-                  <td className="px-5 py-2.5 text-xs text-slate-700">
+                  <td className={`w-32 min-w-32 px-3 py-2.5 font-medium text-slate-800 [overflow-wrap:anywhere] sm:w-auto sm:min-w-40 sm:px-5 ${STICKY_CELL}`}>{campaign.name}</td>
+                  <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5">{CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}</td>
+                  <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5">
                     {campaign.seal ? `Versión ${campaign.seal.version}, sellada el ${fmtDateTime(campaign.seal.sealed_at)}` : 'Sin sellar: no aporta cifras'}
                   </td>
-                  <td className="px-5 py-2.5 text-xs tabular-nums text-slate-700">
+                  <td className="px-3 py-2.5 text-xs tabular-nums text-slate-700 sm:px-5">
                     {campaign.coverage ? `${campaign.coverage.members_with_contribution} de ${campaign.coverage.linked_members} con cifras publicadas` : '—'}
                   </td>
                 </tr>
@@ -244,21 +251,21 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
     >
       <SectionHeader title={<span className="[overflow-wrap:anywhere]">{title}</span>} note="Una fila por campaña. Los huecos son campañas sin cifra publicada; no son ceros." />
       <div className={`overflow-x-auto ${SCROLL_HINT}`}>
-        <table className="w-full min-w-[30rem] text-sm">
+        <table className="w-full min-w-[22rem] text-sm">
           <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600">
             <tr>
-              <th className="px-5 py-2.5">Campaña</th>
-              <th className="px-5 py-2.5">Total publicado</th>
-              <th className="px-5 py-2.5 text-right">Aportantes</th>
+              <th className={`px-3 py-2.5 sm:px-5 ${STICKY_HEAD}`}>Campaña</th>
+              <th className="px-3 py-2.5 sm:px-5">Total publicado</th>
+              <th className="px-3 py-2.5 text-right sm:px-5">Aportantes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {line.points.map((point) => (
               <tr key={point.campaign_ref} data-testid={`point-${nameOf.get(point.campaign_ref)}`}>
-                <td className="min-w-40 px-5 py-3">
+                <td className={`w-32 min-w-32 px-3 py-3 [overflow-wrap:anywhere] sm:w-auto sm:min-w-40 sm:px-5 ${STICKY_CELL}`}>
                   <ProductCell name={nameOf.get(point.campaign_ref) ?? ''} unit="" status={point.status} threshold={threshold} />
                 </td>
-                <td className="px-5 py-3">
+                <td className="px-3 py-3 sm:px-5">
                   <QuantityCell
                     status={point.status}
                     base={point.total_base}
@@ -269,7 +276,7 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
                   />
                   {point.status === 'DISCLOSED' && point.pending_changes && <PendingChangesNote />}
                 </td>
-                <td className="px-5 py-3 text-right tabular-nums">{point.status === 'DISCLOSED' ? point.contributors : '—'}</td>
+                <td className="px-3 py-3 text-right tabular-nums sm:px-5">{point.status === 'DISCLOSED' ? point.contributors : '—'}</td>
               </tr>
             ))}
           </tbody>
