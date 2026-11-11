@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fx from '../dev/fixtures/catalog-fixtures';
 import { collectiveService } from '../services/collective.service';
+import { identificationService } from '../services/identification.service';
 import { productsService } from '../services/inventory.service';
 import { CAMPAIGN, renderAt } from '../test/render';
 import { CatalogPage } from './catalog.page';
@@ -13,6 +14,9 @@ vi.mock('../services/inventory.service', () => ({
 }));
 vi.mock('../services/collective.service', () => ({
   collectiveService: { catalog: vi.fn(), associations: vi.fn(), associate: vi.fn(), closeAssociation: vi.fn() },
+}));
+vi.mock('../services/identification.service', () => ({
+  identificationService: { list: vi.fn(), candidates: vi.fn(), history: vi.fn(), photoBlob: vi.fn(), link: vi.fn(), createProduct: vi.fn(), defer: vi.fn() },
 }));
 
 /** Contenedor «Catálogo y equivalencias» (rediseño, sesión C, 2026-11-10). Datos sintéticos. */
@@ -45,6 +49,34 @@ describe('Catálogo y equivalencias (contenedor)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     serve(fx.worst);
+    vi.mocked(identificationService.list).mockResolvedValue([]);
+  });
+
+  it('E1 §6: tercera vista «Por identificar» por ?vista=identificacion, sin consultar ni escribir en las otras', async () => {
+    render(`?campaign=${CAMPAIGN.id}`);
+    await screen.findByTestId(`product-${LONG}`);
+    expect(identificationService.list).not.toHaveBeenCalled();
+    const views = within(screen.getByRole('group', { name: 'Vista' })).getAllByRole('button').map((button) => button.textContent);
+    expect(views).toEqual(['Productos', 'Equivalencias', 'Por identificar']);
+    fireEvent.click(within(screen.getByRole('group', { name: 'Vista' })).getByRole('button', { name: 'Por identificar' }));
+    expect(await screen.findByText('No hay productos por identificar.')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Productos por identificar' })).toBeTruthy();
+    const query = new URLSearchParams(screen.getByTestId('location').textContent!);
+    expect(query.get('vista')).toBe('identificacion');
+    expect(query.get('campaign')).toBe(CAMPAIGN.id);
+    expect(identificationService.list).toHaveBeenCalledWith('PENDING');
+    for (const write of [identificationService.link, identificationService.createProduct, identificationService.defer, collectiveService.associate]) {
+      expect(write).not.toHaveBeenCalled();
+    }
+  });
+
+  it('un ?vista= desconocido abre «Productos»; ?vista=identificacion abre directamente la tercera vista', async () => {
+    const view = render('?vista=otra');
+    await screen.findByTestId(`product-${LONG}`);
+    view.unmount();
+    render('?vista=identificacion');
+    expect(await screen.findByText('No hay productos por identificar.')).toBeTruthy();
+    expect(within(screen.getByRole('group', { name: 'Vista' })).getByRole('button', { name: 'Por identificar' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('abre «Productos» por defecto, cambia con ?vista= conservando los demás parámetros y no escribe al abrir', async () => {

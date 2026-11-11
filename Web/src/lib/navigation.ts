@@ -29,7 +29,10 @@ export const COLLECTIVE_PATHS = {
    * sus rutas antiguas y redirigen aquí.
    */
   history: '/colectivo/historico',
-  /** Contenedor «Catálogo y equivalencias» (`?vista=productos|equivalencias`). */
+  /**
+   * Contenedor «Catálogo y equivalencias» (`?vista=productos|equivalencias|identificacion`;
+   * `identificacion` = «Por identificar», E1 §6).
+   */
   catalog: '/colectivo/catalogo',
   /** Detalle de una campaña: `/campaigns/<id>` (no es una ruta colectiva: `PrivateRoute`). */
   campaignDetail: (id: string) => campaignDetailPath(id),
