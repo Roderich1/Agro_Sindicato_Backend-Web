@@ -45,3 +45,57 @@ export function productError(err: unknown, fallback: string): string {
   return fallback;
 }
 
+
+/**
+ * Búsqueda del catálogo (rediseño, sesión C): nombre, nombre comercial o
+ * ingrediente activo, sin distinguir mayúsculas, tildes ni espacios repetidos.
+ * Una búsqueda vacía coincide con todo.
+ */
+export function matchesProduct(
+  product: { name: string; commercialName?: string | null; activeIngredient?: string | null },
+  query: string,
+): boolean {
+  const wanted = normalizeName(query);
+  if (!wanted) return true;
+  return [product.name, product.commercialName, product.activeIngredient].some((value) => value != null && normalizeName(value).includes(wanted));
+}
+
+/** Nombre comparable sin la normalización de espacios: sólo para ordenar. */
+const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+
+export type ProductGrouping = 'category' | 'unit' | 'none';
+
+export interface ProductGroup<T> {
+  key: string;
+  label: string;
+  products: T[];
+}
+
+/**
+ * Agrupa con los datos que ya existen: la categoría (opcional, texto libre;
+ * «Herbicida» y «herbicida» van juntas) o la unidad (L, kg y las demás, que no
+ * se vinculan a cifras colectivas). Dentro de cada grupo, por nombre.
+ */
+export function groupProducts<T extends { name: string; category: string | null; unit: string }>(products: T[], grouping: ProductGrouping): ProductGroup<T>[] {
+  if (grouping === 'none') return [{ key: 'todos', label: 'Todos los productos', products: [...products].sort(byName) }];
+  const groups = new Map<string, ProductGroup<T>>();
+  for (const product of products) {
+    let key: string;
+    let label: string;
+    if (grouping === 'category') {
+      key = product.category ? normalizeName(product.category) : '';
+      label = product.category?.trim() || 'Sin categoría';
+    } else {
+      const upper = product.unit.trim().toUpperCase();
+      key = upper === 'L' ? 'l' : upper === 'KG' ? 'kg' : '~otras';
+      label = upper === 'L' ? 'Litros (L)' : upper === 'KG' ? 'Kilogramos (kg)' : 'Otras unidades (no vinculables a cifras colectivas)';
+    }
+    if (key === '') key = '~sin';
+    const group = groups.get(key) ?? { key, label, products: [] };
+    group.products.push(product);
+    groups.set(key, group);
+  }
+  return [...groups.values()]
+    .sort((a, b) => (a.key.startsWith('~') === b.key.startsWith('~') ? a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }) : a.key.startsWith('~') ? 1 : -1))
+    .map((group) => ({ ...group, products: group.products.sort(byName) }));
+}

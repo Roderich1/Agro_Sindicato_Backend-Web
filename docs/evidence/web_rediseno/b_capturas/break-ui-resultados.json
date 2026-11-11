@@ -1,0 +1,708 @@
+{
+ "date": "2026-11-11T03:12:59.797Z",
+ "results": [
+  {
+   "scenario": "resumen-worst",
+   "width": "1366",
+   "file": "resumen-worst-1366.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1456,
+   "viewport": 1366,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1456",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1371",
+    "div «En línea» right=1456",
+    "span «» right=1393"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-worst",
+   "width": "390",
+   "file": "resumen-worst-390.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 390,
+   "viewport": 390,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-worst",
+   "width": "320",
+   "file": "resumen-worst-320.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 320,
+   "viewport": 320,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-worst",
+   "width": "zoom200",
+   "file": "resumen-worst-zoom200.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1216,
+   "viewport": 683,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1216",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1131",
+    "div «En línea» right=1216",
+    "span «» right=1153"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-sellada",
+   "width": "1366",
+   "file": "resumen-sellada-1366.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000004/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1456,
+   "viewport": 1366,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1456",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1371",
+    "div «En línea» right=1456",
+    "span «» right=1393"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-sellada",
+   "width": "390",
+   "file": "resumen-sellada-390.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000004/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 390,
+   "viewport": 390,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-sellada",
+   "width": "320",
+   "file": "resumen-sellada-320.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000004/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 320,
+   "viewport": 320,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-sellada",
+   "width": "zoom200",
+   "file": "resumen-sellada-zoom200.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000004/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1216,
+   "viewport": 683,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1216",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1131",
+    "div «En línea» right=1216",
+    "span «» right=1153"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-cerrada-sin-sellar",
+   "width": "1366",
+   "file": "resumen-cerrada-sin-sellar-1366.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1456,
+   "viewport": 1366,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1456",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1371",
+    "div «En línea» right=1456",
+    "span «» right=1393"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-cerrada-sin-sellar",
+   "width": "390",
+   "file": "resumen-cerrada-sin-sellar-390.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 390,
+   "viewport": 390,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-cerrada-sin-sellar",
+   "width": "320",
+   "file": "resumen-cerrada-sin-sellar-320.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 320,
+   "viewport": 320,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "resumen-cerrada-sin-sellar",
+   "width": "zoom200",
+   "file": "resumen-cerrada-sin-sellar-zoom200.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000005/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1216,
+   "viewport": 683,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1216",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1131",
+    "div «En línea» right=1216",
+    "span «» right=1153"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Resumen colectivo",
+    "Resumen"
+   ]
+  },
+  {
+   "scenario": "campanas-worst",
+   "width": "1366",
+   "file": "campanas-worst-1366.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /campaigns"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1366,
+   "viewport": 1366,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [
+    {
+     "client": 1060,
+     "scroll": 1060
+    }
+   ],
+   "h1": [
+    "Campañas",
+    "Campañas"
+   ]
+  },
+  {
+   "scenario": "campanas-worst",
+   "width": "390",
+   "file": "campanas-worst-390.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /campaigns"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 390,
+   "viewport": 390,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [
+    {
+     "client": 356,
+     "scroll": 980
+    }
+   ],
+   "h1": [
+    "Campañas",
+    "Campañas"
+   ]
+  },
+  {
+   "scenario": "campanas-worst",
+   "width": "320",
+   "file": "campanas-worst-320.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /campaigns"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 320,
+   "viewport": 320,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [
+    {
+     "client": 286,
+     "scroll": 980
+    }
+   ],
+   "h1": [
+    "Campañas",
+    "Campañas"
+   ]
+  },
+  {
+   "scenario": "campanas-worst",
+   "width": "zoom200",
+   "file": "campanas-worst-zoom200.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /campaigns"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1079,
+   "viewport": 683,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1079",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=994",
+    "div «En línea» right=1079",
+    "span «» right=1016"
+   ],
+   "overflowingCount": 4,
+   "tables": [
+    {
+     "client": 633,
+     "scroll": 980
+    }
+   ],
+   "h1": [
+    "Campañas",
+    "Campañas"
+   ]
+  },
+  {
+   "scenario": "detalle-worst",
+   "width": "1366",
+   "file": "detalle-worst-1366.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/proposals",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1456,
+   "viewport": 1366,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1456",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1371",
+    "div «En línea» right=1456",
+    "span «» right=1393"
+   ],
+   "overflowingCount": 4,
+   "tables": [
+    {
+     "client": 1060,
+     "scroll": 1060
+    }
+   ],
+   "h1": [
+    "Campaña",
+    "Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, "
+   ]
+  },
+  {
+   "scenario": "detalle-worst",
+   "width": "390",
+   "file": "detalle-worst-390.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/proposals",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 390,
+   "viewport": 390,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [
+    {
+     "client": 356,
+     "scroll": 560
+    }
+   ],
+   "h1": [
+    "Campaña",
+    "Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, "
+   ]
+  },
+  {
+   "scenario": "detalle-worst",
+   "width": "320",
+   "file": "detalle-worst-320.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/proposals",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 320,
+   "viewport": 320,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [
+    {
+     "client": 286,
+     "scroll": 560
+    }
+   ],
+   "h1": [
+    "Campaña",
+    "Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, "
+   ]
+  },
+  {
+   "scenario": "detalle-worst",
+   "width": "zoom200",
+   "file": "detalle-worst-zoom200.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns",
+    "GET /campaigns/active",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/proposals",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/seal"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1216,
+   "viewport": 683,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1216",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1131",
+    "div «En línea» right=1216",
+    "span «» right=1153"
+   ],
+   "overflowingCount": 4,
+   "tables": [
+    {
+     "client": 633,
+     "scroll": 633
+    }
+   ],
+   "h1": [
+    "Campaña",
+    "Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, "
+   ]
+  },
+  {
+   "scenario": "cobertura-worst",
+   "width": "1366",
+   "file": "cobertura-worst-1366.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1456,
+   "viewport": 1366,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1456",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1371",
+    "div «En línea» right=1456",
+    "span «» right=1393"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Cobertura",
+    "Cobertura"
+   ]
+  },
+  {
+   "scenario": "cobertura-worst",
+   "width": "390",
+   "file": "cobertura-worst-390.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 390,
+   "viewport": 390,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Cobertura",
+    "Cobertura"
+   ]
+  },
+  {
+   "scenario": "cobertura-worst",
+   "width": "320",
+   "file": "cobertura-worst-320.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 320,
+   "viewport": 320,
+   "horizontalPageScroll": false,
+   "overflowing": [],
+   "overflowingCount": 0,
+   "tables": [],
+   "h1": [
+    "Cobertura",
+    "Cobertura"
+   ]
+  },
+  {
+   "scenario": "cobertura-worst",
+   "width": "zoom200",
+   "file": "cobertura-worst-zoom200.png",
+   "writes": [],
+   "apiCalls": [
+    "POST /auth/refresh",
+    "POST /auth/refresh",
+    "GET /campaigns/active",
+    "GET /campaigns",
+    "GET /campaigns",
+    "GET /collective/campaigns/c0000002-0000-4000-8000-000000000001/summary"
+   ],
+   "consoleErrors": [],
+   "pageScrollWidth": 1216,
+   "viewport": 683,
+   "horizontalPageScroll": true,
+   "overflowing": [
+    "div «Datos sintéticosActivaCampaña de invierno 2026 — V» right=1216",
+    "a «ActivaCampaña de invierno 2026 — Valle Alto de Coc» right=1131",
+    "div «En línea» right=1216",
+    "span «» right=1153"
+   ],
+   "overflowingCount": 4,
+   "tables": [],
+   "h1": [
+    "Cobertura",
+    "Cobertura"
+   ]
+  }
+ ]
+}
