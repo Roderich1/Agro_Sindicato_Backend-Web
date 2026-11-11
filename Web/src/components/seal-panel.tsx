@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { collectiveError, fmtDateTime, sealBlockText } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import type { SealState } from '../types/collective';
@@ -31,9 +31,15 @@ export function SealPanel({ campaignId, onSealed }: { campaignId: string; onSeal
     }
   }, [campaignId]);
 
+  // `GET …/seal` sobre una campaña sellable ejecuta la decisión de divulgación
+  // en el servidor: una sola lectura por montaje, aunque StrictMode repita el
+  // efecto. Una recarga explícita del resumen vuelve a montar el panel (`key`).
+  const requested = useRef<string | null>(null);
   useEffect(() => {
+    if (requested.current === campaignId) return;
+    requested.current = campaignId;
     void Promise.resolve().then(load);
-  }, [load]);
+  }, [campaignId, load]);
 
   const seal = async () => {
     if (!state?.review || busy) return;
