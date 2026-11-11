@@ -58,10 +58,29 @@ describe('AppShell: menú por tareas', () => {
 describe('AppShell: cabecera', () => {
   afterEach(() => reportDisclosureMode(null));
 
-  it('no pone el h1 (lo pone PageHeader); muestra sección y vista como texto', () => {
-    renderAt(shell('Resumen', 'Colectivo'), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+  it('no pone el h1 ni repite el nombre de la vista: sólo la sección del menú por tareas, derivada de la ruta', () => {
+    renderAt(shell('Resumen colectivo', 'Colectivo'), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
-    expect(screen.getByTestId('shell-title').textContent).toBe('Resumen');
+    expect(screen.getByTestId('shell-section').textContent).toBe('Resumen');
+    expect(screen.queryByText('Resumen colectivo')).toBeNull();
+    expect(screen.queryByText('Colectivo')).toBeNull();
+    expect(document.title).toBe('Resumen colectivo · Agrocuentas');
+  });
+
+  it.each([
+    ['/campaigns/11111111-1111-4111-8111-111111111111', 'Gestión', 'Campañas'],
+    [COLLECTIVE_PATHS.estimation, 'Colectivo', 'Histórico y estimaciones'],
+    [COLLECTIVE_PATHS.catalog, 'Gestión', 'Catálogo y equivalencias'],
+    [COLLECTIVE_PATHS.coverage, 'Colectivo', 'Resumen'],
+    ['/audit-logs', 'Trazabilidad', 'Administración'],
+  ])('en %s la sección es la del menú («%s» → «%s»), aunque la vista pase otra', (path, given, expected) => {
+    renderAt(shell('Vista', given), { role: 'ADMINISTRADOR', path });
+    expect(screen.getByTestId('shell-section').textContent).toBe(expected);
+  });
+
+  it('fuera del menú por tareas se usa la sección que pasa la vista', () => {
+    renderAt(shell('Copia', 'Estimación sin conexión'), { role: 'DIRECTIVA', path: '/estimacion/copia-sin-conexion' });
+    expect(screen.getByTestId('shell-section').textContent).toBe('Estimación sin conexión');
   });
 
   it('el nombre del sindicato se muestra completo bajo el logo (sin truncar) y la campaña activa en la cabecera', () => {

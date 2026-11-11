@@ -178,6 +178,21 @@ function isItemActive(item: NavItem, pathname: string): boolean {
   return [item.to, ...(item.also ?? [])].some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+/** Ítems de las cinco tareas (la sección de la barra superior sale de aquí). */
+const TASK_PATHS: readonly string[] = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history, COLLECTIVE_PATHS.catalog];
+
+/**
+ * Etiqueta de sección de la barra superior, derivada de la ruta (etapa 2): el
+ * rótulo de la tarea del menú, «Administración» para Bitácora y Usuarios y,
+ * fuera del menú por tareas (legacy, avisos), el `section` que pasa la vista.
+ */
+function sectionFor(pathname: string, fallback: string): string {
+  const admin = NAV_ITEMS.filter((item) => item.to === AUDIT_LOGS_PATH || item.to === USERS_PATH);
+  if (admin.some((item) => isItemActive(item, pathname))) return 'Administración';
+  const task = NAV_ITEMS.find((item) => TASK_PATHS.includes(item.to) && isItemActive(item, pathname));
+  return task?.label ?? fallback;
+}
+
 /** Barra inferior del teléfono: cuatro tareas como máximo (contrato §2). */
 const MOBILE_PATHS_COLLECTIVE = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history];
 const MOBILE_PATHS_FARMER = ['/dashboard', '/plots', '/inventory', '/applications'];
@@ -382,14 +397,12 @@ function MobileMenu({ onClose, offlineQueueCount }: { onClose: () => void; offli
  * siempre con texto.
  */
 function Header({
-  title,
   section,
   actions,
   onMenuClick,
   menuOpen,
   isOnline,
 }: {
-  title: string;
   section: string;
   actions?: ReactNode;
   onMenuClick: () => void;
@@ -416,9 +429,9 @@ function Header({
             </svg>
           </button>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-brand-800">{section}</p>
-            <p className="text-sm font-semibold leading-tight text-ink" data-testid="shell-title">
-              {title}
+            {/* Sólo la sección del menú por tareas: el título visible es el h1 de PageHeader. */}
+            <p className="text-xs font-semibold text-brand-800" data-testid="shell-section">
+              {section}
             </p>
           </div>
         </div>
@@ -470,9 +483,10 @@ function Header({
    ══════════════════════════════════════════ */
 
 /**
- * Armazón de la Web institucional. Firma estable: `title` y `section` se
- * muestran como texto en la barra (el `h1` lo pone `PageHeader`), `actions`
- * a la derecha de la barra.
+ * Armazón de la Web institucional. Firma estable: `title` va al título de la
+ * pestaña (el único título visible es el `h1` de `PageHeader`); la barra muestra
+ * sólo la sección, derivada de la ruta (menú por tareas) y, fuera de él,
+ * `section`; `actions` a la derecha de la barra.
  */
 export function AppShell({ title, section, actions, children }: { title: string; section: string; actions?: ReactNode; children: ReactNode }) {
   const { user } = useAuth();
@@ -499,6 +513,11 @@ export function AppShell({ title, section, actions, children }: { title: string;
 
   useEffect(() => (legacyFarmerWebEnabled() ? subscribeOfflineQueue(setOfflineQueueCount) : undefined), []);
 
+  // El nombre de la vista ya no se repite en la barra: queda en el título de la pestaña.
+  useEffect(() => {
+    document.title = `${title} · Agrocuentas`;
+  }, [title]);
+
   return (
     <div className="min-h-dvh bg-canvas">
       <aside className="hidden border-r border-line bg-surface lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[248px] lg:flex-col">
@@ -507,7 +526,7 @@ export function AppShell({ title, section, actions, children }: { title: string;
       {menuOpen && <MobileMenu onClose={closeMenu} offlineQueueCount={offlineQueueCount} />}
 
       <div className="lg:pl-[248px]">
-        <Header title={title} section={section} actions={actions} onMenuClick={() => setMenuOpen(true)} menuOpen={menuOpen} isOnline={isOnline} />
+        <Header section={sectionFor(location.pathname, section)} actions={actions} onMenuClick={() => setMenuOpen(true)} menuOpen={menuOpen} isOnline={isOnline} />
         <main className="ui-gutter ui-main mx-auto max-w-7xl pt-5 lg:pt-6">{children}</main>
       </div>
 
