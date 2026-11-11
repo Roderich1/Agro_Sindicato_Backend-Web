@@ -34,6 +34,21 @@ export function fmtDate(value: string | null | undefined): string {
   });
 }
 
+const CALENDAR_DAY = new Intl.DateTimeFormat('es-BO', { year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC' });
+
+/**
+ * Día de calendario guardado a medianoche UTC (p. ej. `startDate` de una
+ * campaña: el servidor guarda `new Date('2026-10-15')`). Se formatea en UTC
+ * para no mostrar el día anterior en UTC−4. Para instantes (hora de cierre,
+ * generación, sellado) use `fmtDateTime`. Sin valor o con una fecha no
+ * válida devuelve `null`: la vista decide qué texto mostrar.
+ */
+export function fmtCalendarDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : CALENDAR_DAY.format(date);
+}
+
 export function fmtNumber(value: string | number | null | undefined): string {
   const n = Number(value ?? 0);
   return Number.isFinite(n) ? n.toLocaleString('es-BO', { maximumFractionDigits: 2 }) : '0';

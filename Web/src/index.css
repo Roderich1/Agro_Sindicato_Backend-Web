@@ -153,7 +153,11 @@
   }
 
   /* Respuesta al pulsar un control: escala mínima, sólo transform y colores. */
+  /* También en enlaces con aspecto de botón: sin selección ni menú de pulsación larga. */
   .ui-press {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     transition-property: transform, background-color, border-color, color;
     transition-duration: var(--duration-fast);
     transition-timing-function: var(--ease-out);
@@ -192,6 +196,11 @@
 
   .ui-safe-top {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Paneles a toda altura (menú del teléfono): el pie queda sobre el indicador de inicio. */
+  .ui-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Barra inferior del teléfono: por encima del indicador de inicio. */
