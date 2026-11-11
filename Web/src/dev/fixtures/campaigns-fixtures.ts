@@ -2,7 +2,7 @@ import type { Campaign } from '../../types/campaigns';
 
 /**
  * Campañas sintéticas con la forma exacta de `GET /campaigns` (`types/campaigns.ts`).
- * Sólo para pruebas y prototipos (contrato §7): nunca se envían a un servidor.
+ * Sólo para pruebas y el arnés de desarrollo (contrato §7): nunca se envían a un servidor.
  *
  * Límites del servidor usados en `worst`: nombre 2–160 caracteres y notas hasta
  * 500 (`Back/src/modules/campaigns/application/dto/campaign.dto.ts:21-38`). El
