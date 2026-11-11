@@ -141,3 +141,12 @@ Servidor de datos para ver la Web: la copia aislada «rica» (API **3342**, §4 
 - Limpieza de clases huérfanas (`gradient-mesh`, `animate-float`, `animate-pulse-soft`, `backdrop-blur`, `transition-all`) en `login.page.tsx` y `users.page.tsx`: la hace **A** (páginas sin otro dueño). Las páginas legacy del agricultor no se tocan.
 
 - `Web/src/pages/campaign-dates.ts` (fechas de calendario de campañas, UTC) es de **B** (añadido a petición suya tras la fase 1).
+
+## 12. Segunda etapa (2026-11-10, noche): variante elegida y reparto
+
+- El autor eligió la variante **«Analítica comparativa»** del Resumen (`a_VARIANTES_RESUMEN_2026-11-10.md`, variante 2).
+- Todas las sesiones parten de `feat/web-rediseno-integracion` (`e7f1b3a` o posterior): cada una lo fusiona en su rama antes de seguir (`git merge --no-ff feat/web-rediseno-integracion`).
+- **B** aplica la variante al Resumen real (`collective-summary.page.tsx`), conservando sus reglas funcionales; la parte presentacional de barras que necesite la copia a un componente propio (`Web/src/components/needs-bars.tsx`) desde `Web/src/dev/prototypes/resumen/analitica-comparativa.tsx` (lectura), sin importar desde `dev/`.
+- **A** resuelve las peticiones pendientes en sus archivos (píldora de campaña activa, `fmtCalendarDate`, separador de miles en `CoverageBanner`, desbordes de `ComparisonBars`), revisa movimiento y teléfono sobre la composición integrada y **borra los prototipos sólo cuando la coordinadora lo indique** (después de que B termine).
+- **C** cambia sus enlaces internos a las claves nuevas y verifica sus vistas con datos de la copia «rica».
+- Verificación con datos del servidor: copia «rica» (API 3342, PG 15433), sólo lectura; la DEMO oficial no se usa. Capturas en `docs/evidence/web_rediseno/<letra>_capturas_rica/`.
