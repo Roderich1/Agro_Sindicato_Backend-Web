@@ -1,5 +1,7 @@
 # Variantes del Resumen: prototipos para la elección del autor (sesión A, 2026-11-10)
 
+> **Nota (etapa 2, 2026-11-10):** el autor eligió la variante 2 («Analítica comparativa»), que la sesión B llevó al Resumen real. La superficie de prototipos (`/prototipos/resumen` y `Web/src/dev/prototypes/`) **se retiró en el commit `63e67b7`**. Este documento y sus capturas se conservan como evidencia.
+
 Rama `feat/web-rediseno-a-sistema-navegacion`. Las capturas se tomaron con el código de `fc3c6a4`, el 2026-11-10 a las 23:10 hora de Bolivia (2026-11-11 03:10 UTC). Hay datos sintéticos y nada se toma de un servidor de datos. **La variante no está elegida: la elige el autor.**
 
 ## Cómo abrirlo

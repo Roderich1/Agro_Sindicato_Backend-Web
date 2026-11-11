@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import { useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { COLLECTIVE_PATHS, WEB_NOT_FOR_FARMERS_PATH } from '../lib/navigation';
 import { renderAt } from '../test/render';
@@ -51,6 +52,19 @@ describe('F10-SEC-02: pantallas legacy de operación privada', () => {
   it.each(['DIRECTIVA', 'ADMINISTRADOR', 'AGRICULTOR'])('/directiva heredada no muestra la compra ejecutable (%s)', (role) => {
     renderAt(<LegacyDirectivaRedirect />, { role, path: '/directiva', routes: FALLBACKS });
     expect(screen.getByText('propuesta borrador')).toBeTruthy();
+  });
+
+  it('/directiva heredada conserva ?campaign= al llevar a la propuesta', () => {
+    function Where() {
+      const location = useLocation();
+      return <p>{`propuesta ${location.search}`}</p>;
+    }
+    renderAt(<LegacyDirectivaRedirect />, {
+      role: 'DIRECTIVA',
+      path: '/directiva?campaign=11111111-1111-4111-8111-111111111111',
+      routes: [{ path: COLLECTIVE_PATHS.proposals, element: <Where /> }],
+    });
+    expect(screen.getByText('propuesta ?campaign=11111111-1111-4111-8111-111111111111')).toBeTruthy();
   });
 
   it('DIRECTIVA en /users vuelve a su vista colectiva, no al dashboard legacy', () => {
