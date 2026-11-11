@@ -16,6 +16,7 @@ import { Button, CampaignSelector, Collapsible, DataState, DataTable, Notice, Pa
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { prepareCallPath } from '../lib/joint-purchase-call-text';
 import { reportDisclosureMode } from '../lib/data-mode';
 import {
   ACTION_TEXT,
@@ -27,7 +28,6 @@ import {
   MODE_TEXT,
   outcomeText,
   PREPARE_BLOCKER_TEXT,
-  prepareCallPath,
   sameSelection,
   staleSelectionOf,
   UPDATE_REASON_TEXT,

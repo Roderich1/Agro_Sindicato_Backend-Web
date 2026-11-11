@@ -12,7 +12,6 @@ import type {
   ProposalSelection,
   UpdateReason,
 } from '../types/estimation-link';
-import { COLLECTIVE_PATHS } from './navigation';
 
 /**
  * E3 (docs/architecture/E3_ESTIMACION_EN_BORRADOR_CONTRATO.md): textos de la
@@ -139,14 +138,4 @@ export function sameSelection(a: readonly string[], b: readonly string[]): boole
 export function staleSelectionOf(err: unknown): ProposalSelection | null {
   const body = linkErrorOf(err);
   return body?.errorCode === 'SELECTION_STALE' && body.selection ? body.selection : null;
-}
-
-/**
- * E3 §6: el formulario de convocatorias (E2) con el borrador como origen y los
- * productos elegidos. Cada valor va codificado; los productos se separan con
- * comas.
- */
-export function prepareCallPath(campaignRef: string, proposalRef: string, productRefs: readonly string[]): string {
-  const enc = encodeURIComponent;
-  return `${COLLECTIVE_PATHS.jointPurchaseCalls}?nueva=1&campana=${enc(campaignRef)}&propuesta=${enc(proposalRef)}&productos=${productRefs.map(enc).join(',')}`;
 }

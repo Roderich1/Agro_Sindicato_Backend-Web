@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { available, LINK_RUN_REF, linkOf, linkViewFor, selectionFor } from '../dev/fixtures/proposal-fixtures';
 import { LINK_POLL_MS } from '../lib/estimation-link-text';
+import { prepareCallPath, readPreparedCall } from '../lib/joint-purchase-call-text';
 import { STOP_TEXT } from '../lib/estimation-text';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
@@ -377,9 +378,16 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     serve(linkViewFor(odd, [], { state: 'NONE' }), selectionFor(odd, ['prod a/1', 'prod&b'], 4), [odd]);
     renderAt(<JointProposalPage />, { path: PATH, routes: [{ path: '/colectivo/compras-conjuntas', element: <Probe /> }] });
     fireEvent.click(await screen.findByRole('button', { name: 'Preparar convocatoria (2 productos)' }));
-    expect((await screen.findByTestId('probe')).textContent).toBe(
-      '/colectivo/compras-conjuntas?nueva=1&campana=11111111-1111-4111-8111-111111111111&propuesta=dddddddd-dddd-4ddd-8ddd-dddddddddddd&productos=prod%20a%2F1,prod%26b',
-    );
+    // La URL la construye y la lee el mismo módulo de convocatorias (una sola fuente); aquí se comprueba el viaje completo.
+    const target = (await screen.findByTestId('probe')).textContent ?? '';
+    expect(target).toBe(prepareCallPath('11111111-1111-4111-8111-111111111111', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', ['prod a/1', 'prod&b']));
+    const [path, search] = target.split('?');
+    expect(path).toBe('/colectivo/compras-conjuntas');
+    expect(readPreparedCall(new URLSearchParams(search))).toEqual({
+      campaignId: '11111111-1111-4111-8111-111111111111',
+      proposalId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      productRefs: ['prod a/1', 'prod&b'],
+    });
     expect(collectiveService.saveProposalSelection).not.toHaveBeenCalled();
     expect(collectiveService.prepareEstimationLink).not.toHaveBeenCalled();
   });
