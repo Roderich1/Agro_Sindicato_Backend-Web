@@ -2,180 +2,293 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ══════════════════════════════════════════
-   DESIGN SYSTEM — Agro PWA v2
+   SISTEMA VISUAL — Web institucional (rediseño 2026-11-10)
+   Un solo acento (verde institucional), superficies sólidas, movimiento
+   breve y funcional (≤ 200 ms). Contrato: docs/web-rediseno/01 §3.
    ══════════════════════════════════════════ */
 
+/* Tokens de Tailwind: generan utilidades (`bg-canvas`, `rounded-card`,
+   `shadow-card`…). `--ease-out` sustituye la curva de la utilidad `ease-out`. */
+@theme {
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+
+  --color-canvas: #f8faf4;
+  --color-surface: #ffffff;
+  --color-line: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+
+  --radius-control: 8px;
+  --radius-card: 12px;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-raised: 0 4px 12px -2px rgba(15, 23, 42, 0.1), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 :root {
-  /* ── Brand palette ── */
-  --color-primary: #059669;
-  --color-primary-light: #34d399;
-  --color-primary-dark: #047857;
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-accent: #0ea5e9;
+  /* Compatibilidad: nombres anteriores, ahora apuntan a los tokens. */
+  --color-primary: var(--color-brand-600);
+  --color-primary-dark: var(--color-brand-700);
+  --color-primary-50: var(--color-brand-50);
+  --color-primary-100: var(--color-brand-100);
+  --bg-body: var(--color-canvas);
+  --bg-card: var(--color-surface);
+  --bg-card-solid: var(--color-surface);
 
-  /* ── Surfaces ── */
-  --bg-body: #f4f8f0;
-  --bg-sidebar: #0f1d15;
-  --bg-card: rgba(255, 255, 255, 0.82);
-  --bg-card-solid: #ffffff;
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
 
-  /* ── Typography ── */
   font-family:
     'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  color: #0f172a;
+  color: var(--color-ink);
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* ── Shadows (tinted) ── */
-  --shadow-xs: 0 1px 2px rgba(16, 69, 41, 0.04);
-  --shadow-sm: 0 1px 3px rgba(16, 69, 41, 0.06), 0 1px 2px rgba(16, 69, 41, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(16, 69, 41, 0.07), 0 2px 4px -2px rgba(16, 69, 41, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(16, 69, 41, 0.08), 0 4px 6px -4px rgba(16, 69, 41, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(16, 69, 41, 0.08), 0 8px 10px -6px rgba(16, 69, 41, 0.04);
-  --shadow-glow: 0 0 20px rgba(5, 150, 105, 0.15);
-}
-
-/* ── Base ── */
-body {
-  margin: 0;
-  background: var(--bg-body);
-  background-image:
-    radial-gradient(ellipse at 0% 0%, rgba(209, 250, 229, 0.5) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(167, 243, 208, 0.3) 0%, transparent 50%);
-  background-attachment: fixed;
-  min-height: 100vh;
-}
-
-button {
-  cursor: pointer;
 }
 
 /* ══════════════════════════════════════════
-   ANIMATIONS
+   BASE (capa base: las utilidades pueden sobrescribirla)
    ══════════════════════════════════════════ */
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+@layer base {
+  html {
+    /* Sin destello gris al tocar: cada control tiene su propio :active. */
+    -webkit-tap-highlight-color: transparent;
+    /* Sin inflado de texto al girar el teléfono. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Controles: respuesta inmediata al tocar (sin espera de doble toque) y
+     etiqueta no seleccionable con pulsación larga. El texto de contenido sigue
+     siendo seleccionable. */
+  button,
+  [role='button'],
+  summary {
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  a {
+    touch-action: manipulation;
+  }
+
+  h1[id],
+  h2[id],
+  h3[id] {
+    scroll-margin-top: 80px;
+  }
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Teléfonos y tabletas: un campo con letra menor de 16 px hace que iOS
+   amplíe la página al enfocarlo. Fuera de capa para ganar a `text-sm`. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
-}
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(100%); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes toast-out {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(100%); }
-}
-
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes progress-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out both;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-fade-slide {
-  animation: fadeSlide 0.2s ease-out both;
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 1.4s ease-in-out infinite;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-toast-in {
-  animation: toast-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-toast-out {
-  animation: toast-out 0.3s ease-in both;
+/* Foco visible en todo control (teclado), sin animación. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: 2px;
 }
 
 /* ══════════════════════════════════════════
-   SCROLLBAR
+   MOVIMIENTO
+   Sólo lo que tiene un propósito y se ve pocas veces al día. Duraciones
+   ≤ 200 ms con `--ease-out`. Sin bucles salvo indicadores de carga.
+   ══════════════════════════════════════════ */
+
+/* Panel lateral que entra desde la derecha (inventario/compras legacy): ocasional. */
+@keyframes ui-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Aviso que aparece tras una acción del usuario: ocasional, evita un cambio brusco. */
+@keyframes ui-enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer components {
+  .animate-slide-in-right {
+    animation: ui-enter-right var(--duration-base) var(--ease-out) both;
+  }
+
+  .animate-fade-slide,
+  .animate-scale-in {
+    animation: ui-enter-fade var(--duration-fast) var(--ease-out) both;
+  }
+
+  /* Respuesta al pulsar un control: escala mínima, sólo transform y colores. */
+  .ui-press {
+    transition-property: transform, background-color, border-color, color;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-out);
+  }
+
+  .ui-press:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+/* ══════════════════════════════════════════
+   SUPERFICIES (sólidas: sin cristal, sin desenfoque, sin degradados)
+   Los nombres se conservan porque las vistas actuales los usan.
+   ══════════════════════════════════════════ */
+
+@layer components {
+  .glass-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass-card-elevated {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-raised);
+  }
+
+  .modal-backdrop {
+    background: rgba(15, 23, 42, 0.45);
+  }
+
+  /* Bloque de carga estático (sin brillo animado). */
+  .skeleton {
+    background: #e2e8f0;
+    border-radius: var(--radius-control);
+  }
+
+  .sidebar-item-text {
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ══════════════════════════════════════════
+   TABLAS
+   ══════════════════════════════════════════ */
+
+@layer components {
+  .table-container {
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    box-shadow: var(--shadow-card);
+  }
+
+  .table-container table tbody tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+
+  /* DataTable (components/ui): desplazamiento horizontal interno, cabecera
+     pegajosa, cifras alineadas. */
+  .ui-table-scroll {
+    overflow: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .ui-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--color-line);
+    padding: 0.625rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-ink-muted);
+    white-space: nowrap;
+  }
+
+  .ui-table tbody td,
+  .ui-table tbody th {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.625rem 1rem;
+    vertical-align: top;
+    text-align: left;
+  }
+
+  .ui-table tbody tr:last-child td,
+  .ui-table tbody tr:last-child th {
+    border-bottom: 0;
+  }
+
+  .ui-table .ui-num {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+/* Hover sólo con ratón: en pantallas táctiles se quedaría pegado tras tocar. */
+@media (hover: hover) and (pointer: fine) {
+  .table-container table tbody tr:hover,
+  .table-container table tbody tr:nth-child(even):hover {
+    background-color: #f1f5f9;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.24);
+  }
+}
+
+/* ══════════════════════════════════════════
+   BARRAS DE DESPLAZAMIENTO
    ══════════════════════════════════════════ */
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -183,205 +296,32 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.16);
   border-radius: 999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.2);
-}
-
 /* ══════════════════════════════════════════
-   GLASSMORPHISM & CARDS
+   ACCESIBILIDAD
    ══════════════════════════════════════════ */
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: var(--shadow-sm);
-  border-radius: 16px;
-  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
-}
-
-.glass-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.glass-card-elevated {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: var(--shadow-md);
-  border-radius: 16px;
-}
-
-/* ══════════════════════════════════════════
-   NUMERIC / TABULAR
-   ══════════════════════════════════════════ */
-
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-/* ══════════════════════════════════════════
-   SKELETON LOADER (improved)
-   ══════════════════════════════════════════ */
-
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(226, 232, 240, 0.6) 25%,
-    rgba(241, 245, 249, 0.8) 50%,
-    rgba(226, 232, 240, 0.6) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 8px;
-}
-
-/* ══════════════════════════════════════════
-   ACCESSIBILITY
-   ══════════════════════════════════════════ */
-
-/* Skip link */
+/* Enlace «Saltar al contenido»: aparece con el foco, sin animación. */
 .skip-link {
   position: absolute;
   top: -40px;
   left: 0;
   z-index: 100;
   padding: 8px 16px;
-  background: var(--color-primary-dark);
+  background: var(--color-brand-700);
   color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
   border-radius: 0 0 8px 0;
-  transition: top 0.15s;
 }
 .skip-link:focus {
   top: 0;
 }
 
-/* Focus visible */
-:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Scroll margin for headings */
-h1[id], h2[id], h3[id] {
-  scroll-margin-top: 80px;
-}
-
-/* ══════════════════════════════════════════
-   REDUCED MOTION
-   ══════════════════════════════════════════ */
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-slide-up,
-  .animate-slide-in-right,
-  .animate-slide-in-left,
-  .animate-scale-in,
-  .animate-fade-slide,
-  .animate-pulse-soft,
-  .animate-float,
-  .animate-toast-in,
-  .animate-toast-out {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
-
-  .skeleton {
-    animation: none;
-    background: rgba(226, 232, 240, 0.6);
-  }
-
-  * {
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ══════════════════════════════════════════
-   SIDEBAR TRANSITION UTILITIES
-   ══════════════════════════════════════════ */
-
-.sidebar-transition {
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sidebar-item-text {
-  transition: opacity 0.2s ease, width 0.2s ease;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-/* ══════════════════════════════════════════
-   MODAL BACKDROP
-   ══════════════════════════════════════════ */
-
-.modal-backdrop {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-/* ══════════════════════════════════════════
-   GRADIENT UTILITIES
-   ══════════════════════════════════════════ */
-
-.gradient-mesh {
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 60% 80%, rgba(52, 211, 153, 0.1) 0%, transparent 50%);
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, #059669, #0ea5e9);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ══════════════════════════════════════════
-   TABLE IMPROVEMENTS
-   ══════════════════════════════════════════ */
-
-.table-container {
-  overflow: hidden;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: var(--shadow-sm);
-}
-
-.table-container table tbody tr {
-  transition: background-color 0.15s ease;
-}
-
-.table-container table tbody tr:hover {
-  background-color: rgba(241, 245, 249, 0.6);
-}
-
-.table-container table tbody tr:nth-child(even) {
-  background-color: rgba(248, 250, 252, 0.4);
-}
-
-.table-container table tbody tr:nth-child(even):hover {
-  background-color: rgba(241, 245, 249, 0.7);
-}
-
-/* ══════════════════════════════════════════
-   FORM ENHANCEMENTS
-   ══════════════════════════════════════════ */
-
+/* Campos con icono (inicio de sesión, usuarios). */
 .input-icon-wrapper {
   position: relative;
 }
@@ -391,12 +331,30 @@ h1[id], h2[id], h3[id] {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: #64748b;
   pointer-events: none;
-  transition: color 0.2s;
 }
 
 .input-icon-wrapper input:focus ~ .input-icon,
 .input-icon-wrapper select:focus ~ .input-icon {
-  color: var(--color-primary);
+  color: var(--color-brand-700);
+}
+
+/* Movimiento reducido: se conservan opacidad y color; se quita todo
+   desplazamiento y escala. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right {
+    animation-name: ui-enter-fade;
+  }
+
+  .ui-press:active:not(:disabled) {
+    transform: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, outline-color, opacity !important;
+    scroll-behavior: auto !important;
+  }
 }
