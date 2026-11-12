@@ -7,7 +7,16 @@ import { CallHttpError, InstitutionalActor } from "../domain/call-error";
 import { isEditable } from "../domain/call-state";
 import { SERVER_ID } from "../domain/participation-input";
 import { CALL_TOTALS_THRESHOLD, CallVisibility, ParticipationForVisibility } from "../domain/visibility";
-import { accessOf, eligibleMemberWhere, requireManage, responsibleIsEligible } from "./call-access";
+import {
+  accessOf,
+  CallForAccess,
+  eligibleMemberWhere,
+  holdsSubstitution,
+  requireManage,
+  responsibleIsEligible,
+  rowInForce,
+  rowPendingReview,
+} from "./call-access";
 import { CallClosingService } from "./call-closing.service";
 import {
   ACCESS_MANAGE,
@@ -32,6 +41,7 @@ import {
   GRANT_LABEL,
   hiddenNotice,
   HistoryEntryView,
+  pendingAuthorizationNotice,
   iso,
   ParticipantsView,
   presentationUnit,
@@ -196,6 +206,7 @@ export class InstitutionalCallsUseCase {
         status: true,
         acceptedAt: true,
         consentScope: true,
+        consentResponsibleVersion: true,
         member: { select: { user: { select: { name: true } } } },
         lines: {
           orderBy: { productId: "asc" },
@@ -203,8 +214,11 @@ export class InstitutionalCallsUseCase {
         },
       },
     });
-    const rows = all.filter((row) => access.visibility.canSeeParticipation(row.consentScope));
-    const hidden = all.length - rows.length;
+    // P-A C1: a participation counts as authorized only for the current responsible version.
+    const marked = all.map((row) => ({ ...row, authorizedForResponsible: row.consentResponsibleVersion === call.responsibleVersion }));
+    const rows = marked.filter((row) => access.visibility.canSeeParticipation(row));
+    const hidden = access.visibility.hiddenCount(marked);
+    const pending = access.visibility.pendingAuthorizationCount(marked);
     return {
       contractVersion: 1,
       call_id: call.id,
@@ -214,6 +228,8 @@ export class InstitutionalCallsUseCase {
       participant_count: all.length,
       hidden_participant_count: hidden,
       hidden_notice: hiddenNotice(hidden),
+      pending_authorization_count: pending,
+      pending_authorization_notice: pendingAuthorizationNotice(pending),
       participants: rows.map((row) => ({
         participation_ref: row.id,
         name: row.member.user.name,
@@ -424,7 +440,13 @@ export class InstitutionalCallsUseCase {
           data: { status: "OPEN", openedAt: now, openedByUserId: actor.userId },
         });
         await tx.jointPurchaseCallAccess.create({
-          data: { callId: call.id, userId: call.responsibleUserId, grant: ACCESS_PARTICIPANTS, grantedAt: now },
+          data: {
+            callId: call.id,
+            userId: call.responsibleUserId,
+            grant: ACCESS_PARTICIPANTS,
+            grantedAt: now,
+            responsibleVersion: call.responsibleVersion,
+          },
         });
         await tx.jointPurchaseCallEvent.create({
           data: { callId: call.id, at: now, kind: "OPENED", actorUserId: actor.userId, detail: OPENED_DETAIL },
@@ -516,12 +538,24 @@ export class InstitutionalCallsUseCase {
       if (!grantee) throw new CallHttpError(422, "COLLABORATOR_NOT_ELIGIBLE");
       const existing = await tx.jointPurchaseCallAccess.findUnique({
         where: { callId_userId_grant: { callId: call.id, userId: userRef, grant } },
-        select: { callId: true },
+        select: { userId: true, grant: true, grantedByUserId: true, responsibleVersion: true },
       });
+      // P-A §12: granting a delegation that waits for review is confirming it (its own event).
+      if (existing && rowPendingReview(call, existing)) {
+        await this.confirmDelegation(tx, actor, call, userRef, grant, grantee.user.name);
+        return;
+      }
       if (existing) return;
       const now = this.clock.now();
       await tx.jointPurchaseCallAccess.create({
-        data: { callId: call.id, userId: userRef, grant, grantedAt: now, grantedByUserId: actor.userId },
+        data: {
+          callId: call.id,
+          userId: userRef,
+          grant,
+          grantedAt: now,
+          grantedByUserId: actor.userId,
+          responsibleVersion: call.responsibleVersion,
+        },
       });
       await tx.jointPurchaseCallAccessEvent.create({
         data: { callId: call.id, userId: userRef, grant, action: "GRANTED", actorUserId: actor.userId, at: now },
@@ -596,13 +630,115 @@ export class InstitutionalCallsUseCase {
     return this.collaborators(actor, id);
   }
 
+  /**
+   * P-A §12: after a substitution, the successor reviews each delegation
+   * granted under an earlier responsible version: CONFIRM grants it again
+   * under the current version (a new row, its own CONFIRMED event); RETIRE
+   * removes it (REVOKED). Only the current, eligible responsible reviews.
+   * Confirming never goes beyond each farmer's consent: what a collaborator
+   * sees is still decided by the scope and the authorization of each
+   * participation. A cancelled call only admits RETIRE.
+   */
+  async reviewDelegation(
+    actor: InstitutionalActor,
+    id: string,
+    command: { user_ref?: unknown; grant?: unknown; decision?: unknown },
+  ): Promise<CollaboratorsView> {
+    await this.prisma.$transaction(async (tx) => {
+      const call = await this.lockAndRead(tx, actor.tenantId, id);
+      if (call.responsibleUserId !== actor.userId || !(await responsibleIsEligible(tx, actor.tenantId, actor.userId))) {
+        throw new CallHttpError(403, "COLLABORATORS_FORBIDDEN");
+      }
+      const { userRef, grant } = parseGrant(command);
+      const decision = command.decision;
+      if (decision !== "CONFIRM" && decision !== "RETIRE") throw INVALID();
+      const row = await tx.jointPurchaseCallAccess.findUnique({
+        where: { callId_userId_grant: { callId: call.id, userId: userRef, grant } },
+        select: { userId: true, grant: true, grantedByUserId: true, responsibleVersion: true, user: { select: { name: true } } },
+      });
+      if (!row || !rowPendingReview(call, row)) throw new CallHttpError(409, "DELEGATION_NOT_PENDING");
+      if (decision === "CONFIRM") {
+        if (call.status === "CANCELLED") throw new CallHttpError(409, "INVALID_TRANSITION", { status: call.status });
+        const grantee = await tx.member.findFirst({
+          where: { ...eligibleMemberWhere(actor.tenantId), userId: userRef },
+          select: { userId: true },
+        });
+        if (!grantee) throw new CallHttpError(422, "COLLABORATOR_NOT_ELIGIBLE");
+        await this.confirmDelegation(tx, actor, call, userRef, grant, row.user.name);
+        return;
+      }
+      const now = this.clock.now();
+      await tx.jointPurchaseCallAccess.delete({ where: { callId_userId_grant: { callId: call.id, userId: userRef, grant } } });
+      await tx.jointPurchaseCallAccessEvent.create({
+        data: { callId: call.id, userId: userRef, grant, action: "REVOKED", actorUserId: actor.userId, at: now },
+      });
+      await tx.jointPurchaseCallEvent.create({
+        data: {
+          callId: call.id,
+          at: now,
+          kind: "ACCESS_REVOKED",
+          actorUserId: actor.userId,
+          detail: truncate(`Permiso «${GRANT_LABEL[grant]}» de ${row.user.name} retirado en la revisión tras la sustitución.`),
+        },
+      });
+      await this.audit(tx, actor, call.id, call.campaignId, `Delegación retirada en la revisión de la convocatoria «${call.name}».`, {
+        grant,
+        collaboratorUserRef: userRef,
+        decision: "RETIRE",
+        responsibleVersion: call.responsibleVersion,
+      });
+    }, CALL_TRANSACTION_OPTIONS);
+    return this.collaborators(actor, id);
+  }
+
+  /** P-A §12: the pending row is replaced by one granted by the current responsible under the current version. */
+  private async confirmDelegation(
+    tx: Tx,
+    actor: InstitutionalActor,
+    call: { id: string; campaignId: string; name: string; responsibleVersion: number },
+    userRef: string,
+    grant: CallGrant,
+    userName: string,
+  ): Promise<void> {
+    const now = this.clock.now();
+    await tx.jointPurchaseCallAccess.delete({ where: { callId_userId_grant: { callId: call.id, userId: userRef, grant } } });
+    await tx.jointPurchaseCallAccess.create({
+      data: {
+        callId: call.id,
+        userId: userRef,
+        grant,
+        grantedAt: now,
+        grantedByUserId: actor.userId,
+        responsibleVersion: call.responsibleVersion,
+      },
+    });
+    await tx.jointPurchaseCallAccessEvent.create({
+      data: { callId: call.id, userId: userRef, grant, action: "CONFIRMED", actorUserId: actor.userId, at: now },
+    });
+    await tx.jointPurchaseCallEvent.create({
+      data: {
+        callId: call.id,
+        at: now,
+        kind: "ACCESS_CONFIRMED",
+        actorUserId: actor.userId,
+        detail: truncate(`Permiso «${GRANT_LABEL[grant]}» de ${userName} confirmado por la nueva persona responsable.`),
+      },
+    });
+    await this.audit(tx, actor, call.id, call.campaignId, `Delegación confirmada en la revisión de la convocatoria «${call.name}».`, {
+      grant,
+      collaboratorUserRef: userRef,
+      decision: "CONFIRM",
+      responsibleVersion: call.responsibleVersion,
+    });
+  }
+
   // ---------------------------------------------------------------- helpers
 
   private async findCall(db: Tx | PrismaService, tenantId: string, id: string) {
     if (!SERVER_ID.test(id)) throw NOT_FOUND();
     const call = await db.jointPurchaseCall.findFirst({
       where: { id, tenantId },
-      select: { id: true, tenantId: true, campaignId: true, status: true, name: true, responsibleUserId: true },
+      select: { id: true, tenantId: true, campaignId: true, status: true, name: true, responsibleUserId: true, responsibleVersion: true },
     });
     if (!call) throw NOT_FOUND();
     return call;
@@ -771,6 +907,14 @@ export class InstitutionalCallsUseCase {
           include: { actor: { select: { id: true, name: true } } },
         },
         closing: { include: { lines: true } },
+        responsibleChanges: {
+          orderBy: { version: "asc" },
+          include: {
+            previous: { select: { id: true, name: true } },
+            next: { select: { id: true, name: true } },
+            actor: { select: { id: true, name: true } },
+          },
+        },
         origin: {
           include: {
             recordedBy: { select: { id: true, name: true } },
@@ -787,15 +931,18 @@ export class InstitutionalCallsUseCase {
     });
     if (!call) throw NOT_FOUND();
     const access = await accessOf(db, call, actor.userId);
-    const totals = await this.totalsOf(db, call.id, call.status, call.closing);
+    const totals = await this.totalsOf(db, call, call.closing);
     const disclosureAuthorized = this.collective.mode === "PROVISIONAL_SYNTHETIC";
     const responsibleEligible = await responsibleIsEligible(db, actor.tenantId, call.responsibleUserId);
-    const collaborators = await db.jointPurchaseCallAccess.findMany({
+    const delegations = await db.jointPurchaseCallAccess.findMany({
       where: { callId: call.id, grantedByUserId: { not: null } },
-      distinct: ["userId"],
-      select: { userId: true },
+      select: { userId: true, grant: true, grantedByUserId: true, responsibleVersion: true },
     });
+    const collaborators = new Set(delegations.filter((row) => rowInForce(call, row, true)).map((row) => row.userId));
+    const pendingReviews = delegations.filter((row) => rowPendingReview(call, row)).length;
     const canManage = access.grants.has(ACCESS_MANAGE);
+    // P-A B1: holds the permission now and the responsible is no longer eligible; never on a cancelled call.
+    const holdsPermission = await holdsSubstitution(db, actor.tenantId, actor.userId);
     return {
       contractVersion: 1,
       call_id: call.id,
@@ -815,6 +962,7 @@ export class InstitutionalCallsUseCase {
         name: call.responsible.name,
         role: call.responsible.members[0]?.role ?? null,
         eligible: responsibleEligible,
+        version: call.responsibleVersion,
       },
       created_by: { user_ref: call.createdBy.id, name: call.createdBy.name },
       opened_by: call.openedBy ? { user_ref: call.openedBy.id, name: call.openedBy.name } : null,
@@ -831,7 +979,22 @@ export class InstitutionalCallsUseCase {
       // m6: mientras la responsable no esté habilitada, los permisos que concedió quedan suspendidos (no borrados).
       delegations_suspended: !responsibleEligible,
       my_grants: CALL_GRANTS.filter((grant) => access.grants.has(grant)).sort(),
-      collaborator_count: collaborators.length,
+      collaborator_count: collaborators.size,
+      // P-A (§12)
+      has_substitution_permission: holdsPermission,
+      can_substitute_responsible: holdsPermission && !responsibleEligible && call.status !== "CANCELLED",
+      pending_delegation_reviews: pendingReviews,
+      pending_authorization_count: access.visibility.pendingAuthorizationCount(totals.all),
+      responsible_changes: call.responsibleChanges.map((change) => ({
+        version: change.version,
+        at: change.at.toISOString(),
+        previous: { user_ref: change.previous.id, name: change.previous.name },
+        next: { user_ref: change.next.id, name: change.next.name },
+        actor: { user_ref: change.actor.id, name: change.actor.name },
+        reason: change.reason,
+        call_status: change.callStatus,
+        suspended_delegations: change.suspendedDelegations,
+      })),
       products: call.products.map((product) => ({
         position: product.position,
         product_ref: product.productId,
@@ -869,15 +1032,17 @@ export class InstitutionalCallsUseCase {
    */
   private async totalsOf(
     db: Tx | PrismaService,
-    callId: string,
-    status: JointPurchaseCallStatus,
+    call: { id: string; status: JointPurchaseCallStatus; responsibleVersion: number },
     closing: { participantCount: number; lines: { productId: string; totalQuantityBase: bigint; participantCount: number }[] } | null,
   ): Promise<CallTotals> {
+    const callId = call.id;
+    const status = call.status;
     if (closing) {
-      const frozen = await frozenParticipations(db, callId);
+      const frozen = await frozenParticipations(db, callId, call.responsibleVersion);
       return {
         source: "CLOSING",
         participantCount: closing.participantCount,
+        all: frozen,
         byProduct: new Map(
           closing.lines.map((l) => [
             l.productId,
@@ -886,14 +1051,20 @@ export class InstitutionalCallsUseCase {
         ),
       };
     }
-    if (status === "DRAFT") return { source: "NONE", participantCount: 0, byProduct: new Map() };
+    if (status === "DRAFT") return { source: "NONE", participantCount: 0, all: [], byProduct: new Map() };
     const active = await db.jointPurchaseParticipation.findMany({
       where: { callId, status: "ACTIVE" },
-      select: { consentScope: true, lines: { select: { productId: true, quantityBase: true } } },
+      select: { consentScope: true, consentResponsibleVersion: true, lines: { select: { productId: true, quantityBase: true } } },
     });
     const byProduct = new Map<string, ProductTotals>();
+    const all: ParticipationForVisibility[] = [];
     for (const participation of active) {
-      const forVisibility = { consentScope: participation.consentScope, productIds: participation.lines.map((l) => l.productId) };
+      const forVisibility = {
+        consentScope: participation.consentScope,
+        authorizedForResponsible: participation.consentResponsibleVersion === call.responsibleVersion,
+        productIds: participation.lines.map((l) => l.productId),
+      };
+      all.push(forVisibility);
       for (const line of participation.lines) {
         const entry = byProduct.get(line.productId) ?? { total: 0n, count: 0, participations: [] };
         entry.total += line.quantityBase;
@@ -902,7 +1073,7 @@ export class InstitutionalCallsUseCase {
         byProduct.set(line.productId, entry);
       }
     }
-    return { source: "LIVE", participantCount: active.length, byProduct };
+    return { source: "LIVE", participantCount: active.length, all, byProduct };
   }
 
   private async renderClosing(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<ClosingView> {
@@ -924,12 +1095,14 @@ export class InstitutionalCallsUseCase {
     const nameOf = new Map(order.map((p) => [p.productId, p.product.name]));
     const position = new Map(order.map((p, index) => [p.productId, index]));
     const lines = [...closing.lines].sort((a, b) => (position.get(a.productId) ?? 0) - (position.get(b.productId) ?? 0));
-    const frozen = await frozenParticipations(db, call.id);
+    const frozen = await frozenParticipations(db, call.id, call.responsibleVersion);
     let participants: ClosingView["participants"] = null;
     let hidden = 0;
+    let pending = 0;
     if (access.canViewParticipants) {
-      const visible = frozen.filter((p) => access.visibility.canSeeParticipation(p.consentScope));
-      hidden = frozen.length - visible.length;
+      const visible = frozen.filter((p) => access.visibility.canSeeParticipation(p));
+      hidden = access.visibility.hiddenCount(frozen);
+      pending = access.visibility.pendingAuthorizationCount(frozen);
       const members = await db.member.findMany({
         where: { id: { in: visible.map((row) => row.memberId) } },
         select: { id: true, user: { select: { name: true } } },
@@ -976,6 +1149,8 @@ export class InstitutionalCallsUseCase {
       participants,
       hidden_participant_count: hidden,
       hidden_notice: hiddenNotice(hidden),
+      pending_authorization_count: pending,
+      pending_authorization_notice: pendingAuthorizationNotice(pending),
     };
   }
 
@@ -983,9 +1158,17 @@ export class InstitutionalCallsUseCase {
     if (!SERVER_ID.test(id)) throw NOT_FOUND();
     const call = await db.jointPurchaseCall.findFirst({
       where: { id, tenantId: actor.tenantId },
-      select: { id: true, status: true, responsible: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        tenantId: true,
+        status: true,
+        responsibleUserId: true,
+        responsibleVersion: true,
+        responsible: { select: { id: true, name: true } },
+      },
     });
     if (!call) throw NOT_FOUND();
+    const responsibleEligible = await responsibleIsEligible(db, actor.tenantId, call.responsibleUserId);
     const user = { select: { id: true, name: true, members: { where: { tenantId: actor.tenantId }, select: { role: true } } } } as const;
     const [rows, events] = await Promise.all([
       db.jointPurchaseCallAccess.findMany({
@@ -1001,6 +1184,8 @@ export class InstitutionalCallsUseCase {
     ]);
     const byUser = new Map<string, CollaboratorView>();
     for (const row of rows) {
+      // The responsible's own earlier delegations are not collaborators (she holds everything as responsible).
+      if (row.userId === call.responsibleUserId) continue;
       const entry = byUser.get(row.userId) ?? {
         user_ref: row.user.id,
         name: row.user.name,
@@ -1012,6 +1197,9 @@ export class InstitutionalCallsUseCase {
         label: GRANT_LABEL[row.grant as CallGrant],
         granted_at: row.grantedAt.toISOString(),
         granted_by: { user_ref: row.grantedBy!.id, name: row.grantedBy!.name },
+        // m6 and P-A §12: in force, suspended with an ineligible responsible, or waiting for the successor's review.
+        status: rowPendingReview(call, row) ? "PENDING_REVIEW" : rowInForce(call, row, responsibleEligible) ? "IN_FORCE" : "SUSPENDED",
+        responsible_version: row.responsibleVersion,
       });
       byUser.set(row.userId, entry);
     }
@@ -1021,6 +1209,9 @@ export class InstitutionalCallsUseCase {
       status: call.status,
       responsible: { user_ref: call.responsible.id, name: call.responsible.name },
       can_grant: call.responsible.id === actor.userId,
+      // P-A §12: only the current, eligible responsible reviews the delegations of earlier versions.
+      can_review: call.responsible.id === actor.userId && responsibleEligible,
+      responsible_version: call.responsibleVersion,
       collaborators: [...byUser.values()],
       history: events.map((event) => ({
         at: event.at.toISOString(),
@@ -1066,6 +1257,8 @@ interface ProductTotals {
 interface CallTotals {
   source: "NONE" | "LIVE" | "CLOSING";
   participantCount: number;
+  /** Every participation counted (live: ACTIVE; closing: frozen), for the counts of §12. */
+  all: ParticipationForVisibility[];
   byProduct: Map<string, ProductTotals>;
 }
 
@@ -1076,7 +1269,7 @@ function productTotalOf(visibility: CallVisibility, totals: CallTotals, productI
 }
 
 /** The frozen participations of a closing, with the consent of the participation each froze. */
-async function frozenParticipations(db: Tx | PrismaService, callId: string) {
+async function frozenParticipations(db: Tx | PrismaService, callId: string, responsibleVersion: number) {
   const rows = await db.jointPurchaseCallClosingParticipant.findMany({
     where: { callId },
     orderBy: [{ acceptedAt: "asc" }, { participationId: "asc" }],
@@ -1084,21 +1277,24 @@ async function frozenParticipations(db: Tx | PrismaService, callId: string) {
   });
   const consents = await db.jointPurchaseParticipation.findMany({
     where: { id: { in: rows.map((row) => row.participationId) } },
-    select: { id: true, consentScope: true },
+    select: { id: true, consentScope: true, consentResponsibleVersion: true },
   });
   const consentOf = new Map(consents.map((c) => [c.id, c.consentScope as string]));
+  // P-A C1: authorized only for the current responsible version (read now, like the scope).
+  const authorizedOf = new Map(consents.map((c) => [c.id, c.consentResponsibleVersion === responsibleVersion]));
   return rows.map((row) => ({
     participationId: row.participationId,
     memberId: row.memberId,
     acceptedAt: row.acceptedAt,
     // A frozen participation always has its row (FK chain); a missing one is treated as hidden.
     consentScope: consentOf.get(row.participationId) ?? "",
+    authorizedForResponsible: authorizedOf.get(row.participationId) ?? false,
     productIds: row.lines.map((line) => line.productId),
     lines: row.lines,
   }));
 }
 
-function parseGrant(command: GrantCommand): { userRef: string; grant: CallGrant } {
+export function parseGrant(command: GrantCommand): { userRef: string; grant: CallGrant } {
   const userRef = command.user_ref;
   const grant = command.grant;
   if (typeof userRef !== "string" || userRef.length < 1 || userRef.length > 64) throw INVALID();
@@ -1106,7 +1302,7 @@ function parseGrant(command: GrantCommand): { userRef: string; grant: CallGrant 
   return { userRef, grant: grant as CallGrant };
 }
 
-function requireConfirmed(confirmed: unknown) {
+export function requireConfirmed(confirmed: unknown) {
   if (confirmed !== true) throw new CallHttpError(422, "CONFIRMATION_REQUIRED");
 }
 
@@ -1124,11 +1320,22 @@ function parseDeadline(raw: unknown): Date {
   return date;
 }
 
-function truncate(text: string): string {
+export function truncate(text: string): string {
   return text.length <= REASON_MAX ? text : `${text.slice(0, REASON_MAX - 1)}…`;
 }
 
-const KIND_ORDER = ["CREATED", "RESPONSIBLE_ASSIGNED", "UPDATED", "ACCESS_GRANTED", "ACCESS_REVOKED", "OPENED", "CLOSED", "CANCELLED"];
+const KIND_ORDER = [
+  "CREATED",
+  "RESPONSIBLE_ASSIGNED",
+  "UPDATED",
+  "ACCESS_GRANTED",
+  "ACCESS_REVOKED",
+  "OPENED",
+  "RESPONSIBLE_REPLACED",
+  "ACCESS_CONFIRMED",
+  "CLOSED",
+  "CANCELLED",
+];
 
 function sortHistory(entries: HistoryEntryView[]): HistoryEntryView[] {
   return [...entries].sort((a, b) =>

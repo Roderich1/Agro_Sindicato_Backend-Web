@@ -2688,6 +2688,11 @@
               }
             ]
           },
+          "responsible_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "P-A C1 (contrato 3): versión de la responsabilidad que mostraba el teléfono al aceptar. Sólo cuenta al crear la participación; las cantidades nunca autorizan a nadie"
+          },
           "lines": {
             "maxItems": 50,
             "description": "Vacía = retiro (E2-D8)",
@@ -2764,6 +2769,15 @@
           },
           "consent": {
             "$ref": "#/components/schemas/ConsentDecisionTextDto"
+          },
+          "responsible_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "P-A C1 (contrato 3): versión de la responsabilidad que mostraba el teléfono"
+          },
+          "authorize_responsible": {
+            "type": "boolean",
+            "description": "P-A C1 (contrato 3): true = autoriza a la persona responsable de responsible_version (acción explícita, separada de las cantidades); exige CONV-3 y esa versión vigente"
           }
         },
         "required": [
@@ -2936,6 +2950,110 @@
         "required": [
           "user_ref",
           "grant"
+        ]
+      },
+      "ReviewDelegationDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "CONFIRM",
+              "RETIRE"
+            ],
+            "description": "CONFIRM la vuelve a conceder con la versión vigente; RETIRE la retira"
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant",
+          "decision"
+        ]
+      },
+      "SubstituteResponsibleDto": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador de la solicitud (idempotencia): el mismo con otro cuerpo → 409 REQUEST_ID_REUSED"
+          },
+          "expected_responsible_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Versión de la responsabilidad que vio quien sustituye; otra → 409 RESPONSIBLE_CHANGED"
+          },
+          "new_responsible_ref": {
+            "type": "string",
+            "description": "Sucesora: otra persona DIRECTIVA o ADMINISTRADOR habilitada del tenant"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280,
+            "description": "Vacío o > 280: 422 REASON_REQUIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "request_id",
+          "expected_responsible_version",
+          "new_responsible_ref",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "GrantSubstitutionDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string",
+            "description": "Persona DIRECTIVA o ADMINISTRADOR habilitada del tenant, distinta de quien concede"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280,
+            "description": "Motivo; vacío o > 280: 422 REASON_REQUIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "user_ref",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "RevokeSubstitutionDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Motivo opcional de la revocación"
+          }
+        },
+        "required": [
+          "user_ref"
         ]
       },
       "CreateUserDto": {

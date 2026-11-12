@@ -198,7 +198,11 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   const withdraw = (session: TestSession, callId: string, sequence: number, operationId = randomUUID()) =>
     post(session, `${ME}/${callId}/participation/withdraw`, { operation_id: operationId, sequence });
 
-  /** §10.6 (P-C): a consent decision of its own, with its own order. */
+  /**
+   * §10.6 (P-C): a consent decision of its own, with its own order, from the
+   * phone that reads contract 2 (the only one that knows this route; P-A
+   * shapes the answer by contract too).
+   */
   const decide = (
     session: TestSession,
     callId: string,
@@ -208,7 +212,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     version = "CONV-3",
     decidedAt = "2026-11-12T10:00:00.000Z",
   ) =>
-    post(session, `${ME}/${callId}/participation/consent`, {
+    http().post(`${ME}/${callId}/participation/consent`).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", "2").send({
       operation_id: operationId,
       sequence,
       scope,
@@ -1349,6 +1353,374 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(after.body.origin).toMatchObject({ kind: "PROPOSAL", proposal_ref: proposal.id, proposal_fingerprint: null });
       const stored = await prisma.jointPurchaseCallOrigin.findUniqueOrThrow({ where: { callId: draft.body.call_id } });
       expect(stored.proposalFingerprint).toBe(proposal.inputsFingerprint);
+    });
+  });
+
+  describe("P-A substitution of the responsible (§12: A1 + B1 + C1)", () => {
+    const PERMS = "/api/v1/joint-purchase-substitution-permissions";
+    const get3 = (session: TestSession, path: string): Promise<Res> =>
+      http().get(path).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", "3");
+    const put3 = (session: TestSession, path: string, body: object): Promise<Res> =>
+      http().put(path).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", "3").send(body);
+    const post3 = (session: TestSession, path: string, body: object): Promise<Res> =>
+      http().post(path).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", "3").send(body);
+    const decide3 = (
+      session: TestSession,
+      callId: string,
+      body: { scope: "COLLABORATORS" | "RESPONSIBLE_ONLY"; sequence: number; responsible_version?: number; authorize_responsible?: boolean; version?: string },
+      operationId = randomUUID(),
+    ) =>
+      post3(session, `${ME}/${callId}/participation/consent`, {
+        operation_id: operationId,
+        sequence: body.sequence,
+        scope: body.scope,
+        consent: { version: body.version ?? "CONV-3", decided_at: "2026-11-12T12:00:00.000Z" },
+        ...(body.responsible_version !== undefined ? { responsible_version: body.responsible_version } : {}),
+        ...(body.authorize_responsible !== undefined ? { authorize_responsible: body.authorize_responsible } : {}),
+      });
+    const substitute = (by: TestSession, callId: string, to: TestSession, expected: number, requestId = randomUUID(), reason = "Responsable de baja por viaje") =>
+      post(by, `${INST}/${callId}/responsible`, {
+        request_id: requestId,
+        expected_responsible_version: expected,
+        new_responsible_ref: userIdOf(to),
+        reason,
+        confirmed: true,
+      });
+    const own = async (session: TestSession, callId: string, contract: "2" | "3" = "3") =>
+      ((await http().get(ME).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", contract)).body.calls as any[]).find(
+        (c) => c.call_id === callId,
+      );
+
+    let admin2: TestSession;
+    let holder: TestSession; // admin, holds «Sustituir responsable» (granted by admin2)
+
+    beforeAll(async () => {
+      admin2 = await createSession(prisma, jwt, await addPerson("adminA2", f.tenantA, "ADMINISTRADOR"));
+      holder = admin;
+    });
+
+    it("A1: only an eligible ADMINISTRADOR grants it, to a concrete eligible person, never to herself; recorded and revocable", async () => {
+      const farmerMember = farmerA.memberId;
+      const inactiveMember = await addPerson("inactiveDirectiva", f.tenantA, "DIRECTIVA");
+      await prisma.member.update({ where: { id: inactiveMember }, data: { isActive: false } });
+      const body = (user: string, extra: object = {}) => ({ user_ref: user, reason: "Coordinar entregas", confirmed: true, ...extra });
+
+      expect((await post(director, PERMS, body(userIdOf(director2)))).body).toEqual({ errorCode: "SUBSTITUTION_FORBIDDEN" });
+      expect((await post(admin2, PERMS, body(userIdOf(admin2)))).body).toEqual({ errorCode: "GRANTEE_NOT_ELIGIBLE" });
+      for (const user of [userOf[farmerMember], userOf[inactiveMember], userIdOf(directorB), randomUUID()]) {
+        expect((await post(admin2, PERMS, body(user))).body).toEqual({ errorCode: "GRANTEE_NOT_ELIGIBLE" });
+      }
+      expect((await post(admin2, PERMS, body(userIdOf(holder), { reason: "  " }))).body).toEqual({ errorCode: "REASON_REQUIRED" });
+      expect((await post(admin2, PERMS, body(userIdOf(holder), { reason: "x".repeat(281) }))).body).toEqual({ errorCode: "REASON_REQUIRED" });
+      expect((await post(admin2, PERMS, body(userIdOf(holder), { confirmed: false }))).body).toEqual({ errorCode: "CONFIRMATION_REQUIRED" });
+      expect((await post(farmerA, PERMS, body(userIdOf(holder)))).status).toBe(403);
+
+      const granted = await post(admin2, PERMS, body(userIdOf(holder)));
+      expect(granted.status).toBe(200);
+      expect(granted.body.holders).toEqual([
+        expect.objectContaining({ user_ref: userIdOf(holder), eligible: true, granted_by: expect.objectContaining({ user_ref: userIdOf(admin2) }), reason: "Coordinar entregas" }),
+      ]);
+      // Idempotent: no second event.
+      expect((await post(admin2, PERMS, body(userIdOf(holder)))).status).toBe(200);
+      expect(await prisma.jointPurchaseSubstitutionGrantEvent.count({ where: { tenantId: f.tenantA, action: "GRANTED" } })).toBe(1);
+      // The holder (an ADMINISTRADOR) cannot grant it back to herself, and a DIRECTIVA holder grants nothing.
+      expect((await post(admin2, PERMS, body(userIdOf(director2)))).status).toBe(200);
+      expect((await post(director2, PERMS, body(userIdOf(director)))).body).toEqual({ errorCode: "SUBSTITUTION_FORBIDDEN" });
+      // Revoked by an eligible ADMINISTRADOR, with its trace; a holder may renounce her own.
+      expect((await post(director, `${PERMS}/revoke`, { user_ref: userIdOf(director2) })).body).toEqual({ errorCode: "SUBSTITUTION_FORBIDDEN" });
+      const renounced = await post(director2, `${PERMS}/revoke`, { user_ref: userIdOf(director2), reason: "Ya no coordino" });
+      expect(renounced.status).toBe(200);
+      expect(renounced.body.holders.map((h: any) => h.user_ref)).toEqual([userIdOf(holder)]);
+      expect(renounced.body.history.map((h: any) => [h.action, h.user.user_ref, h.actor.user_ref])).toEqual([
+        ["GRANTED", userIdOf(holder), userIdOf(admin2)],
+        ["GRANTED", userIdOf(director2), userIdOf(admin2)],
+        ["REVOKED", userIdOf(director2), userIdOf(director2)],
+      ]);
+      expect((await get(director, PERMS)).body).toMatchObject({ can_grant: false, holds_permission: false });
+      expect((await get(holder, PERMS)).body).toMatchObject({ can_grant: true, holds_permission: true });
+      // Another tenant sees nothing of it.
+      expect((await get(directorB, PERMS)).body).toMatchObject({ holders: [], history: [] });
+      // The database refuses self-grants and grants across tenants, and keeps the trace.
+      await expect(
+        prisma.jointPurchaseSubstitutionGrant.create({
+          data: { tenantId: f.tenantA, userId: userIdOf(director), grantedByUserId: userIdOf(director), grantedAt: new Date(), reason: "x" },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.jointPurchaseSubstitutionGrant.create({
+          data: { tenantId: f.tenantA, userId: userIdOf(director), grantedByUserId: userIdOf(directorB), grantedAt: new Date(), reason: "x" },
+        }),
+      ).rejects.toThrow(/mismo sindicato/);
+      await expect(prisma.jointPurchaseSubstitutionGrantEvent.deleteMany({ where: { tenantId: f.tenantA } })).rejects.toThrow();
+      expect(await prisma.auditLog.count({ where: { entityName: "JointPurchaseSubstitutionGrant", tenantId: f.tenantA } })).toBe(3);
+    });
+
+    it("B1 on an OPEN call: conditions, no silent overwrite, retries; delegations suspended; C1 restricts until each farmer authorizes", async () => {
+      const respMember = await addPerson("respPA", f.tenantA, "DIRECTIVA");
+      const resp = await createSession(prisma, jwt, respMember);
+      const p1 = await newProduct();
+      const p2 = await newProduct();
+      const id = await openCall([p1, p2], { responsible: resp });
+      expect((await put3(farmerA, `${ME}/${id}/participation`, {
+        operation_id: randomUUID(), sequence: 1, consent: { version: "CONV-3", accepted_at: "2026-11-12T09:00:00.000Z" }, responsible_version: 1,
+        lines: [{ product_ref: p1, quantity_base: "100" }],
+      })).status).toBe(200);
+      expect((await confirm(farmerA2, id, [[p1, "200"], [p2, "20"]], 1)).status).toBe(200);
+      expect((await decide3(farmerA2, id, { scope: "COLLABORATORS", sequence: 1, responsible_version: 1 })).status).toBe(200);
+      await grantAccess(id, admin2, "MANAGE", resp);
+      await grantAccess(id, director, "PARTICIPANTS", resp);
+      const before = await prisma.jointPurchaseParticipation.findMany({ where: { callId: id }, include: { lines: true }, orderBy: { id: "asc" } });
+      const callBefore = await prisma.jointPurchaseCall.findUniqueOrThrow({ where: { id } });
+
+      // While the responsible is eligible nobody substitutes her (a warning is not enough).
+      expect((await substitute(holder, id, director2, 1)).body).toEqual({ errorCode: "RESPONSIBLE_STILL_ELIGIBLE" });
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: false } });
+      // Without the permission, or from another tenant.
+      expect((await substitute(director2, id, director, 1)).body).toEqual({ errorCode: "SUBSTITUTION_FORBIDDEN" });
+      expect((await substitute(directorB, id, director, 1)).status).toBe(404);
+      // The successor: eligible, of the tenant, never the actor herself.
+      for (const to of [holder, farmerA, directorB]) {
+        expect((await substitute(holder, id, to, 1)).body).toEqual({ errorCode: "SUCCESSOR_NOT_ELIGIBLE" });
+      }
+      expect((await substitute(holder, id, director2, 1, randomUUID(), " ")).body).toEqual({ errorCode: "REASON_REQUIRED" });
+      expect(
+        (await post(holder, `${INST}/${id}/responsible`, { request_id: randomUUID(), expected_responsible_version: 1, new_responsible_ref: userIdOf(director2), reason: "x" }))
+          .body,
+      ).toEqual({ errorCode: "CONFIRMATION_REQUIRED" });
+      expect((await substitute(holder, id, director2, 2)).body).toEqual({ errorCode: "RESPONSIBLE_CHANGED", responsible_version: 1 });
+
+      const requestId = randomUUID();
+      const done = await substitute(holder, id, director2, 1, requestId);
+      expect(done.status).toBe(200);
+      expect(done.body).toMatchObject({
+        status: "OPEN",
+        deadline_at: callBefore.deadlineAt.toISOString(),
+        responsible: { user_ref: userIdOf(director2), eligible: true, version: 2 },
+        responsible_changes: [
+          {
+            version: 2,
+            previous: { user_ref: userIdOf(resp) },
+            next: { user_ref: userIdOf(director2) },
+            actor: { user_ref: userIdOf(holder) },
+            reason: "Responsable de baja por viaje",
+            call_status: "OPEN",
+            suspended_delegations: 2,
+          },
+        ],
+      });
+      expect(done.body.history.at(-1)).toMatchObject({ kind: "RESPONSIBLE_REPLACED", actor: { user_ref: userIdOf(holder) } });
+      // A retry answers the same, without a second change; the same id with another body is refused.
+      expect((await substitute(holder, id, director2, 1, requestId)).status).toBe(200);
+      expect((await substitute(holder, id, director2, 1, requestId, "Otro motivo")).body).toEqual({ errorCode: "REQUEST_ID_REUSED" });
+      expect(await prisma.jointPurchaseResponsibleChange.count({ where: { callId: id } })).toBe(1);
+      expect(await prisma.jointPurchaseCallEvent.count({ where: { callId: id, kind: "RESPONSIBLE_REPLACED" } })).toBe(1);
+      // Nothing else changed: participations, quantities, deadline, status.
+      const after = await prisma.jointPurchaseParticipation.findMany({ where: { callId: id }, include: { lines: true }, orderBy: { id: "asc" } });
+      expect(after.map((p) => [p.status, p.lines.map((l) => [l.productId, l.quantityBase.toString()]), p.consentScope])).toEqual(
+        before.map((p) => [p.status, p.lines.map((l) => [l.productId, l.quantityBase.toString()]), p.consentScope]),
+      );
+
+      // Delegations suspended, not deleted; the former responsible recovers nothing if eligible again.
+      const collaborators = await get(director2, `${INST}/${id}/collaborators`);
+      expect(collaborators.body).toMatchObject({ can_review: true, responsible_version: 2 });
+      expect(collaborators.body.collaborators.map((c: any) => [c.user_ref, c.grants.map((g: any) => [g.grant, g.status])])).toEqual(
+        expect.arrayContaining([
+          [userIdOf(admin2), [["MANAGE", "PENDING_REVIEW"]]],
+          [userIdOf(director), [["PARTICIPANTS", "PENDING_REVIEW"]]],
+        ]),
+      );
+      expect(collaborators.body.history.filter((h: any) => h.action === "SUSPENDED")).toHaveLength(2);
+      expect((await post(admin2, `${INST}/${id}/close`, { confirmed: true })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      expect((await get(director, `${INST}/${id}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: true } });
+      expect((await get(resp, `${INST}/${id}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+      expect((await get(resp, `${INST}/${id}`)).body).toMatchObject({ is_responsible: false, can_manage: false });
+      // The permission alone gives no access to participants nor administration.
+      expect((await get(holder, `${INST}/${id}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+      expect((await post(holder, `${INST}/${id}/close`, { confirmed: true })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+
+      // C1: the successor manages, but sees nobody by name until each farmer authorizes her.
+      const listed = await get(director2, `${INST}/${id}/participants`);
+      expect(listed.body).toMatchObject({ participant_count: 2, pending_authorization_count: 2, participants: [] });
+      expect(listed.body.pending_authorization_notice).toMatch(/^2 participaciones pendientes/);
+      expect(JSON.stringify(listed.body)).not.toMatch(/farmerA|"100"|"200"|"20"/);
+      const detail = await get(director2, `${INST}/${id}`);
+      expect(detail.body).toMatchObject({ can_manage: true, pending_authorization_count: 2, pending_delegation_reviews: 2 });
+      expect(detail.body.products.map((p: any) => [p.totals.total_quantity_base, p.totals.visibility])).toEqual([
+        [null, "RESTRICTED"],
+        [null, "RESTRICTED"],
+      ]);
+
+      // The farmer sees who the responsible is now and that she is not authorized; old contracts keep their shape.
+      expect(await own(farmerA, id)).toMatchObject({
+        responsible: { name: expect.any(String), version: 2 },
+        participation: { responsible_authorization: { authorized: false, version: 1 } },
+      });
+      const c2 = await own(farmerA, id, "2");
+      expect(c2.responsible).toEqual({ name: expect.any(String) });
+      expect(c2.participation.responsible_authorization).toBeUndefined();
+      const c1 = ((await get(farmerA, ME)).body.calls as any[]).find((c) => c.call_id === id);
+      expect(c1.participation.responsible_authorization).toBeUndefined();
+      expect(c1.participation.consent_scope).toBeUndefined();
+
+      // Quantities never authorize, from any version of the app.
+      expect((await put3(farmerA, `${ME}/${id}/participation`, {
+        operation_id: randomUUID(), sequence: 2, responsible_version: 2, lines: [{ product_ref: p1, quantity_base: "110" }],
+      })).body.participation.responsible_authorization).toEqual({ authorized: false, version: 1 });
+      expect((await confirm(farmerA, id, [[p1, "120"]], 3)).status).toBe(200);
+      expect((await get(director2, `${INST}/${id}/participants`)).body.participants).toEqual([]);
+      // Widening before authorizing her, from an older phone (no version) or the new one.
+      expect((await decide(farmerA, id, "COLLABORATORS", 1)).body).toMatchObject({ errorCode: "AUTHORIZATION_REQUIRED" });
+      expect((await decide3(farmerA, id, { scope: "COLLABORATORS", sequence: 1, responsible_version: 2 })).body).toMatchObject({
+        errorCode: "AUTHORIZATION_REQUIRED",
+        responsible_version: 2,
+      });
+      // A pending authorization for the former responsible never authorizes the successor.
+      expect((await decide3(farmerA, id, { scope: "RESPONSIBLE_ONLY", sequence: 1, responsible_version: 1, authorize_responsible: true })).body).toMatchObject({
+        errorCode: "RESPONSIBLE_CHANGED",
+        responsible_version: 2,
+        participation: { responsible_authorization: { authorized: false } },
+      });
+      // Authorizing needs the current text.
+      expect((await decide3(farmerA, id, { scope: "RESPONSIBLE_ONLY", sequence: 1, responsible_version: 2, authorize_responsible: true, version: "CONV-1" })).body).toEqual({
+        errorCode: "CONSENT_REQUIRED",
+      });
+      // Authorizing only her never widens to collaborators.
+      const authOp = randomUUID();
+      const authorized = await decide3(farmerA, id, { scope: "RESPONSIBLE_ONLY", sequence: 2, responsible_version: 2, authorize_responsible: true }, authOp);
+      expect(authorized.status).toBe(200);
+      expect(authorized.body.participation).toMatchObject({
+        consent_scope: { scope: "RESPONSIBLE_ONLY", sequence: 2 },
+        responsible_authorization: { authorized: true, version: 2 },
+        lines: [{ product_ref: p1, quantity_base: "120" }],
+      });
+      const decision = await prisma.jointPurchaseConsentDecision.findFirstOrThrow({ where: { operationId: authOp } });
+      expect(decision).toMatchObject({ source: "DECISION", scope: "RESPONSIBLE_ONLY", responsibleVersion: 2 });
+      const afterAuth = await get(director2, `${INST}/${id}/participants`);
+      expect(afterAuth.body.participants.map((p: any) => p.name)).toEqual(["Usuario sintético farmerA"]);
+      expect(afterAuth.body.pending_authorization_count).toBe(1);
+
+      // Review: confirm one delegation, retire the other; only the current responsible reviews.
+      expect((await post(director, `${INST}/${id}/collaborators/review`, { user_ref: userIdOf(director), grant: "PARTICIPANTS", decision: "CONFIRM" })).body).toEqual({
+        errorCode: "COLLABORATORS_FORBIDDEN",
+      });
+      const confirmed = await post(director2, `${INST}/${id}/collaborators/review`, { user_ref: userIdOf(director), grant: "PARTICIPANTS", decision: "CONFIRM" });
+      expect(confirmed.status).toBe(200);
+      expect(confirmed.body.collaborators.find((c: any) => c.user_ref === userIdOf(director)).grants[0]).toMatchObject({ status: "IN_FORCE", responsible_version: 2 });
+      expect((await post(director2, `${INST}/${id}/collaborators/review`, { user_ref: userIdOf(director), grant: "PARTICIPANTS", decision: "CONFIRM" })).body).toEqual({
+        errorCode: "DELEGATION_NOT_PENDING",
+      });
+      expect((await post(director2, `${INST}/${id}/collaborators/review`, { user_ref: userIdOf(admin2), grant: "MANAGE", decision: "RETIRE" })).status).toBe(200);
+      expect(await prisma.jointPurchaseCallAccess.count({ where: { callId: id, userId: userIdOf(admin2) } })).toBe(0);
+      const trail = (await get(director2, `${INST}/${id}/collaborators`)).body.history.map((h: any) => h.action);
+      expect(trail).toEqual(["GRANTED", "GRANTED", "SUSPENDED", "SUSPENDED", "CONFIRMED", "REVOKED"]);
+      // Confirming a delegation does not go beyond each farmer's consent:
+      // farmerA authorized only the responsible; farmerA2 has not authorized her yet.
+      expect((await get(director, `${INST}/${id}/participants`)).body).toMatchObject({ participants: [], pending_authorization_count: 1, hidden_participant_count: 1 });
+      expect((await decide3(farmerA2, id, { scope: "COLLABORATORS", sequence: 2, responsible_version: 2, authorize_responsible: true })).status).toBe(200);
+      expect((await get(director, `${INST}/${id}/participants`)).body.participants.map((p: any) => p.name)).toEqual(["Usuario sintético farmerA2"]);
+      // Out-of-order and repeated decisions never restore an earlier access.
+      expect((await decide3(farmerA2, id, { scope: "RESPONSIBLE_ONLY", sequence: 3 })).status).toBe(200);
+      expect((await decide3(farmerA2, id, { scope: "COLLABORATORS", sequence: 2, responsible_version: 2, authorize_responsible: true })).body).toMatchObject({
+        errorCode: "STALE_SEQUENCE",
+      });
+      expect((await get(director, `${INST}/${id}/participants`)).body.participants).toEqual([]);
+      expect((await decide3(farmerA, id, { scope: "RESPONSIBLE_ONLY", sequence: 2, responsible_version: 2, authorize_responsible: true }, authOp)).body).toEqual(
+        authorized.body,
+      );
+
+      // A first confirmation after the substitution: authorized only if the phone showed the current responsible.
+      expect((await put3(farmerA3, `${ME}/${id}/participation`, {
+        operation_id: randomUUID(), sequence: 1, consent: { version: "CONV-3", accepted_at: "2026-11-12T13:00:00.000Z" }, responsible_version: 2,
+        lines: [{ product_ref: p2, quantity_base: "30" }],
+      })).body.participation.responsible_authorization).toEqual({ authorized: true, version: 2 });
+      const legacyCall = await openCall([await newProduct()], { responsible: director });
+      await prisma.member.update({ where: { id: director.memberId }, data: { isActive: false } });
+      expect((await substitute(holder, legacyCall, director2, 1)).status).toBe(200);
+      await prisma.member.update({ where: { id: director.memberId }, data: { isActive: true } });
+      const lp = (await prisma.jointPurchaseCallProduct.findFirstOrThrow({ where: { callId: legacyCall } })).productId;
+      // contract 2 and contract 1 phones cannot say which responsible they showed: nothing is assumed.
+      expect((await put2(farmerA, `${ME}/${legacyCall}/participation`, { operation_id: randomUUID(), sequence: 1, consent: { version: "CONV-3", accepted_at: "2026-11-12T13:00:00.000Z" }, lines: [{ product_ref: lp, quantity_base: "5" }] })).status).toBe(200);
+      expect((await confirm(farmerA2, legacyCall, [[lp, "6"]], 1)).status).toBe(200);
+      const stored = await prisma.jointPurchaseParticipation.findMany({ where: { callId: legacyCall } });
+      expect(stored.map((p) => p.consentResponsibleVersion)).toEqual([null, null]);
+      expect((await get(director2, `${INST}/${legacyCall}/participants`)).body).toMatchObject({ participants: [], pending_authorization_count: 2 });
+    });
+
+    it("B1 on a DRAFT and a CLOSED call, never a CANCELLED one; the closing and the deadline are kept", async () => {
+      const respMember = await addPerson("respPA2", f.tenantA, "DIRECTIVA");
+      const resp = await createSession(prisma, jwt, respMember);
+      // DRAFT: the successor administers it and opens it with her own permission.
+      const draft = await createDraft([await newProduct()], { responsible: resp });
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: false } });
+      expect((await patch(director, `${INST}/${draft.body.call_id}`, { name: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      const drafted = await substitute(holder, draft.body.call_id, director, 1);
+      expect(drafted.body).toMatchObject({ status: "DRAFT", responsible: { user_ref: userIdOf(director), version: 2 } });
+      expect((await post(director, `${INST}/${draft.body.call_id}/open`, { confirmed: true })).status).toBe(200);
+      expect(await prisma.jointPurchaseCallAccess.findFirst({ where: { callId: draft.body.call_id, grantedByUserId: null } })).toMatchObject({
+        userId: userIdOf(director),
+        responsibleVersion: 2,
+      });
+
+      // CLOSED: coordinating the delivery; nothing of the closing changes.
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: true } });
+      const q = await newProduct();
+      const closedId = await openCall([q], { responsible: resp, deadlineInMs: 2 * HOUR });
+      for (const [s, qty] of [[farmerA, "10"], [farmerA2, "20"], [farmerA3, "30"]] as const) {
+        expect((await confirm(s, closedId, [[q, qty]], 1)).status).toBe(200);
+      }
+      clock.advance(3 * HOUR);
+      expect(await worker.runOnce()).toContain(closedId);
+      const closingBefore = (await get(resp, `${INST}/${closedId}/closing`)).body;
+      const callBefore = await prisma.jointPurchaseCall.findUniqueOrThrow({ where: { id: closedId } });
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: false } });
+      const closed = await substitute(holder, closedId, director2, 1);
+      expect(closed.body).toMatchObject({ status: "CLOSED", responsible: { version: 2 }, closed_at: callBefore.closedAt!.toISOString() });
+      const callAfter = await prisma.jointPurchaseCall.findUniqueOrThrow({ where: { id: closedId } });
+      expect([callAfter.deadlineAt, callAfter.closedAt, callAfter.openedAt]).toEqual([callBefore.deadlineAt, callBefore.closedAt, callBefore.openedAt]);
+      const closingAfter = (await get(director2, `${INST}/${closedId}/closing`)).body;
+      expect(closingAfter).toMatchObject({ cutoff_at: closingBefore.cutoff_at, closed_at: closingBefore.closed_at, participant_count: 3, participants: [], pending_authorization_count: 3 });
+      expect(closingAfter.lines.map((l: any) => [l.participant_count, l.visibility])).toEqual([[3, "RESTRICTED"]]);
+      // The rest of the Directiva keeps the threshold rule of the closing.
+      expect((await get(admin2, `${INST}/${closedId}/closing`)).body.lines.map((l: any) => [l.total_quantity_base, l.visibility])).toEqual([["60", "VISIBLE"]]);
+      // A farmer authorizes her in the closed call without editing the order.
+      expect((await confirm(farmerA, closedId, [[q, "99"]], 2)).body).toMatchObject({ errorCode: "CALL_NOT_OPEN" });
+      expect((await decide3(farmerA, closedId, { scope: "RESPONSIBLE_ONLY", sequence: 1, responsible_version: 2, authorize_responsible: true })).status).toBe(200);
+      const seen = (await get(director2, `${INST}/${closedId}/closing`)).body;
+      expect(seen.participants.map((p: any) => [p.name, p.lines[0].quantity_base])).toEqual([["Usuario sintético farmerA", "10"]]);
+      expect(seen.lines[0]).toMatchObject({ visibility: "RESTRICTED", total_quantity_base: null });
+      expect(await prisma.jointPurchaseCallClosingParticipantLine.count({ where: { callId: closedId } })).toBe(3);
+
+      // CANCELLED: no substitution.
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: true } });
+      const cancelled = await createDraft([await newProduct()], { responsible: resp });
+      expect((await post(resp, `${INST}/${cancelled.body.call_id}/cancel`, { confirmed: true, reason: "No va" })).status).toBe(200);
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: false } });
+      expect((await substitute(holder, cancelled.body.call_id, director2, 1)).body).toEqual({ errorCode: "INVALID_TRANSITION", status: "CANCELLED" });
+
+      // The database refuses a change of responsible without its record, and a substitution that changes anything else.
+      await expect(prisma.jointPurchaseCall.update({ where: { id: closedId }, data: { responsibleUserId: userIdOf(director) } })).rejects.toThrow();
+      await expect(
+        prisma.jointPurchaseCall.update({ where: { id: closedId }, data: { responsibleUserId: userIdOf(director), responsibleVersion: 3 } }),
+      ).rejects.toThrow(/sin registro válido/);
+      await expect(prisma.jointPurchaseResponsibleChange.deleteMany({ where: { callId: closedId } })).rejects.toThrow();
+    });
+
+    it("two concurrent substitutions: one wins, the other is refused (never overwritten silently)", async () => {
+      const respMember = await addPerson("respPA3", f.tenantA, "DIRECTIVA");
+      const resp = await createSession(prisma, jwt, respMember);
+      const id = await openCall([await newProduct()], { responsible: resp });
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: false } });
+      expect((await post(admin2, PERMS, { user_ref: userIdOf(director), reason: "Segunda persona", confirmed: true })).status).toBe(200);
+      const results = await Promise.all([substitute(holder, id, director2, 1), substitute(director, id, admin2, 1)]);
+      expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+      expect(results.find((r) => r.status === 409)!.body).toEqual({ errorCode: "RESPONSIBLE_CHANGED", responsible_version: 2 });
+      expect(await prisma.jointPurchaseResponsibleChange.count({ where: { callId: id } })).toBe(1);
+      expect((await prisma.jointPurchaseCall.findUniqueOrThrow({ where: { id } })).responsibleVersion).toBe(2);
+      // A holder who is no longer eligible cannot use the permission.
+      await prisma.member.update({ where: { id: director.memberId }, data: { isActive: false } });
+      expect((await get(holder, PERMS)).body.holders.find((h: any) => h.user_ref === userIdOf(director))).toMatchObject({ eligible: false });
+      await prisma.member.update({ where: { id: director.memberId }, data: { isActive: true } });
     });
   });
 

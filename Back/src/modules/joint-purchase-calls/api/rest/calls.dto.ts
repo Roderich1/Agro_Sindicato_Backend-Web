@@ -181,6 +181,15 @@ export class ConfirmParticipationDto {
   @Type(() => ParticipationConsentDto)
   consent?: ParticipationConsentDto | null;
 
+  @ApiPropertyOptional({
+    minimum: 1,
+    description:
+      "P-A C1 (contrato 3): versión de la responsabilidad que mostraba el teléfono al aceptar. Sólo cuenta al crear la participación; las cantidades nunca autorizan a nadie",
+  })
+  @IsOptional()
+  @IsInt()
+  responsible_version?: number;
+
   @ApiProperty({ type: [ParticipationLineDto], maxItems: MAX_LINES, description: "Vacía = retiro (E2-D8)" })
   @IsArray()
   @ArrayMaxSize(MAX_LINES)
@@ -232,6 +241,19 @@ export class ConsentDecisionDto {
   @ValidateNested()
   @Type(() => ConsentDecisionTextDto)
   consent!: ConsentDecisionTextDto;
+
+  @ApiPropertyOptional({ minimum: 1, description: "P-A C1 (contrato 3): versión de la responsabilidad que mostraba el teléfono" })
+  @IsOptional()
+  @IsInt()
+  responsible_version?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "P-A C1 (contrato 3): true = autoriza a la persona responsable de responsible_version (acción explícita, separada de las cantidades); exige CONV-3 y esa versión vigente",
+  })
+  @IsOptional()
+  @IsBoolean()
+  authorize_responsible?: boolean;
 }
 
 /** E2-P3 (§10.2): `POST /joint-purchase-calls/{id}/collaborators`. */
@@ -263,6 +285,82 @@ export class RevokeCollaboratorDto {
   @IsString()
   @MaxLength(16)
   grant!: string;
+}
+
+/** P-A B1 (§12): `POST /joint-purchase-calls/{id}/responsible`. */
+export class SubstituteResponsibleDto {
+  @ApiProperty({ format: "uuid", description: "Identificador de la solicitud (idempotencia): el mismo con otro cuerpo → 409 REQUEST_ID_REUSED" })
+  @IsString()
+  @MaxLength(64)
+  request_id!: string;
+
+  @ApiProperty({ minimum: 1, description: "Versión de la responsabilidad que vio quien sustituye; otra → 409 RESPONSIBLE_CHANGED" })
+  @IsInt()
+  expected_responsible_version!: number;
+
+  @ApiProperty({ description: "Sucesora: otra persona DIRECTIVA o ADMINISTRADOR habilitada del tenant" })
+  @IsString()
+  @MaxLength(64)
+  new_responsible_ref!: string;
+
+  @ApiProperty({ minLength: 1, maxLength: 280, description: "Vacío o > 280: 422 REASON_REQUIRED" })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @ApiProperty({ description: "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED" })
+  @IsOptional()
+  @IsBoolean()
+  confirmed?: boolean;
+}
+
+/** P-A (§12): `POST /joint-purchase-calls/{id}/collaborators/review`. */
+export class ReviewDelegationDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(64)
+  user_ref!: string;
+
+  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"] })
+  @IsString()
+  @MaxLength(16)
+  grant!: string;
+
+  @ApiProperty({ enum: ["CONFIRM", "RETIRE"], description: "CONFIRM la vuelve a conceder con la versión vigente; RETIRE la retira" })
+  @IsString()
+  @IsIn(["CONFIRM", "RETIRE"])
+  decision!: string;
+}
+
+/** P-A A1 (§12): `POST /joint-purchase-substitution-permissions`. */
+export class GrantSubstitutionDto {
+  @ApiProperty({ description: "Persona DIRECTIVA o ADMINISTRADOR habilitada del tenant, distinta de quien concede" })
+  @IsString()
+  @MaxLength(64)
+  user_ref!: string;
+
+  @ApiProperty({ minLength: 1, maxLength: 280, description: "Motivo; vacío o > 280: 422 REASON_REQUIRED" })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @ApiProperty({ description: "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED" })
+  @IsOptional()
+  @IsBoolean()
+  confirmed?: boolean;
+}
+
+/** P-A A1 (§12): `POST /joint-purchase-substitution-permissions/revoke`. */
+export class RevokeSubstitutionDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(64)
+  user_ref!: string;
+
+  @ApiPropertyOptional({ maxLength: 280, description: "Motivo opcional de la revocación" })
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }
 
 /** E2-P2 (§10.1): `GET /me/joint-purchase-calls/history`. */

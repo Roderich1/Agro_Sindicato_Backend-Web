@@ -298,13 +298,13 @@ describe("E2 visibility (E2-D7)", () => {
 describe("E2-P3 visibility (§10.3): one decision for detail, participants and closing", () => {
   const visibility = (kind: CallViewer["kind"], formerParticipantsHolder = false) =>
     new CallVisibility({ kind, formerParticipantsHolder }, scopeCoversCollaborators);
-  const v1 = { consentScope: "RESPONSIBLE_ONLY", productIds: ["p"] };
-  const v2 = { consentScope: "COLLABORATORS", productIds: ["p"] };
+  const v1 = { consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true, productIds: ["p"] };
+  const v2 = { consentScope: "COLLABORATORS", authorizedForResponsible: true, productIds: ["p"] };
 
   it("identified participants: all for the responsible, COLLABORATORS ones for a collaborator, none otherwise", () => {
-    expect([visibility("RESPONSIBLE").canSeeParticipation("RESPONSIBLE_ONLY"), visibility("RESPONSIBLE").canSeeParticipation("COLLABORATORS")]).toEqual([true, true]);
-    expect([visibility("COLLABORATOR").canSeeParticipation("RESPONSIBLE_ONLY"), visibility("COLLABORATOR").canSeeParticipation("COLLABORATORS")]).toEqual([false, true]);
-    expect([visibility("NONE").canSeeParticipation("RESPONSIBLE_ONLY"), visibility("NONE", true).canSeeParticipation("COLLABORATORS")]).toEqual([false, false]);
+    expect([visibility("RESPONSIBLE").canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true }), visibility("RESPONSIBLE").canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: true })]).toEqual([true, true]);
+    expect([visibility("COLLABORATOR").canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true }), visibility("COLLABORATOR").canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: true })]).toEqual([false, true]);
+    expect([visibility("NONE").canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true }), visibility("NONE", true).canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: true })]).toEqual([false, false]);
     expect(visibility("COLLABORATOR").hiddenCount([v1, v2, v1])).toBe(2);
     expect(visibility("RESPONSIBLE").hiddenCount([v1, v2])).toBe(0);
   });

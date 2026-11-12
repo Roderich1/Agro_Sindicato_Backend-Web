@@ -17,6 +17,7 @@ import { CurrentUser } from "@/modules/iam/api/rest/decorators/current-user.deco
 import { Roles } from "@/modules/iam/api/rest/decorators/roles.decorator";
 import { AuthenticatedPrincipal } from "@/modules/iam/application/types/authenticated-principal.type";
 import { InstitutionalCallsUseCase } from "../../application/institutional-calls.use-case";
+import { ResponsibleSubstitutionUseCase } from "../../application/responsible-substitution.use-case";
 import { InstitutionalActor } from "../../domain/call-error";
 import {
   CancelCallDto,
@@ -25,7 +26,9 @@ import {
   GrantCollaboratorDto,
   ListCallsQueryDto,
   PatchCallDto,
+  ReviewDelegationDto,
   RevokeCollaboratorDto,
+  SubstituteResponsibleDto,
 } from "./calls.dto";
 import { CallsExceptionFilter } from "./calls-exception.filter";
 import {
@@ -43,7 +46,7 @@ const error = (status: number, description: string) => ApiResponse({ status, des
 const actorOf = (user: AuthenticatedPrincipal): InstitutionalActor => ({ tenantId: user.tenantId, userId: user.sub });
 
 const MANAGE_OR_FALLBACK =
-  "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN: ni responsable ni MANAGE, salvo que el responsable ya no sea elegible (§10.2).";
+  "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN: ni responsable ni MANAGE vigente (N2 rechazada; la salida es la sustitución de P-A, §12).";
 
 /**
  * E2 §4.1: joint purchase calls of the Directiva of the effective tenant; its
@@ -57,7 +60,10 @@ const MANAGE_OR_FALLBACK =
 @UseFilters(CallsExceptionFilter)
 @Controller("joint-purchase-calls")
 export class InstitutionalCallsController {
-  constructor(private readonly calls: InstitutionalCallsUseCase) {}
+  constructor(
+    private readonly calls: InstitutionalCallsUseCase,
+    private readonly substitution: ResponsibleSubstitutionUseCase,
+  ) {}
 
   @Get()
   @Header("Cache-Control", "no-store")
@@ -254,5 +260,46 @@ export class InstitutionalCallsController {
   @error(422, "COLLABORATOR_NOT_ELIGIBLE: los permisos del responsable no se revocan.")
   revoke(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") id: string, @Body() dto: RevokeCollaboratorDto) {
     return this.calls.revoke(actorOf(user), id, dto);
+  }
+
+  @Post(":id/collaborators/review")
+  @HttpCode(HttpStatus.OK)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({
+    summary:
+      "P-A §12: la responsable actual revisa una delegación de una versión anterior de la responsabilidad: CONFIRM la concede otra vez con la versión vigente; RETIRE la retira",
+  })
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiResponse({ status: 200, schema: collaboratorsSchema })
+  @error(400, "PAYLOAD_INVALID.")
+  @error(401, "Sin credencial vigente.")
+  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o COLLABORATORS_FORBIDDEN: no es la responsable habilitada.")
+  @error(404, "CALL_NOT_FOUND.")
+  @error(409, "DELEGATION_NOT_PENDING (no hay esa delegación pendiente de revisión) o INVALID_TRANSITION (confirmar en una cancelada).")
+  @error(422, "COLLABORATOR_NOT_ELIGIBLE: la persona ya no está habilitada (sólo se puede retirar).")
+  review(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") id: string, @Body() dto: ReviewDelegationDto) {
+    return this.calls.reviewDelegation(actorOf(user), id, dto);
+  }
+
+  @Post(":id/responsible")
+  @HttpCode(HttpStatus.OK)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({
+    summary:
+      "P-A B1 (§12): sustituir a una responsable que ya no está habilitada, con el permiso «Sustituir responsable», motivo y confirmación; en DRAFT, OPEN o CLOSED (no reabre ni cambia nada más); idempotente por request_id",
+  })
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiResponse({ status: 200, schema: callDetailSchema })
+  @error(400, "PAYLOAD_INVALID: request_id, expected_responsible_version o new_responsible_ref inválidos.")
+  @error(401, "Sin credencial vigente.")
+  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o SUBSTITUTION_FORBIDDEN: sin el permiso o sin estar habilitada.")
+  @error(404, "CALL_NOT_FOUND.")
+  @error(
+    409,
+    "INVALID_TRANSITION (cancelada), RESPONSIBLE_CHANGED (con responsible_version: otra sustitución ganó), RESPONSIBLE_STILL_ELIGIBLE (la responsable sigue habilitada) o REQUEST_ID_REUSED.",
+  )
+  @error(422, "CONFIRMATION_REQUIRED, REASON_REQUIRED o SUCCESSOR_NOT_ELIGIBLE (sin distinguir el motivo).")
+  substitute(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") id: string, @Body() dto: SubstituteResponsibleDto) {
+    return this.substitution.substitute(actorOf(user), id, dto);
   }
 }

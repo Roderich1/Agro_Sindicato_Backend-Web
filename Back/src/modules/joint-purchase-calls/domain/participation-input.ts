@@ -16,6 +16,12 @@ export interface ConfirmInput {
   sequence: number;
   consent?: { version: string; accepted_at: string } | null;
   lines: { product_ref: string; quantity_base: string }[];
+  /**
+   * P-A C1 (contract 3): the responsible version the phone showed when the
+   * farmer accepted the consent. Only read when the participation is
+   * created; quantities never authorize anyone.
+   */
+  responsible_version?: number;
 }
 
 export interface WithdrawInput {
@@ -30,6 +36,10 @@ export interface ConsentDecisionInput {
   sequence: number;
   scope: string;
   consent: { version: string; decided_at: string };
+  /** P-A C1 (contract 3): the responsible version the phone showed. */
+  responsible_version?: number;
+  /** P-A C1 (contract 3): this decision authorizes that responsible (an explicit, separate action). */
+  authorize_responsible?: boolean;
 }
 
 /** A farmer operation after the structural checks, before the call is read. */
@@ -43,6 +53,10 @@ export interface NormalizedOperation {
   lines: { productRef: string; quantityBase: bigint }[];
   /** Only for CONSENT (§10.6): the scope decided. */
   scope?: "RESPONSIBLE_ONLY" | "COLLABORATORS";
+  /** P-A C1: the responsible version the phone showed (contract 3); absent from older phones. */
+  responsibleVersion?: number;
+  /** P-A C1: only for CONSENT, true when the decision authorizes that responsible. */
+  authorizeResponsible?: boolean;
   fingerprint: string;
 }
 
@@ -59,6 +73,13 @@ export function parseQuantity(raw: unknown): bigint {
   const value = BigInt(raw);
   if (value <= 0n || value > QUANTITY_MAX) throw new CallHttpError(422, "QUANTITY_INVALID");
   return value;
+}
+
+/** P-A: an optional responsible version is a positive integer. */
+function optionalVersion(raw: unknown): number | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1 || raw > SEQUENCE_MAX) throw INVALID();
+  return raw;
 }
 
 function checkEnvelope(operationId: unknown, sequence: unknown): { operationId: string; sequence: number } {
@@ -94,7 +115,15 @@ export function normalizeConfirm(input: ConfirmInput): NormalizedOperation {
     if (typeof input.consent.version !== "string" || Number.isNaN(acceptedAt.getTime())) throw INVALID();
     consent = { version: input.consent.version, acceptedAt };
   }
-  const base = { kind: "CONFIRM" as const, operationId, sequence, consent, lines };
+  const responsibleVersion = optionalVersion(input.responsible_version);
+  const base = {
+    kind: "CONFIRM" as const,
+    operationId,
+    sequence,
+    consent,
+    lines,
+    ...(responsibleVersion !== undefined ? { responsibleVersion } : {}),
+  };
   return { ...base, fingerprint: operationFingerprint(base) };
 }
 
@@ -115,6 +144,11 @@ export function normalizeConsentDecision(input: ConsentDecisionInput): Normalize
   if (!consent || typeof consent.version !== "string" || typeof consent.decided_at !== "string") throw INVALID();
   const decidedAt = new Date(consent.decided_at);
   if (Number.isNaN(decidedAt.getTime())) throw INVALID();
+  const responsibleVersion = optionalVersion(input.responsible_version);
+  const authorize = input.authorize_responsible;
+  if (authorize !== undefined && typeof authorize !== "boolean") throw INVALID();
+  // Authorizing names one concrete responsible version (C1): without it, it means nothing.
+  if (authorize === true && responsibleVersion === undefined) throw INVALID();
   const base = {
     kind: "CONSENT" as const,
     operationId,
@@ -122,6 +156,8 @@ export function normalizeConsentDecision(input: ConsentDecisionInput): Normalize
     consent: { version: consent.version, acceptedAt: decidedAt },
     lines: [],
     scope,
+    ...(responsibleVersion !== undefined ? { responsibleVersion } : {}),
+    ...(authorize === true ? { authorizeResponsible: true } : {}),
   };
   return { ...base, fingerprint: operationFingerprint(base) };
 }
@@ -142,6 +178,10 @@ export function operationFingerprint(operation: Omit<NormalizedOperation, "finge
     operation.lines.map((line) => [line.productRef, line.quantityBase.toString()]),
     // §10.6: only consent decisions carry a scope; earlier fingerprints are unchanged.
     ...(operation.scope ? [operation.scope] : []),
+    // P-A C1 (contract 3): only operations that carry them; earlier fingerprints are unchanged.
+    ...(operation.responsibleVersion !== undefined || operation.authorizeResponsible
+      ? [["P-A", operation.responsibleVersion ?? null, operation.authorizeResponsible === true]]
+      : []),
   ]);
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }

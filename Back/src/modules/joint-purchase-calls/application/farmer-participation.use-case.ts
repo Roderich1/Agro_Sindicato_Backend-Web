@@ -83,7 +83,7 @@ export class FarmerParticipationUseCase {
    * is deleted on the server and the older ones are served by `history`.
    */
   async list(context: FarmerContext): Promise<{
-    contractVersion: 2;
+    contractVersion: 3;
     server_time: string;
     consent: { version: string; text: string };
     calls: FarmerCallView[];
@@ -109,7 +109,7 @@ export class FarmerParticipationUseCase {
     const olderCount = await this.prisma.jointPurchaseCall.count({ where: olderWhere(context, since) });
     const serverTime = now.toISOString();
     return {
-      contractVersion: 2,
+      contractVersion: 3,
       server_time: serverTime,
       consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
       calls: rows.map((row) => toFarmerCallView(row, now)),
@@ -128,7 +128,7 @@ export class FarmerParticipationUseCase {
   async history(
     context: FarmerContext,
     query: { before?: string; limit?: number },
-  ): Promise<{ contractVersion: 2; server_time: string; consent: { version: string; text: string }; calls: FarmerCallView[]; next_cursor: string | null }> {
+  ): Promise<{ contractVersion: 3; server_time: string; consent: { version: string; text: string }; calls: FarmerCallView[]; next_cursor: string | null }> {
     const limit = query.limit ?? HISTORY_PAGE_DEFAULT;
     if (!Number.isInteger(limit) || limit < 1 || limit > HISTORY_PAGE_MAX) throw new CallHttpError(400, "PAYLOAD_INVALID");
     const before = query.before === undefined ? null : decodeHistoryCursor(query.before);
@@ -159,7 +159,7 @@ export class FarmerParticipationUseCase {
     const ordered = page.map((id) => byId.get(id)!).filter(Boolean);
     const last = ordered[ordered.length - 1];
     return {
-      contractVersion: 2,
+      contractVersion: 3,
       server_time: now.toISOString(),
       consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
       calls: ordered.map((row) => toFarmerCallView(row, now)),
@@ -212,9 +212,11 @@ export class FarmerParticipationUseCase {
         id: true,
         status: true,
         deadlineAt: true,
+        responsibleVersion: true,
         products: { select: { productId: true, baseUnit: true } },
       },
     });
+    const view = (row: CurrentParticipation | null) => toParticipationView(row, call.responsibleVersion);
     const key = { callId, memberId: context.memberId, operationId: operation.operationId };
     const journaled = await tx.jointPurchaseParticipationOperation.findUnique({
       where: { callId_memberId_operationId: key },
@@ -229,7 +231,7 @@ export class FarmerParticipationUseCase {
       const stored = journaled.response as unknown as StoredResponse;
       // A late request is answered with the participation in force now.
       if (journaled.outcome === "STALE_SEQUENCE") {
-        return { status: 409, body: { errorCode: "STALE_SEQUENCE", participation: toParticipationView(await current()) } };
+        return { status: 409, body: { errorCode: "STALE_SEQUENCE", participation: view(await current()) } };
       }
       return stored;
     }
@@ -252,7 +254,9 @@ export class FarmerParticipationUseCase {
     const reject = (code: CallErrorCode, status: number, extra: Record<string, unknown> = {}) =>
       record(code, { status, body: { errorCode: code, ...extra } });
 
-    if (operation.kind === "CONSENT") return this.decideScope(tx, context, call.status, operation, now, current, record, reject);
+    if (operation.kind === "CONSENT") {
+      return this.decideScope(tx, context, call, operation, now, current, view, record, reject);
+    }
 
     const reason = notOpenReason(call, now);
     if (reason) return reject("CALL_NOT_OPEN", 409, { reason });
@@ -264,7 +268,7 @@ export class FarmerParticipationUseCase {
     });
     const existing = await current();
     if (last._max.sequence !== null && operation.sequence <= last._max.sequence) {
-      return reject("STALE_SEQUENCE", 409, { participation: toParticipationView(existing) });
+      return reject("STALE_SEQUENCE", 409, { participation: view(existing) });
     }
 
     let participation = existing;
@@ -299,6 +303,13 @@ export class FarmerParticipationUseCase {
       } else {
         const consent = operation.consent!;
         const scope = initialScopeOf(consent.version);
+        // P-A C1: the first consent authorizes the responsible the phone showed,
+        // only if that is the current version. A phone that does not say which
+        // (contracts 1 and 2) can only have shown the current one when there was
+        // never a substitution (version 1); otherwise nothing is assumed.
+        const shown = operation.responsibleVersion;
+        const authorizedVersion =
+          shown !== undefined ? (shown === call.responsibleVersion ? shown : null) : call.responsibleVersion === 1 ? 1 : null;
         saved = await tx.jointPurchaseParticipation.create({
           data: {
             callId,
@@ -313,6 +324,7 @@ export class FarmerParticipationUseCase {
             consentScopeDecidedAt: consent.acceptedAt,
             consentScopeReceivedAt: now,
             consentScopeSequence: 0,
+            consentResponsibleVersion: authorizedVersion,
           },
           select: { id: true },
         });
@@ -327,6 +339,7 @@ export class FarmerParticipationUseCase {
             receivedAt: now,
             sequence: 0,
             source: "INITIAL",
+            responsibleVersion: authorizedVersion,
           },
         });
       }
@@ -359,45 +372,67 @@ export class FarmerParticipationUseCase {
     );
     return record("ACCEPTED", {
       status: 200,
-      body: { outcome: "ACCEPTED", participation: toParticipationView(participation) } as unknown as Record<string, unknown>,
+      body: { outcome: "ACCEPTED", participation: view(participation) } as unknown as Record<string, unknown>,
     });
   }
 
   /**
-   * §10.6 (P-C), under the call's lock:
+   * §10.6 (P-C) and P-A C1 (§12), under the call's lock:
    * - only on an existing participation of the farmer (409
    *   PARTICIPATION_REQUIRED: the phone keeps the decision pending until its
    *   first confirmation is accepted);
-   * - not tied to the deadline: a reduction is respected in any state; a
-   *   widening is refused on a CANCELLED call (409
-   *   WIDENING_NOT_ALLOWED) and needs the current text (409
-   *   CONSENT_REQUIRED otherwise);
+   * - not tied to the deadline. A REDUCTION (`RESPONSIBLE_ONLY` without
+   *   authorizing anyone) is respected in any state, with any known text and
+   *   whatever responsible version it names: it never authorizes anyone;
+   * - AUTHORIZING the current responsible (`authorize_responsible`, contract
+   *   3) is an explicit decision of its own: it needs the current text
+   *   (`CONV-3`), names the responsible version the phone showed and is
+   *   refused if that is no longer the current one (409 RESPONSIBLE_CHANGED,
+   *   with the current version: the phone asks for a new review). It sets
+   *   the scope it carries: authorizing only the responsible never widens to
+   *   collaborators;
+   * - WIDENING (`COLLABORATORS`) needs the current text and the current
+   *   responsible authorized (now or in the same decision; otherwise 409
+   *   AUTHORIZATION_REQUIRED), and is refused on a CANCELLED call (409
+   *   WIDENING_NOT_ALLOWED), as is authorizing;
    * - its own order: a decision whose sequence is not above the last accepted
-   *   one is STALE_SEQUENCE, so a late or out-of-order request never reverts a
-   *   later decision (the same operation_id gets the stored answer);
+   *   one is STALE_SEQUENCE, so a late or out-of-order request never reverts
+   *   a later decision nor restores an earlier access (the same operation_id
+   *   gets the stored answer);
    * - quantities, status and the first consent are untouched; the decision is
-   *   written to the insert-only register in the same transaction.
+   *   written to the insert-only register in the same transaction, with the
+   *   responsible version it authorizes (null when it authorizes none).
    */
   private async decideScope(
     tx: Tx,
     context: FarmerContext,
-    callStatus: string,
+    call: { status: string; responsibleVersion: number },
     operation: NormalizedOperation,
     now: Date,
     current: () => Promise<CurrentParticipation | null>,
+    view: (row: CurrentParticipation | null) => ParticipationView | null,
     record: (outcome: string, response: StoredResponse) => Promise<StoredResponse>,
     reject: (code: CallErrorCode, status: number, extra?: Record<string, unknown>) => Promise<StoredResponse>,
   ): Promise<StoredResponse> {
     const scope = operation.scope!;
     const consent = operation.consent!;
+    const authorize = operation.authorizeResponsible === true;
+    const widen = scope === "COLLABORATORS";
     const existing = await current();
     if (!existing) return reject("PARTICIPATION_REQUIRED", 409);
     if (!decisionVersionAccepted(scope, consent.version)) return reject("CONSENT_REQUIRED", 409);
-    if (scope === "COLLABORATORS" && callStatus === "CANCELLED") {
-      return reject("WIDENING_NOT_ALLOWED", 409, { status: callStatus });
+    if (authorize && consent.version !== CONSENT_VERSION) return reject("CONSENT_REQUIRED", 409);
+    if ((widen || authorize) && call.status === "CANCELLED") {
+      return reject("WIDENING_NOT_ALLOWED", 409, { status: call.status });
+    }
+    if ((widen || authorize) && operation.responsibleVersion !== undefined && operation.responsibleVersion !== call.responsibleVersion) {
+      return reject("RESPONSIBLE_CHANGED", 409, { responsible_version: call.responsibleVersion, participation: view(existing) });
+    }
+    if (widen && !authorize && existing.consentResponsibleVersion !== call.responsibleVersion) {
+      return reject("AUTHORIZATION_REQUIRED", 409, { responsible_version: call.responsibleVersion, participation: view(existing) });
     }
     if (operation.sequence <= existing.consentScopeSequence) {
-      return reject("STALE_SEQUENCE", 409, { participation: toParticipationView(existing) });
+      return reject("STALE_SEQUENCE", 409, { participation: view(existing) });
     }
     await tx.jointPurchaseParticipation.update({
       where: { id: existing.id },
@@ -407,6 +442,7 @@ export class FarmerParticipationUseCase {
         consentScopeDecidedAt: consent.acceptedAt,
         consentScopeReceivedAt: now,
         consentScopeSequence: operation.sequence,
+        ...(authorize ? { consentResponsibleVersion: call.responsibleVersion } : {}),
       },
     });
     await tx.jointPurchaseConsentDecision.create({
@@ -421,12 +457,15 @@ export class FarmerParticipationUseCase {
         sequence: operation.sequence,
         operationId: operation.operationId,
         source: "DECISION",
+        responsibleVersion: authorize ? call.responsibleVersion : null,
       },
     });
-    this.logger.log(`[JOINT PURCHASE CONSENT ${scope}] tenant=${context.tenantId} call=${existing.callId} outcome=ACCEPTED`);
+    this.logger.log(
+      `[JOINT PURCHASE CONSENT ${scope}${authorize ? " AUTHORIZE" : ""}] tenant=${context.tenantId} call=${existing.callId} outcome=ACCEPTED`,
+    );
     return record("ACCEPTED", {
       status: 200,
-      body: { outcome: "ACCEPTED", participation: toParticipationView(await current()) } as unknown as Record<string, unknown>,
+      body: { outcome: "ACCEPTED", participation: view(await current()) } as unknown as Record<string, unknown>,
     });
   }
 }
@@ -484,14 +523,14 @@ function toFarmerCallView(row: FarmerCallRow, now: Date): FarmerCallView {
     cancelled_at: iso(row.cancelledAt),
     server_time: now.toISOString(),
     accepts_operations: notOpenReason(row, now) === null,
-    responsible: { name: row.responsible.name },
+    responsible: { name: row.responsible.name, version: row.responsibleVersion },
     products: row.products.map((p) => ({
       product_ref: p.productId,
       name: p.product.name,
       unit: presentationUnit(p.baseUnit),
       base_unit: p.baseUnit,
     })),
-    participation: toParticipationView(row.participations[0] ?? null),
+    participation: toParticipationView(row.participations[0] ?? null, row.responsibleVersion),
     closing: row.closing
       ? {
           cutoff_at: row.closing.cutoffAt.toISOString(),

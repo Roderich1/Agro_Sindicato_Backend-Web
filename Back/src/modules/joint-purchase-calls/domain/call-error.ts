@@ -10,6 +10,16 @@
  * COLLABORATORS_FORBIDDEN (granting or revoking without being the
  * responsible) and 422 COLLABORATOR_NOT_ELIGIBLE (the grantee is not another
  * active DIRECTIVA/ADMINISTRADOR of the tenant; never says why).
+ *
+ * P-A (§12): 403 SUBSTITUTION_FORBIDDEN (granting the substitution permission
+ * without being an eligible ADMINISTRADOR, or substituting without holding
+ * it), 422 GRANTEE_NOT_ELIGIBLE / SUCCESSOR_NOT_ELIGIBLE (never says why),
+ * 409 RESPONSIBLE_STILL_ELIGIBLE (B1: only a responsible who is no longer
+ * eligible is substituted), 409 RESPONSIBLE_CHANGED (the responsible version
+ * is not the one the client saw; carries `responsible_version`), 409
+ * REQUEST_ID_REUSED, 409 DELEGATION_NOT_PENDING and, for the farmer, 409
+ * AUTHORIZATION_REQUIRED (widening before authorizing the current
+ * responsible). Every code fits the 24 characters of the journal.
  */
 export type CallErrorCode =
   | "PAYLOAD_INVALID"
@@ -43,6 +53,14 @@ export type CallErrorCode =
   | "CONSENT_REQUIRED"
   | "PARTICIPATION_REQUIRED"
   | "WIDENING_NOT_ALLOWED"
+  | "SUBSTITUTION_FORBIDDEN"
+  | "GRANTEE_NOT_ELIGIBLE"
+  | "RESPONSIBLE_STILL_ELIGIBLE"
+  | "SUCCESSOR_NOT_ELIGIBLE"
+  | "RESPONSIBLE_CHANGED"
+  | "REQUEST_ID_REUSED"
+  | "AUTHORIZATION_REQUIRED"
+  | "DELEGATION_NOT_PENDING"
   | "PRODUCT_NOT_IN_CALL"
   | "QUANTITY_INVALID"
   | "RATE_LIMITED"
@@ -80,6 +98,14 @@ export const CALL_ERROR_CODES: readonly CallErrorCode[] = [
   "CONSENT_REQUIRED",
   "PARTICIPATION_REQUIRED",
   "WIDENING_NOT_ALLOWED",
+  "SUBSTITUTION_FORBIDDEN",
+  "GRANTEE_NOT_ELIGIBLE",
+  "RESPONSIBLE_STILL_ELIGIBLE",
+  "SUCCESSOR_NOT_ELIGIBLE",
+  "RESPONSIBLE_CHANGED",
+  "REQUEST_ID_REUSED",
+  "AUTHORIZATION_REQUIRED",
+  "DELEGATION_NOT_PENDING",
   "PRODUCT_NOT_IN_CALL",
   "QUANTITY_INVALID",
   "RATE_LIMITED",
@@ -91,6 +117,8 @@ export interface CallErrorExtra {
   reason?: string;
   status?: string;
   participation?: unknown;
+  /** P-A: the current responsible version (RESPONSIBLE_CHANGED). */
+  responsible_version?: number;
 }
 
 export class CallHttpError extends Error {

@@ -72,7 +72,18 @@ export const participationSchema: SchemaObject = closed(
       },
       {
         description:
-          "§10.6 (P-C): alcance vigente del consentimiento. Sólo en el contrato 2 (cabecera X-Joint-Purchase-Contract: 2); las cantidades nunca lo cambian",
+          "§10.6 (P-C): alcance vigente del consentimiento. Sólo en los contratos 2 y 3 (cabecera X-Joint-Purchase-Contract); las cantidades nunca lo cambian",
+      },
+    ),
+    responsible_authorization: closed(
+      ["authorized", "version"],
+      {
+        authorized: { type: "boolean", description: "El agricultor autorizó a la persona responsable actual de la convocatoria" },
+        version: { type: "integer", nullable: true, description: "Versión de la responsabilidad que cubre su autorización; null si ninguna" },
+      },
+      {
+        description:
+          "P-A C1 (§12): sólo en el contrato 3 (cabecera X-Joint-Purchase-Contract: 3). Puede faltar en la respuesta repetida de una operación registrada antes",
       },
     ),
   },
@@ -119,7 +130,10 @@ const farmerCallSchema: SchemaObject = closed(
         cancelled_at: nullableDateTime,
         server_time: dateTime,
         accepts_operations: { type: "boolean" },
-        responsible: closed(["name"], { name: { type: "string" } }),
+        responsible: closed(["name"], {
+          name: { type: "string" },
+          version: { type: "integer", minimum: 1, description: "P-A (§12): versión de la responsabilidad; sólo en el contrato 3" },
+        }),
         products: { type: "array", items: productRef },
         participation: participationSchema,
         closing: closed(
@@ -139,7 +153,7 @@ const consentSchema = closed(["version", "text"], {
   version: {
     type: "string",
     example: "CONV-3",
-    description: "Contrato 2: CONV-3 (vigente). Contrato 1 (teléfonos que no envían la cabecera): CONV-1, el texto que esas versiones muestran",
+    description: "Contratos 2 y 3: CONV-3 (vigente). Contrato 1 (teléfonos que no envían la cabecera): CONV-1, el texto que esas versiones muestran",
   },
   text: { type: "string" },
 });
@@ -147,9 +161,9 @@ const consentSchema = closed(["version", "text"], {
 export const farmerListSchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls"], {
   contractVersion: {
     type: "integer",
-    enum: [1, 2],
+    enum: [1, 2, 3],
     description:
-      "2 con la cabecera X-Joint-Purchase-Contract: 2. Sin ella, la forma del contrato 1 (N7): consentimiento CONV-1, sin history ni consent_scope",
+      "3 con la cabecera X-Joint-Purchase-Contract: 3 (P-A §12); 2 con la cabecera 2 (sin responsible.version ni responsible_authorization). Sin cabecera, la forma del contrato 1 (N7): consentimiento CONV-1, sin history ni consent_scope",
   },
   server_time: dateTime,
   consent: consentSchema,
@@ -164,7 +178,7 @@ export const farmerListSchema: SchemaObject = closed(["contractVersion", "server
 });
 
 export const farmerHistorySchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls", "next_cursor"], {
-  contractVersion: { type: "integer", enum: [1, 2] },
+  contractVersion: { type: "integer", enum: [1, 2, 3] },
   server_time: dateTime,
   consent: consentSchema,
   calls: { type: "array", items: farmerCallSchema, description: "Sólo CLOSED/CANCELLED con participación propia, de la más reciente a la más antigua" },
@@ -173,8 +187,12 @@ export const farmerHistorySchema: SchemaObject = closed(["contractVersion", "ser
 
 const productTotals: Record<string, SchemaObject> = {
   participant_count: { type: "integer" },
-  total_quantity_base: { ...quantity, nullable: true, description: "null bajo el umbral (E2-D7) para quien no es responsable" },
-  visibility: { type: "string", enum: ["VISIBLE", "UNDER_THRESHOLD", "RESPONSIBLE_ONLY"] },
+  total_quantity_base: { ...quantity, nullable: true, description: "null salvo VISIBLE" },
+  visibility: {
+    type: "string",
+    enum: ["VISIBLE", "UNDER_THRESHOLD", "RESPONSIBLE_ONLY", "RESTRICTED"],
+    description: "RESTRICTED (P-A C1): el producto tiene una participación aún no autorizada para la persona responsable actual",
+  },
 };
 
 export const callSummaryListSchema: SchemaObject = closed(["contractVersion", "calls"], {
@@ -241,8 +259,14 @@ export const callDetailSchema: SchemaObject = closed(
     "is_responsible",
     "can_manage",
     "can_cancel_or_close",
+    "delegations_suspended",
     "my_grants",
     "collaborator_count",
+    "has_substitution_permission",
+    "can_substitute_responsible",
+    "pending_delegation_reviews",
+    "pending_authorization_count",
+    "responsible_changes",
     "products",
     "origin",
     "origin_differs_from_current",
@@ -266,11 +290,12 @@ export const callDetailSchema: SchemaObject = closed(
     created_at: dateTime,
     updated_at: dateTime,
     server_time: dateTime,
-    responsible: closed(["user_ref", "name", "role", "eligible"], {
+    responsible: closed(["user_ref", "name", "role", "eligible", "version"], {
       user_ref: { type: "string" },
       name: { type: "string" },
       role: { type: "string", nullable: true, enum: ["DIRECTIVA", "ADMINISTRADOR", "AGRICULTOR"] },
       eligible: { type: "boolean", description: "Cuenta, Member y rol institucional activos (E2-D5)" },
+      version: { type: "integer", minimum: 1, description: "P-A (§12): versión de la responsabilidad; la sube cada sustitución" },
     }),
     created_by: userRef,
     opened_by: nullableUserRef,
@@ -284,10 +309,35 @@ export const callDetailSchema: SchemaObject = closed(
     can_manage: { type: "boolean", description: "Responsable o MANAGE: editar el borrador, abrir, cancelar y cerrar (§10.2)" },
     can_cancel_or_close: {
       type: "boolean",
-      description: "can_manage, o cualquier DIRECTIVA/ADMINISTRADOR si el responsable dejó de ser elegible",
+      description: "Igual a can_manage (N2 rechazada el 2026-11-12: ningún rol cancela ni cierra por defecto)",
     },
+    delegations_suspended: { type: "boolean", description: "m6: la responsable no está habilitada; los permisos que concedió no se ejercen" },
     my_grants: { type: "array", items: { type: "string", enum: ["MANAGE", "PARTICIPANTS"] } },
-    collaborator_count: { type: "integer", description: "Usuarios con algún permiso concedido por el responsable" },
+    collaborator_count: { type: "integer", description: "Usuarios con algún permiso vigente concedido por la responsable" },
+    has_substitution_permission: { type: "boolean", description: "P-A A1: quien consulta tiene «Sustituir responsable» y está habilitada" },
+    can_substitute_responsible: {
+      type: "boolean",
+      description: "P-A B1: tiene el permiso, la responsable ya no está habilitada y la convocatoria no está cancelada",
+    },
+    pending_delegation_reviews: { type: "integer", description: "P-A: delegaciones de una versión anterior pendientes de la revisión de la sucesora" },
+    pending_authorization_count: {
+      type: "integer",
+      description: "P-A C1: participaciones aún no autorizadas para la responsable actual (sólo para quien tiene PARTICIPANTS; 0 en otro caso)",
+    },
+    responsible_changes: {
+      type: "array",
+      description: "P-A: cada sustitución de la persona responsable, de la más antigua a la más reciente (sin datos de agricultores)",
+      items: closed(["version", "at", "previous", "next", "actor", "reason", "call_status", "suspended_delegations"], {
+        version: { type: "integer", minimum: 2 },
+        at: dateTime,
+        previous: userRef,
+        next: userRef,
+        actor: userRef,
+        reason: { type: "string" },
+        call_status: { type: "string", enum: ["DRAFT", "OPEN", "CLOSED"] },
+        suspended_delegations: { type: "integer" },
+      }),
+    },
     products: {
       type: "array",
       items: closed(["position", "product_ref", "name", "unit", "base_unit", "is_active", "reference", "totals"], {
@@ -374,7 +424,18 @@ export const callDetailSchema: SchemaObject = closed(
         at: dateTime,
         kind: {
           type: "string",
-          enum: ["CREATED", "UPDATED", "OPENED", "CLOSED", "CANCELLED", "RESPONSIBLE_ASSIGNED", "ACCESS_GRANTED", "ACCESS_REVOKED"],
+          enum: [
+            "CREATED",
+            "UPDATED",
+            "OPENED",
+            "CLOSED",
+            "CANCELLED",
+            "RESPONSIBLE_ASSIGNED",
+            "ACCESS_GRANTED",
+            "ACCESS_REVOKED",
+            "RESPONSIBLE_REPLACED",
+            "ACCESS_CONFIRMED",
+          ],
         },
         actor: nullableUserRef,
         detail: { type: "string", nullable: true },
@@ -396,10 +457,27 @@ const hiddenFields: Record<string, SchemaObject> = {
     description: "Participaciones cuyo alcance vigente es RESPONSIBLE_ONLY (§10.6), que este colaborador no ve; 0 para el responsable",
   },
   hidden_notice: { type: "string", nullable: true },
+  pending_authorization_count: {
+    type: "integer",
+    description: "P-A C1: participaciones cuyo agricultor aún no autorizó a la responsable actual; nadie las ve por nombre",
+  },
+  pending_authorization_notice: { type: "string", nullable: true },
 };
 
 export const participantsSchema: SchemaObject = closed(
-  ["contractVersion", "call_id", "status", "provisional", "notice", "participant_count", "hidden_participant_count", "hidden_notice", "participants"],
+  [
+    "contractVersion",
+    "call_id",
+    "status",
+    "provisional",
+    "notice",
+    "participant_count",
+    "hidden_participant_count",
+    "hidden_notice",
+    "pending_authorization_count",
+    "pending_authorization_notice",
+    "participants",
+  ],
   {
     contractVersion: { type: "integer", enum: [1] },
     call_id: { type: "string", format: "uuid" },
@@ -439,6 +517,8 @@ export const closingSchema: SchemaObject = closed(
     "participants",
     "hidden_participant_count",
     "hidden_notice",
+    "pending_authorization_count",
+    "pending_authorization_notice",
   ],
   {
     contractVersion: { type: "integer", enum: [1] },
@@ -481,13 +561,15 @@ export const closingSchema: SchemaObject = closed(
 const grantEnum: SchemaObject = { type: "string", enum: ["PARTICIPANTS", "MANAGE"] };
 
 export const collaboratorsSchema: SchemaObject = closed(
-  ["contractVersion", "call_id", "status", "responsible", "can_grant", "collaborators", "history"],
+  ["contractVersion", "call_id", "status", "responsible", "can_grant", "can_review", "responsible_version", "collaborators", "history"],
   {
     contractVersion: { type: "integer", enum: [1] },
     call_id: { type: "string", format: "uuid" },
     status: callStatus,
     responsible: userRef,
     can_grant: { type: "boolean", description: "Sólo el responsable concede y revoca" },
+    can_review: { type: "boolean", description: "P-A: la responsable actual y habilitada revisa las delegaciones de versiones anteriores" },
+    responsible_version: { type: "integer", minimum: 1 },
     collaborators: {
       type: "array",
       items: closed(["user_ref", "name", "role", "grants"], {
@@ -496,11 +578,17 @@ export const collaboratorsSchema: SchemaObject = closed(
         role: { type: "string", nullable: true, enum: ["DIRECTIVA", "ADMINISTRADOR", "AGRICULTOR"] },
         grants: {
           type: "array",
-          items: closed(["grant", "label", "granted_at", "granted_by"], {
+          items: closed(["grant", "label", "granted_at", "granted_by", "status", "responsible_version"], {
             grant: grantEnum,
             label: { type: "string" },
             granted_at: dateTime,
             granted_by: userRef,
+            status: {
+              type: "string",
+              enum: ["IN_FORCE", "SUSPENDED", "PENDING_REVIEW"],
+              description: "SUSPENDED: la responsable no está habilitada (m6); PENDING_REVIEW: concedida con una versión anterior (P-A)",
+            },
+            responsible_version: { type: "integer", minimum: 1 },
           }),
         },
       }),
@@ -509,7 +597,7 @@ export const collaboratorsSchema: SchemaObject = closed(
       type: "array",
       items: closed(["at", "action", "grant", "user", "actor"], {
         at: dateTime,
-        action: { type: "string", enum: ["GRANTED", "REVOKED"] },
+        action: { type: "string", enum: ["GRANTED", "REVOKED", "SUSPENDED", "CONFIRMED"] },
         grant: grantEnum,
         user: userRef,
         actor: userRef,
@@ -527,6 +615,35 @@ export const eligibleResponsiblesSchema: SchemaObject = closed(["contractVersion
       user_ref: { type: "string" },
       name: { type: "string" },
       role: { type: "string", enum: ["DIRECTIVA", "ADMINISTRADOR"] },
+    }),
+  },
+});
+
+/** P-A A1 (§12): `GET|POST /joint-purchase-substitution-permissions`. */
+export const substitutionPermissionsSchema: SchemaObject = closed(["contractVersion", "can_grant", "holds_permission", "holders", "history"], {
+  contractVersion: { type: "integer", enum: [1] },
+  can_grant: { type: "boolean", description: "Sólo una persona ADMINISTRADOR habilitada concede y revoca" },
+  holds_permission: { type: "boolean", description: "Quien consulta tiene el permiso y está habilitada" },
+  holders: {
+    type: "array",
+    items: closed(["user_ref", "name", "role", "eligible", "granted_at", "granted_by", "reason"], {
+      user_ref: { type: "string" },
+      name: { type: "string" },
+      role: { type: "string", nullable: true, enum: ["DIRECTIVA", "ADMINISTRADOR", "AGRICULTOR"] },
+      eligible: { type: "boolean", description: "Habilitada ahora; si no, el permiso no se ejerce" },
+      granted_at: dateTime,
+      granted_by: userRef,
+      reason: { type: "string" },
+    }),
+  },
+  history: {
+    type: "array",
+    items: closed(["at", "action", "user", "actor", "reason"], {
+      at: dateTime,
+      action: { type: "string", enum: ["GRANTED", "REVOKED"] },
+      user: userRef,
+      actor: userRef,
+      reason: { type: "string", nullable: true },
     }),
   },
 });

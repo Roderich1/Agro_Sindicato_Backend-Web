@@ -41,6 +41,13 @@ export interface ParticipationView {
    * removes it for phones that do not ask for it.
    */
   consent_scope?: { scope: "RESPONSIBLE_ONLY" | "COLLABORATORS"; version: string; decided_at: string; received_at: string; sequence: number };
+  /**
+   * P-A C1 (§12, contract 3 only): whether the farmer authorized the call's
+   * CURRENT responsible (`authorized`) and which responsible version the
+   * farmer's authorization covers (`version`, null if none). Filled by the
+   * caller, which knows the call; removed for contracts 1 and 2.
+   */
+  responsible_authorization?: { authorized: boolean; version: number | null };
 }
 
 export interface ParticipationRow {
@@ -56,10 +63,16 @@ export interface ParticipationRow {
   consentScopeDecidedAt: Date;
   consentScopeReceivedAt: Date;
   consentScopeSequence: number;
+  consentResponsibleVersion: number | null;
   lines: { productId: string; baseUnit: SyncV1BaseUnit; quantityBase: bigint }[];
 }
 
-export function toParticipationView(row: ParticipationRow | null): ParticipationView | null {
+/**
+ * The farmer's own participation. `responsibleVersion` is the call's current
+ * one (P-A C1); without it the view carries no authorization (callers that
+ * answer an operation always pass it).
+ */
+export function toParticipationView(row: ParticipationRow | null, responsibleVersion?: number): ParticipationView | null {
   if (!row) return null;
   return {
     status: row.status,
@@ -85,6 +98,14 @@ export function toParticipationView(row: ParticipationRow | null): Participation
       received_at: row.consentScopeReceivedAt.toISOString(),
       sequence: row.consentScopeSequence,
     },
+    ...(responsibleVersion !== undefined
+      ? {
+          responsible_authorization: {
+            authorized: row.consentResponsibleVersion === responsibleVersion,
+            version: row.consentResponsibleVersion,
+          },
+        }
+      : {}),
   };
 }
 
@@ -115,7 +136,8 @@ export interface FarmerCallView {
   server_time: string;
   /** OPEN and `server_time < deadline_at`: an operation sent now can be accepted. */
   accepts_operations: boolean;
-  responsible: { name: string };
+  /** P-A (§12): `version` only in contract 3 (the version of the responsibility now). */
+  responsible: { name: string; version?: number };
   products: CallProductView[];
   participation: ParticipationView | null;
   closing: FarmerClosingView | null;
@@ -217,7 +239,7 @@ export interface CallDetailView {
   created_at: string;
   updated_at: string;
   server_time: string;
-  responsible: UserRefView & { role: UserRole | null; eligible: boolean };
+  responsible: UserRefView & { role: UserRole | null; eligible: boolean; version: number };
   created_by: UserRefView;
   opened_by: UserRefView | null;
   cancelled_by: UserRefView | null;
@@ -236,14 +258,35 @@ export interface CallDetailView {
   delegations_suspended: boolean;
   /** Grants this user holds now (the responsible holds MANAGE by being the responsible). */
   my_grants: ("MANAGE" | "PARTICIPANTS")[];
-  /** Users with a grant from the responsible now (never farmers). */
+  /** Users with a grant in force from the responsible now (never farmers). */
   collaborator_count: number;
+  /** P-A A1: this user holds «Sustituir responsable» and is eligible. */
+  has_substitution_permission: boolean;
+  /** P-A B1: holds the permission, the responsible is not eligible and the call is not cancelled. */
+  can_substitute_responsible: boolean;
+  /** P-A §12: delegations of earlier responsible versions waiting for the successor's review. */
+  pending_delegation_reviews: number;
+  /** P-A C1: participations not yet authorized for the current responsible (a count, only for whoever holds PARTICIPANTS; 0 otherwise). */
+  pending_authorization_count: number;
+  /** P-A §12: every substitution of the responsible, oldest first (no farmer data). */
+  responsible_changes: ResponsibleChangeView[];
   products: InstitutionalCallProductView[];
   /** E3-P2: null for calls created before the origin was recorded (never reconstructed). */
   origin: CallOriginView | null;
   /** The current products (any order) are not those of the origin; false without an origin. */
   origin_differs_from_current: boolean;
   history: HistoryEntryView[];
+}
+
+export interface ResponsibleChangeView {
+  version: number;
+  at: string;
+  previous: UserRefView;
+  next: UserRefView;
+  actor: UserRefView;
+  reason: string;
+  call_status: JointPurchaseCallStatus;
+  suspended_delegations: number;
 }
 
 export interface ParticipantView {
@@ -265,6 +308,9 @@ export interface ParticipantsView {
   /** §10.2: CONV-1 participations a collaborator may not see by name (0 for the responsible). */
   hidden_participant_count: number;
   hidden_notice: string | null;
+  /** P-A C1: participations whose farmer has not authorized the current responsible (shown to nobody by name). */
+  pending_authorization_count: number;
+  pending_authorization_notice: string | null;
   participants: ParticipantView[];
 }
 
@@ -301,6 +347,8 @@ export interface ClosingView {
   /** §10.2: frozen participations hidden from this collaborator (0 otherwise). */
   hidden_participant_count: number;
   hidden_notice: string | null;
+  pending_authorization_count: number;
+  pending_authorization_notice: string | null;
 }
 
 // ------------------------------------------------------------ collaborators (§10.2)
@@ -310,6 +358,9 @@ export interface CollaboratorGrantView {
   label: string;
   granted_at: string;
   granted_by: UserRefView;
+  /** m6 / P-A §12: IN_FORCE, SUSPENDED (responsible not eligible) or PENDING_REVIEW (earlier responsible version). */
+  status: "IN_FORCE" | "SUSPENDED" | "PENDING_REVIEW";
+  responsible_version: number;
 }
 
 export interface CollaboratorView {
@@ -321,7 +372,7 @@ export interface CollaboratorView {
 
 export interface AccessHistoryEntryView {
   at: string;
-  action: "GRANTED" | "REVOKED";
+  action: "GRANTED" | "REVOKED" | "SUSPENDED" | "CONFIRMED";
   grant: "PARTICIPANTS" | "MANAGE";
   user: UserRefView;
   actor: UserRefView;
@@ -334,6 +385,9 @@ export interface CollaboratorsView {
   responsible: UserRefView;
   /** Only the responsible grants and revokes. */
   can_grant: boolean;
+  /** P-A §12: the current, eligible responsible reviews the delegations of earlier versions. */
+  can_review: boolean;
+  responsible_version: number;
   collaborators: CollaboratorView[];
   history: AccessHistoryEntryView[];
 }
@@ -350,12 +404,54 @@ export function hiddenNotice(count: number): string | null {
     : `${count} participaciones autorizadas sólo para la persona responsable: sólo las ve ella.`;
 }
 
+/** P-A C1: never names anyone; the count is of participations, not of persons per product. */
+export function pendingAuthorizationNotice(count: number): string | null {
+  if (count === 0) return null;
+  return count === 1
+    ? "1 participación pendiente de que su agricultor autorice a la persona responsable actual: sus datos no se muestran."
+    : `${count} participaciones pendientes de que sus agricultores autoricen a la persona responsable actual: sus datos no se muestran.`;
+}
+
 export const CLOSING_LABEL = "Consolidado al cierre: cantidades solicitadas";
 export const PROVISIONAL_NOTICE = "Lista provisional: puede cambiar hasta el cierre";
 export const REFERENCE_DISCLOSED_LABEL = "Cifra divulgada en el borrador";
 export const REFERENCE_NO_FIGURE_LABEL = "Sin cifra";
 
 export { iso };
+
+// ------------------------------------------------- contract 2 (P-A, 2026-11-12)
+
+/**
+ * P-A C1: the answer for phones that send `X-Joint-Purchase-Contract: 2`
+ * (the §10.6 versions, which validate keys strictly): the same data without
+ * the keys of contract 3 (`responsible.version`, `responsible_authorization`).
+ * Those versions cannot authorize a successor; the server keeps the
+ * participation restricted for her (§12) and never reads one of their
+ * operations as an authorization.
+ */
+export function toContract2FarmerBody(body: unknown): unknown {
+  if (!body || typeof body !== "object") return body;
+  const out: Record<string, unknown> = { ...(body as Record<string, unknown>) };
+  if (out.contractVersion === 3) out.contractVersion = 2;
+  if (Array.isArray(out.calls)) {
+    out.calls = (out.calls as Record<string, unknown>[]).map((call) => {
+      const responsible = call.responsible as Record<string, unknown> | undefined;
+      return {
+        ...call,
+        ...(responsible ? { responsible: { name: responsible.name } } : {}),
+        participation: contract2Participation(call.participation),
+      };
+    });
+  }
+  if ("participation" in out) out.participation = contract2Participation(out.participation);
+  return out;
+}
+
+function contract2Participation(participation: unknown): unknown {
+  if (!participation || typeof participation !== "object") return participation;
+  const { responsible_authorization: _authorization, ...rest } = participation as Record<string, unknown>;
+  return rest;
+}
 
 // ------------------------------------------------- contract 1 (N7, 2026-11-12)
 
@@ -373,7 +469,7 @@ export { iso };
  */
 export function toLegacyFarmerBody(body: unknown): unknown {
   if (!body || typeof body !== "object") return body;
-  const source = body as Record<string, unknown>;
+  const source = toContract2FarmerBody(body) as Record<string, unknown>;
   const out: Record<string, unknown> = { ...source };
   if ("contractVersion" in out) out.contractVersion = 1;
   if ("consent" in out && "calls" in out) out.consent = { version: CONSENT_V1_VERSION_LEGACY, text: CONSENT_V1_TEXT_LEGACY };

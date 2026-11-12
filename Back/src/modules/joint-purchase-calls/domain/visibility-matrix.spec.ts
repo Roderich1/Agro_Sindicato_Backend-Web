@@ -45,6 +45,7 @@ const MATRIX: Row[] = [
 function participations(scopes: Row[3], persons: number): ParticipationForVisibility[] {
   return Array.from({ length: persons }, (_, index) => ({
     consentScope: scopes === "SOME_RESPONSIBLE_ONLY" && index === 0 ? "RESPONSIBLE_ONLY" : "COLLABORATORS",
+    authorizedForResponsible: true,
     productIds: ["p"],
   }));
 }
@@ -61,10 +62,10 @@ describe("N3 / §10.3 matrix: consent × permission now × access before × stat
   it("is per product: in the same closing, a former collaborator keeps the total of the product without hidden participations", () => {
     const visibility = new CallVisibility({ kind: "NONE", formerParticipantsHolder: true }, scopeCoversCollaborators);
     const hiddenInA: ParticipationForVisibility[] = [
-      { consentScope: "RESPONSIBLE_ONLY", productIds: ["A"] },
-      { consentScope: "COLLABORATORS", productIds: ["A", "B"] },
-      { consentScope: "COLLABORATORS", productIds: ["A", "B"] },
-      { consentScope: "COLLABORATORS", productIds: ["B"] },
+      { consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true, productIds: ["A"] },
+      { consentScope: "COLLABORATORS", authorizedForResponsible: true, productIds: ["A", "B"] },
+      { consentScope: "COLLABORATORS", authorizedForResponsible: true, productIds: ["A", "B"] },
+      { consentScope: "COLLABORATORS", authorizedForResponsible: true, productIds: ["B"] },
     ];
     const of = (product: string) => hiddenInA.filter((p) => p.productIds.includes(product));
     expect(visibility.productTotal(900n, 3, of("A"), "CLOSING").visibility).toBe("RESPONSIBLE_ONLY");
@@ -79,9 +80,70 @@ describe("N3 / §10.3 matrix: consent × permission now × access before × stat
 
   it("identified participants follow the scope in force: a reduction hides the farmer from collaborators from the next reading", () => {
     const collaborator = new CallVisibility({ kind: "COLLABORATOR", formerParticipantsHolder: true }, scopeCoversCollaborators);
-    expect(collaborator.canSeeParticipation("COLLABORATORS")).toBe(true);
-    expect(collaborator.canSeeParticipation("RESPONSIBLE_ONLY")).toBe(false);
+    expect(collaborator.canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: true })).toBe(true);
+    expect(collaborator.canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true })).toBe(false);
     const responsible = new CallVisibility({ kind: "RESPONSIBLE", formerParticipantsHolder: false }, scopeCoversCollaborators);
-    expect(responsible.canSeeParticipation("RESPONSIBLE_ONLY")).toBe(true);
+    expect(responsible.canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true })).toBe(true);
+  });
+});
+
+/**
+ * P-A C1 (§12): after a substitution, a participation whose farmer has not
+ * authorized the current responsible is seen by nobody, and the total of a
+ * product that contains one is RESTRICTED for the responsible and her
+ * collaborators. Viewers without the permission keep the rules above (live:
+ * nothing; closing: the threshold, or RESPONSIBLE_ONLY for a former holder).
+ */
+type PendingRow = [CallViewer["kind"], boolean, "LIVE" | "CLOSING", "ALL_AUTHORIZED" | "ONE_PENDING", number, TotalVisibility];
+
+const PENDING_MATRIX: PendingRow[] = [
+  ["RESPONSIBLE", false, "LIVE", "ALL_AUTHORIZED", 2, "VISIBLE"],
+  ["RESPONSIBLE", false, "LIVE", "ONE_PENDING", 3, "RESTRICTED"],
+  ["RESPONSIBLE", false, "CLOSING", "ONE_PENDING", 5, "RESTRICTED"],
+  ["RESPONSIBLE", false, "CLOSING", "ALL_AUTHORIZED", 1, "VISIBLE"],
+  ["COLLABORATOR", true, "LIVE", "ONE_PENDING", 3, "RESTRICTED"],
+  ["COLLABORATOR", true, "CLOSING", "ONE_PENDING", 3, "RESTRICTED"],
+  ["COLLABORATOR", true, "CLOSING", "ALL_AUTHORIZED", 3, "VISIBLE"],
+  ["NONE", false, "LIVE", "ONE_PENDING", 5, "RESPONSIBLE_ONLY"],
+  ["NONE", false, "CLOSING", "ONE_PENDING", 3, "VISIBLE"],
+  ["NONE", false, "CLOSING", "ONE_PENDING", 2, "UNDER_THRESHOLD"],
+  ["NONE", true, "CLOSING", "ONE_PENDING", 3, "VISIBLE"],
+];
+
+function pendingParticipations(kind: PendingRow[3], persons: number): ParticipationForVisibility[] {
+  return Array.from({ length: persons }, (_, index) => ({
+    consentScope: "COLLABORATORS",
+    authorizedForResponsible: !(kind === "ONE_PENDING" && index === 0),
+    productIds: ["p"],
+  }));
+}
+
+describe("P-A C1 matrix: authorization of the current responsible × permission × state", () => {
+  it.each(PENDING_MATRIX)("%s, held before=%s, %s, %s, %d persons → %s", (kind, formerParticipantsHolder, source, pending, persons, expected) => {
+    const visibility = new CallVisibility({ kind, formerParticipantsHolder }, scopeCoversCollaborators);
+    const total = visibility.productTotal(1000n, persons, pendingParticipations(pending, persons), source);
+    expect(total.visibility).toBe(expected);
+    expect(total.participant_count).toBe(persons);
+    expect(total.total_quantity_base).toBe(expected === "VISIBLE" ? "1000" : null);
+  });
+
+  it("nobody sees by name a participation not authorized for the current responsible, whatever its scope", () => {
+    for (const kind of ["RESPONSIBLE", "COLLABORATOR", "NONE"] as const) {
+      const visibility = new CallVisibility({ kind, formerParticipantsHolder: false }, scopeCoversCollaborators);
+      expect(visibility.canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: false })).toBe(false);
+      expect(visibility.canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: false })).toBe(false);
+    }
+  });
+
+  it("counts pending authorizations only for whoever holds the permission, and never mixes them with the scope-hidden ones", () => {
+    const rows = [
+      { consentScope: "COLLABORATORS", authorizedForResponsible: false },
+      { consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true },
+      { consentScope: "COLLABORATORS", authorizedForResponsible: true },
+    ];
+    const of = (kind: CallViewer["kind"]) => new CallVisibility({ kind, formerParticipantsHolder: false }, scopeCoversCollaborators);
+    expect([of("RESPONSIBLE").pendingAuthorizationCount(rows), of("RESPONSIBLE").hiddenCount(rows)]).toEqual([1, 0]);
+    expect([of("COLLABORATOR").pendingAuthorizationCount(rows), of("COLLABORATOR").hiddenCount(rows)]).toEqual([1, 1]);
+    expect([of("NONE").pendingAuthorizationCount(rows), of("NONE").hiddenCount(rows)]).toEqual([0, 0]);
   });
 });

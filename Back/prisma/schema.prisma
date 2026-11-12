@@ -250,6 +250,9 @@ model Tenant {
   proposalEstimationLinks  JointPurchaseProposalEstimationLink[]
   proposalSelections       JointPurchaseProposalSelection[]
   callOrigins              JointPurchaseCallOrigin[]
+  substitutionGrants       JointPurchaseSubstitutionGrant[]
+  substitutionGrantEvents  JointPurchaseSubstitutionGrantEvent[]
+  responsibleChanges       JointPurchaseResponsibleChange[]
 }
 
 model User {
@@ -310,6 +313,13 @@ model User {
   proposalEstimationLinks   JointPurchaseProposalEstimationLink[] @relation("JointPurchaseProposalEstimationLinkAuthor")
   proposalSelections        JointPurchaseProposalSelection[]      @relation("JointPurchaseProposalSelectionEditor")
   callOrigins               JointPurchaseCallOrigin[]             @relation("JointPurchaseCallOriginRecorder")
+  substitutionGrantsHeld    JointPurchaseSubstitutionGrant[]      @relation("SubstitutionGrantHolder")
+  substitutionGrantsGiven   JointPurchaseSubstitutionGrant[]      @relation("SubstitutionGrantGrantor")
+  substitutionEventsAbout   JointPurchaseSubstitutionGrantEvent[] @relation("SubstitutionGrantEventSubject")
+  substitutionEventsActed   JointPurchaseSubstitutionGrantEvent[] @relation("SubstitutionGrantEventActor")
+  responsibleChangesFrom    JointPurchaseResponsibleChange[]      @relation("ResponsibleChangePrevious")
+  responsibleChangesTo      JointPurchaseResponsibleChange[]      @relation("ResponsibleChangeNew")
+  responsibleChangesActed   JointPurchaseResponsibleChange[]      @relation("ResponsibleChangeActor")
 }
 
 model Member {
@@ -1698,12 +1708,18 @@ enum JointPurchaseCallEventKind {
   /// E2-P3 (§10.2): concesión y revocación de permisos de colaboradores.
   ACCESS_GRANTED
   ACCESS_REVOKED
+  /// P-A (§12): sustitución de la persona responsable y revisión de delegaciones.
+  RESPONSIBLE_REPLACED
+  ACCESS_CONFIRMED
 }
 
 /// E2-P3 (§10.2): acción registrada en JointPurchaseCallAccessEvent.
 enum JointPurchaseCallAccessAction {
   GRANTED
   REVOKED
+  /// P-A (§12): suspendida al sustituir a la responsable; confirmada por la sucesora.
+  SUSPENDED
+  CONFIRMED
 }
 
 enum JointPurchaseParticipationStatus {
@@ -1719,41 +1735,46 @@ enum JointPurchaseCallCloseMode {
 /// E2-D1/D2: convocatoria; nombre, fecha límite, responsable y productos no
 /// cambian después de abrir (CHECK de estados coherentes en la migración).
 model JointPurchaseCall {
-  id                String                  @id @default(uuid()) @db.Uuid
-  tenantId          String
-  campaignId        String
-  name              String                  @db.VarChar(120)
-  status            JointPurchaseCallStatus @default(DRAFT)
-  deadlineAt        DateTime
-  responsibleUserId String
-  sourceProposalId  String?                 @db.Uuid
-  createdByUserId   String
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  openedAt          DateTime?
-  openedByUserId    String?
-  closedAt          DateTime?
-  cancelledAt       DateTime?
-  cancelledByUserId String?
-  cancelReason      String?                 @db.VarChar(280)
+  id                 String                  @id @default(uuid()) @db.Uuid
+  tenantId           String
+  campaignId         String
+  name               String                  @db.VarChar(120)
+  status             JointPurchaseCallStatus @default(DRAFT)
+  deadlineAt         DateTime
+  responsibleUserId  String
+  sourceProposalId   String?                 @db.Uuid
+  createdByUserId    String
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  openedAt           DateTime?
+  openedByUserId     String?
+  closedAt           DateTime?
+  cancelledAt        DateTime?
+  cancelledByUserId  String?
+  cancelReason       String?                 @db.VarChar(280)
+  /// P-A (§12): versión de la responsabilidad; empieza en 1 y sólo la sube una
+  /// sustitución (JointPurchaseResponsibleChange). Las autorizaciones de los
+  /// agricultores y las delegaciones se atan a una versión concreta.
+  responsibleVersion Int                     @default(1)
 
-  tenant           Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign         AgriculturalCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  responsible      User                                  @relation("JointPurchaseCallResponsible", fields: [responsibleUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  createdBy        User                                  @relation("JointPurchaseCallCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  openedBy         User?                                 @relation("JointPurchaseCallOpener", fields: [openedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  cancelledBy      User?                                 @relation("JointPurchaseCallCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sourceProposal   JointPurchaseProposal?                @relation(fields: [sourceProposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  products         JointPurchaseCallProduct[]
-  participations   JointPurchaseParticipation[]
-  operations       JointPurchaseParticipationOperation[]
-  consentDecisions JointPurchaseConsentDecision[]
-  events           JointPurchaseCallEvent[]
-  access           JointPurchaseCallAccess[]
-  accessEvents     JointPurchaseCallAccessEvent[]
-  closing          JointPurchaseCallClosing?
+  tenant             Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign           AgriculturalCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  responsible        User                                  @relation("JointPurchaseCallResponsible", fields: [responsibleUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy          User                                  @relation("JointPurchaseCallCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  openedBy           User?                                 @relation("JointPurchaseCallOpener", fields: [openedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  cancelledBy        User?                                 @relation("JointPurchaseCallCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProposal     JointPurchaseProposal?                @relation(fields: [sourceProposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  products           JointPurchaseCallProduct[]
+  participations     JointPurchaseParticipation[]
+  operations         JointPurchaseParticipationOperation[]
+  consentDecisions   JointPurchaseConsentDecision[]
+  events             JointPurchaseCallEvent[]
+  access             JointPurchaseCallAccess[]
+  accessEvents       JointPurchaseCallAccessEvent[]
+  closing            JointPurchaseCallClosing?
   /// E3-P2: productos y procedencia con que se creó (sólo inserción); NULL antes de la migración.
-  origin           JointPurchaseCallOrigin?
+  origin             JointPurchaseCallOrigin?
+  responsibleChanges JointPurchaseResponsibleChange[]
 
   @@index([tenantId, campaignId, status])
   @@index([status, deadlineAt])
@@ -1787,11 +1808,15 @@ model JointPurchaseCallProduct {
 /// Ningún rol los concede por sí solo. Revocar borra la fila; la traza queda
 /// en JointPurchaseCallAccessEvent.
 model JointPurchaseCallAccess {
-  callId          String   @db.Uuid
-  userId          String
-  grant           String   @db.VarChar(16)
-  grantedAt       DateTime @default(now())
-  grantedByUserId String?
+  callId             String   @db.Uuid
+  userId             String
+  grant              String   @db.VarChar(16)
+  grantedAt          DateTime @default(now())
+  grantedByUserId    String?
+  /// P-A (§12): versión de la responsabilidad con que se concedió. Una
+  /// delegación de otra versión queda suspendida hasta que la sucesora la
+  /// revise (la confirma con una fila nueva o la retira).
+  responsibleVersion Int      @default(1)
 
   call      JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   user      User              @relation("JointPurchaseCallAccessHolder", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1822,27 +1847,33 @@ model JointPurchaseCallAccessEvent {
 /// E2-D8/D9: una participación por (convocatoria, Member), con el
 /// consentimiento CONV-1 aceptado en el teléfono y recibido por el servidor.
 model JointPurchaseParticipation {
-  id                     String                           @id @default(uuid()) @db.Uuid
-  callId                 String                           @db.Uuid
-  tenantId               String
-  memberId               String
-  status                 JointPurchaseParticipationStatus
-  consentVersion         String                           @db.VarChar(16)
-  consentAcceptedAt      DateTime
-  consentReceivedAt      DateTime
-  lastSequence           Int
-  lastOperationId        String                           @db.Uuid
-  acceptedAt             DateTime
-  createdAt              DateTime                         @default(now())
-  updatedAt              DateTime                         @updatedAt
+  id                        String                           @id @default(uuid()) @db.Uuid
+  callId                    String                           @db.Uuid
+  tenantId                  String
+  memberId                  String
+  status                    JointPurchaseParticipationStatus
+  consentVersion            String                           @db.VarChar(16)
+  consentAcceptedAt         DateTime
+  consentReceivedAt         DateTime
+  lastSequence              Int
+  lastOperationId           String                           @db.Uuid
+  acceptedAt                DateTime
+  createdAt                 DateTime                         @default(now())
+  updatedAt                 DateTime                         @updatedAt
   /// §10.6 (P-C): alcance vigente del consentimiento, fijado por la última
   /// decisión aceptada (orden propio, 0 = la aceptación inicial). Las
   /// cantidades nunca lo cambian.
-  consentScope           JointPurchaseConsentScope
-  consentScopeVersion    String                           @db.VarChar(16)
-  consentScopeDecidedAt  DateTime
-  consentScopeReceivedAt DateTime
-  consentScopeSequence   Int                              @default(0)
+  consentScope              JointPurchaseConsentScope
+  consentScopeVersion       String                           @db.VarChar(16)
+  consentScopeDecidedAt     DateTime
+  consentScopeReceivedAt    DateTime
+  consentScopeSequence      Int                              @default(0)
+  /// P-A C1 (§12): versión de la responsabilidad que autorizó el agricultor.
+  /// Sólo coincide con la de la convocatoria si autorizó a la responsable
+  /// actual; NULL = ninguna comprobable (p. ej., primera confirmación de una
+  /// versión anterior de la app después de una sustitución). Las cantidades
+  /// nunca la cambian.
+  consentResponsibleVersion Int?
 
   call      JointPurchaseCall                @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   tenant    Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1864,17 +1895,20 @@ enum JointPurchaseConsentScope {
 /// reducción explícita (DECISION, con su operation_id) y el alcance que ya
 /// tenían las participaciones anteriores a la migración (MIGRATED).
 model JointPurchaseConsentDecision {
-  id              String                    @id @default(uuid()) @db.Uuid
-  participationId String                    @db.Uuid
-  callId          String                    @db.Uuid
-  memberId        String
-  scope           JointPurchaseConsentScope
-  consentVersion  String                    @db.VarChar(16)
-  decidedAt       DateTime
-  receivedAt      DateTime
-  sequence        Int
-  operationId     String?                   @db.Uuid
-  source          String                    @db.VarChar(16)
+  id                 String                    @id @default(uuid()) @db.Uuid
+  participationId    String                    @db.Uuid
+  callId             String                    @db.Uuid
+  memberId           String
+  scope              JointPurchaseConsentScope
+  consentVersion     String                    @db.VarChar(16)
+  decidedAt          DateTime
+  receivedAt         DateTime
+  sequence           Int
+  operationId        String?                   @db.Uuid
+  source             String                    @db.VarChar(16)
+  /// P-A C1 (§12): versión de la responsabilidad que esta decisión autoriza
+  /// (INITIAL o una autorización explícita); NULL si no autoriza a ninguna.
+  responsibleVersion Int?
 
   participation JointPurchaseParticipation @relation(fields: [participationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   call          JointPurchaseCall          @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -2081,4 +2115,69 @@ model JointPurchaseCallOriginProduct {
 
   @@id([callId, position])
   @@unique([callId, productId])
+}
+
+/// P-A A1 (§12, decisión del autor del 2026-11-12): permiso del sindicato
+/// «Sustituir responsable», concedido por una persona ADMINISTRADOR habilitada
+/// a una persona concreta y habilitada de la Directiva o la Administración del
+/// mismo sindicato, nunca a sí misma ni a un rol entero. Revocar borra la fila;
+/// la traza queda en JointPurchaseSubstitutionGrantEvent. Sólo permite
+/// sustituir responsables (B1): no da acceso a participantes ni administración.
+model JointPurchaseSubstitutionGrant {
+  tenantId        String
+  userId          String
+  grantedByUserId String
+  grantedAt       DateTime
+  reason          String   @db.VarChar(280)
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user      User   @relation("SubstitutionGrantHolder", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  grantedBy User   @relation("SubstitutionGrantGrantor", fields: [grantedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([tenantId, userId])
+}
+
+/// P-A A1: registro sólo de inserción de cada concesión y revocación del permiso.
+model JointPurchaseSubstitutionGrantEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String
+  userId      String
+  action      String   @db.VarChar(16)
+  actorUserId String
+  at          DateTime
+  reason      String?  @db.VarChar(280)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user   User   @relation("SubstitutionGrantEventSubject", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor  User   @relation("SubstitutionGrantEventActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([tenantId, at])
+}
+
+/// P-A B1 (§12): cada sustitución de la persona responsable, sólo de
+/// inserción. `version` es la versión nueva de la responsabilidad;
+/// `requestId`/`requestHash` hacen idempotente el reintento.
+model JointPurchaseResponsibleChange {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  callId               String                  @db.Uuid
+  tenantId             String
+  version              Int
+  previousUserId       String
+  newUserId            String
+  actorUserId          String
+  reason               String                  @db.VarChar(280)
+  at                   DateTime
+  callStatus           JointPurchaseCallStatus
+  suspendedDelegations Int
+  requestId            String                  @db.Uuid
+  requestHash          String                  @db.Char(64)
+
+  call     JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previous User              @relation("ResponsibleChangePrevious", fields: [previousUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  next     User              @relation("ResponsibleChangeNew", fields: [newUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor    User              @relation("ResponsibleChangeActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([callId, version])
+  @@unique([callId, requestId])
 }

@@ -37,7 +37,7 @@ export class CallClosingService {
     tenantId: string,
     callId: string,
     actorUserId: string,
-    authorize?: (tx: Tx, call: { id: string; tenantId: string; responsibleUserId: string }) => Promise<void>,
+    authorize?: (tx: Tx, call: { id: string; tenantId: string; responsibleUserId: string; responsibleVersion: number }) => Promise<void>,
   ): Promise<CloseOutcome> {
     return this.prisma.$transaction(async (tx) => {
       if (!(await lockCallRow(tx, tenantId, callId))) throw new CallHttpError(404, "CALL_NOT_FOUND");
@@ -166,6 +166,7 @@ const CALL_SELECT = {
   id: true,
   tenantId: true,
   responsibleUserId: true,
+  responsibleVersion: true,
   campaignId: true,
   name: true,
   status: true,

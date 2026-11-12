@@ -3,7 +3,12 @@ import { PROVISIONAL_THRESHOLD } from "@/modules/collective/domain/disclosure-po
 /** E2-P1: today the provisional threshold of F07 (k = 3). */
 export const CALL_TOTALS_THRESHOLD = PROVISIONAL_THRESHOLD;
 
-export type TotalVisibility = "VISIBLE" | "UNDER_THRESHOLD" | "RESPONSIBLE_ONLY";
+/**
+ * `RESTRICTED` (P-A C1, §12): the product has a participation whose farmer
+ * has not authorized the current responsible yet; neither she nor her
+ * collaborators get its total (it would be derived from data she may not see).
+ */
+export type TotalVisibility = "VISIBLE" | "UNDER_THRESHOLD" | "RESPONSIBLE_ONLY" | "RESTRICTED";
 
 export interface ProductTotalView {
   participant_count: number;
@@ -62,9 +67,15 @@ export interface CallViewer {
   formerParticipantsHolder: boolean;
 }
 
-/** One participation as the rule needs it: its consent scope in force (§10.6) and the products it asks for. */
+/**
+ * One participation as the rule needs it: its consent scope in force (§10.6),
+ * whether its farmer authorized the CURRENT responsible version (P-A C1:
+ * `consentResponsibleVersion === call.responsibleVersion`) and the products
+ * it asks for.
+ */
 export interface ParticipationForVisibility {
   consentScope: string;
+  authorizedForResponsible: boolean;
   productIds: readonly string[];
 }
 
@@ -91,17 +102,34 @@ export class CallVisibility {
     private readonly threshold = CALL_TOTALS_THRESHOLD,
   ) {}
 
-  /** Identified participants: all for the responsible, `COLLABORATORS` ones for a collaborator, none otherwise. */
-  canSeeParticipation(consentScope: string): boolean {
+  /**
+   * Identified participants. P-A C1: nobody sees a participation whose farmer
+   * has not authorized the current responsible. Among the authorized ones:
+   * all for the responsible, `COLLABORATORS` ones for a collaborator, none
+   * otherwise.
+   */
+  canSeeParticipation(p: Pick<ParticipationForVisibility, "consentScope" | "authorizedForResponsible">): boolean {
+    if (!p.authorizedForResponsible) return false;
     if (this.viewer.kind === "RESPONSIBLE") return true;
-    if (this.viewer.kind === "COLLABORATOR") return this.coversCollaborators(consentScope);
+    if (this.viewer.kind === "COLLABORATOR") return this.coversCollaborators(p.consentScope);
     return false;
   }
 
-  /** How many of these participations this viewer may not see by name (0 for the responsible). */
-  hiddenCount(participations: readonly ParticipationForVisibility[]): number {
+  /** Authorized participations a collaborator may not see by name (scope `RESPONSIBLE_ONLY`; 0 for the responsible). */
+  hiddenCount(participations: readonly Pick<ParticipationForVisibility, "consentScope" | "authorizedForResponsible">[]): number {
     if (this.viewer.kind !== "COLLABORATOR") return 0;
-    return participations.filter((p) => !this.canSeeParticipation(p.consentScope)).length;
+    return participations.filter((p) => p.authorizedForResponsible && !this.coversCollaborators(p.consentScope)).length;
+  }
+
+  /**
+   * P-A C1: participations still waiting for their farmer to authorize the
+   * current responsible, as a count for whoever holds PARTICIPANTS (the
+   * responsible and her collaborators); 0 for anyone else, who sees no
+   * identified participant anyway.
+   */
+  pendingAuthorizationCount(participations: readonly Pick<ParticipationForVisibility, "authorizedForResponsible">[]): number {
+    if (this.viewer.kind === "NONE") return 0;
+    return participations.filter((p) => !p.authorizedForResponsible).length;
   }
 
   /**
@@ -113,6 +141,9 @@ export class CallVisibility {
    * - NONE: never live (E2-P1); in the closing, the threshold k, except that a
    *   former collaborator never gets the total of a product with a
    *   participation that was hidden from them ("después de una revocación").
+   * P-A C1: for the responsible and her collaborators, a product with a
+   * participation not yet authorized for the current responsible is
+   * RESTRICTED (its total would be derived from data she may not see).
    */
   productTotal(
     total: bigint,
@@ -121,10 +152,13 @@ export class CallVisibility {
     source: "LIVE" | "CLOSING",
   ): ProductTotalView {
     const anyHidden = participations.some((p) => !this.coversCollaborators(p.consentScope));
+    const anyPending = participations.some((p) => !p.authorizedForResponsible);
+    const restricted: ProductTotalView = { participant_count: participantCount, total_quantity_base: null, visibility: "RESTRICTED" };
     switch (this.viewer.kind) {
       case "RESPONSIBLE":
-        return productTotalView(total, participantCount, true, this.threshold, source === "LIVE");
+        return anyPending ? restricted : productTotalView(total, participantCount, true, this.threshold, source === "LIVE");
       case "COLLABORATOR":
+        if (anyPending) return restricted;
         return anyHidden
           ? { participant_count: participantCount, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" }
           : productTotalView(total, participantCount, true, this.threshold, source === "LIVE");

@@ -150,8 +150,8 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     // (2026-11-11) E1 product identification, E2 joint purchase calls, E2
     // history and collaborators, E3 the estimation link of a draft, and
     // E3-P2 the immutable origin of each call; (2026-11-12) the consent
-    // decisions of E2 §10.6.
-    expect(migrations).toHaveLength(22);
+    // decisions of E2 §10.6 and the substitution of the responsible (P-A).
+    expect(migrations).toHaveLength(23);
     expect(migrations.every((m) => m.finished_at !== null)).toBe(true);
     expect(migrations[4].migration_name).toMatch(
       /_f05_sync_v1_journal_expand$/,

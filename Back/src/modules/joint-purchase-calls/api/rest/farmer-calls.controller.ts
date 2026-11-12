@@ -4,7 +4,7 @@ import { Public } from "@/modules/iam/api/rest/decorators/public.decorator";
 import { SyncV1AuthGuard, SyncV1Request } from "@/modules/sync-v1/api/rest/sync-v1-auth.guard";
 import { FarmerParticipationUseCase } from "../../application/farmer-participation.use-case";
 import { CallErrorExtra, CallHttpError, FarmerContext } from "../../domain/call-error";
-import { toLegacyFarmerBody } from "../../application/call-views";
+import { toContract2FarmerBody, toLegacyFarmerBody } from "../../application/call-views";
 import { ConfirmParticipationDto, ConsentDecisionDto, FarmerHistoryQueryDto, WithdrawParticipationDto } from "./calls.dto";
 import { CallsExceptionFilter } from "./calls-exception.filter";
 import { acceptedSchema, callErrorSchema, farmerHistorySchema, farmerListSchema } from "./calls-openapi.schemas";
@@ -17,20 +17,27 @@ function farmerOf(request: SyncV1Request): FarmerContext {
 }
 
 /**
- * N7 (2026-11-12): the phone says which contract it reads. `2` = §10.6
+ * N7 (2026-11-12): the phone says which contract it reads. `3` = P-A (§12:
+ * `responsible.version`, `responsible_authorization`); `2` = §10.6
  * (`CONV-3`, `consent_scope`, `history`). Without the header (the versions
  * published before, which validate the answer strictly) the answer keeps the
  * contract 1 shape; an unknown value is read as 1 too, never as a newer one.
  */
 export const CONTRACT_HEADER = "x-joint-purchase-contract";
 
-function contractOf(request: SyncV1Request): 1 | 2 {
+function contractOf(request: SyncV1Request): 1 | 2 | 3 {
   const raw = request.headers[CONTRACT_HEADER];
-  return (Array.isArray(raw) ? raw[0] : raw) === "2" ? 2 : 1;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === "3" ? 3 : value === "2" ? 2 : 1;
+}
+
+function shapeFor(contract: 1 | 2 | 3, body: unknown): unknown {
+  if (contract === 3) return body;
+  return contract === 2 ? toContract2FarmerBody(body) : toLegacyFarmerBody(body);
 }
 
 function forContract<T>(request: SyncV1Request, body: T): T {
-  return contractOf(request) === 2 ? body : (toLegacyFarmerBody(body) as T);
+  return shapeFor(contractOf(request), body) as T;
 }
 
 /**
@@ -133,21 +140,22 @@ export class FarmerCallsController {
   @error(404, "CALL_NOT_FOUND.")
   @error(
     409,
-    "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ampliar exige el texto vigente), WIDENING_NOT_ALLOWED (ampliar en una CANCELLED), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
+    "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ampliar o autorizar exige el texto vigente), WIDENING_NOT_ALLOWED (ampliar o autorizar en una CANCELLED), RESPONSIBLE_CHANGED (la responsable mostrada ya no es la vigente; con responsible_version), AUTHORIZATION_REQUIRED (ampliar sin haber autorizado a la responsable vigente), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
   )
   @error(429, "Límite de solicitudes.")
   async consent(@Req() request: SyncV1Request, @Param("id") id: string, @Body() body: ConsentDecisionDto) {
-    return this.farmer.decideConsent(farmerOf(request), id, body);
+    return forContract(request, await legacyErrors(request, () => this.farmer.decideConsent(farmerOf(request), id, body)));
   }
 }
 
-/** Contract 1: an error body that carries the participation (STALE_SEQUENCE) gets the legacy shape too. */
+/** Contracts 1 and 2: an error body that carries the participation gets their shape too. */
 async function legacyErrors<T>(request: SyncV1Request, run: () => Promise<T>): Promise<T> {
   try {
     return await run();
   } catch (error) {
-    if (contractOf(request) === 1 && error instanceof CallHttpError && error.extra.participation !== undefined) {
-      throw new CallHttpError(error.status, error.errorCode, toLegacyFarmerBody(error.extra) as CallErrorExtra, error.headers);
+    const contract = contractOf(request);
+    if (contract !== 3 && error instanceof CallHttpError && error.extra.participation !== undefined) {
+      throw new CallHttpError(error.status, error.errorCode, shapeFor(contract, error.extra) as CallErrorExtra, error.headers);
     }
     throw error;
   }
