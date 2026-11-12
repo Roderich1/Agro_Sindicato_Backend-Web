@@ -1,0 +1,9 @@
+API directiva tras iniciar sesión: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal"]
+INSPECCIÓN Directiva en /calendar (URL directa): {"path":"/campaigns","dialogs":[],"buttons":[],"h1":["Campañas"],"nav":2,"links":24}
+API directiva Directiva /calendar: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","GET /api/v1/campaigns/active","GET /api/v1/campaigns"]
+API admin tras iniciar sesión: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal"]
+INSPECCIÓN Administración en /calendar (URL directa): {"path":"/campaigns","dialogs":[],"buttons":[],"h1":["Campañas"],"nav":2,"links":25}
+API admin Administración /calendar: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","GET /api/v1/campaigns/active","GET /api/v1/campaigns"]
+API agricultor tras iniciar sesión: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login"]
+INSPECCIÓN Agricultor en /calendar (URL directa): {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor Agricultor /calendar: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]

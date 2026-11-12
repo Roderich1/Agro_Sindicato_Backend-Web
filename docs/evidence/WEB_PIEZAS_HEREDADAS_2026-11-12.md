@@ -128,3 +128,15 @@ No se rehicieron capturas: ninguna pantalla visible cambió. La página retirada
 - **Pruebas nuevas:**
   - `web-access-by-role.test.tsx`: Directiva y Administración en `/calendar` llegan a `/campaigns` **sin ninguna llamada a `/calendar` ni a `/users`**; el AGRICULTOR en `/calendar` sigue viendo el aviso;
   - `app-routes.test.ts`: `App.tsx` ya no tiene página ni servicio del calendario.
+
+## 5. Verificación en el navegador (Calendario retirado, `d5569a7`)
+
+Vite de `chore/web-solo-institucional` en `127.0.0.1:5176`, con proxy a la API aislada 3350 y datos sintéticos. El registro está en `web_piezas_heredadas_2026-11-12/navegador_calendario_retirado.txt`.
+
+| Caso | Resultado | Llamadas a la API al abrir `/calendar` |
+|---|---|---|
+| DIRECTIVA abre `/calendar` por URL | Llega a `/campaigns` (título «Campañas», con menú) | `auth/refresh`, `GET /campaigns/active` y `GET /campaigns`. **Ni `/calendar/events` ni `/users`** |
+| ADMINISTRADOR abre `/calendar` por URL | Llega a `/campaigns` | Las mismas: **ni `/calendar/events` ni `/users`** |
+| AGRICULTOR abre `/calendar` por URL | Aviso «Esta cuenta utiliza la aplicación móvil.», sin menú ni enlaces | Sólo `auth/refresh` |
+
+**Evidencia histórica:** la captura del Calendario tal como era antes de retirarlo, con Directiva y datos sintéticos, se conserva en `web_piezas_heredadas_2026-11-12/calendario_retirado/`. Se retiró del material de diseño vigente.
