@@ -17,11 +17,13 @@ import {
   CallGrant,
   ENTITY_NAME,
   lockCallRow,
+  lockProposalSelection,
   lockTenantCalls,
   Tx,
 } from "./call-store";
 import {
   CallDetailView,
+  CallOriginView,
   CallSummaryView,
   CLOSING_LABEL,
   ClosingView,
@@ -234,6 +236,7 @@ export class InstitutionalCallsUseCase {
       const responsible = await this.requireResponsible(tx, actor.tenantId, command.responsible_user_id);
       const proposalId = await this.requireProposal(tx, actor.tenantId, campaign.id, command.source_proposal_id ?? null);
       const products = await this.resolveProducts(tx, actor.tenantId, command.products, proposalId);
+      const origin = await this.originOf(tx, proposalId, products);
       const call = await tx.jointPurchaseCall.create({
         data: {
           tenantId: actor.tenantId,
@@ -248,6 +251,25 @@ export class InstitutionalCallsUseCase {
           },
         },
         select: { id: true },
+      });
+      // E3-P2: the products as they are now and where they came from, once.
+      await tx.jointPurchaseCallOrigin.create({
+        data: {
+          callId: call.id,
+          tenantId: actor.tenantId,
+          ...origin,
+          recordedAt: now,
+          recordedByUserId: actor.userId,
+          products: {
+            create: products.map((product, position) => ({
+              position,
+              productId: product.productId,
+              baseUnit: product.baseUnit,
+              proposalId: product.sourceProposalId,
+              proposalPosition: product.sourcePosition,
+            })),
+          },
+        },
       });
       await tx.jointPurchaseCallEvent.create({
         data: { callId: call.id, at: now, kind: "CREATED", actorUserId: actor.userId, detail: "Borrador creado." },
@@ -264,6 +286,7 @@ export class InstitutionalCallsUseCase {
       await this.audit(tx, actor, call.id, campaign.id, `Borrador de convocatoria de compra conjunta «${name}» creado.`, {
         productCount: products.length,
         responsibleUserRef: responsible.id,
+        origin: origin.kind,
       });
       return call.id;
     }, CALL_TRANSACTION_OPTIONS);
@@ -677,6 +700,37 @@ export class InstitutionalCallsUseCase {
     });
   }
 
+  /**
+   * E3-P2: provenance of a call being created. From a draft: its fingerprint
+   * and the revision of its saved selection now (read under the E3 lock), and
+   * whether the call's products are exactly that selection (any order).
+   * Without a draft: CATALOG, with no reference at all.
+   */
+  private async originOf(tx: Tx, proposalId: string | null, products: ResolvedProduct[]) {
+    if (proposalId === null) {
+      return {
+        kind: "CATALOG" as const,
+        proposalId: null,
+        proposalFingerprint: null,
+        selectionRevision: null,
+        selectionMatched: null,
+      };
+    }
+    await lockProposalSelection(tx, proposalId);
+    const proposal = await tx.jointPurchaseProposal.findUniqueOrThrow({
+      where: { id: proposalId },
+      select: { inputsFingerprint: true, selection: { select: { revision: true, productRefs: true } } },
+    });
+    const selected = proposal.selection && Array.isArray(proposal.selection.productRefs) ? (proposal.selection.productRefs as string[]) : null;
+    return {
+      kind: "PROPOSAL" as const,
+      proposalId,
+      proposalFingerprint: proposal.inputsFingerprint,
+      selectionRevision: proposal.selection?.revision ?? null,
+      selectionMatched: proposal.selection ? sameProducts(selected ?? [], products.map((p) => p.productId)) : null,
+    };
+  }
+
   private async renderDetail(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<CallDetailView> {
     if (!SERVER_ID.test(id)) throw NOT_FOUND();
     const call = await db.jointPurchaseCall.findFirst({
@@ -706,6 +760,18 @@ export class InstitutionalCallsUseCase {
           include: { actor: { select: { id: true, name: true } } },
         },
         closing: { include: { lines: true } },
+        origin: {
+          include: {
+            recordedBy: { select: { id: true, name: true } },
+            products: { orderBy: { position: "asc" }, include: { product: { select: { name: true } } } },
+            proposal: {
+              select: {
+                generatedAt: true,
+                lines: { where: { status: "DISCLOSED" }, select: { release: { select: { withdrawnAt: true } } } },
+              },
+            },
+          },
+        },
       },
     });
     if (!call) throw NOT_FOUND();
@@ -762,6 +828,13 @@ export class InstitutionalCallsUseCase {
         reference: referenceOf(product.sourceLine, disclosureAuthorized),
         totals: productTotalOf(access.visibility, totals, product.productId),
       })),
+      origin: originView(call.origin, disclosureAuthorized),
+      origin_differs_from_current:
+        call.origin !== null &&
+        !sameProducts(
+          call.origin.products.map((p) => p.productId),
+          call.products.map((p) => p.productId),
+        ),
       history: sortHistory(
         call.events.map((event) => ({
           at: event.at.toISOString(),
@@ -1055,6 +1128,56 @@ function sortHistory(entries: HistoryEntryView[]): HistoryEntryView[] {
  * withdrawn and the disclosure mode authorizes figures; otherwise «sin cifra».
  * It is never a committed quantity and never added to participations.
  */
+/** Same products, in any order (product refs are unique within a call). */
+function sameProducts(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((ref) => set.has(ref));
+}
+
+function originView(
+  origin: {
+    kind: CallOriginView["kind"];
+    proposalId: string | null;
+    proposalFingerprint: string | null;
+    selectionRevision: number | null;
+    selectionMatched: boolean | null;
+    recordedAt: Date;
+    recordedBy: { id: string; name: string };
+    products: {
+      position: number;
+      productId: string;
+      baseUnit: SyncV1BaseUnit;
+      proposalPosition: number | null;
+      product: { name: string };
+    }[];
+    proposal: { generatedAt: Date; lines: { release: { withdrawnAt: Date | null } | null }[] } | null;
+  } | null,
+  disclosureAuthorized: boolean,
+): CallOriginView | null {
+  if (!origin) return null;
+  // The fingerprint follows the figures of the draft (E2-D14, F07-POL-01 R8).
+  const fingerprintServed =
+    disclosureAuthorized && (origin.proposal?.lines ?? []).every((line) => line.release !== null && line.release.withdrawnAt === null);
+  return {
+    kind: origin.kind,
+    proposal_ref: origin.proposalId,
+    proposal_generated_at: origin.proposal ? origin.proposal.generatedAt.toISOString() : null,
+    proposal_fingerprint: fingerprintServed ? origin.proposalFingerprint : null,
+    selection_revision: origin.selectionRevision,
+    selection_matched: origin.selectionMatched,
+    recorded_at: origin.recordedAt.toISOString(),
+    recorded_by: { user_ref: origin.recordedBy.id, name: origin.recordedBy.name },
+    products: origin.products.map((product) => ({
+      position: product.position,
+      product_ref: product.productId,
+      product_name: product.product.name,
+      base_unit: product.baseUnit,
+      proposal_position: product.proposalPosition,
+    })),
+  };
+}
+
 function referenceOf(
   line: {
     proposalId: string;

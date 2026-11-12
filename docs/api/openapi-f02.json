@@ -28001,6 +28001,8 @@
                     "my_grants",
                     "collaborator_count",
                     "products",
+                    "origin",
+                    "origin_differs_from_current",
                     "history"
                   ],
                   "properties": {
@@ -28333,6 +28335,121 @@
                           }
                         }
                       }
+                    },
+                    "origin": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "proposal_ref",
+                        "proposal_generated_at",
+                        "proposal_fingerprint",
+                        "selection_revision",
+                        "selection_matched",
+                        "recorded_at",
+                        "recorded_by",
+                        "products"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PROPOSAL",
+                            "CATALOG"
+                          ]
+                        },
+                        "proposal_ref": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true,
+                          "description": "Borrador de propuesta de origen; null en CATALOG"
+                        },
+                        "proposal_generated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fecha en que se generó ese borrador (inmutable); null en CATALOG"
+                        },
+                        "proposal_fingerprint": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Huella del borrador al crear la convocatoria; null en CATALOG, sin divulgación autorizada o si una cifra divulgada de ese borrador se retiró"
+                        },
+                        "selection_revision": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "Revisión de la selección guardada del borrador al crear; null si nunca se guardó o en CATALOG"
+                        },
+                        "selection_matched": {
+                          "type": "boolean",
+                          "nullable": true,
+                          "description": "Los productos al crear eran exactamente los de esa selección (sin importar el orden); null sin selección"
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor al crear la convocatoria"
+                        },
+                        "recorded_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "products": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "position",
+                              "product_ref",
+                              "product_name",
+                              "base_unit",
+                              "proposal_position"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "product_ref": {
+                                "type": "string"
+                              },
+                              "product_name": {
+                                "type": "string"
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "proposal_position": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "Línea del borrador de la que venía; null si no venía de una línea"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "nullable": true,
+                      "description": "E3-P2: productos y procedencia al crear la convocatoria (inmutable); null en convocatorias anteriores al registro. Sin cantidades, cifras, aportantes ni estimaciones"
+                    },
+                    "origin_differs_from_current": {
+                      "type": "boolean",
+                      "description": "Los productos actuales no son los del origen (sin importar el orden); false sin origen"
                     },
                     "history": {
                       "type": "array",
@@ -29082,6 +29199,8 @@
                     "my_grants",
                     "collaborator_count",
                     "products",
+                    "origin",
+                    "origin_differs_from_current",
                     "history"
                   ],
                   "properties": {
@@ -29414,6 +29533,121 @@
                           }
                         }
                       }
+                    },
+                    "origin": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "proposal_ref",
+                        "proposal_generated_at",
+                        "proposal_fingerprint",
+                        "selection_revision",
+                        "selection_matched",
+                        "recorded_at",
+                        "recorded_by",
+                        "products"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PROPOSAL",
+                            "CATALOG"
+                          ]
+                        },
+                        "proposal_ref": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true,
+                          "description": "Borrador de propuesta de origen; null en CATALOG"
+                        },
+                        "proposal_generated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fecha en que se generó ese borrador (inmutable); null en CATALOG"
+                        },
+                        "proposal_fingerprint": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Huella del borrador al crear la convocatoria; null en CATALOG, sin divulgación autorizada o si una cifra divulgada de ese borrador se retiró"
+                        },
+                        "selection_revision": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "Revisión de la selección guardada del borrador al crear; null si nunca se guardó o en CATALOG"
+                        },
+                        "selection_matched": {
+                          "type": "boolean",
+                          "nullable": true,
+                          "description": "Los productos al crear eran exactamente los de esa selección (sin importar el orden); null sin selección"
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor al crear la convocatoria"
+                        },
+                        "recorded_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "products": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "position",
+                              "product_ref",
+                              "product_name",
+                              "base_unit",
+                              "proposal_position"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "product_ref": {
+                                "type": "string"
+                              },
+                              "product_name": {
+                                "type": "string"
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "proposal_position": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "Línea del borrador de la que venía; null si no venía de una línea"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "nullable": true,
+                      "description": "E3-P2: productos y procedencia al crear la convocatoria (inmutable); null en convocatorias anteriores al registro. Sin cantidades, cifras, aportantes ni estimaciones"
+                    },
+                    "origin_differs_from_current": {
+                      "type": "boolean",
+                      "description": "Los productos actuales no son los del origen (sin importar el orden); false sin origen"
                     },
                     "history": {
                       "type": "array",
@@ -29784,6 +30018,8 @@
                     "my_grants",
                     "collaborator_count",
                     "products",
+                    "origin",
+                    "origin_differs_from_current",
                     "history"
                   ],
                   "properties": {
@@ -30116,6 +30352,121 @@
                           }
                         }
                       }
+                    },
+                    "origin": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "proposal_ref",
+                        "proposal_generated_at",
+                        "proposal_fingerprint",
+                        "selection_revision",
+                        "selection_matched",
+                        "recorded_at",
+                        "recorded_by",
+                        "products"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PROPOSAL",
+                            "CATALOG"
+                          ]
+                        },
+                        "proposal_ref": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true,
+                          "description": "Borrador de propuesta de origen; null en CATALOG"
+                        },
+                        "proposal_generated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fecha en que se generó ese borrador (inmutable); null en CATALOG"
+                        },
+                        "proposal_fingerprint": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Huella del borrador al crear la convocatoria; null en CATALOG, sin divulgación autorizada o si una cifra divulgada de ese borrador se retiró"
+                        },
+                        "selection_revision": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "Revisión de la selección guardada del borrador al crear; null si nunca se guardó o en CATALOG"
+                        },
+                        "selection_matched": {
+                          "type": "boolean",
+                          "nullable": true,
+                          "description": "Los productos al crear eran exactamente los de esa selección (sin importar el orden); null sin selección"
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor al crear la convocatoria"
+                        },
+                        "recorded_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "products": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "position",
+                              "product_ref",
+                              "product_name",
+                              "base_unit",
+                              "proposal_position"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "product_ref": {
+                                "type": "string"
+                              },
+                              "product_name": {
+                                "type": "string"
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "proposal_position": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "Línea del borrador de la que venía; null si no venía de una línea"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "nullable": true,
+                      "description": "E3-P2: productos y procedencia al crear la convocatoria (inmutable); null en convocatorias anteriores al registro. Sin cantidades, cifras, aportantes ni estimaciones"
+                    },
+                    "origin_differs_from_current": {
+                      "type": "boolean",
+                      "description": "Los productos actuales no son los del origen (sin importar el orden); false sin origen"
                     },
                     "history": {
                       "type": "array",
@@ -30728,6 +31079,8 @@
                     "my_grants",
                     "collaborator_count",
                     "products",
+                    "origin",
+                    "origin_differs_from_current",
                     "history"
                   ],
                   "properties": {
@@ -31060,6 +31413,121 @@
                           }
                         }
                       }
+                    },
+                    "origin": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "proposal_ref",
+                        "proposal_generated_at",
+                        "proposal_fingerprint",
+                        "selection_revision",
+                        "selection_matched",
+                        "recorded_at",
+                        "recorded_by",
+                        "products"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PROPOSAL",
+                            "CATALOG"
+                          ]
+                        },
+                        "proposal_ref": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true,
+                          "description": "Borrador de propuesta de origen; null en CATALOG"
+                        },
+                        "proposal_generated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fecha en que se generó ese borrador (inmutable); null en CATALOG"
+                        },
+                        "proposal_fingerprint": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Huella del borrador al crear la convocatoria; null en CATALOG, sin divulgación autorizada o si una cifra divulgada de ese borrador se retiró"
+                        },
+                        "selection_revision": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "Revisión de la selección guardada del borrador al crear; null si nunca se guardó o en CATALOG"
+                        },
+                        "selection_matched": {
+                          "type": "boolean",
+                          "nullable": true,
+                          "description": "Los productos al crear eran exactamente los de esa selección (sin importar el orden); null sin selección"
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor al crear la convocatoria"
+                        },
+                        "recorded_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "products": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "position",
+                              "product_ref",
+                              "product_name",
+                              "base_unit",
+                              "proposal_position"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "product_ref": {
+                                "type": "string"
+                              },
+                              "product_name": {
+                                "type": "string"
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "proposal_position": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "Línea del borrador de la que venía; null si no venía de una línea"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "nullable": true,
+                      "description": "E3-P2: productos y procedencia al crear la convocatoria (inmutable); null en convocatorias anteriores al registro. Sin cantidades, cifras, aportantes ni estimaciones"
+                    },
+                    "origin_differs_from_current": {
+                      "type": "boolean",
+                      "description": "Los productos actuales no son los del origen (sin importar el orden); false sin origen"
                     },
                     "history": {
                       "type": "array",
@@ -31592,6 +32060,8 @@
                     "my_grants",
                     "collaborator_count",
                     "products",
+                    "origin",
+                    "origin_differs_from_current",
                     "history"
                   ],
                   "properties": {
@@ -31924,6 +32394,121 @@
                           }
                         }
                       }
+                    },
+                    "origin": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "proposal_ref",
+                        "proposal_generated_at",
+                        "proposal_fingerprint",
+                        "selection_revision",
+                        "selection_matched",
+                        "recorded_at",
+                        "recorded_by",
+                        "products"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PROPOSAL",
+                            "CATALOG"
+                          ]
+                        },
+                        "proposal_ref": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true,
+                          "description": "Borrador de propuesta de origen; null en CATALOG"
+                        },
+                        "proposal_generated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fecha en que se generó ese borrador (inmutable); null en CATALOG"
+                        },
+                        "proposal_fingerprint": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Huella del borrador al crear la convocatoria; null en CATALOG, sin divulgación autorizada o si una cifra divulgada de ese borrador se retiró"
+                        },
+                        "selection_revision": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "Revisión de la selección guardada del borrador al crear; null si nunca se guardó o en CATALOG"
+                        },
+                        "selection_matched": {
+                          "type": "boolean",
+                          "nullable": true,
+                          "description": "Los productos al crear eran exactamente los de esa selección (sin importar el orden); null sin selección"
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor al crear la convocatoria"
+                        },
+                        "recorded_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "products": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "position",
+                              "product_ref",
+                              "product_name",
+                              "base_unit",
+                              "proposal_position"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "product_ref": {
+                                "type": "string"
+                              },
+                              "product_name": {
+                                "type": "string"
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "proposal_position": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "Línea del borrador de la que venía; null si no venía de una línea"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "nullable": true,
+                      "description": "E3-P2: productos y procedencia al crear la convocatoria (inmutable); null en convocatorias anteriores al registro. Sin cantidades, cifras, aportantes ni estimaciones"
+                    },
+                    "origin_differs_from_current": {
+                      "type": "boolean",
+                      "description": "Los productos actuales no son los del origen (sin importar el orden); false sin origen"
                     },
                     "history": {
                       "type": "array",

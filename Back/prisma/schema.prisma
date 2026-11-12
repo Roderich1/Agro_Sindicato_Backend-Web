@@ -249,6 +249,7 @@ model Tenant {
   jointParticipations      JointPurchaseParticipation[]
   proposalEstimationLinks  JointPurchaseProposalEstimationLink[]
   proposalSelections       JointPurchaseProposalSelection[]
+  callOrigins              JointPurchaseCallOrigin[]
 }
 
 model User {
@@ -308,6 +309,7 @@ model User {
   callClosings              JointPurchaseCallClosing[]            @relation("JointPurchaseCallCloser")
   proposalEstimationLinks   JointPurchaseProposalEstimationLink[] @relation("JointPurchaseProposalEstimationLinkAuthor")
   proposalSelections        JointPurchaseProposalSelection[]      @relation("JointPurchaseProposalSelectionEditor")
+  callOrigins               JointPurchaseCallOrigin[]             @relation("JointPurchaseCallOriginRecorder")
 }
 
 model Member {
@@ -438,6 +440,7 @@ model Product {
   identificationRequests     ProductIdentificationRequest[]   @relation("ProductIdentificationProduct")
   identificationEvents       ProductIdentificationEvent[]     @relation("ProductIdentificationEventProduct")
   jointPurchaseCallProducts  JointPurchaseCallProduct[]
+  callOriginProducts         JointPurchaseCallOriginProduct[]
   jointPurchaseLines         JointPurchaseParticipationLine[]
   jointPurchaseClosingLines  JointPurchaseCallClosingLine[]
 
@@ -1184,6 +1187,8 @@ model JointPurchaseProposal {
   generatedBy     User                                  @relation("JointPurchaseProposalAuthor", fields: [generatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   lines           JointPurchaseProposalLine[]
   calls           JointPurchaseCall[]
+  /// E3-P2: convocatorias creadas desde este borrador (origen inmutable).
+  callOrigins     JointPurchaseCallOrigin[]
   /// E3: referencia de consumo estimado fijada (vínculos inmutables) y selección de productos.
   estimationLinks JointPurchaseProposalEstimationLink[]
   selection       JointPurchaseProposalSelection?
@@ -1203,10 +1208,11 @@ model JointPurchaseProposalLine {
   releaseId          String?                         @db.Uuid
   pendingChanges     Boolean                         @default(false)
 
-  proposal         JointPurchaseProposal      @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  canonicalProduct Product                    @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  release          CollectiveRelease?         @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  proposal         JointPurchaseProposal            @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product                          @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  release          CollectiveRelease?               @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   callProducts     JointPurchaseCallProduct[]
+  callOrigins      JointPurchaseCallOriginProduct[]
 
   @@id([proposalId, position])
   @@unique([proposalId, canonicalProductId, baseUnit])
@@ -1745,6 +1751,8 @@ model JointPurchaseCall {
   access         JointPurchaseCallAccess[]
   accessEvents   JointPurchaseCallAccessEvent[]
   closing        JointPurchaseCallClosing?
+  /// E3-P2: productos y procedencia con que se creó (sólo inserción); NULL antes de la migración.
+  origin         JointPurchaseCallOrigin?
 
   @@index([tenantId, campaignId, status])
   @@index([status, deadlineAt])
@@ -1984,4 +1992,54 @@ model JointPurchaseProposalSelection {
   proposal  JointPurchaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   updatedBy User                  @relation("JointPurchaseProposalSelectionEditor", fields: [updatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+}
+
+enum JointPurchaseCallOriginKind {
+  PROPOSAL
+  CATALOG
+}
+
+/// E3-P2: de dónde salió la convocatoria al crearla, una fila por convocatoria
+/// y sólo de inserción (disparadores en la migración). PROPOSAL guarda el
+/// borrador, su huella en ese momento y la revisión de su selección guardada
+/// (NULL si nunca se guardó); `selectionMatched` dice si los productos al crear
+/// eran exactamente los de esa selección (sin importar el orden). CATALOG no
+/// guarda ninguna referencia. Nunca cantidades, cifras, aportantes ni
+/// estimaciones. Las ediciones posteriores del borrador no la cambian.
+model JointPurchaseCallOrigin {
+  callId              String                      @id @db.Uuid
+  tenantId            String
+  kind                JointPurchaseCallOriginKind
+  proposalId          String?                     @db.Uuid
+  proposalFingerprint String?                     @db.Char(64)
+  selectionRevision   Int?
+  selectionMatched    Boolean?
+  recordedAt          DateTime
+  recordedByUserId    String
+
+  call       JointPurchaseCall                @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant     Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  proposal   JointPurchaseProposal?           @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  recordedBy User                             @relation("JointPurchaseCallOriginRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  products   JointPurchaseCallOriginProduct[]
+}
+
+/// E3-P2: producto de la convocatoria tal como quedó al crearla (orden y
+/// unidad). `proposalId`/`proposalPosition` citan la línea del borrador de la
+/// que venía (NULL si no venía de una línea); `proposalId` repite el del origen
+/// para la clave foránea compuesta. Sólo inserción.
+model JointPurchaseCallOriginProduct {
+  callId           String         @db.Uuid
+  position         Int
+  productId        String
+  baseUnit         SyncV1BaseUnit
+  proposalId       String?        @db.Uuid
+  proposalPosition Int?
+
+  origin       JointPurchaseCallOrigin    @relation(fields: [callId], references: [callId], onDelete: Restrict, onUpdate: Restrict)
+  product      Product                    @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  proposalLine JointPurchaseProposalLine? @relation(fields: [proposalId, proposalPosition], references: [proposalId, position], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([callId, position])
+  @@unique([callId, productId])
 }

@@ -15,6 +15,16 @@ export async function lockTenantCalls(tx: Tx, tenantId: string): Promise<void> {
 }
 
 /**
+ * E3-P2: the origin of a call reads the draft's saved selection under the
+ * same lock as the E3 selection writes (E3-D3, key `e3-proposal:<id>`), so the
+ * recorded revision is the one in force when the call is created.
+ */
+export async function lockProposalSelection(tx: Tx, proposalId: string): Promise<void> {
+  const key = `e3-proposal:${proposalId}`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+}
+
+/**
  * E2-D12: every write on a call (open, cancel, close, a farmer operation)
  * takes the call row with `FOR UPDATE` first. Returns false when the call
  * does not exist in that tenant (indistinguishable from another tenant's).

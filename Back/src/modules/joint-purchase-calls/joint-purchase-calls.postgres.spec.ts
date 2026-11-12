@@ -2,7 +2,7 @@ import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, afterEach, beforeAll } from "@jest/globals";
 import { UserRole } from "@prisma/client";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import type { Server } from "node:net";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
 import request = require("supertest");
@@ -947,9 +947,210 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     });
   });
 
+  describe("E3-P2 immutable origin of a call", () => {
+    const SELECTION = (proposalId: string) => `/api/v1/collective/proposals/${proposalId}/selection`;
+
+    /** A draft proposal whose lines carry no figure (no release is created). */
+    async function proposalOf(products: string[]) {
+      return prisma.jointPurchaseProposal.create({
+        data: {
+          tenantId: f.tenantA,
+          campaignId: f.campaigns.openA,
+          inputsFingerprint: randomBytes(32).toString("hex"),
+          linkedMembers: 3,
+          membersWithContribution: 0,
+          generatedByUserId: userIdOf(director),
+          lines: {
+            create: products.map((canonicalProductId, position) => ({
+              position,
+              canonicalProductId,
+              baseUnit: "ML" as const,
+              status: "SUPPRESSED_UNDER_THRESHOLD" as const,
+            })),
+          },
+        },
+      });
+    }
+
+    it("records a PROPOSAL origin with fingerprint, selection revision and match; later edits, selections and drafts leave it as it was", async () => {
+      const [p1, p2, p3, outside] = [await newProduct(), await newProduct(), await newProduct(), await newProduct()];
+      const proposal = await proposalOf([p1, p2, p3]);
+
+      // No selection saved yet: revision and match are null, not invented.
+      const before = await createDraft([p1, outside], { proposalId: proposal.id });
+      expect(before.status).toBe(201);
+      expect(before.body.origin).toEqual({
+        kind: "PROPOSAL",
+        proposal_ref: proposal.id,
+        proposal_generated_at: proposal.generatedAt.toISOString(),
+        proposal_fingerprint: proposal.inputsFingerprint,
+        selection_revision: null,
+        selection_matched: null,
+        recorded_at: expect.any(String),
+        recorded_by: { user_ref: userIdOf(director), name: expect.any(String) },
+        products: [
+          { position: 0, product_ref: p1, product_name: `Producto sintético ${p1}`, base_unit: "ML", proposal_position: 0 },
+          { position: 1, product_ref: outside, product_name: `Producto sintético ${outside}`, base_unit: "ML", proposal_position: null },
+        ],
+      });
+      expect(before.body.origin_differs_from_current).toBe(false);
+      expect(before.body.participant_count).toBe(0);
+      expect(await prisma.jointPurchaseParticipation.count({ where: { callId: before.body.call_id } })).toBe(0);
+
+      const saved = await put(director, SELECTION(proposal.id), { expected_revision: 0, product_refs: [p1, p2] });
+      expect(saved.status).toBe(200);
+      expect(saved.body.revision).toBe(1);
+
+      // Same products as the saved selection, in another order: matched.
+      const matched = await createDraft([p2, p1], { proposalId: proposal.id });
+      expect(matched.body.origin).toMatchObject({ kind: "PROPOSAL", selection_revision: 1, selection_matched: true });
+      expect(matched.body.origin.products.map((p: any) => [p.product_ref, p.proposal_position])).toEqual([
+        [p2, 1],
+        [p1, 0],
+      ]);
+      const unmatched = await createDraft([p1], { proposalId: proposal.id });
+      expect(unmatched.body.origin).toMatchObject({ kind: "PROPOSAL", selection_revision: 1, selection_matched: false });
+
+      // A selection saved afterwards does not move the recorded revision.
+      expect((await put(director, SELECTION(proposal.id), { expected_revision: 1, product_refs: [p3] })).body.revision).toBe(2);
+      const id = matched.body.call_id;
+      const recorded = matched.body.origin;
+      expect((await get(director, `${INST}/${id}`)).body.origin).toEqual(recorded);
+
+      // Editing the products in DRAFT changes the call, never its origin.
+      const edited = await patch(director2, `${INST}/${id}`, { products: [{ product_ref: p3 }] });
+      expect(edited.status).toBe(200);
+      expect(edited.body.products.map((p: any) => p.product_ref)).toEqual([p3]);
+      expect(edited.body.origin).toEqual(recorded);
+      expect(edited.body.origin_differs_from_current).toBe(true);
+
+      // A draft proposal generated later, even taken as the call's source, leaves the origin alone.
+      const later = await proposalOf([p3]);
+      const moved = await patch(director2, `${INST}/${id}`, { source_proposal_id: later.id });
+      expect(moved.status).toBe(200);
+      expect(moved.body.source_proposal_ref).toBe(later.id);
+      expect(moved.body.products[0].reference).toMatchObject({ proposal_ref: later.id, position: 0 });
+      expect(moved.body.origin).toEqual(recorded);
+
+      // Reordering back to the origin's products is not a difference.
+      const back = await patch(director2, `${INST}/${id}`, { products: [{ product_ref: p1 }, { product_ref: p2 }] });
+      expect(back.body.origin_differs_from_current).toBe(false);
+      expect(back.body.origin).toEqual(recorded);
+
+      // The database refuses changing or deleting the origin behind the application's back.
+      await expect(prisma.jointPurchaseCallOrigin.update({ where: { callId: id }, data: { selectionMatched: false } })).rejects.toThrow();
+      await expect(prisma.jointPurchaseCallOrigin.delete({ where: { callId: id } })).rejects.toThrow();
+      await expect(
+        prisma.jointPurchaseCallOriginProduct.update({
+          where: { callId_position: { callId: id, position: 0 } },
+          data: { proposalPosition: 2, productId: p3 },
+        }),
+      ).rejects.toThrow();
+      await expect(prisma.jointPurchaseCallOriginProduct.deleteMany({ where: { callId: id } })).rejects.toThrow();
+      const stored = await prisma.jointPurchaseCallOrigin.findUniqueOrThrow({ where: { callId: id }, include: { products: true } });
+      expect(stored).toMatchObject({ kind: "PROPOSAL", proposalId: proposal.id, selectionRevision: 1, selectionMatched: true });
+      expect(stored.products).toHaveLength(2);
+
+      // Another tenant cannot see it.
+      expect((await get(directorB, `${INST}/${id}`)).status).toBe(404);
+    });
+
+    it("records a CATALOG origin without references; absent before the migration, never reconstructed", async () => {
+      const p = await newProduct();
+      const draft = await createDraft([p]);
+      expect(draft.status).toBe(201);
+      expect(draft.body.origin).toEqual({
+        kind: "CATALOG",
+        proposal_ref: null,
+        proposal_generated_at: null,
+        proposal_fingerprint: null,
+        selection_revision: null,
+        selection_matched: null,
+        recorded_at: expect.any(String),
+        recorded_by: { user_ref: userIdOf(director), name: expect.any(String) },
+        products: [{ position: 0, product_ref: p, product_name: `Producto sintético ${p}`, base_unit: "ML", proposal_position: null }],
+      });
+      const id = draft.body.call_id;
+      const foreign = await get(directorB, `${INST}/${id}`);
+      expect(foreign.status).toBe(404);
+      expect(foreign.body).toEqual({ errorCode: "CALL_NOT_FOUND" });
+
+      // Nothing of the origin reaches the farmer's view.
+      expect((await post(director2, `${INST}/${id}/open`, { confirmed: true })).status).toBe(200);
+      const farmerView = await get(farmerA, ME);
+      expect(farmerView.body.calls.some((c: any) => c.call_id === id)).toBe(true);
+      expect(JSON.stringify(farmerView.body)).not.toMatch(/origin|selection_|fingerprint/);
+
+      // A call written without an origin (as before the migration) serves null.
+      const legacy = await prisma.jointPurchaseCall.create({
+        data: {
+          tenantId: f.tenantA,
+          campaignId: f.campaigns.openA,
+          name: "Convocatoria anterior sintética",
+          deadlineAt: new Date(clock.now().getTime() + 7 * 24 * HOUR),
+          responsibleUserId: userIdOf(director2),
+          createdByUserId: userIdOf(director),
+          products: { create: [{ position: 0, tenantId: f.tenantA, productId: p, baseUnit: "ML" }] },
+        },
+      });
+      const old = await get(director, `${INST}/${legacy.id}`);
+      expect(old.status).toBe(200);
+      expect(old.body.origin).toBeNull();
+      expect(old.body.origin_differs_from_current).toBe(false);
+
+      // The database keeps the origin coherent: CATALOG carries no reference,
+      // PROPOSAL needs its draft, another tenant is refused, and a call has
+      // one origin only.
+      const base = { callId: legacy.id, recordedAt: new Date(), recordedByUserId: userIdOf(director) };
+      await expect(
+        prisma.jointPurchaseCallOrigin.create({ data: { ...base, tenantId: f.tenantA, kind: "CATALOG", proposalFingerprint: "c".repeat(64) } }),
+      ).rejects.toThrow();
+      await expect(prisma.jointPurchaseCallOrigin.create({ data: { ...base, tenantId: f.tenantA, kind: "PROPOSAL" } })).rejects.toThrow();
+      await expect(prisma.jointPurchaseCallOrigin.create({ data: { ...base, tenantId: f.tenantB, kind: "CATALOG" } })).rejects.toThrow();
+      await expect(prisma.jointPurchaseCallOrigin.create({ data: { ...base, callId: id, tenantId: f.tenantA, kind: "CATALOG" } })).rejects.toThrow();
+      expect(await prisma.jointPurchaseCallOrigin.count({ where: { callId: legacy.id } })).toBe(0);
+    });
+
+    it("serves the fingerprint under the rule of the figures: null once a disclosed figure of the draft is withdrawn", async () => {
+      const p = await newProduct();
+      const release = await prisma.collectiveRelease.create({
+        data: {
+          tenantId: f.tenantA,
+          campaignId: f.campaigns.openA,
+          canonicalProductId: p,
+          projectionType: "DECLARED_NEED",
+          baseUnit: "ML",
+          totalBase: 777n,
+          contributorCount: 3,
+        },
+      });
+      const proposal = await prisma.jointPurchaseProposal.create({
+        data: {
+          tenantId: f.tenantA,
+          campaignId: f.campaigns.openA,
+          inputsFingerprint: randomBytes(32).toString("hex"),
+          linkedMembers: 3,
+          membersWithContribution: 3,
+          generatedByUserId: userIdOf(director),
+          lines: { create: [{ position: 0, canonicalProductId: p, baseUnit: "ML", status: "DISCLOSED", releaseId: release.id }] },
+        },
+      });
+      const draft = await createDraft([p], { proposalId: proposal.id });
+      expect(draft.body.origin.proposal_fingerprint).toBe(proposal.inputsFingerprint);
+      // The origin never copies the figure, its contributors or its date.
+      expect(JSON.stringify(draft.body.origin)).not.toMatch(/"777"|contributors|released_at|quantity/);
+      await prisma.collectiveRelease.update({ where: { id: release.id }, data: { withdrawnAt: new Date() } });
+      const after = await get(director, `${INST}/${draft.body.call_id}`);
+      expect(after.body.origin).toMatchObject({ kind: "PROPOSAL", proposal_ref: proposal.id, proposal_fingerprint: null });
+      const stored = await prisma.jointPurchaseCallOrigin.findUniqueOrThrow({ where: { callId: draft.body.call_id } });
+      expect(stored.proposalFingerprint).toBe(proposal.inputsFingerprint);
+    });
+  });
+
   describe("no effects outside E2", () => {
     it("leaves purchases, debts, payments, stock, Sync v1 and forecasts untouched", async () => {
-      expect(await legacyCounts()).toEqual({ ...legacyBefore, collectiveRelease: legacyBefore.collectiveRelease + 1 });
+      // E2-D14 and E3-P2 each create one synthetic release for their drafts.
+      expect(await legacyCounts()).toEqual({ ...legacyBefore, collectiveRelease: legacyBefore.collectiveRelease + 2 });
       const stocked = await prisma.product.findUniqueOrThrow({ where: { id: f.products.liquidA } });
       expect(stocked.currentStock.toString()).toBe("40");
     });

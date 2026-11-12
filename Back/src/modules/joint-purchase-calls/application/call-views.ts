@@ -1,6 +1,7 @@
 import type {
   JointPurchaseCallCloseMode,
   JointPurchaseCallEventKind,
+  JointPurchaseCallOriginKind,
   JointPurchaseCallStatus,
   JointPurchaseParticipationStatus,
   SyncV1BaseUnit,
@@ -147,6 +148,41 @@ export interface HistoryEntryView {
   detail: string | null;
 }
 
+export interface CallOriginProductView {
+  position: number;
+  product_ref: string;
+  product_name: string;
+  base_unit: SyncV1BaseUnit;
+  /** Line of the source draft the product came from; null if it did not come from a line. */
+  proposal_position: number | null;
+}
+
+/**
+ * E3-P2: the products and their provenance as the call was created, written
+ * once in the creating transaction and never changed. Never a quantity, a
+ * disclosed figure, a contributor, an identity of a farmer or an estimate.
+ */
+export interface CallOriginView {
+  kind: JointPurchaseCallOriginKind;
+  proposal_ref: string | null;
+  /** When that draft was generated (drafts are immutable); null in CATALOG. */
+  proposal_generated_at: string | null;
+  /**
+   * Fingerprint of the draft when the call was created. Served under the
+   * rule of the call's figures (E2-D14): null when disclosure is not
+   * authorized or a disclosed figure of that draft has been withdrawn, so it
+   * cannot be used to test candidate values of a figure no longer served.
+   */
+  proposal_fingerprint: string | null;
+  /** Revision of the draft's saved selection then; null if none was ever saved (or CATALOG). */
+  selection_revision: number | null;
+  /** The call's products then were exactly those of that selection (any order); null without one. */
+  selection_matched: boolean | null;
+  recorded_at: string;
+  recorded_by: UserRefView;
+  products: CallOriginProductView[];
+}
+
 export interface CallDetailView {
   contractVersion: 1;
   call_id: string;
@@ -181,6 +217,10 @@ export interface CallDetailView {
   /** Users with a grant from the responsible now (never farmers). */
   collaborator_count: number;
   products: InstitutionalCallProductView[];
+  /** E3-P2: null for calls created before the origin was recorded (never reconstructed). */
+  origin: CallOriginView | null;
+  /** The current products (any order) are not those of the origin; false without an origin. */
+  origin_differs_from_current: boolean;
   history: HistoryEntryView[];
 }
 
