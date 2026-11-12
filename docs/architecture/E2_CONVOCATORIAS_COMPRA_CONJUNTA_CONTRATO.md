@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Fecha | 2026-11-11 (redacción); estado **Propuesto**, pendiente de la aceptación de Roderich |
+| Fecha | 2026-11-11 (redacción); estado **Propuesto**. Decisiones E2-P1, E2-P2 y E2-P3 resueltas por Roderich el 2026-11-11 (§10) |
 | Alcance | Etapa 2: convocatorias (Borrador, Abierta, Cerrada, Cancelada), participación identificada del agricultor, cierre atómico con «Consolidado al cierre», avisos dentro de la aplicación |
 | Bases | Back/Web: rama `feat/etapa2-convocatorias` desde `feat/etapa1-identificacion-productos` (worktree `_wt/ET2-BE`). Mobile: rama `feat/etapa2-convocatorias` desde `feat/etapa1-productos-identificacion-foto` (worktree `_wt/ET2-MOB`) |
 | Contratos que **no cambian** | F05 (Sync v1), F06 (proyección colectiva), F07 (divulgación de agregados y sellado), F08 (respaldo), F12 (estimación), E1 (identificación) |
@@ -261,11 +261,11 @@ Sección «Compras conjuntas» en el menú colectivo (ruta `/colectivo/compras-c
 
 Fecha límite controlada en el recorrido: la convocatoria de prueba se crea con un plazo de pocos minutos (hora real del servidor); no se cambia el reloj del sistema ni del emulador.
 
-## 8. Decisiones abiertas para Roderich
+## 8. Decisiones que estaban abiertas
 
-- **E2-P1** Umbral para mostrar totales por producto a quien no es responsable (hoy 3, el provisional de F07).
-- **E2-P2** Plazo de visibilidad en el teléfono de convocatorias cerradas o canceladas (hoy 180 días).
-- **E2-P3** ¿Debe poder la Directiva designar más personas con permiso de ver participantes (además del responsable)? Hoy no: sólo el responsable.
+- **E2-P1** Umbral para mostrar totales por producto a quien no es responsable (hoy 3, el provisional de F07). Aplicado con privacidad primero (final del §9); el valor 3 sigue revisable.
+- **E2-P2** Plazo de visibilidad en el teléfono de convocatorias cerradas o canceladas. **Resuelta (§10.1):** 180 días es sólo un filtro de presentación; las anteriores siguen en «Historial».
+- **E2-P3** Más personas con permiso de ver participantes. **Resuelta (§10.2):** colaboradores por convocatoria con dos permisos distintos y consentimiento `CONV-2`.
 
 ## 9. Resoluciones de la implementación (Back, 2026-11-11)
 
@@ -292,3 +292,89 @@ Ambigüedades del contrato resueltas al implementar el Backend (`Back/src/module
 | E2-R17 | Bitácora | `AuditLog` (`action: OTRO`, `entityName: JointPurchaseCall`, `ownerUserId: null`) al crear, editar, abrir, cancelar y cerrar (cierre automático con `actorUserId: null`); sin nombres ni cantidades de agricultores. Las operaciones del agricultor no escriben eventos ni bitácora. |
 
 **E2-P1 aplicado (2026-11-11, privacidad primero):** mientras la convocatoria está abierta, quien no tiene el permiso del responsable **no ve totales por producto** (`visibility: "RESPONSIBLE_ONLY"`, `total_quantity_base: null`), porque comparar lecturas sucesivas (3 → 4 personas) revelaría la cantidad de una persona. Ve el número de participantes. En el consolidado al cierre, inmutable, rige el umbral de 3. Pruebas: `call-domain.spec.ts` y el caso de autorización de la suite PostgreSQL. El valor del umbral sigue siendo revisable por Roderich.
+
+## 10. Decisiones del autor aplicadas (2026-11-11, segunda sesión)
+
+Ramas: Back/Web `feat/etapa3-estimacion-borrador` (desde `feat/etapa2-convocatorias` `01bcdeb`) y Mobile `feat/etapa2-historial-colaboradores` (desde `feat/etapa2-convocatorias` `6bac5a3`). Migración aditiva `e2_historial_colaboradores`.
+
+### 10.1 E2-P2: historial y visibilidad
+
+Tres cosas distintas que antes estaban mezcladas en «180 días»:
+
+| Concepto | Regla |
+|---|---|
+| **a) Filtro de presentación** | La vista por defecto muestra las convocatorias abiertas y las **recientes**: cerradas o canceladas en los últimos 180 días (`RECENT_FINISHED_DAYS`) en las que el agricultor tiene participación. Las **anteriores** se muestran en «Historial», dentro de la misma pantalla de «Compras conjuntas» (sin pantalla nueva). |
+| **b) Copia local del teléfono** | El teléfono conserva las convocatorias que ya tiene. Al actualizar la vista por defecto sólo descarta las que el servidor ya no sirve **y** que no tienen participación propia guardada **y** no tienen operaciones locales (por ejemplo, una abierta que se canceló sin que el agricultor participara). Nunca descarta una convocatoria terminada con participación propia por salir de la ventana de 180 días, ni una con operaciones pendientes, rechazadas o fuera de plazo (`joint_purchase_participation_ops`). Lo que llega por «Historial» se guarda igual, sin borrar nada. |
+| **c) Retención en el servidor** | Ninguna regla de limpieza borra convocatorias, participaciones, operaciones, cierres ni eventos. La retención institucional definitiva sigue pendiente de GOV-02 (#185), como en F12 §6.5. |
+
+API del agricultor (mismo `SyncV1AuthGuard` y mismas restricciones: sólo convocatorias del tenant en las que el Member tiene fila de participación, y sólo su propia participación):
+
+- `GET /me/joint-purchase-calls` (vista por defecto, misma forma) añade `history: { older_count }`: cuántas convocatorias terminadas **anteriores** a la ventana tiene el agricultor (un recuento de datos propios).
+- `GET /me/joint-purchase-calls/history?before=<cursor>&limit=<1..50, 20 por defecto>`: convocatorias `CLOSED`/`CANCELLED` con participación propia terminadas (`closedAt` o `cancelledAt`) antes de `now − 180 días`, de la más reciente a la más antigua (fecha de término, luego `id`), con la misma forma de cada convocatoria que la vista por defecto. `next_cursor` opaco; un cursor que no emitió el servidor → 400 `PAYLOAD_INVALID`. Nunca incluye convocatorias abiertas.
+
+Teléfono:
+- «Historial» lista primero las anteriores guardadas en el teléfono y ofrece «Consultar historial» con conexión. Sin conexión: «Sin conexión: las convocatorias anteriores que no están en este teléfono se pueden consultar al conectarse.» Si `older_count` de la última actualización supera las anteriores guardadas, lo dice («Hay N convocatorias anteriores que no están en este teléfono»).
+- Las operaciones pendientes, los rechazos y los «Fuera de plazo» siguen visibles con su convocatoria, sea reciente o anterior.
+
+### 10.2 E2-P3: colaboradores autorizados
+
+**Permisos por convocatoria** (`JointPurchaseCallAccess.grant`), siempre de un usuario y una convocatoria del mismo tenant:
+
+| Permiso | Qué permite |
+|---|---|
+| `PARTICIPANTS` («Consultar participantes y cantidades») | Nombres y cantidades por persona (`/participants`, detalle del consolidado) y totales según §10.3 |
+| `MANAGE` («Administrar la convocatoria») | Editar el borrador, abrir, cancelar y cerrar a mano |
+
+- **La persona responsable** tiene los dos: `MANAGE` por ser la responsable y `PARTICIPANTS` con la fila que el sistema crea al abrir (E2-D6).
+- **Ningún rol concede permisos por sí solo**, tampoco `ADMINISTRADOR`: un administrador técnico no recibe ninguno de los dos automáticamente.
+- **Quién asigna y revoca:** sólo la persona responsable de esa convocatoria. Quien tiene `MANAGE` no puede conceder permisos (sin cadenas). Un colaborador puede renunciar a su propio permiso.
+- **Nadie se concede permisos a sí mismo:** el destinatario es otro usuario `DIRECTIVA` o `ADMINISTRADOR` activo del tenant, distinto del responsable y de quien concede; cualquier otro → 422 `COLLABORATOR_NOT_ELIGIBLE` (sin distinguir inexistente, otro tenant, inactivo o agricultor). Quien no es responsable → 403 `COLLABORATORS_FORBIDDEN`.
+- **Cuándo:** conceder en `DRAFT`, `OPEN` o `CLOSED`; revocar en cualquier estado. Conceder lo ya concedido o revocar lo inexistente responde 200 sin evento nuevo.
+- **Administración restringida:** editar, abrir, cancelar y cerrar a mano exigen ser responsable o tener `MANAGE` (403 `MANAGE_FORBIDDEN`). Si el responsable dejó de ser elegible (cuenta, Member o rol inactivo), cualquier `DIRECTIVA`/`ADMINISTRADOR` del tenant puede **cancelar o cerrar**, para no dejar la convocatoria sin salida, pero nunca ver participantes. Crear borradores sigue abierto a `DIRECTIVA`/`ADMINISTRADOR`. El cierre automático por plazo no cambia.
+- **Registro:** cada concesión y revocación es una fila de `JointPurchaseCallAccessEvent` (sólo inserción: usuario, permiso, `GRANTED`/`REVOKED`, actor, hora del servidor), un evento del historial (`ACCESS_GRANTED`/`ACCESS_REVOKED`, con el nombre institucional del colaborador y el permiso, nunca datos de agricultores) y una entrada de `AuditLog`. `JointPurchaseCallAccess` guarda `grantedByUserId` (nulo en la fila que crea el sistema al abrir).
+- **Comprobación en cada operación:** el servidor lee el permiso en cada petición; una revocación rige desde la petición siguiente.
+- **Revocación en el cliente:** la Web vuelve a comprobar el permiso al recuperar el foco y cada 60 s mientras muestra participantes. Ante 403 `PARTICIPANTS_FORBIDDEN` o `can_view_participants: false` borra de la memoria de la página los nombres y cantidades y dice: «Ya no tiene permiso para ver a los participantes de esta convocatoria. Lo que se haya copiado, impreso o capturado antes no se puede retirar desde aquí.» La Web no guarda participantes en el navegador (ni `localStorage` ni IndexedDB).
+
+Rutas institucionales nuevas:
+- `GET /joint-purchase-calls/{id}/collaborators`: colaboradores vigentes (`user_ref`, nombre, rol, permisos, quién y cuándo) e historial de concesiones y revocaciones. Lo ve cualquier `DIRECTIVA`/`ADMINISTRADOR` del tenant (no contiene datos de agricultores).
+- `POST /joint-purchase-calls/{id}/collaborators` `{ user_ref, grant, confirmed: true }`.
+- `POST /joint-purchase-calls/{id}/collaborators/revoke` `{ user_ref, grant }`.
+- `GET /joint-purchase-calls/{id}` añade `can_manage`, `my_grants` y `collaborator_count`.
+
+**Consentimiento `CONV-2`.** `CONV-1` dice «El responsable de esta compra conjunta podrá ver…»: no cubre a colaboradores. Texto nuevo, versión `CONV-2`:
+
+> «La persona responsable de esta compra conjunta y quienes ella autorice para coordinarla podrán ver tu nombre y las cantidades que solicitas, para coordinar la compra y la entrega. Esta confirmación no genera una deuda.»
+
+- El servidor publica `CONV-2` como vigente y sigue aceptando `CONV-1` de teléfonos sin actualizar. `JointPurchaseParticipation.consentVersion` es la del último `CONFIRM` aceptado.
+- **Compatibilidad del teléfono:** la versión E2 de la app valida de forma estricta la lista (claves conocidas y consentimiento exactamente `CONV-1`). Con `CONV-2` publicado, esa versión deja de aceptar la lista y pide actualizarse, como preveía E2-D9; sus operaciones ya preparadas con `CONV-1` se siguen enviando y aceptando, y quedan visibles sólo para la persona responsable. La versión nueva acepta `CONV-2` y `history`.
+- **No se extiende retroactivamente:** una participación con `CONV-1` sólo la ve la persona responsable. Un colaborador con `PARTICIPANTS` ve sólo las participaciones con `CONV-2`, más el número de las demás («N participaciones aceptadas con un consentimiento anterior: sólo las ve la persona responsable»).
+
+### 10.3 Quién ve qué, también después del cierre
+
+Cerrar una convocatoria **no** vuelve anónimos sus datos: el consolidado conserva las participaciones identificadas y el mismo control de acceso.
+
+| Quién | Participantes identificados | Totales por producto con la convocatoria abierta | Consolidado al cierre |
+|---|---|---|---|
+| Persona responsable | Todos | Todos (en vivo) | Totales y detalle por persona |
+| Colaborador con `PARTICIPANTS` | Sólo los de `CONV-2` (más el número de los demás) | En vivo sólo en productos sin participaciones ocultas para él; si hay alguna, `RESPONSIBLE_ONLY` | Detalle por persona de `CONV-2`; total de un producto sólo si no tiene participaciones ocultas para él, si no `RESPONSIBLE_ONLY` (restando las visibles se revelaría la oculta) |
+| Colaborador sólo con `MANAGE`, resto de la Directiva o Administración | No | No (`RESPONSIBLE_ONLY`, E2-P1) | Totales con al menos 3 personas en el producto (`UNDER_THRESHOLD` debajo); número de personas siempre |
+| Agricultor | Sólo su propia participación | No | Su propia participación tal como entró al consolidado |
+
+- **Después de una revocación:** quien tuvo `PARTICIPANTS` en esa convocatoria (según `JointPurchaseCallAccessEvent`) sigue sin recibir el total de los productos con participaciones que no podía ver, aunque ahora le corresponda la fila del umbral: restando lo que vio antes revelaría la participación oculta. Queda un límite que el sistema no controla: lo que dos personas distintas combinen fuera de él.
+- La misma función decide en el detalle, en `/participants` y en `/closing`: no hay rutas alternativas ni versiones de la respuesta que eludan la regla. La lista (`GET /joint-purchase-calls`) no lleva totales ni nombres.
+- Esta etapa **no añade exportaciones**. Cualquier difusión colectiva adicional (por ejemplo, publicar el consolidado) debe pasar por la política de divulgación vigente (F07-POL-01).
+
+### 10.4 Resoluciones de la implementación (2026-11-11)
+
+Back `0db2d0f` (migración `20261111230000_e2_historial_colaboradores`; `application/call-access.ts`, `domain/visibility.ts` → `CallVisibility`), Web `5d760b6` y `b77965e`, Mobile `16c002c` y `fa0fdc4` (esquema SQLite v17).
+
+| ID | Tema | Resolución |
+|---|---|---|
+| E2-R18 | Revocar | Revocar borra la fila de `JointPurchaseCallAccess` (la E2 no tenía disparador). Un disparador nuevo impide modificar filas, borrar la del responsable y crear filas que no conceda el responsable a otro usuario del mismo tenant. |
+| E2-R19 | Permiso del responsable | Su fila `PARTICIPANTS` al abrir no se registra en `JointPurchaseCallAccessEvent` (sólo permisos de colaboradores). Revocarla → 422 `COLLABORATOR_NOT_ELIGIBLE`. |
+| E2-R20 | Conceder en una cancelada | 409 `INVALID_TRANSITION` con `status`. |
+| E2-R21 | Campos añadidos | Detalle: `can_cancel_or_close` y `responsible.eligible`. `/participants` y `/closing`: `hidden_participant_count` y `hidden_notice`; `participant_count` cuenta también las ocultas (para el responsable no cambia). |
+| E2-R22 | Cursor del historial | Opaco (base64url) pero no firmado, como el de F12: uno mal formado da 400; uno bien formado fabricado por el cliente se acepta, sin más datos que los propios. |
+| E2-R23 | Teléfono | `history` obligatoria en la lista; `consent` opcional en la página de historial y, si viene, debe ser el vigente (`fa0fdc4`, hallazgo de la revisión cruzada). La copia local sólo descarta convocatorias ausentes que siguen `OPEN`, sin participación guardada y sin operaciones. Con CONV-1 ya no se prepara nada nuevo; confirmar las mismas cantidades con CONV-2 crea otra operación y la CONV-1 pendiente queda `SUPERSEDED`. |
+| E2-R24 | Web | La lista de colaboradores no se vuelve a pedir en cada comprobación de foco (límite de peticiones), salvo cuando cambian los permisos propios o el número de colaboradores, o llega 403 `PARTICIPANTS_FORBIDDEN` (`b77965e`, hallazgo del recorrido: el panel seguía mostrando el permiso retirado). |
+| E2-R25 | Límite conocido del teléfono | `call_id` es clave primaria global de la copia local: dos titulares del mismo tenant en el mismo teléfono comparten la fila de una convocatoria (sus operaciones sí se separan). Cambiarlo no es aditivo; queda anotado. |
