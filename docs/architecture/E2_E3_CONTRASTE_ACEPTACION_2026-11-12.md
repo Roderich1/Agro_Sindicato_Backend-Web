@@ -63,3 +63,20 @@ Están implementadas (son la opción conservadora que el código aplica hoy), pe
 - **Aceptadas** (2026-11-12, por el autor): las reglas de la §1 y las correcciones de la §2.
 - **No aceptadas todavía:** N1–N8 y las menores de la §3. Siguen aplicadas en el código porque son la opción conservadora; si alguna se rechaza, se cambia en una tarea aparte.
 - Los contratos E2 y E3 pasan a «**Aceptado en las reglas acordadas**», con la §3 de este documento como lista de pendientes.
+
+## 6. Decisiones del autor sobre la §3 (2026-11-12, segunda parte)
+
+| # | Decisión | Dónde queda |
+|---|---|---|
+| N1 | Aceptada con cambio: borradores en PLANIFICADA o ABIERTA; abrir sólo en ABIERTA; cerrar y cancelar no dependen de la campaña | E2 §11.4 (implementado) |
+| N2 | **Rechazada**; se prepara P-A, sin activar | E2 §11.5; `E2_PA_SUSTITUCION_RESPONSABLE_OPCIONES.md` (**pendiente**) |
+| N3 | Aceptada, con alcance por convocatoria y producto y matriz probada | E2 §11.6 |
+| N4 | Aceptada provisionalmente (k = 3), sin presentarla como anonimato | E2 §11.7 |
+| N5 | Aceptada con texto nuevo: `CONV-3` | E2 §11.2 |
+| N6 | Aceptada con P-B (aviso previo y confirmación) | E2 §11.8 |
+| N7 | El error genérico no se acepta: respuesta compatible con el contrato 1 y errores distintos en las versiones nuevas | E2 §11.3 |
+| N8 | **Rechazada**; Excel único con la referencia fijada | E2 §11.9; `WEB_EXCEL_UNICO_2026-11-12.md` |
+| m1–m11 | Aceptadas con las precisiones del autor; cambian m6, m10 y m11 | E2 §11.10 |
+| P-C | Aceptada: consentimiento independiente de las cantidades | E2 §11.1 |
+
+Las etapas 1–3 **no** se declaran cerradas funcionalmente: P-A sigue pendiente de decisión (§7 de su documento).

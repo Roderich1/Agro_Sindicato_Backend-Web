@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Fecha | 2026-11-11 (redacción). Estado: **Aceptado en las reglas acordadas** por Roderich el 2026-11-12; las reglas añadidas que no derivan de una decisión suya quedan pendientes (ver `E2_E3_CONTRASTE_ACEPTACION_2026-11-12.md` §3) |
+| Fecha | 2026-11-11 (redacción). Estado: **Aceptado en las reglas acordadas** por Roderich el 2026-11-12; reglas añadidas decididas el 2026-11-12 en §11 (prevalece); **pendiente**: P-A (sustitución de responsable), ver `E2_PA_SUSTITUCION_RESPONSABLE_OPCIONES.md` |
 | Alcance | Etapa 2: convocatorias (Borrador, Abierta, Cerrada, Cancelada), participación identificada del agricultor, cierre atómico con «Consolidado al cierre», avisos dentro de la aplicación |
 | Bases | Back/Web: rama `feat/etapa2-convocatorias` desde `feat/etapa1-identificacion-productos` (worktree `_wt/ET2-BE`). Mobile: rama `feat/etapa2-convocatorias` desde `feat/etapa1-productos-identificacion-foto` (worktree `_wt/ET2-MOB`) |
 | Contratos que **no cambian** | F05 (Sync v1), F06 (proyección colectiva), F07 (divulgación de agregados y sellado), F08 (respaldo), F12 (estimación), E1 (identificación) |
@@ -389,3 +389,91 @@ Back `0db2d0f` (migración `20261111230000_e2_historial_colaboradores`; `applica
 | E2-R23 | Teléfono | `history` obligatoria en la lista; `consent` opcional en la página de historial y, si viene, debe ser el vigente (`fa0fdc4`, hallazgo de la revisión cruzada). La copia local sólo descarta convocatorias ausentes que siguen `OPEN`, sin participación guardada y sin operaciones. Con CONV-1 ya no se prepara nada nuevo; confirmar las mismas cantidades con CONV-2 crea otra operación y la CONV-1 pendiente queda `SUPERSEDED`. |
 | E2-R24 | Web | La lista de colaboradores no se vuelve a pedir en cada comprobación de foco (límite de peticiones), salvo cuando cambian los permisos propios o el número de colaboradores, o llega 403 `PARTICIPANTS_FORBIDDEN` (`b77965e`, hallazgo del recorrido: el panel seguía mostrando el permiso retirado). |
 | E2-R25 | Límite conocido del teléfono | `call_id` es clave primaria global de la copia local: dos titulares del mismo tenant en el mismo teléfono comparten la fila de una convocatoria (sus operaciones sí se separan). Cambiarlo no es aditivo; queda anotado. |
+
+
+## 11. Decisiones del autor del 2026-11-12 sobre las reglas añadidas (N1–N8, m1–m11, P-B, P-C)
+
+Fuente: encargo del autor del 2026-11-12 («Apruebo las decisiones siguientes con el alcance indicado»). Esta sección **prevalece** sobre las anteriores donde difieran. Implementado en Back `1ff5ccf`, Mobile `9cb6d7b` y Web `7acf0a1`/`bcd8b62` (rama local, sin push).
+
+### 11.1 §10.6 — Consentimiento separado de las cantidades (P-C)
+
+- **Alcance** del consentimiento de cada participación: `RESPONSIBLE_ONLY` (sólo la persona responsable) o `COLLABORATORS` (también las personas de la Directiva o la Administración que ella autorice para esa convocatoria). Se guarda en la participación (`consentScope`, `consentScopeVersion`, `consentScopeDecidedAt`, `consentScopeReceivedAt`, `consentScopeSequence`) y cada decisión en el registro **sólo de inserción** `JointPurchaseConsentDecision` (`INITIAL`, `DECISION`, `MIGRATED`).
+- **Primera confirmación:** exige el texto vigente (`CONV-3`, o `CONV-1`/`CONV-2` de teléfonos anteriores) y fija el alcance de ese texto: `CONV-1` y `CONV-3` → `RESPONSIBLE_ONLY`; `CONV-2` (su texto ya cubría a los colaboradores, aceptado de forma explícita) → `COLLABORATORS`. Orden 0.
+- **Cambiar cantidades conserva el consentimiento:** después de crearse la participación, una confirmación, antigua o nueva, nunca amplía ni reduce el alcance; el consentimiento que traiga se ignora.
+- **Decisión propia:** `POST /me/joint-purchase-calls/{id}/participation/consent` `{operation_id, sequence, scope, consent: {version, decided_at}}`.
+  - Orden **propio** (distinto del de las cantidades): una decisión con `sequence` no mayor que la última aceptada → `409 STALE_SEQUENCE` con la participación vigente; un reintento con el mismo `operation_id` → la respuesta guardada; el mismo id con otro cuerpo → `409 OPERATION_ID_REUSED`. Un reintento o un resultado fuera de orden nunca revierte una decisión posterior.
+  - **Ampliar** exige el texto vigente (`CONV-3`; otro → `409 CONSENT_REQUIRED`) y no se admite en una convocatoria cancelada (`409 WIDENING_NOT_ALLOWED`).
+  - **Reducir** se respeta siempre, en cualquier estado y con cualquier texto conocido.
+  - Sin participación → `409 PARTICIPATION_REQUIRED` (el teléfono la conserva pendiente y la reintenta).
+  - No depende del plazo: decidir después del cierre cambia lo que ven los colaboradores también en el «Consolidado al cierre» (la visibilidad lee siempre el alcance vigente).
+- **Migración** `20261112120000_e2_pc_consent_decisions`: aditiva; cada participación existente conserva exactamente su alcance (fila `MIGRATED`); no se reescribe ningún consentimiento aceptado (`consentVersion` y sus fechas no cambian).
+- **Teléfono (esquema v18):** cola propia `joint_purchase_consent_ops`. «Autorizar también a la Directiva o la Administración» muestra el texto vigente con una casilla **sin marcar**; «Reducir a sólo la persona responsable» pide confirmación. Mientras la decisión está pendiente de envío, el detalle lo dice («Pendiente de envío… Hasta que el sindicato la reciba, rige lo anterior»; en una reducción: «la reducción no está aplicada») y el texto de quién ve los datos sigue diciendo lo **aplicado** en el sindicato. Una respuesta atrasada no pisa una decisión ni unas cantidades más nuevas (cada una por su propio orden).
+
+### 11.2 N5 — Texto `CONV-3`
+
+> «La persona responsable de esta compra conjunta podrá ver tu nombre y las cantidades que solicitas. Si tú lo autorizas, también podrán verlos las personas de la Directiva o la Administración que ella autorice para esta convocatoria. Los datos se usan para coordinar la compra y la entrega. Esta confirmación no genera una deuda.»
+
+Versión nueva porque cambia el texto publicado; `CONV-1` y `CONV-2` conservan su alcance hasta una decisión explícita del agricultor.
+
+### 11.3 N7 — Compatibilidad con la aplicación anterior
+
+- El teléfono declara el contrato que lee con la cabecera `X-Joint-Purchase-Contract: 2`. Con ella, la respuesta es la de §11.1 (`contractVersion: 2`, `CONV-3`, `consent_scope`, `history`).
+- **Sin la cabecera** (las versiones publicadas antes, que validan la respuesta de forma estricta): los mismos datos con la forma del contrato 1: `contractVersion: 1`, el texto `CONV-1` que esas versiones muestran, sin `history` ni `consent_scope` (también en las respuestas de confirmar y retirar, y en `STALE_SEQUENCE`). Sus operaciones con `CONV-1` se siguen aceptando con alcance `RESPONSIBLE_ONLY`. Ningún consentimiento nuevo se hace pasar por el antiguo y nadie gana acceso por compatibilidad.
+- Límite conocido: esas versiones no conocen el historial (§10.1); las convocatorias terminadas hace más de 180 días no aparecen en su lista, como ya ocurría con ellas.
+- **Versiones nuevas:** distinguen «Actualice la aplicación» (otra versión del contrato u otro texto de consentimiento), «Sin conexión» y «El sindicato no respondió correctamente». Nada guardado ni pendiente se descarta.
+
+### 11.4 N1 — Campañas
+
+Crear y editar borradores: campaña `PLANIFICADA` o `ABIERTA`. **Abrir:** sólo `ABIERTA` (otra → `422 CAMPAIGN_NOT_ELIGIBLE`). Cerrar y cancelar una convocatoria existente no dependen de la campaña; un cambio de estado de la campaña no cancela ni cierra nada por sí solo.
+
+### 11.5 N2 rechazada y m6 — Responsable que deja de estar habilitada
+
+- Se retira la excepción de §10.2: **ningún rol** obtiene cancelar o cerrar porque la responsable deje de estar habilitada (`can_cancel_or_close` = `can_manage`).
+- **m6:** mientras la responsable no esté habilitada, los permisos que concedió (`MANAGE`, `PARTICIPANTS`) quedan **suspendidos**: siguen registrados, no se ejercen y el detalle lo indica (`delegations_suspended`). Quien los tenía cuenta como «tuvo el permiso» para la protección de §10.3. Si vuelve a estar habilitada, rigen otra vez.
+- Se conserva el **cierre automático** al vencer el plazo.
+- La salida para una convocatoria así es la sustitución explícita (P-A), **no activada** hasta que el autor decida quién la concede y quién la ejerce (ver `E2_PA_SUSTITUCION_RESPONSABLE_OPCIONES.md`). Mientras tanto, un borrador con la responsable inhabilitada no puede editarse, abrirse ni cancelarse.
+
+### 11.6 N3 — Protección tras una revocación (matriz)
+
+Alcance **por convocatoria** (el permiso y su historial son de esa convocatoria) **y por producto** (sólo pierde el total el producto que tiene una participación oculta para esa persona). No es una prohibición global ni permanente. Matriz para el total de un producto (k = 3 personas):
+
+| Quién mira | ¿Tuvo «Consultar participantes» en esta convocatoria? | Totales | Alcances en el producto | Resultado |
+|---|---|---|---|---|
+| Responsable | — | en vivo o al cierre | cualquiera | cifra visible, también con 1–2 personas |
+| Colaborador vigente | sí | en vivo o al cierre | todos `COLLABORATORS` | cifra visible |
+| Colaborador vigente | sí | en vivo o al cierre | al menos uno `RESPONSIBLE_ONLY` | «sólo la persona responsable» |
+| Sin permiso | no | en vivo (abierta o cancelada) | cualquiera | sin cifra |
+| Sin permiso | no | al cierre | cualquiera | cifra si hay ≥ 3 personas; si no, «bajo el umbral» |
+| Sin permiso | sí (revocado o suspendido) | en vivo | cualquiera | sin cifra |
+| Sin permiso | sí (revocado o suspendido) | al cierre | todos `COLLABORATORS` | umbral, como cualquiera |
+| Sin permiso | sí (revocado o suspendido) | al cierre | al menos uno `RESPONSIBLE_ONLY` | «sólo la persona responsable», aunque haya ≥ 3 |
+
+Probado en `domain/visibility-matrix.spec.ts` (21 casos, incluidos «por producto» y «por convocatoria») y en la suite PostgreSQL E2.
+
+### 11.7 N4 — Umbral de agregados
+
+Aceptado **provisionalmente** k = 3 para agregados a quien no tiene permiso de consulta individual; mientras la convocatoria está abierta, sin totales para ellos. No se presenta como garantía de anonimato. Responsable y colaboradores sólo ven lo que el consentimiento aplicable autoriza: un permiso de colaborador no permite leer participaciones autorizadas sólo para la responsable.
+
+### 11.8 N6 / P-B — Creador
+
+Crear una convocatoria no da administración permanente. Al nombrar a otra persona responsable, la Web avisa antes de guardar qué permisos se pierden (editar, abrir, cancelar, cerrar; ver participantes) y que sólo la responsable puede conceder «Administrar»; exige confirmar. Nadie recibe «Administrar» automáticamente.
+
+### 11.9 N8 sustituida — Exportación del borrador
+
+Excel es la única exportación (las rutas CSV del servidor se retiraron, Back `eeaf327`). El Excel del borrador se arma con lecturas hechas al exportar (el servidor revalida permisos y restricciones) y usa la referencia **fijada** en el borrador (`estimation-link`), nunca la más reciente; una cifra restringida no aparece; sin diferencia ni porcentaje si el servidor no dice que son comparables. Detalle en `WEB_EXCEL_UNICO_2026-11-12.md`.
+
+### 11.10 Reglas menores aceptadas
+
+| # | Regla aceptada | Estado |
+|---|---|---|
+| m1 | Un colaborador renuncia a su propio permiso; queda registrado | Como estaba |
+| m2 | Retiradas fuera de la lista operativa y de los totales; la fila se conserva | Como estaba |
+| m3 | 180 días = ventana de «recientes», no eliminación | Como estaba |
+| m4 | Conceder en borrador, abierta o cerrada; revocar en cualquier estado; siempre limitado por el consentimiento | Como estaba |
+| m5 | Sólo la responsable concede; «Administrar» no permite delegar | Como estaba |
+| m6 | Sin delegaciones activas automáticamente si la responsable no está habilitada | **Cambiado** (§11.5) |
+| m7 | «Quitar referencia» impide que un resultado tardío la vuelva a asociar | Como estaba (prueba E3 «a late result has no effect on a cleared reference») |
+| m8 | La selección de productos es lo editable del borrador | Como estaba |
+| m9 | Reutilización de cálculos según las reglas documentadas | Como estaba |
+| m10 | Sondeo sólo con la vista activa y el cálculo pendiente; se detiene al salir, terminar o fallar | **Cambiado** (Web `bcd8b62`: un fallo de la consulta detiene el sondeo; pestaña oculta lo pausa) |
+| m11 | El historial reconstruye la concesión inicial al abrir | **Cambiado**: el evento de apertura dice «La persona responsable recibe el permiso de consultar participantes y cantidades.» |
