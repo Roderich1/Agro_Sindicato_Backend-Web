@@ -945,6 +945,31 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       await grantAccess(id, directorA4, "PARTICIPANTS");
       expect(lines(await closingOf(directorA4))).toEqual([[3, null, "RESPONSIBLE_ONLY"], [2, "50", "VISIBLE"]]);
     });
+
+    it("CONV-1 stays hidden from collaborators until the farmer accepts CONV-2; the last accepted consent governs", async () => {
+      const CONV2 = { version: "CONV-2", accepted_at: "2026-11-12T01:00:00.000Z" };
+      const p1 = await newProduct();
+      const id = await openCall([p1]);
+      const names = async () => ((await get(director, `${INST}/${id}/participants`)).body.participants as any[]).map((x) => x.name);
+      const stored = () => prisma.jointPurchaseParticipation.findFirstOrThrow({ where: { callId: id, member: { user: { name: "Usuario sintético farmerA" } } } });
+      // Old phone: CONV-1. The collaborator (granted afterwards) does not get it: no retroactive extension.
+      expect((await confirm(farmerA, id, [[p1, "100"]], 1)).body.participation.consent.version).toBe("CONV-1");
+      await grantAccess(id, director, "PARTICIPANTS");
+      expect(await names()).toEqual([]);
+      expect((await get(director, `${INST}/${id}/participants`)).body.hidden_participant_count).toBe(1);
+      // A grant does not change what the farmer accepted.
+      expect((await stored()).consentVersion).toBe("CONV-1");
+      // The farmer modifies with the current consent: from then on the collaborator sees name and quantity.
+      const upgraded = await confirm(farmerA, id, [[p1, "150"]], 2, randomUUID(), CONV2);
+      expect(upgraded.body.participation.consent).toMatchObject({ version: "CONV-2", accepted_at: CONV2.accepted_at });
+      expect((await stored()).consentVersion).toBe("CONV-2");
+      expect(await names()).toEqual(["Usuario sintético farmerA"]);
+      // A late phone without the update sends CONV-1 again: the last accepted consent governs, hidden again.
+      expect((await confirm(farmerA, id, [[p1, "160"]], 3)).body.participation.consent.version).toBe("CONV-1");
+      expect(await names()).toEqual([]);
+      // The backend decides, whatever the client shows: the responsible always sees it.
+      expect(((await get(director2, `${INST}/${id}/participants`)).body.participants as any[]).map((x) => x.name)).toEqual(["Usuario sintético farmerA"]);
+    });
   });
 
   describe("E3-P2 immutable origin of a call", () => {
