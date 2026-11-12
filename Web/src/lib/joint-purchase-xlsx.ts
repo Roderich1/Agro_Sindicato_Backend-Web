@@ -118,6 +118,7 @@ const HIDDEN_NEED_TEXT =
   'La necesidad de esta fila no está divulgada. Esta es la estimación del consumo: no la sustituye ni se suma a la propuesta.';
 const RESTRICTED_TEXT = 'Restringida: la política de divulgación no está aprobada. No se exporta ninguna cifra de la referencia.';
 const NOT_COMPARABLE_TEXT = 'El servidor no declara comparables la necesidad y la estimación: no se calcula ninguna diferencia.';
+const OUTDATED_NOT_COMPARED_TEXT = 'Desactualizada: se conserva la cifra de la referencia fijada, pero no se compara con la necesidad.';
 
 /** La línea de la referencia que acompaña a esta línea del borrador: misma posición, producto y unidad (como la pantalla). */
 function linkLineOf(view: EstimationLinkView, line: ProposalLine): EstimationLinkLine | null {
@@ -201,8 +202,11 @@ function estimateRow(line: ProposalLine, ref: EstimationLinkLine | null, restric
   const scope = withFigure ? ref.scope.estimate : null;
   const needContributors = line.status === 'DISCLOSED' && ref.need.status === 'DISCLOSED' ? ref.scope.need_contributors : null;
   const comparison = ref.comparison;
-  // La diferencia sólo se copia del servidor si él declara comparables las cifras y la estimación se exporta.
-  const difference = withFigure && comparison.comparable && comparison.difference ? comparison.difference : null;
+  // La diferencia sólo se copia del servidor si él declara comparables las cifras, la estimación se
+  // exporta y está vigente: una desactualizada se incluye rotulada, pero incluirla no habilita
+  // ninguna diferencia ni porcentaje (decisión del autor del 2026-11-12, P-A §7).
+  const outdated = state === 'OUTDATED';
+  const difference = withFigure && !outdated && comparison.comparable && comparison.difference ? comparison.difference : null;
   return [
     product,
     value,
@@ -217,7 +221,7 @@ function estimateRow(line: ProposalLine, ref: EstimationLinkLine | null, restric
     scope ? integerCell(scope.contributors_max) : null,
     integerCell(needContributors),
     yesNoCell(difference !== null),
-    difference ? null : text(comparison.message ?? NOT_COMPARABLE_TEXT, 'wrap'),
+    difference ? null : text(outdated && withFigure ? OUTDATED_NOT_COMPARED_TEXT : (comparison.message ?? NOT_COMPARABLE_TEXT), 'wrap'),
     difference ? text(difference.observation, 'wrap') : null,
     difference ? text(serverPercent(difference.difference_percent, difference.percent_undefined)) : null,
     note,
@@ -273,6 +277,8 @@ export function buildJointPurchaseXlsx(input: JointPurchaseXlsxInput): JointPurc
   const restricted = view?.state === 'RESTRICTED';
   const link = view?.link ?? null;
   const run = view?.run ?? null;
+  // Líneas cuya cifra fijada se exporta rotulada «Desactualizada» (nunca si la referencia está restringida).
+  const outdatedCount = view && !restricted ? view.lines.filter((l) => l.estimation.state === 'OUTDATED' && hasEstimateFigure(l)).length : 0;
 
   const referenceFields = view
     ? [
@@ -304,6 +310,17 @@ export function buildJointPurchaseXlsx(input: JointPurchaseXlsxInput): JointPurc
                     ? `Disponible${view.update.reason ? `: ${UPDATE_REASON_TEXT[view.update.reason]}` : '.'} Este libro conserva la referencia fijada; no la sustituye.`
                     : 'No hay una actualización disponible.',
                   'wrap',
+                ),
+              },
+            ]
+          : []),
+        ...(outdatedCount > 0
+          ? [
+              {
+                label: 'Cifras desactualizadas',
+                value: text(
+                  `${outdatedCount === 1 ? '1 línea' : `${outdatedCount} líneas`} con la cifra de la referencia fijada rotulada «Desactualizada» (hoja «Consumo estimado», con su motivo). No se sustituyen por una estimación nueva ni se comparan con la necesidad.`,
+                  'warn',
                 ),
               },
             ]

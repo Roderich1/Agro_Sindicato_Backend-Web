@@ -17,7 +17,9 @@ export type JointPurchaseCallEventKind =
   | 'CANCELLED'
   | 'RESPONSIBLE_ASSIGNED'
   | 'ACCESS_GRANTED'
-  | 'ACCESS_REVOKED';
+  | 'ACCESS_REVOKED'
+  | 'RESPONSIBLE_REPLACED'
+  | 'ACCESS_CONFIRMED';
 export type JointPurchaseParticipationStatus = 'ACTIVE' | 'WITHDRAWN';
 export type JointPurchaseCallCloseMode = 'MANUAL' | 'AUTOMATIC';
 
@@ -27,9 +29,12 @@ export type JointPurchaseCallCloseMode = 'MANUAL' | 'AUTOMATIC';
  * `RESPONSIBLE_ONLY` mientras la convocatoria está abierta, para quien no tiene
  * el permiso del responsable, y también (abierta o cerrada) cuando el total
  * incluye participaciones ocultas para quien consulta (autorizadas sólo para la persona responsable, §10.6).
+ * `RESTRICTED` (P-A C1, §12): el producto tiene una participación cuyo
+ * agricultor aún no autorizó a la persona responsable actual; ni ella ni sus
+ * colaboradores reciben el total.
  * Fuera de `VISIBLE` el total llega como `null`, nunca como 0.
  */
-export type JointPurchaseCallTotalVisibility = 'VISIBLE' | 'UNDER_THRESHOLD' | 'RESPONSIBLE_ONLY';
+export type JointPurchaseCallTotalVisibility = 'VISIBLE' | 'UNDER_THRESHOLD' | 'RESPONSIBLE_ONLY' | 'RESTRICTED';
 
 /**
  * E2-P3 (§10.2): permisos por convocatoria. `PARTICIPANTS` («Consultar
@@ -152,7 +157,8 @@ export interface JointPurchaseCallDetail {
   updated_at: string;
   server_time: string;
   /** `eligible: false`: el responsable dejó de ser un usuario activo (cuenta, Member o rol). */
-  responsible: JointPurchaseCallUserRef & { role: string | null; eligible: boolean };
+  /** P-A (§12): `version` sube con cada sustitución; ausente en respuestas anteriores. */
+  responsible: JointPurchaseCallUserRef & { role: string | null; eligible: boolean; version?: number };
   created_by: JointPurchaseCallUserRef;
   opened_by: JointPurchaseCallUserRef | null;
   cancelled_by: JointPurchaseCallUserRef | null;
@@ -167,8 +173,20 @@ export interface JointPurchaseCallDetail {
   is_responsible: boolean;
   /** §10.2: responsable o `MANAGE` (editar el borrador, abrir, cancelar y cerrar). */
   can_manage: boolean;
-  /** §10.2: `can_manage`, o el responsable ya no es elegible (cualquier Directiva/Administración puede cancelar o cerrar). */
+  /** Igual a `can_manage` (N2 rechazada el 2026-11-12: ningún rol cancela ni cierra por defecto). */
   can_cancel_or_close: boolean;
+  /** m6: la responsable no está habilitada; los permisos que concedió no se ejercen. */
+  delegations_suspended?: boolean;
+  /** P-A A1: quien consulta tiene «Sustituir responsable» y está habilitada. */
+  has_substitution_permission?: boolean;
+  /** P-A B1: tiene el permiso, la responsable ya no está habilitada y la convocatoria no está cancelada. */
+  can_substitute_responsible?: boolean;
+  /** P-A: delegaciones de una responsable anterior pendientes de la revisión de la actual. */
+  pending_delegation_reviews?: number;
+  /** P-A C1: participaciones aún no autorizadas para la responsable actual (un recuento; 0 sin permiso). */
+  pending_authorization_count?: number;
+  /** P-A: sustituciones de la persona responsable, de la más antigua a la más reciente. */
+  responsible_changes?: JointPurchaseResponsibleChange[];
   /** Permisos que quien consulta tiene ahora (el responsable tiene `MANAGE` por serlo). */
   my_grants: JointPurchaseCallGrant[];
   /** Usuarios con algún permiso concedido por el responsable (nunca agricultores). */
@@ -179,6 +197,18 @@ export interface JointPurchaseCallDetail {
   /** Los productos actuales no son los del origen (sin importar el orden). */
   origin_differs_from_current?: boolean;
   history: JointPurchaseCallEvent[];
+}
+
+/** P-A (§12): una sustitución de la persona responsable. Sin datos de agricultores. */
+export interface JointPurchaseResponsibleChange {
+  version: number;
+  at: string;
+  previous: JointPurchaseCallUserRef;
+  next: JointPurchaseCallUserRef;
+  actor: JointPurchaseCallUserRef;
+  reason: string;
+  call_status: 'DRAFT' | 'OPEN' | 'CLOSED';
+  suspended_delegations: number;
 }
 
 export interface JointPurchaseParticipantLine {
@@ -210,6 +240,9 @@ export interface JointPurchaseCallParticipants {
   hidden_participant_count: number;
   /** Aviso del servidor sobre esas participaciones, o `null`. */
   hidden_notice: string | null;
+  /** P-A C1: participaciones cuyo agricultor aún no autorizó a la responsable actual; nadie las ve por nombre. */
+  pending_authorization_count?: number;
+  pending_authorization_notice?: string | null;
   participants: JointPurchaseCallParticipant[];
 }
 
@@ -248,6 +281,8 @@ export interface JointPurchaseCallClosing {
   /** §10.2: participaciones congeladas ocultas para este colaborador (0 en otro caso). */
   hidden_participant_count: number;
   hidden_notice: string | null;
+  pending_authorization_count?: number;
+  pending_authorization_notice?: string | null;
 }
 
 /** Producto pedido al crear o editar: sólo su referencia (el servidor deduce la línea del borrador de origen). */
@@ -280,6 +315,9 @@ export interface JointPurchaseCallCollaboratorGrant {
   label: string;
   granted_at: string;
   granted_by: JointPurchaseCallUserRef;
+  /** m6 / P-A: vigente, suspendido (responsable inhabilitada) o pendiente de la revisión de la nueva responsable. */
+  status?: 'IN_FORCE' | 'SUSPENDED' | 'PENDING_REVIEW';
+  responsible_version?: number;
 }
 
 /** Colaborador vigente (usuario institucional, nunca un agricultor). */
@@ -293,7 +331,7 @@ export interface JointPurchaseCallCollaborator {
 /** Concesión o revocación registrada (`JointPurchaseCallAccessEvent`). */
 export interface JointPurchaseCallAccessEvent {
   at: string;
-  action: 'GRANTED' | 'REVOKED';
+  action: 'GRANTED' | 'REVOKED' | 'SUSPENDED' | 'CONFIRMED';
   grant: JointPurchaseCallGrant;
   user: JointPurchaseCallUserRef;
   actor: JointPurchaseCallUserRef;
@@ -307,6 +345,34 @@ export interface JointPurchaseCallCollaborators {
   responsible: JointPurchaseCallUserRef;
   /** Sólo el responsable concede y revoca. */
   can_grant: boolean;
+  /** P-A: la responsable actual y habilitada revisa las delegaciones de una responsable anterior. */
+  can_review?: boolean;
+  responsible_version?: number;
   collaborators: JointPurchaseCallCollaborator[];
   history: JointPurchaseCallAccessEvent[];
+}
+
+/** P-A A1 (§12): `GET|POST /joint-purchase-substitution-permissions`. Sin datos de agricultores. */
+export interface SubstitutionPermissions {
+  contractVersion: 1;
+  /** Sólo una persona ADMINISTRADOR habilitada concede y revoca. */
+  can_grant: boolean;
+  holds_permission: boolean;
+  holders: {
+    user_ref: string;
+    name: string;
+    role: string | null;
+    /** Habilitada ahora; si no, el permiso no se ejerce. */
+    eligible: boolean;
+    granted_at: string;
+    granted_by: JointPurchaseCallUserRef;
+    reason: string;
+  }[];
+  history: {
+    at: string;
+    action: 'GRANTED' | 'REVOKED';
+    user: JointPurchaseCallUserRef;
+    actor: JointPurchaseCallUserRef;
+    reason: string | null;
+  }[];
 }

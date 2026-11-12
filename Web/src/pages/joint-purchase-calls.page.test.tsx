@@ -30,6 +30,9 @@ vi.mock('../services/joint-purchase-calls.service', () => ({
     collaborators: vi.fn(),
     grant: vi.fn(),
     revoke: vi.fn(),
+    substitutionPermissions: vi.fn(),
+    grantSubstitution: vi.fn(),
+    revokeSubstitution: vi.fn(),
   },
 }));
 vi.mock('../services/collective.service', () => ({

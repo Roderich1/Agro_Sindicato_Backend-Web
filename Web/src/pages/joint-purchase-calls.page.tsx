@@ -26,6 +26,8 @@ import { jointPurchaseCallPath } from '../lib/navigation';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import type { JointPurchaseCallStatus, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
 import { JointPurchaseCallForm } from './joint-purchase-call-form';
+import { SubstitutionPermissionsSection } from './substitution-permissions-section';
+import { useAuth } from '../hooks/use-auth';
 
 type Filter = 'ALL' | JointPurchaseCallStatus;
 
@@ -49,6 +51,7 @@ const FILTERS: { value: Filter; label: string }[] = [
  * el formulario se quitan esos parámetros de la URL.
  */
 export function JointPurchaseCallsPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { campaigns, selected, select, error: campaignsError, refresh: refreshCampaigns } = useSelectedCampaign();
   const [filter, setFilter] = useState<Filter>('ALL');
@@ -230,6 +233,8 @@ export function JointPurchaseCallsPage() {
             )}
           </Section>
         )}
+        {/* P-A A1 (§12): el permiso del sindicato «Sustituir responsable». */}
+        <SubstitutionPermissionsSection userId={user?.id ?? null} />
       </div>
 
       {prepared && preparedCampaign && !creating && (

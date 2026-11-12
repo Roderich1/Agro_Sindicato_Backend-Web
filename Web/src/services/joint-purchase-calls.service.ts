@@ -10,12 +10,14 @@ import type {
   JointPurchaseCallParticipants,
   JointPurchaseCallStatus,
   JointPurchaseCallSummary,
+  SubstitutionPermissions,
   UpdateJointPurchaseCallBody,
 } from '../types/joint-purchase-calls';
 
 /** Cada identificador se codifica antes de componer la ruta. */
 const seg = encodeURIComponent;
 const BASE = '/joint-purchase-calls';
+const PERMISSIONS = '/joint-purchase-substitution-permissions';
 
 export interface JointPurchaseCallFilter {
   campaignId?: string | null;
@@ -69,5 +71,33 @@ export const jointPurchaseCallsService = {
   revoke: (id: string, userRef: string, grant: JointPurchaseCallGrant) =>
     api
       .post<JointPurchaseCallCollaborators>(`${BASE}/${seg(id)}/collaborators/revoke`, { user_ref: userRef, grant })
+      .then((r) => r.data),
+  /** P-A §12: la responsable actual revisa una delegación de una responsable anterior. */
+  reviewDelegation: (id: string, userRef: string, grant: JointPurchaseCallGrant, decision: 'CONFIRM' | 'RETIRE') =>
+    api
+      .post<JointPurchaseCallCollaborators>(`${BASE}/${seg(id)}/collaborators/review`, { user_ref: userRef, grant, decision })
+      .then((r) => r.data),
+  /**
+   * P-A B1: sustituir a una responsable que ya no está habilitada. `requestId`
+   * hace idempotente el reintento; `expectedVersion` es la versión que se vio
+   * (otra → 409 `RESPONSIBLE_CHANGED`, nunca se sobrescribe en silencio).
+   */
+  substituteResponsible: (id: string, body: { requestId: string; expectedVersion: number; newResponsibleRef: string; reason: string }) =>
+    api
+      .post<JointPurchaseCallDetail>(`${BASE}/${seg(id)}/responsible`, {
+        request_id: body.requestId,
+        expected_responsible_version: body.expectedVersion,
+        new_responsible_ref: body.newResponsibleRef,
+        reason: body.reason,
+        confirmed: true,
+      })
+      .then((r) => r.data),
+  /** P-A A1: quién tiene «Sustituir responsable» en el sindicato. */
+  substitutionPermissions: () => api.get<SubstitutionPermissions>(PERMISSIONS).then((r) => r.data),
+  grantSubstitution: (userRef: string, reason: string) =>
+    api.post<SubstitutionPermissions>(PERMISSIONS, { user_ref: userRef, reason, confirmed: true }).then((r) => r.data),
+  revokeSubstitution: (userRef: string, reason: string | null) =>
+    api
+      .post<SubstitutionPermissions>(`${PERMISSIONS}/revoke`, { user_ref: userRef, ...(reason ? { reason } : {}) })
       .then((r) => r.data),
 };

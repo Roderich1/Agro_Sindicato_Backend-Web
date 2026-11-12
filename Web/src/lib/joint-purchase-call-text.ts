@@ -42,6 +42,8 @@ export const CALL_EVENT_LABEL: Record<JointPurchaseCallEventKind, string> = {
   RESPONSIBLE_ASSIGNED: 'Responsable asignado',
   ACCESS_GRANTED: 'Permiso concedido',
   ACCESS_REVOKED: 'Permiso retirado',
+  RESPONSIBLE_REPLACED: 'Responsable sustituida',
+  ACCESS_CONFIRMED: 'Permiso confirmado',
 };
 
 /** E2-P3 (§10.2): nombres de los permisos por convocatoria, como los publica el servidor (`GRANT_LABEL`). */
@@ -102,15 +104,42 @@ export const PARTICIPANTS_REVOKED_TEXT =
 /** §10.2: sin `can_manage` ni `can_cancel_or_close` no hay acciones de estado. */
 export const MANAGE_ONLY_TEXT =
   'Sólo la persona responsable o quien tenga el permiso «Administrar la convocatoria» puede editarla, abrirla, cancelarla o cerrarla.';
-/** §10.2: el responsable dejó de ser elegible; cualquier Directiva o Administración puede cancelar o cerrar. */
+/**
+ * N2 rechazada y m6 (2026-11-12) con P-A (§12): la responsable dejó de estar
+ * habilitada. Nadie cancela ni cierra por su rol; los permisos que concedió
+ * quedan suspendidos; la salida es la sustitución por quien tenga el permiso
+ * «Sustituir responsable». El cierre automático por plazo se mantiene.
+ */
 export const RESPONSIBLE_INELIGIBLE_TEXT =
-  'La persona responsable ya no es un usuario activo de la Directiva o la Administración: cualquiera de ellas puede cancelar o cerrar esta convocatoria, pero no ver a sus participantes.';
+  'La persona responsable ya no es un usuario activo de la Directiva o la Administración. Los permisos que concedió quedan suspendidos y nadie puede administrar la convocatoria por su rol. Quien tenga el permiso «Sustituir responsable» puede nombrar a otra persona responsable. Si está abierta, se cierra sola al vencer la fecha límite.'
 /** El servidor respondió `MANAGE_FORBIDDEN`: el permiso cambió mientras la página estaba abierta. */
 export const MANAGE_LOST_TEXT =
   'Ya no puede administrar esta convocatoria: el permiso cambió. Se volvió a cargar con sus permisos actuales.';
 /** El servidor respondió `COLLABORATORS_FORBIDDEN`: quien consulta ya no es la persona responsable. */
 export const COLLABORATORS_LOST_TEXT =
   'Ya no puede conceder ni retirar permisos en esta convocatoria: sólo la persona responsable puede hacerlo. Se volvió a cargar con sus permisos actuales.';
+
+/** P-A §12: nombre del permiso del sindicato y qué permite (y qué no). */
+export const SUBSTITUTION_PERMISSION_LABEL = 'Sustituir responsable';
+export const SUBSTITUTION_PERMISSION_DESCRIPTION =
+  'Permite nombrar a otra persona responsable cuando la actual ya no está habilitada, con motivo y confirmación. No permite ver participantes, administrar convocatorias ni conceder otros permisos.';
+/** P-A B1: qué hace la sustitución, para el diálogo de confirmación. */
+export const SUBSTITUTION_IMPLICATIONS = [
+  'La nueva persona responsable podrá administrar la convocatoria y conceder permisos.',
+  'Los permisos que concedió la responsable anterior quedan suspendidos hasta que la nueva los confirme o los retire.',
+  'La nueva responsable no verá el nombre ni las cantidades de ningún agricultor hasta que cada uno la autorice desde su aplicación.',
+  'No reabre la convocatoria ni cambia su fecha límite, las participaciones, las cantidades ni el consolidado. No genera compras, pagos, deudas ni inventario.',
+  'La responsable anterior no recupera nada aunque vuelva a estar habilitada.',
+];
+/** P-A C1: participaciones a la espera de que su agricultor autorice a la responsable actual, si el servidor no lo envió. */
+export function pendingAuthorizationText(count: number): string {
+  return count === 1
+    ? '1 participación pendiente de que su agricultor autorice a la persona responsable actual: sus datos no se muestran.'
+    : `${count} participaciones pendientes de que sus agricultores autoricen a la persona responsable actual: sus datos no se muestran.`;
+}
+/** P-A C1: total retenido para la responsable y sus colaboradores. */
+export const RESTRICTED_TOTAL_TEXT =
+  'Total no visible: incluye participaciones cuyos agricultores aún no autorizaron a la persona responsable actual.';
 
 /** §10.6: aviso de participaciones autorizadas sólo para la persona responsable, si el servidor no lo envió. */
 export function hiddenParticipantsText(count: number): string {
@@ -143,6 +172,7 @@ export function withheldTotalText(
   hidden = false,
 ): string {
   const k = threshold ?? 3;
+  if (visibility === 'RESTRICTED') return RESTRICTED_TOTAL_TEXT;
   if (visibility === 'RESPONSIBLE_ONLY')
     return hidden
       ? RESPONSIBLE_ONLY_HIDDEN_TEXT
@@ -184,6 +214,18 @@ const ERROR_TEXT: Record<string, string> = {
   COLLABORATORS_FORBIDDEN: 'Sólo la persona responsable de esta convocatoria puede conceder o retirar permisos.',
   COLLABORATOR_NOT_ELIGIBLE:
     'Esa persona no puede recibir o perder este permiso: debe ser otro usuario activo de la Directiva o la Administración, distinto de la persona responsable y de usted. Los permisos de la persona responsable no se retiran.',
+  SUBSTITUTION_FORBIDDEN:
+    'No tiene el permiso «Sustituir responsable», o ya no está habilitada. Sólo una persona Administrador habilitada lo concede o lo retira.',
+  GRANTEE_NOT_ELIGIBLE:
+    'Esa persona no puede recibir el permiso: debe ser otro usuario activo de la Directiva o la Administración de su organización, distinto de usted.',
+  RESPONSIBLE_STILL_ELIGIBLE:
+    'La persona responsable sigue habilitada: sólo se sustituye a una responsable que ya no lo está. Ceder la responsabilidad es otra operación.',
+  SUCCESSOR_NOT_ELIGIBLE:
+    'Esa persona no puede ser la nueva responsable: debe ser otro usuario activo de la Directiva o la Administración, distinto de usted y de la responsable actual.',
+  RESPONSIBLE_CHANGED: 'Otra persona sustituyó a la responsable mientras tanto. Recargue la página y revise la situación actual.',
+  REQUEST_ID_REUSED: 'Esa sustitución ya se había enviado con otros datos. Recargue la página.',
+  DELEGATION_NOT_PENDING: 'Ese permiso ya no está pendiente de revisión. Recargue la página.',
+  AUTHORIZATION_REQUIRED: 'El agricultor aún no autorizó a la persona responsable actual.',
   CALL_NOT_OPEN: 'La convocatoria ya no está abierta.',
   STALE_SEQUENCE: 'La participación cambió desde otro envío. Recargue la página.',
   OPERATION_ID_REUSED: 'La operación ya se había enviado con otros datos. Recargue la página.',

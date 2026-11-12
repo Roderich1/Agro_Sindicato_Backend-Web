@@ -34,6 +34,7 @@ import {
   MANAGE_ONLY_TEXT,
   NOT_A_PURCHASE_TEXT,
   OPEN_IMPLICATIONS,
+  pendingAuthorizationText,
   PARTICIPANTS_FORBIDDEN_TEXT,
   PARTICIPANTS_REVOKED_TEXT,
   PARTICIPATION_STATUS_LABEL,
@@ -42,6 +43,7 @@ import {
   referenceText,
   RESPONSIBLE_INELIGIBLE_TEXT,
   ROLE_LABEL,
+  SUBSTITUTION_IMPLICATIONS,
   withheldTotalText,
 } from '../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
@@ -62,8 +64,9 @@ import type {
 import { JointPurchaseCallForm } from './joint-purchase-call-form';
 
 type Dialog =
-  | { kind: 'edit' | 'open' | 'close' | 'cancel' | 'grant' }
-  | { kind: 'revoke'; user: JointPurchaseCallUserRef; grant: JointPurchaseCallGrant; self: boolean };
+  | { kind: 'edit' | 'open' | 'close' | 'cancel' | 'grant' | 'substitute' }
+  | { kind: 'revoke'; user: JointPurchaseCallUserRef; grant: JointPurchaseCallGrant; self: boolean }
+  | { kind: 'review'; user: JointPurchaseCallUserRef; grant: JointPurchaseCallGrant; decision: 'CONFIRM' | 'RETIRE' };
 const MAX_REASON = 280;
 /** §10.2: mientras se muestran participantes, el permiso se vuelve a comprobar cada 60 s. */
 const PARTICIPANTS_RECHECK_MS = 60_000;
@@ -322,8 +325,14 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
           Cancelar convocatoria
         </Button>
       )}
+      {call.can_substitute_responsible === true && (
+        <Button variant="secondary" onClick={() => setDialog({ kind: 'substitute' })}>
+          Sustituir responsable
+        </Button>
+      )}
     </div>
   );
+  const responsibleIneligible = call.responsible.eligible === false && call.status !== 'CANCELLED';
 
   return (
     <AppShell title={call.name} section="Colectivo">
@@ -340,9 +349,23 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
           </Notice>
         )}
         {message && <Notice kind="ok">{message}</Notice>}
-        {active && !canManage && (
+        {responsibleIneligible && (
+          <Notice kind="warn" compact>
+            <span data-testid="responsible-ineligible">{RESPONSIBLE_INELIGIBLE_TEXT}</span>
+          </Notice>
+        )}
+        {active && !canManage && !responsibleIneligible && (
           <Notice kind="info" compact>
-            <span data-testid="manage-note">{canEnd ? RESPONSIBLE_INELIGIBLE_TEXT : MANAGE_ONLY_TEXT}</span>
+            <span data-testid="manage-note">{MANAGE_ONLY_TEXT}</span>
+          </Notice>
+        )}
+        {call.is_responsible && (call.pending_delegation_reviews ?? 0) > 0 && (
+          <Notice kind="info" compact>
+            <span data-testid="pending-delegation-reviews">
+              {call.pending_delegation_reviews === 1
+                ? '1 permiso concedido por la responsable anterior espera su revisión en «Colaboradores»: confírmelo o retírelo. Mientras tanto no se ejerce.'
+                : `${call.pending_delegation_reviews} permisos concedidos por la responsable anterior esperan su revisión en «Colaboradores»: confírmelos o retírelos. Mientras tanto no se ejercen.`}
+            </span>
           </Notice>
         )}
 
@@ -378,6 +401,7 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
           onRetry={() => void loadCollaborators()}
           onGrant={() => setDialog({ kind: 'grant' })}
           onRevoke={(user, grant) => setDialog({ kind: 'revoke', user, grant, self: user.user_ref === userId })}
+          onReview={(user, grant, decision) => setDialog({ kind: 'review', user, grant, decision })}
         />
 
         <Collapsible title="Historial" testId="call-history">
@@ -510,6 +534,49 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
           </p>
         </ConfirmDialog>
       )}
+      {dialog?.kind === 'review' && (
+        <ConfirmDialog
+          title={dialog.decision === 'CONFIRM' ? 'Confirmar el permiso' : 'Retirar el permiso'}
+          actionLabel={dialog.decision === 'CONFIRM' ? 'Confirmar permiso' : 'Retirar permiso'}
+          variant={dialog.decision === 'CONFIRM' ? 'primary' : 'danger'}
+          confirmText={
+            dialog.decision === 'CONFIRM'
+              ? `Confirmo que ${dialog.user.name} conserva «${GRANT_LABEL[dialog.grant]}» en «${call.name}», ahora concedido por mí.`
+              : `Confirmo que retiro «${GRANT_LABEL[dialog.grant]}» a ${dialog.user.name} en «${call.name}».`
+          }
+          onClose={() => setDialog(null)}
+          onPermissionLost={(code) => void lostPermission(code)}
+          onConfirm={async () => {
+            const view = await jointPurchaseCallsService.reviewDelegation(call.call_id, dialog.user.user_ref, dialog.grant, dialog.decision);
+            await collaboratorsChanged(
+              view,
+              dialog.decision === 'CONFIRM'
+                ? `Permiso «${GRANT_LABEL[dialog.grant]}» de ${dialog.user.name} confirmado.`
+                : `Permiso «${GRANT_LABEL[dialog.grant]}» retirado a ${dialog.user.name}.`,
+            );
+          }}
+        >
+          <p className="text-sm text-slate-700" data-testid="review-implication">
+            {dialog.decision === 'CONFIRM'
+              ? 'Lo concedió la responsable anterior y quedó suspendido al sustituirla. Si lo confirma, rige otra vez desde la próxima consulta de esa persona, con el mismo límite: sólo verá lo que cada agricultor autorizó.'
+              : 'Lo concedió la responsable anterior. Si lo retira, queda registrado y esa persona no lo recupera salvo que usted se lo conceda de nuevo.'}
+          </p>
+        </ConfirmDialog>
+      )}
+      {dialog?.kind === 'substitute' && (
+        <SubstituteDialog
+          call={call}
+          userId={userId}
+          onClose={() => setDialog(null)}
+          onDone={(text) => void Promise.all([done(text), loadCollaborators()])}
+          onChanged={(text) => {
+            setDialog(null);
+            setMessage(null);
+            setAlert(text);
+            void Promise.all([refresh(), loadCollaborators()]);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
@@ -558,6 +625,14 @@ function CallFacts({ call }: { call: JointPurchaseCallDetail }) {
             {callOriginEditedText(call.origin)}
           </span>
         )}
+      </span>,
+    ]);
+  const lastChange = call.responsible_changes?.at(-1);
+  if (lastChange)
+    facts.push([
+      'Sustitución',
+      <span data-testid="responsible-change">
+        {`${lastChange.next.name} sustituyó a ${lastChange.previous.name} el ${fmtDateTime(lastChange.at)}, por decisión de ${lastChange.actor.name}. Motivo: ${lastChange.reason}`}
       </span>,
     ]);
   facts.push(['Participantes', participantsText(call.participant_count)]);
@@ -712,6 +787,16 @@ function HiddenParticipantsNotice({ count, notice }: { count: number | null | un
   );
 }
 
+/** P-A C1: participaciones a la espera de que su agricultor autorice a la responsable actual. */
+function PendingAuthorizationNotice({ count, notice }: { count: number | null | undefined; notice: string | null | undefined }) {
+  if (!count || count <= 0) return null;
+  return (
+    <Notice kind="warn" compact>
+      <span data-testid="pending-authorization-notice">{notice ?? pendingAuthorizationText(count)}</span>
+    </Notice>
+  );
+}
+
 /** El permiso se perdió mientras la página mostraba participantes (§10.2). */
 function RevokedNotice() {
   return (
@@ -757,6 +842,7 @@ function ParticipantsPanel({
   // El aviso del servidor («Lista provisional…» mientras está abierta) manda; si no llegó, el propio.
   const notice = data?.notice ?? (open ? PROVISIONAL_NOTE : null);
   const hidden = data?.hidden_participant_count ?? 0;
+  const pending = data?.pending_authorization_count ?? 0;
   return (
     <Section title={title} note={notice ? <span data-testid="provisional-note">{notice}</span> : undefined} testId="participants-panel">
       {problem ? (
@@ -765,8 +851,9 @@ function ParticipantsPanel({
         <DataState compact state="loading" />
       ) : (
         <>
-          {hidden > 0 && (
-            <div className="px-5 pt-4">
+          {(hidden > 0 || pending > 0) && (
+            <div className="space-y-2 px-5 pt-4">
+              <PendingAuthorizationNotice count={pending} notice={data.pending_authorization_notice} />
               <HiddenParticipantsNotice count={hidden} notice={data.hidden_notice} />
             </div>
           )}
@@ -775,7 +862,7 @@ function ParticipantsPanel({
               compact
               state="empty"
               title="Sin participantes"
-              description={hidden > 0 ? 'No hay participaciones que usted pueda ver.' : 'Todavía nadie confirmó su participación.'}
+              description={hidden > 0 || pending > 0 ? 'No hay participaciones que usted pueda ver.' : 'Todavía nadie confirmó su participación.'}
             />
           ) : (
             <ParticipantsTable participants={data.participants} call={call} caption="Participantes de la convocatoria" />
@@ -862,6 +949,7 @@ function ClosingPanel({
           ) : Array.isArray(closing.participants) && call.can_view_participants ? (
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-slate-900">Detalle por participante</h3>
+              <PendingAuthorizationNotice count={closing.pending_authorization_count} notice={closing.pending_authorization_notice} />
               <HiddenParticipantsNotice count={closing.hidden_participant_count} notice={closing.hidden_notice} />
               {closing.participants.length === 0 ? (
                 <DataState
@@ -869,7 +957,7 @@ function ClosingPanel({
                   state="empty"
                   title="Sin participantes"
                   description={
-                    (closing.hidden_participant_count ?? 0) > 0
+                    (closing.hidden_participant_count ?? 0) > 0 || (closing.pending_authorization_count ?? 0) > 0
                       ? 'No hay participaciones que usted pueda ver.'
                       : 'Nadie tenía una participación vigente al corte.'
                   }
@@ -902,6 +990,7 @@ function CollaboratorsSection({
   onRetry,
   onGrant,
   onRevoke,
+  onReview,
 }: {
   call: JointPurchaseCallDetail;
   view: JointPurchaseCallCollaborators | null;
@@ -910,8 +999,10 @@ function CollaboratorsSection({
   onRetry: () => void;
   onGrant: () => void;
   onRevoke: (user: JointPurchaseCallUserRef, grant: JointPurchaseCallGrant) => void;
+  onReview: (user: JointPurchaseCallUserRef, grant: JointPurchaseCallGrant, decision: 'CONFIRM' | 'RETIRE') => void;
 }) {
   const canGrant = view?.can_grant === true;
+  const canReview = view?.can_review === true;
   const grantable = canGrant && call.status !== 'CANCELLED';
   return (
     <Section
@@ -962,8 +1053,33 @@ function CollaboratorsSection({
                                 <span className="block text-xs text-slate-600">
                                   Concedido por {grant.granted_by.name} el {fmtDateTime(grant.granted_at)}
                                 </span>
+                                {grant.status && grant.status !== 'IN_FORCE' && (
+                                  <span className="block text-xs font-semibold text-amber-800" data-testid={`grant-status-${person.user_ref}-${grant.grant}`}>
+                                    {grant.status === 'PENDING_REVIEW'
+                                      ? 'Suspendido: lo concedió la responsable anterior y espera la revisión de la actual.'
+                                      : 'Suspendido: la persona responsable no está habilitada.'}
+                                  </span>
+                                )}
                               </span>
-                              {self ? (
+                              {grant.status === 'PENDING_REVIEW' && canReview ? (
+                                <span className="flex flex-wrap gap-2">
+                                  <Button
+                                    size="sm"
+                                    aria-label={`Confirmar «${GRANT_LABEL[grant.grant]}» de ${person.name}`}
+                                    onClick={() => onReview({ user_ref: person.user_ref, name: person.name }, grant.grant, 'CONFIRM')}
+                                  >
+                                    Confirmar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    aria-label={`Retirar «${GRANT_LABEL[grant.grant]}» a ${person.name}`}
+                                    onClick={() => onReview({ user_ref: person.user_ref, name: person.name }, grant.grant, 'RETIRE')}
+                                  >
+                                    Retirar
+                                  </Button>
+                                </span>
+                              ) : self ? (
                                 <Button size="sm" variant="secondary" onClick={() => onRevoke({ user_ref: person.user_ref, name: person.name }, grant.grant)}>
                                   Renunciar a este permiso
                                 </Button>
@@ -1019,9 +1135,173 @@ function CollaboratorsSection({
   );
 }
 
-function accessActionText(action: 'GRANTED' | 'REVOKED', bySelf: boolean): string {
+function accessActionText(action: 'GRANTED' | 'REVOKED' | 'SUSPENDED' | 'CONFIRMED', bySelf: boolean): string {
   if (action === 'GRANTED') return 'Concedido';
+  if (action === 'SUSPENDED') return 'Suspendido al sustituir a la responsable';
+  if (action === 'CONFIRMED') return 'Confirmado por la nueva responsable';
   return bySelf ? 'Renuncia' : 'Retirado';
+}
+
+/**
+ * P-A B1 (§12): sustituir a una responsable que ya no está habilitada. Sólo
+ * con el permiso «Sustituir responsable» (`can_substitute_responsible`); el
+ * servidor revalida todo. La sucesora es otra persona activa de la Directiva
+ * o la Administración, distinta de quien sustituye y de la responsable
+ * actual. Motivo de 1 a 280 caracteres y confirmación. El identificador de la
+ * solicitud se fija al abrir el diálogo: reintentar no duplica nada.
+ */
+function SubstituteDialog({
+  call,
+  userId,
+  onClose,
+  onDone,
+  onChanged,
+}: {
+  call: JointPurchaseCallDetail;
+  userId: string | null;
+  onClose: () => void;
+  onDone: (text: string) => void;
+  /** 409 `RESPONSIBLE_CHANGED` o `RESPONSIBLE_STILL_ELIGIBLE`: la situación cambió; se explica y se recarga. */
+  onChanged: (text: string) => void;
+}) {
+  const [requestId] = useState(() => crypto.randomUUID());
+  const [users, setUsers] = useState<EligibleResponsible[] | null>(null);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [userRef, setUserRef] = useState('');
+  const [reason, setReason] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setUsers(await jointPurchaseCallsService.eligibleResponsibles());
+      setUsersError(null);
+    } catch (err) {
+      setUsersError(callError(err, 'No fue posible cargar los usuarios de la Directiva y la Administración.'));
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadUsers);
+  }, [loadUsers]);
+
+  const candidates = (users ?? []).filter((user) => user.user_ref !== call.responsible.user_ref && user.user_ref !== userId);
+  const chosen = candidates.find((user) => user.user_ref === userRef) ?? null;
+  const ready = chosen !== null && reason.trim().length > 0 && confirmed && !busy;
+
+  const submit = async () => {
+    if (!ready || !chosen) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await jointPurchaseCallsService.substituteResponsible(call.call_id, {
+        requestId,
+        expectedVersion: call.responsible.version ?? 1,
+        newResponsibleRef: chosen.user_ref,
+        reason: reason.trim(),
+      });
+      onDone(`${chosen.name} es ahora la persona responsable. Los permisos anteriores quedan suspendidos hasta su revisión.`);
+    } catch (err) {
+      const code = callErrorCode(err);
+      if (code === 'RESPONSIBLE_CHANGED' || code === 'RESPONSIBLE_STILL_ELIGIBLE' || code === 'SUBSTITUTION_FORBIDDEN') {
+        onChanged(callError(err, 'La situación de la convocatoria cambió.'));
+        return;
+      }
+      setError(callError(err, 'No fue posible sustituir a la persona responsable.'));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Sustituir a la persona responsable" onClose={onClose} size="lg">
+      <div className="space-y-4" data-testid="substitute-dialog">
+        <p className="text-sm text-slate-700">
+          {call.responsible.name} ya no está habilitada. Elija a otra persona responsable para «{call.name}».
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700" data-testid="substitute-implications">
+          {SUBSTITUTION_IMPLICATIONS.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        {error && <Notice kind="error">{error}</Notice>}
+        <div>
+          <label className={labelClass} htmlFor="substitute-user">
+            Nueva persona responsable
+          </label>
+          {usersError ? (
+            <DataState compact state="error" description={usersError} onRetry={() => void loadUsers()} />
+          ) : users && candidates.length === 0 ? (
+            <DataState
+              compact
+              state="empty"
+              title="Sin personas disponibles"
+              description="No hay otra persona activa de la Directiva o la Administración que pueda ser responsable. No hay una salida automática: una persona Administrador debe habilitar a alguien."
+              testId="substitute-no-candidates"
+            />
+          ) : (
+            <select
+              id="substitute-user"
+              className={inputClass}
+              value={userRef}
+              disabled={!users}
+              onChange={(event) => {
+                setUserRef(event.target.value);
+                setConfirmed(false);
+              }}
+            >
+              <option value="">{users ? 'Seleccione…' : 'Cargando…'}</option>
+              {candidates.map((user) => (
+                <option key={user.user_ref} value={user.user_ref}>
+                  {user.name}
+                  {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+          <p className="mt-1 text-xs text-slate-600">Otra persona activa de la Directiva o la Administración, distinta de usted y de la responsable actual.</p>
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="substitute-reason">
+            Motivo
+          </label>
+          <textarea
+            id="substitute-reason"
+            className={inputClass}
+            maxLength={MAX_REASON}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            aria-describedby="substitute-reason-count"
+          />
+          <p id="substitute-reason-count" className="mt-1 text-xs text-slate-500">
+            {reason.length} de {MAX_REASON} caracteres. Queda en el historial y en la bitácora.
+          </p>
+        </div>
+        <label className="flex items-start gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            className="mt-0.5 shrink-0"
+            checked={confirmed}
+            disabled={!chosen}
+            onChange={(event) => setConfirmed(event.target.checked)}
+          />
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            {chosen
+              ? `Confirmo que ${chosen.name} sustituye a ${call.responsible.name} como persona responsable de «${call.name}».`
+              : 'Elija a la nueva persona responsable para confirmar.'}
+          </span>
+        </label>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Volver
+          </Button>
+          <Button onClick={() => void submit()} disabled={!ready}>
+            {busy ? 'Guardando…' : 'Sustituir responsable'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 /**

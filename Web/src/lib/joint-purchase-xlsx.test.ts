@@ -411,6 +411,40 @@ describe('hoja «Consumo estimado»: la referencia fijada en el borrador (E3)', 
     expect(textOf(ref)).not.toMatch(/58|52[.,]2|%/);
   });
 
+  it('desactualizada y comparable según el servidor: se conserva la cifra fijada, pero sin diferencia ni porcentaje; la portada la cuenta', () => {
+    const outdatedComparable = linkViewFor(DRAFT, [
+      {
+        state: 'OUTDATED',
+        status: 'ESTIMATED',
+        estimate_base: '111000.000000',
+        validity: 'OUTDATED',
+        validity_reason: 'SOURCES_CHANGED',
+        scope: { span_campaigns: 3, contributors_min: 5, contributors_max: 5 },
+        comparison: comparableWith({
+          difference_base: '-58000.000000',
+          difference_percent: '-52.2523',
+          direction: 'BELOW',
+          observation: 'La necesidad declarada es inferior en 58 L a la estimación.',
+        }),
+      },
+    ]);
+    const book = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: outdatedComparable, exportedAt: EXPORTED_AT }).bytes);
+    const ref = book.sheets.get(REF_SHEET)!;
+    const r = rowOf(ref, 'Fungicida sintético');
+    expect(ref.cells.get(`B${r}`)).toMatchObject({ type: 'n', value: '111' });
+    expect(ref.cells.get(`D${r}`)!.value).toBe('Desactualizada');
+    expect(ref.cells.get(`G${r}`)!.value).toBeTruthy();
+    expect(ref.cells.get(`M${r}`)!.value).toBe('No');
+    expect(ref.cells.get(`N${r}`)!.value).toBe('Desactualizada: se conserva la cifra de la referencia fijada, pero no se compara con la necesidad.');
+    expect(ref.cells.has(`O${r}`)).toBe(false);
+    expect(ref.cells.has(`P${r}`)).toBe(false);
+    expect(textOf(ref)).not.toMatch(/58 L|52[.,]2|%/);
+    const cover = textOf(book.sheets.get('Borrador')!);
+    expect(cover).toContain('1 línea con la cifra de la referencia fijada rotulada «Desactualizada»');
+    expect(cover).toContain('Referencia del borrador');
+    expect(cover).toContain('Versión de la referencia');
+  });
+
   it('comparable según el servidor: copia su observación y su porcentaje, sin calcular nada', () => {
     const comparable = linkViewFor(DRAFT, [
       available('111000.000000', {
