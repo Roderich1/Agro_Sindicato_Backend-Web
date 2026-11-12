@@ -1,0 +1,761 @@
+[
+ {
+  "files": [
+   "01_acceso/01_inicio_sesion__escritorio.png",
+   "01_acceso/01_inicio_sesion__movil.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Inicio de sesión (vacío)",
+  "estado": "vacío",
+  "simulado": false
+ },
+ {
+  "files": [
+   "01_acceso/02_inicio_sesion_error__escritorio.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Credenciales incorrectas (cuenta inexistente, sintética)",
+  "estado": "error",
+  "simulado": false
+ },
+ {
+  "files": [
+   "01_acceso/03_agricultor_sin_acceso_web__escritorio.png",
+   "01_acceso/03_agricultor_sin_acceso_web__movil.png"
+  ],
+  "ruta": "/sin-acceso-web",
+  "rol": "agricultor",
+  "desc": "Una cuenta AGRICULTOR no tiene Web: aviso",
+  "estado": "sin permiso",
+  "simulado": false
+ },
+ {
+  "files": [
+   "02_resumen/01_resumen_directiva__escritorio.png",
+   "02_resumen/01_resumen_directiva__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen con la campaña activa (Directiva)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/01_necesidades_y_propuestas__escritorio.png",
+   "03_propuestas/01_necesidades_y_propuestas__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Necesidades y propuestas de la campaña activa",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "02_resumen/03_resumen_administrador__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "admin",
+  "desc": "Resumen (Administrador)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "10_administracion/03_usuarios__escritorio.png",
+   "10_administracion/03_usuarios__movil.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Usuarios (sólo Administrador)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/02_abierta_responsable__escritorio.png",
+   "05_convocatorias/02_abierta_responsable__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "directiva",
+  "desc": "Convocatoria abierta vista por su responsable: productos, participantes según consentimiento, colaboradores e historial",
+  "estado": "abierta",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/03_cerrada_consolidado__escritorio.png",
+   "05_convocatorias/03_cerrada_consolidado__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "directiva",
+  "desc": "Convocatoria cerrada con consolidado (no es una compra)",
+  "estado": "cerrada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/04_borrador_desde_propuesta__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "directiva",
+  "desc": "Borrador creado desde una propuesta (origen visible)",
+  "estado": "borrador",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/05_abrir_confirmacion__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "directiva",
+  "desc": "Confirmación para abrir la convocatoria (no se confirma)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "06_permisos_psa/01_responsable_inhabilitada__escritorio.png",
+   "06_permisos_psa/01_responsable_inhabilitada__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "directiva",
+  "desc": "Responsable que ya no está habilitada: aviso, permisos suspendidos, sin Cerrar ni Cancelar; nombre largo",
+  "estado": "responsable inhabilitada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "06_permisos_psa/06_permiso_sustituir_sindicato__escritorio.png",
+   "06_permisos_psa/06_permiso_sustituir_sindicato__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas",
+  "rol": "admin",
+  "desc": "Permiso del sindicato «Sustituir responsable» (Administrador): titulares e historial",
+  "estado": "abierto",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/07_sin_permiso_participantes__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "admin",
+  "desc": "Otra persona de la Directiva/Administración sin permiso de la responsable: no ve participantes",
+  "estado": "sin permiso",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/08_cancelar_confirmacion__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "admin",
+  "desc": "Cancelar una convocatoria abierta: motivo y confirmación",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/09_cancelada__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "admin",
+  "desc": "Convocatoria cancelada (operación hecha en el entorno sintético)",
+  "estado": "cancelada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "06_permisos_psa/04_revisar_permiso__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "suc",
+  "desc": "Revisión de un permiso suspendido: confirmar (no se envía)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "06_permisos_psa/05_sucesora_tras_autorizacion__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "suc",
+  "desc": "Tras la revisión: un participante autorizó a la nueva responsable, otros pendientes; historial de permisos",
+  "estado": "parcialmente restringido",
+  "simulado": false
+ },
+ {
+  "files": [
+   "06_permisos_psa/07_conceder_permiso_dialogo__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas",
+  "rol": "admin",
+  "desc": "Conceder el permiso a una persona concreta, con motivo (no se envía)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/02_borrador_referencia_desactualizada__escritorio.png",
+   "03_propuestas/02_borrador_referencia_desactualizada__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador vigente con referencia histórica fijada; líneas «Desactualizada» sin diferencia",
+  "estado": "referencia desactualizada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/04_historial_borradores__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Historial y trazabilidad de borradores",
+  "estado": "detalle abierto",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/04_por_identificar__escritorio.png",
+   "07_catalogo/04_por_identificar__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Productos por identificar, con y sin foto, nombres largos",
+  "estado": "pendientes",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/05_ver_foto__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Foto de etiqueta enviada por el agricultor (imagen sintética)",
+  "estado": "foto",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/10_nuevo_producto_dialogo__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=productos",
+  "rol": "directiva",
+  "desc": "Nuevo producto del catálogo (no se crea)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/11_asociar_dialogo__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=equivalencias",
+  "rol": "directiva",
+  "desc": "Asociar un producto a uno del catálogo (equivalencia; no se envía)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/06_borrador_generado__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador nuevo generado con el botón explícito (entorno sintético)",
+  "estado": "borrador nuevo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/05_seleccion_para_convocatoria__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Selección guardada de productos del borrador para llevar a una convocatoria",
+  "estado": "selección",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/07_crear_producto_colectivo_dialogo__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Identificar: crear producto colectivo y vincular (no se envía)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/08_dejar_pendiente_dialogo__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Identificar: dejar pendiente con nota",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/09_tras_dejar_pendiente_e_identificadas__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Tras dejar una solicitud pendiente con nota (operación en el entorno sintético); identificadas desplegadas",
+  "estado": "pendiente con nota",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/07_referencia_calculando__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador nuevo: se pidió la referencia histórica y se está calculando",
+  "estado": "calculando",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/08_referencia_vinculada__escritorio.png",
+   "03_propuestas/08_referencia_vinculada__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador con la referencia histórica fijada recién calculada",
+  "estado": "referencia vigente",
+  "simulado": false
+ },
+ {
+  "files": [
+   "03_propuestas/03_detalle_calculo__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Detalle del cálculo de la referencia (ejecución, parámetros, historial del vínculo)",
+  "estado": "detalle abierto",
+  "simulado": false
+ },
+ {
+  "files": [
+   "09_campanas/02_detalle_campana_abierta__escritorio.png",
+   "09_campanas/02_detalle_campana_abierta__movil.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "Detalle de la campaña activa (abierta): datos, sellado, borradores",
+  "estado": "abierta",
+  "simulado": false
+ },
+ {
+  "files": [
+   "09_campanas/03_detalle_campana_cerrada__escritorio.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "Detalle de una campaña cerrada",
+  "estado": "cerrada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "09_campanas/04_nueva_campana_dialogo__escritorio.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Nueva campaña (no se crea)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "08_historico/03_tendencias_fuentes__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico?vista=tendencias",
+  "rol": "directiva",
+  "desc": "Tendencias con «Ver campañas y cobertura» desplegado",
+  "estado": "detalle abierto",
+  "simulado": false
+ },
+ {
+  "files": [
+   "08_historico/04_estimacion_ejecuciones__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico?vista=estimacion",
+  "rol": "directiva",
+  "desc": "Estimación del consumo con ejecuciones anteriores desplegadas",
+  "estado": "detalle abierto",
+  "simulado": false
+ },
+ {
+  "files": [
+   "08_historico/05_copia_sin_conexion__escritorio.png",
+   "08_historico/05_copia_sin_conexion__movil.png"
+  ],
+  "ruta": "/estimacion/copia-sin-conexion",
+  "rol": "directiva",
+  "desc": "Copia descargada de la estimación, legible sin conexión (fuera del menú)",
+  "estado": "copia",
+  "simulado": false
+ },
+ {
+  "files": [
+   "10_administracion/04_bitacora_detalle__escritorio.png"
+  ],
+  "ruta": "/audit-logs",
+  "rol": "directiva",
+  "desc": "Detalle de un registro de la bitácora",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "10_administracion/05_nuevo_usuario_dialogo__escritorio.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Nuevo usuario (sólo Administrador; no se crea, sin contraseña escrita)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_cargando__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=cargando&campaign=<id>",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «cargando» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "cargando",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_error__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=error&campaign=<id>",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «error» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "error",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_sinpermiso__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=sinpermiso&campaign=<id>",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «sinpermiso» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "sinpermiso",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_sincampanas__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=sincampanas",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «sincampanas» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "sincampanas",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_politica__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=politica&campaign=<id>",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «politica» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "politica",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_vacia__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=vacia&campaign=<id>",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «vacia» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "vacia",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_cerrada__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=cerrada&campaign=<id>",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «cerrada» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "cerrada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/01_resumen_sellada__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/resumen-prototipos.html?v=1&datos=sellada&campaign=<id>",
+  "rol": "anon",
+  "desc": "Resumen real montado con el fixture «sellada» (src/dev/resumen-prototipos.html, sin API)",
+  "estado": "sellada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/02_propuestas_peor_caso__FIXTURE__escritorio.png",
+   "99_simulados/02_propuestas_peor_caso__FIXTURE__movil.png"
+  ],
+  "ruta": "/src/dev/break-ui.html?datos=worst&pantalla=propuestas",
+  "rol": "anon",
+  "desc": "Necesidades y propuestas con el fixture «worst» (nombres largos, estados extremos; src/dev/break-ui.html)",
+  "estado": "peor caso",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/03_propuestas_vacia__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/break-ui.html?datos=empty&pantalla=propuestas",
+  "rol": "anon",
+  "desc": "Necesidades y propuestas sin datos (fixture «empty»)",
+  "estado": "vacío",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/04_historico_peor_caso__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/break-ui.html?datos=worst&pantalla=historico",
+  "rol": "anon",
+  "desc": "Histórico con el fixture «worst»",
+  "estado": "peor caso",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/05_catalogo_peor_caso__FIXTURE__escritorio.png"
+  ],
+  "ruta": "/src/dev/break-ui.html?datos=worst&pantalla=catalogo",
+  "rol": "anon",
+  "desc": "Catálogo con el fixture «worst» (muchos productos, nombres largos)",
+  "estado": "peor caso",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/06_convocatorias_error__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas",
+  "rol": "directiva",
+  "desc": "Lista de convocatorias cuando la API responde 500 (respuesta simulada)",
+  "estado": "error",
+  "simulado": true
+ },
+ {
+  "files": [
+   "99_simulados/07b_convocatoria_error_503__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "directiva",
+  "desc": "Detalle de convocatoria cuando la API responde 503 tras la espera (respuesta simulada)",
+  "estado": "error",
+  "simulado": true
+ },
+ {
+  "files": [
+   "05_convocatorias/01_lista__escritorio.png",
+   "05_convocatorias/01_lista__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas",
+  "rol": "directiva",
+  "desc": "Lista de convocatorias (varias, con nombres largos y todos los estados)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "02_resumen/02_cobertura__escritorio.png",
+   "02_resumen/02_cobertura__movil.png"
+  ],
+  "ruta": "/colectivo/cobertura",
+  "rol": "directiva",
+  "desc": "Cobertura (agricultores vinculados y con aporte)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "08_historico/01_historico_tendencias__escritorio.png",
+   "08_historico/01_historico_tendencias__movil.png"
+  ],
+  "ruta": "/colectivo/historico",
+  "rol": "directiva",
+  "desc": "Histórico y estimaciones: tendencias selladas",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "08_historico/02_estimacion__escritorio.png",
+   "08_historico/02_estimacion__movil.png"
+  ],
+  "ruta": "/login",
+  "rol": "directiva",
+  "desc": "Histórico y estimaciones: estimación del consumo",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "99_simulados/08_por_identificar_error__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Por identificar cuando la API responde 500 (respuesta simulada)",
+  "estado": "error",
+  "simulado": true
+ },
+ {
+  "files": [
+   "99_simulados/09_por_identificar_vacio__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Por identificar sin solicitudes (respuesta simulada: lista vacía)",
+  "estado": "vacío",
+  "simulado": true
+ },
+ {
+  "files": [
+   "06_permisos_psa/03_sucesora_restringida__escritorio.png",
+   "06_permisos_psa/03_sucesora_restringida__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "suc",
+  "desc": "Nueva responsable: datos restringidos hasta que cada agricultor la autorice; permisos suspendidos por revisar",
+  "estado": "restringido",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/01_catalogo__escritorio.png",
+   "07_catalogo/01_catalogo__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Catálogo y equivalencias (vista inicial)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/02_equivalencias__escritorio.png",
+   "07_catalogo/02_equivalencias__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=equivalencias",
+  "rol": "directiva",
+  "desc": "Equivalencias",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/03_productos__escritorio.png",
+   "07_catalogo/03_productos__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=productos",
+  "rol": "directiva",
+  "desc": "Productos del sindicato",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "09_campanas/01_campanas__escritorio.png",
+   "09_campanas/01_campanas__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Campañas",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "10_administracion/01_bitacora_directiva__escritorio.png",
+   "10_administracion/01_bitacora_directiva__movil.png"
+  ],
+  "ruta": "/audit-logs",
+  "rol": "directiva",
+  "desc": "Bitácora (Directiva)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "10_administracion/02_usuarios_directiva_redirige__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "La Directiva no entra a Usuarios: vuelve a su inicio",
+  "estado": "sin permiso",
+  "simulado": false
+ },
+ {
+  "files": [
+   "06_permisos_psa/02_sustituir_dialogo__escritorio.png",
+   "06_permisos_psa/02_sustituir_dialogo__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "directiva",
+  "desc": "Diálogo de sustitución: implicaciones, quien sustituye no figura (nota), motivo y confirmación (no se envía)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/06_nueva_desde_catalogo__escritorio.png",
+   "05_convocatorias/06_nueva_desde_catalogo__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas",
+  "rol": "directiva",
+  "desc": "Formulario de convocatoria nueva (desde el catálogo; no se crea)",
+  "estado": "formulario",
+  "simulado": false
+ },
+ {
+  "files": [
+   "05_convocatorias/10_nueva_desde_propuesta__escritorio.png",
+   "05_convocatorias/10_nueva_desde_propuesta__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?nueva=1&campana=<id>&propuesta=<id>&productos=<id>&campaign=<id>",
+  "rol": "directiva",
+  "desc": "Formulario de convocatoria precargado desde el borrador (no se crea)",
+  "estado": "formulario",
+  "simulado": false
+ },
+ {
+  "files": [
+   "07_catalogo/06_vincular_dialogo__escritorio.png",
+   "07_catalogo/06_vincular_dialogo__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Identificar: vincular a un producto existente (candidatos, motivo, confirmación; no se envía)",
+  "estado": "diálogo",
+  "simulado": false
+ },
+ {
+  "files": [
+   "10_administracion/06_calendario_fuera_del_menu__escritorio.png"
+  ],
+  "ruta": "/calendar",
+  "rol": "directiva",
+  "desc": "Calendario operativo (pantalla heredada, fuera del menú colectivo; se llega por URL)",
+  "estado": "heredada",
+  "simulado": false
+ }
+]

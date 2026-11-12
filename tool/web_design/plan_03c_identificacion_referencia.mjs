@@ -1,0 +1,42 @@
+// Lote 3c: diálogos de identificación (la captura móvil cierra el diálogo: va al final) y la
+// referencia histórica del borrador nuevo (Obtener referencia → calculando → vinculada → cálculo).
+const P = '/colectivo/propuestas?campaign=ec4db92b-9067-4083-944c-eae96e7571bc';
+export default [
+  {
+    role: 'directiva',
+    steps: [
+      { goto: '/colectivo/catalogo?vista=identificacion' },
+      { wait: 2000 },
+      { click: '^Vincular' },
+      { wait: 3000 },
+      { shot: '07_catalogo/06_vincular_dialogo', desc: 'Identificar: vincular a un producto existente (candidatos, motivo, confirmación; no se envía)', state: 'diálogo', full: false },
+      { click: '^Crear producto colectivo$', in: '[role="dialog"]' },
+      { shot: '07_catalogo/07_crear_producto_colectivo_dialogo', desc: 'Identificar: crear producto colectivo y vincular (no se envía)', state: 'diálogo', full: false },
+      { click: '^Dejar pendiente$', in: '[role="dialog"]' },
+      { type: ['#identification-defer-note', 'Falta confirmar el ingrediente activo con el agricultor (nota sintética)'] },
+      { check: '[role="dialog"] input[type="checkbox"]' },
+      { shot: '07_catalogo/08_dejar_pendiente_dialogo', desc: 'Identificar: dejar pendiente con nota', state: 'diálogo', full: false, mobile: true },
+      { click: '^Vincular' },
+      { wait: 3000 },
+      { click: '^Dejar pendiente$', in: '[role="dialog"]' },
+      { type: ['#identification-defer-note', 'Falta confirmar el ingrediente activo con el agricultor (nota sintética)'] },
+      { check: '[role="dialog"] input[type="checkbox"]' },
+      { click: '^Guardar como pendiente', in: '[role="dialog"]' },
+      { wait: 3000 },
+      { open: '[data-testid="identified"]' },
+      { wait: 3000 },
+      { shot: '07_catalogo/09_tras_dejar_pendiente_e_identificadas', desc: 'Tras dejar una solicitud pendiente con nota (operación en el entorno sintético); identificadas desplegadas', state: 'pendiente con nota' },
+      { goto: P },
+      { click: '^Obtener referencia' },
+      { wait: 1500 },
+      { shot: '03_propuestas/07_referencia_calculando', desc: 'Borrador nuevo: se pidió la referencia histórica y se está calculando', state: 'calculando', full: false },
+      { wait: 30000 },
+      { goto: P },
+      { shot: '03_propuestas/08_referencia_vinculada', desc: 'Borrador con la referencia histórica fijada recién calculada', state: 'referencia vigente', mobile: true },
+      { click: '^Ver cálculo' },
+      { wait: 3000 },
+      { scroll: '[data-testid="calculation"]' },
+      { shot: '03_propuestas/03_detalle_calculo', desc: 'Detalle del cálculo de la referencia (ejecución, parámetros, historial del vínculo)', state: 'detalle abierto', full: false },
+    ],
+  },
+];

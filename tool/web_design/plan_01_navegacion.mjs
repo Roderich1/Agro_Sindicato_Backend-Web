@@ -1,0 +1,57 @@
+// Lote 1: acceso por rol y páginas principales (sin interacción).
+export default [
+  {
+    role: 'anon',
+    steps: [
+      { goto: '/login' },
+      { shot: '01_acceso/01_inicio_sesion', desc: 'Inicio de sesión (vacío)', state: 'vacío', mobile: true },
+      { type: ['#email', 'correo-que-no-existe@example.test'] },
+      { type: ['#password', 'clave-incorrecta-sintetica'] },
+      { click: '^(Ingresar|Iniciar sesión|Entrar)$' },
+      { wait: 2500 },
+      { shot: '01_acceso/02_inicio_sesion_error', desc: 'Credenciales incorrectas (cuenta inexistente, sintética)', state: 'error' },
+    ],
+  },
+  {
+    role: 'agricultor',
+    steps: [{ shot: '01_acceso/03_agricultor_sin_acceso_web', desc: 'Una cuenta AGRICULTOR no tiene Web: aviso', state: 'sin permiso', mobile: true }],
+  },
+  {
+    role: 'directiva',
+    steps: [
+      { goto: '/colectivo/resumen' },
+      { shot: '02_resumen/01_resumen_directiva', desc: 'Resumen con la campaña activa (Directiva)', mobile: true },
+      { goto: '/colectivo/propuestas' },
+      { shot: '03_propuestas/01_necesidades_y_propuestas', desc: 'Necesidades y propuestas de la campaña activa', mobile: true },
+      { goto: '/colectivo/compras-conjuntas' },
+      { shot: '05_convocatorias/01_lista', desc: 'Lista de convocatorias (varias, con nombres largos)', mobile: true },
+      { goto: '/colectivo/cobertura' },
+      { shot: '02_resumen/02_cobertura', desc: 'Cobertura (agricultores vinculados y con aporte)', mobile: true },
+      { goto: '/colectivo/historico' },
+      { shot: '08_historico/01_historico_tendencias', desc: 'Histórico y estimaciones: tendencias', mobile: true },
+      { goto: '/colectivo/historico?vista=estimacion' },
+      { shot: '08_historico/02_estimacion', desc: 'Histórico y estimaciones: estimación', mobile: true },
+      { goto: '/colectivo/catalogo' },
+      { shot: '07_catalogo/01_catalogo', desc: 'Catálogo y equivalencias (vista inicial)', mobile: true },
+      { goto: '/colectivo/catalogo?vista=equivalencias' },
+      { shot: '07_catalogo/02_equivalencias', desc: 'Equivalencias', mobile: true },
+      { goto: '/colectivo/catalogo?vista=productos' },
+      { shot: '07_catalogo/03_productos', desc: 'Productos del sindicato', mobile: true },
+      { goto: '/campaigns' },
+      { shot: '09_campanas/01_campanas', desc: 'Campañas', mobile: true },
+      { goto: '/audit-logs' },
+      { shot: '10_administracion/01_bitacora_directiva', desc: 'Bitácora (Directiva)', mobile: true },
+      { goto: '/users' },
+      { shot: '10_administracion/02_usuarios_directiva_redirige', desc: 'La Directiva no entra a Usuarios: vuelve a su inicio', state: 'sin permiso' },
+    ],
+  },
+  {
+    role: 'admin',
+    steps: [
+      { goto: '/colectivo/resumen' },
+      { shot: '02_resumen/03_resumen_administrador', desc: 'Resumen (Administrador)' },
+      { goto: '/users' },
+      { shot: '10_administracion/03_usuarios', desc: 'Usuarios (sólo Administrador)', mobile: true },
+    ],
+  },
+];
