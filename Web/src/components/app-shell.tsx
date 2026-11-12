@@ -610,17 +610,6 @@ export function StatCard({ label, value, icon, trend }: { label: string; value: 
   );
 }
 
-export function CriticalityBadge({ value }: { value: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    VENCIDO: { label: 'Vencido', cls: 'bg-red-500/10 text-red-700 ring-red-500/20' },
-    BAJO_MINIMO: { label: 'Bajo mínimo', cls: 'bg-amber-500/10 text-amber-700 ring-amber-500/20' },
-    POR_VENCER: { label: 'Por vencer', cls: 'bg-orange-500/10 text-orange-700 ring-orange-500/20' },
-    OK: { label: 'OK', cls: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20' },
-  };
-  const { label, cls } = map[value] ?? { label: value, cls: 'bg-slate-500/10 text-slate-600 ring-slate-500/20' };
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${cls}`}>{label}</span>;
-}
-
 /** Unificado en `StatusChip` (components/ui): mismos textos, motivo de divulgación en `title`. */
 export function StatusBadge({ status }: { status: string }) {
   return <StatusChip status={status} />;

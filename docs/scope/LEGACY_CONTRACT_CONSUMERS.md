@@ -102,3 +102,12 @@ Decisión del autor del 2026-11-12: **la Web es exclusivamente de Directiva y Ad
   - controles que lo reconocen para bloquearlo;
   - rótulos de rol en Usuarios;
   - vistas institucionales que muestran agricultores con su permiso o en agregados (participantes, cobertura y nombres en el Calendario).
+
+## Actualización 2026-11-12 (2): piezas heredadas de la Web
+
+- **`pages/directiva.page.tsx`:** se retiró (`754cb25`), porque no tenía ruta ni consumidores. Con ella se fueron los servicios Web `accounts-payable` y `procurement` y la consulta `inventory/global-stock`. Las rutas del API no cambian.
+- **Calendario (`/calendar`):** se conserva. Su retirada de la Web está recomendada, pero queda pendiente del autor.
+  - Para Directiva y Administración sólo muestra el recordatorio de cierre estimado de las campañas abiertas, que ya aparece en Campañas.
+  - La app móvil no usa `/calendar`.
+  - Detalle en `docs/evidence/WEB_PIEZAS_HEREDADAS_2026-11-12.md`.
+
