@@ -45,10 +45,12 @@ const must = (r, ok, what) => { if (!ok.includes(r.status)) throw new Error(`${w
     if (!product) throw new Error(`producto ${name} no está en la convocatoria`);
     return { product_ref: product.product_ref, quantity_base: String(Math.round(Number(liters) * 1000)) };
   });
-  const body = { operation_id: randomUUID(), sequence: 1, consent: { version: "CONV-1", accepted_at: new Date().toISOString() }, lines };
+  // E2 §10.2: CONV-2 es el vigente; E2_CONSENT=CONV-1 simula un teléfono sin actualizar.
+  const consentVersion = process.env.E2_CONSENT || list.consent?.version || "CONV-2";
+  const body = { operation_id: randomUUID(), sequence: 1, consent: { version: consentVersion, accepted_at: new Date().toISOString() }, lines };
   const first = await call("PUT", `/me/joint-purchase-calls/${callId}/participation`, { token: login.accessToken, body });
   const retry = await call("PUT", `/me/joint-purchase-calls/${callId}/participation`, { token: login.accessToken, body });
-  console.log(JSON.stringify({ farmer: farmerKey, first: first.status, outcome: first.json?.outcome ?? first.json?.errorCode, retry_same_operation: retry.status, same_participation: JSON.stringify(first.json) === JSON.stringify(retry.json) }));
+  console.log(JSON.stringify({ farmer: farmerKey, consent: consentVersion, first: first.status, outcome: first.json?.outcome ?? first.json?.errorCode, retry_same_operation: retry.status, same_participation: JSON.stringify(first.json) === JSON.stringify(retry.json) }));
   await call("POST", "/auth/v2/logout", { body: { refreshToken: login.refreshToken } });
   await db.$disconnect();
 })().catch((e) => { console.error(`ERROR ${e.message}`); process.exit(1); });
