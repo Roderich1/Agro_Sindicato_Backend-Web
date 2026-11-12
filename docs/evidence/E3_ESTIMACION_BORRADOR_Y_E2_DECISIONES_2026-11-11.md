@@ -118,11 +118,35 @@ Recorrido real (API recompilada y reiniciada con `e60df32`, Web 5175): Herbicida
 
 Cambios desde la versión recorrida en §1–§3b que no se volvieron a recorrer en pantalla: `e2d7cdc` (porcentaje con cifras comparables; hoy ninguna línea lo es, cubierto por pruebas Web), `c87c352`/`91e9ef2`/`fa44b5f` (E3-P2, recorrido arriba), `a7e3983` (sólo pruebas).
 
+## 3d. Comprobaciones pedidas el 2026-11-12 (porcentaje, actualización con datos, historial, CONV-1 → CONV-2)
+
+**Porcentaje (Back/Web `a7e3983`; banco de pruebas `acd9840`):**
+- El servidor fija `populationVerified: false` y la comparación no recibe recuentos: la igualdad de aportantes no puede habilitarla.
+- Borrador real del recorrido (API, 2026-11-12): 11 líneas, 7 con estimación, **0 comparables, 0 con diferencia absoluta o porcentual**, todas con el único bloqueo `POPULATION_NOT_VERIFIED`; ninguna con recuentos iguales.
+- **Prueba de presentación (no evidencia de comparabilidad):** conjunto sintético `comparable` del banco de pruebas de desarrollo (`/src/dev/break-ui.html?datos=comparable`): «… supera en 15 L … Diferencia: +5% respecto de la estimación.», «… inferior en 2,501 KG … Diferencia: −9% …», «Porcentaje no definido: la estimación es cero.» (`prueba_presentacion_comparable_ARNES_NO_DATOS_REALES.png`).
+
+**Emulador, instalación aislada nueva `.et1u` («AC ET1 U»), cuenta `agricultor14` (titular «Nestor Copa sintetico»)** — APK anterior desde Mobile `6bac5a3` (E2, esquema v16, SHA-256 `8029423d…dfae`) y actual desde `01b2576` (SHA-256 `f9f00ae8…f78a`), ambas atadas al túnel temporal (cerrado al terminar). Capturas en `e3_estimacion_borrador/actualizacion_et1u/`.
+
+| # | Paso | Resultado |
+|---|---|---|
+| 1 | Versión anterior: activar, titular, «Compras conjuntas» | **No puede leer la lista con `CONV-2` publicado**: «No se pudo leer la lista del sindicato…». No pide actualizarse (corregido en E2 §10.2). Por eso no puede crear participaciones nuevas (`u01`) |
+| 2 | Versión anterior, sin red: producto local «Herbicidal sintetico U» y «Pedir identificación al sindicato» | «Pendiente de envío» (`u02`). Base: esquema 16, 1 producto, 1 solicitud `PENDING_SEND` |
+| 3 | `adb install -r` de la versión actual, sin red | Actualización real (instalada 04:49, actualizada 05:00 UTC). Base migrada a **17**; huella idéntica salvo el esquema; la solicitud sigue `PENDING_SEND` con el mismo identificador; la sesión y el titular se conservan |
+| 4 | Con red: «Enviar ahora» | «Recibida por el sindicato · Esperando identificación» (`u03`) |
+| 5 | «Compras conjuntas» → «Actualizar» | «Hay 1 convocatoria anterior que no está en este teléfono» (`u04`) |
+| 6 | «Consultar historial» | `GET /me/joint-purchase-calls/history` 200; aparece «Convocatoria histórica sintética (sembrada para probar Historial)», cerrada el 20/03/2026 (`u05`). **Es una siembra sintética** (`tool/etapa3/seed_historica_180.sql`): creada como borrador, abierta y cerrada con fechas pasadas pasando todos los disparadores; no se cambió ningún reloj |
+| 7 | Detalle de la histórica (participación `CONV-1`) | «Con el consentimiento que usted aceptó antes, sólo la persona responsable (Directiva DEMO) puede ver…» (`u06`); sin red sigue visible en «Historial» (`u07`) |
+| 8 | Convocatoria abierta nueva; participación de `agricultor14` con **`CONV-1` enviada por la API** (simula un teléfono anterior: la versión anterior real no puede, ver paso 1) y de `agricultor5` con `CONV-2`; la responsable concede «Consultar participantes» a Administración | Administración ve sólo a Elena (`CONV-2`) y «1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable» (`web_admin_antes_de_conv2`); el teléfono muestra el texto de `CONV-1` (`u08`) |
+| 9 | Teléfono: «Modificar» sin cambiar la cantidad (6 L), diálogo `CONV-2` con «Entiendo y acepto» marcado (`u09`) | «Participación recibida»; «Pueden ver su nombre y sus cantidades la persona responsable … y las personas … que ella autorice» (`u10`); servidor: `CONV-2`, secuencia 2 |
+| 10 | Administración después | Ve a Néstor (6 L) y a Elena (4 L), sin ocultas (`web_admin_despues_de_conv2`) |
+
+Nota: en la versión actual la aceptación de `CONV-2` ocurre **dentro** de «Modificar» (con la casilla explícita); no existe una aceptación separada de la modificación de cantidades. Es una de las diferencias con los criterios del 2026-11-12, pendiente de decisión.
+
 ## 4. Qué no se comprobó
 
 - Teléfono físico.
-- Migración del teléfono v16 → v17 **con datos reales** en el emulador (instalación nueva; sí en pruebas automatizadas).
-- Historial con convocatorias de más de 180 días en el entorno real (no hay datos con esa antigüedad y no se cambia el reloj; sí en pruebas automatizadas).
+- ~~Migración v16 → v17 con datos en el emulador~~: comprobada el 2026-11-12 (§3d).
+- ~~Historial con más de 180 días~~: comprobado el 2026-11-12 con una convocatoria sembrada sintética (§3d).
 - Diferencia entre necesidad y estimación en pantalla real: con los datos actuales nunca es comparable (E3-P1); el cálculo exacto, la estimación cero y la presentación con `comparable: true` están en pruebas automatizadas.
 - Error del trabajador y política pendiente en real (inyectados sólo en pruebas automatizadas).
 - La voz no cambió; ninguna captura muestra el panel de voz en uso.

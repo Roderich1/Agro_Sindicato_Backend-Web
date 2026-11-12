@@ -16,14 +16,14 @@ set -uo pipefail
 ROOT=/c/Users/MSI/Documents/ProyectoDeGrado/ProyectoAgro
 BE=$ROOT/_wt/ET2-BE/Back
 WEB=$ROOT/_wt/ET2-BE/Web
-MOB=$ROOT/_wt/ET2-MOB
+MOB=${ET1_MOB:-$ROOT/_wt/ET2-MOB}
 CENTRAL=$ROOT/_wt/DEMO-BE/tool/demo/demo-central.cjs
 RICA=$ROOT/_wt/ET2-BE/tool/demo-rica/demo-rica.cjs
 TUNNEL=$ROOT/_wt/RICA-MOB/tool/f03_res_01/tunnel.sh
 CLOUDFLARED=$ROOT/_wt/tools/cloudflared-2026.10.0/cloudflared-windows-amd64.exe
 RUN=${ET1_RUN:-${TMPDIR:-/c/Users/MSI/AppData/Local/Temp}/agro_et1}; mkdir -p "$RUN" "$RUN/photos" "$RUN/backups"
 PG=agro_et1_pg; VOLUME=agro_et1_pgdata; PGPORT=15434; API=3350; OBS=3351; GATE=3352; WEBPORT=5175
-SERIAL=${ET1_SERIAL:-emulator-5554}; SUFFIX=.et1; LABEL="AC ET1"; PKG=com.comunidad.agro.agroquimicos$SUFFIX
+SERIAL=${ET1_SERIAL:-emulator-5554}; SUFFIX=${ET1_SUFFIX:-.et1}; LABEL=${ET1_LABEL:-"AC ET1"}; PKG=com.comunidad.agro.agroquimicos$SUFFIX
 export DEMO_PG_ADMIN_URL="postgresql://postgres@127.0.0.1:${PGPORT}/postgres"
 export DEMO_API="http://127.0.0.1:${API}/api/v1"
 export DEMO_SEED="agrocuentas-etapa1-1"

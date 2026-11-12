@@ -9,10 +9,12 @@ const { resolve } = require("node:path");
 const [role, serial = "emulator-5554"] = process.argv.slice(2);
 const adb = (...args) => execFileSync("adb", ["-s", serial, ...args], { encoding: "utf8" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Paquete aislado (por defecto .et1; ET1_PKG para otra instalación aislada, p. ej. .et1u).
+const PKG = process.env.ET1_PKG || "com.comunidad.agro.agroquimicos.et1";
 
 (async () => {
   const focus = adb("shell", "dumpsys", "window").split("\n").find((l) => l.includes("mCurrentFocus=")) ?? "";
-  if (!focus.includes("com.comunidad.agro.agroquimicos.et1/")) throw new Error("ABORTADO: el primer plano no es .et1");
+  if (!focus.includes(`${PKG}/`)) throw new Error(`ABORTADO: el primer plano no es ${PKG}`);
   const dump = adb("exec-out", "uiautomator", "dump", "/dev/tty");
   const field = (dump.match(/<node[^>]*>/g) ?? []).find((n) => n.includes('class="android.widget.EditText"') && n.includes('focused="true"'));
   if (!field || !field.includes('password="true"')) throw new Error("ABORTADO: el campo enfocado no es de contraseña");
