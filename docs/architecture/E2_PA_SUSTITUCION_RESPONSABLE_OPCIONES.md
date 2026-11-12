@@ -1,9 +1,9 @@
-# P-A — Sustitución explícita de la persona responsable: opciones pendientes de decisión
+# P-A — Sustitución explícita de la persona responsable: opciones y decisión
 
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-11-12 (UTC) |
-| Estado | **Propuesto. No implementado ni activado.** Lo decide el autor |
+| Estado | **Decidido por el autor el 2026-11-12: A1 + B1 + C1, con precisiones; cerradas también incluidas.** Implementado en ramas locales (Back `49ed870`, Web `3fab972`, Mobile `4a3f1ad`). Reglas en el contrato §12, que prevalece sobre este documento |
 | Origen | N2 rechazada (2026-11-12): ningún rol obtiene cancelar o cerrar por defecto. P-A sustituye esa salida |
 | Contrato | `E2_CONVOCATORIAS_COMPRA_CONJUNTA_CONTRATO.md` §11.5 |
 
@@ -72,3 +72,8 @@ Con C1 o C3 hace falta una pieza nueva en el teléfono: el aviso y la acción de
 2. ¿B1, B2 o B3?
 3. ¿C1, C2 o C3?
 4. ¿La sustitución sirve también para convocatorias **cerradas**, para coordinar la entrega?
+
+
+## 8. Decisión del autor (2026-11-12)
+
+A1 (concede una ADMINISTRADOR habilitada, a personas concretas, nunca a sí misma), B1 (sólo con el permiso y si la responsable ya no está habilitada; borradores, abiertas y cerradas, no canceladas; motivo y confirmación), C1 (ninguna aceptación anterior cubre a la sucesora; autorización explícita por agricultor, atada a la versión de la responsabilidad) y sustitución también en convocatorias cerradas para coordinar la entrega. El detalle de lo implementado, lo comprobado y los límites está en el contrato E2 §12.

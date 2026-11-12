@@ -1,0 +1,59 @@
+## sucesora tras la autorización de agricultor1
+{"viewer":"suc","is_responsible":true,"can_manage":true,"can_substitute_responsible":false,"pending_authorization_count":1,"pending_delegation_reviews":0,"totals":["RESTRICTED","VISIBLE"],"participants":{"count":1,"pending":1,"hidden":0}}
+## colaboradora confirmada (Administración DEMO)
+{"viewer":"admin","is_responsible":false,"can_manage":false,"can_substitute_responsible":false,"pending_authorization_count":1,"pending_delegation_reviews":0,"totals":["RESTRICTED","VISIBLE"],"participants":{"count":0,"pending":1,"hidden":1}}
+## responsable anterior (reactivada)
+{"reactivate":"resp","status":200,"eligible_now":false}
+ERROR login resp: HTTP 401 Credenciales inválidas
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+## estado en la base
+{
+ "status": "OPEN",
+ "responsible": "Sucesora PA (sintética)",
+ "responsible_version": 2,
+ "participations": [
+  {
+   "status": "ACTIVE",
+   "scope": "RESPONSIBLE_ONLY",
+   "authorized_version": 2
+  },
+  {
+   "status": "ACTIVE",
+   "scope": "RESPONSIBLE_ONLY",
+   "authorized_version": 1
+  }
+ ],
+ "access": [
+  {
+   "user": "Sucesora PA (sintética)",
+   "grant": "PARTICIPANTS",
+   "by_system": true,
+   "version": 2
+  },
+  {
+   "user": "Administración DEMO",
+   "grant": "PARTICIPANTS",
+   "by_system": false,
+   "version": 2
+  }
+ ],
+ "access_events": [
+  "GRANTED:PARTICIPANTS",
+  "GRANTED:MANAGE",
+  "SUSPENDED:PARTICIPANTS",
+  "SUSPENDED:MANAGE",
+  "CONFIRMED:PARTICIPANTS",
+  "REVOKED:MANAGE"
+ ],
+ "changes": [
+  {
+   "version": 2,
+   "status_then": "OPEN",
+   "suspended": 2,
+   "reason": "La responsable dejó de estar habilitada; coordina la entrega la sucesora"
+  }
+ ]
+}
+## responsable anterior reactivada (cuenta y Member)
+{"reactivate":"resp","status":200,"eligible_now":true}
+{"viewer":"resp","is_responsible":false,"can_manage":false,"can_substitute_responsible":false,"pending_authorization_count":0,"pending_delegation_reviews":0,"totals":["RESPONSIBLE_ONLY","RESPONSIBLE_ONLY"],"participants":{"errorCode":"PARTICIPANTS_FORBIDDEN"}}

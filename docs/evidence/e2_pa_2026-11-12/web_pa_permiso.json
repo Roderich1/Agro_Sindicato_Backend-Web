@@ -1,0 +1,21 @@
+{
+  "action": "permiso",
+  "at": "2026-11-12T16:17:43.192Z",
+  "shots": [
+    "pa_w01_permiso_antes",
+    "pa_w02_permiso_dialogo",
+    "pa_w03_permiso_concedido"
+  ],
+  "holders": [
+    "Directiva DEMODirectiva12 nov de 2026, 12:17 p. m. · por Administración PA 2 (sintética)Coordinar convocatorias si una responsable deja de estar habilitadaRetirar"
+  ],
+  "api": [
+    "GET /api/v1/joint-purchase-substitution-permissions → 200",
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-substitution-permissions → 200",
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "POST /api/v1/joint-purchase-substitution-permissions → 200"
+  ]
+}

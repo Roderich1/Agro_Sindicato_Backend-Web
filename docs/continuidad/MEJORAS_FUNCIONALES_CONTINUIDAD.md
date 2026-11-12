@@ -130,3 +130,11 @@ La API arranca con secretos generados en el momento (nunca en archivos). La app 
   - el emisor envía solo al reconectar;
   - las respuestas del diario vuelven en `jsonb` con las claves reordenadas: comparar en forma canónica.
 - **Siguiente paso:** el autor decide P-A (A1/A2/A3, B1/B2/B3, C1/C2/C3 y si se admite en convocatorias cerradas) y la limitación 3 de la evidencia (cifras OUTDATED en el Excel). Después, implementar P-A y declarar el cierre funcional si no queda nada pendiente.
+
+## 10. Actualización del 2026-11-12 (tarde): P-A implementada (A1 + B1 + C1) y Excel con desactualizadas
+
+- **Hecho:** P-A según el contrato E2 §12. Back `49ed870`, Web `3fab972` + `d5dc9cc`, Mobile `4a3f1ad` + `2cc7e39` (contrato 3, esquema v19). Evidencia `docs/evidence/E2_PA_SUSTITUCION_2026-11-12.md`.
+- **Regla aplicada por prudencia, pendiente de confirmar por el autor:** quien sustituye no puede nombrarse a sí misma sucesora (`SUCCESSOR_NOT_ELIGIBLE`).
+- **Pendiente:** recorrido en el teléfono (el Pixel_8 se colgó al arrancar; sus procesos quedaron abiertos hasta que alguien con permiso los cierre); APK anteriores en un dispositivo después de una sustitución; en la app contrato 2, el texto de «quién ve sus datos» queda más permisivo de lo real tras una sustitución (necesita actualizar). Anotado: `PATCH` de la responsable en un borrador no suspende las delegaciones del borrador (comportamiento anterior).
+- **Rediseño móvil:** integrar Mobile `4a3f1ad` y `2cc7e39` y Back `49ed870` (o posterior). El widget `JointPurchaseResponsibleReview` se llama en un solo sitio del detalle; además el botón «ampliar» se oculta con `needsResponsibleReview`. Pruebas focalizadas: `test/e2_pa_responsible_test.dart`, `test/e2_joint_purchase_*_test.dart`, `test/migration_test.dart`, `test/rec_039_schema_constraints_test.dart`, `test/report_*_test.dart`.
+- **Entorno aislado:** sigue arriba (contenedor 15434, API 3350, Web 5175). Túnel abierto el 2026-11-12 (cerrar con `et2.sh untunnel`). Guiones: `tool/etapa3/pa_walk.cjs`, `web_pa.mjs`, `excel_open_check.ps1`.

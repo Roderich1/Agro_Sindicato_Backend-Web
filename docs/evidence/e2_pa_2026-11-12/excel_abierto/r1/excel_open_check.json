@@ -1,0 +1,46 @@
+﻿[
+    {
+        "file":  "propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c.xlsx",
+        "sheet":  "Borrador",
+        "filter":  false,
+        "frozen":  false,
+        "split_row":  0,
+        "used":  "A1:B33",
+        "formats":  "A2=General; A3=General; A5=General; B5=General; A6=General; B6=General",
+        "col_widths":  "39.2,109.2",
+        "shot":  "excel_propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c_01.png"
+    },
+    {
+        "file":  "propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c.xlsx",
+        "sheet":  "Necesidades",
+        "filter":  true,
+        "frozen":  true,
+        "split_row":  5,
+        "used":  "A1:K16",
+        "formats":  "A2=General; A3=General; A5=General; B5=General; C5=General; D5=General",
+        "col_widths":  "29.2,13.2,7.2,21.2,59.2,11.2",
+        "shot":  "excel_propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c_02.png"
+    },
+    {
+        "file":  "propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c.xlsx",
+        "sheet":  "Consumo estimado",
+        "filter":  true,
+        "frozen":  true,
+        "split_row":  5,
+        "used":  "A1:R16",
+        "formats":  "A2=General; A3=General; A4=General; B4=yyyy-mm-dd hh:mm; A5=General; B5=General",
+        "col_widths":  "29.2,17.2,7.2,17.2,55.2,15.2",
+        "shot":  "excel_propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c_03.png"
+    },
+    {
+        "file":  "propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c.xlsx",
+        "sheet":  "Historial de la referencia",
+        "filter":  true,
+        "frozen":  true,
+        "split_row":  5,
+        "used":  "A1:H7",
+        "formats":  "A2=General; A3=General; A5=General; B5=General; C5=General; D5=General",
+        "col_widths":  "7.2,13.2,31.2,19.2,29.2,37.2",
+        "shot":  "excel_propuesta-84e18f96-fc27-4aec-9adf-7fdd6ab4a74c_04.png"
+    }
+]

@@ -431,7 +431,7 @@ Crear y editar borradores: campaña `PLANIFICADA` o `ABIERTA`. **Abrir:** sólo 
 - Se retira la excepción de §10.2: **ningún rol** obtiene cancelar o cerrar porque la responsable deje de estar habilitada (`can_cancel_or_close` = `can_manage`).
 - **m6:** mientras la responsable no esté habilitada, los permisos que concedió (`MANAGE`, `PARTICIPANTS`) quedan **suspendidos**: siguen registrados, no se ejercen y el detalle lo indica (`delegations_suspended`). Quien los tenía cuenta como «tuvo el permiso» para la protección de §10.3. Si vuelve a estar habilitada, rigen otra vez.
 - Se conserva el **cierre automático** al vencer el plazo.
-- La salida para una convocatoria así es la sustitución explícita (P-A), **no activada** hasta que el autor decida quién la concede y quién la ejerce (ver `E2_PA_SUSTITUCION_RESPONSABLE_OPCIONES.md`). Mientras tanto, un borrador con la responsable inhabilitada no puede editarse, abrirse ni cancelarse.
+- La salida para una convocatoria así es la sustitución explícita (P-A), **implementada el 2026-11-12** con las opciones A1 + B1 + C1 (§12).
 
 ### 11.6 N3 — Protección tras una revocación (matriz)
 
@@ -477,3 +477,79 @@ Excel es la única exportación (las rutas CSV del servidor se retiraron, Back `
 | m9 | Reutilización de cálculos según las reglas documentadas | Como estaba |
 | m10 | Sondeo sólo con la vista activa y el cálculo pendiente; se detiene al salir, terminar o fallar | **Cambiado** (Web `bcd8b62`: un fallo de la consulta detiene el sondeo; pestaña oculta lo pausa) |
 | m11 | El historial reconstruye la concesión inicial al abrir | **Cambiado**: el evento de apertura dice «La persona responsable recibe el permiso de consultar participantes y cantidades.» |
+
+
+## 12. P-A — Sustitución de la persona responsable (decisión del autor del 2026-11-12: A1 + B1 + C1)
+
+Fuente: encargo del autor del 2026-11-12 («Continúa con P-A. Elijo A1 + B1 + C1, con las precisiones siguientes»). Esta sección **prevalece** sobre §11.5 en lo que añade. Implementado en Back `49ed870`, Web `3fab972` (+ `d5dc9cc`) y Mobile `4a3f1ad` (+ `2cc7e39`), ramas locales sin push. Migración aditiva `20261112180000_e2_pa_responsible_substitution`; esquema SQLite v19.
+
+### 12.1 A1 — Permiso del sindicato «Sustituir responsable»
+
+| Regla | Cómo se cumple |
+|---|---|
+| Lo concede y revoca una persona **ADMINISTRADOR habilitada** del sindicato | `POST /joint-purchase-substitution-permissions` y `…/revoke`; quien no lo es → `403 SUBSTITUTION_FORBIDDEN`. Se revalida en el servidor, dentro de la transacción |
+| A personas **concretas y habilitadas** de la Directiva o la Administración del mismo sindicato | El destinatario debe ser un Member activo `DIRECTIVA`/`ADMINISTRADOR` con cuenta activa; cualquier otro (agricultor, inactivo, otro sindicato, inexistente) → `422 GRANTEE_NOT_ELIGIBLE`, sin decir por qué. Nunca a un rol entero: no hay concesión por rol |
+| No a sí misma | `422 GRANTEE_NOT_ELIGIBLE`; además CHECK `userId <> grantedByUserId` y disparador de mismo sindicato |
+| Quién, a quién, cuándo y por qué | `JointPurchaseSubstitutionGrant` (vigente) + `JointPurchaseSubstitutionGrantEvent` (sólo inserción, `GRANTED`/`REVOKED`, motivo obligatorio al conceder, 1–280) + `AuditLog` (`entityName = JointPurchaseSubstitutionGrant`) |
+| Sólo permite sustituir (B1) | No da `PARTICIPANTS`, `MANAGE` ni poder de conceder: probado (quien lo tiene recibe `403 PARTICIPANTS_FORBIDDEN` y `403 MANAGE_FORBIDDEN`) |
+| Renuncia | Quien lo tiene puede renunciar al suyo (por analogía con m1); queda registrado con su actor |
+| Sin excepción automática | Si no hay otra persona elegible (por ejemplo, una sola Administración que no puede concedérselo a sí misma), **no** hay salida automática: la Web lo dice («No hay una salida automática»). La convocatoria abierta se sigue cerrando sola al vencer el plazo (§11.5) |
+| Si quien concedió deja de estar habilitada | El permiso concedido sigue registrado y se ejerce mientras quien lo tiene esté habilitada; una ADMINISTRADOR habilitada lo revoca si hace falta. Quien lo **tiene** debe estar habilitada para usarlo (`holdsSubstitution`) |
+
+`GET /joint-purchase-substitution-permissions` (cualquier DIRECTIVA/ADMINISTRADOR del sindicato): quién lo tiene (con `eligible`), quién lo concedió, cuándo, motivo e historial; `can_grant` y `holds_permission`. Sin datos de agricultores. En la Web, sección plegable «Permiso «Sustituir responsable»» en Compras conjuntas.
+
+### 12.2 B1 — Sustituir a una responsable inhabilitada
+
+`POST /joint-purchase-calls/{id}/responsible` `{request_id, expected_responsible_version, new_responsible_ref, reason, confirmed: true}`. Todo se revalida con la convocatoria bloqueada (`FOR UPDATE`):
+
+| Condición | Respuesta |
+|---|---|
+| Quien sustituye tiene el permiso y sigue habilitada | si no, `403 SUBSTITUTION_FORBIDDEN` |
+| La responsable actual **no** está habilitada (cuenta, Member, rol o sindicato inactivos) | si lo está, `409 RESPONSIBLE_STILL_ELIGIBLE` (un aviso no basta; la cesión voluntaria es otra operación, fuera de este bloque) |
+| Estado `DRAFT`, `OPEN` o `CLOSED` | `CANCELLED` → `409 INVALID_TRANSITION` |
+| La versión vista es la vigente | si no, `409 RESPONSIBLE_CHANGED` con `responsible_version`: dos sustituciones simultáneas no se sobrescriben en silencio |
+| Sucesora: otra DIRECTIVA/ADMINISTRADOR habilitada del mismo sindicato, distinta de la actual y de quien sustituye | si no, `422 SUCCESSOR_NOT_ELIGIBLE` (regla prudente aplicada: el permiso no sirve para nombrarse a sí misma, por analogía con A1; ver §12.7) |
+| Motivo 1–280 y confirmación | `422 REASON_REQUIRED` / `422 CONFIRMATION_REQUIRED` |
+| Reintento | el mismo `request_id` con el mismo cuerpo responde el detalle sin un segundo cambio ni otro evento; con otro cuerpo, `409 REQUEST_ID_REUSED` |
+
+Efectos, en una transacción: fila sólo de inserción `JointPurchaseResponsibleChange` (versión nueva, anterior, sucesora, actor, motivo, fecha, estado de la convocatoria, delegaciones suspendidas, `request_id` y su huella); la convocatoria pasa a la sucesora con `responsibleVersion + 1`; el permiso del sistema de la anterior se borra y, en `OPEN`/`CLOSED`, la sucesora recibe el suyo (en `DRAFT` lo recibe al abrir); un evento `SUSPENDED` por delegación; evento `RESPONSIBLE_REPLACED` en el historial y entrada en `AuditLog`. **No** reabre, no cambia el plazo, las participaciones, las cantidades ni el consolidado, y no crea compras, pagos, deudas ni inventario. La base lo garantiza: el disparador de `JointPurchaseCall` sólo admite el cambio de responsable con su fila de registro de la versión siguiente, y en una sustitución sólo pueden cambiar la responsable, su versión y `updatedAt` (también en una `CLOSED`).
+
+La Web muestra «Sustituir responsable» sólo con `can_substitute_responsible` (tiene el permiso, la responsable no está habilitada y no está cancelada), con sucesora, motivo, confirmación y la lista de lo que implica; el identificador de la solicitud se fija al abrir el diálogo. Ante `RESPONSIBLE_CHANGED` lo explica y recarga, sin reintentar.
+
+### 12.3 Delegaciones
+
+- Cada permiso de colaborador guarda la versión de la responsabilidad con que se concedió (`JointPurchaseCallAccess.responsibleVersion`). Sólo rige si es la vigente **y** la responsable está habilitada (m6). Las de una versión anterior quedan `PENDING_REVIEW`: suspendidas, no borradas.
+- La sucesora revisa cada una: `POST /joint-purchase-calls/{id}/collaborators/review` `{user_ref, grant, decision: CONFIRM|RETIRE}`. Confirmar la concede otra vez con la versión vigente (evento `CONFIRMED`, `ACCESS_CONFIRMED`); retirar la borra (evento `REVOKED`). Sólo la responsable actual y habilitada (`403 COLLABORATORS_FORBIDDEN`); una que no está pendiente → `409 DELEGATION_NOT_PENDING`. Conceder lo que está pendiente equivale a confirmarlo.
+- Confirmar una delegación no supera el consentimiento: el colaborador ve sólo lo que cada agricultor autorizó (§12.4).
+- La responsable anterior no recupera nada si vuelve a estar habilitada: su permiso del sistema se borró y deja de ser la responsable.
+- El acceso se lee en cada consulta: una delegación suspendida no se ejerce desde la petición siguiente.
+
+### 12.4 C1 — Ninguna aceptación anterior cubre a la sucesora
+
+- Cada participación guarda la versión de la responsabilidad que su agricultor autorizó (`consentResponsibleVersion`). Las existentes quedaron en la versión 1 (la única que hubo). Una participación sólo es **visible** si esa versión es la vigente; si no, nadie la ve por nombre (ni la sucesora ni sus colaboradores), y el total de un producto que la incluye es `RESTRICTED` para ellas. El resto de la Directiva sigue con la regla de §10.3 (sin cifra en vivo; umbral al cierre).
+- Recuentos permitidos: `pending_authorization_count` (participaciones sin autorizar, sólo para quien tiene `PARTICIPANTS`) y `participant_count`. Son conteos de participaciones, sin nombres ni cantidades.
+- **Autorizar** es una decisión propia (`POST …/participation/consent` con `authorize_responsible: true` y `responsible_version` = la que mostró el teléfono), separada de las cantidades, con el texto vigente `CONV-3`. Se admite en `OPEN` y `CLOSED` (sin editar el pedido); no en `CANCELLED`. Fija el alcance que el agricultor eligió: autorizar sólo a la responsable deja `RESPONSIBLE_ONLY` (nunca amplía); también puede elegir, en una casilla aparte, `COLLABORATORS`.
+- Una autorización para otra versión (pendiente desde antes de una sustitución, o si la responsable vuelve a cambiar antes de recibirla) → `409 RESPONSIBLE_CHANGED` con la versión vigente: nunca vale para la nueva y el teléfono pide revisar de nuevo.
+- Ampliar sin haber autorizado a la responsable vigente → `409 AUTHORIZATION_REQUIRED`.
+- Reducir se respeta siempre, con cualquier versión, y nunca autoriza a nadie.
+- Las cantidades nunca autorizan: modificar o retirar no cambia `consentResponsibleVersion`.
+- Primera confirmación: queda autorizada la responsable que mostró el teléfono si es la vigente (`responsible_version`, contrato 3). Un teléfono que no lo dice (contratos 1 y 2) sólo puede haber visto a la vigente si nunca hubo sustitución (versión 1); si la hubo, no se supone nada (`null`: restringida hasta autorizarla).
+- Orden: la autorización usa el orden propio de las decisiones (§11.1): un reintento o una respuesta atrasada nunca restablecen un acceso anterior.
+
+### 12.5 Contrato del teléfono y versiones anteriores (N7)
+
+- **Contrato 3** (`X-Joint-Purchase-Contract: 3`, Mobile `4a3f1ad`): `responsible: {name, version}` y en la participación `responsible_authorization: {authorized, version}`.
+- **Contrato 2** (la app `e1f6e25`): la misma forma de §11 sin esas claves (`toContract2FarmerBody`). Esa versión no puede autorizar a una sucesora: la participación queda restringida y su «Ampliar» recibe `AUTHORIZATION_REQUIRED`, que muestra como rechazo. Su texto «Sólo la persona responsable (nombre) puede ver…» queda **más permisivo de lo real** (en realidad nadie la ve hasta autorizarla): no expone datos, pero informa de menos. Necesita actualizar para autorizar.
+- **Contrato 1** (sin cabecera, la app `6bac5a3`): sin cambios de forma; sus cantidades se aceptan y nunca autorizan; su primera confirmación después de una sustitución queda sin autorizar.
+- Comprobado por la API real del entorno aislado el 2026-11-12 (contratos 1, 2 y 3). **No** comprobado con las APK anteriores en un teléfono (§12.7).
+
+### 12.6 Teléfono (esquema v19)
+
+Columnas aditivas sin rellenar (`responsible_version` en convocatorias, operaciones y decisiones; `authorize_responsible` en decisiones). El detalle muestra, en un widget propio (`JointPurchaseResponsibleReview`, claves `joint-responsible-review`, `-changed`, `-pending`, `-outdated`, `-authorize`, `-check`, `-collaborators`, `-confirm`), quién es la nueva responsable, que su autorización anterior no vale para ella y la acción «Revisar autorización»: diálogo con `CONV-3`, dos casillas sin marcar (la segunda sólo con la primera) y «Sus cantidades no cambian». Pendiente de envío no se anuncia como aplicada; si la responsable vuelve a cambiar, «revise de nuevo». Sin autorizarla no se ofrece ampliar. Rechazos `RESPONSIBLE_CHANGED`/`AUTHORIZATION_REQUIRED`: definitivos, sin reintento, adoptando la participación vigente.
+
+### 12.7 Límites y decisiones abiertas
+
+- **Regla aplicada por prudencia, a confirmar por el autor:** quien sustituye no puede nombrarse a sí misma sucesora (`SUCCESSOR_NOT_ELIGIBLE`). Si se prefiere permitirlo, es un cambio de una línea y de su prueba.
+- **Combinación de lecturas:** si una persona vio el total de un producto al cierre por el umbral (k = 3) y después es sucesora y recibe autorizaciones individuales, puede deducir por resta la cantidad de quien no la autorizó. Es el mismo límite de §10.3 («lo que dos personas combinen fuera del sistema»): no se presenta como garantía de anonimato (N4).
+- **Borradores:** cambiar la responsable con `PATCH` en un borrador (antes de abrir) sigue como estaba y no sube la versión; las delegaciones de la responsable anterior de ese borrador siguen vigentes (comportamiento anterior a P-A, anotado; no se cambió).
+- **Teléfono:** la parte visible se probó con pruebas de widget y de almacén/emisor; el recorrido en el emulador no se pudo hacer el 2026-11-12 (el AVD se colgó al arrancar). Tampoco se comprobaron las APK anteriores en un dispositivo.

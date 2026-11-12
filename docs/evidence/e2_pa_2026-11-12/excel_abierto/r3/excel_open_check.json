@@ -1,0 +1,11 @@
+﻿{
+    "file":  "inventario-2026-11-12.xlsx",
+    "sheet":  "Inventario",
+    "filter":  true,
+    "frozen":  true,
+    "split_row":  5,
+    "used":  "A1:F9",
+    "formats":  "A2=General; B2=General; A3=General; B3=General; A5=General; B5=General",
+    "col_widths":  "35.2,11.2,18.4,20.8,18.4,20.8",
+    "shot":  "excel_inventario-2026-11-12_01.png"
+}

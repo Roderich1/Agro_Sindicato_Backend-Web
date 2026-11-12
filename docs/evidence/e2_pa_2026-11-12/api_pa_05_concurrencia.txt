@@ -1,0 +1,3 @@
+{"concurrent":[{"by":"directiva","status":200,"code":null,"responsible_version":2},{"by":"admin2","status":403,"code":"SUBSTITUTION_FORBIDDEN"}],"retry_same_request":{"status":200,"version":2},"same_request_other_body":{"status":409,"code":"REQUEST_ID_REUSED"},"changes_in_db":1,"replaced_events":1}
+ERROR crear convocatoria: HTTP 422 RESPONSIBLE_NOT_ELIGIBLE
+{"concurrent":[{"by":"directiva","status":409,"code":"RESPONSIBLE_CHANGED","responsible_version":2},{"by":"admin2","status":200,"code":null,"responsible_version":2}],"retry_same_request":{"status":200,"version":2},"same_request_other_body":{"status":409,"code":"REQUEST_ID_REUSED"},"changes_in_db":1,"replaced_events":1}
