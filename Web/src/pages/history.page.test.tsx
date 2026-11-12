@@ -15,7 +15,7 @@ vi.mock('../services/estimation.service', () => ({
   estimationService: { request: vi.fn(), job: vi.fn(), results: vi.fn(), runs: vi.fn(), run: vi.fn(), download: vi.fn() },
 }));
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { trends: vi.fn(), trendsCsv: vi.fn(), catalog: vi.fn(), associations: vi.fn() },
+  collectiveService: { trends: vi.fn(), catalog: vi.fn(), associations: vi.fn() },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn(), active: vi.fn() } }));
 
@@ -69,6 +69,8 @@ describe('Histórico y estimaciones (contenedor)', () => {
   });
 
   it('cambia de vista con ?vista= y conserva ?campaign=; ninguna vista escribe al abrir', async () => {
+    // Toda descarga (el Excel) pasa por un enlace temporal: ninguno se pulsa al abrir o cambiar de vista.
+    const download = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     render(`?campaign=${CAMPAIGN.id}`);
     await screen.findByTestId('trend-chart');
     fireEvent.click(screen.getByRole('button', { name: 'Estimación del consumo' }));
@@ -83,7 +85,8 @@ describe('Histórico y estimaciones (contenedor)', () => {
     // Abrir y cambiar de vista sólo consulta: ningún trabajo de estimación ni descarga.
     expect(estimationService.request).not.toHaveBeenCalled();
     expect(estimationService.download).not.toHaveBeenCalled();
-    expect(collectiveService.trendsCsv).not.toHaveBeenCalled();
+    expect(download).not.toHaveBeenCalled();
+    download.mockRestore();
   });
 
   it('con ?vista=estimacion abre la estimación con la vigencia evaluada y la ejecución en «Ver detalle»', async () => {

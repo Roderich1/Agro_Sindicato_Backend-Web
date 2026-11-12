@@ -46,6 +46,16 @@ export function statusCell(status: AnyStatus): XlsxCell {
   return text(STATUS_LABEL[status] ?? status, status === 'DISCLOSED' ? 'ok' : 'warn');
 }
 
+/** Un dato sí/no del servidor, como texto filtrable. */
+export function yesNoCell(value: boolean | null | undefined): XlsxCell {
+  return value === null || value === undefined ? null : text(value ? 'Sí' : 'No');
+}
+
+/** Un identificador del servidor (producto, campaña, versión sellada…), en gris: sirve para cruzar datos, no para leer. */
+export function refCell(value: string | null | undefined): XlsxCell {
+  return value ? text(value, 'muted') : null;
+}
+
 export function integerCell(value: number | null): XlsxCell {
   return value !== null && Number.isSafeInteger(value) && value >= 0 ? { kind: 'number', value: String(value), decimals: 0, style: 'integer' } : null;
 }
@@ -213,7 +223,7 @@ export function dataSheet(input: {
   };
 }
 
-/** Descarga el libro en el navegador (mismo mecanismo que «Exportar CSV»). */
+/** Descarga el libro en el navegador; revoca la URL después del clic. */
 export function saveXlsx(bytes: Uint8Array, fileName: string): void {
   const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: XLSX_MIME }));
   const link = document.createElement('a');

@@ -1,6 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { available, linkViewFor } from '../dev/fixtures/proposal-fixtures';
 import { fmtDateTime } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
@@ -13,7 +14,6 @@ vi.mock('../services/collective.service', () => ({
     proposals: vi.fn(),
     generateProposal: vi.fn(),
     proposal: vi.fn(),
-    proposalCsv: vi.fn(),
     proposalEstimationReference: vi.fn(() => new Promise(() => undefined)),
     // E3: la referencia fijada y la selección se leen aparte; aquí no responden (no ocultan el borrador).
     estimationLink: vi.fn(() => new Promise(() => undefined)),
@@ -175,17 +175,42 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(history.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
   });
 
-  it('el CSV se pide al servidor (misma política), no se arma en el navegador', async () => {
+  it('sólo «Descargar Excel»: al pulsar vuelve a pedir el borrador y su referencia fijada; un rechazo se explica y no descarga', async () => {
     vi.mocked(collectiveService.generateProposal).mockResolvedValue(DRAFT);
-    vi.mocked(collectiveService.proposalCsv).mockResolvedValue(new Blob(['x']));
     const createObjectURL = vi.fn(() => 'blob:x');
     Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Exportar CSV' }));
-    await vi.waitFor(() => expect(collectiveService.proposalCsv).toHaveBeenCalledWith(DRAFT.proposal_ref));
-    expect(createObjectURL).toHaveBeenCalled();
-    expect(click).toHaveBeenCalled();
+    const button = await screen.findByRole('button', { name: 'Descargar Excel' });
+    // Excel es la única exportación: ningún botón de CSV.
+    expect(screen.queryByRole('button', { name: /CSV/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/CSV/);
+
+    vi.mocked(collectiveService.proposal).mockResolvedValue(DRAFT);
+    vi.mocked(collectiveService.estimationLink).mockResolvedValue(linkViewFor(DRAFT, [{ state: 'NO_RESULT' }, available('25000.000000')]));
+    try {
+      fireEvent.click(button);
+      await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+      expect(click).toHaveBeenCalled();
+      // GET hechos al exportar, con la sesión: el servidor aplica sus reglas (nada sale de la pantalla en memoria).
+      expect(collectiveService.proposal).toHaveBeenCalledWith(DRAFT.proposal_ref);
+      expect(collectiveService.estimationLink).toHaveBeenLastCalledWith(DRAFT.proposal_ref);
+      // La referencia fijada, nunca la vigente al consultar (F12-EST-08).
+      expect(collectiveService.proposalEstimationReference).not.toHaveBeenCalled();
+
+      vi.mocked(collectiveService.proposal).mockRejectedValue(new AxiosError('forbidden', 'ERR', undefined, undefined, {
+        status: 403,
+        statusText: '',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+        data: {},
+      }));
+      fireEvent.click(button);
+      expect((await screen.findByTestId('export-error')).textContent).toBe('Su rol no tiene acceso a la información colectiva.');
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.mocked(collectiveService.estimationLink).mockImplementation(() => new Promise(() => undefined));
+    }
   });
 });

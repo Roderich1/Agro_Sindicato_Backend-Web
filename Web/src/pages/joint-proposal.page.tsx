@@ -44,7 +44,6 @@ import {
   STOP_TEXT,
   VALIDITY_REASON_TEXT,
 } from '../lib/estimation-text';
-import { saveBlob } from '../lib/exports';
 import { fmtCalendarDate, fmtPercent } from '../lib/format';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
@@ -387,14 +386,6 @@ export function JointProposalPage() {
     navigate(prepareCallPath(proposal.campaign.campaign_ref, proposal.proposal_ref, selection.saved));
   };
 
-  const downloadCsv = async (current: Proposal) => {
-    try {
-      saveBlob(await collectiveService.proposalCsv(current.proposal_ref), `propuesta-${current.proposal_ref}.csv`);
-    } catch (err) {
-      fail(err, 'No fue posible descargar el CSV.');
-    }
-  };
-
   const retry = selected ? () => void loadHistory(selected, context) : undefined;
   return (
     <AppShell title="Necesidades y propuestas" section="Colectivo">
@@ -444,7 +435,6 @@ export function JointProposalPage() {
             onSave={() => void saveSelection()}
             onRetrySelection={() => void loadSelection(proposal.proposal_ref, context)}
             onPrepareCall={prepareCall}
-            onCsv={() => void downloadCsv(proposal)}
           />
         ) : loadingHistory ? (
           <Section>
@@ -496,7 +486,6 @@ interface DetailProps {
   onSave: () => void;
   onRetrySelection: () => void;
   onPrepareCall: () => void;
-  onCsv: () => void;
 }
 
 function ProposalDetail(props: DetailProps) {
@@ -510,7 +499,7 @@ function ProposalDetail(props: DetailProps) {
       <Section
         title={`Borrador · ${proposal.campaign.name}`}
         note={`Generado el ${fmtDateTime(proposal.generated_at)} por ${proposal.generated_by.name}. No crea compras, lotes, movimientos, deudas ni pagos.`}
-        actions={<ExportButtons kind="proposal" reference={proposal.proposal_ref} onCsv={props.onCsv} csvLabel="Exportar CSV" />}
+        actions={<ExportButtons kind="proposal" reference={proposal.proposal_ref} />}
       >
         {proposal.coverage && (
           <div className="px-5 pt-4">
@@ -1130,8 +1119,8 @@ function ReferenceNote({ proposal, view }: { proposal: Proposal; view: Estimatio
       {view && (
         <p className="mt-1" data-testid="reference-evaluated">
           Vigencia evaluada el {fmtDateTime(view.evaluated_at)}
-          {view.run ? ` · Temporada ${view.run.season.key}` : ''} · «Exportar CSV» incluye en columnas aparte (estimation_*) la
-          estimación vigente al exportar, que puede no ser la referencia fijada aquí.
+          {view.run ? ` · Temporada ${view.run.season.key}` : ''} · «Descargar Excel» consulta de nuevo el borrador y esta
+          referencia fijada al exportar, con su versión, fecha y estado; no usa otra estimación en su lugar.
         </p>
       )}
     </div>

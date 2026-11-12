@@ -375,6 +375,70 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     );
   });
 
+  /** Borrador del catálogo cuya responsable es quien consulta (u-1). */
+  function mineDraft(): JointPurchaseCallDetail {
+    return {
+      ...DRAFT,
+      source_proposal_ref: null,
+      products: [{ ...DRAFT.products[1]!, position: 0, reference: null }],
+      responsible: { user_ref: 'u-1', name: 'Usuario sintético', role: 'DIRECTIVA', eligible: true },
+      is_responsible: true,
+      my_grants: [],
+    };
+  }
+
+  async function openEditor(draft: JointPurchaseCallDetail) {
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(draft);
+    vi.mocked(jointPurchaseCallsService.update).mockResolvedValue(draft);
+    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([
+      { user_ref: 'u-1', name: 'Usuario sintético', role: 'DIRECTIVA' },
+      { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
+      { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
+    ]);
+    vi.mocked(collectiveService.catalog).mockResolvedValue([{ product_ref: 'p-3', product_name: 'Urea', unit: 'kg', base_unit: 'G', is_active: true }]);
+    vi.mocked(collectiveService.associations).mockResolvedValue({ current: [], history: [] });
+    render();
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+    fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
+    await waitFor(() => expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe(draft.responsible.user_ref));
+    await within(dialog()).findByRole('checkbox', { name: /Urea/ });
+  }
+
+  it('P-B al editar: la responsable que nombra a otra persona ve el aviso y sólo con «Confirmar» se envía', async () => {
+    await openEditor(mineDraft());
+    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-2' } });
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    const warning = within(dialog()).getByTestId('handover-warning');
+    expect(warning.textContent).toContain('Eligió a Responsable sintética como responsable. Si guarda así, usted deja de administrar esta convocatoria:');
+    expect(warning.textContent).toContain('no podrá editar el borrador;');
+    expect(jointPurchaseCallsService.update).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() =>
+      expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-2' })),
+    );
+    expect(jointPurchaseCallsService.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('P-B al editar: la responsable que se mantiene no ve ningún aviso', async () => {
+    await openEditor(mineDraft());
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    await waitFor(() =>
+      expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-1' })),
+    );
+    expect(screen.queryByTestId('handover-warning')).toBeNull();
+  });
+
+  it('P-B al editar: quien administra sin ser la responsable (con «Administrar») no ve el aviso aunque elija a otra persona', async () => {
+    // DRAFT: responsable u-2; quien consulta (u-1) tiene MANAGE.
+    await openEditor({ ...DRAFT, source_proposal_ref: null, products: [{ ...DRAFT.products[1]!, position: 0, reference: null }] });
+    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-3' } });
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    await waitFor(() =>
+      expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-3' })),
+    );
+    expect(screen.queryByTestId('handover-warning')).toBeNull();
+  });
+
   it('abierta: cerrar pide confirmación con lo que implica y llama al servidor', async () => {
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValueOnce(OPEN).mockResolvedValue(CLOSED);
     render();

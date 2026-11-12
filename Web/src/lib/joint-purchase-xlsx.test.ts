@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { line, proposalWith } from '../test/fixtures';
+import { available, BLOCKER_MESSAGE, comparableWith, LINK_RUN_REF, linkOf, linkViewFor } from '../dev/fixtures/proposal-fixtures';
 import type { Proposal } from '../types/collective';
-import type { ProposalEstimationReference, ReferenceEstimation, ReferenceLine } from '../types/estimation';
 import { buildJointPurchaseXlsx, jointPurchaseXlsxFileName } from './joint-purchase-xlsx';
 import { buildXlsx, columnName, crc32, fitsExcelPrecision } from './xlsx-writer';
 
@@ -114,43 +114,6 @@ function rowOf(sheet: ReadSheet, product: string, unit?: string): number {
 
 const EXPORTED_AT = new Date('2026-11-05T17:00:00.000Z');
 
-function estimation(overrides: Partial<ReferenceEstimation> = {}): ReferenceEstimation {
-  return {
-    status: 'ESTIMATED',
-    reason_code: null,
-    estimate_base: '111000.000000',
-    validity: 'CURRENT',
-    validity_reason: null,
-    method: 'SES_NAIVE',
-    run_ref: 'run-1',
-    generated_at: '2026-11-05T16:12:55.510Z',
-    span_length: 3,
-    run_relation: 'AFTER_PROPOSAL',
-    ...overrides,
-  };
-}
-
-function refLine(position: number, product_ref: string, overrides: Partial<ReferenceLine> = {}): ReferenceLine {
-  return { position, product_ref, base_unit: 'ML', presentation_unit: 'L', absence: null, estimation: estimation(), ...overrides };
-}
-
-function referenceFor(proposal: Proposal, lines: ReferenceLine[], overrides: Partial<ProposalEstimationReference> = {}): ProposalEstimationReference {
-  return {
-    contract_version: 1,
-    kind: 'PROPOSAL_ESTIMATION_REFERENCE',
-    label: 'Estimación del consumo',
-    proposal_ref: proposal.proposal_ref,
-    proposal_generated_at: proposal.generated_at,
-    target_campaign_ref: proposal.campaign.campaign_ref,
-    availability: 'AVAILABLE',
-    evaluated_at: '2026-11-05T16:32:32.673Z',
-    season: { season_ref: 's-1', key: 'invierno', definition: 'Invierno', duration_days: 120 },
-    lines,
-    notice: 'Estimación del consumo: referencia separada para el mismo producto, unidad y campaña.',
-    ...overrides,
-  };
-}
-
 const DRAFT = proposalWith([
   line({ position: 0, product_name: 'Fungicida sintético', quantity_base: '53000', quantity_presentation: '53', contributors: 3, data_as_of: '2026-11-03T23:54:25.043Z' }),
   line({ position: 1, product_name: 'Herbicida sintético', quantity_base: '11500', quantity_presentation: '11.5', contributors: 5, pending_changes: true }),
@@ -159,12 +122,13 @@ const DRAFT = proposalWith([
   line({ position: 4, product_name: 'Cero sintético', quantity_base: '0', quantity_presentation: '0', contributors: 3 }),
 ]);
 
-// Columnas de «Necesidades»: A Producto, B Cantidad, C Unidad, D Estado, E Explicación, F Aportantes, G Datos hasta.
+// Columnas de «Necesidades»: A Producto, B Cantidad, C Unidad, D Estado, E Explicación, F Aportantes, G Datos hasta,
+// H Cambios pendientes, I Publicado el, J N.º de línea, K Referencia del producto.
 // Hoja de datos: banda, título, nota y fila libre; los encabezados van en la fila 5.
 const NEED_HEADER_ROW = 5;
 
 describe('exportador Compra conjunta (.xlsx)', () => {
-  it('hojas Borrador y Necesidades; sin referencia cargada no hay tercera hoja y se explica', () => {
+  it('hojas Borrador y Necesidades; sin referencia consultada no hay tercera hoja y se explica', () => {
     const book = buildJointPurchaseXlsx({ proposal: DRAFT, exportedAt: EXPORTED_AT });
     expect(book.includesReference).toBe(false);
     expect(book.fileName).toBe(`propuesta-${DRAFT.proposal_ref}.xlsx`);
@@ -175,7 +139,10 @@ describe('exportador Compra conjunta (.xlsx)', () => {
     expect(summary).toContain(DRAFT.campaign.name);
     expect(summary).toContain('Abierta');
     expect(summary).toContain('Borrador');
-    expect(summary).toContain('No incluida: la referencia de consumo no estaba disponible al exportar.');
+    expect(summary).toContain('No incluida: la referencia fijada no se pudo consultar al exportar. No se usa ninguna otra estimación en su lugar.');
+    // Identificación del borrador y de la campaña (antes, columnas del CSV).
+    expect(summary).toContain(DRAFT.proposal_ref);
+    expect(summary).toContain(DRAFT.campaign.campaign_ref);
   });
 
   it('cantidad numérica tal como la publicó el servidor, con su unidad y su estado', () => {
@@ -257,12 +224,12 @@ describe('exportador Compra conjunta (.xlsx)', () => {
   it('encabezados con filtro, fila inmovilizada y anchos fijos', () => {
     const { files, sheets } = read(buildJointPurchaseXlsx({ proposal: DRAFT, exportedAt: EXPORTED_AT }).bytes);
     const doc = sheets.get('Necesidades')!.xml;
-    expect(doc.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${NEED_HEADER_ROW}:G${NEED_HEADER_ROW + DRAFT.lines.length}`);
+    expect(doc.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${NEED_HEADER_ROW}:K${NEED_HEADER_ROW + DRAFT.lines.length}`);
     expect(doc.getElementsByTagName('pane')[0]!.getAttribute('ySplit')).toBe(String(NEED_HEADER_ROW));
     const widths = Array.from(doc.getElementsByTagName('col')).map((c) => Number(c.getAttribute('width')));
-    expect(widths).toHaveLength(7);
+    expect(widths).toHaveLength(11);
     expect(Math.min(...widths)).toBeGreaterThanOrEqual(8);
-    expect(files.get('xl/workbook.xml')).toContain(`'Necesidades'!$A$${NEED_HEADER_ROW}:$G$${NEED_HEADER_ROW + DRAFT.lines.length}`);
+    expect(files.get('xl/workbook.xml')).toContain(`'Necesidades'!$A$${NEED_HEADER_ROW}:$K$${NEED_HEADER_ROW + DRAFT.lines.length}`);
   });
 
   it('no hay fórmulas ni totales: los textos de usuario no se evalúan y las filas no se suman', () => {
@@ -306,108 +273,270 @@ describe('exportador Compra conjunta (.xlsx)', () => {
   });
 });
 
-// Columnas de «Referencia de consumo»: A Producto, B Estimación, C Unidad, D Explicación, E Vigencia,
-// F Motivo de la vigencia, G Ejecución del, H Relación, I Ejecución (referencia), J Nota.
+// Columnas de «Consumo estimado»: A Producto, B Consumo estimado, C Unidad, D Estado, E Explicación, F Vigencia,
+// G Motivo de la vigencia, H Alcance, I Campañas del tramo, J Aportantes mín., K máx., L Aportantes de la necesidad,
+// M Comparable, N Motivo de no comparar, O Diferencia (del servidor), P Diferencia porcentual (del servidor), Q Nota,
+// R Referencia del producto.
 const REF_HEADER_ROW = 5;
+const REF_SHEET = 'Consumo estimado';
 
-describe('hoja «Referencia de consumo»', () => {
-  const reference = referenceFor(DRAFT, [
-    refLine(0, 'p-Fungicida sintético', { estimation: estimation({ estimate_base: '111000.000000' }) }),
-    refLine(1, 'p-Herbicida sintético', {
-      estimation: estimation({ status: 'INSUFFICIENT_DATA', reason_code: 'SPAN_TOO_SHORT', estimate_base: null, validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' }),
-    }),
-    refLine(2, 'p-Adherente sintético', { base_unit: 'G', presentation_unit: 'KG', estimation: estimation({ estimate_base: '0.292613', validity: 'OUTDATED', validity_reason: 'SOURCES_CHANGED', run_relation: 'BEFORE_PROPOSAL' }) }),
-    refLine(3, 'p-Insecticida sintético', { estimation: estimation({ estimate_base: '48000.500000' }) }),
-    refLine(4, 'p-Cero sintético', { absence: 'NO_RESULT', estimation: null }),
+/** Texto de las celdas de texto de una hoja (sin números ni fechas). */
+function textOf(sheet: ReadSheet): string {
+  return [...sheet.cells.values()]
+    .filter((c) => c.type === 'inlineStr')
+    .map((c) => c.value ?? '')
+    .join('\n');
+}
+
+/** Celdas numéricas debajo de los encabezados (la fila 4 lleva la fecha de evaluación). */
+function numbersBelowHeader(sheet: ReadSheet): string[] {
+  return [...sheet.cells.entries()]
+    .filter(([ref, c]) => c.type === 'n' && Number(/\d+$/.exec(ref)![0]) > REF_HEADER_ROW)
+    .map(([ref]) => ref);
+}
+
+describe('hoja «Consumo estimado»: la referencia fijada en el borrador (E3)', () => {
+  const linked = linkViewFor(DRAFT, [
+    available('111000.000000', { scope: { span_campaigns: 11, contributors_min: 4, contributors_max: 6 } }),
+    { state: 'INSUFFICIENT_DATA', status: 'INSUFFICIENT_DATA', reason_code: 'SPAN_TOO_SHORT', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
+    {
+      state: 'OUTDATED',
+      status: 'ESTIMATED',
+      estimate_base: '0.292613',
+      validity: 'OUTDATED',
+      validity_reason: 'SOURCES_CHANGED',
+      scope: { span_campaigns: 3, contributors_min: 5, contributors_max: 5 },
+    },
+    available('48000.500000'),
+    { state: 'NO_RESULT' },
   ]);
 
-  it('va en hoja aparte, con fecha de evaluación, vigencia y ejecución', () => {
-    const book = buildJointPurchaseXlsx({ proposal: DRAFT, reference, exportedAt: EXPORTED_AT });
+  it('va en hoja aparte; la portada identifica el borrador y la versión, fecha y estado de la referencia fijada', () => {
+    const book = buildJointPurchaseXlsx({ proposal: DRAFT, link: linked, exportedAt: EXPORTED_AT });
     expect(book.includesReference).toBe(true);
+    expect(book.referenceState).toBe('LINKED');
     const { sheetNames, sheets, numFmtOf } = read(book.bytes);
-    expect(sheetNames).toEqual(['Borrador', 'Necesidades', 'Referencia de consumo']);
-    const ref = sheets.get('Referencia de consumo')!;
-    expect(ref.cells.get('A4')!.value).toBe('Vigencia evaluada el');
-    expect(ref.cells.get('A3')!.value).toContain('hora de Bolivia, UTC−4');
-    expect(numFmtOf(ref.cells.get('B4')!.style)).toBe('yyyy-mm-dd hh:mm');
-    expect(ref.cells.get('A3')!.value).toContain('Temporada: invierno');
-    expect(ref.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${REF_HEADER_ROW}:J${REF_HEADER_ROW + DRAFT.lines.length}`);
+    expect(sheetNames).toEqual(['Borrador', 'Necesidades', REF_SHEET, 'Historial de la referencia']);
+    const cover = textOf(sheets.get('Borrador')!);
+    expect(cover).toContain(DRAFT.proposal_ref);
+    expect(cover).toContain('Referencia fijada');
+    expect(cover).toContain('N.º 1: Obtener (ejecución existente fijada) por Directiva sintética');
+    expect(cover).toContain(LINK_RUN_REF);
+    expect(cover).toContain('SES_NAIVE 1.0.0');
+    expect(cover).toContain('Referencia fijada el (hora de Bolivia, UTC−4)');
+    expect(cover).toContain('No hay una actualización disponible.');
 
+    const ref = sheets.get(REF_SHEET)!;
+    expect(ref.cells.get('A2')!.value).toBe('Consumo estimado · referencia fijada N.º 1');
+    expect(ref.cells.get('A4')!.value).toBe('Vigencia evaluada el');
+    expect(numFmtOf(ref.cells.get('B4')!.style)).toBe('yyyy-mm-dd hh:mm');
+    expect(ref.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${REF_HEADER_ROW}:R${REF_HEADER_ROW + DRAFT.lines.length}`);
     const r = rowOf(ref, 'Fungicida sintético');
     expect(ref.cells.get(`B${r}`)).toMatchObject({ type: 'n', value: '111' });
     expect(ref.cells.get(`C${r}`)!.value).toBe('L');
-    expect(ref.cells.get(`E${r}`)!.value).toBe('Vigente');
-    expect(ref.cells.get(`H${r}`)!.value).toBe('Posterior al borrador');
-    expect(ref.cells.get(`I${r}`)!.value).toBe('run-1');
-    expect(ref.cells.get(`G${r}`)!.type).toBe('n');
+    expect(ref.cells.get(`D${r}`)!.value).toBe('Vigente');
+    expect(ref.cells.get(`F${r}`)!.value).toBe('Vigente');
+    expect(ref.cells.get(`R${r}`)!.value).toBe('p-Fungicida sintético');
+
+    const history = sheets.get('Historial de la referencia')!;
+    expect(textOf(history)).toContain('ejecución existente fijada');
+    expect(textOf(history)).toContain('Sí');
   });
 
-  it('la estimación no cambia la hoja de necesidades', () => {
-    const without = read(buildJointPurchaseXlsx({ proposal: DRAFT, exportedAt: EXPORTED_AT }).bytes);
-    const withRef = read(buildJointPurchaseXlsx({ proposal: DRAFT, reference, exportedAt: EXPORTED_AT }).bytes);
-    expect(withRef.files.get('xl/worksheets/sheet2.xml')).toBe(without.files.get('xl/worksheets/sheet2.xml'));
+  it('la cifra es la fijada aunque haya una ejecución posterior: no se sustituye y la portada lo dice', () => {
+    const newer = linkViewFor(DRAFT, [available('111000.000000')], { update: { available: true, reason: 'NEWER_RUN' } });
+    const { sheets } = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: newer, exportedAt: EXPORTED_AT }).bytes);
+    const ref = sheets.get(REF_SHEET)!;
+    expect(ref.cells.get(`B${rowOf(ref, 'Fungicida sintético')}`)).toMatchObject({ type: 'n', value: '111' });
+    const cover = textOf(sheets.get('Borrador')!);
+    expect(cover).toContain('Hay una ejecución calculada posterior a la fijada.');
+    expect(cover).toContain('Este libro conserva la referencia fijada; no la sustituye.');
   });
 
-  it('desplaza la coma sin redondear (g → kg) y muestra todos los decimales', () => {
-    const { sheets, numFmtOf } = read(buildJointPurchaseXlsx({ proposal: DRAFT, reference, exportedAt: EXPORTED_AT }).bytes);
-    const ref = sheets.get('Referencia de consumo')!;
+  it('el alcance de cada cifra va en sus columnas; sin cifra no hay alcance de la estimación', () => {
+    const ref = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: linked, exportedAt: EXPORTED_AT }).bytes).sheets.get(REF_SHEET)!;
+    const r = rowOf(ref, 'Fungicida sintético');
+    expect(ref.cells.get(`H${r}`)!.value).toBe('Cifras de 4 a 6 agricultores por campaña (11 campañas)');
+    expect(ref.cells.get(`I${r}`)).toMatchObject({ type: 'n', value: '11' });
+    expect(ref.cells.get(`J${r}`)).toMatchObject({ type: 'n', value: '4' });
+    expect(ref.cells.get(`K${r}`)).toMatchObject({ type: 'n', value: '6' });
+    expect(ref.cells.get(`L${r}`)).toMatchObject({ type: 'n', value: '3' });
+    const insufficient = rowOf(ref, 'Herbicida sintético');
+    for (const col of ['B', 'H', 'I', 'J', 'K']) expect(ref.cells.has(`${col}${insufficient}`), col).toBe(false);
+    expect(ref.cells.get(`D${insufficient}`)!.value).toBe('Datos insuficientes');
+    expect(ref.cells.get(`E${insufficient}`)!.value).toBe('Datos insuficientes. Hay menos de tres campañas comparables consecutivas con consumo comprobado.');
+    // Necesidad no divulgada: sin aportantes de la necesidad.
+    expect(ref.cells.has(`L${rowOf(ref, 'Insecticida sintético')}`)).toBe(false);
+  });
+
+  it('desactualizada: la cifra fijada rotulada así, sin diferencia; sin resultado: celda vacía y motivo', () => {
+    const ref = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: linked, exportedAt: EXPORTED_AT }).bytes).sheets.get(REF_SHEET)!;
     const r = rowOf(ref, 'Adherente sintético');
     expect(ref.cells.get(`B${r}`)).toMatchObject({ type: 'n', value: '0.000292613' });
-    expect(numFmtOf(ref.cells.get(`B${r}`)!.style)).toBe('#,##0.000000000');
     expect(ref.cells.get(`C${r}`)!.value).toBe('KG');
-    expect(ref.cells.get(`E${r}`)!.value).toBe('Desactualizado');
-    expect(ref.cells.get(`F${r}`)!.value).toContain('cambiaron desde el cálculo');
-    expect(ref.cells.get(`H${r}`)!.value).toBe('Anterior al borrador');
+    expect(ref.cells.get(`D${r}`)!.value).toBe('Desactualizada');
+    expect(ref.cells.get(`E${r}`)!.value).toContain('No se compara con la necesidad.');
+    expect(ref.cells.get(`M${r}`)!.value).toBe('No');
+    expect(ref.cells.has(`O${r}`)).toBe(false);
+    expect(ref.cells.has(`P${r}`)).toBe(false);
+    const none = rowOf(ref, 'Cero sintético');
+    expect(ref.cells.has(`B${none}`)).toBe(false);
+    expect(ref.cells.get(`E${none}`)!.value).toBe('La ejecución fijada no incluye este producto y unidad.');
   });
 
-  it('sin cifra: celda vacía y motivo, para datos insuficientes, sin resultado, retirada y política pendiente', () => {
-    const extra = referenceFor(DRAFT, [
-      refLine(0, 'p-Fungicida sintético', { estimation: estimation({ estimate_base: null, validity: 'NOT_USABLE', validity_reason: 'SOURCES_WITHDRAWN' }) }),
-      refLine(1, 'p-Herbicida sintético', { absence: 'POLICY_PENDING', estimation: null }),
+  it('no comparable (hoy, siempre): ni diferencia ni porcentaje, aunque llegaran por error; sólo el motivo del servidor', () => {
+    const withStray = linkViewFor(DRAFT, [
+      available('111000.000000', {
+        comparison: {
+          comparable: false,
+          blockers: ['POPULATION_NOT_VERIFIED'],
+          message: BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED,
+          difference: {
+            difference_base: '-58000.000000',
+            difference_percent: '-52.2523',
+            percent_undefined: null,
+            direction: 'BELOW',
+            observation: 'La necesidad declarada es inferior en 58 L.',
+          },
+        },
+      }),
     ]);
-    const a = read(buildJointPurchaseXlsx({ proposal: DRAFT, reference, exportedAt: EXPORTED_AT }).bytes).sheets.get('Referencia de consumo')!;
-    const insufficient = rowOf(a, 'Herbicida sintético');
-    expect(a.cells.has(`B${insufficient}`)).toBe(false);
-    expect(a.cells.get(`D${insufficient}`)!.value).toBe('Sin cifra: Datos insuficientes. Hay menos de tres campañas comparables consecutivas con consumo comprobado.');
-    expect(a.cells.get(`E${insufficient}`)!.value).toBe('No utilizable');
-    const none = rowOf(a, 'Cero sintético');
-    expect(a.cells.has(`B${none}`)).toBe(false);
-    expect(a.cells.get(`D${none}`)!.value).toBe('Sin estimación: ninguna ejecución incluye este producto para esta campaña.');
+    const ref = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: withStray, exportedAt: EXPORTED_AT }).bytes).sheets.get(REF_SHEET)!;
+    const r = rowOf(ref, 'Fungicida sintético');
+    expect(ref.cells.get(`M${r}`)!.value).toBe('No');
+    expect(ref.cells.get(`N${r}`)!.value).toBe(BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED);
+    expect(ref.cells.has(`O${r}`)).toBe(false);
+    expect(ref.cells.has(`P${r}`)).toBe(false);
+    // Ni la diferencia del servidor ni una propia (53 − 111 = −58; −52 %).
+    expect(textOf(ref)).not.toMatch(/58|52[.,]2|%/);
+  });
 
-    const b = read(buildJointPurchaseXlsx({ proposal: DRAFT, reference: extra, exportedAt: EXPORTED_AT }).bytes).sheets.get('Referencia de consumo')!;
-    const withdrawn = rowOf(b, 'Fungicida sintético');
-    expect(b.cells.has(`B${withdrawn}`)).toBe(false);
-    expect(b.cells.get(`D${withdrawn}`)!.value).toBe('Cifra retirada.');
-    expect(b.cells.get(`D${rowOf(b, 'Herbicida sintético')}`)!.value).toBe('Sin cifra: la política de divulgación no está aprobada.');
-    // Líneas sin referencia en la respuesta.
-    expect(b.cells.get(`D${rowOf(b, 'Adherente sintético')}`)!.value).toBe('Sin referencia para esta fila.');
+  it('comparable según el servidor: copia su observación y su porcentaje, sin calcular nada', () => {
+    const comparable = linkViewFor(DRAFT, [
+      available('111000.000000', {
+        comparison: comparableWith({
+          difference_base: '-58000.000000',
+          difference_percent: '-52.2523',
+          direction: 'BELOW',
+          observation: 'La necesidad declarada es inferior en 58 L a la estimación.',
+        }),
+      }),
+    ]);
+    const ref = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: comparable, exportedAt: EXPORTED_AT }).bytes).sheets.get(REF_SHEET)!;
+    const r = rowOf(ref, 'Fungicida sintético');
+    expect(ref.cells.get(`M${r}`)!.value).toBe('Sí');
+    expect(ref.cells.has(`N${r}`)).toBe(false);
+    expect(ref.cells.get(`O${r}`)!.value).toBe('La necesidad declarada es inferior en 58 L a la estimación.');
+    expect(ref.cells.get(`P${r}`)!.value).toBe('-52,2523 %');
+  });
+
+  it('una cifra restringida o retirada no aparece, aunque llegara por error', () => {
+    const withdrawn = linkViewFor(DRAFT, [
+      {
+        state: 'RESTRICTED',
+        status: 'ESTIMATED',
+        estimate_base: '111000.000000',
+        validity: 'NOT_USABLE',
+        validity_reason: 'SOURCES_WITHDRAWN',
+        scope: { span_campaigns: 2, contributors_min: 7, contributors_max: 9 },
+      },
+    ]);
+    const a = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: withdrawn, exportedAt: EXPORTED_AT }).bytes).sheets.get(REF_SHEET)!;
+    const r = rowOf(a, 'Fungicida sintético');
+    expect(a.cells.has(`B${r}`)).toBe(false);
+    expect(a.cells.get(`D${r}`)!.value).toBe('Restringida');
+    expect(a.cells.get(`E${r}`)!.value).toContain('No se exporta la cifra.');
+    expect(textOf(a)).not.toMatch(/\b111\b|111000/);
+
+    // La referencia entera restringida (política pendiente): ninguna cifra, alcance ni diferencia, aunque las líneas trajeran una.
+    const restricted = linkViewFor(
+      DRAFT,
+      [
+        available('111000.000000', {
+          scope: { span_campaigns: 11, contributors_min: 4, contributors_max: 6 },
+          comparison: comparableWith({ observation: 'Coincide.' }),
+        }),
+      ],
+      { state: 'RESTRICTED' },
+    );
+    const book = buildJointPurchaseXlsx({ proposal: DRAFT, link: restricted, exportedAt: EXPORTED_AT });
+    expect(book.referenceState).toBe('RESTRICTED');
+    const { sheets } = read(book.bytes);
+    const b = sheets.get(REF_SHEET)!;
+    // Sólo quedan números de aportantes de la necesidad (L), nunca de la estimación.
+    expect(numbersBelowHeader(b).every((ref) => ref.startsWith('L'))).toBe(true);
+    expect(textOf(b)).not.toMatch(/111|Coincide|Cifras de/);
+    expect(b.cells.get(`D${rowOf(b, 'Fungicida sintético')}`)!.value).toBe('Restringida');
+    expect(textOf(sheets.get('Borrador')!)).toContain('Se conserva el vínculo (ejecución, fecha y método) pero no se exporta ninguna cifra.');
   });
 
   it('con la necesidad oculta, la estimación se rotula aparte y la necesidad sigue vacía', () => {
-    const { sheets } = read(buildJointPurchaseXlsx({ proposal: DRAFT, reference, exportedAt: EXPORTED_AT }).bytes);
-    const ref = sheets.get('Referencia de consumo')!;
+    const { sheets } = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: linked, exportedAt: EXPORTED_AT }).bytes);
+    const ref = sheets.get(REF_SHEET)!;
     const r = rowOf(ref, 'Insecticida sintético');
     expect(ref.cells.get(`B${r}`)).toMatchObject({ type: 'n', value: '48.0005' });
-    expect(ref.cells.get(`J${r}`)!.value).toContain('no la sustituye ni se suma a la propuesta');
+    expect(ref.cells.get(`Q${r}`)!.value).toContain('no la sustituye ni se suma a la propuesta');
     const need = sheets.get('Necesidades')!;
     expect(need.cells.has(`B${rowOf(need, 'Insecticida sintético')}`)).toBe(false);
-    expect(ref.cells.has(`J${rowOf(ref, 'Fungicida sintético')}`)).toBe(false);
+    expect(ref.cells.has(`Q${rowOf(ref, 'Fungicida sintético')}`)).toBe(false);
   });
 
-  it('una referencia de otro borrador o de otro producto/unidad no se exporta', () => {
-    const other = referenceFor(DRAFT, reference.lines, { proposal_ref: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' });
-    const book = buildJointPurchaseXlsx({ proposal: DRAFT, reference: other, exportedAt: EXPORTED_AT });
+  it('la referencia no cambia la hoja de necesidades', () => {
+    const without = read(buildJointPurchaseXlsx({ proposal: DRAFT, exportedAt: EXPORTED_AT }).bytes);
+    const withRef = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: linked, exportedAt: EXPORTED_AT }).bytes);
+    expect(withRef.files.get('xl/worksheets/sheet2.xml')).toBe(without.files.get('xl/worksheets/sheet2.xml'));
+  });
+
+  it('sin referencia fijada: ninguna estimación (tampoco la más reciente) y la portada lo dice', () => {
+    const none = linkViewFor(DRAFT, [], { state: 'NONE', prepare_blocker: 'TARGET_CAMPAIGN_NOT_CLASSIFIED' });
+    const book = buildJointPurchaseXlsx({ proposal: DRAFT, link: none, exportedAt: EXPORTED_AT });
+    expect(book.includesReference).toBe(false);
+    expect(book.referenceState).toBe('NONE');
+    const { sheetNames, sheets } = read(book.bytes);
+    expect(sheetNames).toEqual(['Borrador', 'Necesidades']);
+    const cover = textOf(sheets.get('Borrador')!);
+    expect(cover).toContain(
+      'Este borrador no tiene una referencia de consumo estimado fijada: el libro no incluye ninguna estimación (no se usa la más reciente en su lugar).',
+    );
+    expect(cover).toContain('la campaña no está clasificada en una temporada');
+    expect(cover).toContain('Sin referencia fijada');
+  });
+
+  it('calculando: hoja con el estado de cada línea y ninguna cifra', () => {
+    const calculating = linkViewFor(DRAFT, [], {
+      state: 'CALCULATING',
+      link: linkOf({ action: 'REQUEST_JOB', run_ref: null, job_ref: 'job-1', job_status: 'RUNNING' }),
+    });
+    const { sheets } = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: calculating, exportedAt: EXPORTED_AT }).bytes);
+    const ref = sheets.get(REF_SHEET)!;
+    expect(ref.cells.get(`D${rowOf(ref, 'Fungicida sintético')}`)!.value).toBe('Calculando');
+    expect(numbersBelowHeader(ref).every((cellRef) => cellRef.startsWith('L'))).toBe(true);
+    expect(textOf(sheets.get('Borrador')!)).toContain('Calculando: la referencia fijada todavía no tiene cifras (procesándose).');
+  });
+
+  it('sin respuesta de la referencia o de otro borrador: no se incluye y se explica', () => {
+    const missing = buildJointPurchaseXlsx({ proposal: DRAFT, link: null, exportedAt: EXPORTED_AT });
+    expect(missing.includesReference).toBe(false);
+    expect(missing.referenceState).toBeNull();
+    expect(textOf(read(missing.bytes).sheets.get('Borrador')!)).toContain(
+      'No incluida: la referencia fijada no se pudo consultar al exportar. No se usa ninguna otra estimación en su lugar.',
+    );
+
+    const other = { ...linked, proposal_ref: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
+    const book = buildJointPurchaseXlsx({ proposal: DRAFT, link: other, exportedAt: EXPORTED_AT });
     expect(book.includesReference).toBe(false);
     const { sheetNames, sheets } = read(book.bytes);
     expect(sheetNames).toEqual(['Borrador', 'Necesidades']);
-    expect([...sheets.get('Borrador')!.cells.values()].map((c) => c.value)).toContain('No incluida: la referencia cargada no corresponde a este borrador.');
+    expect(textOf(sheets.get('Borrador')!)).toContain('No incluida: la referencia consultada no corresponde a este borrador.');
+  });
 
-    const mismatch = referenceFor(DRAFT, [refLine(0, 'p-otro'), refLine(1, 'p-Herbicida sintético', { base_unit: 'G', presentation_unit: 'KG' })]);
-    const ref = read(buildJointPurchaseXlsx({ proposal: DRAFT, reference: mismatch, exportedAt: EXPORTED_AT }).bytes).sheets.get('Referencia de consumo')!;
-    for (const name of ['Fungicida sintético', 'Herbicida sintético']) {
+  it('una línea de la referencia de otro producto no se usa', () => {
+    const shifted = { ...linked, lines: linked.lines.map((l) => ({ ...l, product: { ...l.product, product_ref: `${l.product.product_ref}-otro` } })) };
+    const ref = read(buildJointPurchaseXlsx({ proposal: DRAFT, link: shifted, exportedAt: EXPORTED_AT }).bytes).sheets.get(REF_SHEET)!;
+    for (const name of ['Fungicida sintético', 'Adherente sintético']) {
       const r = rowOf(ref, name);
       expect(ref.cells.has(`B${r}`), name).toBe(false);
-      expect(ref.cells.get(`D${r}`)!.value, name).toBe('Sin referencia para esta fila.');
+      expect(ref.cells.get(`E${r}`)!.value, name).toBe('Sin referencia para esta fila.');
     }
   });
 });

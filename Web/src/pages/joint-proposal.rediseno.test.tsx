@@ -21,7 +21,6 @@ vi.mock('../services/collective.service', () => ({
     proposals: vi.fn(),
     generateProposal: vi.fn(),
     proposal: vi.fn(),
-    proposalCsv: vi.fn(),
     proposalEstimationReference: vi.fn(),
     estimationLink: vi.fn(),
     prepareEstimationLink: vi.fn(),
@@ -57,7 +56,6 @@ describe('Necesidades y propuestas (rediseño)', () => {
   beforeEach(() => {
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN, OTHER]);
     vi.mocked(collectiveService.generateProposal).mockReset();
-    vi.mocked(collectiveService.proposalCsv).mockReset();
     vi.mocked(collectiveService.prepareEstimationLink).mockReset();
     vi.mocked(collectiveService.clearEstimationLink).mockReset();
     vi.mocked(collectiveService.saveProposalSelection).mockReset();
@@ -73,7 +71,6 @@ describe('Necesidades y propuestas (rediseño)', () => {
     await screen.findByText(`Borrador · ${demo.proposal!.campaign.name}`);
     await screen.findByText('295 L');
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
-    expect(collectiveService.proposalCsv).not.toHaveBeenCalled();
     // E3-D2: ni obtener, ni quitar, ni guardar la selección sin un botón.
     expect(collectiveService.prepareEstimationLink).not.toHaveBeenCalled();
     expect(collectiveService.clearEstimationLink).not.toHaveBeenCalled();

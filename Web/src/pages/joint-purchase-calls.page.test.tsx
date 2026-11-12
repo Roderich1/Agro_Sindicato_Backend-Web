@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../App.tsx?raw';
 import { AppShell } from '../components/app-shell';
 import { CollectiveRoute } from '../components/collective-route';
-import { prepareCallPath, readPreparedCall, RESPONSIBLE_NOTICE } from '../lib/joint-purchase-call-text';
+import { handOverText, prepareCallPath, readPreparedCall, RESPONSIBLE_NOTICE } from '../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS, menuPathsFor, WEB_NOT_FOR_FARMERS_PATH } from '../lib/navigation';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
@@ -58,6 +58,8 @@ const ROW: JointPurchaseCallSummary = {
 const DRAFT_ROW: JointPurchaseCallSummary = { ...ROW, call_id: 'c-2', name: 'Fertilizantes', status: 'DRAFT', opened_at: null, participant_count: 0 };
 
 const RESPONSIBLES: EligibleResponsible[] = [
+  // Quien usa la Web en las pruebas (`renderAt`): puede elegirse a sí misma.
+  { user_ref: 'u-1', name: 'Usuario sintético', role: 'DIRECTIVA' },
   { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
   { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
 ];
@@ -275,6 +277,8 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(within(list).getByRole('checkbox', { name: /Urea/ }));
 
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
+    // P-B: nombra a otra persona, así que primero confirma que deja de administrarlo.
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.create).toHaveBeenCalledWith({
         campaign_id: CAMPAIGN.id,
@@ -312,6 +316,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Responsable sintética · Directiva' })).toBeTruthy());
     fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-2' } });
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.create).toHaveBeenCalledWith(
         // `CreateCallDto`: los productos llevan sólo `product_ref`; el servidor deduce la línea de origen.
@@ -331,8 +336,62 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-2' } });
     fireEvent.click(await within(dialog()).findByRole('checkbox', { name: /Glifosato 48 SL/ }));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
+    // El error se muestra en el formulario, que vuelve a la vista con lo escrito.
     expect(await within(dialog()).findByText(/no es un usuario activo de la Directiva o la Administración/)).toBeTruthy();
+    expect((within(dialog()).getByLabelText('Nombre') as HTMLInputElement).value).toBe('X');
     expect(screen.queryByTestId('detail-probe')).toBeNull();
+  });
+
+  /** Completa el formulario de una convocatoria nueva con un producto del catálogo y el responsable dado. */
+  async function fillNewCall(responsible: string) {
+    await screen.findByTestId('call-row-c-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
+    fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: 'Fungicidas' } });
+    fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
+    await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Usuario sintético · Directiva' })).toBeTruthy());
+    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: responsible } });
+    fireEvent.click(await within(dialog()).findByRole('checkbox', { name: /Urea/ }));
+  }
+
+  it('P-B: nombrar a otra persona responsable avisa de qué permisos se pierden y no envía nada sin «Confirmar»', async () => {
+    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
+    render();
+    await fillNewCall('u-2');
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
+
+    const warning = within(dialog()).getByTestId('handover-warning');
+    expect(screen.getByRole('dialog', { name: 'Antes de guardar: dejará de administrar este borrador' })).toBeTruthy();
+    const text = handOverText('Responsable sintética');
+    expect(warning.textContent).toContain(text.lead);
+    for (const loss of text.losses) expect(warning.textContent).toContain(loss);
+    expect(warning.textContent).toContain('sólo Responsable sintética, como responsable, puede devolverle «Administrar la convocatoria»');
+    expect(warning.textContent).toMatch(/editar.*abrir.*cancelarla ni cerrarla.*participantes/s);
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
+
+    // «Volver»: nada se envía y el formulario conserva lo escrito.
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Volver' }));
+    expect(within(dialog()).queryByTestId('handover-warning')).toBeNull();
+    expect((within(dialog()).getByLabelText('Nombre') as HTMLInputElement).value).toBe('Fungicidas');
+    expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('u-2');
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
+
+    // Con «Confirmar» se envía una sola vez, con la persona elegida.
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() => expect(jointPurchaseCallsService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(jointPurchaseCallsService.create).mock.calls[0]![0]).toMatchObject({ responsible_user_id: 'u-2', name: 'Fungicidas' });
+  });
+
+  it('P-B: quien se elige a sí misma como responsable no recibe el aviso y crea directamente', async () => {
+    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
+    render();
+    await fillNewCall('u-1');
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
+    await waitFor(() => expect(jointPurchaseCallsService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(jointPurchaseCallsService.create).mock.calls[0]![0]).toMatchObject({ responsible_user_id: 'u-1' });
+    expect(screen.queryByTestId('handover-warning')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Confirmar' })).toBeNull();
   });
 });
 
@@ -407,6 +466,8 @@ describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de prop
     await waitFor(() => expect(within(form).getByRole('option', { name: 'Responsable sintética · Directiva' })).toBeTruthy());
     fireEvent.change(within(form).getByLabelText('Responsable'), { target: { value: 'u-2' } });
     fireEvent.click(within(form).getByRole('button', { name: 'Crear borrador' }));
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
+    fireEvent.click(within(form).getByRole('button', { name: 'Confirmar' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.create).toHaveBeenCalledWith({
         campaign_id: CAMPAIGN.id,

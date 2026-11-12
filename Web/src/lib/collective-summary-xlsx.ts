@@ -4,6 +4,11 @@
  * versión sellada, cobertura y conteos), «Necesidad declarada» y «Consumo
  * publicado». Mismas reglas que la pantalla: sólo cifras publicadas, ninguna
  * ausencia como cero, sin sumas entre productos ni unidades.
+ *
+ * Es la única exportación del resumen (el CSV del servidor se retiró el
+ * 2026-11-12): cada columna de aquel CSV tiene su lugar en el libro (portada o
+ * columnas filtrables de cada hoja; tabla en
+ * `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`).
  */
 import {
   BOLIVIA_OFFSET,
@@ -15,10 +20,12 @@ import {
   fileSlug,
   integerCell,
   publishedQuantity,
+  refCell,
   saveXlsx,
   sealText,
   statusCell,
   text,
+  yesNoCell,
   zoneLabel,
 } from './xlsx-common';
 import { buildXlsx, type XlsxCell } from './xlsx-writer';
@@ -62,6 +69,9 @@ function rowsOf(cells: SummaryCell[], threshold: number | null, offset: number):
       text(quantity.explanation, 'wrap'),
       disclosed ? integerCell(cell.contributors) : null,
       disclosed ? dateCell(cell.data_as_of, offset) : null,
+      yesNoCell(cell.pending_changes),
+      disclosed ? dateCell(cell.released_at, offset) : null,
+      refCell(cell.product_ref),
     ];
   });
 }
@@ -78,8 +88,19 @@ export function buildSummaryXlsx(input: SummaryXlsxInput): BuiltXlsx {
   const pending = summary.disclosure.mode === 'POLICY_PENDING';
   const needs = summary.cells.filter((cell) => cell.projection_type === 'DECLARED_NEED');
   const consumption = summary.cells.filter((cell) => cell.projection_type === 'CONSUMPTION_TOTAL');
-  const headers = ['Producto', 'Cantidad', 'Unidad', 'Estado', 'Explicación', 'Aportantes', `Datos hasta (${zone})`];
-  const widths = [30, 14, 8, 22, 64, 12, 20];
+  const headers = [
+    'Producto',
+    'Cantidad',
+    'Unidad',
+    'Estado',
+    'Explicación',
+    'Aportantes',
+    `Datos hasta (${zone})`,
+    'Cambios pendientes',
+    `Publicado el (${zone})`,
+    'Referencia del producto',
+  ];
+  const widths = [30, 14, 8, 22, 64, 12, 20, 12, 20, 38];
 
   const cover = coverSheet({
     name: 'Resumen',
@@ -87,9 +108,15 @@ export function buildSummaryXlsx(input: SummaryXlsxInput): BuiltXlsx {
     subtitle: 'Cifras publicadas por el servidor según la política de divulgación F07-POL-01. Necesidad declarada y consumo publicado son datos distintos: no se restan ni se comparan.',
     fields: [
       { label: 'Campaña', value: text(summary.campaign.name, 'strong') },
+      { label: 'Referencia de la campaña', value: refCell(summary.campaign.campaign_ref) },
       { label: 'Estado de la campaña', value: text(campaignStatusText(summary.campaign.status)) },
       { label: 'Versión', value: text(summary.seal ? sealText(summary.seal) : 'Sin sellar: cifras vigentes al exportar.', 'wrap') },
-      ...(summary.seal ? [{ label: `Sellada el (${zone})`, value: dateCell(summary.seal.sealed_at, offset) }] : []),
+      ...(summary.seal
+        ? [
+            { label: `Sellada el (${zone})`, value: dateCell(summary.seal.sealed_at, offset) },
+            { label: 'Referencia de la versión sellada', value: refCell(summary.seal.seal_ref) },
+          ]
+        : []),
       { label: summary.seal ? 'Cobertura al sellar' : 'Cobertura', value: text(coverageText(summary.coverage, summary.seal ? 'sealed' : 'now'), 'wrap') },
       { label: 'Necesidad declarada', value: text(pending ? 'Sin cifras: política pendiente.' : `${needs.length} productos: ${counts(needs)}.`, 'wrap') },
       { label: 'Consumo publicado', value: text(pending ? 'Sin cifras: política pendiente.' : consumption.length === 0 ? 'Sin consumo publicado en esta campaña. No significa cero.' : `${consumption.length} productos: ${counts(consumption)}.`, 'wrap') },

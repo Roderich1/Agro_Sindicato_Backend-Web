@@ -14,11 +14,9 @@ import {
   SectionHeader,
   secondaryButtonClass,
 } from '../components/ui';
-import { saveBlob } from '../lib/exports';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { fmtDateTime } from '../lib/collective-text';
-import { resultsCsv } from '../lib/estimation-csv';
 import {
   clearsInstitutionalData,
   estimationError,
@@ -102,8 +100,8 @@ function byCodeUnits(a: string, b: string): number {
  * calcula el servidor, por lotes. La estimación es una referencia de consumo
  * para una campaña comparable: no se suma a la necesidad declarada ni crea
  * compras, propuestas o movimientos. Un dato ausente nunca se muestra como
- * cero, y cada cifra dice de qué ejecución viene. El CSV exporta la consulta tal
- * como respondió el servidor y requiere conexión; no es la copia descargada para
+ * cero, y cada cifra dice de qué ejecución viene. «Descargar Excel» exporta la
+ * consulta tal como responde el servidor y requiere conexión; no es la copia descargada para
  * consultar sin conexión (RF-40, F12-EST-07), que esta pantalla sí ofrece aparte.
  *
  * Rediseño (sesión C, 2026-11-10): el cuerpo es `EstimationView`, que también
@@ -330,14 +328,6 @@ export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
     }
   };
 
-  const exportCsv = () => {
-    if (!results) return;
-    saveBlob(
-      new Blob([resultsCsv(results)], { type: 'text/csv;charset=utf-8' }),
-      `estimacion-${results.target.name.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.csv`,
-    );
-  };
-
   /** RF-40: descarga explícita, con conexión; se guarda sólo si la sesión sigue siendo la que la pidió. */
   const downloadCopy = async () => {
     if (!selected || !user || !identity) return;
@@ -377,13 +367,7 @@ export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
           campaign={<CampaignSelector campaigns={campaigns} selected={selected} onSelect={select} />}
           actions={
             <>
-              <ExportButtons
-                kind="estimation"
-                reference={selected}
-                onCsv={exportCsv}
-                csvLabel="Exportar CSV de la consulta"
-                disabled={stale || !results || results.results.length === 0}
-              />
+              <ExportButtons kind="estimation" reference={selected} disabled={stale || !results || results.results.length === 0} />
               {!blocked && selected && (
                 <Button onClick={() => void request()} disabled={busy || !eligible}>
                   {busy ? 'Generando…' : 'Generar estimación'}
@@ -457,7 +441,7 @@ const ERROR_TITLE: Record<EstimationError['kind'], string> = {
 
 /**
  * F12-EST-07-WEB (#180): la copia para consultar sin conexión. Se descarga a
- * petición y con conexión; es distinta del CSV de la consulta.
+ * petición y con conexión; es distinta del Excel de la consulta.
  */
 function CopyPanel({
   copy,
@@ -476,7 +460,7 @@ function CopyPanel({
     <section className="glass-card overflow-hidden" aria-label="Copia para consultar sin conexión" data-testid="copy-panel">
       <SectionHeader
         title="Copia para consultar sin conexión"
-        note="Distinta del CSV de la consulta: guarda en este navegador la última estimación permitida de esta campaña, con su vigencia al descargarse. Sólo la lee esta sesión y sin conexión puede estar desactualizada."
+        note="Distinta del Excel de la consulta: guarda en este navegador la última estimación permitida de esta campaña, con su vigencia al descargarse. Sólo la lee esta sesión y sin conexión puede estar desactualizada."
         actions={
           <button type="button" className={secondaryButtonClass} onClick={onDownload} disabled={downloading || offline}>
             {downloading ? 'Descargando…' : 'Descargar copia para consultar sin conexión'}

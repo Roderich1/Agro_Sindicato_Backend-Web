@@ -19,7 +19,6 @@ vi.mock('../services/collective.service', () => ({
     proposals: vi.fn(),
     generateProposal: vi.fn(),
     proposal: vi.fn(),
-    proposalCsv: vi.fn(),
     proposalEstimationReference: vi.fn(),
     estimationLink: vi.fn(),
     prepareEstimationLink: vi.fn(),
@@ -109,7 +108,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     expect(note).toMatch(/Detalle en «Estimación del consumo»/);
     expect(screen.getByTestId('reference-evaluated').textContent).toMatch(/Vigencia evaluada el .* Temporada INVIERNO/);
     expect(collectiveService.estimationLink).toHaveBeenCalledWith(DRAFT.proposal_ref);
-    // La vista ya no usa la referencia vigente al consultar (sigue en el CSV y su ruta no cambia).
+    // La vista ya no usa la referencia vigente al consultar (F12-EST-08): tampoco la exportación (sólo Excel, con la fijada).
     expect(collectiveService.proposalEstimationReference).not.toHaveBeenCalled();
   });
 

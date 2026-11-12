@@ -59,9 +59,6 @@ export const collectiveService = {
   /** E3 §6: guarda la selección con control optimista (`expected_revision`). */
   saveProposalSelection: (proposalId: string, body: { expected_revision: number; product_refs: string[] }) =>
     api.put<ProposalSelection>(`/collective/proposals/${seg(proposalId)}/selection`, body).then((r) => r.data),
-  /** El CSV lo genera el servidor con la misma política que el JSON, con la referencia en columnas aparte. */
-  proposalCsv: (proposalId: string) =>
-    api.get<Blob>(`/collective/proposals/${seg(proposalId)}/csv`, { responseType: 'blob' }).then((r) => r.data),
   /** F07: estado del sellado y revisión previa (cobertura, banderas, review_ref). */
   sealState: (campaignId: string) =>
     api.get<SealState>(`/collective/campaigns/${seg(campaignId)}/seal`).then((r) => r.data),
@@ -73,14 +70,6 @@ export const collectiveService = {
   trends: (projectionType: ProjectionType | null) =>
     api
       .get<CollectiveTrends>('/collective/trends', { params: projectionType ? { projection_type: projectionType } : {} })
-      .then((r) => r.data),
-  /** El CSV lo genera el servidor con la misma política que el JSON. */
-  trendsCsv: (projectionType: ProjectionType | null) =>
-    api
-      .get<Blob>('/collective/trends.csv', {
-        params: projectionType ? { projection_type: projectionType } : {},
-        responseType: 'blob',
-      })
       .then((r) => r.data),
   catalog: () => api.get<CatalogEntry[]>('/collective/product-associations/catalog').then((r) => r.data),
   associations: () => api.get<AssociationList>('/collective/product-associations').then((r) => r.data),

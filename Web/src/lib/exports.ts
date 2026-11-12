@@ -5,8 +5,11 @@
  * hojas de datos con encabezados filtrables, estados en color y cifras
  * destacadas) construido en el navegador a partir de las mismas respuestas del
  * servidor que muestra la pantalla: ninguna cifra se calcula ni se suma aquí y
- * una ausencia nunca se escribe como cero. «CSV» sigue saliendo del servidor
- * (o de la consulta, en la estimación) sin cambios de formato.
+ * una ausencia nunca se escribe como cero.
+ *
+ * Excel es la única exportación para el usuario (decisión del autor,
+ * 2026-11-12): los CSV se retiraron y sus columnas quedaron en estos libros
+ * (`docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`).
  */
 import { downloadSummaryXlsx } from './collective-summary-xlsx';
 import { downloadEstimationXlsx } from './estimation-xlsx';
@@ -32,8 +35,9 @@ const PROJECTION_TYPES: ProjectionType[] = ['CONSUMPTION_TOTAL', 'DECLARED_NEED'
 /**
  * `ref` es, según la vista: el id de la campaña (resumen y estimación), el
  * `proposal_ref` del borrador mostrado (propuesta) o el tipo de dato
- * (tendencias). Cada exportación repite los mismos `GET` que la pantalla, con
- * la misma política de divulgación.
+ * (tendencias). Cada exportación repite, al pulsar, los mismos `GET` que la
+ * pantalla con la sesión del usuario: el servidor vuelve a aplicar permisos y
+ * política, y nada se toma de lo que la pantalla tenga en memoria.
  */
 export async function downloadExcel(kind: ExcelKind, ref: string): Promise<void> {
   switch (kind) {
@@ -67,16 +71,3 @@ export const excelExport: ExcelExport = {
   supports: () => true,
   unavailableReason: 'Exportación a Excel no disponible en esta vista.',
 };
-
-/** Entrega un blob como descarga del navegador; revoca la URL después del clic. */
-export function saveBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  // Revocar después: algunos navegadores leen el blob tras el clic.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}

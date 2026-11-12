@@ -61,7 +61,7 @@ describe('Resumen colectivo (.xlsx)', () => {
       'Datos hasta (hora de Bolivia, UTC−4)',
     ]);
     expect(colorsOf(need.cells.get(`A${HEADER_ROW}`)!.style)).toMatchObject({ fill: '047857', font: 'FFFFFF', bold: true });
-    expect(need.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${HEADER_ROW}:G${HEADER_ROW + 5}`);
+    expect(need.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${HEADER_ROW}:J${HEADER_ROW + 5}`);
     expect(need.xml.getElementsByTagName('pane')[0]!.getAttribute('ySplit')).toBe(String(HEADER_ROW));
     expect(need.xml.getElementsByTagName('pageSetup')[0]!.getAttribute('orientation')).toBe('landscape');
 
@@ -95,6 +95,36 @@ describe('Resumen colectivo (.xlsx)', () => {
     const consumption = sheets.get('Consumo publicado')!;
     expect(consumption.cells.get(`B${rowOf(consumption, 'Herbicida')}`)).toMatchObject({ type: 'n', value: '116' });
     expect(consumption.text).not.toContain('250');
+  });
+
+  it('cada columna del antiguo CSV del resumen está en el libro (portada o columna filtrable)', () => {
+    const sealed = summaryWith([
+      cell({ product_name: 'Herbicida', total_base: '250000', total_presentation: '250', contributors: 5, data_as_of: '2026-11-03T23:28:00.000Z', released_at: '2026-11-04T12:00:00.000Z', pending_changes: true }),
+      cell({ product_name: 'Insecticida', status: 'SUPPRESSED_UNDER_THRESHOLD', released_at: '2026-11-04T12:00:00.000Z' }),
+    ]);
+    const { sheets, numFmtOf } = readXlsx(buildSummaryXlsx({ summary: { ...sealed, seal: SEAL }, exportedAt: EXPORTED_AT }).bytes);
+    const cover = sheets.get('Resumen')!;
+    // campaign_ref, campaign, threshold, coverage, seal_ref, seal_version, sealed_at.
+    for (const value of [sealed.campaign.campaign_ref, sealed.campaign.name, SEAL.seal_ref, 'Versión 1, sellada por', '3 de 4 agricultores', '3 agricultores como mínimo']) {
+      expect(cover.text, value).toContain(value);
+    }
+    const need = sheets.get('Necesidad declarada')!;
+    expect(['H', 'I', 'J'].map((c) => need.cells.get(`${c}${HEADER_ROW}`)!.value)).toEqual([
+      'Cambios pendientes',
+      'Publicado el (hora de Bolivia, UTC−4)',
+      'Referencia del producto',
+    ]);
+    const herb = rowOf(need, 'Herbicida');
+    expect(need.cells.get(`H${herb}`)!.value).toBe('Sí');
+    expect(numFmtOf(need.cells.get(`I${herb}`)!.style)).toBe('yyyy-mm-dd hh:mm');
+    // 2026-11-04T12:00Z → 08:00 en Bolivia.
+    expect(Number(need.cells.get(`I${herb}`)!.value)).toBeCloseTo(46330 + 8 / 24, 6);
+    expect(need.cells.get(`J${herb}`)!.value).toBe('p-Herbicida');
+    // Una fila oculta conserva su producto y su estado, sin fechas de publicación ni cifras.
+    const hidden = rowOf(need, 'Insecticida');
+    expect(need.cells.get(`H${hidden}`)!.value).toBe('No');
+    expect(need.cells.has(`I${hidden}`)).toBe(false);
+    expect(need.cells.get(`J${hidden}`)!.value).toBe('p-Insecticida');
   });
 
   it('política pendiente: sin cifras ni cobertura, con el motivo', () => {
@@ -143,7 +173,7 @@ describe('Tendencias (.xlsx)', () => {
     expect(book.fileName).toBe('tendencias-consumo-publicado.xlsx');
     expect(trendsXlsxFileName('DECLARED_NEED')).toBe('tendencias-necesidad-declarada.xlsx');
     const { sheetNames, sheets } = readXlsx(book.bytes);
-    expect(sheetNames).toEqual(['Tendencias', 'Por campaña', 'Detalle']);
+    expect(sheetNames).toEqual(['Tendencias', 'Por campaña', 'Detalle', 'Campañas']);
     const cover = sheets.get('Tendencias')!;
     expect(cover.cells.get('A2')!.value).toBe('Tendencias · Consumo publicado');
     expect(cover.text).toContain('Campaña 2024: Cerrada, versión 1 sellada, 4 de 7 con cifras publicadas');
@@ -167,6 +197,58 @@ describe('Tendencias (.xlsx)', () => {
     expect(detail.text).toContain('retiró su aporte después del sellado');
     expect(detail.text).toContain('no tiene una versión sellada');
     expect(detail.text).not.toMatch(/Total|Promedio/);
+  });
+
+  it('cada columna del antiguo CSV de tendencias está en el libro (portada, «Detalle» o «Campañas»)', () => {
+    const trends = trendsWith([herbicida]);
+    const { sheets, numFmtOf } = readXlsx(buildTrendsXlsx({ trends, type: 'CONSUMPTION_TOTAL', exportedAt: EXPORTED_AT }).bytes);
+    // threshold, projection_type y notice en la portada.
+    const cover = sheets.get('Tendencias')!;
+    expect(cover.text).toContain(`${trends.disclosure.threshold} agricultores como mínimo por cifra publicada`);
+    expect(cover.text).toContain('Consumo publicado');
+    expect(cover.text).toContain(trends.notice);
+
+    const detail = sheets.get('Detalle')!;
+    expect(['I', 'J', 'K', 'L'].map((c) => detail.cells.get(`${c}${HEADER_ROW}`)!.value)).toEqual([
+      'Cambios pendientes',
+      'Referencia del producto',
+      'Referencia de la campaña',
+      'Referencia de la versión sellada',
+    ]);
+    expect(detail.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${HEADER_ROW}:L${HEADER_ROW + 3}`);
+    const first = HEADER_ROW + 1;
+    expect(detail.cells.get(`I${first}`)!.value).toBe('No');
+    expect(detail.cells.get(`J${first}`)!.value).toBe('p-herb');
+    expect(detail.cells.get(`K${first}`)!.value).toBe('c-2024');
+    const sealOf2024 = trends.campaigns.find((c) => c.campaign_ref === 'c-2024')!.seal!.seal_ref;
+    expect(detail.cells.get(`L${first}`)!.value).toBe(sealOf2024);
+
+    const campaigns = sheets.get('Campañas')!;
+    expect(Array.from({ length: 10 }, (_, i) => campaigns.cells.get(`${String.fromCharCode(65 + i)}${HEADER_ROW}`)!.value)).toEqual([
+      'Campaña',
+      'Estado',
+      'Inicio (día de calendario)',
+      'Versión sellada',
+      'Sellada el (hora de Bolivia, UTC−4)',
+      'Agricultores vinculados',
+      'Con cifras publicadas',
+      'Filas sin cifra',
+      'Referencia de la campaña',
+      'Referencia de la versión sellada',
+    ]);
+    expect(campaigns.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${HEADER_ROW}:J${HEADER_ROW + trends.campaigns.length}`);
+    const c2024 = rowOf(campaigns, 'Campaña 2024');
+    const source = trends.campaigns.find((c) => c.campaign_ref === 'c-2024')!;
+    expect(campaigns.cells.get(`C${c2024}`)!.value).toBe(source.start_date.slice(0, 10));
+    expect(campaigns.cells.get(`D${c2024}`)).toMatchObject({ type: 'n', value: String(source.seal!.version) });
+    expect(numFmtOf(campaigns.cells.get(`E${c2024}`)!.style)).toBe('yyyy-mm-dd hh:mm');
+    expect(campaigns.cells.get(`F${c2024}`)).toMatchObject({ type: 'n', value: String(source.coverage!.linked_members) });
+    expect(campaigns.cells.get(`G${c2024}`)).toMatchObject({ type: 'n', value: String(source.coverage!.members_with_contribution) });
+    expect(campaigns.cells.get(`I${c2024}`)!.value).toBe('c-2024');
+    expect(campaigns.cells.get(`J${c2024}`)!.value).toBe(sealOf2024);
+    const open = rowOf(campaigns, 'Campaña 2026');
+    expect(campaigns.cells.get(`D${open}`)!.value).toBe('Sin sellar');
+    expect(campaigns.cells.has(`E${open}`)).toBe(false);
   });
 
   it('sin series: lo dice con el filtro aplicado y sin filas a cero', () => {
@@ -270,6 +352,7 @@ describe('Estimación del consumo (.xlsx)', () => {
     expect(cover.cells.get('A2')!.value).toBe('Estimación del consumo · Invierno 2026');
     expect(cover.text).toContain('INVIERNO: Temporada sintética');
     expect(cover.text).toContain('2 productos: 1 estimados, 1 sin cifra');
+    expect(cover.text).toContain('t-1');
 
     const res = sheets.get('Resultados')!;
     expect(['A', 'B', 'C', 'D', 'E', 'G', 'I'].map((c) => res.cells.get(`${c}${HEADER_ROW}`)!.value)).toEqual(['Producto', 'Estimación', 'Línea base', 'Unidad', 'Estado', 'Vigencia', 'α']);

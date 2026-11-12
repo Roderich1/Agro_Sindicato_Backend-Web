@@ -8,7 +8,7 @@ import type { TrendSeries } from '../types/collective';
 import { CollectiveTrendsPage } from './collective-trends.page';
 
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { trends: vi.fn(), trendsCsv: vi.fn() },
+  collectiveService: { trends: vi.fn() },
 }));
 
 const PATH = '/colectivo/tendencias';

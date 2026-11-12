@@ -82,7 +82,7 @@ export function EstimationCopyView({ copy }: { copy: StoredCopy }) {
       )}
       <p className="border-t border-slate-100 px-5 py-3 text-[11px] text-slate-500" data-testid="copy-format">
         Formato de la copia v{copy.format_version} (INT-09 v{download.contract_version}). Queda sólo en este navegador, fuera del respaldo
-        privado. Deja de poder leerse al cerrar la sesión, al entrar con otra identidad o ante un rechazo del servidor, y después se borra (si el borrado falla, se reintenta). No es el CSV de la consulta.
+        privado. Deja de poder leerse al cerrar la sesión, al entrar con otra identidad o ante un rechazo del servidor, y después se borra (si el borrado falla, se reintenta). No es el Excel de la consulta.
       </p>
     </section>
   );

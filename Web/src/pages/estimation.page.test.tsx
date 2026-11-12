@@ -315,7 +315,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect(screen.queryByTestId('result-Herbicida')).toBeNull();
     expect(screen.queryByTestId('history-item')).toBeNull();
     expect(screen.queryByText(/111 L/)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Descargar Excel' })).toHaveProperty('disabled', true);
   });
 
   it('política pendiente: sin cifras ni solicitud', async () => {
@@ -336,8 +336,8 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect((await screen.findByTestId('error-offline')).textContent).toMatch(/Sin conexión con el servidor/);
     expect(screen.getByTestId('stale')).toBeTruthy();
     expect(screen.getByTestId('result-Herbicida')).toBeTruthy();
-    // Sin conexión no se exporta: el CSV es de una consulta respondida, no una copia para consultar sin conexión.
-    expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toHaveProperty('disabled', true);
+    // Sin conexión no se exporta: el Excel es de una consulta respondida, no una copia para consultar sin conexión.
+    expect(screen.getByRole('button', { name: 'Descargar Excel' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     await screen.findByTestId('job-status');
     const [first, second] = vi.mocked(estimationService.request).mock.calls.map((call) => call[0].requestId);
@@ -403,7 +403,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
         result('Insecticida', { estimate_base: null, naive_base: null, validity: 'OUTDATED', validity_reason: 'SOURCES_WITHDRAWN' }),
       ]);
 
-    it('se descarga a petición, se guarda para la sesión y no es el CSV', async () => {
+    it('se descarga a petición, se guarda para la sesión y no es el Excel de la consulta', async () => {
       const read = resultsWith([result('Herbicida')]);
       serve(read, [run('run-1', [detail('Herbicida')])]);
       vi.mocked(estimationService.download).mockResolvedValue(downloadOf(read));
@@ -416,7 +416,9 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       expect(estimationService.download).toHaveBeenCalledWith(CAMPAIGN.id);
       const stored = await readableCopies(null);
       expect(stored.map((c) => [c.owner.userId, c.owner.tenantId, c.download.target.campaign_ref])).toEqual([['u-1', 't-1', CAMPAIGN.id]]);
-      expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toBeTruthy();
+      // La exportación de la consulta es aparte (sólo Excel; ningún CSV).
+      expect(screen.getByRole('button', { name: 'Descargar Excel' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /CSV/ })).toBeNull();
     });
 
     it('sin conexión y con copia: fechas, período, vigencia al descargar, vigencia actual desconocida y aviso; ausencias sin cifra', async () => {

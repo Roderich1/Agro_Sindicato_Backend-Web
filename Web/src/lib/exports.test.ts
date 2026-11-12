@@ -7,7 +7,7 @@ import { downloadExcel, excelExport } from './exports';
 import { XLSX_MIME } from './xlsx-common';
 
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { summary: vi.fn(), trends: vi.fn(), proposal: vi.fn(), proposalEstimationReference: vi.fn() },
+  collectiveService: { summary: vi.fn(), trends: vi.fn(), proposal: vi.fn(), estimationLink: vi.fn() },
 }));
 vi.mock('../services/estimation.service', () => ({ estimationService: { results: vi.fn(), run: vi.fn() } }));
 
@@ -43,12 +43,13 @@ describe('excelExport', () => {
     expect(sheetNames).toEqual(['Resumen', 'Necesidad declarada', 'Consumo publicado']);
   });
 
-  it('propuesta: pide el borrador por su referencia', async () => {
+  it('propuesta: pide el borrador y su referencia fijada por la referencia del borrador', async () => {
     const draft = proposalWith([line({ product_name: 'Urea', base_unit: 'G', quantity_base: '25000', quantity_presentation: '25', contributors: 3 })]);
     vi.mocked(collectiveService.proposal).mockResolvedValue(draft);
-    vi.mocked(collectiveService.proposalEstimationReference).mockRejectedValue(new Error('sin referencia'));
+    vi.mocked(collectiveService.estimationLink).mockRejectedValue(new Error('sin referencia'));
     await downloadExcel('proposal', draft.proposal_ref);
     expect(collectiveService.proposal).toHaveBeenCalledWith(draft.proposal_ref);
+    expect(collectiveService.estimationLink).toHaveBeenCalledWith(draft.proposal_ref);
     expect(saved).toHaveLength(1);
   });
 

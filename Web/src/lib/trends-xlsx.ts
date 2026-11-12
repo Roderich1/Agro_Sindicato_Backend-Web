@@ -3,8 +3,13 @@
  * `GET /collective/trends`. Hojas: portada «Tendencias» (dato, campañas,
  * versión sellada y cobertura), «Por campaña» (una fila por producto y una
  * columna por campaña sellada: celda vacía = sin cifra publicada, nunca cero)
- * y «Detalle» (una fila por producto y campaña con estado y explicación).
- * Nada se suma, promedia ni interpola.
+ * «Detalle» (una fila por producto y campaña con estado y explicación) y
+ * «Campañas» (una fila por campaña: estado, inicio, versión sellada y
+ * cobertura). Nada se suma, promedia ni interpola.
+ *
+ * Es la única exportación de las tendencias (el CSV del servidor se retiró el
+ * 2026-11-12): cada columna de aquel CSV tiene su lugar en el libro (tabla en
+ * `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`).
  */
 import {
   BOLIVIA_OFFSET,
@@ -15,10 +20,12 @@ import {
   fileSlug,
   integerCell,
   publishedQuantity,
+  refCell,
   saveXlsx,
   STATUS_LABEL,
   statusCell,
   text,
+  yesNoCell,
   zoneLabel,
 } from './xlsx-common';
 import { buildXlsx, type XlsxCell, type XlsxSheet } from './xlsx-writer';
@@ -68,6 +75,9 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
       ...trends.campaigns.map((campaign) => ({ label: campaign.seal ? 'Campaña sellada' : 'Campaña sin sellar', value: text(campaignLine(campaign), 'wrap') })),
       { label: 'Productos con serie', value: text(pending ? 'Sin cifras: política pendiente.' : String(trends.series.length)) },
       ...(pending ? [{ label: 'Cifras', value: text('La política de divulgación no está aprobada: no se exporta ninguna cifra.', 'warn') }] : []),
+      ...(trends.disclosure.threshold !== null
+        ? [{ label: 'Umbral de privacidad', value: text(`${trends.disclosure.threshold} agricultores como mínimo por cifra publicada`) }]
+        : []),
       { label: 'Aviso del servidor', value: text(trends.notice, 'wrap') },
       { label: `Exportado el (${zone})`, value: dateCell(exportedAt.toISOString(), offset) },
     ],
@@ -111,7 +121,21 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
   });
 
   // --- «Detalle»: una fila por producto y campaña ---
-  const detailHeaders = ['Producto', 'Campaña', 'Cantidad', 'Unidad', 'Estado', 'Explicación', 'Aportantes', `Datos hasta (${zone})`];
+  const detailHeaders = [
+    'Producto',
+    'Campaña',
+    'Cantidad',
+    'Unidad',
+    'Estado',
+    'Explicación',
+    'Aportantes',
+    `Datos hasta (${zone})`,
+    'Cambios pendientes',
+    'Referencia del producto',
+    'Referencia de la campaña',
+    'Referencia de la versión sellada',
+  ];
+  const sealOf = new Map(trends.campaigns.map((campaign) => [campaign.campaign_ref, campaign.seal?.seal_ref ?? null]));
   const detailRows: XlsxCell[][] = pending
     ? []
     : trends.series.flatMap((line) =>
@@ -135,6 +159,10 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
             text(quantity.explanation, 'wrap'),
             disclosed ? integerCell(point.contributors) : null,
             disclosed ? dateCell(point.data_as_of, offset) : null,
+            yesNoCell(point.pending_changes),
+            refCell(line.product_ref),
+            refCell(point.campaign_ref),
+            refCell(sealOf.get(point.campaign_ref)),
           ];
         }),
       );
@@ -143,14 +171,49 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
     title: `${label} · detalle por producto y campaña`,
     note: `Estados posibles: ${['DISCLOSED', 'SUPPRESSED_UNDER_THRESHOLD', 'SUPPRESSED_REVISION', 'WITHDRAWN_AFTER_SEAL', 'NO_DATA', 'NOT_SEALED'].map((s) => STATUS_LABEL[s as keyof typeof STATUS_LABEL]).join(', ')}.`,
     headers: detailHeaders,
-    widths: [30, 24, 14, 8, 22, 64, 12, 20],
+    widths: [30, 24, 14, 8, 22, 64, 12, 20, 12, 38, 38, 38],
     rows: detailRows,
     emptyText: pending ? 'Sin cifras: la política de divulgación no está aprobada.' : 'Sin series selladas.',
     tabColor: '0EA5E9',
   });
 
+  // --- «Campañas»: una fila por campaña, sellada o no ---
+  const campaigns = dataSheet({
+    name: 'Campañas',
+    title: 'Campañas del historial',
+    note: 'Cada campaña con su estado, su versión sellada y su cobertura. Sólo las selladas aportan cifras a las tendencias. La cobertura mide participación, no integridad.',
+    headers: [
+      'Campaña',
+      'Estado',
+      'Inicio (día de calendario)',
+      'Versión sellada',
+      `Sellada el (${zone})`,
+      'Agricultores vinculados',
+      'Con cifras publicadas',
+      'Filas sin cifra',
+      'Referencia de la campaña',
+      'Referencia de la versión sellada',
+    ],
+    widths: [30, 16, 20, 12, 20, 14, 14, 12, 38, 38],
+    rows: trends.campaigns.map((campaign): XlsxCell[] => [
+      text(campaign.name, 'strong'),
+      text(campaignStatusText(campaign.status)),
+      // Día de calendario guardado a medianoche UTC: se escribe el día, sin llevarlo a la hora local.
+      /^\d{4}-\d{2}-\d{2}/.test(campaign.start_date) ? text(campaign.start_date.slice(0, 10)) : null,
+      campaign.seal ? integerCell(campaign.seal.version) : text('Sin sellar', 'warn'),
+      campaign.seal ? dateCell(campaign.seal.sealed_at, offset) : null,
+      campaign.coverage ? integerCell(campaign.coverage.linked_members) : null,
+      campaign.coverage ? integerCell(campaign.coverage.members_with_contribution) : null,
+      yesNoCell(campaign.coverage?.suppressed_cells),
+      refCell(campaign.campaign_ref),
+      refCell(campaign.seal?.seal_ref),
+    ]),
+    emptyText: 'Sin campañas en el historial.',
+    tabColor: '0F1D15',
+  });
+
   return {
-    bytes: buildXlsx([cover, matrix, detail], { title: `Tendencias · ${label}`, created: exportedAt }),
+    bytes: buildXlsx([cover, matrix, detail, campaigns], { title: `Tendencias · ${label}`, created: exportedAt }),
     fileName: trendsXlsxFileName(type),
   };
 }

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '../components/app-shell';
 import { Button, DataState, inputClass, labelClass, Notice, SegmentedControl } from '../components/ui';
+import { useAuth } from '../hooks/use-auth';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import {
   callError,
   callErrorCode,
   fromLocalInput,
+  handOverText,
   referenceText,
   RESPONSIBLE_NOTICE,
   ROLE_LABEL,
@@ -45,6 +47,10 @@ interface Errors {
  * propuesta de la misma campaña; la cifra de esa línea se muestra sólo como
  * referencia divulgada (E2-D14), nunca como cantidad comprometida. El
  * servidor vuelve a validar todo al guardar y al abrir.
+ *
+ * P-B (2026-11-12): si quien guarda nombra responsable a otra persona y con
+ * eso deja de administrar el borrador (lo crea, o lo edita siendo la
+ * responsable), antes de enviar se le dice qué pierde y debe confirmarlo.
  */
 export function JointPurchaseCallForm({
   campaignId,
@@ -91,6 +97,10 @@ export function JointPurchaseCallForm({
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** P-B: el aviso de que se deja de administrar el borrador está a la vista y espera «Confirmar». */
+  const [confirmingHandOver, setConfirmingHandOver] = useState(false);
+  const { user } = useAuth();
+  const me = user?.id ?? null;
 
   const [responsibles, setResponsibles] = useState<EligibleResponsible[] | null>(null);
   const [responsiblesError, setResponsiblesError] = useState<string | null>(null);
@@ -147,11 +157,28 @@ export function JointPurchaseCallForm({
     return [...new Set(refs)].map((product_ref) => ({ product_ref }));
   };
 
-  const submit = async () => {
+  /**
+   * Guardar deja a quien guarda sin administrar el borrador: elige a otra persona y crea el borrador, o lo edita
+   * siendo hoy la responsable. Si edita sin ser la responsable (con «Administrar») o se elige a sí misma, nada cambia.
+   */
+  const handsOver = me !== null && responsibleId !== '' && responsibleId !== me && (!call || call.responsible.user_ref === me);
+  const responsibleName =
+    responsibles?.find((entry) => entry.user_ref === responsibleId)?.name ??
+    (call?.responsible.user_ref === responsibleId ? call.responsible.name : null) ??
+    'la persona elegida';
+
+  const submit = async (handOverConfirmed = false) => {
     const found = validate();
     setErrors(found);
     setServerError(null);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0) {
+      setConfirmingHandOver(false);
+      return;
+    }
+    if (handsOver && !handOverConfirmed) {
+      setConfirmingHandOver(true);
+      return;
+    }
     const base = {
       name: name.trim(),
       deadline_at: fromLocalInput(deadline)!,
@@ -178,13 +205,41 @@ export function JointPurchaseCallForm({
         return;
       }
       setServerError(callError(err, 'No fue posible guardar el borrador.'));
+      setConfirmingHandOver(false);
       setBusy(false);
     }
   };
 
+  const handOver = handOverText(responsibleName);
   return (
-    <Modal title={editing ? 'Editar borrador de convocatoria' : 'Nueva convocatoria'} onClose={onClose} size="lg">
-      <div className="space-y-4">
+    <Modal
+      title={confirmingHandOver ? 'Antes de guardar: dejará de administrar este borrador' : editing ? 'Editar borrador de convocatoria' : 'Nueva convocatoria'}
+      onClose={confirmingHandOver ? () => setConfirmingHandOver(false) : onClose}
+      size="lg"
+    >
+      {confirmingHandOver && (
+        <div className="space-y-4" data-testid="handover-warning">
+          <Notice kind="warn">
+            <p>{handOver.lead}</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {handOver.losses.map((loss) => (
+                <li key={loss}>{loss}</li>
+              ))}
+            </ul>
+            <p className="mt-2">{handOver.closing}</p>
+          </Notice>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="secondary" onClick={() => setConfirmingHandOver(false)} disabled={busy}>
+              Volver
+            </Button>
+            <Button onClick={() => void submit(true)} disabled={busy}>
+              {busy ? 'Guardando…' : 'Confirmar'}
+            </Button>
+          </div>
+        </div>
+      )}
+      {/* El formulario sigue montado (sin perder lo escrito) mientras el aviso pide confirmación. */}
+      <div className="space-y-4" hidden={confirmingHandOver}>
         <p className="text-sm text-slate-700">
           Campaña: <span className="font-semibold">{campaignName}</span>
         </p>

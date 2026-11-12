@@ -21,7 +21,6 @@ vi.mock('../services/collective.service', () => ({
     proposals: vi.fn(),
     generateProposal: vi.fn(),
     proposal: vi.fn(),
-    proposalCsv: vi.fn(),
     proposalEstimationReference: vi.fn(),
     estimationLink: vi.fn(),
     prepareEstimationLink: vi.fn(),

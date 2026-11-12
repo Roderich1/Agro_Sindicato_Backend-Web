@@ -74,6 +74,26 @@ export const ROLE_LABEL: Record<string, string> = {
 
 export const RESPONSIBLE_NOTICE =
   'El responsable podrá ver el nombre y las cantidades de quienes participen y autorizar a otras personas de la Directiva o la Administración para coordinarla. No se puede cambiar después de abrir.';
+/**
+ * P-B (aviso previo al creador, 2026-11-12). E2 §10.2: editar, abrir, cancelar
+ * y cerrar exigen ser la persona responsable o tener «Administrar» (403
+ * `MANAGE_FORBIDDEN`), y ver participantes exige su propio permiso. Quien
+ * guarda un borrador nombrando a otra persona responsable pierde todo eso
+ * salvo que ella se lo conceda; nadie lo concede automáticamente.
+ */
+export function handOverText(responsibleName: string): { lead: string; losses: string[]; closing: string } {
+  return {
+    lead: `Eligió a ${responsibleName} como responsable. Si guarda así, usted deja de administrar esta convocatoria:`,
+    losses: [
+      'no podrá editar el borrador;',
+      'no podrá abrir la convocatoria;',
+      'no podrá cancelarla ni cerrarla;',
+      `no verá a los participantes ni sus cantidades, salvo que ${responsibleName} le conceda ese permiso.`,
+    ],
+    closing: `Nadie se lo concede automáticamente: sólo ${responsibleName}, como responsable, puede devolverle «${GRANT_LABEL.MANAGE}».`,
+  };
+}
+
 export const PARTICIPANTS_FORBIDDEN_TEXT =
   'Sólo la persona responsable de esta convocatoria y quienes ella autorice pueden ver a los participantes.';
 /** §10.2: el permiso se perdió mientras la página mostraba participantes; texto exacto del contrato. */

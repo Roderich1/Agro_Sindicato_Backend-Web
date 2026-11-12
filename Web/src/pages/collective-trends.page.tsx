@@ -6,7 +6,6 @@ import { ExportButtons } from '../components/export-buttons';
 import { Collapsible, DataState, inputClass, labelClass, PageHeader, Section, SectionHeader, SegmentedControl } from '../components/ui';
 import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
-import { saveBlob } from '../lib/exports';
 import { formatQuantity, isBaseQuantity } from '../lib/quantity';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveTrends, ProjectionType, TrendCampaign, TrendPoint, TrendSeries } from '../types/collective';
@@ -99,14 +98,6 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
     void Promise.resolve().then(() => load(type));
   }, [type, load]);
 
-  const downloadCsv = async () => {
-    try {
-      saveBlob(await collectiveService.trendsCsv(type), `tendencias-${type === 'DECLARED_NEED' ? 'necesidad' : 'consumo'}.csv`);
-    } catch (err) {
-      setProblem({ kind: 'error', message: collectiveError(err, 'No fue posible descargar el CSV.') });
-    }
-  };
-
   const current = TYPES.find((entry) => entry.type === type)!;
   const series = trends?.series ?? [];
   const selected = series.find((line) => seriesKey(line) === productKey) ?? series[0] ?? null;
@@ -146,7 +137,7 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
             </div>
           </div>
         }
-        actions={<ExportButtons kind="trends" reference={type} onCsv={() => void downloadCsv()} disabled={!trends} />}
+        actions={<ExportButtons kind="trends" reference={type} disabled={!trends} />}
       />
       {problem && (
         <Section>

@@ -6,10 +6,27 @@
  * (estimación, línea base, vigencia y método por producto) y «Serie observada»
  * (los consumos publicados de las campañas anteriores, con su clase y cobertura).
  * Nada se recalcula: SES, línea base y α son los del servidor.
+ *
+ * Es la única exportación de la consulta (el CSV que se armaba en el navegador
+ * se retiró el 2026-11-12): cada columna de aquel CSV tiene su lugar en el
+ * libro (tabla en `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`).
  */
 import { REASON_TEXT, RESULT_STATUS_TEXT, VALIDITY_REASON_TEXT, VALIDITY_TEXT, formatAlpha } from './estimation-text';
 import { decimalToPresentation, toPresentation } from './quantity';
-import { BOLIVIA_OFFSET, campaignStatusText, coverSheet, dataSheet, dateCell, figure, fileSlug, saveXlsx, text, zoneLabel } from './xlsx-common';
+import {
+  BOLIVIA_OFFSET,
+  campaignStatusText,
+  coverSheet,
+  dataSheet,
+  dateCell,
+  figure,
+  fileSlug,
+  integerCell,
+  refCell,
+  saveXlsx,
+  text,
+  zoneLabel,
+} from './xlsx-common';
 import { buildXlsx, type XlsxCell } from './xlsx-writer';
 import type { InstitutionalResult, InstitutionalResults, ResultDetail, Run, SeriesPoint } from '../types/estimation';
 import type { BuiltXlsx } from './collective-summary-xlsx';
@@ -26,6 +43,13 @@ const KIND_TEXT: Record<SeriesPoint['kind'], string> = {
   VERIFIED_CONSUMPTION: 'Consumo comprobado',
   NO_RECORD: 'Sin registro',
   HIDDEN: 'Oculto',
+};
+const METHOD_TEXT: Record<InstitutionalResult['method'], string> = {
+  SES_NAIVE: 'SES frente a la línea base (SES_NAIVE)',
+};
+const SPAN_COVERAGE_TEXT: Record<InstitutionalResult['coverage']['status'], string> = {
+  IDENTIFIED: 'Identificada en cada campaña del tramo',
+  UNKNOWN: 'Desconocida en alguna campaña',
 };
 const EXCLUSION_TEXT: Record<NonNullable<SeriesPoint['exclusion_reason']>, string> = {
   NO_RECORD: 'sin registro',
@@ -62,6 +86,7 @@ export function buildEstimationXlsx(input: EstimationXlsxInput): BuiltXlsx {
     subtitle: 'Referencia de consumo para una campaña comparable, calculada en el servidor (SES frente a la línea base). No es una necesidad declarada ni una propuesta: no se suma a ellas.',
     fields: [
       { label: 'Campaña objetivo', value: text(results.target.name, 'strong') },
+      { label: 'Referencia de la campaña objetivo', value: refCell(results.target.campaign_ref) },
       { label: 'Estado de la campaña', value: text(campaignStatusText(results.target.status)) },
       { label: 'Temporada', value: text(results.season ? `${results.season.key}: ${results.season.definition}` : 'La campaña no está clasificada en una temporada.', 'wrap') },
       { label: `Vigencia evaluada el (${zone})`, value: dateCell(results.evaluated_at, offset) },
@@ -88,6 +113,9 @@ export function buildEstimationXlsx(input: EstimationXlsxInput): BuiltXlsx {
     'Campañas observadas',
     `Ejecución del (${zone})`,
     'Ejecución (referencia)',
+    'Método',
+    'Cobertura del tramo',
+    'Referencia del producto',
   ];
   const resultRows = results.results.map((result): XlsxCell[] => {
     const detail = detailOf(details, result);
@@ -95,7 +123,8 @@ export function buildEstimationXlsx(input: EstimationXlsxInput): BuiltXlsx {
     const naive = estimateCell(result.status, result.naive_base, result.presentation_unit, result.validity_reason);
     const reason = [result.reason_code ? REASON_TEXT[result.reason_code] : null, estimate.note].filter(Boolean).join(' ');
     const alpha = detail?.alpha ? formatAlpha(detail.alpha) : null;
-    const observed = detail?.span ? `${detail.span.length}` : null;
+    // Largo del tramo según el resultado (como en la consulta); si faltara, el del detalle de la ejecución.
+    const observed = result.span_length ?? detail?.span?.length ?? null;
     return [
       text(result.product.name, 'strong'),
       estimate.cell,
@@ -106,9 +135,12 @@ export function buildEstimationXlsx(input: EstimationXlsxInput): BuiltXlsx {
       text(VALIDITY_TEXT[result.validity] ?? result.validity, result.validity === 'CURRENT' ? 'ok' : 'warn'),
       result.validity_reason ? text(VALIDITY_REASON_TEXT[result.validity_reason] ?? result.validity_reason, 'wrap') : null,
       alpha ? text(alpha) : null,
-      observed ? text(observed) : null,
+      integerCell(observed),
       dateCell(result.generated_at, offset),
       text(result.run_ref, 'muted'),
+      text(METHOD_TEXT[result.method] ?? result.method),
+      text(SPAN_COVERAGE_TEXT[result.coverage.status] ?? result.coverage.status, result.coverage.status === 'IDENTIFIED' ? 'ok' : 'warn'),
+      refCell(result.product.product_ref),
     ];
   });
 
@@ -138,7 +170,7 @@ export function buildEstimationXlsx(input: EstimationXlsxInput): BuiltXlsx {
       title: `Resultados · ${results.target.name}`,
       note: 'Estimación (SES) y línea base (último consumo publicado) por producto, con su vigencia. Sin cifra = no hay estimación, no cero.',
       headers: resultHeaders,
-      widths: [30, 14, 14, 8, 20, 56, 16, 44, 8, 12, 20, 38],
+      widths: [30, 14, 14, 8, 20, 56, 16, 44, 8, 12, 20, 38, 30, 26, 38],
       rows: resultRows,
       emptyText: 'Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra.',
     }),
