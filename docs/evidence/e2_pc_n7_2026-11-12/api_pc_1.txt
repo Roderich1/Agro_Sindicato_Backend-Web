@@ -1,0 +1,3 @@
+{"farmer":"agricultor12","consent":"CONV-1","first":200,"outcome":"ACCEPTED","retry_same_operation":200,"same_participation":false}
+{"modify_with_consent":"CONV-2","status":200,"outcome":"ACCEPTED","participation":{"status":"ACTIVE","consent":"CONV-1","scope":{"scope":"RESPONSIBLE_ONLY","version":"CONV-1","decided_at":"2026-11-12T12:01:03.533Z","received_at":"2026-11-12T12:01:03.551Z","sequence":0}}}
+{"decide":"COLLABORATORS","sequence":1,"status":200,"outcome":"ACCEPTED","participation":{"status":"ACTIVE","consent":"CONV-1","scope":{"scope":"COLLABORATORS","version":"CONV-3","decided_at":"2026-11-12T12:01:21.172Z","received_at":"2026-11-12T12:01:21.190Z","sequence":1}},"retry_same_operation":200,"same_answer":false}

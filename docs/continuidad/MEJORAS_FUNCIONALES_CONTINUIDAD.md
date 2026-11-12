@@ -93,3 +93,40 @@ bash _wt/ET2-BE/tool/etapa2/et2.sh build-app && bash _wt/ET2-BE/tool/etapa2/et2.
 ```
 
 La API arranca con secretos generados en el momento (nunca en archivos). La app aislada `.et1` del emulador quedó activada con `agricultor15` (titular «Rosa Vargas sintetica»), sin PIN.
+
+## 9. Actualización del 2026-11-12 (decisiones N1–N8, m1–m11, P-B, P-C y Excel único)
+
+**Esta sección prevalece sobre las anteriores.** Evidencia: `docs/evidence/E2_PC_N7_EXCEL_2026-11-12.md`. Contrato: E2 §11.
+
+- **Estado:** etapas 1–3 implementadas y verificadas técnicamente (pruebas y emulador), **sin cierre funcional**: P-A (sustitución de responsable) espera decisión. Ver `docs/architecture/E2_PA_SUSTITUCION_RESPONSABLE_OPCIONES.md`, §7.
+- **Commits Back/Web** (`feat/etapa3-estimacion-borrador`):
+  - `1ff5ccf` P-C/N1/N2/m6/m11/N7
+  - `eeaf327` CSV retirado del servidor
+  - `7acf0a1` Web Excel único y P-B
+  - `bcd8b62` m10
+  - `ea53c0b` contrato
+  - `e3cd538` anexos
+  - `5b394f2` aviso de participaciones ocultas y guiones
+  - evidencia: commit siguiente
+- **Commits Mobile** (`feat/etapa2-historial-colaboradores`):
+  - `a0c37fa` reportes en Excel
+  - `9cb6d7b` P-C, `CONV-3`, contrato 2, **esquema v18**
+  - `e1f6e25` prueba de esquema
+- **Migración nueva:** `20261112120000_e2_pc_consent_decisions`, aplicada en `agro_demo`, `agro_et2_test` y `agro_f02_test`.
+- **Contrato de las rutas del agricultor:** cabecera `X-Joint-Purchase-Contract: 2`. Sin ella, la forma del contrato 1 con `CONV-1` (APK anterior).
+- **Rediseño móvil** (sesión de `_wt/RDM-MOB`):
+  - fusionó `9cb6d7b` y `e1f6e25` en `feat/rediseno-movil`;
+  - su API corre con un Back congelado (`_wt/RDM-BE`) desde `ea53c0b`, con `prisma migrate deploy`;
+  - la sesión C no reescribe las pantallas de convocatorias hasta integrar estos cambios;
+  - `test/support` es del orquestador: se tocaron `e2_joint_purchase_fixtures.dart` y `xlsx_reader.dart` (nuevo), y se le avisó.
+- **Emulador:**
+  - queda instalada `.et1o` (agricultor13, versión `e1f6e25`);
+  - se desinstaló la `.et1u` propia;
+  - `/data` tiene unos 800 MB libres;
+  - el emulador es compartido con el rediseño: avisar antes de usarlo.
+- **Trampas nuevas:**
+  - el `dist` incremental queda incompleto si no se borra `tsbuildinfo` («Cannot find module accounts-payable»);
+  - en la activación, «Continuar» no activa: el botón es «Activar»;
+  - el emisor envía solo al reconectar;
+  - las respuestas del diario vuelven en `jsonb` con las claves reordenadas: comparar en forma canónica.
+- **Siguiente paso:** el autor decide P-A (A1/A2/A3, B1/B2/B3, C1/C2/C3 y si se admite en convocatorias cerradas) y la limitación 3 de la evidencia (cifras OUTDATED en el Excel). Después, implementar P-A y declarar el cierre funcional si no queda nada pendiente.

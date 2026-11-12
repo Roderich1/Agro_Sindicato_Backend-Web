@@ -1,0 +1,26 @@
+{
+  "action": "conceder",
+  "at": "2026-11-12T12:00:09.440Z",
+  "participants": "Participantes (lista provisional)\n\nLista provisional: puede cambiar hasta el cierre\n\nSin participantes Todavía nadie confirmó su participación.",
+  "collaborators": "Colaboradores\n\nPersonas de la Directiva o la Administración a quienes la persona responsable autorizó para esta convocatoria. Ningún rol concede permisos por sí solo.\n\nConceder permiso\nColaboradores de la convocatoria\nNombre\tRol\tPermisos\nAdministración DEMO\tAdministrador\t\nConsultar participantes y cantidades\nConcedido por Directiva DEMO el 12 nov de 2026, 8:00 a. m.\nRetirar\nHistorial de permisos\nVer",
+  "rows": [],
+  "hidden_notice": null,
+  "revoked": null,
+  "forbidden": null,
+  "products": "Productos de la convocatoria\nProducto\tUnidad\tReferencia\tTotal solicitado\nHerbicida DEMO\tL\tDel catálogo, sin referencia\t0 L· 0 personas\nUrea DEMO\tKG\tDel catálogo, sin referencia\t0 KG· 0 personas",
+  "api": [
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/participants → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "POST /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/participants → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200"
+  ]
+}

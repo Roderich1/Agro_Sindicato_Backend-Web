@@ -1,0 +1,18 @@
+{
+  "action": "crear-pb",
+  "at": "2026-11-12T11:59:12.157Z",
+  "warning": "Eligió a Directiva DEMO como responsable. Si guarda así, usted deja de administrar esta convocatoria:\n\nno podrá editar el borrador;\nno podrá abrir la convocatoria;\nno podrá cancelarla ni cerrarla;\nno verá a los participantes ni sus cantidades, salvo que Directiva DEMO le conceda ese permiso.\n\nNadie se lo concede automáticamente: sólo Directiva DEMO, como responsable, puede devolverle «Administrar la convocatoria».\n\nVolver\nConfirmar",
+  "sent_before_confirm": 0,
+  "text": "Volver a las convocatorias\nConvocatoria P-C y N7 (sintética)\nBorrador\nBorrador «Convocatoria P-C y N7 (sintética)» creado. Los agricultores todavía no lo ven: ábralo cuando esté listo.\nSólo la persona responsable o quien tenga el permiso «Administrar la convocatoria» puede editarla, abrirla, cancelarla o cerrarla.\nDatos de la convocatoria\nCampaña:\nInvierno 2026 (DEMO)\nResponsable:\nDirectiva DEMO\nFecha límite:\n15 nov de 2026, 7:59 a. m. (hora del servidor)\nAbierta el:\nTodavía no se abrió\nOrigen:\nCreada eligiendo productos del catálogo.\nParticipantes:\n0 personas\nColaboradores:\nNinguno\nSus permisos:\nNinguno\nProductos\nProductos de la convocatoria\nProducto\tUnidad\tReferencia\nHerbicida DEMO\tL\tDel c",
+  "api": [
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "POST /api/v1/joint-purchase-calls → 201",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200"
+  ]
+}
