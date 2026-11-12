@@ -28,7 +28,7 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 | Back/Web | `_wt/ET2-BE` | `feat/etapa3-estimacion-borrador` | `01bcdeb` | `0db2d0f` back E2-P2/P3 · `f673f95` back E3 · `5d760b6` web E2-P3 · `2a25386` web E3 · `2eb3ef7` · `3b2099b` · `b77965e` · `8bf84f9` E3 en módulo propio · (+ docs, evidencia y guiones de esta sesión) |
 | Mobile | `_wt/ET1-MOB` | `feat/etapa1-productos-identificacion-foto` | `73a927b` | … `bce8e59` |
 | Mobile | `_wt/ET2-MOB` (**checkout actual**: la rama nueva) | `feat/etapa2-convocatorias` | `bce8e59` | `6bac5a3` (sin cambios) |
-| Mobile | `_wt/ET2-MOB` | `feat/etapa2-historial-colaboradores` | `6bac5a3` | `16c002c` historial y CONV-2 · `fa0fdc4` consent en historial |
+| Mobile | `_wt/ET2-MOB` | `feat/etapa2-historial-colaboradores` | `6bac5a3` | `16c002c` historial y CONV-2 · `fa0fdc4` consent en historial · `b55e5af` texto de coordinación |
 | Mobile | `_wt/EV-UI-MOB` | `evidence/ui-actual-2026-11-11` (**publicada**) | `279b46b` | sólo capturas |
 
 ## 4. Contratos y migraciones
@@ -58,7 +58,7 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 4. Contratos E2 y E3 pendientes de aceptación; umbral de E2-P1 (3) revisable.
 5. Migración v16 → v17 con datos e historial con convocatorias antiguas: sólo en pruebas automatizadas (ver evidencia §4).
 6. Rendimiento de `estimation-link` (~2,5 s con 11 líneas).
-7. Observaciones menores: botones desactivados visibles en una convocatoria cerrada del teléfono; «el responsable coordina…» en singular; observaciones E1 previas (hoja de foto sin refresco, etc.).
+7. Observaciones menores: observaciones E1 previas (hoja de foto sin refresco, etc.). El texto en singular del teléfono se corrigió en `b55e5af`.
 8. `call_id` como clave global de la copia local del teléfono (E2-R25).
 
 ## 7. Siguiente paso concreto

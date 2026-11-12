@@ -91,6 +91,6 @@ Túnel: sólo `/api/v1/` por la compuerta (`/`, `/docs`, `/docs-json` → 404), 
 ## 5. Observaciones
 
 - La vista `estimation-link` tarda unos 2,5 s con 11 líneas (recalcula la vigencia de F12 en cada lectura) (E3-R11).
-- En el teléfono, una convocatoria cerrada muestra «Modificar» y «Retirar participación» desactivados junto a «Convocatoria cerrada: ya no admite cambios.»; la etapa 2 los ocultaba. Sin efecto (no responden), pero podría ocultarse.
-- El texto del teléfono «el responsable coordina la compra y la entrega» sigue en singular; el consentimiento CONV-2 ya menciona a quienes autorice.
+- En el teléfono, una convocatoria cerrada muestra «Modificar» y «Retirar participación» desactivados junto a «Convocatoria cerrada: ya no admite cambios.». Es el diseño probado de la etapa 2 («botones desactivados con explicación»); no se cambió.
+- El texto del teléfono «el responsable coordina la compra y la entrega» seguía en singular; corregido después del recorrido en Mobile `b55e5af` («la persona responsable y quienes ella autorice coordinan…»), con su prueba. La APK del recorrido es anterior a ese cambio.
 - El limitador de inicios de sesión de la API (429) interrumpió dos pasos del guion por inicios seguidos; se repitieron espaciados.
