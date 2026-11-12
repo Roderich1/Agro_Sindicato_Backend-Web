@@ -873,3 +873,7 @@ No acredita precisión con campañas reales, ahorro ni superioridad general del 
 - `npm run openapi:check` incluye la especificación INT-09 (etapa `IMPLEMENTED`, 12 operaciones) y la forma cerrada de la referencia de la propuesta.
 - Las suites PostgreSQL de F12 corren en `backend-f02.yml` con `F12_EST_PG_TEST_URL` apuntando a una base de administración desechable. Cada una crea su propia base.
 - **[Sin probar]** cualquier despliegue fuera de los entornos desechables de ensayo.
+
+## Anexo (2026-11-12): exportación CSV retirada
+
+Por decisión del autor del 2026-11-12, **Excel es la única exportación para el usuario**. Se retiraron las rutas `GET /api/v1/collective/campaigns/{campaignId}/summary.csv`, `GET /api/v1/collective/trends.csv` y `GET /api/v1/collective/proposals/{proposalId}/csv` (Back `eeaf327`) y los botones «Exportar CSV» de la Web (`7acf0a1`). Lo que este documento dice de esos CSV describe la versión anterior; la política de divulgación se sigue aplicando igual en el JSON y en los libros Excel, que se arman con las mismas respuestas del servidor. Equivalencias columna a columna: `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`. El Excel del borrador usa la referencia de estimación **fijada** (contrato E2 §11.9; sustituye a E3-R10 y a N8).

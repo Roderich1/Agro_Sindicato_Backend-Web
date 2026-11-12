@@ -189,3 +189,7 @@ Implementado en `f673f95` y trasladado en `8bf84f9` a un módulo propio (Back: `
 - ~~**E3-P1**~~ Resuelta el 2026-11-12: opción 1 + 1b (§5).
 - ~~**E3-P2**~~ Resuelta el 2026-11-12: sí. La convocatoria guarda su origen inmutable (E2 §10.5).
 - **Etapa 4** (avisos adicionales): **aplazada** por decisión del autor (2026-11-12). Se mantienen los avisos internos de E2-D15; sin push, correo ni recordatorios nuevos. No bloquea el cierre de las etapas 1–3.
+
+## Anexo (2026-11-12): exportación CSV retirada
+
+Por decisión del autor del 2026-11-12, **Excel es la única exportación para el usuario**. Se retiraron las rutas `GET /api/v1/collective/campaigns/{campaignId}/summary.csv`, `GET /api/v1/collective/trends.csv` y `GET /api/v1/collective/proposals/{proposalId}/csv` (Back `eeaf327`) y los botones «Exportar CSV» de la Web (`7acf0a1`). Lo que este documento dice de esos CSV describe la versión anterior; la política de divulgación se sigue aplicando igual en el JSON y en los libros Excel, que se arman con las mismas respuestas del servidor. Equivalencias columna a columna: `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`. El Excel del borrador usa la referencia de estimación **fijada** (contrato E2 §11.9; sustituye a E3-R10 y a N8).

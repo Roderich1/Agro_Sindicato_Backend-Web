@@ -285,3 +285,7 @@ Endpoints del Back que **ninguna pantalla Web consume**: `GET/POST /estimation/s
 | Web/src/pages/joint-proposal.reference.test.tsx | Referencia F12-EST-08 en columna aparte: vigencias, necesidad oculta, política pendiente, fallo de la referencia |
 | Web/src/pages/product-reconciliation.page.test.tsx | Asociar exige canónico, motivo y confirmación; unidad no vinculable; historial; un 409 es un cambio concurrente; deshacer |
 | Web/src/pages/products.page.test.tsx | Listado de activos e inactivos, crear, nombre duplicado (cliente y 409), editar sin cambiar la unidad |
+
+## Anexo (2026-11-12): exportación CSV retirada
+
+Por decisión del autor del 2026-11-12, **Excel es la única exportación para el usuario**. Se retiraron las rutas `GET /api/v1/collective/campaigns/{campaignId}/summary.csv`, `GET /api/v1/collective/trends.csv` y `GET /api/v1/collective/proposals/{proposalId}/csv` (Back `eeaf327`) y los botones «Exportar CSV» de la Web (`7acf0a1`). Lo que este documento dice de esos CSV describe la versión anterior; la política de divulgación se sigue aplicando igual en el JSON y en los libros Excel, que se arman con las mismas respuestas del servidor. Equivalencias columna a columna: `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`. El Excel del borrador usa la referencia de estimación **fijada** (contrato E2 §11.9; sustituye a E3-R10 y a N8).
