@@ -9,6 +9,9 @@
 //   node ../tool/etapa3/pa_walk.cjs view <clave>          lo que ve esa persona institucional (detalle, participantes)
 //   node ../tool/etapa3/pa_walk.cjs farmer <agricultorN> <2|3> <shape|authorize|widen|reduce|modify> [args]
 //   node ../tool/etapa3/pa_walk.cjs race                  dos sustituciones simultáneas sobre otra convocatoria + reintento
+//   node ../tool/etapa3/pa_walk.cjs selfsub <clave>       quien tiene el permiso intenta nombrarse a sí misma (debe dar 422) sin cambiar nada
+// PA_CALL (nombre de la convocatoria) y PA_RESP (clave de su responsable al crearla) eligen otra convocatoria;
+// por defecto, la del recorrido del 2026-11-12.
 // Entorno: DEMO_PG_ADMIN_URL, DEMO_API (tool/etapa3/e3env.sh).
 const { createRequire } = require("node:module");
 const { randomBytes, randomUUID } = require("node:crypto");
@@ -24,7 +27,7 @@ const DB_URL = (() => {
   u.pathname = "/agro_demo";
   return u.toString();
 })();
-const CALL_NAME = "Convocatoria P-A sustitución (sintética)";
+const CALL_NAME = process.env.PA_CALL || "Convocatoria P-A sustitución (sintética)";
 const RACE_NAME = "Convocatoria P-A concurrencia (sintética)";
 const PEOPLE = {
   admin: { email: "admin.demo@example.test" },
@@ -33,6 +36,7 @@ const PEOPLE = {
   suc: { email: "sucesora.pa@example.test", name: "Sucesora PA (sintética)", role: "DIRECTIVA" },
   admin2: { email: "admin2.pa@example.test", name: "Administración PA 2 (sintética)", role: "ADMINISTRADOR" },
   resp2: { email: "responsable2.pa@example.test", name: "Responsable PA 2 (sintética)", role: "DIRECTIVA" },
+  resp3: { email: "responsable3.pa@example.test", name: "Responsable PA 3 (sintética)", role: "DIRECTIVA" },
 };
 
 const call = async (method, path, { token, body, contract } = {}) => {
@@ -83,7 +87,7 @@ async function farmerToken(farmerKey) {
 
 async function ensurePeople() {
   const admin = await login("admin");
-  for (const key of ["resp", "suc", "admin2", "resp2"]) {
+  for (const key of ["resp", "suc", "admin2", "resp2", "resp3"]) {
     const person = PEOPLE[key];
     if (await db.user.findUnique({ where: { email: person.email } })) continue;
     must(
@@ -138,8 +142,9 @@ const shapeOf = (p) =>
   try {
     if (cmd === "setup") {
       await ensurePeople();
-      const id = await createOpenCall(CALL_NAME, "resp");
-      const resp = await login("resp");
+      const respKey = process.env.PA_RESP || "resp";
+      const id = await createOpenCall(CALL_NAME, respKey);
+      const resp = await login(respKey);
       for (const [to, grant] of [["admin", "PARTICIPANTS"], ["directiva", "MANAGE"]]) {
         must(await call("POST", `/joint-purchase-calls/${id}/collaborators`, { token: resp, body: { user_ref: await userId(to), grant, confirmed: true } }), [200], `conceder ${grant}`);
       }
@@ -246,6 +251,24 @@ const shapeOf = (p) =>
         const again = await call("POST", `/me/joint-purchase-calls/${id}/participation/consent`, { token, contract, body });
         console.log(JSON.stringify({ action, contract, shown_version: body.responsible_version ?? null, status: r.status, outcome: r.json?.outcome ?? r.json?.errorCode, responsible_version: r.json?.responsible_version, participation: shapeOf(r.json?.participation), retry_same_status: again.status }));
       }
+    } else if (cmd === "selfsub") {
+      const key = args[0];
+      const id = await callId();
+      const before = await db.jointPurchaseCall.findUniqueOrThrow({ where: { id }, select: { responsibleUserId: true, responsibleVersion: true } });
+      const r = await call("POST", `/joint-purchase-calls/${id}/responsible`, {
+        token: await login(key),
+        body: { request_id: randomUUID(), expected_responsible_version: before.responsibleVersion, new_responsible_ref: await userId(key), reason: "Intento de nombrarse a sí misma (sintético)", confirmed: true },
+      });
+      const after = await db.jointPurchaseCall.findUniqueOrThrow({ where: { id }, select: { responsibleUserId: true, responsibleVersion: true } });
+      console.log(JSON.stringify({
+        by: key,
+        status: r.status,
+        code: r.json?.errorCode ?? null,
+        responsible_unchanged: after.responsibleUserId === before.responsibleUserId,
+        version_before: before.responsibleVersion,
+        version_after: after.responsibleVersion,
+        changes_in_db: await db.jointPurchaseResponsibleChange.count({ where: { callId: id } }),
+      }));
     } else if (cmd === "race") {
       await ensurePeople();
       // Dos personas con el permiso: Directiva DEMO (concedido en la Web) y Administración PA 2 (lo concede Administración DEMO).
