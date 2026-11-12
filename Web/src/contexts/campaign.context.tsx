@@ -3,7 +3,7 @@ import { campaignsService } from '../services/campaigns.service';
 import type { Campaign } from '../types/campaigns';
 import { useAuth } from '../hooks/use-auth';
 import { collectiveError } from '../lib/collective-text';
-import { isCollectiveRole, legacyFarmerWebEnabled } from '../lib/navigation';
+import { isCollectiveRole } from '../lib/navigation';
 
 export interface CampaignContextValue {
   activeCampaign: Campaign | null;
@@ -27,9 +27,9 @@ export interface CampaignContextValue {
 
 export const CampaignContext = createContext<CampaignContextValue | null>(null);
 
-/** Quien no es Directiva ni Administrador no recibe datos en la Web (salvo con el flag de rollback). */
+/** Quien no es Directiva ni Administrador no recibe datos en la Web: no se piden las campañas. */
 function mayLoad(role: string | undefined): boolean {
-  return isCollectiveRole(role) || legacyFarmerWebEnabled();
+  return isCollectiveRole(role);
 }
 
 export function CampaignProvider({ children }: { children: ReactNode }) {

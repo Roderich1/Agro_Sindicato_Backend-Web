@@ -29,15 +29,6 @@ export interface SupplierReferencePayload {
   address?: string;
 }
 
-export interface CreateSupplierPayload {
-  name: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-}
-
-export type UpdateSupplierPayload = Partial<CreateSupplierPayload>;
-
 export interface CreatePurchaseItemPayload {
   product: ProductRefPayload;
   quantity: number;

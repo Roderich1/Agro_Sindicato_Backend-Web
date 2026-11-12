@@ -3,8 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { useDisclosureMode } from '../lib/data-mode';
-import { AUDIT_LOGS_PATH, CAMPAIGNS_PATH, COLLECTIVE_PATHS, legacyFarmerWebEnabled, menuPathsFor, USERS_PATH } from '../lib/navigation';
-import { readOfflineQueue, subscribeOfflineQueue } from '../lib/offline-queue';
+import { AUDIT_LOGS_PATH, CAMPAIGNS_PATH, COLLECTIVE_PATHS, menuPathsFor, USERS_PATH } from '../lib/navigation';
 import { StatusChip } from './ui';
 
 /* ══════════════════════════════════════════
@@ -117,47 +116,6 @@ const NAV_ITEMS: NavItem[] = [
     to: USERS_PATH,
     icon: <NavIcon d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />,
   },
-  /* Legacy del agricultor: sólo con VITE_LEGACY_FARMER_WEB=enabled (#23). */
-  {
-    label: 'Dashboard',
-    to: '/dashboard',
-    icon: <NavIcon d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
-  },
-  {
-    label: 'Parcelas',
-    to: '/plots',
-    icon: <NavIcon d="M4 20h16M5 20V8l7-4 7 4v12M9 20v-6h6v6M8 10h.01M16 10h.01" />,
-  },
-  {
-    label: 'Inventario',
-    to: '/inventory',
-    icon: <NavIcon d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />,
-  },
-  {
-    label: 'Aplicaciones',
-    to: '/applications',
-    icon: <NavIcon d="M9 3h6m-7 4h8m-9 4h10M8 21h8a3 3 0 003-3V6a3 3 0 00-3-3H8a3 3 0 00-3 3v12a3 3 0 003 3zm4-6v3m-1.5-1.5h3" />,
-  },
-  {
-    label: 'Calendario',
-    to: '/calendar',
-    icon: <NavIcon d="M8 7V3m8 4V3M5 11h14M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2zm2-6h4m-2-2v4" />,
-  },
-  {
-    label: 'Reportes',
-    to: '/reports',
-    icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
-  },
-  {
-    label: 'Compras',
-    to: '/purchases',
-    icon: <NavIcon d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />,
-  },
-  {
-    label: 'Sincronización',
-    to: '/sync',
-    icon: <NavIcon d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />,
-  },
 ];
 
 /** Ítems del menú de un rol, en el orden de `menuPathsFor` (F07-WEB-01). */
@@ -216,7 +174,6 @@ function menuEntryToken(state: unknown): unknown {
 
 /** Barra inferior del teléfono: cuatro tareas como máximo (contrato §2). */
 const MOBILE_PATHS_COLLECTIVE = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history];
-const MOBILE_PATHS_FARMER = ['/dashboard', '/plots', '/inventory', '/applications'];
 
 /* ══════════════════════════════════════════
    AVATAR COMPONENT
@@ -255,12 +212,10 @@ function UserAvatar({ name, size = 'md', gradient }: { name: string; size?: 'sm'
  */
 function NavContent({
   onNavigate,
-  offlineQueueCount,
   firstLinkRef,
 }: {
   /** En el menú del teléfono: cierra el menú y la navegación reemplaza la entrada del historial del menú. */
   onNavigate?: () => void;
-  offlineQueueCount: number;
   firstLinkRef?: Ref<HTMLAnchorElement>;
 }) {
   const { user, logout } = useAuth();
@@ -291,7 +246,6 @@ function NavContent({
             {group.label && <p className="px-3 pb-1 text-xs font-semibold text-slate-500">{group.label}</p>}
             {group.items.map((item) => {
               const active = isItemActive(item, location.pathname);
-              const isSync = item.to === '/sync';
               return (
                 <Link
                   key={item.to}
@@ -308,11 +262,6 @@ function NavContent({
                 >
                   <span className={active ? 'text-brand-700' : 'text-slate-500'}>{item.icon}</span>
                   <span className="min-w-0">{item.label}</span>
-                  {isSync && offlineQueueCount > 0 && (
-                    <span className="ml-auto rounded-full bg-red-700 px-1.5 text-[11px] font-bold text-white" aria-label={`${offlineQueueCount} pendientes`}>
-                      {offlineQueueCount}
-                    </span>
-                  )}
                 </Link>
               );
             })}
@@ -350,7 +299,7 @@ function NavContent({
  * primer enlace al abrir, Escape y el botón «Cerrar menú» lo cierran y el foco
  * vuelve al botón que lo abrió. Aparece sin animación.
  */
-function MobileMenu({ onClose, onNavigate, offlineQueueCount }: { onClose: () => void; onNavigate: () => void; offlineQueueCount: number }) {
+function MobileMenu({ onClose, onNavigate }: { onClose: () => void; onNavigate: () => void }) {
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -410,7 +359,7 @@ function MobileMenu({ onClose, onNavigate, offlineQueueCount }: { onClose: () =>
           </button>
         </div>
         <div className="ui-menu-body min-h-0 flex-1">
-          <NavContent onNavigate={onNavigate} offlineQueueCount={offlineQueueCount} firstLinkRef={firstLinkRef} />
+          <NavContent onNavigate={onNavigate} firstLinkRef={firstLinkRef} />
         </div>
       </div>
     </div>
@@ -524,10 +473,8 @@ export function AppShell({ title, section, actions, children }: { title: string;
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // La cola offline legacy sólo se lee con el flag de rollback (#23).
-  const [offlineQueueCount, setOfflineQueueCount] = useState(() => (legacyFarmerWebEnabled() ? readOfflineQueue().length : 0));
   const availableNav = navItemsFor(user?.role);
-  const mobileNav = (user?.role === 'AGRICULTOR' ? MOBILE_PATHS_FARMER : MOBILE_PATHS_COLLECTIVE)
+  const mobileNav = MOBILE_PATHS_COLLECTIVE
     .map((path) => availableNav.find((item) => item.to === path))
     .filter((item): item is NavItem => Boolean(item));
   /*
@@ -580,7 +527,6 @@ export function AppShell({ title, section, actions, children }: { title: string;
     };
   }, []);
 
-  useEffect(() => (legacyFarmerWebEnabled() ? subscribeOfflineQueue(setOfflineQueueCount) : undefined), []);
 
   // El nombre de la vista ya no se repite en la barra: queda en el título de la pestaña.
   useEffect(() => {
@@ -590,9 +536,9 @@ export function AppShell({ title, section, actions, children }: { title: string;
   return (
     <div className="min-h-dvh bg-canvas">
       <aside className="hidden border-r border-line bg-surface lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[248px] lg:flex-col">
-        <NavContent offlineQueueCount={offlineQueueCount} />
+        <NavContent />
       </aside>
-      {menuOpen && <MobileMenu onClose={closeMenu} onNavigate={leaveMenu} offlineQueueCount={offlineQueueCount} />}
+      {menuOpen && <MobileMenu onClose={closeMenu} onNavigate={leaveMenu} />}
 
       <div className="lg:pl-[248px]">
         <Header section={sectionFor(location.pathname, section)} actions={actions} onMenuClick={openMenu} menuOpen={menuOpen} isOnline={isOnline} />

@@ -120,17 +120,6 @@ describe('Detalle de campaña', () => {
     expect(collectiveService.proposals).not.toHaveBeenCalled();
   });
 
-  it('agricultor: datos generales sí, participación y borradores no (sin pedirlos)', async () => {
-    // Un agricultor sólo llega a la Web con el flag de rollback; sin él no se pide nada.
-    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
-    show(fixtures.worst, { role: 'AGRICULTOR' });
-    expect(await screen.findByTestId('collective-forbidden')).toBeTruthy();
-    expect(screen.getByTestId('general')).toBeTruthy();
-    expect(screen.getByText('Sólo consulta')).toBeTruthy();
-    expect(collectiveService.summary).not.toHaveBeenCalled();
-    expect(collectiveService.proposals).not.toHaveBeenCalled();
-  });
-
   it('error del resumen: «Reintentar» lo vuelve a pedir sólo al pulsar', async () => {
     vi.mocked(campaignsService.list).mockResolvedValue(fixtures.worst.campaigns);
     vi.mocked(collectiveService.proposals).mockResolvedValue([]);

@@ -80,3 +80,25 @@ Hecha por la sesión B de Claude Code el 2026-10-19 (19:30Z) para el contraste d
   Clasificación: `NOT_FOUND_IN_AUDITED_REVISION` (`463d3ec`).
 - **Web:** los consumidores de la tabla sólo existen tras `VITE_LEGACY_FARMER_WEB=enabled`, que es el rollback de la PHASE 5.
 - **Límite:** es una búsqueda estática, sin ejecución. Los consumidores externos o desplegados siguen como `INSUFFICIENT_EVIDENCE`. Antes de cualquier bloqueo (PHASE 6) o retiro (PHASE 9), se reaudita el HEAD de ese momento. **No autoriza ningún cambio.**
+
+## Actualización 2026-11-12: retirada del código Web del agricultor
+
+Decisión del autor del 2026-11-12: **la Web es exclusivamente de Directiva y Administración; el agricultor usa exclusivamente la app móvil.**
+
+- **Retirado de la Web:**
+  - páginas: `dashboard`, `plots`, `applications`, `reports`, `inventory`, `purchases` y `sync`;
+  - guarda de rutas: `FarmerRoute`;
+  - cola offline: `lib/offline-queue.ts`;
+  - servicios `applications`, `plots`, `reports` y `sync`, y sus tipos;
+  - operaciones de inventario y proveedores que sólo usaban esas páginas;
+  - la bandera `VITE_LEGACY_FARMER_WEB`, que deja de existir.
+
+  Las secciones anteriores de este documento describen el estado de su fecha.
+- **El Backend y Mobile no cambian:**
+  - las rutas del API siguen como estaban, incluidas las de escritura privada cerradas por la PHASE 6;
+  - siguen igual la autenticación y las sesiones de la app, la sincronización, la identificación con fotos, la participación y los consentimientos.
+- **Rollback de la Web:** sólo revirtiendo los commits de la rama `chore/web-solo-institucional`. Ya no hay bandera de compilación.
+- **Lo que queda en la Web y nombra al agricultor:**
+  - controles que lo reconocen para bloquearlo;
+  - rótulos de rol en Usuarios;
+  - vistas institucionales que muestran agricultores con su permiso o en agregados (participantes, cobertura y nombres en el Calendario).

@@ -246,7 +246,7 @@ El Backend valida el entorno al arrancar con un esquema zod (`Back/src/config/en
 
 | Dónde | Variable | Uso |
 |---|---|---|
-| Web (compilación) | `VITE_LEGACY_FARMER_WEB=enabled` | Muestra las pantallas heredadas del agricultor. Por defecto, apagado: un agricultor ve sólo el aviso «Esta Web es para la Directiva y el Administrador». **Con el Backend por defecto, esas pantallas no pueden guardar** (403 `LEGACY_ROUTE_CLOSED`): para eso haría falta además `LEGACY_PRIVATE_WRITES_ROLLBACK=enabled` en el servidor (§10) |
+| Web (compilación) | — | La bandera `VITE_LEGACY_FARMER_WEB` se retiró el 2026-11-12 junto con las pantallas heredadas del agricultor. La Web es sólo de Directiva y Administración; una cuenta AGRICULTOR ve el aviso «Esta cuenta utiliza la aplicación móvil. La Web está disponible para Directiva y Administración.» |
 | Web (desarrollo) | `VITE_API_PROXY_TARGET` | Destino del proxy de Vite (por defecto `http://localhost:3000`) |
 | App (compilación) | `AGRO_API_BASE_URL` | Origen HTTPS del Central (§2.4) |
 

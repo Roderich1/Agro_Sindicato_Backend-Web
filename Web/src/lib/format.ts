@@ -1,16 +1,14 @@
 import axios from 'axios';
-import { legacyFarmerWebEnabled } from './navigation';
 
 export const OFFLINE_MESSAGE =
   'Sin conexión con el servidor. La Web no guarda operaciones para después: vuelva a intentarlo en línea.';
 
 /**
  * F07-WEB-01 (#23): un fallo de red (sin respuesta) no se ejecuta ni se
- * encola, y se dice así. Con el flag de rollback vuelve la cola legacy del
- * agricultor y el texto sería falso: entonces no se da (null).
+ * encola, y se dice así. La Web no tiene cola offline.
  */
 export function offlineMessage(err: unknown): string | null {
-  return axios.isAxiosError(err) && !err.response && !legacyFarmerWebEnabled() ? OFFLINE_MESSAGE : null;
+  return axios.isAxiosError(err) && !err.response ? OFFLINE_MESSAGE : null;
 }
 
 export function extractError(err: unknown, fallback: string): string {

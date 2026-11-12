@@ -9,7 +9,6 @@ import { AuthContext } from '../../contexts/auth.context';
 import { CampaignProvider } from '../../contexts/campaign.context';
 import { extractError, offlineMessage } from '../../lib/format';
 import { COLLECTIVE_PATHS, WEB_NOT_FOR_FARMERS_PATH } from '../../lib/navigation';
-import { OFFLINE_QUEUE_KEY } from '../../lib/offline-queue';
 import { UsersPage } from '../../pages/users.page';
 import { WebNotForFarmersPage } from '../../pages/web-not-for-farmers.page';
 import { campaignsService } from '../../services/campaigns.service';
@@ -24,21 +23,18 @@ vi.mock('../../services/users.service', () => ({
 vi.mock('../../services/campaigns.service', () => ({ campaignsService: { active: vi.fn(), list: vi.fn() } }));
 
 /**
- * F07-WEB-01 (#23): la Web es online-first para DIRECTIVA y ADMINISTRADOR del
- * tenant (ADR-003). Un usuario con otro rol no recibe menú ni datos, la cola
- * offline legacy no está en uso y una acción sin conexión no se encola. El
- * flag `VITE_LEGACY_FARMER_WEB=enabled` es el rollback de la transición
- * (PHASE 5 de TRANSITION_PLAN.md); se prueban sus dos valores.
+ * F07-WEB-01 (#23) y decisión del autor del 2026-11-12: la Web es sólo de
+ * DIRECTIVA y ADMINISTRADOR (ADR-003). Un usuario con otro rol no recibe menú
+ * ni datos, la Web no tiene cola offline y una acción sin conexión no se
+ * encola. El acceso con la tabla de rutas real está en web-access-by-role.test.
  */
 const FALLBACKS = [
   { path: '/login', element: <p>pantalla de login</p> },
-  { path: '/dashboard', element: <p>dashboard legacy</p> },
   { path: COLLECTIVE_PATHS.summary, element: <p>resumen colectivo</p> },
   { path: WEB_NOT_FOR_FARMERS_PATH, element: <p>aviso: la Web no es para agricultores</p> },
 ];
 
 afterEach(() => {
-  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   localStorage.clear();
 });
@@ -55,15 +51,10 @@ describe('PrivateRoute (campañas y calendario)', () => {
     expect(screen.getByText('aviso: la Web no es para agricultores')).toBeTruthy();
   });
 
-  it('con el flag de rollback, AGRICULTOR conserva campañas y calendario legacy', () => {
-    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
-    renderAt(<PrivateRoute><p>datos</p></PrivateRoute>, { role: 'AGRICULTOR', path: '/calendar', routes: FALLBACKS });
-    expect(screen.getByText('datos')).toBeTruthy();
-  });
 });
 
 describe('aviso para quien no es Directiva ni Administrador', () => {
-  it('AGRICULTOR: sin menú ni navegación, sólo el aviso y cerrar sesión', () => {
+  it('AGRICULTOR: sin menú ni navegación, sólo el aviso, cambiar de cuenta y cerrar sesión', () => {
     const logout = vi.fn(async () => undefined);
     render(
       <AuthContext.Provider value={{ user: userWith('AGRICULTOR'), isLoading: false, login: async () => undefined, logout }}>
@@ -74,8 +65,8 @@ describe('aviso para quien no es Directiva ni Administrador', () => {
         </MemoryRouter>
       </AuthContext.Provider>,
     );
-    expect(screen.getByRole('heading', { name: /Esta Web es para la Directiva y el Administrador/ })).toBeTruthy();
-    expect(screen.getByText(/se registran en la app móvil/)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Esta cuenta utiliza la aplicación móvil.' })).toBeTruthy();
+    expect(screen.getByText('La Web está disponible para Directiva y Administración.')).toBeTruthy();
     expect(screen.queryByRole('navigation')).toBeNull();
     expect(screen.queryAllByRole('link')).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
@@ -92,34 +83,23 @@ describe('aviso para quien no es Directiva ni Administrador', () => {
     expect(screen.getByText('pantalla de login')).toBeTruthy();
   });
 
-  it('con el flag de rollback, el aviso devuelve al AGRICULTOR a su dashboard legacy', () => {
-    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
-    renderAt(<WebNotForFarmersPage />, { role: 'AGRICULTOR', path: WEB_NOT_FOR_FARMERS_PATH, routes: FALLBACKS });
-    expect(screen.getByText('dashboard legacy')).toBeTruthy();
-  });
 
   it('App.tsx registra la ruta del aviso', () => {
     expect(app).toMatch(/<Route path=\{WEB_NOT_FOR_FARMERS_PATH\} element=\{<WebNotForFarmersPage \/>\} \/>/);
   });
 });
 
-describe('cola offline de negocio: no está en uso', () => {
-  const queued = JSON.stringify([{ clientOperationId: 'op-1', operation: 'CREATE_PURCHASE', payload: {}, queuedAt: '2026-10-17T00:00:00.000Z' }]);
-
-  it('el AppShell institucional no lee la cola offline legacy', () => {
-    localStorage.setItem(OFFLINE_QUEUE_KEY, queued);
+describe('la Web no tiene cola offline de negocio', () => {
+  it('el AppShell institucional no lee ninguna cola offline ni ofrece «Sincronización»', () => {
     const getItem = vi.spyOn(Storage.prototype, 'getItem');
     renderAt(<AppShell title="Resumen" section="Colectivo"><p>contenido</p></AppShell>, { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
-    expect(getItem.mock.calls.some(([key]) => key === OFFLINE_QUEUE_KEY)).toBe(false);
+    expect(getItem.mock.calls.some(([key]) => /offline|queue|cola/i.test(String(key)))).toBe(false);
     expect(screen.queryByRole('link', { name: /Sincroniz/ })).toBeNull();
   });
 
-  it('con el flag de rollback, la cola legacy vuelve a leerse (sólo para el AGRICULTOR)', () => {
-    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
-    localStorage.setItem(OFFLINE_QUEUE_KEY, queued);
-    const getItem = vi.spyOn(Storage.prototype, 'getItem');
-    renderAt(<AppShell title="Inicio" section="Legacy"><p>contenido</p></AppShell>, { role: 'AGRICULTOR', path: '/dashboard' });
-    expect(getItem.mock.calls.some(([key]) => key === OFFLINE_QUEUE_KEY)).toBe(true);
+  it('un fallo de red siempre da el aviso de conectividad (la Web no tiene cola que lo haga falso)', () => {
+    expect(offlineMessage(new AxiosError('Network Error', 'ERR_NETWORK'))).toMatch(/Sin conexión con el servidor/);
+    expect(offlineMessage(new Error('otro'))).toBeNull();
   });
 
   it('una acción sin conexión no se encola: se informa la falta de conectividad', () => {
@@ -137,7 +117,7 @@ describe('cola offline de negocio: no está en uso', () => {
   });
 });
 
-describe('sin conexión en las pantallas institucionales legacy y datos del agricultor', () => {
+describe('sin conexión en las pantallas institucionales y datos del agricultor', () => {
   it('usuarios (ADMINISTRADOR): sin red informa la falta de conectividad, no un error genérico', async () => {
     vi.mocked(listUsers).mockRejectedValue(new AxiosError('Network Error', 'ERR_NETWORK'));
     renderAt(<UsersPage />, { role: 'ADMINISTRADOR', path: '/users' });
@@ -145,12 +125,6 @@ describe('sin conexión en las pantallas institucionales legacy y datos del agri
     expect(screen.queryByText('No fue posible cargar los usuarios.')).toBeNull();
   });
 
-  it('con el flag de rollback no se da el aviso (la cola legacy existe): se usa el texto anterior', () => {
-    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
-    const offline = new AxiosError('Network Error', 'ERR_NETWORK');
-    expect(offlineMessage(offline)).toBeNull();
-    expect(extractError(offline, 'No se pudo guardar')).toBe('No se pudo guardar');
-  });
 
   function withProvider(role: string) {
     return render(
@@ -173,11 +147,5 @@ describe('sin conexión en las pantallas institucionales legacy y datos del agri
     await waitFor(() => expect(campaignsService.active).toHaveBeenCalled());
   });
 
-  it('con el flag de rollback, el AGRICULTOR vuelve a pedirla (legacy)', async () => {
-    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
-    vi.mocked(campaignsService.active).mockResolvedValue(null as never);
-    withProvider('AGRICULTOR');
-    await waitFor(() => expect(campaignsService.active).toHaveBeenCalled());
-  });
 });
 

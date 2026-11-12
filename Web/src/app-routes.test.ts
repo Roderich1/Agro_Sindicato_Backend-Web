@@ -4,19 +4,22 @@ import app from './App.tsx?raw';
 import auditLogsPage from './pages/audit-logs.page.tsx?raw';
 import calendarPage from './pages/calendar.page.tsx?raw';
 
-// F10-SEC-02 (#45): la tabla de rutas vive en App.tsx (con BrowserRouter); se
-// comprueba su texto para que ninguna pantalla de operación privada quede fuera.
-const LEGACY_PRIVATE = ['/inventory', '/purchases', '/sync', '/plots', '/applications', '/reports', '/dashboard'];
+// Decisión del autor (2026-11-12): la Web es sólo de Directiva y Administración. Las pantallas
+// de operación privada del agricultor (F10-SEC-02 #45) se retiraron; sus rutas antiguas caen en
+// la ruta comodín, que lleva al inicio de cada sesión (resumen o aviso).
+const OLD_FARMER_PATHS = ['/inventory', '/purchases', '/sync', '/plots', '/applications', '/reports', '/dashboard'];
 
-describe('F10-SEC-02: App.tsx protege cada ruta legacy de operación privada', () => {
-  it('usa el FarmerRoute compartido (sólo AGRICULTOR), no uno local', () => {
-    // El App.tsx anterior tenía un FarmerRoute local que sólo excluía DIRECTIVA.
-    expect(app).toMatch(/import \{ FarmerRoute, LegacyDirectivaRedirect \} from '\.\/components\/farmer-route';/);
-    expect(app).not.toMatch(/function FarmerRoute/);
+describe('App.tsx: sin vistas del agricultor', () => {
+  it.each(OLD_FARMER_PATHS)('%s ya no es una ruta propia', (path) => {
+    expect(app).not.toMatch(new RegExp(`path="${path}"`));
   });
 
-  it.each(LEGACY_PRIVATE)('%s va envuelta en FarmerRoute', (path) => {
-    expect(app).toMatch(new RegExp(`path="${path}"[\\s]*element=[{][\\s]*<FarmerRoute>`));
+  it('no hay guarda de rutas del agricultor', () => {
+    expect(app).not.toMatch(/FarmerRoute/);
+  });
+
+  it('una ruta desconocida lleva al inicio que corresponde a la sesión', () => {
+    expect(app).toMatch(/<Route path="\*" element=\{<HomeRedirect \/>\} \/>/);
   });
 
   it('/directiva no renderiza la página heredada', () => {
