@@ -1047,6 +1047,12 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
         }),
       ).rejects.toThrow();
       await expect(prisma.jointPurchaseCallOriginProduct.deleteMany({ where: { callId: id } })).rejects.toThrow();
+      // Nor adding a product to the origin later, in another transaction (same rule as F12 results).
+      await expect(
+        prisma.jointPurchaseCallOriginProduct.create({
+          data: { callId: id, position: 2, productId: p3, baseUnit: "ML", proposalId: null, proposalPosition: null },
+        }),
+      ).rejects.toThrow(/el origen no admite productos posteriores/);
       const stored = await prisma.jointPurchaseCallOrigin.findUniqueOrThrow({ where: { callId: id }, include: { products: true } });
       expect(stored).toMatchObject({ kind: "PROPOSAL", proposalId: proposal.id, selectionRevision: 1, selectionMatched: true });
       expect(stored.products).toHaveLength(2);

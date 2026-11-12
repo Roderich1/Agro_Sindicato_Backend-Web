@@ -132,6 +132,7 @@ CREATE FUNCTION "joint_purchase_call_origin_product_guard"() RETURNS trigger AS 
 DECLARE
   origin_tenant TEXT;
   origin_proposal UUID;
+  origin_created_by xid;
   product_tenant TEXT;
   line_product TEXT;
   line_unit "SyncV1BaseUnit";
@@ -139,8 +140,13 @@ BEGIN
   IF TG_OP <> 'INSERT' THEN
     RAISE EXCEPTION '% no admite % (registro inmutable)', TG_TABLE_NAME, TG_OP;
   END IF;
-  SELECT "tenantId", "proposalId" INTO origin_tenant, origin_proposal
+  SELECT "tenantId", "proposalId", xmin INTO origin_tenant, origin_proposal, origin_created_by
     FROM "JointPurchaseCallOrigin" WHERE "callId" = NEW."callId";
+  -- Como F12 (EstimationResult): los productos del origen sólo se insertan en la
+  -- misma transacción que crea su origen; un origen no admite añadidos posteriores.
+  IF origin_created_by IS DISTINCT FROM pg_current_xact_id()::xid THEN
+    RAISE EXCEPTION 'JointPurchaseCallOriginProduct: el origen no admite productos posteriores';
+  END IF;
   SELECT "tenantId" INTO product_tenant FROM "Product" WHERE "id" = NEW."productId";
   IF product_tenant IS DISTINCT FROM origin_tenant THEN
     RAISE EXCEPTION 'JointPurchaseCallOriginProduct: producto de otro sindicato';
