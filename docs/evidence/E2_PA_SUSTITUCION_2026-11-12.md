@@ -132,7 +132,9 @@ La APK anterior se compiló de nuevo **del mismo SHA**, porque el origen del tú
 
 ## 8. Cierre de P-A (2026-11-12)
 
-El autor aceptó el comportamiento de P-A demostrado en la app integrada, con los límites indicados. **No** aceptó todavía las pantallas del rediseño, y **no** se declara la compatibilidad completa de la app anterior.
+**Aceptación del autor (2026-11-12):** «P-A queda aceptada funcionalmente conforme a las decisiones y recorridos documentados.» Esto **no** es una aceptación visual de sus pantallas ni del resto del rediseño, que siguen en revisión. Tampoco declara compatible la app anterior: ver la tabla de versiones de esta sección.
+
+**No** se declara la compatibilidad completa de la app anterior.
 
 - **Versión mínima** que permite autorizar a una nueva responsable: Mobile `4a3f1ad` (contrato 3, esquema v19) o, en la rama del rediseño, `91f2e73` o posterior. El Back necesario es `49ed870` o posterior.
 - **Versión anterior** (contrato 2, `e1f6e25`): los datos quedan protegidos; el texto de visibilidad es incorrecto, porque dice que la sucesora «puede ver»; y la autorización no está disponible (`AUTHORIZATION_REQUIRED`, sin reintento). La versión con contrato 1 se comprobó sólo por la API.

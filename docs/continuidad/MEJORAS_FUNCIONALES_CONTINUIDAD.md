@@ -151,6 +151,6 @@ La API arranca con secretos generados en el momento (nunca en archivos). La app 
 
 ## 12. Cierre de P-A (2026-11-12)
 
-- El autor aceptó el comportamiento de P-A en la app integrada, con sus límites. Esto no incluye las pantallas del rediseño, que siguen en revisión.
+- **P-A aceptada funcionalmente por el autor (2026-11-12)**, conforme a las decisiones y recorridos documentados. No es una aceptación visual de sus pantallas ni del rediseño, que siguen en revisión.
 - Las versiones, la evaluación del aviso desde el servidor (no es posible sin falsificar) y el procedimiento de actualización están en el contrato §12.8. El resumen está en la evidencia §8.
 - No se abre otra etapa funcional. Las sesiones implementadoras sólo corrigen observaciones concretas.

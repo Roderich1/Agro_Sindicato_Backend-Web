@@ -556,7 +556,9 @@ Columnas aditivas sin rellenar (`responsible_version` en convocatorias, operacio
 
 ### 12.8 Versiones del teléfono frente a P-A y procedimiento de actualización (cierre del 2026-11-12)
 
-El autor aceptó el comportamiento de P-A demostrado con la app integrada, con los límites de esta sección. **La app anterior no es compatible por completo con P-A**: protege los datos, pero no permite autorizar a la nueva responsable.
+**Aceptación del autor (2026-11-12):** «P-A queda aceptada funcionalmente conforme a las decisiones y recorridos documentados.» Esto **no** es una aceptación visual de sus pantallas ni del resto del rediseño, que siguen en revisión. Tampoco declara compatible la app anterior: ver la tabla de versiones de esta sección.
+
+**La app anterior no es compatible por completo con P-A**: protege los datos, pero no permite autorizar a la nueva responsable.
 
 | Versión del teléfono | Contrato | Tras una sustitución | Cómo se comprobó |
 |---|---|---|---|
