@@ -116,7 +116,6 @@ export function JointProposalPage() {
   const [linkFeedback, setLinkFeedback] = useState<Feedback | null>(null);
   const [acting, setActing] = useState<LinkIntent | null>(null);
   /** Sube tras una consulta periódica fallida, para volver a intentarlo. */
-  const [pollTick, setPollTick] = useState(0);
   const [selection, setSelection] = useState<SelectionLoad | null>(null);
   const [selectionFeedback, setSelectionFeedback] = useState<Feedback | null>(null);
   const [saving, setSaving] = useState(false);
@@ -169,8 +168,13 @@ export function JointProposalPage() {
     } catch (err) {
       if (!current()) return;
       if (quiet) {
-        setLinkFeedback({ kind: 'warn', message: `${collectiveError(err, 'No fue posible consultar el estado del cálculo.')} Se vuelve a consultar en unos segundos.` });
-        setPollTick((tick) => tick + 1);
+        // m10 (2026-11-12): un fallo detiene el sondeo; el cálculo sigue en el
+        // servidor y se vuelve a consultar sólo con «Reintentar».
+        setLinkFeedback(null);
+        setLink({
+          status: 'error',
+          message: `${collectiveError(err, 'No fue posible consultar el estado del cálculo.')} El cálculo puede seguir en curso: pulse «Reintentar» para consultarlo.`,
+        });
       } else {
         setLink({ status: 'error', message: collectiveError(err, 'No fue posible cargar la referencia de consumo estimado.') });
       }
@@ -260,16 +264,24 @@ export function JointProposalPage() {
     });
   }, [selected, context, loadHistory]);
 
-  // Mientras se calcula, se vuelve a leer la referencia (sólo GET). Se detiene al
-  // terminar el cálculo, al cambiar de borrador, de campaña o de identidad, y al salir.
+  // Mientras se calcula, se vuelve a leer la referencia (sólo GET). m10: sólo con
+  // la vista activa (pestaña visible) y el cálculo pendiente; se detiene al
+  // terminar o fallar el cálculo, al fallar la consulta, al cambiar de borrador,
+  // de campaña o de identidad, y al salir.
   const shownProposalRef = proposal?.proposal_ref ?? null;
   const calculating = link?.status === 'ready' && link.view.state === 'CALCULATING';
+  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden');
   useEffect(() => {
-    if (!calculating || !shownProposalRef) return;
+    const onVisibility = () => setPageVisible(document.visibilityState !== 'hidden');
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+  useEffect(() => {
+    if (!calculating || !shownProposalRef || !pageVisible) return;
     const at = context;
     const timer = setTimeout(() => void loadLink(shownProposalRef, at, true), LINK_POLL_MS);
     return () => clearTimeout(timer);
-  }, [calculating, shownProposalRef, context, link, pollTick, loadLink]);
+  }, [calculating, shownProposalRef, context, link, loadLink, pageVisible]);
 
   /** Única escritura de la vista sobre el borrador: sólo con el botón, nunca al entrar, refrescar ni cambiar de campaña. */
   const generate = async () => {

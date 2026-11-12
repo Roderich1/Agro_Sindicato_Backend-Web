@@ -468,6 +468,43 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS * 4));
     expect(vi.mocked(collectiveService.estimationLink).mock.calls.length).toBe(atExit);
   });
+  it('m10: un fallo de la consulta detiene el sondeo; sólo «Reintentar» vuelve a consultar', async () => {
+    serve(CALCULATING, selectionFor(DRAFT), [DRAFT]);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderAt(<JointProposalPage />, { path: PATH });
+    await screen.findByRole('button', { name: 'Calculando…' });
+    const reads = () => vi.mocked(collectiveService.estimationLink).mock.calls.length;
+    vi.mocked(collectiveService.estimationLink).mockRejectedValueOnce(new Error('sin red'));
+    await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS));
+    expect(await screen.findByText(/pulse «Reintentar» para consultarlo/)).toBeTruthy();
+    const afterFailure = reads();
+    await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS * 5));
+    expect(reads()).toBe(afterFailure);
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(reads()).toBe(afterFailure + 1));
+  });
+
+  it('m10: con la pestaña oculta no se consulta; al volver a verla, sí', async () => {
+    serve(CALCULATING, selectionFor(DRAFT), [DRAFT]);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderAt(<JointProposalPage />, { path: PATH });
+    await screen.findByRole('button', { name: 'Calculando…' });
+    const reads = () => vi.mocked(collectiveService.estimationLink).mock.calls.length;
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    const hiddenAt = reads();
+    await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS * 4));
+    expect(reads()).toBe(hiddenAt);
+    visibility.mockReturnValue('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS));
+    await waitFor(() => expect(reads()).toBe(hiddenAt + 1));
+    visibility.mockRestore();
+  });
 });
 
 /** Ejecución sintética para «Ver cálculo» (forma de `GET /estimation/runs/{runId}`). */
