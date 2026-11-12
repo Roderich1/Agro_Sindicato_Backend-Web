@@ -125,6 +125,20 @@ describe('Directiva y Administración', () => {
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe(COLLECTIVE_PATHS.summary));
   });
 
+  it.each(['DIRECTIVA', 'ADMINISTRADOR'])(
+    '%s en el enlace antiguo /calendar llega a Campañas, sin llamar al calendario ni a Usuarios',
+    async (role) => {
+      const get = vi.spyOn(api, 'get').mockReturnValue(new Promise(() => undefined));
+      const post = vi.spyOn(api, 'post').mockReturnValue(new Promise(() => undefined));
+      renderRoutes(role, '/calendar');
+      await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/campaigns'));
+      await new Promise((done) => setTimeout(done, 20));
+      const urls = [...get.mock.calls, ...post.mock.calls].map(([url]) => String(url));
+      expect(urls.some((url) => url.includes('/calendar'))).toBe(false);
+      expect(urls.some((url) => /^\/?users\b/.test(url.replace(/^\/api\/v1/, '')))).toBe(false);
+    },
+  );
+
   it('sin sesión, cualquier ruta lleva al inicio de sesión', async () => {
     renderRoutes('', '/inventory');
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/login'));

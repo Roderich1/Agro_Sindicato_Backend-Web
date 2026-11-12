@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 // Texto fuente de App.tsx (importación `?raw` de Vite; sin APIs de Node).
 import app from './App.tsx?raw';
 import auditLogsPage from './pages/audit-logs.page.tsx?raw';
-import calendarPage from './pages/calendar.page.tsx?raw';
 
 // Decisión del autor (2026-11-12): la Web es sólo de Directiva y Administración. Las pantallas
 // de operación privada del agricultor (F10-SEC-02 #45) se retiraron; sus rutas antiguas caen en
@@ -29,8 +28,14 @@ describe('App.tsx: sin vistas del agricultor', () => {
 });
 
 describe('F10-SEC-02: sin filtros por agricultor que el servidor ignora', () => {
-  it('bitácora y calendario no ofrecen filtrar por agricultor', () => {
+  it('la bitácora no ofrece filtrar por agricultor', () => {
     expect(auditLogsPage).not.toMatch(/audit-owner|ownerUserId: filters/);
-    expect(calendarPage).not.toMatch(/calendar-owner|setOwnerUserId/);
+  });
+});
+
+describe('Calendario retirado de la Web (2026-11-12)', () => {
+  it('ya no hay página ni servicio del calendario: /calendar sólo redirige a Campañas tras la guarda', () => {
+    expect(app).not.toMatch(/CalendarPage|calendar\.page|calendar\.service/);
+    expect(app).toMatch(/path="\/calendar"[\s]*element=\{[\s]*<PrivateRoute>[\s]*<Navigate to="\/campaigns" replace \/>/);
   });
 });
