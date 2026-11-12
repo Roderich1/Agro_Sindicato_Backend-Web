@@ -92,17 +92,6 @@ describe('Campañas', () => {
     expect(campaignsService.active).toHaveBeenCalledTimes(2);
   });
 
-  it('agricultor: sólo consulta, sin «Nueva campaña» ni acciones', async () => {
-    // Un agricultor sólo llega a la Web con el flag de rollback; sin él no se pide nada.
-    vi.stubEnv('VITE_LEGACY_FARMER_WEB', 'enabled');
-    show(fixtures.worst, { role: 'AGRICULTOR' });
-    await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`);
-    expect(screen.queryByRole('button', { name: 'Nueva campaña' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /^(Editar|Abrir|Cerrar)$/ })).toBeNull();
-    expect(screen.getAllByText('Sólo consulta').length).toBe(fixtures.worst.length);
-    expect(screen.getByText(/Puede consultar las campañas/)).toBeTruthy();
-  });
-
   it('N1: Directiva y Administrador ven crear, editar, abrir y cerrar (campaigns.controller.ts los admite), sin «Sólo consulta»', async () => {
     for (const role of ['DIRECTIVA', 'ADMINISTRADOR']) {
       const { unmount } = show(fixtures.worst, { role });

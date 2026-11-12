@@ -2,8 +2,6 @@ import type { ApiDateString, DecimalString, UserSummary } from './common';
 
 export type StockMovementType = 'ENTRADA' | 'SALIDA' | 'AJUSTE';
 export type InventoryCriticality = 'BAJO_MINIMO' | 'VENCIDO' | 'POR_VENCER' | 'OK';
-export type AdjustmentDirection = 'INCREMENTO' | 'DECREMENTO';
-export type StockEntryReason = 'COMPRA' | 'ENTRADA_SIMPLE' | 'DEVOLUCION' | 'AJUSTE';
 export type StockMovementReasonType =
   | 'COMPRA'
   | 'ENTRADA_SIMPLE'
@@ -14,7 +12,6 @@ export type StockMovementReasonType =
   | 'DEVOLUCION'
   | 'AJUSTE'
   | 'OTRO';
-export type AdjustmentReasonType = 'PERDIDA_DERRAME' | 'VENCIMIENTO' | 'AJUSTE' | 'OTRO';
 
 export interface ProductRefPayload {
   productId?: string;
@@ -87,50 +84,6 @@ export interface InventoryLot {
   criticality: InventoryCriticality;
 }
 
-export interface UpdateLotPayload {
-  lotNumber?: string;
-  expirationDate?: string;
-  warehouseId?: string;
-  warehouseName?: string;
-}
-
-export interface RegisterInitialStockPayload {
-  product: ProductRefPayload;
-  quantity: number;
-  lotNumber?: string;
-  expirationDate?: string;
-  warehouseId?: string;
-  warehouseName?: string;
-  notes?: string;
-}
-
-export interface RegisterStockEntryPayload extends RegisterInitialStockPayload {
-  campaignId?: string;
-  entryReason: StockEntryReason;
-}
-
-export interface RegisterStockExitPayload {
-  productId: string;
-  campaignId?: string;
-  inventoryLotId?: string;
-  quantity: number;
-  reasonType: StockMovementReasonType;
-  reason: string;
-}
-
-export interface CreateAdjustmentPayload {
-  productId: string;
-  campaignId?: string;
-  inventoryLotId?: string;
-  direction: AdjustmentDirection;
-  reasonType: AdjustmentReasonType;
-  quantity: number;
-  reason?: string;
-  lotNumber?: string;
-  expirationDate?: string;
-  warehouseName?: string;
-}
-
 export interface StockLot {
   id: string;
   ownerUserId: string;
@@ -156,40 +109,10 @@ export interface StockLot {
   receivedAt: ApiDateString;
 }
 
-export interface InventoryAlertResponse {
-  stockMinimum: Array<{
-    type: 'BAJO_MINIMO';
-    product: {
-      id: string;
-      name: string;
-      unit: string;
-      minimumStock: DecimalString;
-      currentStock: DecimalString;
-    };
-    message: string;
-  }>;
-  expiration: Array<{
-    type: 'VENCIDO' | 'POR_VENCER';
-    product: { id: string; name: string; unit: string };
-    lot: {
-      id: string;
-      lotNumber: string | null;
-      expirationDate: ApiDateString | null;
-      currentQuantity: DecimalString;
-    };
-    message: string;
-  }>;
-  total: number;
-}
-
 export interface ListProductsQuery {
   search?: string;
   category?: string;
   isActive?: boolean;
-}
-
-export interface ListLotsQuery {
-  productId?: string;
 }
 
 export interface ListStockQuery {
@@ -203,15 +126,6 @@ export interface ListStockQuery {
 
 export interface ListGlobalStockQuery extends ListStockQuery {
   ownerUserId?: string;
-}
-
-export interface ListStockMovementsQuery {
-  type?: StockMovementType;
-  productId?: string;
-  campaignId?: string;
-  reasonType?: StockMovementReasonType;
-  from?: string;
-  to?: string;
 }
 
 export interface StockMovement {
@@ -230,26 +144,9 @@ export interface StockMovement {
   createdAt: ApiDateString;
 }
 
-export interface StockOperationResult {
-  lot?: StockLot | InventoryLot;
-  movement?: StockMovement;
-  movements?: Array<{ lot: StockLot | InventoryLot; movement: StockMovement }>;
-  message?: string;
-}
-
-export interface UpdateProductSettingsPayload {
-  category?: string;
-  minimumStock?: number;
-  expirationWarningDays?: number;
-}
-
 export type { PayableAccount, PayableStatus } from './accounts-payable';
 export type {
-  CreatePurchasePayload,
-  CreateSupplierPayload,
   JointPurchasePayload,
   PurchasePaymentMode,
   Supplier,
-  UpdateSupplierPayload,
 } from './procurement';
-export type { OfflineOperation, OfflineOperationType } from './sync';

@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import type { ReactNode } from 'react';
-import { homePathFor, isCollectiveRole, legacyFarmerWebEnabled } from '../lib/navigation';
+import { homePathFor, isCollectiveRole } from '../lib/navigation';
 
 export function PrivateRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -21,7 +21,7 @@ export function PrivateRoute({ children }: { children: ReactNode }) {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  // F07-WEB-01 (#23): sólo Directiva y Administrador usan la Web.
-  if (!isCollectiveRole(user.role) && !legacyFarmerWebEnabled()) return <Navigate to={homePathFor(user.role)} replace />;
+  // Sólo Directiva y Administración usan la Web; el AGRICULTOR va al aviso.
+  if (!isCollectiveRole(user.role)) return <Navigate to={homePathFor(user.role)} replace />;
   return <>{children}</>;
 }

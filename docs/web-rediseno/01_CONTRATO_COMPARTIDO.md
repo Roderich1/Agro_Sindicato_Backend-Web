@@ -26,7 +26,7 @@ Base de código: `8568fd1` (`feat/web-defensa-panel`). Alcance: sólo `Web/` (Re
 | **Administración** (grupo) | `/users` (Usuarios, sólo `ADMINISTRADOR`, `AdminRoute`) · `/audit-logs` (Bitácora, `RoleRoute` DIRECTIVA/ADMINISTRADOR) | existentes | Sin cambios funcionales. El grupo sólo aparece si el rol tiene al menos un ítem. | mismas rutas |
 | Cobertura | `/colectivo/cobertura` | `CollectiveRoute` | **Sale del menú**, sigue existiendo y enlazada desde Resumen («Ver cobertura») y desde el detalle de campaña. | misma ruta |
 | Copia sin conexión | `/estimacion/copia-sin-conexion` | ninguna (por diseño F12-EST-07) | Sin cambios. | misma ruta |
-| Legacy agricultor | `/dashboard`, `/plots`, … , `/directiva` | `FarmerRoute` / redirección | Sin cambios; fuera del menú salvo `VITE_LEGACY_FARMER_WEB=enabled`. | — |
+| Legacy agricultor | `/dashboard`, `/plots`, `/inventory`, `/applications`, `/reports`, `/purchases`, `/sync` | Retiradas el 2026-11-12 (la Web es sólo de Directiva y Administración); la ruta comodín lleva al inicio de cada sesión | `/directiva` sigue redirigiendo a Necesidades y propuestas | — |
 
 Reglas de implementación:
 - `Web/src/lib/navigation.ts` es la **única** fuente de rutas y del menú (`COLLECTIVE_PATHS`, `COLLECTIVE_MENU`, `menuPathsFor`, `homePathFor`). Añadir ahí `history: '/colectivo/historico'`, `catalog: '/colectivo/catalogo'`, `campaignDetail: (id) => '/campaigns/' + id`. Conservar las claves antiguas (`trends`, `estimation`, `products`, `reconciliation`) apuntando a sus rutas antiguas, para que las pruebas y los enlaces existentes sigan válidos; las redirecciones viven en `App.tsx`.

@@ -156,9 +156,6 @@ export function CampaignsPage() {
         </div>
 
         {message && <Notice kind="ok">{message}</Notice>}
-        {!canManage && (
-          <Notice kind="info">Puede consultar las campañas; sólo la Directiva o el Administrador pueden crearlas, editarlas, abrirlas o cerrarlas.</Notice>
-        )}
 
         <section className={`overflow-hidden ${surfaceClass}`}>
           <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 px-5 py-3">

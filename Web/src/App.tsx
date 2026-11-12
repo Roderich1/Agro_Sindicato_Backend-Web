@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { lazy, Suspense, type ReactNode } from 'react';
 import { AdminRoute } from './components/admin-route';
 import { CollectiveRoute } from './components/collective-route';
-import { FarmerRoute, LegacyDirectivaRedirect } from './components/farmer-route';
+import { LegacyDirectivaRedirect } from './components/legacy-directiva-redirect';
 import { PrivateRoute } from './components/private-route';
 import { RedirectWithQuery } from './components/redirect-with-query';
 import { AuthProvider } from './contexts/auth.context';
@@ -10,25 +10,12 @@ import { CampaignProvider } from './contexts/campaign.context';
 import { useAuth } from './hooks/use-auth';
 import { COLLECTIVE_PATHS, ESTIMATION_COPY_PATH, homePathFor, WEB_NOT_FOR_FARMERS_PATH } from './lib/navigation';
 import { CampaignsPage } from './pages/campaigns.page';
-import { DashboardPage } from './pages/dashboard.page';
-import { InventoryPage } from './pages/inventory.page';
 import { LoginPage } from './pages/login.page';
-import { PlotsPage } from './pages/plots.page';
-import { SyncPage } from './pages/sync.page';
 import { UsersPage } from './pages/users.page';
 import { WebNotForFarmersPage } from './pages/web-not-for-farmers.page';
 
-const ApplicationsPage = lazy(() =>
-  import('./pages/applications.page').then((module) => ({ default: module.ApplicationsPage })),
-);
-const PurchasesPage = lazy(() =>
-  import('./pages/purchases.page').then((module) => ({ default: module.PurchasesPage })),
-);
 const CalendarPage = lazy(() =>
   import('./pages/calendar.page').then((module) => ({ default: module.CalendarPage })),
-);
-const ReportsPage = lazy(() =>
-  import('./pages/reports.page').then((module) => ({ default: module.ReportsPage })),
 );
 const CollectiveSummaryPage = lazy(() =>
   import('./pages/collective-summary.page').then((module) => ({ default: module.CollectiveSummaryPage })),
@@ -78,7 +65,8 @@ function HomeRedirect() {
   return <Navigate to={user ? homePathFor(user.role) : '/login'} replace />;
 }
 
-function AppRoutes() {
+/** Tabla de rutas (se exporta para las pruebas de acceso por rol). */
+export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
@@ -175,14 +163,6 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard"
-        element={
-          <FarmerRoute>
-            <DashboardPage />
-          </FarmerRoute>
-        }
-      />
-      <Route
         path="/campaigns"
         element={
           <PrivateRoute>
@@ -200,35 +180,11 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/plots"
-        element={
-          <FarmerRoute>
-            <PlotsPage />
-          </FarmerRoute>
-        }
-      />
-      <Route
-        path="/applications"
-        element={
-          <FarmerRoute>
-            <ApplicationsPage />
-          </FarmerRoute>
-        }
-      />
-      <Route
         path="/calendar"
         element={
           <PrivateRoute>
             <CalendarPage />
           </PrivateRoute>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <FarmerRoute>
-            <ReportsPage />
-          </FarmerRoute>
         }
       />
       <Route
@@ -247,33 +203,11 @@ function AppRoutes() {
           </AdminRoute>
         }
       />
-      {/* F10-SEC-02 (#45): operación privada legacy, sólo AGRICULTOR (FarmerRoute) */}
-      <Route
-        path="/inventory"
-        element={
-          <FarmerRoute>
-            <InventoryPage />
-          </FarmerRoute>
-        }
-      />
-      <Route
-        path="/purchases"
-        element={
-          <FarmerRoute>
-            <PurchasesPage />
-          </FarmerRoute>
-        }
-      />
-      <Route
-        path="/sync"
-        element={
-          <FarmerRoute>
-            <SyncPage />
-          </FarmerRoute>
-        }
-      />
       {/* F10-SEC-02 (#45): la pantalla heredada ejecutaba compras y pagos; el camino vigente es la propuesta */}
       <Route path="/directiva" element={<LegacyDirectivaRedirect />} />
+      {/* La Web es sólo de Directiva y Administración: cualquier otra ruta (incluidas las antiguas del
+          agricultor, ya retiradas) vuelve al inicio que corresponde a la sesión: login, resumen o aviso. */}
+      <Route path="*" element={<HomeRedirect />} />
     </Routes>
   );
 }
