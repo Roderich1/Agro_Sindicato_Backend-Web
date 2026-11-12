@@ -39,7 +39,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe('PrivateRoute (campañas y calendario)', () => {
+describe('PrivateRoute (campañas y enlaces antiguos del calendario)', () => {
   it.each(['DIRECTIVA', 'ADMINISTRADOR'])('%s entra', (role) => {
     renderAt(<PrivateRoute><p>campañas</p></PrivateRoute>, { role, path: '/campaigns', routes: FALLBACKS });
     expect(screen.getByText('campañas')).toBeTruthy();

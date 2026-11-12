@@ -4,7 +4,7 @@
 
 La Web React/Vite es online-first y está destinada a Directiva/Admin. No reemplaza Flutter ni es un segundo cliente operativo del agricultor. Lea [`docs/scope/CURRENT_SCOPE.md`](../docs/scope/CURRENT_SCOPE.md).
 
-La Web es exclusivamente de Directiva y Administración (decisión del autor del 2026-11-12). Las pantallas del agricultor (inventario, parcelas, aplicaciones, compras, reportes, cola offline) se retiraron; una cuenta AGRICULTOR sólo ve el aviso de que usa la app móvil. Sigue como legacy el Calendario (accesible por URL, fuera del menú; su retirada está recomendada y pendiente del autor). La página heredada `directiva.page.tsx` se retiró el 2026-11-12. No las use como precedente para funciones nuevas.
+La Web es exclusivamente de Directiva y Administración (decisión del autor del 2026-11-12). Las pantallas del agricultor (inventario, parcelas, aplicaciones, compras, reportes, cola offline) se retiraron; una cuenta AGRICULTOR sólo ve el aviso de que usa la app móvil. El Calendario y la página heredada `directiva.page.tsx` también se retiraron el 2026-11-12; `/calendar` lleva a Campañas, donde siguen la fecha estimada de fin y su aviso. No las use como precedente para funciones nuevas.
 
 ## Reglas
 

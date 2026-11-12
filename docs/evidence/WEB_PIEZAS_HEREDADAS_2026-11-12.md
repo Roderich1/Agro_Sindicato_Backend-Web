@@ -106,3 +106,37 @@ La app móvil **no** usa `/calendar`: no aparece en `lib/` del rediseño integra
 | `npx vite build` | correcto |
 
 No se rehicieron capturas: ninguna pantalla visible cambió. La página retirada no tenía ruta, y la captura del Calendario (`10_administracion/06`) sigue siendo válida.
+
+## 4. Calendario retirado de la Web (autorización del autor, 2026-11-12)
+
+- **Retirado:**
+  - `pages/calendar.page.tsx`, `services/calendar.service.ts` y `types/calendar.ts`;
+  - la página perezosa en `App.tsx`.
+
+  El grafo de importaciones confirmó que eran exclusivos. Los componentes del armazón que también usaba (`EmptyState`, `SkeletonRow`, `StatCard`, `StatusBadge`, `Notice`) y `listUsers` siguen, porque los usan la Bitácora, Usuarios y otras vistas. `fmtCalendarDate` (fechas de campaña) no tiene relación con el Calendario y se conserva.
+- **Enlace antiguo:** `/calendar` → `<PrivateRoute><Navigate to="/campaigns" /></PrivateRoute>`:
+  - Directiva y Administración llegan a Campañas;
+  - el AGRICULTOR ve el aviso;
+  - sin sesión, se va a `/login`.
+- **Se conserva en Campañas:** la fecha estimada de fin, el aviso de fin vencido y el «fin estimado» de la campaña activa y del detalle. No se añadió ningún calendario ni aviso nuevo.
+- **Sin cambios:** el Backend, Mobile, los eventos existentes y sus datos.
+- **Pruebas** (código en el commit indicado en la sección 5):
+  - `tsc -b` sin errores;
+  - `eslint .` con 0 errores (los 7 avisos de antes);
+  - `vitest` 54 archivos, **589 pruebas, todas pasan**;
+  - `vite build` correcto.
+- **Pruebas nuevas:**
+  - `web-access-by-role.test.tsx`: Directiva y Administración en `/calendar` llegan a `/campaigns` **sin ninguna llamada a `/calendar` ni a `/users`**; el AGRICULTOR en `/calendar` sigue viendo el aviso;
+  - `app-routes.test.ts`: `App.tsx` ya no tiene página ni servicio del calendario.
+
+## 5. Verificación en el navegador (Calendario retirado, `d5569a7`)
+
+Vite de `chore/web-solo-institucional` en `127.0.0.1:5176`, con proxy a la API aislada 3350 y datos sintéticos. El registro está en `web_piezas_heredadas_2026-11-12/navegador_calendario_retirado.txt`.
+
+| Caso | Resultado | Llamadas a la API al abrir `/calendar` |
+|---|---|---|
+| DIRECTIVA abre `/calendar` por URL | Llega a `/campaigns` (título «Campañas», con menú) | `auth/refresh`, `GET /campaigns/active` y `GET /campaigns`. **Ni `/calendar/events` ni `/users`** |
+| ADMINISTRADOR abre `/calendar` por URL | Llega a `/campaigns` | Las mismas: **ni `/calendar/events` ni `/users`** |
+| AGRICULTOR abre `/calendar` por URL | Aviso «Esta cuenta utiliza la aplicación móvil.», sin menú ni enlaces | Sólo `auth/refresh` |
+
+**Evidencia histórica:** la captura del Calendario tal como era antes de retirarlo, con Directiva y datos sintéticos, se conserva en `web_piezas_heredadas_2026-11-12/calendario_retirado/`. Se retiró del material de diseño vigente.

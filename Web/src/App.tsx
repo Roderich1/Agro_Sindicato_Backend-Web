@@ -14,9 +14,6 @@ import { LoginPage } from './pages/login.page';
 import { UsersPage } from './pages/users.page';
 import { WebNotForFarmersPage } from './pages/web-not-for-farmers.page';
 
-const CalendarPage = lazy(() =>
-  import('./pages/calendar.page').then((module) => ({ default: module.CalendarPage })),
-);
 const CollectiveSummaryPage = lazy(() =>
   import('./pages/collective-summary.page').then((module) => ({ default: module.CollectiveSummaryPage })),
 );
@@ -179,11 +176,13 @@ export function AppRoutes() {
           </PrivateRoute>
         }
       />
+      {/* El Calendario se retiró de la Web el 2026-11-12 (decisión del autor): sus enlaces antiguos llevan
+          a Campañas, con la misma guarda (el AGRICULTOR va al aviso; sin sesión, al login). */}
       <Route
         path="/calendar"
         element={
           <PrivateRoute>
-            <CalendarPage />
+            <Navigate to="/campaigns" replace />
           </PrivateRoute>
         }
       />

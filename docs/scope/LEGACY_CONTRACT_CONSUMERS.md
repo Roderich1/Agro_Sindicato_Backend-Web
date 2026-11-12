@@ -111,3 +111,10 @@ Decisión del autor del 2026-11-12: **la Web es exclusivamente de Directiva y Ad
   - La app móvil no usa `/calendar`.
   - Detalle en `docs/evidence/WEB_PIEZAS_HEREDADAS_2026-11-12.md`.
 
+## Actualización 2026-11-12 (3): Calendario retirado de la Web
+
+- **Autorización:** el autor autorizó retirar el Calendario de la Web el 2026-11-12.
+- **Qué se retiró:** la página `/calendar`, `calendar.service.ts` y `types/calendar.ts` de la Web.
+- **Enlaces antiguos:** `/calendar` lleva a Campañas, tras la misma guarda; el AGRICULTOR ve el aviso y, sin sesión, se va a `/login`.
+- **Consumidores de `/calendar/events`:** **la Web ya no lo consume**, y la app móvil tampoco.
+- **Lo que no cambia:** el Backend (módulo `calendar`, sus eventos y sus datos) sigue como estaba. Su retirada sería otra decisión, con reauditoría de consumidores.
