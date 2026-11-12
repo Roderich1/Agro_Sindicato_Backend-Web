@@ -14,7 +14,7 @@ Material para rediseñar la Web de la Directiva en Claude Design y revisarlo en 
 
 | Pieza | Valor |
 |---|---|
-| Composición | Rama `feat/etapa3-estimacion-borrador`, commit **`9dc80f0`** (worktree `_wt/ET2-BE`), **más** la limpieza **`741e730`** de la rama `chore/web-solo-institucional` (worktree `_wt/WEB-SOLO-INST`): la Web es sólo de Directiva y Administración y se retiraron las vistas del agricultor. Este paquete está en la rama `docs/web-redesign-input`, que parte de `9dc80f0` e integra esa limpieza (worktree `_wt/WEB-DESIGN-INPUT`) |
+| Composición | Rama `feat/etapa3-estimacion-borrador`, commit **`9dc80f0`** (worktree `_wt/ET2-BE`), **más** la limpieza **`741e730`** y **`754cb25`** de la rama `chore/web-solo-institucional` (worktree `_wt/WEB-SOLO-INST`): la Web es sólo de Directiva y Administración y se retiraron las vistas del agricultor. Este paquete está en la rama `docs/web-redesign-input`, que parte de `9dc80f0` e integra esa limpieza (worktree `_wt/WEB-DESIGN-INPUT`) |
 | Web en ejecución | Servidor de desarrollo Vite en `127.0.0.1:5175`, que sirve el árbol de `_wt/ET2-BE` en `9dc80f0` (sin cambios locales en `Web/src`), para las capturas institucionales. La limpieza no cambia ninguna pantalla institucional; el aviso del agricultor (`01_acceso/03`) y la verificación de acceso por rol se hicieron con Vite en `127.0.0.1:5176` sobre `741e730`. No es un build de producción |
 | API en ejecución | NestJS en el puerto 3350, desde el `dist` compilado el 2026-11-12 a las 12:03 a partir de `49ed870`. Entre `49ed870` y `9dc80f0`, `Back/src` sólo añade una prueba (`joint-purchase-calls.postgres.spec.ts`): el código de la API en ejecución es el de la composición |
 | Base | PostgreSQL del contenedor aislado `agro_et1_pg` (puerto 15434, sólo en `localhost`, base `agro_demo`), con 23 migraciones aplicadas; la última es `20261112180000_e2_pa_responsible_substitution` |
@@ -52,6 +52,7 @@ No hizo falta crear una rama de composición: todo lo terminado está en `9dc80f
 | Origen de la convocatoria (E3-P2) | `c87c352`, `fa44b5f` (Back), `91e9ef2` (Web) | Sí | `05_convocatorias/04`, `10` |
 | Exportación Excel y retirada del CSV | `eeaf327` (Back: rutas CSV retiradas), `7acf0a1` y `d5dc9cc` (Web) | Sí | `04_excel/*` y «Descargar Excel» en las pantallas |
 | Web sólo de Directiva y Administración (vistas del agricultor retiradas; aviso para la cuenta AGRICULTOR) | `741e730` (rama `chore/web-solo-institucional`) | Sí | `01_acceso/03` |
+| Página heredada `directiva.page.tsx` (sin ruta) retirada; Calendario revisado, con su retirada recomendada y pendiente del autor | `754cb25`, `b1bed3f` | Sí | sin cambios en las capturas |
 
 La Web **no tiene ninguna exportación en PDF**: el PDF existe sólo en la app móvil.
 

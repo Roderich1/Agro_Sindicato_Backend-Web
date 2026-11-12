@@ -58,7 +58,7 @@ Nada de esto se corrigió durante la preparación.
 
 - **Tres contenedores con vistas** (`?vista=`) y varias rutas antiguas que redirigen a ellos (INVENTARIO §5).
 - **El detalle de campaña** lista sus borradores sin enlace a cada uno, y «Ver» de un borrador anterior no cambia la URL: no se puede volver a un borrador concreto (código).
-- **El Calendario** («Agenda y alertas») es una pantalla heredada fuera del menú. Se llega por URL y ofrece «Completar» y «Cancelar» sobre el cierre de la campaña (captura `10_administracion/06`).
+- **El Calendario** («Agenda y alertas») es una pantalla heredada fuera del menú. Se llega por URL y ofrece «Completar» y «Cancelar» sobre el cierre de la campaña (captura `10_administracion/06`). Para la Directiva repite el «fin estimado» de Campañas, y «Completar» no cierra la campaña. Se recomienda retirarlo; la decisión es del autor (`docs/evidence/WEB_PIEZAS_HEREDADAS_2026-11-12.md`).
 
 ## 2. Problemas funcionales (la interfaz dice una cosa y el sistema hace otra)
 

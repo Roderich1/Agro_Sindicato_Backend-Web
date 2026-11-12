@@ -2,7 +2,7 @@
 
 Insumo para el rediseño de la Web en Claude Design. Describe lo que hace el código, no lo que debería hacer.
 
-- **Fuente:** `_wt/ET2-BE/Web/src`, rama `feat/etapa3-estimacion-borrador`, commit `9dc80f0`, más la limpieza `741e730` (rama `chore/web-solo-institucional`): **la Web es sólo de Directiva y Administración** (decisión del autor del 2026-11-12) y se retiraron las vistas del agricultor. Redactado leyendo el código; después se recorrió la Web en ejecución y las capturas de INDICE_CAPTURAS.md confirman las pantallas principales.
+- **Fuente:** `_wt/ET2-BE/Web/src`, rama `feat/etapa3-estimacion-borrador`, commit `9dc80f0`, más la limpieza `741e730` y `754cb25` (rama `chore/web-solo-institucional`): **la Web es sólo de Directiva y Administración** (decisión del autor del 2026-11-12) y se retiraron las vistas del agricultor. Redactado leyendo el código; después se recorrió la Web en ejecución y las capturas de INDICE_CAPTURAS.md confirman las pantallas principales.
 - **Fecha de redacción:** 2026-11-12.
 - **Convenciones:** «la persona» cuando no se sabe el género. «(no verificado)» marca lo que el código no deja claro. Los permisos que decide el servidor se indican como tales: la Web sólo oculta botones o rutas.
 
@@ -457,6 +457,13 @@ Contenedor con el selector «Vista»: «Productos» (`?vista=productos`, por def
 - **Estados:** filas fantasma, error, «Sin eventos».
 - Pantalla con el estilo anterior al rediseño: sin `PageHeader`, por lo que no tiene título visible (`h1`); la barra superior dice «Agenda y alertas».
 - **Comprobado en el recorrido** (captura `10_administracion/06`): la Directiva la abre por URL y ve el evento «Cierre estimado de Invierno 2026 (DEMO)» con «Completar» y «Cancelar».
+- **Revisión del 2026-11-12** (`docs/evidence/WEB_PIEZAS_HEREDADAS_2026-11-12.md`):
+  - un rol institucional sólo recibe el recordatorio «Cierre estimado» de las campañas abiertas, el mismo dato que ya muestra Campañas;
+  - «Completar» y «Cancelar» sólo cambian el estado del recordatorio, no la campaña;
+  - el filtro «Tipo» ofrece cinco tipos que siempre salen vacíos;
+  - `GET /users` no sirve de nada para estos roles;
+  - la app móvil no usa `/calendar`.
+  - **Recomendación: retirarlo de la Web**, pendiente de la decisión del autor.
 
 ### 4.16–4.22 Pantallas del agricultor: retiradas
 
@@ -474,7 +481,7 @@ Las pantallas `/dashboard`, `/plots`, `/applications`, `/reports`, `/inventory`,
 | `/colectivo/productos` | `/colectivo/catalogo?vista=productos`. |
 | `/colectivo/reconciliacion` | `/colectivo/catalogo?vista=equivalencias`. |
 | `*` (cualquier otra, incluidas las antiguas del agricultor) | Pantalla inicial de la sesión: Resumen, aviso (§4.13) o `/login`. |
-| `/directiva` | `/colectivo/propuestas` (conserva `?campaign=`). La página heredada «Panel Directiva» (`pages/directiva.page.tsx`, que ejecutaba compras y pagos) sigue en el código pero ninguna ruta la muestra. |
+| `/directiva` | `/colectivo/propuestas` (conserva `?campaign=`). La página heredada «Panel Directiva» (`pages/directiva.page.tsx`, que ejecutaba compras y pagos) se retiró el 2026-11-12 (`754cb25`): no tenía ruta ni consumidores. |
 
 ---
 
