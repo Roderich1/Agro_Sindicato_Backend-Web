@@ -129,3 +129,37 @@ La APK anterior se compiló de nuevo **del mismo SHA**, porque el origen del tú
 - El recorrido de la app integrada (§7.2) lo hizo la sesión del rediseño en su emulador y su entorno; aquí se resume lo que informó, con su commit de evidencia.
 - No se probó en un teléfono físico. El caso de una autorización sin red que llega después de otra sustitución no se recorrió en el emulador: lo cubren sólo las pruebas automáticas (`e2_pa_responsible_test.dart` y la prueba PostgreSQL de B1).
 - Los datos del entorno aislado cambiaron: convocatoria «app anterior», Responsable PA 3 inhabilitada y contraseñas de un solo uso en cuentas sintéticas. Sólo ese entorno.
+
+## 8. Cierre de P-A (2026-11-12)
+
+El autor aceptó el comportamiento de P-A demostrado en la app integrada, con los límites indicados. **No** aceptó todavía las pantallas del rediseño, y **no** se declara la compatibilidad completa de la app anterior.
+
+- **Versión mínima** que permite autorizar a una nueva responsable: Mobile `4a3f1ad` (contrato 3, esquema v19) o, en la rama del rediseño, `91f2e73` o posterior. El Back necesario es `49ed870` o posterior.
+- **Versión anterior** (contrato 2, `e1f6e25`): los datos quedan protegidos; el texto de visibilidad es incorrecto, porque dice que la sucesora «puede ver»; y la autorización no está disponible (`AUTHORIZATION_REQUIRED`, sin reintento). La versión con contrato 1 se comprobó sólo por la API.
+- **Aviso del servidor a la app anterior:** se evaluó y no es posible de forma visible sin falsificar estados ni romper funciones. Se conserva la restricción.
+- La tabla de versiones, la evaluación y el procedimiento de actualización están en el contrato E2 §12.8.
+- Las **pruebas automáticas** (§4, §6 y §7.1) se presentan separadas de los **recorridos reales** (§1 a §3, §7.2 y §7.3, este último en emulador).
+- **No hay pruebas en un teléfono físico.**
+
+## 9. Composición final para la revisión de diseño (confirmada con la sesión del rediseño, 2026-11-12)
+
+| Pieza | Código | Confirmación |
+|---|---|---|
+| Back de la revisión | `_wt/RDM-BE` en `361416a` (sin rama, incluye la Web `8cc8c4f`). La API 3370 no se reconstruyó: entre `49ed870` y `361416a`, `Back/src` sólo añade una prueba `.postgres.spec` y no hay migraciones nuevas | Informado por la sesión del rediseño. API 3370 con health 200. La Web de RDM-BE **no** está levantada para la revisión |
+| APK en `emulator-5556` | «AC RDM» de `91f2e73`, SHA-256 `6e82fd2b969caa66360ffad0f85a4256275dc3d9aa4824807e61b1c2dbeeda88`, `lastUpdateTime` 2026-11-12 17:53:29 | **No** incluye `9264191` (sin «+ Registrar» flotante en Convocatorias, que tapaba «Continuar» en la hoja de cantidades). Instalarlo antes de la revisión lo decide el autor con esa sesión |
+| Pixel_8 (`emulator-5554`) | `.et1o` de `e1f6e25` (app anterior, recorrido §7.3) | No forma parte de la candidata |
+
+**Qué código cubre cada suite:**
+
+| Suite | Código | Resultado | Cubre la candidata |
+|---|---|---|---|
+| Back completa | `d5dc9cc` | 999 pasan, 6 omitidas (B2 real) | Sí para la lógica: `Back/src` de `361416a` es igual salvo una prueba nueva |
+| Back E2 PostgreSQL | `8cc8c4f` | 32/32 (incluye la prueba de autosustitución) | Sí |
+| Web completa | `8cc8c4f` (igual a la Web de `361416a`) | 568/568; `tsc -b` sin errores | Sí |
+| Mobile completa (ET2-MOB) | `2cc7e39` | 3043 pasan, 3 omitidas | Rama funcional, no la candidata |
+| Mobile completa (rediseño) | `91f2e73` | 3055 pasan, 3 omitidas, 0 fallan | **Sí: es el código de la APK instalada** |
+| Mobile focalizadas (rediseño) | `9264191` | 184/0 (FAB y convocatorias) | Sólo el código de la rama |
+| Mobile completa (rediseño) | `79de523` (mismo código que `9264191`) | 3055 pasan, 3 omitidas, 0 fallan (07:11) | Sólo el código de la rama, no la APK instalada |
+
+**Verificaciones completas pendientes:** ninguna para el código de la APK instalada. Si se instala `9264191` o una versión posterior, hay que confirmar de nuevo la APK (SHA y `lastUpdateTime`). Sigue sin haber pruebas en un teléfono físico. En este cierre sólo cambió documentación, así que no se repitieron suites.
+

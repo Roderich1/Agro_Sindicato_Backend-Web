@@ -553,3 +553,36 @@ Columnas aditivas sin rellenar (`responsible_version` en convocatorias, operacio
 - **Combinación de lecturas:** si una persona vio el total de un producto al cierre por el umbral (k = 3) y después es sucesora y recibe autorizaciones individuales, puede deducir por resta la cantidad de quien no la autorizó. Es el mismo límite de §10.3 («lo que dos personas combinen fuera del sistema»): no se presenta como garantía de anonimato (N4).
 - **Borradores:** cambiar la responsable con `PATCH` en un borrador (antes de abrir) sigue como estaba y no sube la versión; las delegaciones de la responsable anterior de ese borrador siguen vigentes (comportamiento anterior a P-A, anotado; no se cambió).
 - **Teléfono:** recorrido en emulador el 2026-11-12 por la tarde (no en teléfono físico). La app integrada del rediseño (`91f2e73`) cubrió sustitución, autosustitución, delegaciones, restricción, autorización independiente de las cantidades y convocatoria cerrada. La app anterior (`e1f6e25`, contrato 2) es segura, pero no puede autorizar a la nueva responsable y su texto de «quién ve sus datos» queda más permisivo de lo real: hace falta actualizar. Evidencia `docs/evidence/E2_PA_SUSTITUCION_2026-11-12.md` §7.
+
+### 12.8 Versiones del teléfono frente a P-A y procedimiento de actualización (cierre del 2026-11-12)
+
+El autor aceptó el comportamiento de P-A demostrado con la app integrada, con los límites de esta sección. **La app anterior no es compatible por completo con P-A**: protege los datos, pero no permite autorizar a la nueva responsable.
+
+| Versión del teléfono | Contrato | Tras una sustitución | Cómo se comprobó |
+|---|---|---|---|
+| **Mínima que autoriza a una nueva responsable:** Mobile `4a3f1ad` (esquema v19) y posteriores; en la rama del rediseño, `91f2e73` y posteriores | 3 | Muestra quién es la nueva responsable y que su autorización anterior no vale para ella; acción «Revisar autorización», casilla sin marcar; autorizar no cambia cantidades y cambiar cantidades no autoriza | Pruebas de widget, almacén y emisor (`e2_pa_responsible_test.dart`); recorrido en emulador de la app integrada `91f2e73` (evidencia P-A §7.2) |
+| **Anterior con P-C:** Mobile `9cb6d7b`/`e1f6e25` (esquema v18) | 2 | **Datos protegidos** (la sucesora no ve nombre ni cantidades). **Texto de visibilidad incorrecto:** dice que la sucesora «puede ver su nombre y sus cantidades». **Autorización no disponible:** «Autorizar también a la Directiva o la Administración» recibe `409 AUTHORIZATION_REQUIRED` una vez, sin reintento, y la app dice que la decisión no se aplicó. Modificar o retirar sigue funcionando y no autoriza | Recorrido en emulador (Pixel_8, `e1f6e25`, evidencia §7.3) y prueba PostgreSQL de B1 |
+| **Anterior a P-C:** Mobile `6bac5a3` y anteriores (esquema ≤ 16) | 1 | Datos protegidos; no tiene opción de ampliar ni de autorizar; modificar o retirar sigue funcionando y no autoriza. Su texto de visibilidad también nombra a la nueva responsable como si pudiera ver | Sólo forma de la respuesta por la API real (evidencia §1 paso 8) y prueba PostgreSQL; **no** se recorrió en un dispositivo tras una sustitución |
+
+Una participación **nueva** desde una app con contrato 1 o 2 en una convocatoria ya sustituida queda sin autorizar (`consentResponsibleVersion` nulo): el teléfono no puede decir a quién mostró.
+
+**¿Puede el servidor avisar a la app anterior de que necesita actualizarse?** Evaluado el 2026-11-12 sobre el código de `e1f6e25` y `6bac5a3`: **no de forma visible y compatible**.
+
+- Las apps anteriores no tienen ningún mecanismo de versión mínima ni de «actualice la app», y no muestran texto libre del servidor: la frase de visibilidad se compone en el teléfono con `responsible.name` y `consent_scope`, y los rechazos muestran una frase fija con el código.
+- Un campo nuevo (por ejemplo, `update_required`) sería compatible, porque la app lo ignora, pero también **invisible** para el agricultor. No se añadió.
+- Cambiar el nombre de la responsable, el alcance o el estado que se envía a esas versiones mostraría un aviso, pero **falsificaría estados**. Se rechazó.
+- Ocultar la convocatoria o rechazar lecturas o cantidades a esas versiones **rompería funciones independientes** (ver el estado, modificar, retirar). Se rechazó.
+- Otro código de rechazo (por ejemplo, `APP_UPDATE_REQUIRED`) sólo aparecería como código dentro de la frase fija, y sólo después de intentar ampliar. `AUTHORIZATION_REQUIRED` ya es exacto. No se cambió.
+- **Se conserva la restricción.** No se amplía ningún acceso para acomodar la versión antigua.
+
+**Procedimiento de actualización** (sin cambios en el servidor):
+
+1. La Web muestra a la nueva responsable «N participaciones pendientes de que sus agricultores autoricen…». La Directiva o la Administración pide a los agricultores de esa convocatoria, por el canal habitual del sindicato y **sin señalar a nadie**, que actualicen la app. La Web no dice quién falta.
+2. Se instala la versión mínima o una posterior **encima** de la anterior: mismo paquete, sin desinstalar, como `adb install -r` en las pruebas. Los datos se conservan. La migración del esquema v18 a v19 es aditiva: conserva lo pendiente y no rellena (`migration_test.dart`; el recorrido del rediseño comprobó el esquema 19 con los conteos iguales).
+3. En la app actualizada: «Compras conjuntas» → «Actualizar» → la convocatoria muestra que la responsable cambió → «Revisar autorización». La casilla está sin marcar y, si se quiere, se marca la segunda para las colaboradoras. Las cantidades no cambian.
+4. Lo que quedó pendiente de envío desde la versión anterior se envía tal cual y **nunca** autoriza. Si la responsable vuelve a cambiar antes de que llegue la autorización, el servidor la rechaza (`RESPONSIBLE_CHANGED`) y la app pide revisar de nuevo.
+
+**Pruebas automáticas frente a recorridos reales:**
+- **Automáticas:** reglas A1, B1 y C1, concurrencia, reintentos, autosustitución, borrador, abierta, cerrada y cancelada, y contratos 1, 2 y 3 en PostgreSQL. Matriz C1. Web. Widget, almacén, emisor y migración v19 en Mobile.
+- **Reales:** API, base y Web del entorno aislado. Excel abierto en Microsoft Excel. Emulador Android: la app integrada recorrida por la sesión del rediseño y la app anterior en el Pixel_8.
+- **No se probó en ningún teléfono físico.**

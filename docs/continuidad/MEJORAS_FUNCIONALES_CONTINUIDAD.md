@@ -148,3 +148,9 @@ La API arranca con secretos generados en el momento (nunca en archivos). La app 
   - Evidencia: §7 de la evidencia P-A.
 - **Estado:** túnel cerrado; Pixel_8 encendido con sus datos (`.et1o` reinstalada del mismo SHA); worktree temporal retirado; API 3350, Web 5175 y contenedor arriba.
 - **Pendiente:** probar en un teléfono físico. El texto de la app anterior sólo se corrige actualizando la app.
+
+## 12. Cierre de P-A (2026-11-12)
+
+- El autor aceptó el comportamiento de P-A en la app integrada, con sus límites. Esto no incluye las pantallas del rediseño, que siguen en revisión.
+- Las versiones, la evaluación del aviso desde el servidor (no es posible sin falsificar) y el procedimiento de actualización están en el contrato §12.8. El resumen está en la evidencia §8.
+- No se abre otra etapa funcional. Las sesiones implementadoras sólo corrigen observaciones concretas.
