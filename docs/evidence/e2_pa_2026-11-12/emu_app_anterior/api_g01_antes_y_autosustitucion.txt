@@ -1,0 +1,52 @@
+## 2026-11-12T14:17:13-04:00 estado tras participar desde la app anterior
+{
+ "status": "OPEN",
+ "responsible": "Responsable PA 3 (sintética)",
+ "responsible_version": 1,
+ "participations": [
+  {
+   "status": "ACTIVE",
+   "scope": "COLLABORATORS",
+   "authorized_version": 1
+  },
+  {
+   "status": "ACTIVE",
+   "scope": "RESPONSIBLE_ONLY",
+   "authorized_version": 1
+  },
+  {
+   "status": "ACTIVE",
+   "scope": "RESPONSIBLE_ONLY",
+   "authorized_version": 1
+  }
+ ],
+ "access": [
+  {
+   "user": "Responsable PA 3 (sintética)",
+   "grant": "PARTICIPANTS",
+   "by_system": true,
+   "version": 1
+  },
+  {
+   "user": "Administración DEMO",
+   "grant": "PARTICIPANTS",
+   "by_system": false,
+   "version": 1
+  },
+  {
+   "user": "Directiva DEMO",
+   "grant": "MANAGE",
+   "by_system": false,
+   "version": 1
+  }
+ ],
+ "access_events": [
+  "GRANTED:PARTICIPANTS",
+  "GRANTED:MANAGE"
+ ],
+ "changes": []
+}
+## inhabilitar a Responsable PA 3
+{"deactivate":"resp3","status":200,"eligible_now":false}
+## autosustitución: Directiva DEMO (con el permiso) se nombra a sí misma
+{"by":"directiva","status":422,"code":"SUCCESSOR_NOT_ELIGIBLE","responsible_unchanged":true,"version_before":1,"version_after":1,"changes_in_db":0}

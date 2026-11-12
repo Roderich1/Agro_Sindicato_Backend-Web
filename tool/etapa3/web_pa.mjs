@@ -114,6 +114,9 @@ try {
     await shot(s.page, 'pa_w04_inhabilitada');
     await clickByText(s.page, /^Sustituir responsable$/);
     await selectByLabel(s.page, 'substitute-user', /Sucesora PA/);
+    // Decisión del autor (2026-11-12): quien sustituye no figura y se le explica por qué.
+    result.selfNote = await text(s.page, '[data-testid="substitute-self-note"]');
+    result.options = await s.page.$$eval('#substitute-user option', (opts) => opts.map((o) => o.textContent?.trim() ?? ''));
     await s.page.type('#substitute-reason', 'La responsable dejó de estar habilitada; coordina la entrega la sucesora');
     await checkDialogBox(s.page);
     await shot(s.page, 'pa_w05_sustituir_dialogo');

@@ -10,7 +10,7 @@
 | Contrato | `docs/architecture/E2_CONVOCATORIAS_COMPRA_CONJUNTA_CONTRATO.md` §12 |
 | Carpeta | `docs/evidence/e2_pa_2026-11-12/` |
 
-Lo **real** (API, base y Web del entorno aislado, Excel abierto en Microsoft Excel) está separado de lo **simulado** (pruebas automatizadas). El teléfono no se recorrió: ver §5.
+Lo **real** (API, base y Web del entorno aislado, Excel abierto en Microsoft Excel, emulador) está separado de lo **simulado** (pruebas automatizadas). El recorrido en el **emulador** (no en un teléfono físico) se hizo por la tarde: ver §7.
 
 ## 1. Recorrido real (API, base y Web)
 
@@ -61,7 +61,7 @@ No se generó en un teléfono (§5). `tool/pa/excel_muestra_test.dart` usa el se
 
 ## 5. Límites de esta evidencia
 
-- **Teléfono:** el recorrido en el emulador no se hizo. El AVD Pixel_8 (`emulator-5554`) se colgó al arrancar («bad color buffer handle», hilos de QEMU sin respuesta) y no pude cerrarlo (sin permiso para detener procesos). La APK `AC ET1 PA` (`.et1`, Mobile `4a3f1ad`, atada al túnel de ese día) se compiló pero no se instaló. La parte visible de Mobile está probada sólo con pruebas de widget y de almacén/emisor.
+- **Teléfono (actualizado en §7):** en la primera ronda el recorrido en el emulador no se hizo. El AVD Pixel_8 (`emulator-5554`) se colgó al arrancar («bad color buffer handle», hilos de QEMU sin respuesta) y no pude cerrarlo (sin permiso para detener procesos). La APK `AC ET1 PA` (`.et1`, Mobile `4a3f1ad`, atada al túnel de ese día) se compiló pero no se instaló. La parte visible de Mobile está probada sólo con pruebas de widget y de almacén/emisor.
 - **APK anteriores reales:** no se comprobaron después de una sustitución en un dispositivo; sí la forma de los contratos 1 y 2 por la API real (pasos 8–10).
 - La APK `.et1` queda atada al túnel del 2026-11-12: para recorrerla otro día hay que compilarla de nuevo.
 - Los datos del entorno aislado cambiaron (clasificación corregida, personas y convocatorias PA, un permiso concedido): son sintéticos y sólo de ese entorno.
@@ -75,3 +75,57 @@ No se generó en un teléfono (§5). `tool/pa/excel_muestra_test.dart` usa el se
 | Mobile | `2cc7e39` | `flutter test` | 3043 pasan, 3 omitidas por condición previa (`date_display_test`: sólo en America/La_Paz; `f06_reconciliation_integration_test`: sin base de integración). 4 min 08 s |
 
 Tiempos de espera: en esta corrida no hubo ninguno. En la del 2026-11-12 por la mañana fallaron por tiempo `current-auth-context` y `f81-phase6` con los trabajadores por defecto, y pasaron solas (25/25 y 7/7). Esta vez se limitó a 3 trabajadores y pasaron dentro de la suite completa. Eso apunta a la carga del equipo, pero **no** lo prueba: no se midió la causa.
+
+## 7. Decisión del autor sobre la autosustitución y recorrido en el emulador (2026-11-12, tarde)
+
+Decisión del autor: quien ejecuta la sustitución **no** puede nombrarse a sí misma; otra persona habilitada con el permiso sí puede nombrarla; sin otra persona elegible se informa del bloqueo, sin excepción automática ni accesos nuevos. Recorrido en **emulador** Android (AVD `Pixel_8` y `RDM_Pixel8`, x86_64): **no** es una prueba en teléfono físico.
+
+### 7.1 Cambios y pruebas (simuladas)
+
+| Commit | Qué | Comprobación |
+|---|---|---|
+| `8cc8c4f` | Web: quien sustituye no aparece en la lista y se le explica por qué (`substitute-self-note`); si sólo es elegible ella o no hay nadie, se informa del bloqueo y no se puede enviar (`substitute-no-candidates`). Prueba PostgreSQL nueva: la autosustitución da `422 SUCCESSOR_NOT_ELIGIBLE` sin registro ni cambio de versión, y otra titular del permiso sí la nombra (registro con actor, anterior y nueva). Contrato §12.7 y continuidad. El código del Back no cambia (el bloqueo ya estaba en `49ed870`) | E2 PostgreSQL 32/32; Web completa `npx vitest run --no-file-parallelism` 568/568 (54 archivos); `tsc -b` sin errores; `eslint .` 0 errores (7 avisos anteriores, en archivos no tocados) |
+| `fce0b0c` y el commit de esta evidencia | Guiones: `pa_walk.cjs selfsub`, `PA_CALL`/`PA_RESP`; `web_pa.mjs` registra la nota y la lista del diálogo | — |
+
+Mobile no cambió: valen las suites del §6 y la del rediseño sobre `91f2e73` (3055 pasan, 3 omitidas, 0 fallan, informada por esa sesión).
+
+### 7.2 App integrada (rediseño + P-A): recorrido de la sesión del rediseño
+
+Lo hizo la sesión del rediseño en `emulator-5556` (`RDM_Pixel8`), contra su Back aislado actualizado a `49ed870` (23 migraciones, sin fallidas, datos conservados), con la APK «AC RDM» compilada de `91f2e73` (SHA-256 `6e82fd2b…da88`, `lastUpdateTime` 17:53:29, esquema 19). Su evidencia está en `_wt/RDM-MOB`, commit `33482cb`: `docs/evidence/rediseno-movil/2026-11-12/integracion/README.md` y `pa_api.txt` (no se copian aquí). Resultado que informó:
+
+| Punto | Resultado |
+|---|---|
+| a. Sustitución por una persona autorizada | `200`, versión 1→2, sigue `OPEN` |
+| b. Autosustitución | `422 SUCCESSOR_NOT_ELIGIBLE`, versión sigue en 1 |
+| c. Delegaciones | eventos `SUSPENDED:PARTICIPANTS` y `SUSPENDED:MANAGE`; la sucesora tiene 2 por revisar |
+| d. Datos restringidos | la sucesora ve 0 participantes y 3 pendientes; el teléfono muestra la tarjeta y «Revisar autorización» |
+| e. Autorización y cantidades | modificar 10→12 KG no autoriza (sigue versión 1); autorizar deja 12 KG y pasa a versión 2, «aplicada en el sindicato» |
+| f. Convocatoria cerrada | sustitución `200` y sigue `CLOSED`; autorizar desde el teléfono no la reabre; consolidado guardado 4000/1 y `/closing` idéntico al del cierre |
+
+### 7.3 App anterior (contrato 2) en el Pixel_8: recorrido propio (real)
+
+Entorno aislado de §1 (API 3350 con el `dist` de `49ed870`; Web 5175 con `8cc8c4f`). Túnel HTTPS temporal sólo hacia `/api/v1/` por la compuerta, con autenticación; PostgreSQL y la DEMO oficial no se expusieron; **cerrado** al terminar.
+
+El Pixel_8 que se había colgado respondía de nuevo (arrancado, escritorio visible, sin instalaciones en curso). La sesión del rediseño lo cerró con `adb emu kill` (sin wipe) y se volvió a arrancar conservando sus datos (`-gpu swiftshader_indirect`). No se tocó `emulator-5556`.
+
+La APK anterior se compiló de nuevo **del mismo SHA**, porque el origen del túnel va dentro de la APK: paquete `.et1o`, Mobile `e1f6e25` (contrato 2, esquema 18), SHA-256 `229a002f4a020c6f91879bb3cc758f0614afa1c05922f7a4dfdefb1dd2d680c0`. Se instaló con `adb install -r` sobre la misma, conservando sus datos (`lastUpdateTime` 14:14:24; primera instalación 08:09:26). Cuenta agricultor13. Carpeta `e2_pa_2026-11-12/emu_app_anterior/`.
+
+| # | Paso | Quién / cómo | Resultado | Archivo |
+|---|---|---|---|---|
+| g1 | Convocatoria nueva «Convocatoria P-A app anterior (sintética)» con Responsable PA 3; «Consultar participantes» a Administración DEMO y «Administrar» a Directiva DEMO; agricultor1 (contrato 3, ampliada) y agricultor2 (contrato 2) por la API | `PA_CALL=… PA_RESP=resp3 pa_walk.cjs setup` | Abierta, versión 1 | `api_g01_…` |
+| g2 | La app anterior lee la lista y participa con 5 L («Entiendo y acepto») | Emulador | «Participación recibida · El sindicato tiene: 5 L»; «Sólo la persona responsable (Responsable PA 3) puede ver…» | `g01`–`g03` |
+| g3 | Inhabilitar a la responsable | API real de usuarios | `eligible_now: false` | `api_g01_…` |
+| g4 | Autosustitución: Directiva DEMO (titular del permiso) se nombra a sí misma | API (`selfsub`) | `422 SUCCESSOR_NOT_ELIGIBLE`; responsable y versión 1 sin cambio; 0 registros de cambio | `api_g01_…` |
+| g5 | Sustituir | Web como Directiva DEMO | En el diálogo, Directiva DEMO no figura entre las opciones y aparece la nota «Usted no aparece en la lista: quien sustituye no puede nombrarse…». Sucesora PA queda como responsable (versión 2); 2 permisos suspendidos | `web/pa_w04–w06`, `web/web_pa_sustituir.json` |
+| g6 | Lo que ve cada persona | API | Sucesora: 0 participantes, 3 pendientes, total `RESTRICTED`; Administración y Directiva DEMO: `PARTICIPANTS_FORBIDDEN` | `api_g02_…` |
+| g7 | App anterior tras «Actualizar» | Emulador | Muestra «Responsable: Sucesora PA» y **«Sólo la persona responsable (Sucesora PA) puede ver su nombre y sus cantidades»**: el texto es más permisivo que lo real, porque la sucesora no ve nada hasta que el agricultor la autorice. Ver §7.4 | `g04` |
+| g8 | «Modificar» a 7 L desde la app anterior | Emulador | `PUT … 200`; servidor: 7000 (base), `RESPONSIBLE_ONLY`, autorizada para la versión **1** con la vigente en 2: cambiar cantidades **no** autoriza | `g05`, `api_g03_…` |
+| g9 | «Autorizar también a la Directiva o la Administración» desde la app anterior (casilla marcada) | Emulador | `POST …/consent 409` **una sola vez**, sin reintentos (`requests_tunel.log`). La app dice «El sindicato no aplicó su última decisión sobre quién ve sus datos (AUTHORIZATION_REQUIRED). Rige lo que se indica arriba.» Servidor sin cambio (alcance, versión 1, 7 L) | `g06`, `g07`, `api_g03_…` |
+| g10 | Después | API | La sucesora sigue con 0 participantes y 3 pendientes; total `RESTRICTED` | `api_g03_…` |
+
+### 7.4 Límites que quedan
+
+- **App anterior (contrato 2):** el comportamiento es **seguro**: no amplía, no autoriza a la sucesora al cambiar cantidades ni con «Autorizar también», no reintenta y no restaura accesos. Pero **no puede representar** la autorización de la nueva responsable: su texto dice que la sucesora «puede ver» los datos cuando no es así, y el agricultor no puede autorizarla desde esa versión. Se mantiene la restricción y **hace falta actualizar la app**; la app integrada sí lo resuelve (§7.2 d–e).
+- El recorrido de la app integrada (§7.2) lo hizo la sesión del rediseño en su emulador y su entorno; aquí se resume lo que informó, con su commit de evidencia.
+- No se probó en un teléfono físico. El caso de una autorización sin red que llega después de otra sustitución no se recorrió en el emulador: lo cubren sólo las pruebas automáticas (`e2_pa_responsible_test.dart` y la prueba PostgreSQL de B1).
+- Los datos del entorno aislado cambiaron: convocatoria «app anterior», Responsable PA 3 inhabilitada y contraseñas de un solo uso en cuentas sintéticas. Sólo ese entorno.

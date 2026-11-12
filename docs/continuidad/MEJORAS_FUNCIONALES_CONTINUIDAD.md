@@ -138,3 +138,13 @@ La API arranca con secretos generados en el momento (nunca en archivos). La app 
 - **Pendiente:** recorrido en el teléfono (el Pixel_8 se colgó al arrancar; sus procesos quedaron abiertos hasta que alguien con permiso los cierre); APK anteriores en un dispositivo después de una sustitución; en la app contrato 2, el texto de «quién ve sus datos» queda más permisivo de lo real tras una sustitución (necesita actualizar). Anotado: `PATCH` de la responsable en un borrador no suspende las delegaciones del borrador (comportamiento anterior).
 - **Rediseño móvil:** integrar Mobile `4a3f1ad` y `2cc7e39` y Back `49ed870` (o posterior). El widget `JointPurchaseResponsibleReview` se llama en un solo sitio del detalle; además el botón «ampliar» se oculta con `needsResponsibleReview`. Pruebas focalizadas: `test/e2_pa_responsible_test.dart`, `test/e2_joint_purchase_*_test.dart`, `test/migration_test.dart`, `test/rec_039_schema_constraints_test.dart`, `test/report_*_test.dart`.
 - **Entorno aislado:** sigue arriba (contenedor 15434, API 3350, Web 5175). Túnel cerrado al terminar el 2026-11-12. Guiones: `tool/etapa3/pa_walk.cjs`, `web_pa.mjs`, `excel_open_check.ps1`.
+
+## 11. Actualización del 2026-11-12 (tarde, 2): autosustitución decidida y recorrido en el emulador
+
+- **Autosustitución:** decisión del autor aplicada en la Web (`8cc8c4f`); el Back ya la bloqueaba (`49ed870`).
+- **Emulador (no teléfono físico):**
+  - la app integrada del rediseño (`91f2e73`, en `emulator-5556`, con el Back del rediseño en `49ed870`) la recorrió esa sesión (puntos a–f; evidencia en RDM-MOB `33482cb`);
+  - la app anterior `.et1o` (`e1f6e25`, contrato 2) se recorrió en el Pixel_8: es segura, pero hay que actualizarla para autorizar a la sucesora.
+  - Evidencia: §7 de la evidencia P-A.
+- **Estado:** túnel cerrado; Pixel_8 encendido con sus datos (`.et1o` reinstalada del mismo SHA); worktree temporal retirado; API 3350, Web 5175 y contenedor arriba.
+- **Pendiente:** probar en un teléfono físico. El texto de la app anterior sólo se corrige actualizando la app.
