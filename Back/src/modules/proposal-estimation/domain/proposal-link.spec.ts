@@ -1,4 +1,14 @@
-import { compare, ComparisonInput, derivedJobRequestId, exactDifference, lineEstimationState, parse } from "./proposal-link";
+import {
+  compare,
+  ComparisonInput,
+  derivedJobRequestId,
+  estimateScope,
+  exactDifference,
+  LineEstimationState,
+  lineEstimationState,
+  parse,
+  showsEstimateScope,
+} from "./proposal-link";
 
 /** E3 §5 and §4 (lines), pure functions: comparability, exact difference, line state. */
 const base = (overrides: Partial<{ need: Partial<ComparisonInput["need"]>; estimate: Partial<NonNullable<ComparisonInput["estimate"]>> | null; populationVerified: boolean }> = {}): ComparisonInput => ({
@@ -11,12 +21,13 @@ const base = (overrides: Partial<{ need: Partial<ComparisonInput["need"]>; estim
 });
 
 describe("E3 comparability (§5)", () => {
-  it("today never computes a difference: the population is not verified (E3-P1)", () => {
+  it("today never computes a difference: the population is not verified (E3-P1, option 1 + 1b)", () => {
     const result = compare(base({ populationVerified: false }));
     expect(result).toEqual({
       comparable: false,
       blockers: ["POPULATION_NOT_VERIFIED"],
-      message: "No se calcula la diferencia: no hay datos para comprobar que la necesidad y la estimación cubran a las mismas personas.",
+      message:
+        "No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).",
       difference: null,
     });
   });
@@ -118,6 +129,35 @@ describe("E3 line state (§4)", () => {
     expect(lineEstimationState("LINKED", { status: "INSUFFICIENT_DATA", validity: "NOT_USABLE", validityReason: "NO_FIGURE" })).toBe("INSUFFICIENT_DATA");
     expect(lineEstimationState("LINKED", { status: "INCOMPATIBLE_DATA", validity: "NOT_USABLE", validityReason: "NO_FIGURE" })).toBe("INSUFFICIENT_DATA");
     expect(lineEstimationState("LINKED", { status: "CALCULATION_FAILED", validity: "NOT_USABLE", validityReason: "NO_FIGURE" })).toBe("ERROR");
+  });
+});
+
+describe("E3-P1 known scope of the estimate (option 1b)", () => {
+  const points = (counts: (number | null)[], from = 0) => counts.map((contributors, i) => ({ position: from + i, contributors }));
+
+  it("counts the campaigns of the span and the fewest and most contributors of a figure", () => {
+    expect(estimateScope({ first: 1, last: 4 }, points([9, 4, 6, 5, 4, 12]))).toEqual({ span_campaigns: 4, contributors_min: 4, contributors_max: 6 });
+    // Positions outside the span do not count.
+    expect(estimateScope({ first: 0, last: 2 }, points([5, 5, 5, 3]))).toEqual({ span_campaigns: 3, contributors_min: 5, contributors_max: 5 });
+    expect(estimateScope({ first: 2, last: 2 }, points([3, 3, 7]))).toEqual({ span_campaigns: 1, contributors_min: 7, contributors_max: 7 });
+  });
+
+  it("is unknown (null), never guessed, without a complete span", () => {
+    expect(estimateScope({ first: null, last: null }, points([4, 5]))).toBeNull();
+    expect(estimateScope({ first: 0, last: null }, points([4, 5]))).toBeNull();
+    expect(estimateScope({ first: 2, last: 1 }, points([4, 5, 6]))).toBeNull();
+    // A position of the span without its point, or without a source figure.
+    expect(estimateScope({ first: 0, last: 3 }, points([4, 5, 6]))).toBeNull();
+    expect(estimateScope({ first: 0, last: 2 }, points([4, null, 6]))).toBeNull();
+  });
+
+  it("goes only with an estimate figure (AVAILABLE or OUTDATED with estimate_base)", () => {
+    expect(showsEstimateScope("AVAILABLE", "111000.000000")).toBe(true);
+    expect(showsEstimateScope("OUTDATED", "111000.000000")).toBe(true);
+    expect(showsEstimateScope("AVAILABLE", null)).toBe(false);
+    expect(showsEstimateScope("OUTDATED", null)).toBe(false);
+    const without: LineEstimationState[] = ["NONE", "CALCULATING", "INSUFFICIENT_DATA", "ERROR", "NO_RESULT", "RESTRICTED"];
+    for (const state of without) expect(showsEstimateScope(state, "111000.000000")).toBe(false);
   });
 });
 

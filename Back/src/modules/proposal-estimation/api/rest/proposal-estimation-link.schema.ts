@@ -66,7 +66,7 @@ export const estimationLinkViewSchema: SchemaObject = closed(
     },
     lines: {
       type: "array",
-      items: closed(["position", "product", "base_unit", "presentation_unit", "need", "estimation", "comparison"], {
+      items: closed(["position", "product", "base_unit", "presentation_unit", "need", "estimation", "comparison", "scope"], {
         position: { type: "integer" },
         product: closed(["product_ref", "name"], { product_ref: { type: "string" }, name: { type: "string" } }),
         base_unit: { type: "string", enum: ["ML", "G"] },
@@ -100,6 +100,31 @@ export const estimationLinkViewSchema: SchemaObject = closed(
             { nullable: true, description: "Sólo sin blockers; hoy siempre null (POPULATION_NOT_VERIFIED, E3-P1)" },
           ),
         }),
+        scope: closed(
+          ["need_contributors", "estimate"],
+          {
+            need_contributors: {
+              type: "integer",
+              minimum: 0,
+              nullable: true,
+              description: "Aportantes de la cifra de necesidad; sólo si la línea está divulgada y servida (DISCLOSED)",
+            },
+            estimate: closed(
+              ["span_campaigns", "contributors_min", "contributors_max"],
+              {
+                span_campaigns: { type: "integer", minimum: 1, description: "Campañas del tramo usado por la estimación" },
+                contributors_min: { type: "integer", minimum: 0, description: "Menos aportantes de una cifra de consumo del tramo" },
+                contributors_max: { type: "integer", minimum: 0, description: "Más aportantes de una cifra de consumo del tramo" },
+              },
+              {
+                nullable: true,
+                description:
+                  "Sólo con cifra de estimación (AVAILABLE u OUTDATED con estimate_base); null en cualquier otro estado. Sin identidades ni detalle por campaña",
+              },
+            ),
+          },
+          { description: "E3-P1 (opción 1 + 1b): alcance conocido de cada cifra; no habilita ninguna diferencia" },
+        ),
       }),
     },
     history: {

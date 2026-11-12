@@ -18,9 +18,12 @@ import {
   compare,
   Comparison,
   derivedJobRequestId,
+  EstimateScope,
+  estimateScope,
   LineEstimationState,
   lineEstimationState,
   LinkState,
+  showsEstimateScope,
 } from "../domain/proposal-link";
 import { canonicalJson } from "@/modules/estimation/domain/run-content";
 import { EstimationJobsUseCase } from "@/modules/estimation/application/estimation-jobs.use-case";
@@ -435,6 +438,37 @@ export class ProposalEstimationLinkUseCase {
     return { state: run.outcome === "FAILED" ? "UNAVAILABLE" : "LINKED", facts, runId: run.id };
   }
 
+  /**
+   * E3-P1 (1b): the known scope of the consumption figures behind each result
+   * of the fixed run, by `product|unit`: the campaigns of its span and the
+   * fewest and most contributors of the published figure (`CollectiveRelease`)
+   * of one campaign of the span. Only counts, never identities nor a count per
+   * campaign; F07 already serves these counts to the same profiles. The caller
+   * attaches it only to a line that shows its figure.
+   */
+  private async estimateScopes(tenantId: string, resolved: { state: LinkState; runId: string | null }): Promise<Map<string, EstimateScope>> {
+    const scopes = new Map<string, EstimateScope>();
+    if (resolved.state !== "LINKED" || !resolved.runId) return scopes;
+    const results = await this.prisma.estimationResult.findMany({
+      where: { runId: resolved.runId, run: { tenantId }, status: "ESTIMATED" },
+      select: {
+        canonicalProductId: true,
+        baseUnit: true,
+        spanFirstPosition: true,
+        spanLastPosition: true,
+        series: { select: { points: { select: { position: true, sourceRelease: { select: { contributorCount: true } } } } } },
+      },
+    });
+    for (const result of results) {
+      const scope = estimateScope(
+        { first: result.spanFirstPosition, last: result.spanLastPosition },
+        (result.series?.points ?? []).map((p) => ({ position: p.position, contributors: p.sourceRelease?.contributorCount ?? null })),
+      );
+      if (scope) scopes.set(`${result.canonicalProductId}|${result.baseUnit}`, scope);
+    }
+    return scopes;
+  }
+
   /** Why a reference cannot be obtained now, or null. */
   private async prepareBlocker(
     tx: Tx | PrismaService,
@@ -464,6 +498,7 @@ export class ProposalEstimationLinkUseCase {
     const blocker = await this.prepareBlocker(this.prisma, tenantId, proposal, estimable);
     const run = resolved.facts?.run ?? null;
     const policyPending = this.collective.mode === "POLICY_PENDING";
+    const scopes = await this.estimateScopes(tenantId, resolved);
     const lines = need.lines.map((line) => {
       const result =
         resolved.facts?.results.find((r) => r.product_ref === line.product_ref && r.base_unit === line.base_unit) ?? null;
@@ -508,6 +543,11 @@ export class ProposalEstimationLinkUseCase {
         need: { status: line.status, quantity_base: line.quantity_base, quantity_presentation: line.quantity_presentation },
         estimation,
         comparison,
+        // E3-P1 (1b): the known scope of each figure, only next to a figure served now.
+        scope: {
+          need_contributors: line.status === "DISCLOSED" ? line.contributors : null,
+          estimate: showsEstimateScope(state, estimation.estimate_base) ? (scopes.get(`${line.product_ref}|${line.base_unit}`) ?? null) : null,
+        },
       };
     });
     return {

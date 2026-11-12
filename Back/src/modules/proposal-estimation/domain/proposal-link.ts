@@ -86,8 +86,9 @@ export const BLOCKER_MESSAGE: Record<ComparisonBlocker, string> = {
   PRODUCT_MISMATCH: "No se calcula la diferencia: no es el mismo producto.",
   UNIT_MISMATCH: "No se calcula la diferencia: no es la misma unidad.",
   PERIOD_MISMATCH: "No se calcula la diferencia: la estimación no es para la campaña del borrador.",
+  // E3-P1 (opción 1 + 1b): the view shows the known scope of each figure instead.
   POPULATION_NOT_VERIFIED:
-    "No se calcula la diferencia: no hay datos para comprobar que la necesidad y la estimación cubran a las mismas personas.",
+    "No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).",
 };
 
 export interface ComparisonInput {
@@ -109,7 +110,8 @@ export interface ComparisonInput {
   } | null;
   /**
    * E3-P1: whether need and estimate are known to cover the same population.
-   * No metadata allows checking it today, so callers pass false.
+   * Decided (option 1 + 1b): not checked; callers pass false and the view
+   * shows the known scope of each figure.
    */
   populationVerified: boolean;
 }
@@ -226,6 +228,45 @@ function presentation(thousandths: bigint): string {
   const whole = thousandths / 1000n;
   const fraction = (thousandths % 1000n).toString().padStart(3, "0").replace(/0+$/, "");
   return fraction ? `${whole},${fraction}` : whole.toString();
+}
+
+// ------------------------------------------------------------ known scope
+
+/**
+ * E3-P1 (option 1 + 1b): the known scope of the consumption figures behind a
+ * fixed estimate: how many campaigns its span has and the fewest and most
+ * contributors of the published consumption figure of one campaign. No
+ * identity and nothing per campaign.
+ */
+export interface EstimateScope {
+  span_campaigns: number;
+  contributors_min: number;
+  contributors_max: number;
+}
+
+/** E3-P1: the scope goes with the estimate figure only (AVAILABLE or OUTDATED with a figure). */
+export function showsEstimateScope(state: LineEstimationState, estimateBase: string | null): boolean {
+  return (state === "AVAILABLE" || state === "OUTDATED") && estimateBase !== null;
+}
+
+/**
+ * The scope of the span [first, last] of a result: every position of the
+ * span must have its point with the contributors of its source figure;
+ * otherwise the scope is unknown (null), never guessed.
+ */
+export function estimateScope(
+  span: { first: number | null; last: number | null },
+  points: { position: number; contributors: number | null }[],
+): EstimateScope | null {
+  const { first, last } = span;
+  if (first === null || last === null || last < first) return null;
+  const counts: number[] = [];
+  for (let position = first; position <= last; position += 1) {
+    const point = points.find((p) => p.position === position);
+    if (!point || point.contributors === null || !Number.isInteger(point.contributors) || point.contributors < 0) return null;
+    counts.push(point.contributors);
+  }
+  return { span_campaigns: counts.length, contributors_min: Math.min(...counts), contributors_max: Math.max(...counts) };
 }
 
 /** The parsers, for the use case and the tests. */

@@ -30,7 +30,10 @@ const describePostgres = postgresUrl ? describe : describe.skip;
 const PUSH = "/api/v1/sync/v1/push";
 const COLLECTIVE = "/api/v1/collective";
 const POPULATION_MESSAGE =
-  "No se calcula la diferencia: no hay datos para comprobar que la necesidad y la estimación cubran a las mismas personas.";
+  "No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).";
+/** Contributors of the sealed Herbicida consumption figure of each source campaign (E3-P1 1b: the scope is 3 to 5 over 4 campaigns). */
+const CONSUMPTION_CONTRIBUTORS = [3, 5, 4, 3];
+const HERBICIDE_SCOPE = { span_campaigns: 4, contributors_min: 3, contributors_max: 5 };
 /** Tables E3 must never write (besides F12's own job queue). */
 const UNTOUCHED = [
   "Purchase", "PurchaseItem", "PurchaseParticipant", "InventoryLot", "StockMovement", "PayableAccount", "Payment",
@@ -88,12 +91,17 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     for (const [key, unit] of [["Herbicida", "L"], ["Fungicida", "L"], ["Coadyuvante", "unidad"]] as const) {
       products[key] = (await prisma.product.create({ data: { tenantId: f.tenantA, name: `${key} sintético E3`, unit } })).id;
     }
-    // Consumption of Herbicida published and sealed in four campaigns (the 3.12.5 example: 96, 120, 104 and 116 L).
-    sources = await sealedConsumptionCampaigns(prisma, {
-      tenantId: f.tenantA, sealedByUserId: directorUser, canonicalProductId: products["Herbicida"]!, baseUnit: "ML",
-      firstYear: 2015, quantities: [96000n, 120000n, 104000n, 116000n], namePrefix: "Campaña sintética E3",
-      coverage: { status: "IDENTIFIED", membersInPublishedFigures: 3 },
-    });
+    // Consumption of Herbicida published and sealed in four campaigns (the 3.12.5 example: 96, 120, 104 and 116 L),
+    // each figure with its own number of contributors (CONSUMPTION_CONTRIBUTORS).
+    for (const [i, quantity] of [96000n, 120000n, 104000n, 116000n].entries()) {
+      sources.push(
+        ...(await sealedConsumptionCampaigns(prisma, {
+          tenantId: f.tenantA, sealedByUserId: directorUser, canonicalProductId: products["Herbicida"]!, baseUnit: "ML",
+          firstYear: 2015 + i, quantities: [quantity], namePrefix: "Campaña sintética E3", contributors: CONSUMPTION_CONTRIBUTORS[i]!,
+          coverage: { status: "IDENTIFIED", membersInPublishedFigures: 3 },
+        })),
+      );
+    }
     for (const [key, year, status] of [["T", 2019, "ABIERTA"], ["X", 2020, "PLANIFICADA"], ["Y", 2021, "PLANIFICADA"], ["Z", 2022, "PLANIFICADA"]] as const) {
       campaigns[key] = randomUUID();
       await prisma.agriculturalCampaign.create({
@@ -250,6 +258,8 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
       estimation: { state: "NONE", estimate_base: null },
       comparison: { comparable: false, blockers: ["ESTIMATE_NOT_AVAILABLE", "POPULATION_NOT_VERIFIED"], difference: null },
     });
+    // E3-P1 (1b): the need's contributors as the draft serves them; no estimate, no estimate scope.
+    expect(lineOf(none, "Herbicida").scope).toEqual({ need_contributors: 3, estimate: null });
     for (let i = 0; i < 3; i += 1) await view(proposals["P1"]!);
     expect(changed(before, await snapshot())).toEqual([]);
   });
@@ -263,6 +273,7 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     expect(first.body.outcome).toBe("REQUESTED_JOB");
     expect(first.body.view).toMatchObject({ state: "CALCULATING", update: { available: false, reason: null }, link: { sequence: 1, mode: "INITIAL", action: "REQUEST_JOB", job_status: "QUEUED", run_ref: null } });
     expect(first.body.view.lines.map((l: any) => l.estimation.state)).toEqual(["CALCULATING", "CALCULATING"]);
+    expect(first.body.view.lines.map((l: any) => l.scope.estimate)).toEqual([null, null]);
     jobs["J1"] = first.body.view.link.job_ref;
     const job = await prisma.estimationJob.findUniqueOrThrow({ where: { id: jobs["J1"] } });
     expect(job.requestId).toBe(derivedJobRequestId(proposals["P1"]!, requestId));
@@ -341,6 +352,12 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     });
     expect(lineOf(linked, "Fungicida")).toMatchObject({ estimation: { state: "INSUFFICIENT_DATA", estimate_base: null } });
     expect(lineOf(linked, "Fungicida").comparison.blockers).toEqual(["ESTIMATE_NOT_AVAILABLE", "POPULATION_NOT_VERIFIED"]);
+    // E3-P1 (1b): the known scope of each figure. Need: the 3 farmers of the disclosed cell. Estimate: the 4 campaigns
+    // of the span, with 3 to 5 contributors per consumption figure; only counts, nothing per campaign, no identity.
+    expect(lineOf(linked, "Herbicida").scope).toEqual({ need_contributors: 3, estimate: HERBICIDE_SCOPE });
+    expect(lineOf(linked, "Fungicida").scope).toEqual({ need_contributors: 3, estimate: null });
+    const herbicideResult = await prisma.estimationResult.findFirstOrThrow({ where: { runId: runs["R1"], canonicalProductId: products["Herbicida"] } });
+    expect([herbicideResult.spanFirstPosition, herbicideResult.spanLastPosition]).toEqual([1, 4]);
     expect(linked.history).toEqual([expect.objectContaining({ sequence: 1, action: "REQUEST_JOB", run_ref: runs["R1"], job_status: "COMPLETED", current: true })]);
     // It is F12's own reading of that run.
     const direct = await http().get(`/api/v1/estimation/runs/${runs["R1"]}`).set(auth(director));
@@ -354,6 +371,16 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     const linkedExisting = await initial(proposals["P4"]!);
     expect(linkedExisting.body).toMatchObject({ outcome: "LINKED_EXISTING_RUN", view: { state: "LINKED", link: { action: "LINK_EXISTING_RUN", run_ref: runs["R1"], job_ref: null } } });
     expect(await prisma.estimationJob.count()).toBe(jobsBefore);
+    // A need that is not disclosed has no known scope; the estimate next to it keeps its own.
+    proposals["PH"] = await storedDraft(campaigns["T"]!, [products["Herbicida"]!]);
+    const hidden = await initial(proposals["PH"]!);
+    expect(hidden.body).toMatchObject({ outcome: "LINKED_EXISTING_RUN", view: { state: "LINKED", link: { run_ref: runs["R1"] } } });
+    expect(hidden.body.view.lines[0]).toMatchObject({
+      need: { status: "SUPPRESSED_UNDER_THRESHOLD", quantity_base: null },
+      estimation: { state: "AVAILABLE", estimate_base: "111000.000000" },
+      comparison: { blockers: ["NEED_NOT_DISCLOSED", "POPULATION_NOT_VERIFIED"] },
+      scope: { need_contributors: null, estimate: HERBICIDE_SCOPE },
+    });
     // The F12 routes are unchanged: the reference «vigente al consultar» and the draft itself.
     expect((await http().get(`${COLLECTIVE}/proposals/${proposals["P1"]}/estimation-reference`).set(auth(director))).status).toBe(200);
   });
@@ -366,6 +393,8 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     expect(lineOf(p4, "Herbicida")).toMatchObject({
       estimation: { state: "OUTDATED", estimate_base: "111000.000000", validity: "SUPERSEDED", validity_reason: "LATER_RUN" },
       comparison: { blockers: ["ESTIMATE_NOT_CURRENT", "POPULATION_NOT_VERIFIED"], difference: null },
+      // OUTDATED keeps its figure, and with it the scope of the fixed result.
+      scope: { need_contributors: 3, estimate: HERBICIDE_SCOPE },
     });
     const updated = await update(proposals["P4"]!, p4.link.link_ref);
     expect(updated.body).toMatchObject({ outcome: "LINKED_EXISTING_RUN", view: { state: "LINKED", run: { run_ref: runs["R2"] }, link: { sequence: 2, mode: "UPDATE" }, update: { available: false } } });
@@ -390,6 +419,7 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     const p4 = await view(proposals["P4"]!);
     expect(p4.update).toEqual({ available: true, reason: "OUTDATED" });
     expect(lineOf(p4, "Herbicida").estimation).toMatchObject({ state: "OUTDATED", validity: "OUTDATED", validity_reason: "SOURCES_CHANGED", estimate_base: "111000.000000" });
+    expect(lineOf(p4, "Herbicida").scope).toEqual({ need_contributors: 3, estimate: HERBICIDE_SCOPE });
     const fungicide = await http().get(`/api/v1/estimation/runs/${runs["R2"]}`).set(auth(director));
     expect(fungicide.body.results.find((r: any) => r.product.product_ref === products["Fungicida"])).toMatchObject({ status: "INSUFFICIENT_DATA", validity: "NOT_USABLE" });
     const queued = await http()
@@ -462,6 +492,7 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
       link: { job_status: "NOT_EXECUTED", stop_code: "REQUESTER_NOT_AUTHORIZED", created_by: { role: "DIRECTIVA" } },
     });
     expect(stopped.lines.every((l: any) => l.estimation.state === "ERROR")).toBe(true);
+    expect(stopped.lines.map((l: any) => l.scope)).toEqual([{ need_contributors: 3, estimate: null }, { need_contributors: 3, estimate: null }]);
   });
 
   it("explains why it cannot calculate and writes nothing", async () => {
@@ -471,7 +502,10 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     const notEstimable = await storedDraft(campaigns["T"]!, [products["Coadyuvante"]!]);
     const afterDrafts = await snapshot();
     for (const [id, reason] of [[unclassified, "TARGET_CAMPAIGN_NOT_CLASSIFIED"], [closed, "TARGET_CAMPAIGN_NOT_ELIGIBLE"], [notEstimable, "NO_ESTIMABLE_PRODUCTS"]] as const) {
-      expect((await view(id)).prepare_blocker).toBe(reason);
+      const shown = await view(id);
+      expect(shown.prepare_blocker).toBe(reason);
+      // Need not disclosed (suppressed) and no reference: no known scope at all.
+      expect(shown.lines.map((l: any) => l.scope)).toEqual([{ need_contributors: null, estimate: null }]);
       const res = await initial(id);
       expect(res.body).toMatchObject({ outcome: "NOT_CALCULABLE", reason, view: { state: "NONE" } });
       expect(await linkCount(id)).toBe(0);
@@ -496,6 +530,10 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
       const restricted = await view(proposals["P5"]!);
       expect(restricted).toMatchObject({ state: "RESTRICTED", prepare_blocker: "POLICY_PENDING", link: { run_ref: runs["R3"] } });
       expect(restricted.lines.map((l: any) => [l.estimation.state, l.estimation.estimate_base, l.need.quantity_base])).toEqual([["RESTRICTED", null, null], ["RESTRICTED", null, null]]);
+      // E3-P1 (1b): no scope either, neither of the need nor of the estimate.
+      expect(restricted.lines.map((l: any) => l.scope)).toEqual([{ need_contributors: null, estimate: null }, { need_contributors: null, estimate: null }]);
+      const restrictedHidden = await view(proposals["PH"]!);
+      expect(restrictedHidden.lines[0]).toMatchObject({ estimation: { state: "RESTRICTED", estimate_base: null }, scope: { need_contributors: null, estimate: null } });
       expect(JSON.stringify(restricted)).not.toMatch(/111000|120000/);
       const refused = await initial(proposals["P6"]!);
       expect(refused.status).toBe(409);
@@ -518,6 +556,13 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     });
     const p5 = await view(proposals["P5"]!);
     expect(lineOf(p5, "Herbicida").estimation).toMatchObject({ state: "RESTRICTED", estimate_base: null, validity_reason: "SOURCES_WITHDRAWN" });
+    // E3-P1 (1b): a withdrawn source hides the estimate scope too; the need keeps its own.
+    expect(lineOf(p5, "Herbicida").scope).toEqual({ need_contributors: 3, estimate: null });
+    // PH keeps R1, superseded by later runs: F12 reports the later run first (OUTDATED), but the withdrawal still
+    // withholds the figure, and without a figure there is no estimate scope.
+    const withdrawnHidden = await view(proposals["PH"]!);
+    expect(withdrawnHidden.lines[0]).toMatchObject({ estimation: { state: "OUTDATED", estimate_base: null }, scope: { need_contributors: null, estimate: null } });
+    expect(JSON.stringify(withdrawnHidden)).not.toContain("111000");
     expect(p5.update).toEqual({ available: true, reason: "OUTDATED" });
     expect(p5.link.run_ref).toBe(runs["R3"]);
     expect(JSON.stringify(p5)).not.toContain("111000");
