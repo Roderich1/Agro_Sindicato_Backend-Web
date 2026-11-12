@@ -107,6 +107,35 @@ export interface JointPurchaseCallEvent {
   detail: string | null;
 }
 
+/** E3-P2: producto tal como quedó al crear la convocatoria. */
+export interface JointPurchaseCallOriginProduct {
+  position: number;
+  product_ref: string;
+  product_name: string;
+  base_unit: BaseUnit;
+  /** Línea del borrador de propuesta de la que venía; `null` si no venía de una línea. */
+  proposal_position: number | null;
+}
+
+/**
+ * E3-P2: productos y procedencia al crear la convocatoria, registrados una
+ * vez y nunca modificados. Sin cantidades, cifras, aportantes ni estimaciones.
+ */
+export interface JointPurchaseCallOrigin {
+  kind: 'PROPOSAL' | 'CATALOG';
+  proposal_ref: string | null;
+  proposal_generated_at: string | null;
+  /** `null` en CATALOG o si el servidor no puede servirla (cifra retirada, divulgación no autorizada). */
+  proposal_fingerprint: string | null;
+  /** Revisión de la selección guardada del borrador al crear; `null` si nunca se guardó. */
+  selection_revision: number | null;
+  /** Los productos al crear eran exactamente los de esa selección; `null` sin selección. */
+  selection_matched: boolean | null;
+  recorded_at: string;
+  recorded_by: JointPurchaseCallUserRef;
+  products: JointPurchaseCallOriginProduct[];
+}
+
 /** Detalle (`GET`/`PATCH /:id`, y la respuesta de crear, abrir y cancelar). */
 export interface JointPurchaseCallDetail {
   contractVersion: 1;
@@ -145,6 +174,10 @@ export interface JointPurchaseCallDetail {
   /** Usuarios con algún permiso concedido por el responsable (nunca agricultores). */
   collaborator_count: number;
   products: JointPurchaseCallProduct[];
+  /** E3-P2: `null` en convocatorias anteriores al registro del origen; ausente si el servidor no lo envía. */
+  origin?: JointPurchaseCallOrigin | null;
+  /** Los productos actuales no son los del origen (sin importar el orden). */
+  origin_differs_from_current?: boolean;
   history: JointPurchaseCallEvent[];
 }
 

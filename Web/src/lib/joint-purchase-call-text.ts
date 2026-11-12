@@ -3,11 +3,12 @@ import type {
   JointPurchaseCallCloseMode,
   JointPurchaseCallEventKind,
   JointPurchaseCallGrant,
+  JointPurchaseCallOrigin,
   JointPurchaseCallStatus,
   JointPurchaseCallTotalVisibility,
   JointPurchaseParticipationStatus,
 } from '../types/joint-purchase-calls';
-import { collectiveError } from './collective-text';
+import { collectiveError, fmtDateTime } from './collective-text';
 import { COLLECTIVE_PATHS } from './navigation';
 import { formatQuantity, type BaseUnit } from './quantity';
 
@@ -222,6 +223,28 @@ export function callError(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err) && err.response?.status === 404) return ERROR_TEXT.CALL_NOT_FOUND!;
   if (axios.isAxiosError(err) && err.response?.status === 409) return ERROR_TEXT.INVALID_TRANSITION!;
   return collectiveError(err, fallback);
+}
+
+/**
+ * E3-P2: una línea con el origen de la convocatoria. `undefined` (el servidor
+ * no lo envía): nada. `null`: convocatoria anterior al registro; no se deduce.
+ */
+export function callOriginText(origin: JointPurchaseCallOrigin | null | undefined): string | null {
+  if (origin === undefined) return null;
+  if (origin === null) return 'Origen no registrado (convocatoria anterior).';
+  if (origin.kind === 'CATALOG') return 'Creada eligiendo productos del catálogo.';
+  const draft = origin.proposal_generated_at
+    ? `Creada desde el borrador de propuesta del ${fmtDateTime(origin.proposal_generated_at)}`
+    : 'Creada desde un borrador de propuesta';
+  if (origin.selection_revision === null) return `${draft}.`;
+  return origin.selection_matched
+    ? `${draft} (selección guardada n.º ${origin.selection_revision}).`
+    : `${draft}, con productos distintos de la selección guardada (n.º ${origin.selection_revision}).`;
+}
+
+/** E3-P2: los productos se editaron en el borrador después de crearla. */
+export function callOriginEditedText(origin: JointPurchaseCallOrigin): string {
+  return `Los productos se editaron después de crearla; origen: ${origin.products.map((p) => p.product_name).join(', ')}.`;
 }
 
 /** «11,5 L» o, si el dato no es un entero válido en unidad base, un aviso en lugar de una cifra dudosa. */

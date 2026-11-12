@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { AxiosError, AxiosHeaders } from 'axios';
 import { Link } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fmtDateTime } from '../lib/collective-text';
 import {
   CLOSE_IMPLICATION,
   MANAGE_LOST_TEXT,
@@ -22,6 +23,7 @@ import type {
   JointPurchaseCallClosingParticipant,
   JointPurchaseCallCollaborators,
   JointPurchaseCallDetail,
+  JointPurchaseCallOrigin,
   JointPurchaseCallParticipants,
 } from '../types/joint-purchase-calls';
 import { JointPurchaseCallDetailPage } from './joint-purchase-call-detail.page';
@@ -483,6 +485,103 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     vi.mocked(jointPurchaseCallsService.get).mockRejectedValue(axiosError(404, { errorCode: 'CALL_NOT_FOUND' }));
     render();
     expect((await screen.findByTestId('call-error')).textContent).toMatch(/no existe o no pertenece a su organización/);
+  });
+
+  describe('origen de la convocatoria (E3-P2)', () => {
+    const ORIGIN: JointPurchaseCallOrigin = {
+      kind: 'PROPOSAL',
+      proposal_ref: 'pr-1',
+      proposal_generated_at: '2026-11-10T14:30:00.000Z',
+      proposal_fingerprint: 'a'.repeat(64),
+      selection_revision: 2,
+      selection_matched: true,
+      recorded_at: '2026-11-11T10:00:00.000Z',
+      recorded_by: RESPONSIBLE,
+      products: [
+        { position: 0, product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', proposal_position: 0 },
+        { position: 1, product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', proposal_position: 1 },
+      ],
+    };
+    const draftDate = fmtDateTime(ORIGIN.proposal_generated_at);
+    const originText = async () => (await screen.findByTestId('call-origin')).textContent;
+
+    it('desde el borrador con la selección guardada: fecha del borrador y n.º de la selección', async () => {
+      vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...DRAFT, origin: ORIGIN, origin_differs_from_current: false });
+      render();
+      expect(await originText()).toBe(`Creada desde el borrador de propuesta del ${draftDate} (selección guardada n.º 2).`);
+      expect(within(screen.getByTestId('call-facts')).getByText('Origen:')).toBeTruthy();
+      expect(screen.queryByTestId('call-origin-edited')).toBeNull();
+      // Ni la huella ni el identificador del borrador se muestran.
+      expect(screen.getByTestId('call-facts').textContent).not.toMatch(/aaaa|pr-1/);
+    });
+
+    it('desde el borrador con productos distintos de la selección guardada', async () => {
+      vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
+        ...DRAFT,
+        origin: { ...ORIGIN, selection_matched: false },
+        origin_differs_from_current: false,
+      });
+      render();
+      expect(await originText()).toBe(
+        `Creada desde el borrador de propuesta del ${draftDate}, con productos distintos de la selección guardada (n.º 2).`,
+      );
+    });
+
+    it('desde el borrador sin selección guardada: no inventa un número', async () => {
+      vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
+        ...DRAFT,
+        origin: { ...ORIGIN, selection_revision: null, selection_matched: null },
+        origin_differs_from_current: false,
+      });
+      render();
+      expect(await originText()).toBe(`Creada desde el borrador de propuesta del ${draftDate}.`);
+    });
+
+    it('desde el catálogo', async () => {
+      vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
+        ...DRAFT,
+        source_proposal_ref: null,
+        origin: {
+          ...ORIGIN,
+          kind: 'CATALOG',
+          proposal_ref: null,
+          proposal_generated_at: null,
+          proposal_fingerprint: null,
+          selection_revision: null,
+          selection_matched: null,
+          products: ORIGIN.products.map((p) => ({ ...p, proposal_position: null })),
+        },
+        origin_differs_from_current: false,
+      });
+      render();
+      expect(await originText()).toBe('Creada eligiendo productos del catálogo.');
+    });
+
+    it('convocatoria anterior al registro: «Origen no registrado», sin deducirlo', async () => {
+      vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...DRAFT, origin: null, origin_differs_from_current: false });
+      render();
+      expect(await originText()).toBe('Origen no registrado (convocatoria anterior).');
+      expect(screen.queryByTestId('call-origin-edited')).toBeNull();
+    });
+
+    it('productos editados después de crearla: lo dice y nombra los del origen', async () => {
+      vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
+        ...DRAFT,
+        products: [DRAFT.products[0]!],
+        origin: ORIGIN,
+        origin_differs_from_current: true,
+      });
+      render();
+      expect((await screen.findByTestId('call-origin-edited')).textContent).toBe(
+        'Los productos se editaron después de crearla; origen: Glifosato 48 SL, Urea.',
+      );
+    });
+
+    it('si el servidor no envía el origen, no muestra la línea', async () => {
+      render();
+      expect(await screen.findByTestId('call-facts')).toBeTruthy();
+      expect(screen.queryByTestId('call-origin')).toBeNull();
+    });
   });
 });
 

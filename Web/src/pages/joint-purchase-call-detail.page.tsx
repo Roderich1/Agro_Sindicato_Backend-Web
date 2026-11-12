@@ -24,6 +24,8 @@ import {
   CLOSE_MODE_LABEL,
   callError,
   callErrorCode,
+  callOriginEditedText,
+  callOriginText,
   COLLABORATORS_LOST_TEXT,
   GRANT_DESCRIPTION,
   GRANT_LABEL,
@@ -545,6 +547,19 @@ function CallFacts({ call }: { call: JointPurchaseCallDetail }) {
   if (call.closed_at) facts.push(['Cerrada el', fmtDateTime(call.closed_at)]);
   if (call.cancelled_at) facts.push(['Cancelada el', fmtDateTime(call.cancelled_at)]);
   if (call.cancel_reason) facts.push(['Motivo de la cancelación', call.cancel_reason]);
+  const origin = callOriginText(call.origin);
+  if (origin)
+    facts.push([
+      'Origen',
+      <span data-testid="call-origin">
+        {origin}
+        {call.origin && call.origin_differs_from_current && (
+          <span className="block text-slate-600" data-testid="call-origin-edited">
+            {callOriginEditedText(call.origin)}
+          </span>
+        )}
+      </span>,
+    ]);
   facts.push(['Participantes', participantsText(call.participant_count)]);
   if (typeof call.collaborator_count === 'number') facts.push(['Colaboradores', peopleText(call.collaborator_count)]);
   if (Array.isArray(call.my_grants)) facts.push(['Sus permisos', grantsText(call.my_grants, call.is_responsible)]);
