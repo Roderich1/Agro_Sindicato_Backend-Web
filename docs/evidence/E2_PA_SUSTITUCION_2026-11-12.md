@@ -165,3 +165,9 @@ La APK anterior se compiló de nuevo **del mismo SHA**, porque el origen del tú
 
 **Verificaciones completas pendientes:** ninguna para el código de la APK instalada. Si se instala `9264191` o una versión posterior, hay que confirmar de nuevo la APK (SHA y `lastUpdateTime`). Sigue sin haber pruebas en un teléfono físico. En este cierre sólo cambió documentación, así que no se repitieron suites.
 
+
+**Actualización del 2026-11-12, noche (informada por la sesión del rediseño, evidencia RDM-MOB `8821287`).** Con autorización directa del autor, en `emulator-5556` se instaló encima la «AC RDM» de RDM-MOB `d9893bc`: SHA-256 `3630ff1d11948008b1682f5fdc0619cf09fbb0b7d3de9412bc15f27466270b65`, `lastUpdateTime` 2026-11-12 20:12:54. Se conservaron el esquema 19 y los conteos, y el Back sigue en RDM-BE `361416a`.
+
+- **Código:** `d9893bc` es `79de523` (suite completa 3055/3/0) más sólo los rótulos «¿De quién son los productos?» y «Sólo la persona titular», cubiertos por pruebas focalizadas (49/0 y 2/0). **Sobre `d9893bc` no hay suite completa.**
+- **Convocatorias:** ya no aparece el «+ Registrar» flotante; con el teclado abierto «Continuar» sigue visible; Atrás y «Cerrar» no envían nada.
+- **Túnel y emulador:** el túnel anterior se perdió con el corte de internet y se abrió uno nuevo. El emulador se reinició sin wipe, con DNS explícito, y se volvió a autenticar.
