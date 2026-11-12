@@ -346,8 +346,8 @@ export const GRANT_LABEL: Record<"PARTICIPANTS" | "MANAGE", string> = {
 export function hiddenNotice(count: number): string | null {
   if (count === 0) return null;
   return count === 1
-    ? "1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable."
-    : `${count} participaciones aceptadas con un consentimiento anterior: sólo las ve la persona responsable.`;
+    ? "1 participación autorizada sólo para la persona responsable: sólo la ve ella."
+    : `${count} participaciones autorizadas sólo para la persona responsable: sólo las ve ella.`;
 }
 
 export const CLOSING_LABEL = "Consolidado al cierre: cantidades solicitadas";

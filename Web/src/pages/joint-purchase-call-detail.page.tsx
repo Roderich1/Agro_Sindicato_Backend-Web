@@ -702,7 +702,7 @@ function ParticipantsTable({ participants, call, caption }: { participants: Part
   );
 }
 
-/** §10.2: aviso de las participaciones con un consentimiento anterior, que sólo ve la persona responsable. */
+/** §10.6: aviso de las participaciones autorizadas sólo para la persona responsable, que sólo ve ella. */
 function HiddenParticipantsNotice({ count, notice }: { count: number | null | undefined; notice: string | null | undefined }) {
   if (!count || count <= 0) return null;
   return (

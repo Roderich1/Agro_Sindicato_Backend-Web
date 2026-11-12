@@ -53,7 +53,7 @@ export const GRANT_LABEL: Record<JointPurchaseCallGrant, string> = {
 /** Qué permite cada permiso (§10.2). */
 export const GRANT_DESCRIPTION: Record<JointPurchaseCallGrant, string> = {
   PARTICIPANTS:
-    'Ver los nombres y las cantidades solicitadas por persona, sólo de quienes aceptaron el consentimiento vigente, y el detalle del consolidado al cierre.',
+    'Ver los nombres y las cantidades solicitadas por persona, sólo de quienes autorizaron que también los vean las personas que la responsable autorice, y el detalle del consolidado al cierre.',
   MANAGE: 'Editar el borrador, abrirla, cancelarla y cerrarla a mano. No permite ver participantes ni conceder permisos.',
 };
 
@@ -112,11 +112,11 @@ export const MANAGE_LOST_TEXT =
 export const COLLABORATORS_LOST_TEXT =
   'Ya no puede conceder ni retirar permisos en esta convocatoria: sólo la persona responsable puede hacerlo. Se volvió a cargar con sus permisos actuales.';
 
-/** §10.2: aviso de participaciones con `CONV-1`, si el servidor no lo envió. */
+/** §10.6: aviso de participaciones autorizadas sólo para la persona responsable, si el servidor no lo envió. */
 export function hiddenParticipantsText(count: number): string {
   return count === 1
-    ? '1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable.'
-    : `${count} participaciones aceptadas con un consentimiento anterior: sólo las ve la persona responsable.`;
+    ? '1 participación autorizada sólo para la persona responsable: sólo la ve ella.'
+    : `${count} participaciones autorizadas sólo para la persona responsable: sólo las ve ella.`;
 }
 export const PROVISIONAL_NOTE = 'Puede cambiar hasta el cierre. Son cantidades solicitadas, no compras ni deudas.';
 export const NOT_A_PURCHASE_TEXT = 'Son cantidades solicitadas: no son compras, entregas ni deudas.';
@@ -128,7 +128,7 @@ export const CLOSE_IMPLICATION = 'Se consolidan las participaciones recibidas ha
 
 /** §10.3: total retenido porque incluye participaciones que quien consulta no puede ver (abierta o cerrada). */
 export const RESPONSIBLE_ONLY_HIDDEN_TEXT =
-  'Total visible sólo para la persona responsable: incluye participaciones aceptadas con un consentimiento anterior, que usted no puede ver.';
+  'Total visible sólo para la persona responsable: incluye participaciones autorizadas sólo para ella, que usted no puede ver.';
 
 /**
  * Texto en lugar de un total retenido (E2-D7 / E2-P1 / §10.3); nunca se

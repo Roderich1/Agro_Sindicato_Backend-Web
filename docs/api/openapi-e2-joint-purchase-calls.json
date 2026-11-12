@@ -9223,7 +9223,7 @@
                     },
                     "hidden_participant_count": {
                       "type": "integer",
-                      "description": "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable"
+                      "description": "Participaciones cuyo alcance vigente es RESPONSIBLE_ONLY (§10.6), que este colaborador no ve; 0 para el responsable"
                     },
                     "hidden_notice": {
                       "type": "string",
@@ -9722,7 +9722,7 @@
                     },
                     "hidden_participant_count": {
                       "type": "integer",
-                      "description": "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable"
+                      "description": "Participaciones cuyo alcance vigente es RESPONSIBLE_ONLY (§10.6), que este colaborador no ve; 0 para el responsable"
                     },
                     "hidden_notice": {
                       "type": "string",
@@ -10279,7 +10279,7 @@
                     },
                     "hidden_participant_count": {
                       "type": "integer",
-                      "description": "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable"
+                      "description": "Participaciones cuyo alcance vigente es RESPONSIBLE_ONLY (§10.6), que este colaborador no ve; 0 para el responsable"
                     },
                     "hidden_notice": {
                       "type": "string",

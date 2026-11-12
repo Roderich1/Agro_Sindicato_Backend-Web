@@ -988,7 +988,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(collaboratorList.body).toMatchObject({
         participant_count: 3,
         hidden_participant_count: 1,
-        hidden_notice: "1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable.",
+        hidden_notice: "1 participación autorizada sólo para la persona responsable: sólo la ve ella.",
       });
       expect(collaboratorList.body.participants.map((x: any) => x.name).sort()).toEqual(["Usuario sintético farmerA2", "Usuario sintético farmerA3"]);
       expect(JSON.stringify(collaboratorList.body)).not.toMatch(/Usuario sintético farmerA"|"100"/);

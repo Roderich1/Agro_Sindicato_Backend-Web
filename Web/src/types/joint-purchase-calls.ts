@@ -26,7 +26,7 @@ export type JointPurchaseCallCloseMode = 'MANUAL' | 'AUTOMATIC';
  * cierre) cuando menos del umbral de personas pidieron el producto;
  * `RESPONSIBLE_ONLY` mientras la convocatoria está abierta, para quien no tiene
  * el permiso del responsable, y también (abierta o cerrada) cuando el total
- * incluye participaciones ocultas para quien consulta (aceptadas con `CONV-1`).
+ * incluye participaciones ocultas para quien consulta (autorizadas sólo para la persona responsable, §10.6).
  * Fuera de `VISIBLE` el total llega como `null`, nunca como 0.
  */
 export type JointPurchaseCallTotalVisibility = 'VISIBLE' | 'UNDER_THRESHOLD' | 'RESPONSIBLE_ONLY';
@@ -206,7 +206,7 @@ export interface JointPurchaseCallParticipants {
   /** Aviso del servidor (p. ej. «Lista provisional…» mientras está abierta), o `null`. */
   notice: string | null;
   participant_count: number;
-  /** §10.2: participaciones con `CONV-1` que un colaborador no ve por nombre (0 para el responsable). */
+  /** §10.6: participaciones autorizadas sólo para la persona responsable, que un colaborador no ve por nombre (0 para el responsable). */
   hidden_participant_count: number;
   /** Aviso del servidor sobre esas participaciones, o `null`. */
   hidden_notice: string | null;
@@ -243,7 +243,7 @@ export interface JointPurchaseCallClosing {
   totals_threshold: number;
   can_view_participants: boolean;
   lines: JointPurchaseCallClosingLine[];
-  /** Sólo con `PARTICIPANTS` (§10.3); `null` en otro caso. Un colaborador recibe sólo las de `CONV-2`. */
+  /** Sólo con `PARTICIPANTS` (§10.3); `null` en otro caso. Un colaborador recibe sólo las de alcance `COLLABORATORS` (§10.6). */
   participants: JointPurchaseCallClosingParticipant[] | null;
   /** §10.2: participaciones congeladas ocultas para este colaborador (0 en otro caso). */
   hidden_participant_count: number;

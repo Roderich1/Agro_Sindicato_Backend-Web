@@ -4,6 +4,7 @@
  *   node web_e2_colab.mjs <outDir> abrir <convocatoria>                        la responsable la abre
  *   node web_e2_colab.mjs <outDir> conceder <convocatoria> <PARTICIPANTS|MANAGE> la responsable concede a Administración
  *   node web_e2_colab.mjs <outDir> ver <convocatoria> <directiva|admin>         detalle y participantes
+ *   node web_e2_colab.mjs <outDir> crear-pb <nombre> [Producto|Producto]         P-B: Administración crea y nombra a la Directiva
  *   node web_e2_colab.mjs <outDir> revocar-en-vivo <convocatoria>
  *        Administración tiene la página abierta con participantes; la responsable retira PARTICIPANTS en otra
  *        sesión; la página de Administración recupera el foco y debe borrar nombres y cantidades.
@@ -108,6 +109,45 @@ try {
     await sleep(3000);
     await shot(s.page, '02_concedido');
     Object.assign(result, await panels(s.page));
+    result.api = s.api;
+  } else if (action === 'crear-pb') {
+    // P-B (E2 §11.8): Administración crea un borrador y nombra responsable a la Directiva. Antes de
+    // guardar, la Web avisa qué permisos perderá y pide «Confirmar». arg4 = productos separados por «|».
+    const s = await session('admin');
+    await s.page.goto(`${WEB_URL}/colectivo/compras-conjuntas`, { waitUntil: 'networkidle0' });
+    await sleep(1500);
+    await clickButton(s.page, /^Nueva convocatoria$/);
+    await s.page.waitForSelector('#call-name');
+    await s.page.type('#call-name', callName);
+    const deadline = new Date(Date.now() + 3 * 24 * 3600 * 1000);
+    const local = new Date(deadline.getTime() - deadline.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    await s.page.$eval('#call-deadline', (el, v) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setter.call(el, v);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, local);
+    await s.page.waitForFunction(() => document.querySelectorAll('#call-responsible option').length > 1, { timeout: 20000 });
+    const options = await s.page.$$eval('#call-responsible option', (os) => os.map((o) => ({ v: o.value, t: o.textContent })));
+    const directiva = options.find((o) => /Directiva DEMO/i.test(o.t ?? '')) ?? options.find((o) => /Directiva/i.test(o.t ?? ''));
+    if (!directiva) throw new Error(`sin Directiva: ${JSON.stringify(options.map((o) => o.t))}`);
+    await s.page.select('#call-responsible', directiva.v);
+    for (const name of (arg4 || 'Herbicida DEMO').split('|')) {
+      const labels = await s.page.$$('ul[aria-label="Productos del catálogo"] label');
+      let found = false;
+      for (const l of labels) if ((await l.evaluate((e) => e.textContent ?? '')).includes(name)) { await l.click(); found = true; break; }
+      if (!found) throw new Error(`producto ${name} no está en el catálogo`);
+    }
+    await shot(s.page, '01_formulario');
+    await clickButton(s.page, /^Crear borrador$/);
+    await sleep(1500);
+    result.warning = await s.page.evaluate(() => document.querySelector('[data-testid="handover-warning"]')?.innerText ?? null);
+    result.sent_before_confirm = s.api.filter((a) => a.startsWith('POST /api/v1/joint-purchase-calls →')).length;
+    await shot(s.page, '02_aviso_pb');
+    await clickButton(s.page, /^Confirmar$/);
+    await sleep(3000);
+    await shot(s.page, '03_creado');
+    result.text = await s.page.evaluate(() => document.querySelector('main')?.innerText.slice(0, 700));
     result.api = s.api;
   } else if (action === 'ver') {
     const s = await session(arg4 === 'admin' ? 'admin' : 'directiva');

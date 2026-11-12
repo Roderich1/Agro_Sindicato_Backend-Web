@@ -683,7 +683,7 @@ const OPEN_COLLAB: JointPurchaseCallDetail = {
 };
 const OPEN_REVOKED: JointPurchaseCallDetail = { ...OPEN, ...NO_GRANTS, my_grants: [] };
 
-const HIDDEN_NOTICE = '1 participación aceptada con un consentimiento anterior: sólo la ve la persona responsable.';
+const HIDDEN_NOTICE = '1 participación autorizada sólo para la persona responsable: sólo la ve ella.';
 const COLLAB_PARTICIPANTS = { ...PARTICIPANTS, hidden_participant_count: 1, hidden_notice: HIDDEN_NOTICE } as JointPurchaseCallParticipants;
 
 const MY_GRANT_VIEW: JointPurchaseCallCollaborators = {

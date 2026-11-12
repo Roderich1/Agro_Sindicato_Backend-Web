@@ -393,7 +393,7 @@ const namedLine = closed(["product_ref", "product_name", "base_unit", "quantity_
 const hiddenFields: Record<string, SchemaObject> = {
   hidden_participant_count: {
     type: "integer",
-    description: "Participaciones con un consentimiento anterior (CONV-1) que este colaborador no ve; 0 para el responsable",
+    description: "Participaciones cuyo alcance vigente es RESPONSIBLE_ONLY (§10.6), que este colaborador no ve; 0 para el responsable",
   },
   hidden_notice: { type: "string", nullable: true },
 };
