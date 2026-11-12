@@ -22,9 +22,9 @@ import {
   lineEstimationState,
   LinkState,
 } from "../domain/proposal-link";
-import { canonicalJson } from "../domain/run-content";
-import { EstimationJobsUseCase } from "./estimation-jobs.use-case";
-import { EstimationReadsUseCase } from "./estimation-reads.use-case";
+import { canonicalJson } from "@/modules/estimation/domain/run-content";
+import { EstimationJobsUseCase } from "@/modules/estimation/application/estimation-jobs.use-case";
+import { EstimationReadsUseCase } from "@/modules/estimation/application/estimation-reads.use-case";
 
 type Tx = Prisma.TransactionClient;
 type Mode = "INITIAL" | "UPDATE";

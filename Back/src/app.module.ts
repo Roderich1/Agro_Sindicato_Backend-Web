@@ -10,6 +10,7 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { CollectiveModule } from './modules/collective/collective.module';
 import { EstimationModule } from './modules/estimation/estimation.module';
+import { ProposalEstimationModule } from './modules/proposal-estimation/proposal-estimation.module';
 import { IamModule } from './modules/iam/iam.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { JointPurchaseCallsModule } from './modules/joint-purchase-calls/joint-purchase-calls.module';
@@ -48,6 +49,7 @@ import { HealthController } from './bootstrap/health.controller';
     SyncV1Module,
     CollectiveModule,
     EstimationModule,
+    ProposalEstimationModule,
     BackupsModule,
     ProductIdentificationModule,
     JointPurchaseCallsModule,

@@ -8,11 +8,11 @@ import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CollectiveConfig } from "../../collective/application/collective-config";
 import { createIsolatedDatabase, createSession, createSyncV1App, Fixture, seedFixture, TestSession, unusablePasswordHash } from "../../sync-v1/test-support/sync-v1-test-app";
-import { ConsumptionSeriesUseCase } from "../application/consumption-series.use-case";
-import { EstimationReadsUseCase } from "../application/estimation-reads.use-case";
-import { EstimationWorker } from "../application/estimation-worker";
+import { ConsumptionSeriesUseCase } from "@/modules/estimation/application/consumption-series.use-case";
+import { EstimationReadsUseCase } from "@/modules/estimation/application/estimation-reads.use-case";
+import { EstimationWorker } from "@/modules/estimation/application/estimation-worker";
 import { derivedJobRequestId } from "../domain/proposal-link";
-import { sealedConsumptionCampaigns, SyntheticSource } from "../test-support/synthetic-sources";
+import { sealedConsumptionCampaigns, SyntheticSource } from "@/modules/estimation/test-support/synthetic-sources";
 
 /**
  * E3 (E3_ESTIMACION_EN_BORRADOR_CONTRATO.md §9): the consumption estimate

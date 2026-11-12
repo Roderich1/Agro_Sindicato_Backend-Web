@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { CollectiveModule } from "../collective/collective.module";
 import { EstimationController } from "./api/rest/estimation.controller";
-import { ProposalEstimationLinkController } from "./api/rest/proposal-estimation-link.controller";
 import { ProposalEstimationReferenceController } from "./api/rest/proposal-reference.controller";
 import { ConsumptionSeriesUseCase } from "./application/consumption-series.use-case";
 import { EstimationClassificationsUseCase } from "./application/estimation-classifications.use-case";
@@ -9,7 +8,6 @@ import { EstimationConfig } from "./application/estimation-config";
 import { EstimationJobsUseCase } from "./application/estimation-jobs.use-case";
 import { EstimationReadsUseCase } from "./application/estimation-reads.use-case";
 import { EstimationWorker } from "./application/estimation-worker";
-import { ProposalEstimationLinkUseCase } from "./application/proposal-estimation-link.use-case";
 import { ProposalEstimationReferenceUseCase } from "./application/proposal-reference.use-case";
 
 /**
@@ -23,13 +21,13 @@ import { ProposalEstimationReferenceUseCase } from "./application/proposal-refer
  *   campaign (continuation of #190, Refs #175).
  * - F12-EST-08 (#181): the estimation as a separate reference next to a
  *   joint purchase proposal and in its CSV export.
- * - E3 (E3_ESTIMACION_EN_BORRADOR_CONTRATO.md): the estimate fixed as a
- *   reference of a draft proposal (immutable links, explicit prepare/clear)
- *   and the products chosen for a call. It reuses the F12 jobs and readings.
+ * E3 (fixing the estimate as a reference of a draft proposal) lives in
+ * `proposal-estimation/` and reuses the jobs and readings exported here; this
+ * module keeps writing only estimation tables (insert-only.spec.ts).
  */
 @Module({
   imports: [CollectiveModule],
-  controllers: [EstimationController, ProposalEstimationReferenceController, ProposalEstimationLinkController],
+  controllers: [EstimationController, ProposalEstimationReferenceController],
   providers: [
     ConsumptionSeriesUseCase,
     EstimationConfig,
@@ -38,8 +36,7 @@ import { ProposalEstimationReferenceUseCase } from "./application/proposal-refer
     EstimationClassificationsUseCase,
     EstimationWorker,
     ProposalEstimationReferenceUseCase,
-    ProposalEstimationLinkUseCase,
   ],
-  exports: [ConsumptionSeriesUseCase],
+  exports: [ConsumptionSeriesUseCase, EstimationJobsUseCase, EstimationReadsUseCase],
 })
 export class EstimationModule {}
