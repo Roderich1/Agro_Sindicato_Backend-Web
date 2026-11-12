@@ -829,6 +829,26 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     expect(screen.queryByTestId('participants-forbidden')).toBeNull();
   });
 
+  it('revocación detectada al recuperar el foco: la lista de colaboradores se vuelve a pedir y deja de mostrar el permiso perdido', async () => {
+    // Hallazgo del recorrido real (2026-11-11): el panel seguía mostrando «Consultar participantes…» y «Renunciar».
+    render();
+    await participantsShown();
+    const panel = await screen.findByTestId('collaborators-panel');
+    expect(within(panel).getByRole('button', { name: 'Renunciar a este permiso' })).toBeTruthy();
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN_REVOKED, collaborator_count: 0 });
+    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue({
+      ...NO_COLLABORATORS,
+      history: [...MY_GRANT_VIEW.history, { at: '2026-11-11T13:00:00.000Z', action: 'REVOKED', grant: 'PARTICIPANTS', user: ME, actor: RESPONSIBLE }],
+    });
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await screen.findByTestId('participants-revoked');
+    await waitFor(() => expect(jointPurchaseCallsService.collaborators).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(within(screen.getByTestId('collaborators-panel')).queryByRole('button', { name: 'Renunciar a este permiso' })).toBeNull());
+    expect(within(screen.getByTestId('collaborators-panel')).getByTestId('collaborators-empty')).toBeTruthy();
+  });
+
   it('revocación por 403 PARTICIPANTS_FORBIDDEN al volver a la pestaña: borra nombres, cantidades y totales del DOM', async () => {
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     render();

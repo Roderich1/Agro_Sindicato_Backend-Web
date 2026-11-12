@@ -116,6 +116,9 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
   const hadPermissionRef = useRef(false);
   const shownRef = useRef(false);
   const lastFocusCheckRef = useRef(0);
+  /** Permisos propios y número de colaboradores de la última lectura del detalle. */
+  const permissionsKeyRef = useRef<string | null>(null);
+  const [collaboratorsTick, setCollaboratorsTick] = useState(0);
   useEffect(() => {
     aliveRef.current = true;
     return () => {
@@ -132,6 +135,8 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
     setClosing(null);
     setRevoked(true);
     setCall((prev) => (prev ? withoutParticipantsPermission(prev) : prev));
+    // La lista de colaboradores también mostraba ese permiso.
+    setCollaboratorsTick((tick) => tick + 1);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -154,6 +159,11 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
     }
     if (!current()) return;
     setProblem(null);
+    // Si cambiaron los permisos propios o el número de colaboradores (p. ej. una revocación detectada al
+    // recuperar el foco), la lista de colaboradores mostrada ya no es válida: se vuelve a pedir.
+    const permissionsKey = `${[...(detail.my_grants ?? [])].sort().join(',')}|${detail.collaborator_count ?? ''}`;
+    if (permissionsKeyRef.current !== null && permissionsKeyRef.current !== permissionsKey) setCollaboratorsTick((tick) => tick + 1);
+    permissionsKeyRef.current = permissionsKey;
     if (detail.can_view_participants) {
       hadPermissionRef.current = true;
       setRevoked(false);
@@ -212,6 +222,10 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
       void loadCollaborators();
     });
   }, [refresh, loadCollaborators]);
+
+  useEffect(() => {
+    if (collaboratorsTick > 0) void Promise.resolve().then(loadCollaborators);
+  }, [collaboratorsTick, loadCollaborators]);
 
   // §10.2: con participantes a la vista, volver a comprobar el permiso al recuperar el foco y cada 60 s.
   const watching = Boolean(call?.can_view_participants && call.status !== 'DRAFT');
