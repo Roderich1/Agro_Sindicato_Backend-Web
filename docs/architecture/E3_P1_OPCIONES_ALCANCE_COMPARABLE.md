@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-11-12 (UTC) |
-| Estado | **Para decisión de Roderich.** Nada de esto está implementado; hoy rige E3 §5: ninguna diferencia se calcula (`POPULATION_NOT_VERIFIED`) |
+| Estado | **Decidido por Roderich el 2026-11-12: opción 1 + 1b.** La diferencia sigue sin calcularse y la vista E3 muestra el alcance conocido de cada cifra; F12 §2 enmendado en ese sentido |
 | Contexto | `E3_ESTIMACION_EN_BORRADOR_CONTRATO.md` §5 y §11; `F12_EST_01_ESTIMATION_CONTRACT.md` §2, §3.1 y §7.1; `F07_*` |
 
 ## 1. Qué se midió (datos sintéticos del entorno aislado)

@@ -79,6 +79,14 @@ Túnel: sólo `/api/v1/` por la compuerta (`/`, `/docs`, `/docs-json` → 404), 
 2. `sync-v1-journal.postgres.spec.ts`: aserción **desactualizada desde E1** (esperaba 16 migraciones; hay 20). No aparecía antes porque las suites PostgreSQL se saltan sin su URL. Ahora comprueba las 20 y el nombre de las cuatro nuevas.
 3. `auth-v2`, `current-auth-context`, `f02-final-integration`: **configuración de la ejecución**, no código: esperan una base propia ya migrada y yo les había dado la base compartida. Con `agro_f02_test` y `agro_f02v2_test` (creadas y migradas en el contenedor aislado) pasan 12/12, y las demás.
 
+## 3b. E3-P1 decidida (opción 1 + 1b), 2026-11-12
+
+Medición previa en el mismo borrador (`tool/etapa3/e3p1_poblaciones.sql`, sólo recuentos): en los 7 productos con estimación la necesidad la declaran 4 a 11 agricultores y cada cifra de consumo del tramo viene de 3 a 6; en ninguna campaña coinciden (`docs/architecture/E3_P1_OPCIONES_ALCANCE_COMPARABLE.md`). Decisión de Roderich: seguir sin calcular la diferencia y mostrar el alcance conocido de cada cifra.
+
+Código: Back `29c559e`, Web `219d959`, corrección `e60df32` (cifra retenida → «Restringida»; la nota ya no afirma que los grupos sean distintos, sólo que no se puede comprobar). Pruebas: módulo E3 29/29 (incluye `insert-only` de F12), OpenAPI coincide, Web E3 43/43; suite Web completa del agente 533/533 antes de la corrección de texto.
+
+Recorrido real (API recompilada y reiniciada con `e60df32`, Web 5175): Herbicida «189,8 L · 11 aportantes» frente a «70,5 L · Vigente · Cifras de 4 a 6 agricultores por campaña (11 campañas)»; Mancozeb «25,3 KG · 4 aportantes» frente a «≈ 20,6 KG · Cifras de 3 a 5 agricultores por campaña (11 campañas)»; las líneas con datos insuficientes no llevan alcance de estimación; una sola nota sobre la tabla (`w10_e3p1_alcance_de_cada_cifra.png`).
+
 ## 4. Qué no se comprobó
 
 - Teléfono físico.

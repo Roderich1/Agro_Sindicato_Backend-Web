@@ -25,7 +25,7 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 |---|---|---|---|---|
 | Back/Web | `_wt/ET1-BE` | `feat/etapa1-identificacion-productos` | `11bffd7` | … `ee1ecc1` |
 | Back/Web | `_wt/ET2-BE` (**checkout actual**: la rama de etapa 3) | `feat/etapa2-convocatorias` | `62779e8` + ET1 | … `01bcdeb` (sin cambios) |
-| Back/Web | `_wt/ET2-BE` | `feat/etapa3-estimacion-borrador` | `01bcdeb` | `0db2d0f` back E2-P2/P3 · `f673f95` back E3 · `5d760b6` web E2-P3 · `2a25386` web E3 · `2eb3ef7` · `3b2099b` · `b77965e` · `8bf84f9` E3 en módulo propio · (+ docs, evidencia y guiones de esta sesión) |
+| Back/Web | `_wt/ET2-BE` | `feat/etapa3-estimacion-borrador` | `01bcdeb` | `0db2d0f` back E2-P2/P3 · `f673f95` back E3 · `5d760b6` web E2-P3 · `2a25386` web E3 · `2eb3ef7` · `3b2099b` · `b77965e` · `8bf84f9` E3 en módulo propio · `29c559e` `219d959` `e60df32` E3-P1 (1 + 1b) · (+ docs, evidencia y guiones de esta sesión) |
 | Mobile | `_wt/ET1-MOB` | `feat/etapa1-productos-identificacion-foto` | `73a927b` | … `bce8e59` |
 | Mobile | `_wt/ET2-MOB` (**checkout actual**: la rama nueva) | `feat/etapa2-convocatorias` | `bce8e59` | `6bac5a3` (sin cambios) |
 | Mobile | `_wt/ET2-MOB` | `feat/etapa2-historial-colaboradores` | `6bac5a3` | `16c002c` historial y CONV-2 · `fa0fdc4` consent en historial · `b55e5af` texto de coordinación |
@@ -53,7 +53,7 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 ## 6. Limitaciones y decisiones pendientes
 
 1. Nada probado en teléfono físico.
-2. **E3-P1**: no hay metadatos para comprobar que necesidad y estimación cubran la misma población; ninguna diferencia se calcula hasta que el autor defina el alcance comparable.
+2. **E3-P1 resuelta (2026-11-12, opción 1 + 1b):** no se calcula ninguna diferencia; la vista muestra el alcance de cada cifra (F12 §2 enmendado). Medición: la necesidad la declaran más agricultores que los de cualquier cifra de consumo.
 3. **E3-P2**: si la selección de productos debe quedar como trazabilidad de la convocatoria.
 4. Contratos E2 y E3 pendientes de aceptación; umbral de E2-P1 (3) revisable.
 5. Migración v16 → v17 con datos e historial con convocatorias antiguas: sólo en pruebas automatizadas (ver evidencia §4).
@@ -63,7 +63,7 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 
 ## 7. Siguiente paso concreto
 
-1. Recoger la aceptación de los contratos E2 (§10) y E3, y decidir E3-P1/E3-P2.
+1. Recoger la aceptación de los contratos E2 (§10) y E3, y decidir E3-P2.
 2. Etapa 4 (avisos adicionales): contrato a partir de los avisos dentro de la app de E2-D15.
 3. Si se acepta, preparar la integración de las ramas (sin fusionar sin visto bueno).
 

@@ -102,6 +102,7 @@ Las dos últimas **nunca** son cero, no se interpolan y no entran en el cálculo
 **Lo que no se entrega en ningún perfil:**
 - inventarios privados, compras, cuentas familiares, fotografías ni existencias privadas;
 - aportes individuales: cantidad por agricultor, Member que aporta o número de aportantes de una fila.
+  - **Enmienda E3-P1 (decisión del autor, 2026-11-12):** la vista E3 de la referencia fijada en un borrador (`/collective/proposals/{id}/estimation-link`, sólo DIRECTIVA y ADMINISTRADOR) entrega, para un resultado **con cifra entregada**, el número de campañas del tramo y el **mínimo y el máximo** de aportantes de las cifras de consumo usadas, nunca por campaña ni identidades. No amplía el acceso: F07 ya entrega `contributors` de cada cifra publicada, también de `CONSUMPTION_TOTAL`, a esos roles (resumen e histórico sellado). Las rutas de INT-09 (`/estimation/…`) no cambian. Ver `E3_P1_OPCIONES_ALCANCE_COMPARABLE.md`.
 
 La serie solo usa cifras ya publicadas y selladas (§3).
 
