@@ -9,7 +9,7 @@ export const SERVER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 export const SEQUENCE_MAX = 2_147_483_647;
 export const MAX_LINES = 50;
 
-export type OperationKind = "CONFIRM" | "WITHDRAW";
+export type OperationKind = "CONFIRM" | "WITHDRAW" | "CONSENT";
 
 export interface ConfirmInput {
   operation_id: string;
@@ -23,6 +23,15 @@ export interface WithdrawInput {
   sequence: number;
 }
 
+/** §10.6 (P-C): `POST …/participation/consent`, a decision of its own. */
+export interface ConsentDecisionInput {
+  operation_id: string;
+  /** Order of the consent decisions of this participation (separate from the quantities). */
+  sequence: number;
+  scope: string;
+  consent: { version: string; decided_at: string };
+}
+
 /** A farmer operation after the structural checks, before the call is read. */
 export interface NormalizedOperation {
   kind: OperationKind;
@@ -32,6 +41,8 @@ export interface NormalizedOperation {
   consent: { version: string; acceptedAt: Date } | null;
   /** Sorted by product_ref; empty = withdrawal (E2-D8). */
   lines: { productRef: string; quantityBase: bigint }[];
+  /** Only for CONSENT (§10.6): the scope decided. */
+  scope?: "RESPONSIBLE_ONLY" | "COLLABORATORS";
   fingerprint: string;
 }
 
@@ -94,6 +105,27 @@ export function normalizeWithdraw(input: WithdrawInput): NormalizedOperation {
   return { ...base, fingerprint: operationFingerprint(base) };
 }
 
+/** `POST …/participation/consent` (§10.6). The decided date is the phone's. */
+export function normalizeConsentDecision(input: ConsentDecisionInput): NormalizedOperation {
+  const { operationId, sequence } = checkEnvelope(input.operation_id, input.sequence);
+  const scope: "RESPONSIBLE_ONLY" | "COLLABORATORS" | null =
+    input.scope === "RESPONSIBLE_ONLY" || input.scope === "COLLABORATORS" ? input.scope : null;
+  if (!scope) throw INVALID();
+  const consent = input.consent;
+  if (!consent || typeof consent.version !== "string" || typeof consent.decided_at !== "string") throw INVALID();
+  const decidedAt = new Date(consent.decided_at);
+  if (Number.isNaN(decidedAt.getTime())) throw INVALID();
+  const base = {
+    kind: "CONSENT" as const,
+    operationId,
+    sequence,
+    consent: { version: consent.version, acceptedAt: decidedAt },
+    lines: [],
+    scope,
+  };
+  return { ...base, fingerprint: operationFingerprint(base) };
+}
+
 /**
  * E2-D10: SHA-256 of the normalized body (kind, sequence, consent with its
  * date in ISO form, lines sorted by product). The same operation id with
@@ -108,6 +140,8 @@ export function operationFingerprint(operation: Omit<NormalizedOperation, "finge
     operation.sequence,
     operation.consent ? [operation.consent.version, operation.consent.acceptedAt.toISOString()] : null,
     operation.lines.map((line) => [line.productRef, line.quantityBase.toString()]),
+    // §10.6: only consent decisions carry a scope; earlier fingerprints are unchanged.
+    ...(operation.scope ? [operation.scope] : []),
   ]);
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }

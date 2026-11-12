@@ -7,6 +7,7 @@ import type {
   SyncV1BaseUnit,
   UserRole,
 } from "@prisma/client";
+import { CONSENT_V1_TEXT as CONSENT_V1_TEXT_LEGACY, CONSENT_V1_VERSION as CONSENT_V1_VERSION_LEGACY } from "../domain/consent";
 import { ProductTotalView } from "../domain/visibility";
 
 export type PresentationUnit = "L" | "KG";
@@ -32,7 +33,14 @@ export interface ParticipationView {
   last_sequence: number;
   last_operation_id: string;
   accepted_at: string;
+  /** The text accepted when the participation was first confirmed (never rewritten). */
   consent: { version: string; accepted_at: string; received_at: string };
+  /**
+   * §10.6 (P-C): the scope in force and the decision that set it (`sequence`
+   * 0 = the first acceptance). Only in contract 2: `toLegacyFarmerBody`
+   * removes it for phones that do not ask for it.
+   */
+  consent_scope?: { scope: "RESPONSIBLE_ONLY" | "COLLABORATORS"; version: string; decided_at: string; received_at: string; sequence: number };
 }
 
 export interface ParticipationRow {
@@ -43,6 +51,11 @@ export interface ParticipationRow {
   consentVersion: string;
   consentAcceptedAt: Date;
   consentReceivedAt: Date;
+  consentScope: "RESPONSIBLE_ONLY" | "COLLABORATORS";
+  consentScopeVersion: string;
+  consentScopeDecidedAt: Date;
+  consentScopeReceivedAt: Date;
+  consentScopeSequence: number;
   lines: { productId: string; baseUnit: SyncV1BaseUnit; quantityBase: bigint }[];
 }
 
@@ -64,6 +77,13 @@ export function toParticipationView(row: ParticipationRow | null): Participation
       version: row.consentVersion,
       accepted_at: row.consentAcceptedAt.toISOString(),
       received_at: row.consentReceivedAt.toISOString(),
+    },
+    consent_scope: {
+      scope: row.consentScope,
+      version: row.consentScopeVersion,
+      decided_at: row.consentScopeDecidedAt.toISOString(),
+      received_at: row.consentScopeReceivedAt.toISOString(),
+      sequence: row.consentScopeSequence,
     },
   };
 }
@@ -210,8 +230,10 @@ export interface CallDetailView {
   is_responsible: boolean;
   /** §10.2: the responsible or MANAGE (edit the draft, open, cancel, close). */
   can_manage: boolean;
-  /** §10.2: when the responsible is no longer eligible, any DIRECTIVA/ADMINISTRADOR may cancel or close. */
+  /** §10.2: equal to can_manage (N2, a fallback by role, was rejected on 2026-11-12). Kept for the Web. */
   can_cancel_or_close: boolean;
+  /** m6: the responsible is not eligible, so the permissions she granted are suspended (not deleted). */
+  delegations_suspended: boolean;
   /** Grants this user holds now (the responsible holds MANAGE by being the responsible). */
   my_grants: ("MANAGE" | "PARTICIPANTS")[];
   /** Users with a grant from the responsible now (never farmers). */
@@ -334,3 +356,37 @@ export const REFERENCE_DISCLOSED_LABEL = "Cifra divulgada en el borrador";
 export const REFERENCE_NO_FIGURE_LABEL = "Sin cifra";
 
 export { iso };
+
+// ------------------------------------------------- contract 1 (N7, 2026-11-12)
+
+/**
+ * N7: the answer for phones that do not send `X-Joint-Purchase-Contract: 2`
+ * (the versions published before §10.6, which reject any key or consent they
+ * do not know). It is the same data in the contract 1 shape:
+ * - `contractVersion: 1` and the `CONV-1` consent (only the responsible),
+ *   which is the text those versions show and the scope a first confirmation
+ *   with it gets: no newer consent is passed off as the old one, and nobody
+ *   gains access to keep the old phone working;
+ * - without `history` (those versions did not know it; the finished calls
+ *   older than 180 days were never in their list) nor `consent_scope`.
+ * Their operations (with `CONV-1`) are still accepted as they are.
+ */
+export function toLegacyFarmerBody(body: unknown): unknown {
+  if (!body || typeof body !== "object") return body;
+  const source = body as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...source };
+  if ("contractVersion" in out) out.contractVersion = 1;
+  if ("consent" in out && "calls" in out) out.consent = { version: CONSENT_V1_VERSION_LEGACY, text: CONSENT_V1_TEXT_LEGACY };
+  delete out.history;
+  if (Array.isArray(out.calls)) {
+    out.calls = (out.calls as Record<string, unknown>[]).map((call) => ({ ...call, participation: legacyParticipation(call.participation) }));
+  }
+  if ("participation" in out) out.participation = legacyParticipation(out.participation);
+  return out;
+}
+
+function legacyParticipation(participation: unknown): unknown {
+  if (!participation || typeof participation !== "object") return participation;
+  const { consent_scope: _scope, ...rest } = participation as Record<string, unknown>;
+  return rest;
+}

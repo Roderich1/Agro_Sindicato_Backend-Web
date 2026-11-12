@@ -28,7 +28,7 @@ export const callErrorSchema: SchemaObject = closed(
       enum: ["DEADLINE_PASSED", "CLOSED", "CANCELLED", "DRAFT"],
       description: "Sólo con CALL_NOT_OPEN",
     },
-    status: { ...callStatus, description: "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED" },
+    status: { ...callStatus, description: "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED" },
     participation: {
       type: "object",
       nullable: true,
@@ -52,11 +52,29 @@ export const participationSchema: SchemaObject = closed(
     last_sequence: { type: "integer" },
     last_operation_id: { type: "string", format: "uuid" },
     accepted_at: { ...dateTime, description: "Hora del servidor de la última operación aceptada" },
-    consent: closed(["version", "accepted_at", "received_at"], {
-      version: { type: "string", example: "CONV-1" },
-      accepted_at: { ...dateTime, description: "Declarada por el teléfono" },
-      received_at: { ...dateTime, description: "Hora del servidor" },
-    }),
+    consent: closed(
+      ["version", "accepted_at", "received_at"],
+      {
+        version: { type: "string", example: "CONV-3" },
+        accepted_at: { ...dateTime, description: "Declarada por el teléfono" },
+        received_at: { ...dateTime, description: "Hora del servidor" },
+      },
+      { description: "Texto aceptado al crear la participación; nunca se reescribe" },
+    ),
+    consent_scope: closed(
+      ["scope", "version", "decided_at", "received_at", "sequence"],
+      {
+        scope: { type: "string", enum: ["RESPONSIBLE_ONLY", "COLLABORATORS"] },
+        version: { type: "string", example: "CONV-3", description: "Texto citado por la decisión que fijó el alcance" },
+        decided_at: { ...dateTime, description: "Declarada por el teléfono" },
+        received_at: { ...dateTime, description: "Hora del servidor" },
+        sequence: { type: "integer", minimum: 0, description: "Orden de la decisión (0 = la aceptación inicial)" },
+      },
+      {
+        description:
+          "§10.6 (P-C): alcance vigente del consentimiento. Sólo en el contrato 2 (cabecera X-Joint-Purchase-Contract: 2); las cantidades nunca lo cambian",
+      },
+    ),
   },
   { nullable: true },
 );
@@ -118,12 +136,21 @@ const farmerCallSchema: SchemaObject = closed(
     );
 
 const consentSchema = closed(["version", "text"], {
-  version: { type: "string", example: "CONV-2", description: "Versión vigente (el servidor también acepta CONV-1)" },
+  version: {
+    type: "string",
+    example: "CONV-3",
+    description: "Contrato 2: CONV-3 (vigente). Contrato 1 (teléfonos que no envían la cabecera): CONV-1, el texto que esas versiones muestran",
+  },
   text: { type: "string" },
 });
 
-export const farmerListSchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls", "history"], {
-  contractVersion: { type: "integer", enum: [1] },
+export const farmerListSchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls"], {
+  contractVersion: {
+    type: "integer",
+    enum: [1, 2],
+    description:
+      "2 con la cabecera X-Joint-Purchase-Contract: 2. Sin ella, la forma del contrato 1 (N7): consentimiento CONV-1, sin history ni consent_scope",
+  },
   server_time: dateTime,
   consent: consentSchema,
   calls: { type: "array", items: farmerCallSchema },
@@ -137,7 +164,7 @@ export const farmerListSchema: SchemaObject = closed(["contractVersion", "server
 });
 
 export const farmerHistorySchema: SchemaObject = closed(["contractVersion", "server_time", "consent", "calls", "next_cursor"], {
-  contractVersion: { type: "integer", enum: [1] },
+  contractVersion: { type: "integer", enum: [1, 2] },
   server_time: dateTime,
   consent: consentSchema,
   calls: { type: "array", items: farmerCallSchema, description: "Sólo CLOSED/CANCELLED con participación propia, de la más reciente a la más antigua" },

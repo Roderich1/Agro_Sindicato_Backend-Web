@@ -1,7 +1,7 @@
 import { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CallHttpError, InstitutionalActor } from "../domain/call-error";
-import { consentCoversCollaborators } from "../domain/consent";
+import { scopeCoversCollaborators } from "../domain/consent";
 import { CallViewer, CallVisibility } from "../domain/visibility";
 import { ACCESS_MANAGE, ACCESS_PARTICIPANTS, CallGrant, Tx } from "./call-store";
 
@@ -35,13 +35,20 @@ export interface CallAccessOf {
  * MANAGE by being the responsible and PARTICIPANTS through the row created at
  * opening; anyone else only through rows granted by the responsible. No role
  * grants anything.
+ *
+ * m6 (2026-11-12): while the responsible is not eligible (account, Member,
+ * role or tenant inactive), the grants she gave are SUSPENDED: they stay
+ * recorded but are not exercised, until a substitution (P-A, pending) reviews
+ * them. A suspended collaborator is treated as having held the permission
+ * before (the protection of §10.3 applies to them).
  */
 export async function accessOf(
   db: Db,
-  call: { id: string; responsibleUserId: string },
+  call: { id: string; tenantId: string; responsibleUserId: string },
   userId: string,
 ): Promise<CallAccessOf> {
-  const [rows, everParticipants] = await Promise.all([
+  const isResponsible = call.responsibleUserId === userId;
+  const [rows, everParticipants, eligible] = await Promise.all([
     db.jointPurchaseCallAccess.findMany({
       where: { callId: call.id, userId },
       select: { grant: true, grantedByUserId: true },
@@ -49,11 +56,13 @@ export async function accessOf(
     db.jointPurchaseCallAccessEvent.count({
       where: { callId: call.id, userId, grant: ACCESS_PARTICIPANTS, action: "GRANTED" },
     }),
+    isResponsible ? Promise.resolve(true) : responsibleIsEligible(db, call.tenantId, call.responsibleUserId),
   ]);
-  const isResponsible = call.responsibleUserId === userId;
-  const grants = new Set<CallGrant>(rows.map((row) => row.grant as CallGrant));
+  // The responsible's own row is never a delegation; collaborators' rows are suspended with her.
+  const inForce = rows.filter((row) => row.grantedByUserId === null || eligible);
+  const grants = new Set<CallGrant>(inForce.map((row) => row.grant as CallGrant));
   if (isResponsible) grants.add(ACCESS_MANAGE);
-  const participantsRow = rows.find((row) => row.grant === ACCESS_PARTICIPANTS) ?? null;
+  const participantsRow = inForce.find((row) => row.grant === ACCESS_PARTICIPANTS) ?? null;
   const viewer: CallViewer = {
     kind: participantsRow === null ? "NONE" : participantsRow.grantedByUserId === null && isResponsible ? "RESPONSIBLE" : "COLLABORATOR",
     formerParticipantsHolder: everParticipants > 0,
@@ -62,7 +71,7 @@ export async function accessOf(
     grants,
     canViewParticipants: participantsRow !== null,
     isResponsible,
-    visibility: new CallVisibility(viewer, consentCoversCollaborators),
+    visibility: new CallVisibility(viewer, scopeCoversCollaborators),
   };
 }
 
@@ -74,23 +83,24 @@ export async function responsibleIsEligible(db: Db, tenantId: string, userId: st
 
 /**
  * §10.2: editing, opening, cancelling and closing by hand need the
- * responsible or MANAGE (403 MANAGE_FORBIDDEN). When the responsible is no
- * longer eligible, any DIRECTIVA/ADMINISTRADOR of the tenant may cancel or
- * close (`fallback`), so that the call is never left without a way out; this
- * never grants seeing participants.
+ * responsible or MANAGE granted by her (403 MANAGE_FORBIDDEN).
+ *
+ * N2 rejected (2026-11-12): no role gets cancel or close when the responsible
+ * is no longer eligible. A MANAGE granted by her is suspended meanwhile (m6).
+ * The automatic closing at the deadline does not go through here and is kept.
+ * The way out for such a call is the explicit substitution of P-A, not yet
+ * enabled.
  */
 export async function requireManage(
   db: Db,
   call: { id: string; tenantId: string; responsibleUserId: string },
   actor: InstitutionalActor,
-  fallback: "CANCEL_OR_CLOSE" | "NONE",
 ): Promise<void> {
   if (call.responsibleUserId === actor.userId) return;
   const manage = await db.jointPurchaseCallAccess.findUnique({
     where: { callId_userId_grant: { callId: call.id, userId: actor.userId, grant: ACCESS_MANAGE } },
     select: { callId: true },
   });
-  if (manage) return;
-  if (fallback === "CANCEL_OR_CLOSE" && !(await responsibleIsEligible(db, call.tenantId, call.responsibleUserId))) return;
+  if (manage && (await responsibleIsEligible(db, call.tenantId, call.responsibleUserId))) return;
   throw new CallHttpError(403, "MANAGE_FORBIDDEN");
 }

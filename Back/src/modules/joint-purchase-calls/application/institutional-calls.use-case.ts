@@ -46,7 +46,17 @@ export { eligibleMemberWhere, INSTITUTIONAL_ROLES } from "./call-access";
 export const NAME_MAX = 120;
 export const REASON_MAX = 280;
 export const MAX_PRODUCTS = 50;
-const ELIGIBLE_CAMPAIGN = new Set(["PLANIFICADA", "ABIERTA"]);
+/**
+ * N1 (accepted with changes, 2026-11-12): drafts are created and edited in a
+ * PLANIFICADA or ABIERTA campaign; a call is opened only in an ABIERTA one.
+ * Cancelling and closing an existing call never depend on the campaign, and
+ * a change of the campaign never cancels a call.
+ */
+const DRAFT_CAMPAIGN = new Set(["PLANIFICADA", "ABIERTA"]);
+const OPEN_CAMPAIGN = new Set(["ABIERTA"]);
+
+/** m11: the history says, at the opening, which access the system grants (no names: the responsible is the call's). */
+export const OPENED_DETAIL = "Convocatoria abierta. La persona responsable recibe el permiso de consultar participantes y cantidades.";
 
 export interface DraftCommand {
   campaign_id: string;
@@ -185,7 +195,7 @@ export class InstitutionalCallsUseCase {
         id: true,
         status: true,
         acceptedAt: true,
-        consentVersion: true,
+        consentScope: true,
         member: { select: { user: { select: { name: true } } } },
         lines: {
           orderBy: { productId: "asc" },
@@ -193,7 +203,7 @@ export class InstitutionalCallsUseCase {
         },
       },
     });
-    const rows = all.filter((row) => access.visibility.canSeeParticipation(row.consentVersion));
+    const rows = all.filter((row) => access.visibility.canSeeParticipation(row.consentScope));
     const hidden = all.length - rows.length;
     return {
       contractVersion: 1,
@@ -303,8 +313,9 @@ export class InstitutionalCallsUseCase {
     }
     await this.prisma.$transaction(async (tx) => {
       const call = await this.lockAndRead(tx, actor.tenantId, id);
-      await requireManage(tx, call, actor, "NONE");
+      await requireManage(tx, call, actor);
       if (!isEditable(call.status)) throw new CallHttpError(409, "CALL_NOT_EDITABLE", { status: call.status });
+      await this.requireCampaign(tx, actor.tenantId, call.campaignId);
       const now = this.clock.now();
       const changed: string[] = [];
       const data: Prisma.JointPurchaseCallUncheckedUpdateInput = {};
@@ -382,11 +393,11 @@ export class InstitutionalCallsUseCase {
       await this.prisma.$transaction(async (tx) => {
         await lockTenantCalls(tx, actor.tenantId);
         const call = await this.lockAndRead(tx, actor.tenantId, id);
-        await requireManage(tx, call, actor, "NONE");
+        await requireManage(tx, call, actor);
         if (call.status !== "DRAFT") throw new CallHttpError(409, "INVALID_TRANSITION", { status: call.status });
         const now = this.clock.now();
         if (call.deadlineAt.getTime() <= now.getTime()) throw new CallHttpError(422, "DEADLINE_IN_PAST");
-        await this.requireCampaign(tx, actor.tenantId, call.campaignId);
+        await this.requireCampaign(tx, actor.tenantId, call.campaignId, OPEN_CAMPAIGN);
         await this.requireResponsible(tx, actor.tenantId, call.responsibleUserId);
         const checked = await this.checkProducts(tx, actor.tenantId, call.products.map((p) => p.productId));
         for (const product of call.products) {
@@ -416,7 +427,7 @@ export class InstitutionalCallsUseCase {
           data: { callId: call.id, userId: call.responsibleUserId, grant: ACCESS_PARTICIPANTS, grantedAt: now },
         });
         await tx.jointPurchaseCallEvent.create({
-          data: { callId: call.id, at: now, kind: "OPENED", actorUserId: actor.userId, detail: "Convocatoria abierta." },
+          data: { callId: call.id, at: now, kind: "OPENED", actorUserId: actor.userId, detail: OPENED_DETAIL },
         });
         await this.audit(tx, actor, call.id, call.campaignId, `Convocatoria de compra conjunta «${call.name}» abierta.`, {
           deadlineAt: call.deadlineAt.toISOString(),
@@ -442,7 +453,7 @@ export class InstitutionalCallsUseCase {
     if (!reason || reason.length > REASON_MAX) throw new CallHttpError(422, "REASON_REQUIRED");
     await this.prisma.$transaction(async (tx) => {
       const call = await this.lockAndRead(tx, actor.tenantId, id);
-      await requireManage(tx, call, actor, "CANCEL_OR_CLOSE");
+      await requireManage(tx, call, actor);
       if (call.status === "CANCELLED") return;
       if (call.status !== "DRAFT" && call.status !== "OPEN") {
         throw new CallHttpError(409, "INVALID_TRANSITION", { status: call.status });
@@ -470,7 +481,7 @@ export class InstitutionalCallsUseCase {
     if (!SERVER_ID.test(id)) throw NOT_FOUND();
     // §10.2: checked under the call's lock, in the closing's own transaction.
     await this.closing.closeManually(actor.tenantId, id, actor.userId, (tx, call) =>
-      requireManage(tx, call, actor, "CANCEL_OR_CLOSE"),
+      requireManage(tx, call, actor),
     );
     return this.closingView(actor, id);
   }
@@ -606,13 +617,13 @@ export class InstitutionalCallsUseCase {
     });
   }
 
-  private async requireCampaign(tx: Tx, tenantId: string, campaignId: string) {
+  private async requireCampaign(tx: Tx, tenantId: string, campaignId: string, allowed: ReadonlySet<string> = DRAFT_CAMPAIGN) {
     const campaign = await tx.agriculturalCampaign.findFirst({
       where: { id: campaignId, tenantId },
       select: { id: true, status: true },
     });
     if (!campaign) throw new CallHttpError(404, "CAMPAIGN_NOT_FOUND");
-    if (!ELIGIBLE_CAMPAIGN.has(campaign.status)) throw new CallHttpError(422, "CAMPAIGN_NOT_ELIGIBLE");
+    if (!allowed.has(campaign.status)) throw new CallHttpError(422, "CAMPAIGN_NOT_ELIGIBLE");
     return campaign;
   }
 
@@ -815,7 +826,10 @@ export class InstitutionalCallsUseCase {
       can_view_participants: access.canViewParticipants,
       is_responsible: access.isResponsible,
       can_manage: canManage,
-      can_cancel_or_close: canManage || !responsibleEligible,
+      // N2 rechazada (2026-11-12): nadie obtiene cancelar o cerrar por su rol cuando la responsable deja de estar habilitada.
+      can_cancel_or_close: canManage,
+      // m6: mientras la responsable no esté habilitada, los permisos que concedió quedan suspendidos (no borrados).
+      delegations_suspended: !responsibleEligible,
       my_grants: CALL_GRANTS.filter((grant) => access.grants.has(grant)).sort(),
       collaborator_count: collaborators.length,
       products: call.products.map((product) => ({
@@ -875,11 +889,11 @@ export class InstitutionalCallsUseCase {
     if (status === "DRAFT") return { source: "NONE", participantCount: 0, byProduct: new Map() };
     const active = await db.jointPurchaseParticipation.findMany({
       where: { callId, status: "ACTIVE" },
-      select: { consentVersion: true, lines: { select: { productId: true, quantityBase: true } } },
+      select: { consentScope: true, lines: { select: { productId: true, quantityBase: true } } },
     });
     const byProduct = new Map<string, ProductTotals>();
     for (const participation of active) {
-      const forVisibility = { consentVersion: participation.consentVersion, productIds: participation.lines.map((l) => l.productId) };
+      const forVisibility = { consentScope: participation.consentScope, productIds: participation.lines.map((l) => l.productId) };
       for (const line of participation.lines) {
         const entry = byProduct.get(line.productId) ?? { total: 0n, count: 0, participations: [] };
         entry.total += line.quantityBase;
@@ -914,7 +928,7 @@ export class InstitutionalCallsUseCase {
     let participants: ClosingView["participants"] = null;
     let hidden = 0;
     if (access.canViewParticipants) {
-      const visible = frozen.filter((p) => access.visibility.canSeeParticipation(p.consentVersion));
+      const visible = frozen.filter((p) => access.visibility.canSeeParticipation(p.consentScope));
       hidden = frozen.length - visible.length;
       const members = await db.member.findMany({
         where: { id: { in: visible.map((row) => row.memberId) } },
@@ -1070,15 +1084,15 @@ async function frozenParticipations(db: Tx | PrismaService, callId: string) {
   });
   const consents = await db.jointPurchaseParticipation.findMany({
     where: { id: { in: rows.map((row) => row.participationId) } },
-    select: { id: true, consentVersion: true },
+    select: { id: true, consentScope: true },
   });
-  const consentOf = new Map(consents.map((c) => [c.id, c.consentVersion]));
+  const consentOf = new Map(consents.map((c) => [c.id, c.consentScope as string]));
   return rows.map((row) => ({
     participationId: row.participationId,
     memberId: row.memberId,
     acceptedAt: row.acceptedAt,
     // A frozen participation always has its row (FK chain); a missing one is treated as hidden.
-    consentVersion: consentOf.get(row.participationId) ?? "",
+    consentScope: consentOf.get(row.participationId) ?? "",
     productIds: row.lines.map((line) => line.productId),
     lines: row.lines,
   }));

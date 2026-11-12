@@ -1,8 +1,19 @@
 import { CallHttpError } from "./call-error";
 import { canTransition, closingCutoff, isEditable, isFinal, notOpenReason } from "./call-state";
 import { computeClosing } from "./closing";
-import { CONSENT_TEXT, CONSENT_V1_TEXT, CONSENT_V1_VERSION, CONSENT_VERSION, consentCoversCollaborators, isAcceptedConsent } from "./consent";
-import { normalizeConfirm, normalizeWithdraw, parseQuantity } from "./participation-input";
+import {
+  CONSENT_TEXT,
+  CONSENT_V1_TEXT,
+  CONSENT_V1_VERSION,
+  CONSENT_V2_TEXT,
+  CONSENT_V2_VERSION,
+  CONSENT_VERSION,
+  decisionVersionAccepted,
+  initialScopeOf,
+  isAcceptedConsent,
+  scopeCoversCollaborators,
+} from "./consent";
+import { normalizeConfirm, normalizeConsentDecision, normalizeWithdraw, parseQuantity } from "./participation-input";
 import { CallViewer, CallVisibility, productTotalView } from "./visibility";
 import { closeIntervalFrom } from "../application/joint-purchase-config";
 
@@ -50,27 +61,65 @@ describe("E2 state machine (E2-D2)", () => {
   });
 });
 
-describe("E2 consent (E2-D9, E2-P3 §10.2)", () => {
-  it("keeps the exact CONV-1 text, still accepted from phones not yet updated", () => {
+describe("E2 consent (E2-D9, E2-P3 §10.2, P-C §10.6)", () => {
+  it("keeps the exact CONV-1 text, still accepted from phones not yet updated, for the responsible only", () => {
     expect(CONSENT_V1_VERSION).toBe("CONV-1");
     expect(CONSENT_V1_TEXT).toBe(
       "El responsable de esta compra conjunta podrá ver tu nombre y las cantidades que solicitas para coordinar la compra y la entrega. Esta confirmación no genera una deuda.",
     );
     expect(isAcceptedConsent("CONV-1")).toBe(true);
+    expect(initialScopeOf("CONV-1")).toBe("RESPONSIBLE_ONLY");
   });
 
-  it("publishes CONV-2 as current with its exact text; any other version is refused", () => {
-    expect(CONSENT_VERSION).toBe("CONV-2");
-    expect(CONSENT_TEXT).toBe(
+  it("keeps CONV-2 with its exact text and meaning (it covered collaborators)", () => {
+    expect(CONSENT_V2_VERSION).toBe("CONV-2");
+    expect(CONSENT_V2_TEXT).toBe(
       "La persona responsable de esta compra conjunta y quienes ella autorice para coordinarla podrán ver tu nombre y las cantidades que solicitas, para coordinar la compra y la entrega. Esta confirmación no genera una deuda.",
     );
     expect(isAcceptedConsent("CONV-2")).toBe(true);
-    for (const other of ["CONV-0", "CONV-3", "conv-2", "", undefined, null, 2]) expect(isAcceptedConsent(other)).toBe(false);
+    expect(initialScopeOf("CONV-2")).toBe("COLLABORATORS");
   });
 
-  it("extends nothing retroactively: only CONV-2 covers collaborators", () => {
-    expect(consentCoversCollaborators("CONV-2")).toBe(true);
-    expect(consentCoversCollaborators("CONV-1")).toBe(false);
+  it("publishes CONV-3 (N5): responsible, and only if the farmer authorizes it, the Directiva/Administración she authorizes; purpose; no debt", () => {
+    expect(CONSENT_VERSION).toBe("CONV-3");
+    expect(CONSENT_TEXT).toBe(
+      "La persona responsable de esta compra conjunta podrá ver tu nombre y las cantidades que solicitas. Si tú lo autorizas, también podrán verlos las personas de la Directiva o la Administración que ella autorice para esta convocatoria. Los datos se usan para coordinar la compra y la entrega. Esta confirmación no genera una deuda.",
+    );
+    // Accepting it gives only the responsible: widening is a decision of its own.
+    expect(initialScopeOf("CONV-3")).toBe("RESPONSIBLE_ONLY");
+    for (const other of ["CONV-0", "CONV-4", "conv-3", "", undefined, null, 3]) expect(isAcceptedConsent(other)).toBe(false);
+  });
+
+  it("widening cites the current text; a reduction is respected with any known text", () => {
+    expect(decisionVersionAccepted("COLLABORATORS", "CONV-3")).toBe(true);
+    expect(decisionVersionAccepted("COLLABORATORS", "CONV-2")).toBe(false);
+    expect(decisionVersionAccepted("COLLABORATORS", "CONV-1")).toBe(false);
+    for (const version of ["CONV-1", "CONV-2", "CONV-3"]) expect(decisionVersionAccepted("RESPONSIBLE_ONLY", version)).toBe(true);
+    expect(decisionVersionAccepted("RESPONSIBLE_ONLY", "CONV-9")).toBe(false);
+  });
+
+  it("only the COLLABORATORS scope reaches collaborators", () => {
+    expect(scopeCoversCollaborators("COLLABORATORS")).toBe(true);
+    expect(scopeCoversCollaborators("RESPONSIBLE_ONLY")).toBe(false);
+    expect(scopeCoversCollaborators("CONV-2")).toBe(false);
+  });
+});
+
+describe("E2 consent decision input (P-C §10.6)", () => {
+  const base = { operation_id: "3b241101-e2bb-4255-8caf-4136c566a962", sequence: 1, scope: "COLLABORATORS", consent: { version: "CONV-3", decided_at: "2026-11-12T10:00:00-04:00" } };
+
+  it("normalizes a decision and fingerprints its scope", () => {
+    const widen = normalizeConsentDecision(base);
+    expect(widen).toMatchObject({ kind: "CONSENT", scope: "COLLABORATORS", consent: { version: "CONV-3" } });
+    expect(widen.consent?.acceptedAt.toISOString()).toBe("2026-11-12T14:00:00.000Z");
+    const reduce = normalizeConsentDecision({ ...base, scope: "RESPONSIBLE_ONLY" });
+    expect(reduce.fingerprint).not.toBe(widen.fingerprint);
+  });
+
+  it("refuses an unknown scope or a decision without its text", () => {
+    expect(() => normalizeConsentDecision({ ...base, scope: "EVERYONE" })).toThrow();
+    expect(() => normalizeConsentDecision({ ...base, consent: undefined as never })).toThrow();
+    expect(() => normalizeConsentDecision({ ...base, consent: { version: "CONV-3", decided_at: "ayer" } })).toThrow();
   });
 });
 
@@ -248,14 +297,14 @@ describe("E2 visibility (E2-D7)", () => {
 
 describe("E2-P3 visibility (§10.3): one decision for detail, participants and closing", () => {
   const visibility = (kind: CallViewer["kind"], formerParticipantsHolder = false) =>
-    new CallVisibility({ kind, formerParticipantsHolder }, consentCoversCollaborators);
-  const v1 = { consentVersion: "CONV-1", productIds: ["p"] };
-  const v2 = { consentVersion: "CONV-2", productIds: ["p"] };
+    new CallVisibility({ kind, formerParticipantsHolder }, scopeCoversCollaborators);
+  const v1 = { consentScope: "RESPONSIBLE_ONLY", productIds: ["p"] };
+  const v2 = { consentScope: "COLLABORATORS", productIds: ["p"] };
 
-  it("identified participants: all for the responsible, CONV-2 for a collaborator, none otherwise", () => {
-    expect([visibility("RESPONSIBLE").canSeeParticipation("CONV-1"), visibility("RESPONSIBLE").canSeeParticipation("CONV-2")]).toEqual([true, true]);
-    expect([visibility("COLLABORATOR").canSeeParticipation("CONV-1"), visibility("COLLABORATOR").canSeeParticipation("CONV-2")]).toEqual([false, true]);
-    expect([visibility("NONE").canSeeParticipation("CONV-1"), visibility("NONE", true).canSeeParticipation("CONV-2")]).toEqual([false, false]);
+  it("identified participants: all for the responsible, COLLABORATORS ones for a collaborator, none otherwise", () => {
+    expect([visibility("RESPONSIBLE").canSeeParticipation("RESPONSIBLE_ONLY"), visibility("RESPONSIBLE").canSeeParticipation("COLLABORATORS")]).toEqual([true, true]);
+    expect([visibility("COLLABORATOR").canSeeParticipation("RESPONSIBLE_ONLY"), visibility("COLLABORATOR").canSeeParticipation("COLLABORATORS")]).toEqual([false, true]);
+    expect([visibility("NONE").canSeeParticipation("RESPONSIBLE_ONLY"), visibility("NONE", true).canSeeParticipation("COLLABORATORS")]).toEqual([false, false]);
     expect(visibility("COLLABORATOR").hiddenCount([v1, v2, v1])).toBe(2);
     expect(visibility("RESPONSIBLE").hiddenCount([v1, v2])).toBe(0);
   });

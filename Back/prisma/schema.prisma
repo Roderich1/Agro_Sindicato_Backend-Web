@@ -1737,22 +1737,23 @@ model JointPurchaseCall {
   cancelledByUserId String?
   cancelReason      String?                 @db.VarChar(280)
 
-  tenant         Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign       AgriculturalCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  responsible    User                                  @relation("JointPurchaseCallResponsible", fields: [responsibleUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  createdBy      User                                  @relation("JointPurchaseCallCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  openedBy       User?                                 @relation("JointPurchaseCallOpener", fields: [openedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  cancelledBy    User?                                 @relation("JointPurchaseCallCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sourceProposal JointPurchaseProposal?                @relation(fields: [sourceProposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  products       JointPurchaseCallProduct[]
-  participations JointPurchaseParticipation[]
-  operations     JointPurchaseParticipationOperation[]
-  events         JointPurchaseCallEvent[]
-  access         JointPurchaseCallAccess[]
-  accessEvents   JointPurchaseCallAccessEvent[]
-  closing        JointPurchaseCallClosing?
+  tenant           Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign         AgriculturalCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  responsible      User                                  @relation("JointPurchaseCallResponsible", fields: [responsibleUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy        User                                  @relation("JointPurchaseCallCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  openedBy         User?                                 @relation("JointPurchaseCallOpener", fields: [openedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  cancelledBy      User?                                 @relation("JointPurchaseCallCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProposal   JointPurchaseProposal?                @relation(fields: [sourceProposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  products         JointPurchaseCallProduct[]
+  participations   JointPurchaseParticipation[]
+  operations       JointPurchaseParticipationOperation[]
+  consentDecisions JointPurchaseConsentDecision[]
+  events           JointPurchaseCallEvent[]
+  access           JointPurchaseCallAccess[]
+  accessEvents     JointPurchaseCallAccessEvent[]
+  closing          JointPurchaseCallClosing?
   /// E3-P2: productos y procedencia con que se creó (sólo inserción); NULL antes de la migración.
-  origin         JointPurchaseCallOrigin?
+  origin           JointPurchaseCallOrigin?
 
   @@index([tenantId, campaignId, status])
   @@index([status, deadlineAt])
@@ -1821,26 +1822,64 @@ model JointPurchaseCallAccessEvent {
 /// E2-D8/D9: una participación por (convocatoria, Member), con el
 /// consentimiento CONV-1 aceptado en el teléfono y recibido por el servidor.
 model JointPurchaseParticipation {
-  id                String                           @id @default(uuid()) @db.Uuid
-  callId            String                           @db.Uuid
-  tenantId          String
-  memberId          String
-  status            JointPurchaseParticipationStatus
-  consentVersion    String                           @db.VarChar(16)
-  consentAcceptedAt DateTime
-  consentReceivedAt DateTime
-  lastSequence      Int
-  lastOperationId   String                           @db.Uuid
-  acceptedAt        DateTime
-  createdAt         DateTime                         @default(now())
-  updatedAt         DateTime                         @updatedAt
+  id                     String                           @id @default(uuid()) @db.Uuid
+  callId                 String                           @db.Uuid
+  tenantId               String
+  memberId               String
+  status                 JointPurchaseParticipationStatus
+  consentVersion         String                           @db.VarChar(16)
+  consentAcceptedAt      DateTime
+  consentReceivedAt      DateTime
+  lastSequence           Int
+  lastOperationId        String                           @db.Uuid
+  acceptedAt             DateTime
+  createdAt              DateTime                         @default(now())
+  updatedAt              DateTime                         @updatedAt
+  /// §10.6 (P-C): alcance vigente del consentimiento, fijado por la última
+  /// decisión aceptada (orden propio, 0 = la aceptación inicial). Las
+  /// cantidades nunca lo cambian.
+  consentScope           JointPurchaseConsentScope
+  consentScopeVersion    String                           @db.VarChar(16)
+  consentScopeDecidedAt  DateTime
+  consentScopeReceivedAt DateTime
+  consentScopeSequence   Int                              @default(0)
 
-  call   JointPurchaseCall                @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  tenant Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  member Member                           @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
-  lines  JointPurchaseParticipationLine[]
+  call      JointPurchaseCall                @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant    Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member    Member                           @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  lines     JointPurchaseParticipationLine[]
+  decisions JointPurchaseConsentDecision[]
 
   @@unique([callId, memberId])
+}
+
+/// §10.6 (P-C): quién puede ver el nombre y las cantidades del agricultor.
+enum JointPurchaseConsentScope {
+  RESPONSIBLE_ONLY
+  COLLABORATORS
+}
+
+/// §10.6 (P-C): registro sólo de inserción de cada decisión sobre el
+/// consentimiento: la aceptación inicial (INITIAL), cada ampliación o
+/// reducción explícita (DECISION, con su operation_id) y el alcance que ya
+/// tenían las participaciones anteriores a la migración (MIGRATED).
+model JointPurchaseConsentDecision {
+  id              String                    @id @default(uuid()) @db.Uuid
+  participationId String                    @db.Uuid
+  callId          String                    @db.Uuid
+  memberId        String
+  scope           JointPurchaseConsentScope
+  consentVersion  String                    @db.VarChar(16)
+  decidedAt       DateTime
+  receivedAt      DateTime
+  sequence        Int
+  operationId     String?                   @db.Uuid
+  source          String                    @db.VarChar(16)
+
+  participation JointPurchaseParticipation @relation(fields: [participationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  call          JointPurchaseCall          @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([participationId, sequence])
 }
 
 /// Cantidad solicitada en la unidad base del producto (entero > 0, CHECK).

@@ -136,7 +136,8 @@ export class ListCallsQueryDto {
 export class ParticipationConsentDto {
   @ApiProperty({
     example: CONSENT_VERSION,
-    description: "Versión del texto mostrado: CONV-2 (vigente) o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED",
+    description:
+      "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)",
   })
   @IsString()
   @MaxLength(16)
@@ -197,6 +198,40 @@ export class WithdrawParticipationDto {
   @ApiProperty({ minimum: 1, maximum: 2147483647 })
   @IsInt()
   sequence!: number;
+}
+
+export class ConsentDecisionTextDto {
+  @ApiProperty({ example: CONSENT_VERSION, description: "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir" })
+  @IsString()
+  @MaxLength(16)
+  version!: string;
+
+  @ApiProperty({ format: "date-time", description: "Fecha de la decisión en el teléfono" })
+  @IsISO8601({ strict: true, strictSeparator: true })
+  decided_at!: string;
+}
+
+/** §10.6 (P-C): `POST /me/joint-purchase-calls/{id}/participation/consent`. */
+export class ConsentDecisionDto {
+  @ApiProperty({ format: "uuid", description: "UUID v4 en minúsculas generado por el teléfono (idempotencia)" })
+  @IsString()
+  @MaxLength(64)
+  operation_id!: string;
+
+  @ApiProperty({ minimum: 1, maximum: 2147483647, description: "Creciente entre las decisiones de consentimiento de esta participación (orden propio, distinto del de las cantidades)" })
+  @IsInt()
+  sequence!: number;
+
+  @ApiProperty({ enum: ["RESPONSIBLE_ONLY", "COLLABORATORS"], description: "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable" })
+  @IsString()
+  @IsIn(["RESPONSIBLE_ONLY", "COLLABORATORS"])
+  scope!: string;
+
+  @ApiProperty({ type: ConsentDecisionTextDto })
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ConsentDecisionTextDto)
+  consent!: ConsentDecisionTextDto;
 }
 
 /** E2-P3 (§10.2): `POST /joint-purchase-calls/{id}/collaborators`. */

@@ -23,8 +23,14 @@ UPDATE "JointPurchaseCall" SET status = 'OPEN', "openedAt" = '2026-03-02T12:00:0
 INSERT INTO "JointPurchaseCallAccess" ("callId", "userId", "grant", "grantedAt") VALUES (:call, :responsible, 'PARTICIPANTS', '2026-03-02T12:00:00Z');
 INSERT INTO "JointPurchaseCallEvent" (id, "callId", at, kind, "actorUserId", detail)
 VALUES (gen_random_uuid(), :call, '2026-03-02T12:00:00Z', 'OPENED', :responsible, 'Convocatoria abierta (siembra sintética).');
-INSERT INTO "JointPurchaseParticipation" (id, "callId", "tenantId", "memberId", status, "consentVersion", "consentAcceptedAt", "consentReceivedAt", "lastSequence", "lastOperationId", "acceptedAt", "createdAt", "updatedAt")
-VALUES (:part, :call, :tenant, :member, 'ACTIVE', 'CONV-1', '2026-03-05T12:00:00Z', '2026-03-05T12:00:05Z', 1, gen_random_uuid(), '2026-03-05T12:00:05Z', '2026-03-05T12:00:05Z', '2026-03-05T12:00:05Z');
+-- Desde la migración e2_pc_consent_decisions (2026-11-12) la participación lleva su alcance (CONV-1 = sólo la
+-- persona responsable) y la aceptación inicial queda en el registro de decisiones.
+INSERT INTO "JointPurchaseParticipation" (id, "callId", "tenantId", "memberId", status, "consentVersion", "consentAcceptedAt", "consentReceivedAt", "lastSequence", "lastOperationId", "acceptedAt", "createdAt", "updatedAt",
+        "consentScope", "consentScopeVersion", "consentScopeDecidedAt", "consentScopeReceivedAt", "consentScopeSequence")
+VALUES (:part, :call, :tenant, :member, 'ACTIVE', 'CONV-1', '2026-03-05T12:00:00Z', '2026-03-05T12:00:05Z', 1, gen_random_uuid(), '2026-03-05T12:00:05Z', '2026-03-05T12:00:05Z', '2026-03-05T12:00:05Z',
+        'RESPONSIBLE_ONLY', 'CONV-1', '2026-03-05T12:00:00Z', '2026-03-05T12:00:05Z', 0);
+INSERT INTO "JointPurchaseConsentDecision" (id, "participationId", "callId", "memberId", scope, "consentVersion", "decidedAt", "receivedAt", sequence, "operationId", source)
+VALUES (gen_random_uuid(), :part, :call, :member, 'RESPONSIBLE_ONLY', 'CONV-1', '2026-03-05T12:00:00Z', '2026-03-05T12:00:05Z', 0, NULL, 'INITIAL');
 INSERT INTO "JointPurchaseParticipationLine" ("participationId", "productId", "baseUnit", "quantityBase") VALUES (:part, :product, 'ML', 10000);
 UPDATE "JointPurchaseCall" SET status = 'CLOSED', "closedAt" = '2026-03-20T12:00:30Z', "updatedAt" = '2026-03-20T12:00:30Z' WHERE id = :call;
 INSERT INTO "JointPurchaseCallClosing" ("callId", mode, "cutoffAt", "closedAt", "closedByUserId", "participantCount")

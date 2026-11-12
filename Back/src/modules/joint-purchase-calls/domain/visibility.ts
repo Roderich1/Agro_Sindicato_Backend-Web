@@ -62,37 +62,46 @@ export interface CallViewer {
   formerParticipantsHolder: boolean;
 }
 
-/** One participation as the rule needs it: its consent and the products it asks for. */
+/** One participation as the rule needs it: its consent scope in force (§10.6) and the products it asks for. */
 export interface ParticipationForVisibility {
-  consentVersion: string;
+  consentScope: string;
   productIds: readonly string[];
 }
 
 /**
  * The only decision of §10.3, shared by the detail, `/participants` and
  * `/closing` (and nowhere else: the list carries neither totals nor names).
- * `coversCollaborators` says whether a consent version reaches collaborators
- * (only CONV-2): a CONV-1 participation is hidden from them, and so is any
- * total it is part of, because subtracting the visible ones would reveal it.
+ * `coversCollaborators` says whether the consent scope in force reaches
+ * collaborators (only `COLLABORATORS`, §10.6): a participation authorized
+ * only for the responsible is hidden from them, and so is any total it is
+ * part of, because subtracting the visible ones would reveal it. The scope
+ * read is always the current one: a reduction applies from the next request,
+ * also to the closing.
+ *
+ * N3 (accepted 2026-11-12, scope precised): the protection is per call
+ * (permission and its history are per call) and per product (only the
+ * products with a hidden participation lose their total); it is never a
+ * global or permanent prohibition. The full matrix is in the contract §10.3
+ * and in `visibility-matrix.spec.ts`.
  */
 export class CallVisibility {
   constructor(
     readonly viewer: CallViewer,
-    private readonly coversCollaborators: (consentVersion: string) => boolean,
+    private readonly coversCollaborators: (consentScope: string) => boolean,
     private readonly threshold = CALL_TOTALS_THRESHOLD,
   ) {}
 
-  /** Identified participants: all for the responsible, CONV-2 ones for a collaborator, none otherwise. */
-  canSeeParticipation(consentVersion: string): boolean {
+  /** Identified participants: all for the responsible, `COLLABORATORS` ones for a collaborator, none otherwise. */
+  canSeeParticipation(consentScope: string): boolean {
     if (this.viewer.kind === "RESPONSIBLE") return true;
-    if (this.viewer.kind === "COLLABORATOR") return this.coversCollaborators(consentVersion);
+    if (this.viewer.kind === "COLLABORATOR") return this.coversCollaborators(consentScope);
     return false;
   }
 
   /** How many of these participations this viewer may not see by name (0 for the responsible). */
   hiddenCount(participations: readonly ParticipationForVisibility[]): number {
     if (this.viewer.kind !== "COLLABORATOR") return 0;
-    return participations.filter((p) => !this.canSeeParticipation(p.consentVersion)).length;
+    return participations.filter((p) => !this.canSeeParticipation(p.consentScope)).length;
   }
 
   /**
@@ -111,7 +120,7 @@ export class CallVisibility {
     participations: readonly ParticipationForVisibility[],
     source: "LIVE" | "CLOSING",
   ): ProductTotalView {
-    const anyHidden = participations.some((p) => !this.coversCollaborators(p.consentVersion));
+    const anyHidden = participations.some((p) => !this.coversCollaborators(p.consentScope));
     switch (this.viewer.kind) {
       case "RESPONSIBLE":
         return productTotalView(total, participantCount, true, this.threshold, source === "LIVE");

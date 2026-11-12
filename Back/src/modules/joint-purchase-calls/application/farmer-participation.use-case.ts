@@ -4,10 +4,12 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { QUANTITY_MAX } from "@/modules/sync-v1/domain/envelope";
 import { CallErrorCode, CallHttpError, FarmerContext } from "../domain/call-error";
 import { notOpenReason } from "../domain/call-state";
-import { CONSENT_TEXT, CONSENT_VERSION, isAcceptedConsent } from "../domain/consent";
+import { CONSENT_TEXT, CONSENT_VERSION, decisionVersionAccepted, initialScopeOf, isAcceptedConsent } from "../domain/consent";
 import {
   ConfirmInput,
+  ConsentDecisionInput,
   normalizeConfirm,
+  normalizeConsentDecision,
   normalizeWithdraw,
   NormalizedOperation,
   SERVER_ID,
@@ -81,7 +83,7 @@ export class FarmerParticipationUseCase {
    * is deleted on the server and the older ones are served by `history`.
    */
   async list(context: FarmerContext): Promise<{
-    contractVersion: 1;
+    contractVersion: 2;
     server_time: string;
     consent: { version: string; text: string };
     calls: FarmerCallView[];
@@ -107,7 +109,7 @@ export class FarmerParticipationUseCase {
     const olderCount = await this.prisma.jointPurchaseCall.count({ where: olderWhere(context, since) });
     const serverTime = now.toISOString();
     return {
-      contractVersion: 1,
+      contractVersion: 2,
       server_time: serverTime,
       consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
       calls: rows.map((row) => toFarmerCallView(row, now)),
@@ -126,7 +128,7 @@ export class FarmerParticipationUseCase {
   async history(
     context: FarmerContext,
     query: { before?: string; limit?: number },
-  ): Promise<{ contractVersion: 1; server_time: string; consent: { version: string; text: string }; calls: FarmerCallView[]; next_cursor: string | null }> {
+  ): Promise<{ contractVersion: 2; server_time: string; consent: { version: string; text: string }; calls: FarmerCallView[]; next_cursor: string | null }> {
     const limit = query.limit ?? HISTORY_PAGE_DEFAULT;
     if (!Number.isInteger(limit) || limit < 1 || limit > HISTORY_PAGE_MAX) throw new CallHttpError(400, "PAYLOAD_INVALID");
     const before = query.before === undefined ? null : decodeHistoryCursor(query.before);
@@ -157,7 +159,7 @@ export class FarmerParticipationUseCase {
     const ordered = page.map((id) => byId.get(id)!).filter(Boolean);
     const last = ordered[ordered.length - 1];
     return {
-      contractVersion: 1,
+      contractVersion: 2,
       server_time: now.toISOString(),
       consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
       calls: ordered.map((row) => toFarmerCallView(row, now)),
@@ -175,6 +177,16 @@ export class FarmerParticipationUseCase {
   withdraw(context: FarmerContext, callId: string, input: WithdrawInput): Promise<AcceptedResponse> {
     if (!SERVER_ID.test(callId)) throw new CallHttpError(404, "CALL_NOT_FOUND");
     return this.apply(context, callId, normalizeWithdraw(input));
+  }
+
+  /**
+   * `POST /me/joint-purchase-calls/{id}/participation/consent` (§10.6, P-C):
+   * widen (`COLLABORATORS`) or reduce (`RESPONSIBLE_ONLY`) who may see the
+   * farmer's name and quantities, as a decision of its own with its own order.
+   */
+  decideConsent(context: FarmerContext, callId: string, input: ConsentDecisionInput): Promise<AcceptedResponse> {
+    if (!SERVER_ID.test(callId)) throw new CallHttpError(404, "CALL_NOT_FOUND");
+    return this.apply(context, callId, normalizeConsentDecision(input));
   }
 
   private async apply(context: FarmerContext, callId: string, operation: NormalizedOperation): Promise<AcceptedResponse> {
@@ -240,11 +252,14 @@ export class FarmerParticipationUseCase {
     const reject = (code: CallErrorCode, status: number, extra: Record<string, unknown> = {}) =>
       record(code, { status, body: { errorCode: code, ...extra } });
 
+    if (operation.kind === "CONSENT") return this.decideScope(tx, context, call.status, operation, now, current, record, reject);
+
     const reason = notOpenReason(call, now);
     if (reason) return reject("CALL_NOT_OPEN", 409, { reason });
 
+    // The quantities keep their own order; consent decisions (§10.6) have another.
     const last = await tx.jointPurchaseParticipationOperation.aggregate({
-      where: { callId, memberId: context.memberId, outcome: "ACCEPTED" },
+      where: { callId, memberId: context.memberId, outcome: "ACCEPTED", kind: { in: ["CONFIRM", "WITHDRAW"] } },
       _max: { sequence: true },
     });
     const existing = await current();
@@ -254,7 +269,12 @@ export class FarmerParticipationUseCase {
 
     let participation = existing;
     if (operation.lines.length > 0) {
-      if (!operation.consent || !isAcceptedConsent(operation.consent.version)) return reject("CONSENT_REQUIRED", 409);
+      // §10.6: the consent is required (and recorded) only when the
+      // participation is created. Later quantities, old or new, never widen
+      // nor reduce it: whatever consent they carry is ignored.
+      if (!existing && (!operation.consent || !isAcceptedConsent(operation.consent.version))) {
+        return reject("CONSENT_REQUIRED", 409);
+      }
       const baseOf = new Map(call.products.map((p) => [p.productId, p.baseUnit]));
       if (operation.lines.some((line) => !baseOf.has(line.productRef))) return reject("PRODUCT_NOT_IN_CALL", 422);
       // The call's totals stay within int64, so its closing can always be stored.
@@ -269,19 +289,47 @@ export class FarmerParticipationUseCase {
       }
       const data = {
         status: "ACTIVE" as const,
-        consentVersion: operation.consent.version,
-        consentAcceptedAt: operation.consent.acceptedAt,
-        consentReceivedAt: now,
         lastSequence: operation.sequence,
         lastOperationId: operation.operationId,
         acceptedAt: now,
       };
-      const saved = existing
-        ? await tx.jointPurchaseParticipation.update({ where: { id: existing.id }, data, select: { id: true } })
-        : await tx.jointPurchaseParticipation.create({
-            data: { callId, tenantId: context.tenantId, memberId: context.memberId, ...data },
-            select: { id: true },
-          });
+      let saved: { id: string };
+      if (existing) {
+        saved = await tx.jointPurchaseParticipation.update({ where: { id: existing.id }, data, select: { id: true } });
+      } else {
+        const consent = operation.consent!;
+        const scope = initialScopeOf(consent.version);
+        saved = await tx.jointPurchaseParticipation.create({
+          data: {
+            callId,
+            tenantId: context.tenantId,
+            memberId: context.memberId,
+            ...data,
+            consentVersion: consent.version,
+            consentAcceptedAt: consent.acceptedAt,
+            consentReceivedAt: now,
+            consentScope: scope,
+            consentScopeVersion: consent.version,
+            consentScopeDecidedAt: consent.acceptedAt,
+            consentScopeReceivedAt: now,
+            consentScopeSequence: 0,
+          },
+          select: { id: true },
+        });
+        await tx.jointPurchaseConsentDecision.create({
+          data: {
+            participationId: saved.id,
+            callId,
+            memberId: context.memberId,
+            scope,
+            consentVersion: consent.version,
+            decidedAt: consent.acceptedAt,
+            receivedAt: now,
+            sequence: 0,
+            source: "INITIAL",
+          },
+        });
+      }
       await tx.jointPurchaseParticipationLine.deleteMany({ where: { participationId: saved.id } });
       await tx.jointPurchaseParticipationLine.createMany({
         data: operation.lines.map((line) => ({
@@ -314,7 +362,76 @@ export class FarmerParticipationUseCase {
       body: { outcome: "ACCEPTED", participation: toParticipationView(participation) } as unknown as Record<string, unknown>,
     });
   }
+
+  /**
+   * §10.6 (P-C), under the call's lock:
+   * - only on an existing participation of the farmer (409
+   *   PARTICIPATION_REQUIRED: the phone keeps the decision pending until its
+   *   first confirmation is accepted);
+   * - not tied to the deadline: a reduction is respected in any state; a
+   *   widening is refused on a CANCELLED call (409
+   *   WIDENING_NOT_ALLOWED) and needs the current text (409
+   *   CONSENT_REQUIRED otherwise);
+   * - its own order: a decision whose sequence is not above the last accepted
+   *   one is STALE_SEQUENCE, so a late or out-of-order request never reverts a
+   *   later decision (the same operation_id gets the stored answer);
+   * - quantities, status and the first consent are untouched; the decision is
+   *   written to the insert-only register in the same transaction.
+   */
+  private async decideScope(
+    tx: Tx,
+    context: FarmerContext,
+    callStatus: string,
+    operation: NormalizedOperation,
+    now: Date,
+    current: () => Promise<CurrentParticipation | null>,
+    record: (outcome: string, response: StoredResponse) => Promise<StoredResponse>,
+    reject: (code: CallErrorCode, status: number, extra?: Record<string, unknown>) => Promise<StoredResponse>,
+  ): Promise<StoredResponse> {
+    const scope = operation.scope!;
+    const consent = operation.consent!;
+    const existing = await current();
+    if (!existing) return reject("PARTICIPATION_REQUIRED", 409);
+    if (!decisionVersionAccepted(scope, consent.version)) return reject("CONSENT_REQUIRED", 409);
+    if (scope === "COLLABORATORS" && callStatus === "CANCELLED") {
+      return reject("WIDENING_NOT_ALLOWED", 409, { status: callStatus });
+    }
+    if (operation.sequence <= existing.consentScopeSequence) {
+      return reject("STALE_SEQUENCE", 409, { participation: toParticipationView(existing) });
+    }
+    await tx.jointPurchaseParticipation.update({
+      where: { id: existing.id },
+      data: {
+        consentScope: scope,
+        consentScopeVersion: consent.version,
+        consentScopeDecidedAt: consent.acceptedAt,
+        consentScopeReceivedAt: now,
+        consentScopeSequence: operation.sequence,
+      },
+    });
+    await tx.jointPurchaseConsentDecision.create({
+      data: {
+        participationId: existing.id,
+        callId: existing.callId,
+        memberId: context.memberId,
+        scope,
+        consentVersion: consent.version,
+        decidedAt: consent.acceptedAt,
+        receivedAt: now,
+        sequence: operation.sequence,
+        operationId: operation.operationId,
+        source: "DECISION",
+      },
+    });
+    this.logger.log(`[JOINT PURCHASE CONSENT ${scope}] tenant=${context.tenantId} call=${existing.callId} outcome=ACCEPTED`);
+    return record("ACCEPTED", {
+      status: 200,
+      body: { outcome: "ACCEPTED", participation: toParticipationView(await current()) } as unknown as Record<string, unknown>,
+    });
+  }
 }
+
+type CurrentParticipation = Prisma.JointPurchaseParticipationGetPayload<{ include: typeof PARTICIPATION_INCLUDE }>;
 
 const DAY_MS = 24 * 3600 * 1000;
 
