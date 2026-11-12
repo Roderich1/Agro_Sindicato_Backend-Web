@@ -508,7 +508,7 @@ Fuente: encargo del autor del 2026-11-12 («Continúa con P-A. Elijo A1 + B1 + C
 | La responsable actual **no** está habilitada (cuenta, Member, rol o sindicato inactivos) | si lo está, `409 RESPONSIBLE_STILL_ELIGIBLE` (un aviso no basta; la cesión voluntaria es otra operación, fuera de este bloque) |
 | Estado `DRAFT`, `OPEN` o `CLOSED` | `CANCELLED` → `409 INVALID_TRANSITION` |
 | La versión vista es la vigente | si no, `409 RESPONSIBLE_CHANGED` con `responsible_version`: dos sustituciones simultáneas no se sobrescriben en silencio |
-| Sucesora: otra DIRECTIVA/ADMINISTRADOR habilitada del mismo sindicato, distinta de la actual y de quien sustituye | si no, `422 SUCCESSOR_NOT_ELIGIBLE` (regla prudente aplicada: el permiso no sirve para nombrarse a sí misma, por analogía con A1; ver §12.7) |
+| Sucesora: otra DIRECTIVA/ADMINISTRADOR habilitada del mismo sindicato, distinta de la actual y de quien sustituye | si no, `422 SUCCESSOR_NOT_ELIGIBLE`. Quien sustituye nunca se nombra a sí misma (decisión del autor del 2026-11-12, ver §12.7); otra persona habilitada con el permiso sí puede nombrarla |
 | Motivo 1–280 y confirmación | `422 REASON_REQUIRED` / `422 CONFIRMATION_REQUIRED` |
 | Reintento | el mismo `request_id` con el mismo cuerpo responde el detalle sin un segundo cambio ni otro evento; con otro cuerpo, `409 REQUEST_ID_REUSED` |
 
@@ -549,7 +549,7 @@ Columnas aditivas sin rellenar (`responsible_version` en convocatorias, operacio
 
 ### 12.7 Límites y decisiones abiertas
 
-- **Regla aplicada por prudencia, a confirmar por el autor:** quien sustituye no puede nombrarse a sí misma sucesora (`SUCCESSOR_NOT_ELIGIBLE`). Si se prefiere permitirlo, es un cambio de una línea y de su prueba.
+- **Autosustitución (decisión del autor del 2026-11-12):** quien ejecuta la sustitución no puede nombrarse a sí misma nueva responsable; el servidor responde `422 SUCCESSOR_NOT_ELIGIBLE` sin registrar nada. Otra persona habilitada con el permiso «Sustituir responsable» puede nombrarla, con todas las condiciones de P-A. La Web lo explica: quien sustituye no aparece en la lista y se le dice por qué (`substitute-self-note`); si la única persona elegible es ella, o no hay nadie, el diálogo informa del bloqueo (`substitute-no-candidates`) y no deja enviar. No hay excepción automática ni accesos nuevos: la convocatoria abierta se sigue cerrando sola al vencer el plazo (§11.5). Pruebas: PostgreSQL «author's decision (2026-11-12)…» y Web «P-A: si sólo es elegible quien sustituye / no hay nadie elegible…».
 - **Combinación de lecturas:** si una persona vio el total de un producto al cierre por el umbral (k = 3) y después es sucesora y recibe autorizaciones individuales, puede deducir por resta la cantidad de quien no la autorizó. Es el mismo límite de §10.3 («lo que dos personas combinen fuera del sistema»): no se presenta como garantía de anonimato (N4).
 - **Borradores:** cambiar la responsable con `PATCH` en un borrador (antes de abrir) sigue como estaba y no sube la versión; las delegaciones de la responsable anterior de ese borrador siguen vigentes (comportamiento anterior a P-A, anotado; no se cambió).
 - **Teléfono:** la parte visible se probó con pruebas de widget y de almacén/emisor; el recorrido en el emulador no se pudo hacer el 2026-11-12 (el AVD se colgó al arrancar). Tampoco se comprobaron las APK anteriores en un dispositivo.

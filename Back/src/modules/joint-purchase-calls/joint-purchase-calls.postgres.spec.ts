@@ -1722,6 +1722,27 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await get(holder, PERMS)).body.holders.find((h: any) => h.user_ref === userIdOf(director))).toMatchObject({ eligible: false });
       await prisma.member.update({ where: { id: director.memberId }, data: { isActive: true } });
     });
+
+    it("author's decision (2026-11-12): whoever substitutes never names herself; another eligible holder may name her", async () => {
+      const respMember = await addPerson("respPA4", f.tenantA, "DIRECTIVA");
+      const resp = await createSession(prisma, jwt, respMember);
+      const id = await openCall([await newProduct()], { responsible: resp });
+      await prisma.member.update({ where: { id: respMember }, data: { isActive: false } });
+      // Granting is idempotent: the test does not depend on the order of the previous ones.
+      expect((await post(admin2, PERMS, { user_ref: userIdOf(director), reason: "Segunda persona", confirmed: true })).status).toBe(200);
+      expect((await substitute(holder, id, holder, 1)).body).toEqual({ errorCode: "SUCCESSOR_NOT_ELIGIBLE" });
+      expect(await prisma.jointPurchaseResponsibleChange.count({ where: { callId: id } })).toBe(0);
+      expect((await prisma.jointPurchaseCall.findUniqueOrThrow({ where: { id } })).responsibleVersion).toBe(1);
+      const named = await substitute(director, id, holder, 1);
+      expect(named.status).toBe(200);
+      expect(named.body).toMatchObject({ status: "OPEN", responsible: { user_ref: userIdOf(holder), version: 2 } });
+      expect(await prisma.jointPurchaseResponsibleChange.findFirstOrThrow({ where: { callId: id } })).toMatchObject({
+        version: 2,
+        previousUserId: userIdOf(resp),
+        newUserId: userIdOf(holder),
+        actorUserId: userIdOf(director),
+      });
+    });
   });
 
   describe("no effects outside E2", () => {

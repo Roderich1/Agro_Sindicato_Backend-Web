@@ -43,7 +43,10 @@ import {
   referenceText,
   RESPONSIBLE_INELIGIBLE_TEXT,
   ROLE_LABEL,
+  SELF_SUBSTITUTION_TEXT,
   SUBSTITUTION_IMPLICATIONS,
+  SUBSTITUTION_NO_CANDIDATES_TEXT,
+  SUBSTITUTION_ONLY_SELF_TEXT,
   withheldTotalText,
 } from '../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
@@ -1187,6 +1190,8 @@ function SubstituteDialog({
   }, [loadUsers]);
 
   const candidates = (users ?? []).filter((user) => user.user_ref !== call.responsible.user_ref && user.user_ref !== userId);
+  // Decisión del autor (2026-11-12): quien sustituye no se nombra a sí; se explica en vez de ocultarlo sin más.
+  const selfEligible = (users ?? []).some((user) => user.user_ref === userId && user.user_ref !== call.responsible.user_ref);
   const chosen = candidates.find((user) => user.user_ref === userRef) ?? null;
   const ready = chosen !== null && reason.trim().length > 0 && confirmed && !busy;
 
@@ -1236,7 +1241,7 @@ function SubstituteDialog({
               compact
               state="empty"
               title="Sin personas disponibles"
-              description="No hay otra persona activa de la Directiva o la Administración que pueda ser responsable. No hay una salida automática: una persona Administrador debe habilitar a alguien."
+              description={selfEligible ? SUBSTITUTION_ONLY_SELF_TEXT : SUBSTITUTION_NO_CANDIDATES_TEXT}
               testId="substitute-no-candidates"
             />
           ) : (
@@ -1260,6 +1265,11 @@ function SubstituteDialog({
             </select>
           )}
           <p className="mt-1 text-xs text-slate-600">Otra persona activa de la Directiva o la Administración, distinta de usted y de la responsable actual.</p>
+          {selfEligible && candidates.length > 0 && (
+            <p className="mt-1 text-xs text-slate-600" data-testid="substitute-self-note">
+              {SELF_SUBSTITUTION_TEXT}
+            </p>
+          )}
         </div>
         <div>
           <label className={labelClass} htmlFor="substitute-reason">

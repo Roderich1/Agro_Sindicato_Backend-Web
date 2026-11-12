@@ -14,6 +14,9 @@ import {
   RESPONSIBLE_INELIGIBLE_TEXT,
   RESPONSIBLE_ONLY_HIDDEN_TEXT,
   RESTRICTED_TOTAL_TEXT,
+  SELF_SUBSTITUTION_TEXT,
+  SUBSTITUTION_NO_CANDIDATES_TEXT,
+  SUBSTITUTION_ONLY_SELF_TEXT,
 } from '../lib/joint-purchase-call-text';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
@@ -817,6 +820,8 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     expect(within(dialog()).getByTestId('substitute-implications').textContent).toMatch(/no verá el nombre ni las cantidades de ningún agricultor hasta que cada uno la autorice/);
     const select = (await within(dialog()).findByLabelText('Nueva persona responsable')) as HTMLSelectElement;
     await waitFor(() => expect([...select.options].map((option) => option.value)).toEqual(['', 'u-9']));
+    // Decisión del autor: quien sustituye (u-1, elegible) no aparece y se le explica por qué.
+    expect(within(dialog()).getByTestId('substitute-self-note').textContent).toBe(SELF_SUBSTITUTION_TEXT);
     const submit = () => within(dialog()).getByRole('button', { name: 'Sustituir responsable' }) as HTMLButtonElement;
     fireEvent.change(select, { target: { value: 'u-9' } });
     fireEvent.click(confirmBox());
@@ -839,6 +844,26 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     expect(screen.queryByTestId('responsible-ineligible')).toBeNull();
     // Sin `PARTICIPANTS` no se piden participantes.
     expect(jointPurchaseCallsService.participants).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['sólo es elegible quien sustituye', [{ user_ref: 'u-1', name: 'Usuario sintético', role: 'DIRECTIVA' }], SUBSTITUTION_ONLY_SELF_TEXT],
+    ['no hay nadie elegible', [], SUBSTITUTION_NO_CANDIDATES_TEXT],
+  ] as const)('P-A: si %s, se informa del bloqueo sin salida automática ni forma de enviar', async (_case, eligible, text) => {
+    const ineligible = { ...RESPONSIBLE, role: 'DIRECTIVA', eligible: false, version: 1 };
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN, responsible: ineligible, ...NO_GRANTS, my_grants: [], can_substitute_responsible: true });
+    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(NO_COLLABORATORS);
+    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([
+      { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
+      ...eligible,
+    ]);
+    render();
+    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable' }));
+    expect((await within(dialog()).findByTestId('substitute-no-candidates')).textContent).toContain(text);
+    expect(within(dialog()).queryByLabelText('Nueva persona responsable')).toBeNull();
+    expect(within(dialog()).queryByTestId('substitute-self-note')).toBeNull();
+    expect((within(dialog()).getByRole('button', { name: 'Sustituir responsable' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(jointPurchaseCallsService.substituteResponsible).not.toHaveBeenCalled();
   });
 
   it('P-A: si otra persona sustituyó antes (409 RESPONSIBLE_CHANGED), se explica y se recarga; nunca se reintenta sola', async () => {

@@ -131,6 +131,19 @@ export const SUBSTITUTION_IMPLICATIONS = [
   'No reabre la convocatoria ni cambia su fecha límite, las participaciones, las cantidades ni el consolidado. No genera compras, pagos, deudas ni inventario.',
   'La responsable anterior no recupera nada aunque vuelva a estar habilitada.',
 ];
+/**
+ * P-A, decisión del autor del 2026-11-12: quien sustituye no puede nombrarse
+ * como nueva responsable (el servidor responde `SUCCESSOR_NOT_ELIGIBLE`).
+ * Otra persona habilitada con el permiso puede nombrarla.
+ */
+export const SELF_SUBSTITUTION_TEXT =
+  'Usted no aparece en la lista: quien sustituye no puede nombrarse como nueva persona responsable. Si debe serlo, otra persona habilitada con el permiso «Sustituir responsable» tiene que nombrarle.';
+/** P-A: nadie más es elegible. Sin excepción automática ni accesos nuevos. */
+export const SUBSTITUTION_NO_CANDIDATES_TEXT =
+  'No hay otra persona activa de la Directiva o la Administración que pueda ser responsable. No hay una salida automática: una persona Administrador debe habilitar a alguien. Mientras tanto, nadie gana acceso y, si la convocatoria está abierta, se cierra sola al vencer la fecha límite.';
+/** P-A: la única persona elegible es quien sustituye. */
+export const SUBSTITUTION_ONLY_SELF_TEXT =
+  'La única persona que podría ser responsable es usted, y quien sustituye no puede nombrarse como responsable. Otra persona habilitada con el permiso «Sustituir responsable» debe hacerlo; una persona Administrador puede concederlo. No hay una salida automática: mientras tanto, nadie gana acceso y, si la convocatoria está abierta, se cierra sola al vencer la fecha límite.';
 /** P-A C1: participaciones a la espera de que su agricultor autorice a la responsable actual, si el servidor no lo envió. */
 export function pendingAuthorizationText(count: number): string {
   return count === 1
@@ -221,7 +234,7 @@ const ERROR_TEXT: Record<string, string> = {
   RESPONSIBLE_STILL_ELIGIBLE:
     'La persona responsable sigue habilitada: sólo se sustituye a una responsable que ya no lo está. Ceder la responsabilidad es otra operación.',
   SUCCESSOR_NOT_ELIGIBLE:
-    'Esa persona no puede ser la nueva responsable: debe ser otro usuario activo de la Directiva o la Administración, distinto de usted y de la responsable actual.',
+    'Esa persona no puede ser la nueva responsable: debe ser otro usuario activo de la Directiva o la Administración, distinto de usted y de la responsable actual. Quien sustituye no puede nombrarse; otra persona con el permiso «Sustituir responsable» puede hacerlo.',
   RESPONSIBLE_CHANGED: 'Otra persona sustituyó a la responsable mientras tanto. Recargue la página y revise la situación actual.',
   REQUEST_ID_REUSED: 'Esa sustitución ya se había enviado con otros datos. Recargue la página.',
   DELEGATION_NOT_PENDING: 'Ese permiso ya no está pendiente de revisión. Recargue la página.',

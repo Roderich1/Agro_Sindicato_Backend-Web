@@ -182,7 +182,7 @@ const shapeOf = (p) =>
       const id = await userId(key);
       const r = cmd === "deactivate"
         ? await call("PATCH", `/users/${id}/deactivate`, { token: await login("admin") })
-        : { status: (await db.user.update({ where: { id }, data: { isActive: true } }), 200) };
+        : { status: (await db.user.update({ where: { id }, data: { isActive: true, members: { updateMany: { where: {}, data: { isActive: true } } } } }), 200) };
       console.log(JSON.stringify({ [cmd]: key, status: r.status, eligible_now: !!(await db.member.findFirst({ where: { userId: id, isActive: true, user: { isActive: true } } })) }));
     } else if (cmd === "state") {
       const id = await callId(args[0] === "race" ? RACE_NAME : CALL_NAME);
