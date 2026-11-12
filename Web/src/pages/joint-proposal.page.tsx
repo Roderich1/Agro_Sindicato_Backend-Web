@@ -45,13 +45,13 @@ import {
   VALIDITY_REASON_TEXT,
 } from '../lib/estimation-text';
 import { saveBlob } from '../lib/exports';
-import { fmtCalendarDate } from '../lib/format';
+import { fmtCalendarDate, fmtPercent } from '../lib/format';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
 import { estimationService } from '../services/estimation.service';
 import type { Proposal, ProposalLine, ProposalSummary } from '../types/collective';
 import type { FailureCode, ResultDetail, Run, StopCode } from '../types/estimation';
-import type { EstimationLinkLine, EstimationLinkView } from '../types/estimation-link';
+import type { EstimationLinkLine, EstimationLinkView, LinkDifference } from '../types/estimation-link';
 
 const POLICY_PENDING_MESSAGE =
   'La política de divulgación no está aprobada: no se genera ni se guarda ninguna propuesta con cifras.';
@@ -769,6 +769,21 @@ function unavailableText(view: EstimationLinkView): string {
 }
 
 /** El consumo estimado de una línea según su estado; la diferencia sólo si el servidor la declara comparable. */
+/**
+ * E3 §5: la diferencia porcentual que calculó el servidor (4 decimales), redondeada sólo para presentarla con el
+ * formateador compartido del rediseño (sin decimales). No definida si la estimación es cero.
+ */
+function percentText(difference: LinkDifference): string {
+  if (difference.percent_undefined === 'ESTIMATE_ZERO' || difference.difference_percent === null) {
+    return 'Porcentaje no definido: la estimación es cero.';
+  }
+  const value = Number(difference.difference_percent);
+  const shown = fmtPercent(Math.abs(value), 100);
+  if (shown === null) return '';
+  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+  return `Diferencia: ${sign}${shown} respecto de la estimación.`;
+}
+
 function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkLoad | null; message: string | null }) {
   if (!link || link.status === 'loading') return <span className="text-slate-500">Cargando…</span>;
   if (link.status === 'error') return <span className="text-slate-500">No disponible</span>;
@@ -842,7 +857,7 @@ function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkL
       )}
       {comparison.comparable && comparison.difference && (
         <p className="text-[11px] font-medium text-slate-800" data-testid="reference-difference">
-          {comparison.difference.observation} Sólo informativo: no cambia el borrador.
+          {comparison.difference.observation} {percentText(comparison.difference)} Sólo informativo: no cambia el borrador.
         </p>
       )}
       {!comparison.comparable && message && (

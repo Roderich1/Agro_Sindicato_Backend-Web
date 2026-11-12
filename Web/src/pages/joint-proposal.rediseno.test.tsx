@@ -136,13 +136,16 @@ describe('Necesidades y propuestas (rediseño)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     await screen.findByText('295 L');
     expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toMatch(
-      /^La necesidad declarada supera en 15 L la estimación de consumo para el mismo período y alcance\. Sólo informativo/,
+      /^La necesidad declarada supera en 15 L la estimación de consumo para el mismo período y alcance\. Diferencia: \+5\s?% respecto de la estimación\. Sólo informativo/,
     );
     // El texto es el del servidor, redondeado allí (no la resta exacta del navegador, 2,5005 KG).
     expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/es inferior en 2,501 KG a la estimación/);
     expect(document.body.textContent).not.toMatch(/2,5005/);
-    // Sin porcentaje ni sumas aunque el servidor lo entregue.
-    expect(document.body.textContent).not.toMatch(/5,0847|5\.0847|%|605/);
+    // E3 §5 (decisión del autor): con cifras comparables, también la diferencia porcentual del servidor, redondeada
+    // sólo al presentar (formateador del rediseño, sin decimales); nunca la cifra cruda ni sumas.
+    expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toMatch(/Diferencia: \+5\s?% respecto de la estimación\./);
+    expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/Diferencia: −9\s?% respecto de la estimación\./);
+    expect(document.body.textContent).not.toMatch(/5,0847|5\.0847|605/);
     expect(within(reference('Cipermetrina')).queryByTestId('reference-difference')).toBeNull();
     // Ninguna línea comparable queda pendiente: no se repite el motivo de población.
     expect(screen.queryByTestId('comparison-note')).toBeNull();
@@ -283,6 +286,8 @@ describe('La comparación es la del servidor', () => {
     const difference = await waitFor(() => within(reference('Glifosato')).getByTestId('reference-difference'));
     expect(difference.textContent).toMatch(/supera en 310 L la estimación/);
     expect(reference('Glifosato').textContent).toMatch(/0 L/);
-    expect(document.body.textContent).not.toMatch(/%|Infinity|NaN|recomendad|excesiv/i);
+    // Estimación cero: el porcentaje no está definido y se dice; nunca un número.
+    expect(difference.textContent).toMatch(/Porcentaje no definido: la estimación es cero\./);
+    expect(document.body.textContent).not.toMatch(/\d\s?%|Infinity|NaN|recomendad|excesiv/i);
   });
 });
