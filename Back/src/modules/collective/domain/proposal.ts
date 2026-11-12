@@ -49,14 +49,3 @@ export function proposalFingerprint(inputs: ProposalInputs): string {
   });
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
-
-/**
- * One CSV field. Quotes separators and line breaks and neutralises text that a
- * spreadsheet would run as a formula (`=`, `+`, `-`, `@`, tab, CR), because
- * product and campaign names are typed by users.
- */
-export function csvField(value: string | number | boolean | null): string {
-  let text = value === null ? "" : String(value);
-  if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-}

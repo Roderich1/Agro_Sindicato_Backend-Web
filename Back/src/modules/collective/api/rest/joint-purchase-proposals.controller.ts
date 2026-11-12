@@ -64,8 +64,4 @@ export class JointPurchaseProposalsController {
   ) {
     return this.proposals.view(user.tenantId, proposalId);
   }
-
-  // GET proposals/:proposalId/csv lives in the estimation module since
-  // F12-EST-08 (#181): the export appends the estimation reference, and the
-  // estimation module already depends on this one, not the other way round.
 }

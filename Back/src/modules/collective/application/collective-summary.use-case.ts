@@ -141,7 +141,7 @@ export type SealedVersion = Prisma.CollectiveSealGetPayload<{ include: typeof SE
  * Collective summary of a campaign (F06 #21): read-only over Sync v1
  * contributions, grouped by the current canonical product (F07-REC-01) and
  * disclosed only under the provisional policy (F07-POL-01). Every output
- * channel (JSON and CSV) is built from this result.
+ * channel (the JSON, and the Web's Excel built from it) comes from this result.
  */
 @Injectable()
 export class CollectiveSummaryUseCase {
@@ -168,7 +168,7 @@ export class CollectiveSummaryUseCase {
 
   /**
    * The summary and, for each disclosed cell, the release that backs its
-   * figure (internal: never part of the JSON/CSV output). `within` runs in the
+   * figure (internal: never part of the JSON output). `within` runs in the
    * same transaction and advisory lock, so a consumer such as the joint
    * purchase proposal (F07 #27) sees exactly the decisions of this summary.
    */
@@ -612,56 +612,4 @@ function publishedMembers(
     if (decision.kind === "SHOW_PRIOR") prior!.memberOf.forEach((member) => members.add(member));
   }
   return members;
-}
-
-/**
- * Same disclosure decisions as JSON, as CSV (F07-POL-01: every channel). A
- * text that a spreadsheet would read as a formula (=, +, -, @, tab or CR at
- * the start, e.g. a product or campaign name) is prefixed with ' and quoted,
- * so it is shown, never executed (CSV injection). Figures and dates never
- * start with those characters and are left as they are.
- */
-export function summaryCsv(summary: CollectiveSummary): string {
-  const quote = (value: string | number | boolean | null) => {
-    const raw = value === null ? "" : String(value);
-    const formula = /^[=+\-@\t\r]/.test(raw);
-    const text = formula ? `'${raw}` : raw;
-    return formula || /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-  };
-  const lines = [
-    ["campaign_ref", "campaign", "disclosure", "policy", "approved", "threshold", "linked_members", "members_with_contribution", "suppressed_cells", "seal_ref", "seal_version", "sealed_at"].join(","),
-    [
-      summary.campaign.campaign_ref,
-      summary.campaign.name,
-      summary.disclosure.mode,
-      summary.disclosure.policy,
-      summary.disclosure.approved,
-      summary.disclosure.threshold,
-      summary.coverage?.linked_members ?? null,
-      summary.coverage?.members_with_contribution ?? null,
-      summary.coverage?.suppressed_cells ?? null,
-      summary.seal?.seal_ref ?? null,
-      summary.seal?.version ?? null,
-      summary.seal?.sealed_at ?? null,
-    ].map(quote).join(","),
-    "",
-    ["projection_type", "product_ref", "product_name", "base_unit", "presentation_unit", "status", "total_base", "total_presentation", "contributors", "data_as_of", "released_at", "pending_changes"].join(","),
-    ...summary.cells.map((cell) =>
-      [
-        cell.projection_type,
-        cell.product_ref,
-        cell.product_name,
-        cell.base_unit,
-        cell.presentation_unit,
-        cell.status,
-        cell.total_base,
-        cell.total_presentation,
-        cell.contributors,
-        cell.data_as_of,
-        cell.released_at,
-        cell.pending_changes,
-      ].map(quote).join(","),
-    ),
-  ];
-  return `${lines.join("\n")}\n`;
 }

@@ -24,7 +24,9 @@ import {
  * date of the accepted data is the latest acceptance of the cell; coverage
  * counts only Members inside published figures; two cells decided in the same
  * read are checked against each other (S1); the DRAFT proposal has no
- * individual effects; JSON and CSV carry the same decisions.
+ * individual effects; the proposal's detail agrees with the draft and the
+ * summary. The JSON is the only channel: the CSV routes were withdrawn on
+ * 2026-11-12 (the Web exports Excel from the JSON).
  *
  * Functional acceptance, not a performance series. Policy F07-POL-01 is NOT
  * approved: provisional k = 3 with synthetic data only.
@@ -123,17 +125,8 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
   }
 
   const summary = (id: string): Promise<Res> => http().get(`/api/v1/collective/campaigns/${id}/summary`).set(auth(director));
-  const summaryCsv = (id: string): Promise<Res> => http().get(`/api/v1/collective/campaigns/${id}/summary.csv`).set(auth(director));
   const cell = (res: Res, type: Type, productRef: string) =>
     (res.body.cells as any[]).find((c) => c.projection_type === type && c.product_ref === productRef);
-
-  /** Rows of a CSV section (after its header line), as objects. */
-  function csvRows(text: string, firstColumn: string): Record<string, string>[] {
-    const lines = text.trim().split("\n");
-    const start = lines.findIndex((line) => line.startsWith(`${firstColumn},`));
-    const header = lines[start]!.split(",");
-    return lines.slice(start + 1).filter((line) => line !== "").map((line) => Object.fromEntries(line.split(",").map((v, i) => [header[i], v])));
-  }
 
   async function effectCounts() {
     const counts = await Promise.all([
@@ -176,7 +169,7 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
     expect(linked).toBeGreaterThan(4);
   });
 
-  it("the date of the accepted data is the latest acceptance of the cell's current contributions, in JSON and CSV", async () => {
+  it("the date of the accepted data is the latest acceptance of the cell's current contributions", async () => {
     const k = await campaign();
     const p = await product("L");
     for (const quantity of ["10", "20", "30"]) await push(await farmer(), { campaign: k, product: p, type: "DECLARED_NEED", unit: "ML", quantity });
@@ -185,8 +178,6 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
     const shown = cell(res, "DECLARED_NEED", p);
     expect(shown.data_as_of).toBe(latest._max.acceptedAt!.toISOString());
     expect(shown.released_at).not.toBeNull();
-    const row = csvRows((await summaryCsv(k)).text, "projection_type").find((r) => r["product_ref"] === p)!;
-    expect(row["data_as_of"]).toBe(shown.data_as_of);
   });
 
   it("units: ML and G are never added, and an association across dimensions is refused without effect", async () => {
@@ -244,12 +235,9 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
     // 65 + 600 − 660 = 5 would isolate g: at most one of the two cells is published.
     expect(shown.length).toBeLessThanOrEqual(1);
     expect(shown.length).toBe(1);
-    // The CSV carries the same decisions.
-    const rows = csvRows((await summaryCsv(k)).text, "projection_type").filter((r) => [p1, p2].includes(r["product_ref"]!));
-    expect(rows.filter((r) => r["status"] === "DISCLOSED").map((r) => r["total_base"])).toEqual(shown);
   });
 
-  it("the proposal is a DRAFT with no individual effect; its JSON, CSV and the summary agree; no savings are claimed", async () => {
+  it("the proposal is a DRAFT with no individual effect; its JSON, its detail and the summary agree; no savings are claimed", async () => {
     const k = await campaign();
     const p = await product("L");
     const q = await product("kg");
@@ -270,16 +258,15 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
     expect(draft.body.lines.map((l: any) => [l.product_ref, l.status, l.quantity_base]).sort()).toEqual(
       needCells.map((c) => [c.product_ref, c.status, c.total_base]).sort(),
     );
-    const file = await http().get(`/api/v1/collective/proposals/${draft.body.proposal_ref}/csv`).set(auth(director));
-    expect(file.status).toBe(200);
-    const rows = csvRows(file.text, "position");
-    expect(rows.map((r) => [r["product_ref"], r["status"], r["quantity_base"] || null]).sort()).toEqual(
+    // The detail read later carries the same lines as the draft.
+    const detail = await http().get(`/api/v1/collective/proposals/${draft.body.proposal_ref}`).set(auth(director));
+    expect(detail.status).toBe(200);
+    expect(detail.body.lines.map((l: any) => [l.product_ref, l.status, l.quantity_base]).sort()).toEqual(
       draft.body.lines.map((l: any) => [l.product_ref, l.status, l.quantity_base]).sort(),
     );
-    const summaryRows = csvRows((await summaryCsv(k)).text, "projection_type");
-    expect(summaryRows.map((r) => [r["projection_type"], r["product_ref"], r["status"], r["total_base"] || null]).sort()).toEqual(
-      (res.body.cells as any[]).map((c) => [c.projection_type, c.product_ref, c.status, c.total_base]).sort(),
-    );
-    expect(`${JSON.stringify(draft.body)}${file.text}`).not.toMatch(/ahorro|saving|precio|price|costo/i);
+    expect(`${JSON.stringify(draft.body)}${detail.text}`).not.toMatch(/ahorro|saving|precio|price|costo/i);
+    // The CSV routes were withdrawn (2026-11-12): no other channel serves these figures.
+    expect((await http().get(`/api/v1/collective/proposals/${draft.body.proposal_ref}/csv`).set(auth(director))).status).toBe(404);
+    expect((await http().get(`/api/v1/collective/campaigns/${k}/summary.csv`).set(auth(director))).status).toBe(404);
   });
 });

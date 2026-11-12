@@ -2915,8 +2915,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-2",
-            "description": "Versión del texto mostrado: CONV-2 (vigente) o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED"
+            "example": "CONV-3",
+            "description": "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
           },
           "accepted_at": {
             "type": "string",
@@ -3003,6 +3003,58 @@
         "required": [
           "operation_id",
           "sequence"
+        ]
+      },
+      "ConsentDecisionTextDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "CONV-3",
+            "description": "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de la decisión en el teléfono"
+          }
+        },
+        "required": [
+          "version",
+          "decided_at"
+        ]
+      },
+      "ConsentDecisionDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 en minúsculas generado por el teléfono (idempotencia)"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Creciente entre las decisiones de consentimiento de esta participación (orden propio, distinto del de las cantidades)"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "RESPONSIBLE_ONLY",
+              "COLLABORATORS"
+            ],
+            "description": "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable"
+          },
+          "consent": {
+            "$ref": "#/components/schemas/ConsentDecisionTextDto"
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence",
+          "scope",
+          "consent"
         ]
       },
       "CallProductRefDto": {

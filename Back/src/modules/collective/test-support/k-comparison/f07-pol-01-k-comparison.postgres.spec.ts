@@ -38,10 +38,11 @@ import { Projection, Scenario, ScenarioContribution, scenarios } from "./scenari
  * Every scenario runs the same sequence through the real API (Sync v1 push,
  * Directiva and Administrador endpoints): E1 publish, E2 supersede,
  * E3 associate (W3), E4 removal of a Member, E5 role change (M5, #157). After
- * each step, per campaign: the summary JSON (what the Web dashboard reads) and
- * its CSV, then a joint proposal and its CSV. Each read compares the channels
- * with each other and the figures with an oracle kept here from the operations
- * sent, not from the server.
+ * each step, per campaign: the summary JSON (what the Web dashboard reads and
+ * exports to Excel), then a joint proposal and its detail. Each read compares
+ * the proposal with the summary and the figures with an oracle kept here from
+ * the operations sent, not from the server. The CSV routes were withdrawn on
+ * 2026-11-12 (historical runs on 98375dc and 04fbc9d still compared them).
  */
 jest.mock("../../domain/disclosure-policy", () => {
   const actual = jest.requireActual("../../domain/disclosure-policy");
@@ -203,34 +204,16 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
     }
     const linked = () => [...state.values()].filter((m) => m.active && m.role === "AGRICULTOR").length;
 
-    function csvSection(text: string, firstColumn: string) {
-      const lines = text.trim().split("\n");
-      const start = lines.findIndex((line) => line.startsWith(`${firstColumn},`));
-      const header = lines[start]!.split(",");
-      return lines
-        .slice(start + 1)
-        .filter((line) => line !== "")
-        .map((line) => Object.fromEntries(line.split(",").map((v, i) => [header[i], v])));
-    }
-
     async function readSummary(step: string, campaign: string, previousWithdrawn: number) {
       const ref = ids.campaigns[campaign]!;
       const json: Res = await http().get(`/api/v1/collective/campaigns/${ref}/summary`).set(auth(director));
+      check(`${step} ${campaign} summary 200`, json.status === 200, json.status);
+      // The JSON is the only channel: the CSV route was withdrawn (2026-11-12).
       const csv: Res = await http().get(`/api/v1/collective/campaigns/${ref}/summary.csv`).set(auth(director));
-      check(`${step} ${campaign} summary 200`, json.status === 200 && csv.status === 200, [json.status, csv.status]);
+      check(`${step} ${campaign} summary CSV withdrawn`, csv.status === 404, csv.status);
       const s = json.body;
       const where = `${step} ${campaign}`;
       check(`${where} threshold`, s.disclosure.threshold === K, s.disclosure);
-      // Channel coherence: the CSV carries the same decisions as the JSON.
-      const [head] = csvSection(csv.text, "campaign_ref");
-      check(`${where} CSV header`, head!["threshold"] === String(K) &&
-        head!["linked_members"] === String(s.coverage.linked_members) &&
-        head!["members_with_contribution"] === String(s.coverage.members_with_contribution) &&
-        head!["suppressed_cells"] === String(s.coverage.suppressed_cells), head);
-      const rows = csvSection(csv.text, "projection_type");
-      const fromCsv = rows.map((r) => [r["projection_type"], r["product_ref"], r["base_unit"], r["status"], r["total_base"] || null, r["contributors"] || null, r["pending_changes"]].join("|")).sort();
-      const fromJson = (s.cells as any[]).map((c) => [c.projection_type, c.product_ref, c.base_unit, c.status, c.total_base, c.contributors === null ? null : String(c.contributors), String(c.pending_changes)].join("|")).sort();
-      check(`${where} CSV = JSON`, JSON.stringify(fromCsv) === JSON.stringify(fromJson), { fromCsv, fromJson });
 
       const truth = model(campaign);
       const cells: CellRead[] = [];
@@ -314,16 +297,18 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
 
     /**
      * The joint proposal of the same state, right after the summary read: its
-     * lines must be the summary's DECLARED_NEED cells, its CSV its lines, and
-     * generating it must not decide anything new (no release, no withdrawal).
+     * lines must be the summary's DECLARED_NEED cells, its detail its lines,
+     * and generating it must not decide anything new (no release, no withdrawal).
      */
     async function propose(step: string, campaign: string, read: Awaited<ReturnType<typeof readSummary>>) {
       const ref = ids.campaigns[campaign]!;
       const where = `${step} ${campaign}`;
       const draft: Res = await http().post(`/api/v1/collective/campaigns/${ref}/proposals`).set(auth(director));
       check(`${where} proposal 201`, draft.status === 201, draft.body);
+      const detail: Res = await http().get(`/api/v1/collective/proposals/${draft.body.proposal_ref}`).set(auth(director));
+      check(`${where} proposal detail 200`, detail.status === 200, detail.status);
       const file: Res = await http().get(`/api/v1/collective/proposals/${draft.body.proposal_ref}/csv`).set(auth(director));
-      check(`${where} proposal CSV 200`, file.status === 200, file.status);
+      check(`${where} proposal CSV withdrawn`, file.status === 404, file.status);
       const s = read.summary;
       const lines = draft.body.lines as any[];
       const needCells = (s.cells as any[]).filter((c) => c.projection_type === "DECLARED_NEED");
@@ -331,11 +316,11 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
         JSON.stringify(lines.map((l) => [l.product_ref, l.base_unit, l.status, l.quantity_base, l.contributors, l.pending_changes]).sort()) ===
           JSON.stringify(needCells.map((c) => [c.product_ref, c.base_unit, c.status, c.total_base, c.contributors, c.pending_changes]).sort()),
         { lines, needCells });
-      const rows = csvSection(file.text, "position");
-      check(`${where} proposal CSV = JSON`,
-        JSON.stringify(rows.map((r) => [r["product_ref"], r["status"], r["quantity_base"] || null]).sort()) ===
+      const detailLines = (detail.body.lines ?? []) as any[];
+      check(`${where} proposal detail = draft`,
+        JSON.stringify(detailLines.map((l) => [l.product_ref, l.status, l.quantity_base]).sort()) ===
           JSON.stringify(lines.map((l) => [l.product_ref, l.status, l.quantity_base]).sort()),
-        rows);
+        detailLines);
       check(`${where} proposal coverage`,
         draft.body.coverage.linked_members === s.coverage.linked_members &&
           draft.body.coverage.members_with_contribution === s.coverage.members_with_contribution,
@@ -364,7 +349,7 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
       });
     }
 
-    /** After each step: summary JSON and CSV, then the proposal and its CSV, per campaign. */
+    /** After each step: the summary JSON, then the proposal and its detail, per campaign. */
     async function readAll(step: string) {
       for (const campaign of scenario.campaigns) {
         const r = await readSummary(step, campaign, withdrawnSoFar.get(campaign)!);

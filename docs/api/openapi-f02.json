@@ -6320,51 +6320,6 @@
         ]
       }
     },
-    "/api/v1/collective/campaigns/{campaignId}/summary.csv": {
-      "get": {
-        "operationId": "CollectiveController_csv",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "CSV con las mismas decisiones que el JSON",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "El mismo consolidado como CSV, con la misma política",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
     "/api/v1/collective/campaigns/{campaignId}/proposals": {
       "post": {
         "operationId": "JointPurchaseProposalsController_generate",
@@ -7912,52 +7867,6 @@
         ]
       }
     },
-    "/api/v1/collective/trends.csv": {
-      "get": {
-        "operationId": "CollectiveHistoryController_csv",
-        "parameters": [
-          {
-            "name": "projection_type",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "CONSUMPTION_TOTAL",
-                "DECLARED_NEED"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "CSV con los mismos estados y cifras que el JSON",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Las mismas tendencias como CSV, con la misma política",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
     "/api/v1/estimation/seasons": {
       "post": {
         "operationId": "EstimationController_createSeason",
@@ -8773,51 +8682,6 @@
           }
         ],
         "summary": "Estimación del consumo como referencia separada del borrador (no se suma ni cambia sus líneas)",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
-    "/api/v1/collective/proposals/{proposalId}/csv": {
-      "get": {
-        "operationId": "ProposalEstimationReferenceController_csv",
-        "parameters": [
-          {
-            "name": "proposalId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "CSV con los mismos estados que el JSON; las columnas estimation_* son la referencia y no cambian las del borrador",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Propuesta inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "El mismo detalle como CSV, con la misma política, y la estimación en columnas separadas",
         "tags": [
           "collective"
         ]
@@ -24956,15 +24820,16 @@
                     "contractVersion",
                     "server_time",
                     "consent",
-                    "calls",
-                    "history"
+                    "calls"
                   ],
                   "properties": {
                     "contractVersion": {
                       "type": "integer",
                       "enum": [
-                        1
-                      ]
+                        1,
+                        2
+                      ],
+                      "description": "2 con la cabecera X-Joint-Purchase-Contract: 2. Sin ella, la forma del contrato 1 (N7): consentimiento CONV-1, sin history ni consent_scope"
                     },
                     "server_time": {
                       "type": "string",
@@ -24980,8 +24845,8 @@
                       "properties": {
                         "version": {
                           "type": "string",
-                          "example": "CONV-2",
-                          "description": "Versión vigente (el servidor también acepta CONV-1)"
+                          "example": "CONV-3",
+                          "description": "Contrato 2: CONV-3 (vigente). Contrato 1 (teléfonos que no envían la cabecera): CONV-1, el texto que esas versiones muestran"
                         },
                         "text": {
                           "type": "string"
@@ -25185,7 +25050,7 @@
                                 "properties": {
                                   "version": {
                                     "type": "string",
-                                    "example": "CONV-1"
+                                    "example": "CONV-3"
                                   },
                                   "accepted_at": {
                                     "type": "string",
@@ -25197,7 +25062,49 @@
                                     "format": "date-time",
                                     "description": "Hora del servidor"
                                   }
-                                }
+                                },
+                                "description": "Texto aceptado al crear la participación; nunca se reescribe"
+                              },
+                              "consent_scope": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "scope",
+                                  "version",
+                                  "decided_at",
+                                  "received_at",
+                                  "sequence"
+                                ],
+                                "properties": {
+                                  "scope": {
+                                    "type": "string",
+                                    "enum": [
+                                      "RESPONSIBLE_ONLY",
+                                      "COLLABORATORS"
+                                    ]
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "example": "CONV-3",
+                                    "description": "Texto citado por la decisión que fijó el alcance"
+                                  },
+                                  "decided_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "Declarada por el teléfono"
+                                  },
+                                  "received_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "Hora del servidor"
+                                  },
+                                  "sequence": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Orden de la decisión (0 = la aceptación inicial)"
+                                  }
+                                },
+                                "description": "§10.6 (P-C): alcance vigente del consentimiento. Sólo en el contrato 2 (cabecera X-Joint-Purchase-Contract: 2); las cantidades nunca lo cambian"
                               }
                             },
                             "nullable": true
@@ -25321,6 +25228,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -25345,7 +25254,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -25401,6 +25310,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -25425,7 +25336,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -25481,6 +25392,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -25505,7 +25418,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -25574,7 +25487,8 @@
                     "contractVersion": {
                       "type": "integer",
                       "enum": [
-                        1
+                        1,
+                        2
                       ]
                     },
                     "server_time": {
@@ -25591,8 +25505,8 @@
                       "properties": {
                         "version": {
                           "type": "string",
-                          "example": "CONV-2",
-                          "description": "Versión vigente (el servidor también acepta CONV-1)"
+                          "example": "CONV-3",
+                          "description": "Contrato 2: CONV-3 (vigente). Contrato 1 (teléfonos que no envían la cabecera): CONV-1, el texto que esas versiones muestran"
                         },
                         "text": {
                           "type": "string"
@@ -25796,7 +25710,7 @@
                                 "properties": {
                                   "version": {
                                     "type": "string",
-                                    "example": "CONV-1"
+                                    "example": "CONV-3"
                                   },
                                   "accepted_at": {
                                     "type": "string",
@@ -25808,7 +25722,49 @@
                                     "format": "date-time",
                                     "description": "Hora del servidor"
                                   }
-                                }
+                                },
+                                "description": "Texto aceptado al crear la participación; nunca se reescribe"
+                              },
+                              "consent_scope": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "scope",
+                                  "version",
+                                  "decided_at",
+                                  "received_at",
+                                  "sequence"
+                                ],
+                                "properties": {
+                                  "scope": {
+                                    "type": "string",
+                                    "enum": [
+                                      "RESPONSIBLE_ONLY",
+                                      "COLLABORATORS"
+                                    ]
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "example": "CONV-3",
+                                    "description": "Texto citado por la decisión que fijó el alcance"
+                                  },
+                                  "decided_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "Declarada por el teléfono"
+                                  },
+                                  "received_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "Hora del servidor"
+                                  },
+                                  "sequence": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Orden de la decisión (0 = la aceptación inicial)"
+                                  }
+                                },
+                                "description": "§10.6 (P-C): alcance vigente del consentimiento. Sólo en el contrato 2 (cabecera X-Joint-Purchase-Contract: 2); las cantidades nunca lo cambian"
                               }
                             },
                             "nullable": true
@@ -25924,6 +25880,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -25948,7 +25906,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26004,6 +25962,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26028,7 +25988,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26084,6 +26044,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26108,7 +26070,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26164,6 +26126,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26188,7 +26152,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26327,7 +26291,7 @@
                           "properties": {
                             "version": {
                               "type": "string",
-                              "example": "CONV-1"
+                              "example": "CONV-3"
                             },
                             "accepted_at": {
                               "type": "string",
@@ -26339,7 +26303,49 @@
                               "format": "date-time",
                               "description": "Hora del servidor"
                             }
-                          }
+                          },
+                          "description": "Texto aceptado al crear la participación; nunca se reescribe"
+                        },
+                        "consent_scope": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "scope",
+                            "version",
+                            "decided_at",
+                            "received_at",
+                            "sequence"
+                          ],
+                          "properties": {
+                            "scope": {
+                              "type": "string",
+                              "enum": [
+                                "RESPONSIBLE_ONLY",
+                                "COLLABORATORS"
+                              ]
+                            },
+                            "version": {
+                              "type": "string",
+                              "example": "CONV-3",
+                              "description": "Texto citado por la decisión que fijó el alcance"
+                            },
+                            "decided_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Declarada por el teléfono"
+                            },
+                            "received_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Hora del servidor"
+                            },
+                            "sequence": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "description": "Orden de la decisión (0 = la aceptación inicial)"
+                            }
+                          },
+                          "description": "§10.6 (P-C): alcance vigente del consentimiento. Sólo en el contrato 2 (cabecera X-Joint-Purchase-Contract: 2); las cantidades nunca lo cambian"
                         }
                       },
                       "nullable": true
@@ -26392,6 +26398,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26416,7 +26424,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26472,6 +26480,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26496,7 +26506,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26552,6 +26562,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26576,7 +26588,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26632,6 +26644,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26656,7 +26670,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26712,6 +26726,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26736,7 +26752,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26792,6 +26808,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26816,7 +26834,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -26872,6 +26890,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -26896,7 +26916,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27035,7 +27055,7 @@
                           "properties": {
                             "version": {
                               "type": "string",
-                              "example": "CONV-1"
+                              "example": "CONV-3"
                             },
                             "accepted_at": {
                               "type": "string",
@@ -27047,7 +27067,49 @@
                               "format": "date-time",
                               "description": "Hora del servidor"
                             }
-                          }
+                          },
+                          "description": "Texto aceptado al crear la participación; nunca se reescribe"
+                        },
+                        "consent_scope": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "scope",
+                            "version",
+                            "decided_at",
+                            "received_at",
+                            "sequence"
+                          ],
+                          "properties": {
+                            "scope": {
+                              "type": "string",
+                              "enum": [
+                                "RESPONSIBLE_ONLY",
+                                "COLLABORATORS"
+                              ]
+                            },
+                            "version": {
+                              "type": "string",
+                              "example": "CONV-3",
+                              "description": "Texto citado por la decisión que fijó el alcance"
+                            },
+                            "decided_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Declarada por el teléfono"
+                            },
+                            "received_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Hora del servidor"
+                            },
+                            "sequence": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "description": "Orden de la decisión (0 = la aceptación inicial)"
+                            }
+                          },
+                          "description": "§10.6 (P-C): alcance vigente del consentimiento. Sólo en el contrato 2 (cabecera X-Joint-Purchase-Contract: 2); las cantidades nunca lo cambian"
                         }
                       },
                       "nullable": true
@@ -27100,6 +27162,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27124,7 +27188,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27180,6 +27244,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27204,7 +27270,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27260,6 +27326,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27284,7 +27352,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27340,6 +27408,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27364,7 +27434,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27420,6 +27490,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27444,7 +27516,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27500,6 +27572,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27524,7 +27598,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27544,6 +27618,688 @@
           }
         ],
         "summary": "Retirar la participación (idempotente por operation_id, ordenada por sequence)",
+        "tags": [
+          "joint purchase calls"
+        ]
+      }
+    },
+    "/api/v1/me/joint-purchase-calls/{id}/participation/consent": {
+      "post": {
+        "operationId": "FarmerCallsController_consent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aceptada (o reintento de una aceptada: la misma respuesta).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "participation"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "ACCEPTED"
+                      ]
+                    },
+                    "participation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "status",
+                        "lines",
+                        "last_sequence",
+                        "last_operation_id",
+                        "accepted_at",
+                        "consent"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "ACTIVE",
+                            "WITHDRAWN"
+                          ]
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "product_ref",
+                              "base_unit",
+                              "quantity_base"
+                            ],
+                            "properties": {
+                              "product_ref": {
+                                "type": "string"
+                              },
+                              "base_unit": {
+                                "type": "string",
+                                "enum": [
+                                  "ML",
+                                  "G"
+                                ]
+                              },
+                              "quantity_base": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9][0-9]*)$",
+                                "description": "Entero decimal en la unidad base"
+                              }
+                            }
+                          }
+                        },
+                        "last_sequence": {
+                          "type": "integer"
+                        },
+                        "last_operation_id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "accepted_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor de la última operación aceptada"
+                        },
+                        "consent": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "version",
+                            "accepted_at",
+                            "received_at"
+                          ],
+                          "properties": {
+                            "version": {
+                              "type": "string",
+                              "example": "CONV-3"
+                            },
+                            "accepted_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Declarada por el teléfono"
+                            },
+                            "received_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Hora del servidor"
+                            }
+                          },
+                          "description": "Texto aceptado al crear la participación; nunca se reescribe"
+                        },
+                        "consent_scope": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "scope",
+                            "version",
+                            "decided_at",
+                            "received_at",
+                            "sequence"
+                          ],
+                          "properties": {
+                            "scope": {
+                              "type": "string",
+                              "enum": [
+                                "RESPONSIBLE_ONLY",
+                                "COLLABORATORS"
+                              ]
+                            },
+                            "version": {
+                              "type": "string",
+                              "example": "CONV-3",
+                              "description": "Texto citado por la decisión que fijó el alcance"
+                            },
+                            "decided_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Declarada por el teléfono"
+                            },
+                            "received_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Hora del servidor"
+                            },
+                            "sequence": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "description": "Orden de la decisión (0 = la aceptación inicial)"
+                            }
+                          },
+                          "description": "§10.6 (P-C): alcance vigente del consentimiento. Sólo en el contrato 2 (cabecera X-Joint-Purchase-Contract: 2); las cantidades nunca lo cambian"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALL_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ampliar exige el texto vigente), WIDENING_NOT_ALLOWED (ampliar en una CANCELLED), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de solicitudes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "§10.6 (P-C): ampliar (COLLABORATORS) o reducir (RESPONSIBLE_ONLY) quién ve el nombre y las cantidades, como decisión propia con orden propio; no cambia cantidades",
         "tags": [
           "joint purchase calls"
         ]
@@ -27743,6 +28499,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27767,7 +28525,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27823,6 +28581,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27847,7 +28607,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -27903,6 +28663,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -27927,7 +28689,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -28552,6 +29314,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -28576,7 +29340,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -28632,6 +29396,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -28656,7 +29422,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -28712,6 +29478,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -28736,7 +29504,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -28792,6 +29560,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -28816,7 +29586,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -28872,6 +29642,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -28896,7 +29668,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -29019,6 +29791,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -29043,7 +29817,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -29099,6 +29873,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -29123,7 +29899,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -29750,6 +30526,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -29774,7 +30552,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -29830,6 +30608,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -29854,7 +30634,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -29910,6 +30690,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -29934,7 +30716,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -30569,6 +31351,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -30593,7 +31377,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -30649,6 +31433,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -30673,7 +31459,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -30729,6 +31515,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -30753,7 +31541,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -30809,6 +31597,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -30833,7 +31623,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -30889,6 +31679,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -30913,7 +31705,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -30969,6 +31761,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -30993,7 +31787,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -31630,6 +32424,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -31654,7 +32450,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -31710,6 +32506,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -31734,7 +32532,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -31790,6 +32588,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -31814,7 +32614,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -31870,6 +32670,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -31894,7 +32696,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -31950,6 +32752,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -31974,7 +32778,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -32611,6 +33415,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -32635,7 +33441,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -32691,6 +33497,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -32715,7 +33523,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -32771,6 +33579,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -32795,7 +33605,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -32851,6 +33661,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -32875,7 +33687,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -32931,6 +33743,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -32955,7 +33769,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33266,6 +34080,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -33290,7 +34106,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33346,6 +34162,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -33370,7 +34188,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33426,6 +34244,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -33450,7 +34270,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33506,6 +34326,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -33530,7 +34352,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33586,6 +34408,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -33610,7 +34434,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33821,6 +34645,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -33845,7 +34671,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33901,6 +34727,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -33925,7 +34753,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -33981,6 +34809,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -34005,7 +34835,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -34306,6 +35136,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -34330,7 +35162,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -34386,6 +35218,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -34410,7 +35244,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -34466,6 +35300,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -34490,7 +35326,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -34546,6 +35382,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -34570,7 +35408,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -34856,6 +35694,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -34880,7 +35720,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -34936,6 +35776,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -34960,7 +35802,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -35016,6 +35858,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -35040,7 +35884,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -35334,6 +36178,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -35358,7 +36204,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -35414,6 +36260,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -35438,7 +36286,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -35494,6 +36342,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -35518,7 +36368,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -35574,6 +36424,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -35598,7 +36450,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -35654,6 +36506,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -35678,7 +36532,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -35734,6 +36588,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -35758,7 +36614,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -36054,6 +36910,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -36078,7 +36936,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -36134,6 +36992,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -36158,7 +37018,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -36214,6 +37074,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -36238,7 +37100,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -36294,6 +37156,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -36318,7 +37182,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -36374,6 +37238,8 @@
                         "STALE_SEQUENCE",
                         "OPERATION_ID_REUSED",
                         "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
                         "PRODUCT_NOT_IN_CALL",
                         "QUANTITY_INVALID",
                         "RATE_LIMITED",
@@ -36398,7 +37264,7 @@
                         "CLOSED",
                         "CANCELLED"
                       ],
-                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED"
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
                     },
                     "participation": {
                       "type": "object",
@@ -38105,8 +38971,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-2",
-            "description": "Versión del texto mostrado: CONV-2 (vigente) o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED"
+            "example": "CONV-3",
+            "description": "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
           },
           "accepted_at": {
             "type": "string",
@@ -38193,6 +39059,58 @@
         "required": [
           "operation_id",
           "sequence"
+        ]
+      },
+      "ConsentDecisionTextDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "CONV-3",
+            "description": "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de la decisión en el teléfono"
+          }
+        },
+        "required": [
+          "version",
+          "decided_at"
+        ]
+      },
+      "ConsentDecisionDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 en minúsculas generado por el teléfono (idempotencia)"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Creciente entre las decisiones de consentimiento de esta participación (orden propio, distinto del de las cantidades)"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "RESPONSIBLE_ONLY",
+              "COLLABORATORS"
+            ],
+            "description": "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable"
+          },
+          "consent": {
+            "$ref": "#/components/schemas/ConsentDecisionTextDto"
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence",
+          "scope",
+          "consent"
         ]
       },
       "CallProductRefDto": {

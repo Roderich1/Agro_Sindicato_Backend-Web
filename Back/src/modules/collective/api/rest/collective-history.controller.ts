@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Header, HttpCode, Param, ParseUUIDPipe, Post, Query } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiProduces, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { UserRole } from "@prisma/client";
 import { CurrentUser } from "../../../iam/api/rest/decorators/current-user.decorator";
 import { Roles } from "../../../iam/api/rest/decorators/roles.decorator";
 import { AuthenticatedPrincipal } from "../../../iam/application/types/authenticated-principal.type";
 import { CollectiveSealUseCase } from "../../application/collective-seal.use-case";
-import { CollectiveTrendsUseCase, trendsCsv } from "../../application/collective-trends.use-case";
+import { CollectiveTrendsUseCase } from "../../application/collective-trends.use-case";
 import { SealCampaignDto, TrendsQueryDto } from "../../application/dto/collective-seal.dto";
 import { sealResultSchema, sealStateSchema, trendsSchema } from "./collective-openapi.schemas";
 
@@ -76,18 +76,5 @@ export class CollectiveHistoryController {
   @Forbidden
   get(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: TrendsQueryDto) {
     return this.trends.execute(user.tenantId, query.projection_type ?? null);
-  }
-
-  @Get("trends.csv")
-  @Header("Content-Type", "text/csv; charset=utf-8")
-  @Header("Content-Disposition", 'attachment; filename="tendencias-colectivas.csv"')
-  @Header("Cache-Control", "no-store")
-  @ApiOperation({ summary: "Las mismas tendencias como CSV, con la misma política" })
-  @ApiProduces("text/csv")
-  @ApiResponse({ status: 200, description: "CSV con los mismos estados y cifras que el JSON", schema: { type: "string" } })
-  @Unauthenticated
-  @Forbidden
-  async csv(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: TrendsQueryDto) {
-    return trendsCsv(await this.trends.execute(user.tenantId, query.projection_type ?? null));
   }
 }

@@ -20,7 +20,8 @@ import { ProposalEstimationReferenceUseCase } from "./application/proposal-refer
  * - contract §4.1 (EST-D-02): seasons and the first classification of a
  *   campaign (continuation of #190, Refs #175).
  * - F12-EST-08 (#181): the estimation as a separate reference next to a
- *   joint purchase proposal and in its CSV export.
+ *   joint purchase proposal (its CSV export was withdrawn on 2026-11-12:
+ *   the Web exports Excel from the JSON readings).
  * E3 (fixing the estimate as a reference of a draft proposal) lives in
  * `proposal-estimation/` and reuses the jobs and readings exported here; this
  * module keeps writing only estimation tables (insert-only.spec.ts).

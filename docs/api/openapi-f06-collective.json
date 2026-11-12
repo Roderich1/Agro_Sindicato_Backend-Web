@@ -675,51 +675,6 @@
         ]
       }
     },
-    "/api/v1/collective/campaigns/{campaignId}/summary.csv": {
-      "get": {
-        "operationId": "CollectiveController_csv",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "CSV con las mismas decisiones que el JSON",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "El mismo consolidado como CSV, con la misma política",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
     "/api/v1/collective/campaigns/{campaignId}/proposals": {
       "post": {
         "operationId": "JointPurchaseProposalsController_generate",
@@ -2267,52 +2222,6 @@
         ]
       }
     },
-    "/api/v1/collective/trends.csv": {
-      "get": {
-        "operationId": "CollectiveHistoryController_csv",
-        "parameters": [
-          {
-            "name": "projection_type",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "CONSUMPTION_TOTAL",
-                "DECLARED_NEED"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "CSV con los mismos estados y cifras que el JSON",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Las mismas tendencias como CSV, con la misma política",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
     "/api/v1/collective/proposals/{proposalId}/estimation-reference": {
       "get": {
         "operationId": "ProposalEstimationReferenceController_reference",
@@ -2584,51 +2493,6 @@
           }
         ],
         "summary": "Estimación del consumo como referencia separada del borrador (no se suma ni cambia sus líneas)",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
-    "/api/v1/collective/proposals/{proposalId}/csv": {
-      "get": {
-        "operationId": "ProposalEstimationReferenceController_csv",
-        "parameters": [
-          {
-            "name": "proposalId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "CSV con los mismos estados que el JSON; las columnas estimation_* son la referencia y no cambian las del borrador",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Propuesta inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "El mismo detalle como CSV, con la misma política, y la estimación en columnas separadas",
         "tags": [
           "collective"
         ]
@@ -14227,8 +14091,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-2",
-            "description": "Versión del texto mostrado: CONV-2 (vigente) o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED"
+            "example": "CONV-3",
+            "description": "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
           },
           "accepted_at": {
             "type": "string",
@@ -14315,6 +14179,58 @@
         "required": [
           "operation_id",
           "sequence"
+        ]
+      },
+      "ConsentDecisionTextDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "CONV-3",
+            "description": "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de la decisión en el teléfono"
+          }
+        },
+        "required": [
+          "version",
+          "decided_at"
+        ]
+      },
+      "ConsentDecisionDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 en minúsculas generado por el teléfono (idempotencia)"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Creciente entre las decisiones de consentimiento de esta participación (orden propio, distinto del de las cantidades)"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "RESPONSIBLE_ONLY",
+              "COLLABORATORS"
+            ],
+            "description": "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable"
+          },
+          "consent": {
+            "$ref": "#/components/schemas/ConsentDecisionTextDto"
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence",
+          "scope",
+          "consent"
         ]
       },
       "CallProductRefDto": {

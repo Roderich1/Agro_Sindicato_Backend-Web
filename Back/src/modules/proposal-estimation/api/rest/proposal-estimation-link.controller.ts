@@ -25,8 +25,9 @@ const NotFound = error(404, "PROPOSAL_NOT_FOUND: borrador inexistente o de otro 
  * consumption estimate fixed as a reference of a draft joint purchase
  * proposal, and the products chosen for a call. Roles of the draft
  * (DIRECTIVA, ADMINISTRADOR). The bodies are validated by the use case so
- * that they answer the contract's own codes. The F12 routes (estimation
- * reference and its CSV) do not change.
+ * that they answer the contract's own codes. The F12 route (estimation
+ * reference) does not change; its CSV export was withdrawn on 2026-11-12
+ * (Excel is the only export).
  */
 @ApiTags("collective")
 @ApiBearerAuth()

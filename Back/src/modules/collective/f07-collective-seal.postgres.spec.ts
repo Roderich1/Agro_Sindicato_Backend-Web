@@ -28,9 +28,10 @@ import { sealLockKey } from "./domain/seal";
  * disposable PostgreSQL with synthetic accounts and values only: manual seal
  * by DIRECTIVA and ADMINISTRADOR, all-or-nothing, idempotent and concurrent;
  * Sync v1 after the seal (CAMPAIGN_SEALED, replay, CANCEL and its race with
- * the seal); reads without hidden writes; summary, proposal, trends and CSV
- * under the same policy; database immutability; migration from the previous
- * base. Provisional policy F07-POL-01 (NOT approved, k = 3).
+ * the seal); reads without hidden writes; summary, proposal and trends under
+ * the same policy (the CSV routes were withdrawn on 2026-11-12: the Web
+ * exports Excel from these JSON readings); database immutability; migration
+ * from the previous base. Provisional policy F07-POL-01 (NOT approved, k = 3).
  *
  * ORACLE (written before running; values are synthetic):
  * Campaign CA ("Campaña sellada 2025"), linked AGRICULTOR in tenant A = 7
@@ -186,8 +187,6 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
 
   const summary = (campaign: string, session = director): Promise<Res> =>
     http().get(`/api/v1/collective/campaigns/${campaign}/summary`).set(auth(session));
-  const summaryCsv = (campaign: string): Promise<Res> =>
-    http().get(`/api/v1/collective/campaigns/${campaign}/summary.csv`).set(auth(director));
   const sealState = (campaign: string, session = director): Promise<Res> =>
     http().get(`/api/v1/collective/campaigns/${campaign}/seal`).set(auth(session));
   const seal = (campaign: string, payload: unknown, session = director): Promise<Res> =>
@@ -195,11 +194,9 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
   const close = (campaign: string, session = director): Promise<Res> =>
     http().post(`/api/v1/campaigns/${campaign}/close`).set(auth(session)).send({});
   const trends = (query = ""): Promise<Res> => http().get(`/api/v1/collective/trends${query}`).set(auth(director));
-  const trendsCsv = (query = ""): Promise<Res> => http().get(`/api/v1/collective/trends.csv${query}`).set(auth(director));
   const generate = (campaign: string): Promise<Res> =>
     http().post(`/api/v1/collective/campaigns/${campaign}/proposals`).set(auth(director));
   const proposal = (id: string): Promise<Res> => http().get(`/api/v1/collective/proposals/${id}`).set(auth(director));
-  const proposalCsv = (id: string): Promise<Res> => http().get(`/api/v1/collective/proposals/${id}/csv`).set(auth(director));
   const proposals = (campaign: string): Promise<Res> =>
     http().get(`/api/v1/collective/campaigns/${campaign}/proposals`).set(auth(director));
 
@@ -304,11 +301,10 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
       const snapshot = await writeSnapshot();
       const view = await proposal(proposalBeforeSeal);
       const list = await proposals(campaigns.CA!);
-      const csv = await proposalCsv(proposalBeforeSeal);
-      expect([view.status, list.status, csv.status]).toEqual([200, 200, 200]);
+      expect([view.status, list.status]).toEqual([200, 200]);
       // Discriminating: the writing decision would create (or withdraw) a release here.
       expect(await writeSnapshot()).toBe(snapshot);
-      return { line: (view.body.lines as any[]).find((l) => l.product_name === "Herbicida sello"), view, csv };
+      return { line: (view.body.lines as any[]).find((l) => l.product_name === "Herbicida sello"), view, list };
     };
     // Three net changes (F4 and F5 join, F1 1000 → 1100): the summary would publish 13100.
     expect((await push("F4", { ...herbicida, quantity: "4000" })).res.body.outcome).toBe("APPLIED");
@@ -317,7 +313,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     const superseded = await readAll();
     expect(superseded.line).toMatchObject({ status: "SUPERSEDED", quantity_base: null, contributors: null });
     expect(superseded.view.body.inputs_fingerprint).toBeNull();
-    expectNoNumber(superseded.csv.text, "13100");
+    for (const res of [superseded.view, superseded.list]) expectNoNumber(JSON.stringify(res.body), "13100");
     // Back to the disclosed state, then F3 withdraws: the summary would withdraw 6000.
     expect((await push("F1", { ...herbicida, quantity: "1000" })).res.body.outcome).toBe("APPLIED");
     expect((await cancel("F4", campaigns.CA!, "DECLARED_NEED", "Herbicida", "ML")).res.body.outcome).toBe("APPLIED");
@@ -430,28 +426,30 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     expect(audit[0]!.summary).not.toMatch(/[0-9]{3,}/);
   });
 
-  it("sealed reads never write, never recompute, and the CSV carries the same decisions", async () => {
+  it("sealed reads never write nor recompute; the CSV routes no longer exist", async () => {
     const snapshot = await writeSnapshot();
     const json = await summary(campaigns.CA!);
-    const csv = await summaryCsv(campaigns.CA!);
     const state = await sealState(campaigns.CA!);
     const list = await proposals(campaigns.CA!);
     const view = await proposal(proposalBeforeSeal);
-    const pcsv = await proposalCsv(proposalBeforeSeal);
     const t = await trends();
-    const tcsv = await trendsCsv();
-    for (const res of [json, csv, state, list, view, pcsv, t, tcsv]) expect(res.status).toBe(200);
+    for (const res of [json, state, list, view, t]) expect(res.status).toBe(200);
     expect(await writeSnapshot()).toBe(snapshot);
     expect(state.body).toMatchObject({ state: "SEALED", review: null, seal: { seal_ref: sealedA.body.seal.seal_ref } });
-    expect(csv.text).toContain(sealedA.body.seal.seal_ref);
-    expect(csv.text).toContain("DECLARED_NEED,");
-    expect(csv.text).toContain(",DISCLOSED,6000,6,3,");
-    for (const hidden of ["1200", "1.2"]) expectNoNumber(csv.text, hidden);
+    // The summary JSON carries the sealed version and its decisions, never a hidden total.
+    expect(json.body.seal.seal_ref).toBe(sealedA.body.seal.seal_ref);
+    expect(cellsOf(json)).toContain("DECLARED_NEED|Herbicida sello|ML|DISCLOSED|6000|3");
+    expect((json.body.cells as any[]).find((c) => c.projection_type === "DECLARED_NEED" && c.product_name === "Herbicida sello")).toMatchObject({ total_presentation: "6" });
+    for (const hidden of ["1200", "1.2"]) expectNoNumber(JSON.stringify(json.body), hidden);
     // The draft generated before the seal shows the sealed figure (same release).
     const line = (view.body.lines as any[]).find((l) => l.product_name === "Herbicida sello");
     expect(line).toMatchObject({ status: "DISCLOSED", quantity_base: "6000", contributors: 3 });
     expect(view.body.seal.seal_ref).toBe(sealedA.body.seal.seal_ref);
-    expect(pcsv.text).toContain(sealedA.body.seal.seal_ref);
+    // Withdrawn on 2026-11-12: the Web exports Excel from the JSON readings above.
+    for (const path of [`campaigns/${campaigns.CA}/summary.csv`, `proposals/${proposalBeforeSeal}/csv`, "trends.csv"]) {
+      expect((await http().get(`/api/v1/collective/${path}`).set(auth(director))).status).toBe(404);
+    }
+    expect(await writeSnapshot()).toBe(snapshot);
   });
 
   it("the database refuses any change to the sealed version or a new disclosure of the sealed campaign", async () => {
@@ -536,12 +534,9 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     );
     // Coverage stays the one of the seal: a recount would reveal the cell.
     expect(sealed.body.coverage).toEqual({ linked_members: 7, members_with_contribution: 4, suppressed_cells: true });
-    const csv = await summaryCsv(campaigns.CA!);
     const view = await proposal(proposalBeforeSeal);
-    const pcsv = await proposalCsv(proposalBeforeSeal);
     const t = await trends();
-    const tcsv = await trendsCsv();
-    for (const text of [JSON.stringify(sealed.body), csv.text, JSON.stringify(view.body), pcsv.text, JSON.stringify(t.body), tcsv.text]) {
+    for (const text of [JSON.stringify(sealed.body), JSON.stringify(view.body), JSON.stringify(t.body)]) {
       expectNoNumber(text, "6000");
       expectNoNumber(text, "1200");
     }
@@ -577,9 +572,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
       expect((t.body.campaigns as any[]).every((c) => c.coverage === null)).toBe(true);
       const view = await proposal(proposalBeforeSeal);
       expect((view.body.lines as any[]).every((l) => l.status === "POLICY_PENDING" && l.quantity_base === null)).toBe(true);
-      for (const res of [await summaryCsv(campaigns.CA!), await trendsCsv(), await proposalCsv(proposalBeforeSeal)]) {
-        expectNoNumber(res.text, "2000");
-      }
+      for (const res of [s, t, view]) expectNoNumber(JSON.stringify(res.body), "2000");
     } finally {
       mutable().mode = "PROVISIONAL_SYNTHETIC";
     }
@@ -722,7 +715,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     expect(outcomes[1]).toBe("after");
   });
 
-  it("trends: only sealed versions, cell by cell, without sums; NO_DATA and NOT_SEALED are never zero; CSV has the same points", async () => {
+  it("trends: only sealed versions, cell by cell, without sums; NO_DATA and NOT_SEALED are never zero", async () => {
     // CB has published figures and a decided summary, but it is not sealed.
     await publishAll(campaigns.CB!, [
       ["F1", "DECLARED_NEED", "Herbicida", "ML", "7000"],
@@ -732,7 +725,6 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     expect((await summary(campaigns.CB!)).body.cells[0]).toMatchObject({ status: "DISCLOSED", total_base: "21000" });
     const snapshot = await writeSnapshot();
     const res = await trends("?projection_type=DECLARED_NEED");
-    const csv = await trendsCsv("?projection_type=DECLARED_NEED");
     expect(await writeSnapshot()).toBe(snapshot);
     expect(res.status).toBe(200);
     expect(res.body.projection_type).toBe("DECLARED_NEED");
@@ -750,16 +742,6 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     // ML and G never share a series; nothing is summed across campaigns.
     expect(new Set((res.body.series as any[]).map((s) => `${s.product_ref}|${s.base_unit}`)).size).toBe(res.body.series.length);
     expectNoNumber(JSON.stringify(res.body), "21000");
-    expectNoNumber(csv.text, "21000");
-    // CSV parity: every point, same status and figure.
-    for (const line of res.body.series as any[]) {
-      for (const point of line.points) {
-        const row = [line.projection_type, line.product_ref].join(",");
-        const match = csv.text.split("\n").find((l: string) => l.startsWith(row) && l.includes(`,${point.campaign_ref},`));
-        expect(match).toBeDefined();
-        expect(match).toContain(`,${point.status},${point.total_base ?? ""},`);
-      }
-    }
     // Coverage of each campaign is the sealed one; unsealed campaigns have none.
     const coverageOf = (campaign: string) => (res.body.campaigns as any[]).find((c) => c.campaign_ref === campaign).coverage;
     expect(coverageOf(campaigns.CA!)).toEqual({ linked_members: 7, members_with_contribution: 4, suppressed_cells: true });

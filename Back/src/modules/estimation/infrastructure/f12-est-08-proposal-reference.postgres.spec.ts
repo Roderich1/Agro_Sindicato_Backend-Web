@@ -7,13 +7,14 @@ import { writeFileSync } from "node:fs";
 import request = require("supertest");
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CollectiveConfig } from "../../collective/application/collective-config";
-import { proposalCsv, ProposalView } from "../../collective/application/joint-purchase-proposal.use-case";
+import { ProposalView } from "../../collective/application/joint-purchase-proposal.use-case";
 import { createIsolatedDatabase, createSession, createSyncV1App, Fixture, seedFixture, TestSession, unusablePasswordHash } from "../../sync-v1/test-support/sync-v1-test-app";
 import { EstimationWorker } from "../application/estimation-worker";
 
 /**
  * F12-EST-08 (#181): the estimation as a separate reference of a joint
- * purchase proposal and of its CSV export, over PostgreSQL and HTTP.
+ * purchase proposal, over PostgreSQL and HTTP. Its CSV export was withdrawn on
+ * 2026-11-12 (the Web exports Excel from these JSON readings): the route is 404.
  *
  * Only synthetic data. The consumption sources are real F07 seals (Sync v1
  * publications by synthetic farmers, close and manual seal over the API); the
@@ -27,19 +28,6 @@ const describePostgres = postgresUrl ? describe : describe.skip;
 const PUSH = "/api/v1/sync/v1/push";
 /** Private tables of purchases, lots, movements, debts and payments. */
 const PRIVATE_TABLES = ["Purchase", "PurchaseItem", "PurchaseItemAllocation", "PurchaseParticipant", "InventoryLot", "StockMovement", "PayableAccount", "Payment"];
-const REFERENCE_HEAD = ["estimation_reference", "estimation_availability", "estimation_evaluated_at", "estimation_season", "estimation_notice"];
-const REFERENCE_LINE = [
-  "estimation_absence",
-  "estimation_status",
-  "estimation_reason_code",
-  "estimation_estimate_base",
-  "estimation_validity",
-  "estimation_validity_reason",
-  "estimation_method",
-  "estimation_run_ref",
-  "estimation_run_generated_at",
-  "estimation_run_relation",
-];
 
 type Type = "CONSUMPTION_TOTAL" | "DECLARED_NEED";
 interface Estimation {
@@ -72,35 +60,6 @@ interface Reference {
   season: { key: string } | null;
   lines: ReferenceLine[];
   notice: string;
-}
-
-/** RFC 4180 rows, as the proposal CSV writes them (quoted fields, `\n`). */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let quoted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const c = text[i]!;
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') {
-        field += '"';
-        i += 1;
-      } else if (c === '"') quoted = false;
-      else field += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") {
-      row.push(field);
-      field = "";
-    } else if (c === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-    } else field += c;
-  }
-  if (field !== "" || row.length > 0) rows.push([...row, field]);
-  return rows;
 }
 
 describePostgres("F12-EST-08 estimation reference of a joint purchase proposal", () => {
@@ -270,12 +229,6 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     expect(res.headers["cache-control"]).toBe("no-store");
     return res.body as Reference;
   };
-  const csv = async (id: string, session = director): Promise<string> => {
-    const res = await http().get(`/api/v1/collective/proposals/${id}/csv`).set(auth(session));
-    expect(res.status).toBe(200);
-    expect(res.headers["content-type"]).toMatch(/text\/csv/);
-    return res.text as string;
-  };
   const lineOf = (ref: Reference, product: string) => ref.lines.find((l) => l.product_ref === products[product])!;
   /** What the lines carry: the functional content of the draft, without the reference. */
   const linesOf = (v: ProposalView) => v.lines.map((l) => [l.position, l.product_ref, l.base_unit, l.status, l.quantity_base, l.contributors]);
@@ -302,36 +255,6 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     ]);
   }
 
-  /**
-   * The CSV is the proposal's own CSV with the reference appended: without the
-   * `estimation_*` columns it is `proposalCsv(view)` field by field, and those
-   * columns carry exactly the JSON reference read in the same state.
-   */
-  function expectConsistentCsv(text: string, v: ProposalView, ref: Reference) {
-    const own = parseCsv(proposalCsv(v));
-    const rows = parseCsv(text);
-    expect(rows).toHaveLength(own.length);
-    const extra = (i: number) => (i === 0 || i === 1 ? REFERENCE_HEAD.length : i === 2 || i === 3 ? 0 : REFERENCE_LINE.length);
-    rows.forEach((row, i) => {
-      expect(row.slice(0, own[i]!.length)).toEqual(own[i]);
-      expect(row.length - own[i]!.length).toBe(extra(i));
-    });
-    expect(rows[0]!.slice(-REFERENCE_HEAD.length)).toEqual(REFERENCE_HEAD);
-    const [label, availability, evaluatedAt, seasonKey, notice] = rows[1]!.slice(-REFERENCE_HEAD.length);
-    expect([label, availability, seasonKey, notice]).toEqual([ref.label, ref.availability, ref.season?.key ?? "", ref.notice]);
-    // The export evaluates validity at its own moment, after the JSON read it is compared with.
-    expect(Date.parse(evaluatedAt!)).toBeGreaterThanOrEqual(Date.parse(ref.evaluated_at));
-    expect(rows[4]!.slice(-REFERENCE_LINE.length)).toEqual(REFERENCE_LINE);
-    for (const row of rows.slice(5)) {
-      const position = Number(row[0]);
-      const line = ref.lines.find((l) => l.position === position)!;
-      const e = line.estimation;
-      expect(row.slice(-REFERENCE_LINE.length)).toEqual(
-        [line.absence, e?.status, e?.reason_code, e?.estimate_base, e?.validity, e?.validity_reason, e?.method, e?.run_ref, e?.generated_at, e?.run_relation].map((value) => value ?? ""),
-      );
-    }
-  }
-
   it("rejects without a session, for the Farmer and across tenants, and writes nothing", async () => {
     const before = await snapshot();
     privateAtStart = PRIVATE_TABLES.map((name) => before.get(name));
@@ -345,17 +268,18 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     const other = await http().post(`/api/v1/collective/campaigns/${f.campaigns.openB}/proposals`).set(auth(directorB));
     expect(other.status).toBe(201);
     const reads = await snapshot();
-    for (const path of ["estimation-reference", "csv"]) {
-      expect((await http().get(`/api/v1/collective/proposals/${proposals["P0"]}/${path}`)).status).toBe(401);
-      const forbidden = await http().get(`/api/v1/collective/proposals/${proposals["P0"]}/${path}`).set(auth(farmer));
-      expect(forbidden.status).toBe(403);
-      expect(forbidden.body).toEqual({ statusCode: 403, message: "No tienes permisos para esta acción", error: "Forbidden" });
-      // Another tenant's draft is indistinguishable from a missing one, in both directions.
-      expect((await http().get(`/api/v1/collective/proposals/${other.body.proposal_ref}/${path}`).set(auth(director))).status).toBe(404);
-      expect((await http().get(`/api/v1/collective/proposals/${proposals["P0"]}/${path}`).set(auth(directorB))).status).toBe(404);
-      expect((await http().get(`/api/v1/collective/proposals/${randomUUID()}/${path}`).set(auth(director))).status).toBe(404);
-      expect((await http().get(`/api/v1/collective/proposals/no-es-uuid/${path}`).set(auth(director))).status).toBe(400);
-    }
+    const path = "estimation-reference";
+    expect((await http().get(`/api/v1/collective/proposals/${proposals["P0"]}/${path}`)).status).toBe(401);
+    const forbidden = await http().get(`/api/v1/collective/proposals/${proposals["P0"]}/${path}`).set(auth(farmer));
+    expect(forbidden.status).toBe(403);
+    expect(forbidden.body).toEqual({ statusCode: 403, message: "No tienes permisos para esta acción", error: "Forbidden" });
+    // Another tenant's draft is indistinguishable from a missing one, in both directions.
+    expect((await http().get(`/api/v1/collective/proposals/${other.body.proposal_ref}/${path}`).set(auth(director))).status).toBe(404);
+    expect((await http().get(`/api/v1/collective/proposals/${proposals["P0"]}/${path}`).set(auth(directorB))).status).toBe(404);
+    expect((await http().get(`/api/v1/collective/proposals/${randomUUID()}/${path}`).set(auth(director))).status).toBe(404);
+    expect((await http().get(`/api/v1/collective/proposals/no-es-uuid/${path}`).set(auth(director))).status).toBe(400);
+    // The CSV export was withdrawn (2026-11-12): the route does not exist, even for the Directiva of the tenant.
+    expect((await http().get(`/api/v1/collective/proposals/${proposals["P0"]}/csv`).set(auth(director))).status).toBe(404);
     // The Administrador reads it like the Directiva.
     expect((await reference(proposals["P0"]!, admin)).lines).toHaveLength(4);
     expect(changed(reads, await snapshot())).toEqual([]);
@@ -371,8 +295,6 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     });
     expect(ref.lines.map((l) => [l.product_ref, l.absence, l.estimation])).toEqual(views["P0"]!.lines.map((l) => [l.product_ref, "NO_RESULT", null]));
     expect(ref.notice).toMatch(/no se suma a la necesidad declarada/i);
-    const text = await csv(proposals["P0"]!);
-    expectConsistentCsv(text, views["P0"]!, ref);
     expect(changed(before, await snapshot())).toEqual([]);
     demo["without_estimation"] = { lines: ref.lines.map((l) => ({ position: l.position, absence: l.absence })) };
   });
@@ -433,23 +355,13 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     const results = await http().get(`/api/v1/estimation/results?target_campaign_ref=${campaigns["T"]}`).set(auth(director));
     const direct = results.body.results.find((r: { product: { product_ref: string } }) => r.product.product_ref === products["Herbicida"]);
     expect(herbicide.estimation).toMatchObject({ estimate_base: direct.estimate_base, validity: direct.validity, run_ref: direct.run_ref, generated_at: direct.generated_at });
-    const text = await csv(p1.proposal_ref);
-    expectConsistentCsv(text, p1, r1);
-    // The estimate is never in a need column.
-    expect(parseCsv(text).slice(5).map((row) => row[6])).toEqual(p1.lines.map((l) => l.quantity_base ?? ""));
     const directAcaricide = results.body.results.find((r: { product: { product_ref: string } }) => r.product.product_ref === products["Acaricida"]);
     expect(acaricide.estimation!.estimate_base).toBe(directAcaricide.estimate_base);
-    // The hidden line in the CSV: state, no need (neither the estimate nor zero), and the estimate only in estimation_*.
-    const hiddenRow = parseCsv(text).find((row) => row[1] === products["Acaricida"])!;
-    expect(hiddenRow.slice(5, 9)).toEqual(["SUPPRESSED_UNDER_THRESHOLD", "", "", ""]);
-    expect(hiddenRow[12 + REFERENCE_LINE.indexOf("estimation_estimate_base")]).toBe(acaricide.estimation!.estimate_base);
-    expect(hiddenRow[12 + REFERENCE_LINE.indexOf("estimation_status")]).toBe("ESTIMATED");
     expect(changed(before, await snapshot())).toEqual([]);
     demo["with_estimation"] = {
       fingerprint_p0: p0.inputs_fingerprint, fingerprint_p1: p1.inputs_fingerprint, total_base_p0: total(p0), total_base_p1: total(p1),
       generated_tables: generatedChanges, private_counts: privateBefore, private_md5: privateHashes,
       reference: r1.lines.map((l) => ({ position: l.position, absence: l.absence, status: l.estimation?.status ?? null, estimate_base: l.estimation?.estimate_base ?? null, validity: l.estimation?.validity ?? null, run_relation: l.estimation?.run_relation ?? null })),
-      csv_header: parseCsv(text)[4],
     };
   });
 
@@ -468,30 +380,27 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     await classify("INVIERNO", ["X"]);
     const outdated = await reference(proposals["P1"]!);
     expect(lineOf(outdated, "Herbicida").estimation).toMatchObject({ run_ref: runs["R2"], validity: "OUTDATED", validity_reason: "SOURCES_CHANGED", estimate_base: "111000.000000" });
-    expectConsistentCsv(await csv(proposals["P1"]!), views["P1"]!, outdated);
     // After the seal of C4, F3 cancels its consumption: F07 withdraws the visibility of that sealed figure.
     await push("F3", "CONSUMPTION_TOTAL", campaigns["C4"]!, "Herbicida", null);
     const withdrawn = await reference(proposals["P1"]!);
     expect(lineOf(withdrawn, "Herbicida").estimation).toMatchObject({ validity: "OUTDATED", validity_reason: "SOURCES_WITHDRAWN", estimate_base: null, status: "ESTIMATED" });
-    const text = await csv(proposals["P1"]!);
-    expectConsistentCsv(text, views["P1"]!, withdrawn);
-    expect(text).not.toContain("111000");
+    expect(JSON.stringify(withdrawn)).not.toContain("111000");
     // The draft's lines and fingerprint do not move.
     expect(await view(proposals["P1"]!)).toEqual(views["P1"]);
     demo["outdated"] = { reason: lineOf(outdated, "Herbicida").estimation!.validity_reason, estimate_base: lineOf(outdated, "Herbicida").estimation!.estimate_base };
     demo["withdrawn"] = { reason: lineOf(withdrawn, "Herbicida").estimation!.validity_reason, estimate_base: lineOf(withdrawn, "Herbicida").estimation!.estimate_base };
   });
 
-  it("with the policy pending, delivers no figure and still serves the draft and its CSV", async () => {
+  it("with the policy pending, delivers no figure and still serves the draft", async () => {
     (collective as { mode: string }).mode = "POLICY_PENDING";
     try {
       const before = await snapshot();
       const ref = await reference(proposals["P1"]!);
       expect(ref.availability).toBe("POLICY_PENDING");
       expect(ref.lines.map((l) => [l.absence, l.estimation])).toEqual(ref.lines.map(() => ["POLICY_PENDING", null]));
-      const text = await csv(proposals["P1"]!);
-      expect(text).toContain("POLICY_PENDING");
-      expect(text).not.toMatch(/111000|30000|40000|50000/);
+      const draft = await view(proposals["P1"]!);
+      expect(draft.lines.every((l) => l.status === "POLICY_PENDING" && l.quantity_base === null)).toBe(true);
+      expect(JSON.stringify({ ref, draft })).not.toMatch(/111000|30000|40000|50000/);
       expect(changed(before, await snapshot())).toEqual([]);
       demo["policy_pending"] = { availability: ref.availability };
     } finally {
@@ -499,7 +408,7 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     }
   });
 
-  it("a sealed campaign: reading the draft, its reference and its CSV recalculates and modifies nothing", async () => {
+  it("a sealed campaign: reading the draft and its reference recalculates and modifies nothing", async () => {
     const draftBefore = await prisma.jointPurchaseProposal.findUniqueOrThrow({ where: { id: proposals["P1"] }, include: { lines: { orderBy: { position: "asc" } } } });
     await closeAndSeal(campaigns["T"]!);
     const sealed = await view(proposals["P1"]!);
@@ -510,12 +419,9 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     expect(linesOf(sealed)).toEqual(linesOf(views["P1"]!));
     const before = await snapshot();
     const ref = await reference(proposals["P1"]!);
-    const text = await csv(proposals["P1"]!);
-    expectConsistentCsv(text, sealed, ref);
     for (let i = 0; i < 3; i += 1) {
       await view(proposals["P1"]!);
       await reference(proposals["P1"]!);
-      await csv(proposals["P1"]!);
     }
     expect(changed(before, await snapshot())).toEqual([]);
     expect(await prisma.jointPurchaseProposal.findUniqueOrThrow({ where: { id: proposals["P1"] }, include: { lines: { orderBy: { position: "asc" } } } })).toEqual(draftBefore);

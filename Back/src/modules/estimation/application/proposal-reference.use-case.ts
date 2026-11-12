@@ -1,7 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { SyncV1BaseUnit } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
-import { JointPurchaseProposalUseCase, ProposalCsvAppendix, proposalCsv } from "../../collective/application/joint-purchase-proposal.use-case";
 import { AuthenticatedPrincipal } from "../../iam/application/types/authenticated-principal.type";
 import { EstimationReadsUseCase } from "./estimation-reads.use-case";
 import { presentationUnitOf } from "./estimation-views";
@@ -23,7 +22,7 @@ interface ReferenceSource {
 
 /**
  * F12-EST-08 (#181): the estimation as a separate reference next to a joint
- * purchase proposal (RN-29, prototype W3) and in its export.
+ * purchase proposal (RN-29, prototype W3).
  * - It is `GET /estimation/results` itself for the proposal's campaign: same
  *   selection, validity, policy and permissions; no other calculation nor
  *   storage. A line takes the result of the same canonical product and unit.
@@ -39,7 +38,6 @@ export class ProposalEstimationReferenceUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reads: EstimationReadsUseCase,
-    private readonly proposals: JointPurchaseProposalUseCase,
   ) {}
 
   async reference(principal: AuthenticatedPrincipal, proposalId: string) {
@@ -60,18 +58,6 @@ export class ProposalEstimationReferenceUseCase {
       campaign_ref: proposal.campaignId,
       lines: proposal.lines.map((l) => ({ position: l.position, product_ref: l.canonicalProductId, base_unit: l.baseUnit })),
     });
-  }
-
-  /** The proposal's own CSV, unchanged, with the reference appended in separate columns. */
-  async csv(principal: AuthenticatedPrincipal, proposalId: string): Promise<string> {
-    const view = await this.proposals.view(principal.tenantId, proposalId);
-    const reference = await this.compose(principal, {
-      proposal_ref: view.proposal_ref,
-      generated_at: new Date(view.generated_at),
-      campaign_ref: view.campaign.campaign_ref,
-      lines: view.lines.map((l) => ({ position: l.position, product_ref: l.product_ref, base_unit: l.base_unit })),
-    });
-    return proposalCsv(view, appendixOf(reference));
   }
 
   private async compose(principal: AuthenticatedPrincipal, source: ReferenceSource) {
@@ -121,45 +107,4 @@ export class ProposalEstimationReferenceUseCase {
       notice: REFERENCE_NOTICE,
     };
   }
-}
-
-export type ProposalEstimationReference = Awaited<ReturnType<ProposalEstimationReferenceUseCase["reference"]>>;
-
-/** The reference as columns after the proposal's own, prefixed `estimation_`. */
-export function appendixOf(reference: ProposalEstimationReference): ProposalCsvAppendix {
-  const byPosition = new Map(reference.lines.map((line) => [line.position, line]));
-  return {
-    head: {
-      header: ["estimation_reference", "estimation_availability", "estimation_evaluated_at", "estimation_season", "estimation_notice"],
-      values: [reference.label, reference.availability, reference.evaluated_at, reference.season?.key ?? null, reference.notice],
-    },
-    lineHeader: [
-      "estimation_absence",
-      "estimation_status",
-      "estimation_reason_code",
-      "estimation_estimate_base",
-      "estimation_validity",
-      "estimation_validity_reason",
-      "estimation_method",
-      "estimation_run_ref",
-      "estimation_run_generated_at",
-      "estimation_run_relation",
-    ],
-    line: (position) => {
-      const line = byPosition.get(position);
-      const e = line?.estimation ?? null;
-      return [
-        line?.absence ?? null,
-        e?.status ?? null,
-        e?.reason_code ?? null,
-        e?.estimate_base ?? null,
-        e?.validity ?? null,
-        e?.validity_reason ?? null,
-        e?.method ?? null,
-        e?.run_ref ?? null,
-        e?.generated_at ?? null,
-        e?.run_relation ?? null,
-      ];
-    },
-  };
 }
