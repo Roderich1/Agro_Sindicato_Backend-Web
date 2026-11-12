@@ -2,7 +2,7 @@
 
 Insumo para el rediseño de la Web en Claude Design. Describe lo que hace el código, no lo que debería hacer.
 
-- **Fuente:** `_wt/ET2-BE/Web/src`, rama `feat/etapa3-estimacion-borrador`, commit `9dc80f0`. Redactado leyendo el código; después se recorrió la Web en ejecución y las capturas de INDICE_CAPTURAS.md confirman las pantallas principales.
+- **Fuente:** `_wt/ET2-BE/Web/src`, rama `feat/etapa3-estimacion-borrador`, commit `9dc80f0`, más la limpieza `741e730` (rama `chore/web-solo-institucional`): **la Web es sólo de Directiva y Administración** (decisión del autor del 2026-11-12) y se retiraron las vistas del agricultor. Redactado leyendo el código; después se recorrió la Web en ejecución y las capturas de INDICE_CAPTURAS.md confirman las pantallas principales.
 - **Fecha de redacción:** 2026-11-12.
 - **Convenciones:** «la persona» cuando no se sabe el género. «(no verificado)» marca lo que el código no deja claro. Los permisos que decide el servidor se indican como tales: la Web sólo oculta botones o rutas.
 
@@ -13,7 +13,7 @@ Insumo para el rediseño de la Web en Claude Design. Describe lo que hace el có
 | # | Pantalla (nombre visible) | Ruta | Roles | En el menú |
 |---|---|---|---|---|
 | 1 | Resumen | `/colectivo/resumen` | DIRECTIVA, ADMINISTRADOR | Sí |
-| 2 | Campañas | `/campaigns` | DIRECTIVA, ADMINISTRADOR (AGRICULTOR sólo con la bandera heredada) | Sí |
+| 2 | Campañas | `/campaigns` | DIRECTIVA, ADMINISTRADOR | Sí |
 | 3 | Detalle de campaña | `/campaigns/:id` | Igual que Campañas | No (se abre desde Campañas) |
 | 4 | Necesidades y propuestas | `/colectivo/propuestas` | DIRECTIVA, ADMINISTRADOR | Sí |
 | 5 | Compras conjuntas (lista) | `/colectivo/compras-conjuntas` | DIRECTIVA, ADMINISTRADOR | Sí |
@@ -24,20 +24,13 @@ Insumo para el rediseño de la Web en Claude Design. Describe lo que hace el có
 | 10 | Bitácora | `/audit-logs` | DIRECTIVA, ADMINISTRADOR | Sí (grupo «Administración») |
 | 11 | Usuarios | `/users` | Sólo ADMINISTRADOR | Sí (grupo «Administración», sólo ADMINISTRADOR) |
 | 12 | Ingresar (inicio de sesión) | `/login` | Sin sesión | No |
-| 13 | Aviso «Esta Web es para la Directiva y el Administrador» | `/sin-acceso-web` | Cualquier rol no colectivo (AGRICULTOR) | No |
+| 13 | Aviso «Esta cuenta utiliza la aplicación móvil» | `/sin-acceso-web` | Cualquier rol no colectivo (AGRICULTOR) | No |
 | 14 | Estimación del consumo descargada (copia sin conexión) | `/estimacion/copia-sin-conexion` | Sin guarda de ruta; muestra datos sólo con un contexto local vigente | No (enlaces desde Ingresar y Estimación) |
-| 15 | Calendario operativo | `/calendar` | DIRECTIVA, ADMINISTRADOR (AGRICULTOR con la bandera) | No para el menú colectivo; sí en el menú heredado |
-| 16 | Panel principal (dashboard heredado) | `/dashboard` | Sólo AGRICULTOR con la bandera | Sólo menú heredado |
-| 17 | Parcelas y cultivos | `/plots` | Sólo AGRICULTOR con la bandera | Sólo menú heredado |
-| 18 | Aplicaciones | `/applications` | Sólo AGRICULTOR con la bandera | Sólo menú heredado |
-| 19 | Reportes | `/reports` | Sólo AGRICULTOR con la bandera | Sólo menú heredado |
-| 20 | Inventario | `/inventory` | Sólo AGRICULTOR con la bandera | Sólo menú heredado |
-| 21 | Compras y finanzas | `/purchases` | Sólo AGRICULTOR con la bandera | Sólo menú heredado |
-| 22 | Sincronización offline | `/sync` | Sólo AGRICULTOR con la bandera | Sólo menú heredado |
+| 15 | Calendario operativo («Agenda y alertas») | `/calendar` | DIRECTIVA, ADMINISTRADOR | No (pantalla heredada, por URL) |
 
-«Bandera» = `legacyFarmerWebEnabled()`, es decir, la Web compilada con `VITE_LEGACY_FARMER_WEB=enabled`. Sin ella, el AGRICULTOR sólo llega al aviso de la pantalla 13.
+No hay vistas del agricultor: las páginas `/dashboard`, `/plots`, `/applications`, `/reports`, `/inventory`, `/purchases` y `/sync` y la bandera `VITE_LEGACY_FARMER_WEB` se retiraron el 2026-11-12 (`741e730`). Una cuenta AGRICULTOR, entre por donde entre, sólo llega al aviso de la pantalla 13.
 
-Rutas que sólo redirigen (no son pantallas): `/`, `/colectivo/tendencias`, `/colectivo/estimacion`, `/colectivo/productos`, `/colectivo/reconciliacion`, `/directiva` (ver §5).
+Rutas que sólo redirigen (no son pantallas): `/`, `/colectivo/tendencias`, `/colectivo/estimacion`, `/colectivo/productos`, `/colectivo/reconciliacion`, `/directiva` y cualquier otra ruta (`*`) (ver §5).
 
 ---
 
@@ -63,15 +56,14 @@ Fuente: `lib/navigation.ts` (`COLLECTIVE_MENU`, `LEGACY_MENU`, `menuPathsFor`) y
 - Estado de conexión: «En línea» (oculto < sm) o «Sin conexión» (siempre visible).
 - No lleva el título: cada pantalla pone su único `h1` con `PageHeader`. El título de la pestaña del navegador es «<título> · Agrocuentas».
 
-**Menú heredado del agricultor (sólo con la bandera)**: Dashboard · Campañas · Parcelas · Inventario · Aplicaciones · Calendario · Reportes · Compras · Sincronización (con un contador de operaciones en cola). Barra inferior: Dashboard · Parcelas · Inventario · Aplicaciones.
-
 **Guardas de ruta** (`components/*-route.tsx`)
 - `CollectiveRoute`: DIRECTIVA o ADMINISTRADOR; otro rol va a su pantalla inicial; sin sesión, a `/login`.
 - `AdminRoute`: sólo ADMINISTRADOR.
 - `RoleRoute` (Bitácora): DIRECTIVA o ADMINISTRADOR.
-- `PrivateRoute` (Campañas, Detalle de campaña, Calendario): DIRECTIVA, ADMINISTRADOR o, con la bandera, AGRICULTOR.
-- `FarmerRoute`: sólo AGRICULTOR y sólo con la bandera.
-- Pantalla inicial (`homePathFor`): DIRECTIVA y ADMINISTRADOR → Resumen; otro rol → `/sin-acceso-web` (o `/dashboard` con la bandera).
+- `PrivateRoute` (Campañas, Detalle de campaña, Calendario): DIRECTIVA o ADMINISTRADOR; otro rol, al aviso.
+- Pantalla inicial (`homePathFor`): DIRECTIVA y ADMINISTRADOR → Resumen; otro rol → `/sin-acceso-web`.
+- Ruta comodín (`*`): cualquier ruta desconocida o antigua lleva a la pantalla inicial de la sesión (o a `/login`).
+- El servidor sigue decidiendo los permisos: las guardas sólo evitan mostrar y consultar.
 
 ---
 
@@ -122,7 +114,7 @@ Fuente: `lib/navigation.ts` (`COLLECTIVE_MENU`, `LEGACY_MENU`, `menuPathsFor`) y
 
 ### 4.2 Campañas — `/campaigns`
 
-- **Rol:** DIRECTIVA y ADMINISTRADOR crean, editan, abren y cierran (lo comprueba el servidor). Con la bandera, el AGRICULTOR sólo consulta y ve el aviso «Puede consultar las campañas; sólo la Directiva o el Administrador…» y «Sólo consulta» en cada fila.
+- **Rol:** DIRECTIVA y ADMINISTRADOR crean, editan, abren y cierran (lo comprueba el servidor). La página conserva una guarda defensiva («Sólo consulta») para un rol sin gestión, que la ruta ya no deja entrar.
 - **Objetivo:** gestionar las campañas compartidas del sindicato y abrir su detalle.
 - **Datos:**
   - Tarjeta «Campaña activa»: nombre, «Activa», inicio y fin estimado. Si el fin estimado ya pasó sin cierre registrado, «Fin estimado vencido · sin cierre registrado» (regla de la Web, no un dato del servidor).
@@ -142,7 +134,7 @@ Fuente: `lib/navigation.ts` (`COLLECTIVE_MENU`, `LEGACY_MENU`, `menuPathsFor`) y
 
 ### 4.3 Detalle de campaña — `/campaigns/:id`
 
-- **Rol:** el de Campañas. Para un rol no colectivo (AGRICULTOR con la bandera), las secciones colectivas muestran «Sin permiso».
+- **Rol:** el de Campañas. La página conserva una guarda defensiva (secciones colectivas con «Sin permiso» para un rol no colectivo), que la ruta ya no deja entrar.
 - **Objetivo:** ver en un solo lugar los datos de una campaña, su participación, su versión sellada y sus borradores de propuesta.
 - **Datos:**
   - «Datos generales»: nombre, estado, si es la activa, inicio, fin estimado (con el aviso de vencido), cierre registrado y notas.
@@ -436,12 +428,13 @@ Contenedor con el selector «Vista»: «Productos» (`?vista=productos`, por def
 - **Estados:** «Correo o contraseña incorrectos…», «Demasiados intentos…» (429), «Error de conexión…», botón desactivado sin datos.
 - **Relacionadas:** → pantalla inicial según el rol; → Copia sin conexión.
 
-### 4.13 Aviso «Esta Web es para la Directiva y el Administrador» — `/sin-acceso-web`
+### 4.13 Aviso para una cuenta AGRICULTOR — `/sin-acceso-web`
 
-- **Rol:** quien no es DIRECTIVA ni ADMINISTRADOR, sin la bandera. Un rol colectivo, o cualquiera con la bandera, es redirigido a su inicio.
-- **Objetivo:** explicar que el agricultor registra en la app móvil.
-- **Datos:** el texto «Sus compras, su inventario, sus aplicaciones y sus necesidades se registran en la app móvil…». Sin menú ni datos.
-- **Acciones:** «Cerrar sesión».
+- **Rol:** quien no es DIRECTIVA ni ADMINISTRADOR (el AGRICULTOR usa sólo la app móvil). Un rol colectivo es redirigido a su inicio.
+- **Objetivo:** decir, sin más, que esa cuenta usa la app.
+- **Datos:** «Esta cuenta utiliza la aplicación móvil.» y «La Web está disponible para Directiva y Administración.». Sin menú, sin enlaces, sin enlace de descarga y sin consultas institucionales: sólo se renueva la sesión.
+- **Acciones:** «Cambiar de cuenta» (cierra la sesión y abre el inicio de sesión) y «Cerrar sesión». Cerrar la sesión de la Web no deshabilita la cuenta ni afecta a la app.
+- **Se llega:** al iniciar sesión con esa cuenta y entrando por cualquier URL, incluidas las antiguas del agricultor y las institucionales (comprobado en el navegador, captura `01_acceso/03`).
 
 ### 4.14 Copia de la estimación sin conexión — `/estimacion/copia-sin-conexion`
 
@@ -457,7 +450,7 @@ Contenedor con el selector «Vista»: «Productos» (`?vista=productos`, por def
 
 ### 4.15 Calendario operativo — `/calendar`
 
-- **Rol:** `PrivateRoute`: DIRECTIVA y ADMINISTRADOR pueden abrirla por URL aunque no esté en su menú; el AGRICULTOR, con la bandera. El servidor admite los tres roles.
+- **Rol:** `PrivateRoute`: DIRECTIVA y ADMINISTRADOR pueden abrirla por URL aunque no esté en su menú. El servidor admite los tres roles.
 - **Objetivo:** ver eventos (vencimientos de lote, pagos, aplicaciones, compras programadas, stock bajo, cierre de campaña) y marcarlos.
 - **Datos:** tarjetas «Eventos visibles», «Próximos 7 días» y «Pendientes vencidos»; filtros Campaña, Tipo, Estado (Pendiente por defecto), Desde y Hasta; eventos agrupados por fecha.
 - **Acciones:** «Completar» y «Cancelar» por evento → diálogo «Completar evento» / «Cancelar evento» («Volver», «Confirmar» / «Cancelar evento»).
@@ -465,19 +458,9 @@ Contenedor con el selector «Vista»: «Productos» (`?vista=productos`, por def
 - Pantalla con el estilo anterior al rediseño: sin `PageHeader`, por lo que no tiene título visible (`h1`); la barra superior dice «Agenda y alertas».
 - **Comprobado en el recorrido** (captura `10_administracion/06`): la Directiva la abre por URL y ve el evento «Cierre estimado de Invierno 2026 (DEMO)» con «Completar» y «Cancelar».
 
-### 4.16–4.22 Pantallas heredadas del agricultor (sólo con la bandera)
+### 4.16–4.22 Pantallas del agricultor: retiradas
 
-Rutas `FarmerRoute`: el AGRICULTOR y sólo con `VITE_LEGACY_FARMER_WEB=enabled`. DIRECTIVA y ADMINISTRADOR son redirigidos a su inicio. Conservan el estilo anterior y no usan `PageHeader` (sin `h1`). Se describen a alto nivel; el detalle de cada formulario no se revisó (no verificado).
-
-| Pantalla | Ruta | Contenido principal (según el código) |
-|---|---|---|
-| Panel principal | `/dashboard` | Bienvenida y tarjetas de módulos. Hay tarjetas para ADMINISTRADOR y DIRECTIVA («Panel Directiva», «Usuarios», «Directiva») que nunca se ven, porque sólo entra el AGRICULTOR. |
-| Parcelas y cultivos | `/plots` | Pestañas Parcelas · Cultivos asignados · «Catalogo de cultivos». Botones según la pestaña: «Nueva parcela», «Asignar cultivo», «Nuevo cultivo». Diálogos para crear, editar, inactivar y asignar. |
-| Aplicaciones | `/applications` | Lista de aplicaciones de agroquímicos. «Nueva aplicación» (requiere campaña activa). Diálogos «Registrar aplicación», «Detalle de aplicación», «Anular aplicación». |
-| Reportes | `/reports` | 11 reportes (inventario actual, por campaña, por agricultor, compras por campaña, compras conjuntas, aplicaciones, consumo por producto y por cultivo, vencidos, cuentas y pagos, bitácora por campaña). Filtros y «Actualizar reporte». Sin descarga. |
-| Inventario | `/inventory` | Pestañas Stock · Productos · Lotes · Movimientos · Ajustes; ajustes por pérdida, vencimiento o ajuste. |
-| Compras y finanzas | `/purchases` | Pestañas Nueva compra · Historial · Proveedores · Cuentas por pagar; «Registrar abono». |
-| Sincronización offline | `/sync` | Cola local de operaciones: «Guardar en cola», «Actualizar datos», «Vaciar cola», «Reintentar como nueva», «Descartar». |
+Las pantallas `/dashboard`, `/plots`, `/applications`, `/reports`, `/inventory`, `/purchases` y `/sync`, su guarda `FarmerRoute`, la cola offline y los servicios y tipos que sólo ellas usaban se retiraron el 2026-11-12 (`741e730`). Sus rutas caen en la ruta comodín: el AGRICULTOR ve el aviso (§4.13) y la Directiva o la Administración vuelven a su Resumen.
 
 ---
 
@@ -490,6 +473,7 @@ Rutas `FarmerRoute`: el AGRICULTOR y sólo con `VITE_LEGACY_FARMER_WEB=enabled`.
 | `/colectivo/estimacion` | `/colectivo/historico?vista=estimacion`. |
 | `/colectivo/productos` | `/colectivo/catalogo?vista=productos`. |
 | `/colectivo/reconciliacion` | `/colectivo/catalogo?vista=equivalencias`. |
+| `*` (cualquier otra, incluidas las antiguas del agricultor) | Pantalla inicial de la sesión: Resumen, aviso (§4.13) o `/login`. |
 | `/directiva` | `/colectivo/propuestas` (conserva `?campaign=`). La página heredada «Panel Directiva» (`pages/directiva.page.tsx`, que ejecutaba compras y pagos) sigue en el código pero ninguna ruta la muestra. |
 
 ---
@@ -502,7 +486,6 @@ Rutas `FarmerRoute`: el AGRICULTOR y sólo con `VITE_LEGACY_FARMER_WEB=enabled`.
 - **Aviso «sin acceso Web»** para el AGRICULTOR.
 - **Calendario operativo**: accesible por URL para la Directiva y el Administrador.
 - **Permiso del sindicato «Sustituir responsable»**: plegado al final de la lista de Compras conjuntas, no en Usuarios ni en Administración.
-- **Páginas heredadas del agricultor** (§4.16–4.22) detrás de la bandera.
 - **Componentes de página no enrutados**: `CollectiveTrendsPage`, `EstimationPage`, `ProductsPage` y `ProductReconciliationPage` envuelven las vistas en su propio armazón, pero `App.tsx` no los usa (sólo se usan las vistas dentro de los contenedores).
 - **Páginas de desarrollo** (sólo con `npx vite`; `vite build` no las incluye):
   - `/src/dev/break-ui.html?datos=worst|demo|empty|one&pantalla=propuestas|historico|catalogo&vista=…`: Necesidades y propuestas, Histórico y Catálogo con datos sintéticos; rechaza toda escritura.
@@ -514,6 +497,5 @@ Rutas `FarmerRoute`: el AGRICULTOR y sólo con `VITE_LEGACY_FARMER_WEB=enabled`.
 
 - Cuándo envía el servidor `can_cancel_or_close` a quien no es responsable ni tiene «Administrar».
 - ~~El contenido del Calendario para la Directiva~~: comprobado en el recorrido (captura `10_administracion/06`). Sigue sin decidir si debe estar en la Web colectiva.
-- El detalle de los formularios de las pantallas heredadas del agricultor (§4.16–4.22).
 - Si la hora que se escribe y se muestra como «hora del servidor» en las convocatorias coincide con la del servidor: el campo `datetime-local` y las fechas usan la zona horaria del navegador.
 - Si el botón «Abrir» de Campañas aparece en una campaña ya abierta que no es la activa: la condición del código (`!isActive && !terminal`) lo permite; no se comprobó si el servidor puede devolver varias campañas abiertas.

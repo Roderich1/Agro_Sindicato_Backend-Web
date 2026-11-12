@@ -52,6 +52,9 @@ async function login(role) {
   await page.setBypassServiceWorker(true);
   await page.setViewport(DESKTOP);
   await page.emulateTimezone('America/La_Paz');
+  // Registro de las llamadas a la API desde antes de iniciar sesión (paso `apiLog`).
+  page.apiCalls = [];
+  page.on('request', (req) => { const u = new URL(req.url()); if (u.pathname.startsWith('/api/')) page.apiCalls.push(`${req.method()} ${u.pathname.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, '<id>')}`); });
   if (role === 'anon') return page;
   const password = randomBytes(18).toString('base64url');
   await db.user.update({ where: { email: EMAIL[role] }, data: { passwordHash: await bcrypt.hash(password, 10) } });
@@ -95,6 +98,7 @@ async function capture(page, step, role) {
 try {
   for (const block of plan) {
     const page = await login(block.role);
+    const apiCalls = page.apiCalls;
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       if (simulation && new RegExp(simulation.url).test(req.url())) {
@@ -128,12 +132,15 @@ try {
         else if (step.waitFor) await page.waitForSelector(step.waitFor, { timeout: 20000 });
         else if (step.open) { await page.$$eval(step.open, (els) => els.forEach((e) => { e.open = true; })); await sleep(800); }
         else if (step.scroll) { await page.$eval(step.scroll, (e) => e.scrollIntoView({ block: 'start' })); await sleep(600); }
+        else if (step.apiLog) { console.log(`API ${block.role} ${step.apiLog}: ${JSON.stringify(apiCalls)}`); apiCalls.length = 0; }
         else if (step.inspect) {
           const info = await page.evaluate(() => ({
             path: location.pathname + location.search,
             dialogs: [...document.querySelectorAll('[role="dialog"], dialog[open]')].map((d) => (d.getAttribute('aria-label') || d.textContent || '').trim().slice(0, 80)),
             buttons: [...document.querySelectorAll('[role="dialog"] button')].map((b) => (b.getAttribute('aria-label') || b.textContent || '').replace(/\s+/g, ' ').trim()).slice(0, 15),
-            vincular: [...document.querySelectorAll('button')].filter((b) => /^Vincular/.test((b.textContent || '').trim())).length,
+            h1: [...document.querySelectorAll('h1')].map((h) => (h.textContent || '').trim()).slice(0, 2),
+            nav: document.querySelectorAll('nav').length,
+            links: document.querySelectorAll('a[href]').length,
           }));
           console.log(`INSPECCIÓN ${step.inspect}: ${JSON.stringify(info)}`);
         }

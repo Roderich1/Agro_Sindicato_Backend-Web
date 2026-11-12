@@ -22,17 +22,6 @@
  },
  {
   "files": [
-   "01_acceso/03_agricultor_sin_acceso_web__escritorio.png",
-   "01_acceso/03_agricultor_sin_acceso_web__movil.png"
-  ],
-  "ruta": "/sin-acceso-web",
-  "rol": "agricultor",
-  "desc": "Una cuenta AGRICULTOR no tiene Web: aviso",
-  "estado": "sin permiso",
-  "simulado": false
- },
- {
-  "files": [
    "02_resumen/01_resumen_directiva__escritorio.png",
    "02_resumen/01_resumen_directiva__movil.png"
   ],
@@ -756,6 +745,17 @@
   "rol": "directiva",
   "desc": "Calendario operativo (pantalla heredada, fuera del menú colectivo; se llega por URL)",
   "estado": "heredada",
+  "simulado": false
+ },
+ {
+  "files": [
+   "01_acceso/03_agricultor_sin_acceso_web__escritorio.png",
+   "01_acceso/03_agricultor_sin_acceso_web__movil.png"
+  ],
+  "ruta": "/sin-acceso-web",
+  "rol": "agricultor",
+  "desc": "Una cuenta AGRICULTOR al iniciar sesión: aviso breve, sin menú ni datos, con «Cambiar de cuenta» y «Cerrar sesión»",
+  "estado": "sin permiso",
   "simulado": false
  }
 ]

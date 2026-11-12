@@ -15,7 +15,7 @@ La Web **no** es una herramienta del agricultor y **no** registra compras, pagos
 |---|---|---|
 | Miembro de la Directiva | DIRECTIVA | Todo lo colectivo: resumen, campañas, necesidades y borradores, convocatorias que crea o en las que tiene permiso, catálogo, histórico y bitácora |
 | Administración del sindicato (por ejemplo, el presidente) | ADMINISTRADOR | Lo mismo que la Directiva, más **Usuarios** y el permiso del sindicato **«Sustituir responsable»**, que concede a personas concretas |
-| Agricultor | AGRICULTOR | **No tiene Web**: sólo ve un aviso que lo remite a la app |
+| Agricultor | AGRICULTOR | **No tiene Web** (sólo usa la app móvil): al entrar ve «Esta cuenta utiliza la aplicación móvil. La Web está disponible para Directiva y Administración.», con «Cambiar de cuenta» y «Cerrar sesión». El diseño no debe incluir vistas, menús ni accesos para el agricultor |
 
 Dentro de cada convocatoria hay **permisos por persona**:
 

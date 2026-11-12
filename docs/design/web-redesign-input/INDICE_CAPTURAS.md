@@ -12,7 +12,7 @@ Columnas: archivo(s) · ruta · rol · estado · qué muestra.
 |---|---|---|---|---|
 | [01_inicio_sesion__escritorio.png](capturas/01_acceso/01_inicio_sesion__escritorio.png) · [01_inicio_sesion__movil.png](capturas/01_acceso/01_inicio_sesion__movil.png) | `/login` | Sin sesión | vacío | Inicio de sesión (vacío) |
 | [02_inicio_sesion_error__escritorio.png](capturas/01_acceso/02_inicio_sesion_error__escritorio.png) | `/login` | Sin sesión | error | Credenciales incorrectas (cuenta inexistente, sintética) |
-| [03_agricultor_sin_acceso_web__escritorio.png](capturas/01_acceso/03_agricultor_sin_acceso_web__escritorio.png) · [03_agricultor_sin_acceso_web__movil.png](capturas/01_acceso/03_agricultor_sin_acceso_web__movil.png) | `/sin-acceso-web` | AGRICULTOR | sin permiso | Una cuenta AGRICULTOR no tiene Web: aviso |
+| [03_agricultor_sin_acceso_web__escritorio.png](capturas/01_acceso/03_agricultor_sin_acceso_web__escritorio.png) · [03_agricultor_sin_acceso_web__movil.png](capturas/01_acceso/03_agricultor_sin_acceso_web__movil.png) | `/sin-acceso-web` | AGRICULTOR | sin permiso | Una cuenta AGRICULTOR al iniciar sesión: aviso breve, sin menú ni datos, con «Cambiar de cuenta» y «Cerrar sesión» |
 
 ## 2. Resumen, selección de campaña y cobertura
 

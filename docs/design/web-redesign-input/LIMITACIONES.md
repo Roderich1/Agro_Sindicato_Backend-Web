@@ -2,7 +2,7 @@
 
 ## Qué cubre y qué no
 
-- **Web de la Directiva y del Administrador.** Las pantallas heredadas del agricultor que sólo se activan con `VITE_LEGACY_FARMER_WEB` no se capturaron, porque la Web en ejecución no tiene esa bandera. Se describen en INVENTARIO §4.16–4.22 a partir del código.
+- **Web de la Directiva y del Administrador.** Las vistas del agricultor se retiraron del código (`741e730`); no hay nada que capturar de ellas. El aviso para una cuenta AGRICULTOR se capturó con la rama limpia (Vite en 5176).
 - **Servidor de desarrollo.** La Web se capturó con Vite en modo desarrollo, no con un build de producción. El código es el mismo, pero no se midieron tiempos ni el comportamiento del service worker.
 - **Ancho móvil.** Las capturas «móvil» se hicieron a 390 px en Edge de escritorio, no en un teléfono. Las primeras se tomaron con la emulación táctil de Puppeteer y las rehechas sólo con el ancho. El diseño de la Web depende del ancho.
 - **Estados no reproducibles con el entorno real.** Están en `capturas/99_simulados/` y rotulados:
