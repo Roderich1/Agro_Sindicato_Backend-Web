@@ -31,6 +31,8 @@ export type XlsxStyle =
   | 'ok'
   /** Estado que pide atención («Oculto por privacidad», «Datos insuficientes»). */
   | 'warn'
+  /** El mismo aviso que `warn`, pero alineado a la izquierda y con ajuste de línea (textos largos de portada). */
+  | 'warnText'
   | 'muted'
   | 'strong';
 
@@ -104,7 +106,11 @@ export function xmlText(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-// Estilos (índices de cellXfs). Las cifras con d decimales usan NUMBER_BASE + d (o EMPHASIS_BASE + d).
+// Estilos (índices de cellXfs). Las cifras con d decimales usan NUMBER_BASE + d (o EMPHASIS_BASE + d);
+// los estilos añadidos después van detrás de ellas para no mover ningún índice anterior.
+const NUMBER_BASE = 14;
+const EMPHASIS_BASE = NUMBER_BASE + MAX_DECIMALS + 1;
+const EXTRA_BASE = EMPHASIS_BASE + MAX_DECIMALS + 1;
 const XF: Record<XlsxStyle, number> = {
   default: 0,
   title: 1,
@@ -120,9 +126,8 @@ const XF: Record<XlsxStyle, number> = {
   warn: 11,
   muted: 12,
   strong: 13,
+  warnText: EXTRA_BASE,
 };
-const NUMBER_BASE = 14;
-const EMPHASIS_BASE = NUMBER_BASE + MAX_DECIMALS + 1;
 
 function numberFormat(decimals: number): string {
   return decimals === 0 ? '#,##0' : `#,##0.${'0'.repeat(decimals)}`;
@@ -188,6 +193,7 @@ function stylesXml(): string {
   ];
   for (let d = 0; d <= MAX_DECIMALS; d++) xfs.push(xf({ numFmt: 165 + d, font: 0, border: 2 }));
   for (let d = 0; d <= MAX_DECIMALS; d++) xfs.push(xf({ numFmt: 165 + d, font: 9, border: 2 }));
+  xfs.push(xf({ font: 8, fill: 5, border: 2, align: topWrap })); // warnText (EXTRA_BASE)
   return (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +

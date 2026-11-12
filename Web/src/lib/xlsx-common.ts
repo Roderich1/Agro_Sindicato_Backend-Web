@@ -174,11 +174,12 @@ export function coverSheet(input: {
     [],
     [text('Cómo leer este libro', 'label'), text(input.howToRead.join(' '), 'wrap')],
     [text('Leyenda', 'label'), text('Publicado', 'ok')],
-    [null, text('Oculto por privacidad · Sin cifra publicada · Datos insuficientes: la celda numérica queda vacía y la explicación dice por qué.', 'warn')],
+    [null, text('Oculto por privacidad · Sin cifra publicada · Datos insuficientes: la celda numérica queda vacía y la explicación dice por qué.', 'warnText')],
   ];
   return {
     name: input.name,
-    widths: [34, 110],
+    // 40: las etiquetas con la zona horaria («Referencia fijada el (hora de Bolivia, UTC−4)») caben enteras.
+    widths: [40, 110],
     rows,
     merges: ['A1:B1', 'A2:B2', 'A3:B3'],
     rowHeights: { 1: 30, 2: 34, 3: 20 },

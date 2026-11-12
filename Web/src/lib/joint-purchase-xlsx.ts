@@ -320,7 +320,7 @@ export function buildJointPurchaseXlsx(input: JointPurchaseXlsxInput): JointPurc
                 label: 'Cifras desactualizadas',
                 value: text(
                   `${outdatedCount === 1 ? '1 línea' : `${outdatedCount} líneas`} con la cifra de la referencia fijada rotulada «Desactualizada» (hoja «Consumo estimado», con su motivo). No se sustituyen por una estimación nueva ni se comparan con la necesidad.`,
-                  'warn',
+                  'warnText',
                 ),
               },
             ]
