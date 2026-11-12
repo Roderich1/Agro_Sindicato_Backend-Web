@@ -400,4 +400,27 @@ export const one: ProposalFixture = {
   selection: selectionFor(oneProposal),
 };
 
-export const proposalFixtures = { demo, worst, empty, one } as const;
+/**
+ * PRUEBA DE PRESENTACIÓN, no evidencia de comparabilidad: el servidor nunca declara comparable una línea hoy
+ * (`populationVerified: false`, E3-P1). Este conjunto simula lo que mostraría la vista si lo hiciera: dos
+ * diferencias (positiva y negativa) y una estimación cero (porcentaje no definido).
+ */
+export const comparable: ProposalFixture = {
+  ...demo,
+  link: (() => {
+    const view = linkViewFor(demoProposal, [
+      available('295000.000000', { scope: { span_campaigns: 11, contributors_min: 7, contributors_max: 7 } }),
+      available('0.000000', { scope: { span_campaigns: 4, contributors_min: 4, contributors_max: 4 } }),
+      available('27500.500000', { scope: { span_campaigns: 8, contributors_min: 3, contributors_max: 3 } }),
+      { state: 'NO_RESULT' },
+    ]);
+    const differences: Record<number, ReturnType<typeof comparableWith>> = {
+      0: comparableWith({ difference_base: '15000.000000', difference_percent: '5.0847', direction: 'ABOVE', observation: 'La necesidad declarada supera en 15 L la estimación de consumo para el mismo período y alcance.' }),
+      1: comparableWith({ difference_base: '48000.000000', difference_percent: null, percent_undefined: 'ESTIMATE_ZERO', direction: 'ABOVE', observation: 'La necesidad declarada supera en 48 L la estimación de consumo para el mismo período y alcance.' }),
+      2: comparableWith({ difference_base: '-2500.500000', difference_percent: '-9.0900', direction: 'BELOW', observation: 'La necesidad declarada es inferior en 2,501 KG a la estimación de consumo para el mismo período y alcance.' }),
+    };
+    return { ...view, lines: view.lines.map((line) => (differences[line.position] ? { ...line, comparison: differences[line.position]! } : line)) };
+  })(),
+};
+
+export const proposalFixtures = { demo, worst, empty, one, comparable } as const;
