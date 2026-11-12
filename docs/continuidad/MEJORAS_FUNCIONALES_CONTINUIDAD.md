@@ -17,7 +17,8 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 - **Etapa 1: cerrada** (emulador, no teléfono).
 - **Etapa 2: implementada**, con E2-P1/P2/P3 aplicadas (contrato E2 §10) y recorridas en API + Web + emulador.
 - **Etapa 3: implementada** en Back y Web y recorrida en API + base + Web reales (`docs/evidence/E3_ESTIMACION_BORRADOR_Y_E2_DECISIONES_2026-11-11.md`). Contrato E3 **Propuesto**.
-- Etapa 4: sin empezar.
+- **Etapas 1–3: cerradas** el 2026-11-12 (emulador, no teléfono físico). Contratos E2 y E3 **aceptados en las reglas acordadas**; reglas añadidas pendientes en `docs/architecture/E2_E3_CONTRASTE_ACEPTACION_2026-11-12.md` §3.
+- **Etapa 4: aplazada** por decisión del autor (2026-11-12). Se mantienen los avisos internos (E2-D15); sin push, correo ni recordatorios nuevos. No bloquea el cierre.
 
 ## 3. Ramas, worktrees y commits (nada publicado salvo la rama de evidencia)
 
@@ -25,10 +26,10 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 |---|---|---|---|---|
 | Back/Web | `_wt/ET1-BE` | `feat/etapa1-identificacion-productos` | `11bffd7` | … `ee1ecc1` |
 | Back/Web | `_wt/ET2-BE` (**checkout actual**: la rama de etapa 3) | `feat/etapa2-convocatorias` | `62779e8` + ET1 | … `01bcdeb` (sin cambios) |
-| Back/Web | `_wt/ET2-BE` | `feat/etapa3-estimacion-borrador` | `01bcdeb` | `0db2d0f` back E2-P2/P3 · `f673f95` back E3 · `5d760b6` web E2-P3 · `2a25386` web E3 · `2eb3ef7` · `3b2099b` · `b77965e` · `8bf84f9` E3 en módulo propio · `29c559e` `219d959` `e60df32` E3-P1 (1 + 1b) · (+ docs, evidencia y guiones de esta sesión) |
+| Back/Web | `_wt/ET2-BE` | `feat/etapa3-estimacion-borrador` | `01bcdeb` | `0db2d0f` back E2-P2/P3 · `f673f95` back E3 · `5d760b6` web E2-P3 · `2a25386` web E3 · `2eb3ef7` · `3b2099b` · `b77965e` · `8bf84f9` E3 en módulo propio · `29c559e` `219d959` `e60df32` E3-P1 (1 + 1b) · `e2d7cdc` porcentaje · `c87c352` `91e9ef2` `fa44b5f` E3-P2 origen · `a7e3983` prueba CONV-2 · (+ docs, evidencia y guiones de esta sesión) |
 | Mobile | `_wt/ET1-MOB` | `feat/etapa1-productos-identificacion-foto` | `73a927b` | … `bce8e59` |
 | Mobile | `_wt/ET2-MOB` (**checkout actual**: la rama nueva) | `feat/etapa2-convocatorias` | `bce8e59` | `6bac5a3` (sin cambios) |
-| Mobile | `_wt/ET2-MOB` | `feat/etapa2-historial-colaboradores` | `6bac5a3` | `16c002c` historial y CONV-2 · `fa0fdc4` consent en historial · `b55e5af` texto de coordinación |
+| Mobile | `_wt/ET2-MOB` | `feat/etapa2-historial-colaboradores` | `6bac5a3` | `16c002c` historial y CONV-2 · `fa0fdc4` consent en historial · `b55e5af` texto de coordinación · `01b2576` quién ve sus datos |
 | Mobile | `_wt/EV-UI-MOB` | `evidence/ui-actual-2026-11-11` (**publicada**) | `279b46b` | sólo capturas |
 
 ## 4. Contratos y migraciones
@@ -44,18 +45,18 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 
 | Ámbito | Resultado |
 |---|---|
-| Back `npm test` completo con todas las suites PostgreSQL | **945 pasan**, 0 fallan, 13 omitidas (84 suites; bases: `agro_et2_test` para las que crean su base; `agro_f02_test` para F02-D y F02-FINAL; `agro_f02v2_test` para F02 auth-v2) |
+| Back `npm test` completo con todas las suites PostgreSQL (`a7e3983`) | **952 pasan**, 0 fallan, 13 omitidas (84 suites; bases: `agro_et2_test` para las que crean su base; `agro_f02_test` para F02-D y F02-FINAL; `agro_f02v2_test` para F02 auth-v2) |
 | Back E2 / E3 / F12-EST-08 PostgreSQL | 21/21 · 11/11 · 7/7 |
-| Web completa | 532/532; lint 0 errores; build correcto |
-| Mobile completa | 2982 pasan, 3 omitidas; `flutter analyze` sin problemas |
+| Web completa (`a7e3983`) | 540/540; lint 0 errores; build correcto |
+| Mobile completa (`01b2576`) | 2985 pasan, 3 omitidas; `flutter analyze` sin problemas |
 | Recorridos reales | E3 y E2 §10 en API + Web + emulador (evidencia E3) |
 
 ## 6. Limitaciones y decisiones pendientes
 
 1. Nada probado en teléfono físico.
 2. **E3-P1 resuelta (2026-11-12, opción 1 + 1b):** no se calcula ninguna diferencia; la vista muestra el alcance de cada cifra (F12 §2 enmendado). Medición: la necesidad la declaran más agricultores que los de cualquier cifra de consumo.
-3. **E3-P2**: si la selección de productos debe quedar como trazabilidad de la convocatoria.
-4. Contratos E2 y E3 pendientes de aceptación; umbral de E2-P1 (3) revisable.
+3. **E3-P2 resuelta (2026-11-12):** origen inmutable de cada convocatoria (E2 §10.5), migración `20261112000000_e3p2_call_origin` aplicada en `agro_demo`.
+4. Contratos aceptados en las reglas acordadas; **pendientes de tu visto bueno**: reglas añadidas N1–N8 y menores (contraste §3), incluido el umbral 3 y el texto exacto de CONV-2.
 5. Migración v16 → v17 con datos e historial con convocatorias antiguas: sólo en pruebas automatizadas (ver evidencia §4).
 6. Rendimiento de `estimation-link` (~2,5 s con 11 líneas).
 7. Observaciones menores: observaciones E1 previas (hoja de foto sin refresco, etc.). El texto en singular del teléfono se corrigió en `b55e5af`.
@@ -63,8 +64,8 @@ Implementar, sobre el código real de Mobile, Back y Web y conservando el trabaj
 
 ## 7. Siguiente paso concreto
 
-1. Recoger la aceptación de los contratos E2 (§10) y E3, y decidir E3-P2.
-2. Etapa 4 (avisos adicionales): contrato a partir de los avisos dentro de la app de E2-D15.
+1. Revisar las reglas añadidas pendientes (contraste §3) y la revisión manual de la evidencia §3c.
+2. Etapa 4 aplazada: no abrir sin un encargo nuevo.
 3. Si se acepta, preparar la integración de las ramas (sin fusionar sin visto bueno).
 
 ## 8. Comandos para retomar el entorno sin perder datos

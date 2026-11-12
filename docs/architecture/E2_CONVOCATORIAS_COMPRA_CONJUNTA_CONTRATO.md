@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Fecha | 2026-11-11 (redacción); estado **Propuesto**. Decisiones E2-P1, E2-P2 y E2-P3 resueltas por Roderich el 2026-11-11 (§10) |
+| Fecha | 2026-11-11 (redacción). Estado: **Aceptado en las reglas acordadas** por Roderich el 2026-11-12; las reglas añadidas que no derivan de una decisión suya quedan pendientes (ver `E2_E3_CONTRASTE_ACEPTACION_2026-11-12.md` §3) |
 | Alcance | Etapa 2: convocatorias (Borrador, Abierta, Cerrada, Cancelada), participación identificada del agricultor, cierre atómico con «Consolidado al cierre», avisos dentro de la aplicación |
 | Bases | Back/Web: rama `feat/etapa2-convocatorias` desde `feat/etapa1-identificacion-productos` (worktree `_wt/ET2-BE`). Mobile: rama `feat/etapa2-convocatorias` desde `feat/etapa1-productos-identificacion-foto` (worktree `_wt/ET2-MOB`) |
 | Contratos que **no cambian** | F05 (Sync v1), F06 (proyección colectiva), F07 (divulgación de agregados y sellado), F08 (respaldo), F12 (estimación), E1 (identificación) |
@@ -347,6 +347,8 @@ Rutas institucionales nuevas:
 
 - El servidor publica `CONV-2` como vigente y sigue aceptando `CONV-1` de teléfonos sin actualizar. `JointPurchaseParticipation.consentVersion` es la del último `CONFIRM` aceptado.
 - **Compatibilidad del teléfono:** la versión E2 de la app valida de forma estricta la lista (claves conocidas y consentimiento exactamente `CONV-1`). Con `CONV-2` publicado, esa versión deja de aceptar la lista y pide actualizarse, como preveía E2-D9; sus operaciones ya preparadas con `CONV-1` se siguen enviando y aceptando, y quedan visibles sólo para la persona responsable. La versión nueva acepta `CONV-2` y `history`.
+- **Verificado el 2026-11-12 (no es sólo texto):** cada `CONFIRM` aceptado guarda su versión (`consentVersion`) y su fecha; conceder un permiso no cambia lo aceptado; una participación `CONV-1` sigue oculta a los colaboradores hasta que el agricultor la modifica con `CONV-2`, y si un teléfono sin actualizar vuelve a enviar `CONV-1`, queda oculta otra vez (rige el último consentimiento aceptado); lo decide el servidor en cada consulta; revocar impide la consulta siguiente (403). Pruebas: `joint-purchase-calls.postgres.spec.ts` («CONV-1 only for the responsible…», «CONV-1 stays hidden… until the farmer accepts CONV-2», `a7e3983`).
+- **El agricultor sabe quién ve sus datos, por función** (Mobile `01b2576`): antes de aceptar, el texto `CONV-2`; después, el detalle de la convocatoria lo dice según la versión aceptada: con `CONV-1`, «sólo la persona responsable (nombre)» y que al modificar se le pedirá el consentimiento vigente; con `CONV-2`, «la persona responsable (nombre) y las personas de la Directiva o la Administración que ella autorice para esta convocatoria».
 - **No se extiende retroactivamente:** una participación con `CONV-1` sólo la ve la persona responsable. Un colaborador con `PARTICIPANTS` ve sólo las participaciones con `CONV-2`, más el número de las demás («N participaciones aceptadas con un consentimiento anterior: sólo las ve la persona responsable»).
 
 ### 10.3 Quién ve qué, también después del cierre
@@ -363,6 +365,15 @@ Cerrar una convocatoria **no** vuelve anónimos sus datos: el consolidado conser
 - **Después de una revocación:** quien tuvo `PARTICIPANTS` en esa convocatoria (según `JointPurchaseCallAccessEvent`) sigue sin recibir el total de los productos con participaciones que no podía ver, aunque ahora le corresponda la fila del umbral: restando lo que vio antes revelaría la participación oculta. Queda un límite que el sistema no controla: lo que dos personas distintas combinen fuera de él.
 - La misma función decide en el detalle, en `/participants` y en `/closing`: no hay rutas alternativas ni versiones de la respuesta que eludan la regla. La lista (`GET /joint-purchase-calls`) no lleva totales ni nombres.
 - Esta etapa **no añade exportaciones**. Cualquier difusión colectiva adicional (por ejemplo, publicar el consolidado) debe pasar por la política de divulgación vigente (F07-POL-01).
+
+### 10.5 E3-P2: origen de la convocatoria (decisión del 2026-11-12)
+
+Cada convocatoria conserva, **inmutable**, qué productos se seleccionaron al crearla y su procedencia (`JointPurchaseCallOrigin` + `JointPurchaseCallOriginProduct`, migración `20261112000000_e3p2_call_origin`, Back `c87c352`/`fa44b5f`, Web `91e9ef2`):
+- `kind` `PROPOSAL` (borrador de origen, su huella `inputsFingerprint` al crear, la revisión de la selección guardada en ese momento y si los productos coincidían con ella) o `CATALOG` (sin referencias inventadas).
+- Productos con su unidad y, si venían del borrador, la posición de su línea (el borrador es inmutable: borrador + posición reconstruyen la selección sin copiarlo). Nada de cantidades, cifras, aportantes, identidades ni estimaciones.
+- La base rechaza `UPDATE`/`DELETE` y productos añadidos en otra transacción; exige mismo sindicato, convocatoria en `DRAFT` al registrarlo, el borrador de la convocatoria, su huella y la línea del mismo producto y unidad.
+- Editar los productos en `DRAFT` o cambiar después la selección o el borrador **no** altera el origen; el detalle dice si los productos actuales difieren (`origin_differs_from_current`). Las reglas de edición en Borrador y las restricciones tras abrir no cambian. Convocatorias anteriores: `origin: null` («Origen no registrado»), sin reconstruir nada.
+- La huella se muestra sólo si la divulgación lo autoriza y no se retiró ninguna cifra del borrador (misma regla que la referencia del borrador).
 
 ### 10.4 Resoluciones de la implementación (2026-11-11)
 

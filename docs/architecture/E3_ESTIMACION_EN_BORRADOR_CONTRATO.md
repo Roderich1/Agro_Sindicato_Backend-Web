@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Fecha | 2026-11-11 (redacción e implementación); estado **Propuesto**, pendiente de la aceptación de Roderich |
+| Fecha | 2026-11-11 (redacción e implementación). Estado: **Aceptado en las reglas acordadas** por Roderich el 2026-11-12 (E3-P1 = 1 + 1b, E3-P2 = sí); las reglas añadidas quedan pendientes (`E2_E3_CONTRASTE_ACEPTACION_2026-11-12.md` §3) |
 | Alcance | La Directiva prepara un borrador de propuesta desde necesidades declaradas y, en el mismo recorrido, obtiene y fija una **referencia de consumo estimado**, la revisa y la actualiza de forma explícita; elige productos y prepara una convocatoria sin inscribir a nadie |
 | Bases | Back/Web: rama `feat/etapa3-estimacion-borrador` desde `feat/etapa2-convocatorias` `01bcdeb` (worktree `_wt/ET2-BE`) |
 | Contratos que **no cambian** | F05, F06, F07 (huella del borrador, política de divulgación, sellado), F12 (motor SES/naive, parámetros, trabajos, ejecuciones, vigencia, permisos), E1, E2 (salvo §10) |
@@ -174,6 +174,7 @@ Implementado en `f673f95` y trasladado en `8bf84f9` a un módulo propio (Back: `
 | E3-R4 | `UPDATE` sin referencia o `clear` repetido | 409 `REFERENCE_UP_TO_DATE`; para empezar de nuevo se usa `INITIAL`. |
 | E3-R13 | Alcance (E3-P1 = 1 + 1b) | `scope: { need_contributors, estimate: { span_campaigns, contributors_min, contributors_max } \| null }` por línea (`29c559e`, `219d959`); `estimate` sólo con cifra entregada. Web: «Cifras de 4 a 6 agricultores por campaña (11 campañas)». |
 | E3-R14 | Cifra retenida | Un resultado `ESTIMATED` cuya cifra F12 retiene (fuente retirada) es `RESTRICTED` aunque la ejecución esté superada (`e60df32`). |
+| E3-R15 | Verificación del alcance (2026-11-12) | El rango sale **sólo** del resultado de la ejecución fijada: su serie (versión usada), las posiciones de su tramo y el `contributorCount` de la cifra publicada que cita cada punto. La base garantiza que no deriva de datos actuales: `CollectiveRelease` sólo admite marcar la retirada (su recuento no cambia), y `SeriesPoint` y `EstimationResult` son inmutables. Sin cifra entregada (fuente retirada o bajo el umbral vigente, política pendiente, datos insuficientes, error) no hay rango, y una línea `RESTRICTED` no conserva metadatos de alcance; la necesidad lleva aportantes sólo si el borrador la sirve hoy. Diferencia absoluta y porcentual deshabilitadas mientras falte la comparabilidad, y la nota dice «no se puede comprobar», nunca «son distintos». Pruebas: `e3-proposal-estimation-link.postgres.spec.ts` (alcance en `AVAILABLE`/`OUTDATED`, nulo en `INSUFFICIENT_DATA`, `RESTRICTED` por retirada —también con la ejecución superada— y por política, necesidad no divulgada; las fuentes cambiadas no alteran el rango fijado) y `proposal-link.spec.ts`. |
 | E3-R12 | Módulo | E3 en `src/modules/proposal-estimation/` (no en `estimation/`), por la garantía de sólo inserción de F12 (hallazgo de la suite completa con PostgreSQL). |
 | E3-R5 | Lecturas de vigencia | `EstimationReadsUseCase` gana `resultFacts` (reutiliza `Reading.facts`, no entrega cifras retenidas) y `latestCalculatedRunId`; la compatibilidad considera desactualizado también un resultado sin cifra cuyas fuentes cambiaron. |
 | E3-R6 | Selección | Se guarda en el orden de las líneas; guardar la misma lista no escribe ni avanza la revisión. «Preparar convocatoria» usa la selección **guardada**. |
@@ -186,4 +187,5 @@ Implementado en `f673f95` y trasladado en `8bf84f9` a un módulo propio (Back: `
 ## 11. Decisiones abiertas para Roderich
 
 - ~~**E3-P1**~~ Resuelta el 2026-11-12: opción 1 + 1b (§5).
-- **E3-P2** Si la selección de productos debe quedar también como trazabilidad de la convocatoria creada (hoy la convocatoria ya guarda su borrador de origen y la línea de cada producto).
+- ~~**E3-P2**~~ Resuelta el 2026-11-12: sí. La convocatoria guarda su origen inmutable (E2 §10.5).
+- **Etapa 4** (avisos adicionales): **aplazada** por decisión del autor (2026-11-12). Se mantienen los avisos internos de E2-D15; sin push, correo ni recordatorios nuevos. No bloquea el cierre de las etapas 1–3.

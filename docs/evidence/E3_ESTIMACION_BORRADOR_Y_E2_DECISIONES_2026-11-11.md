@@ -87,6 +87,37 @@ Código: Back `29c559e`, Web `219d959`, corrección `e60df32` (cifra retenida �
 
 Recorrido real (API recompilada y reiniciada con `e60df32`, Web 5175): Herbicida «189,8 L · 11 aportantes» frente a «70,5 L · Vigente · Cifras de 4 a 6 agricultores por campaña (11 campañas)»; Mancozeb «25,3 KG · 4 aportantes» frente a «≈ 20,6 KG · Cifras de 3 a 5 agricultores por campaña (11 campañas)»; las líneas con datos insuficientes no llevan alcance de estimación; una sola nota sobre la tabla (`w10_e3p1_alcance_de_cada_cifra.png`).
 
+## 3c. Cierre de las etapas 1–3 (2026-11-12): E3-P2, verificación de CONV-2 y del alcance, aceptación
+
+**Código probado:** Back/Web `a7e3983` (API recompilada desde ese commit y reiniciada; migración `20261112000000_e3p2_call_origin` aplicada en `agro_demo`; Web Vite sobre el mismo árbol). Mobile `01b2576` (APK `.et1` SHA-256 `bab62b81…daecdb`, actualización sobre la instalación existente, con los datos conservados).
+
+**E3-P2 en real (Web + API):**
+1. «Preparar convocatoria» con Fungicida DEMO y Fertilizante foliar DEMO marcados → `PUT selection` (revisión 2) → convocatoria creada: «Origen: Creada desde el borrador de propuesta del 11 nov de 2026, 7:45 p. m. (selección guardada n.º 2)», 0 participantes (`w11`).
+2. La responsable cambia los productos del borrador de convocatoria (Fertilizante + Coadyuvante, `PATCH` 200) y guarda otra selección en el borrador de propuesta (revisión 3) → el origen **no cambia** (mismo JSON: `PROPOSAL`, revisión 2, coincidía, Fertilizante@4 y Fungicida@5) y `origin_differs_from_current: true`; la Web: «Los productos se editaron después de crearla; origen: Fertilizante foliar DEMO, Fungicida DEMO» (`w12`).
+3. Las convocatorias anteriores muestran «Origen no registrado» (no se reconstruye nada).
+
+**CONV-2 en real (emulador):** la participación de Rosa (aceptada con `CONV-2`) muestra «Pueden ver su nombre y sus cantidades la persona responsable (Directiva DEMO) y las personas de la Directiva o la Administración que ella autorice para esta convocatoria.» y el aviso corregido de coordinación (`emu_06`). El caso `CONV-1` y la reaceptación se probaron en PostgreSQL y en pantallas Mobile, no en el emulador. El emulador volvió a quedar en negro (Flutter) y se reinició con `adb reboot`, conservando los datos.
+
+**Alcance de la estimación:** comprobado en el código y en la base (contrato E3-R15): el rango proviene sólo de la ejecución fijada; la base impide que cambie después; sin cifra no hay rango.
+
+**Aceptación:** `docs/architecture/E2_E3_CONTRASTE_ACEPTACION_2026-11-12.md`: reglas acordadas aceptadas; tres diferencias materiales corregidas (porcentaje en la Web, E3-P2, quién ve los datos en el teléfono); reglas añadidas no aprobadas, listadas como pendientes. Etapa 4 aplazada.
+
+### Matriz de validación
+
+| Componente | Commit probado | Comprobación ejecutada | Resultado | Pendiente |
+|---|---|---|---|---|
+| Back completo (con todas las suites PostgreSQL; bases propias para F02) | `a7e3983` | `npx jest --runInBand` | **952 pasan**, 0 fallan, 13 omitidas (84 suites; 2 omitidas por diseño, entre ellas B2 real) | — |
+| Back E2 + E3-P2 + CONV-2 | `a7e3983` | `joint-purchase-calls` (PostgreSQL y dominio) | 58/58 | — |
+| Back E3 + alcance + F12 `insert-only` | `e60df32` (sin cambios posteriores en `proposal-estimation/`) | `jest src/modules/proposal-estimation` + `insert-only.spec.ts` | 29/29; incluidos en la ejecución completa de `a7e3983` | — |
+| OpenAPI | `c87c352` (regenerado) y `e60df32` | `openapi.cjs --check`, `openapi-contract.cjs`, `openapi-f12-estimation.cjs` | coinciden | — |
+| Web completa | `a7e3983` | `vitest --no-file-parallelism`, `npm run lint`, `npm run build` | **540/540**; 0 errores (7 avisos previos ajenos); build correcto | — |
+| Mobile completa | `01b2576` | `flutter test --concurrency=2`, `flutter analyze` | **2985 pasan**, 3 omitidas; sin problemas | — |
+| Recorrido E3-P2 | `a7e3983` | Web + API reales | origen registrado e inmutable tras editar | — |
+| Recorrido CONV-2 en el teléfono | `01b2576` | Emulador (no teléfono físico) | texto por función correcto para `CONV-2` | `CONV-1` sólo en pruebas automatizadas |
+| Recorridos E3, E3-P1, E2 §10 | `3b2099b`…`e60df32` | API + Web + emulador (§1, §2, §3b) | correctos | Lo indicado en §4 |
+
+Cambios desde la versión recorrida en §1–§3b que no se volvieron a recorrer en pantalla: `e2d7cdc` (porcentaje con cifras comparables; hoy ninguna línea lo es, cubierto por pruebas Web), `c87c352`/`91e9ef2`/`fa44b5f` (E3-P2, recorrido arriba), `a7e3983` (sólo pruebas).
+
 ## 4. Qué no se comprobó
 
 - Teléfono físico.
