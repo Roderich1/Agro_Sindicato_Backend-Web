@@ -40,6 +40,12 @@ export interface LineResult {
   status: "ESTIMATED" | "INSUFFICIENT_DATA" | "INCOMPATIBLE_DATA" | "CALCULATION_FAILED";
   validity: "NOT_USABLE" | "SUPERSEDED" | "OUTDATED" | "CURRENT";
   validityReason: string | null;
+  /**
+   * False when F12 withholds the figure of an ESTIMATED result (a source no
+   * longer disclosed), whatever the validity says first (e.g. SUPERSEDED
+   * comes before OUTDATED in F12 §8). Absent = delivered.
+   */
+  figureDelivered?: boolean;
 }
 
 /**
@@ -63,7 +69,7 @@ export function lineEstimationState(linkState: LinkState, result: LineResult | n
   if (!result) return "NO_RESULT";
   if (result.status === "CALCULATION_FAILED") return "ERROR";
   if (result.status === "INSUFFICIENT_DATA" || result.status === "INCOMPATIBLE_DATA") return "INSUFFICIENT_DATA";
-  if (result.validityReason === "SOURCES_WITHDRAWN") return "RESTRICTED";
+  if (result.validityReason === "SOURCES_WITHDRAWN" || result.figureDelivered === false) return "RESTRICTED";
   if (result.validity === "CURRENT") return "AVAILABLE";
   return "OUTDATED";
 }
@@ -88,7 +94,7 @@ export const BLOCKER_MESSAGE: Record<ComparisonBlocker, string> = {
   PERIOD_MISMATCH: "No se calcula la diferencia: la estimación no es para la campaña del borrador.",
   // E3-P1 (opción 1 + 1b): the view shows the known scope of each figure instead.
   POPULATION_NOT_VERIFIED:
-    "No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).",
+    "No se calcula la diferencia: no se puede comprobar que la necesidad y la estimación provengan de los mismos agricultores (vea el alcance de cada cifra).",
 };
 
 export interface ComparisonInput {

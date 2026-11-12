@@ -104,9 +104,9 @@ describe('Necesidades y propuestas (rediseño)', () => {
     expect(screen.queryAllByTestId('comparison-message')).toHaveLength(0);
     // E3-P1 (1b): la nota remite al alcance de cada cifra, y se dice una sola vez.
     expect(BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED).toBe(
-      'No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).',
+      'No se calcula la diferencia: no se puede comprobar que la necesidad y la estimación provengan de los mismos agricultores (vea el alcance de cada cifra).',
     );
-    expect(document.body.textContent!.split('grupos de agricultores distintos').length - 1).toBe(1);
+    expect(document.body.textContent!.split('provengan de los mismos agricultores').length - 1).toBe(1);
     // El alcance de la estimación va en su celda: mínimo ≠ máximo y mínimo = máximo.
     expect(within(reference('Glifosato')).getByTestId('estimate-scope').textContent).toBe('Cifras de 4 a 6 agricultores por campaña (11 campañas)');
     expect(within(reference('Urea', 'G')).getByTestId('estimate-scope').textContent).toBe('Cifras de 5 agricultores por campaña (8 campañas)');

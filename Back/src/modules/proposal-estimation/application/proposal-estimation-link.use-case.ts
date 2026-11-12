@@ -504,7 +504,14 @@ export class ProposalEstimationLinkUseCase {
         resolved.facts?.results.find((r) => r.product_ref === line.product_ref && r.base_unit === line.base_unit) ?? null;
       const state: LineEstimationState = lineEstimationState(
         resolved.state,
-        result ? { status: result.status, validity: result.validity, validityReason: result.validity_reason } : null,
+        result
+          ? {
+              status: result.status,
+              validity: result.validity,
+              validityReason: result.validity_reason,
+              figureDelivered: result.status !== "ESTIMATED" || result.estimate_base !== null,
+            }
+          : null,
       );
       const shows = state === "AVAILABLE" || state === "OUTDATED";
       const estimation = {

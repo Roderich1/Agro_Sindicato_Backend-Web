@@ -30,7 +30,7 @@ const describePostgres = postgresUrl ? describe : describe.skip;
 const PUSH = "/api/v1/sync/v1/push";
 const COLLECTIVE = "/api/v1/collective";
 const POPULATION_MESSAGE =
-  "No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).";
+  "No se calcula la diferencia: no se puede comprobar que la necesidad y la estimación provengan de los mismos agricultores (vea el alcance de cada cifra).";
 /** Contributors of the sealed Herbicida consumption figure of each source campaign (E3-P1 1b: the scope is 3 to 5 over 4 campaigns). */
 const CONSUMPTION_CONTRIBUTORS = [3, 5, 4, 3];
 const HERBICIDE_SCOPE = { span_campaigns: 4, contributors_min: 3, contributors_max: 5 };
@@ -558,10 +558,11 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
     expect(lineOf(p5, "Herbicida").estimation).toMatchObject({ state: "RESTRICTED", estimate_base: null, validity_reason: "SOURCES_WITHDRAWN" });
     // E3-P1 (1b): a withdrawn source hides the estimate scope too; the need keeps its own.
     expect(lineOf(p5, "Herbicida").scope).toEqual({ need_contributors: 3, estimate: null });
-    // PH keeps R1, superseded by later runs: F12 reports the later run first (OUTDATED), but the withdrawal still
-    // withholds the figure, and without a figure there is no estimate scope.
+    // PH keeps R1, superseded by later runs: F12 reports the later run first (SUPERSEDED before OUTDATED, §8), but
+    // the withdrawal still withholds the figure. E3 §4: a line without its figure because of a withdrawal is
+    // RESTRICTED, never OUTDATED (OUTDATED always carries its figure); and without a figure there is no scope.
     const withdrawnHidden = await view(proposals["PH"]!);
-    expect(withdrawnHidden.lines[0]).toMatchObject({ estimation: { state: "OUTDATED", estimate_base: null }, scope: { need_contributors: null, estimate: null } });
+    expect(withdrawnHidden.lines[0]).toMatchObject({ estimation: { state: "RESTRICTED", estimate_base: null }, scope: { need_contributors: null, estimate: null } });
     expect(JSON.stringify(withdrawnHidden)).not.toContain("111000");
     expect(p5.update).toEqual({ available: true, reason: "OUTDATED" });
     expect(p5.link.run_ref).toBe(runs["R3"]);

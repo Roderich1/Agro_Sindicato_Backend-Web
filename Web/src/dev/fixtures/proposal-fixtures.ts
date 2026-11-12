@@ -130,7 +130,7 @@ export const BLOCKER_MESSAGE: Record<ComparisonBlocker, string> = {
   UNIT_MISMATCH: 'No se calcula la diferencia: no es la misma unidad.',
   PERIOD_MISMATCH: 'No se calcula la diferencia: la estimación no es para la campaña del borrador.',
   POPULATION_NOT_VERIFIED:
-    'No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).',
+    'No se calcula la diferencia: no se puede comprobar que la necesidad y la estimación provengan de los mismos agricultores (vea el alcance de cada cifra).',
 };
 
 export const LINK_RUN_REF = 'run-0000-4000-8000-000000000002';

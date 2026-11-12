@@ -27,7 +27,7 @@ describe("E3 comparability (§5)", () => {
       comparable: false,
       blockers: ["POPULATION_NOT_VERIFIED"],
       message:
-        "No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).",
+        "No se calcula la diferencia: no se puede comprobar que la necesidad y la estimación provengan de los mismos agricultores (vea el alcance de cada cifra).",
       difference: null,
     });
   });
@@ -126,6 +126,9 @@ describe("E3 line state (§4)", () => {
     expect(lineEstimationState("LINKED", { status: "ESTIMATED", validity: "SUPERSEDED", validityReason: "LATER_RUN" })).toBe("OUTDATED");
     expect(lineEstimationState("LINKED", { status: "ESTIMATED", validity: "OUTDATED", validityReason: "SOURCES_CHANGED" })).toBe("OUTDATED");
     expect(lineEstimationState("LINKED", { status: "ESTIMATED", validity: "OUTDATED", validityReason: "SOURCES_WITHDRAWN" })).toBe("RESTRICTED");
+    // Superseded and withdrawn: F12 reports SUPERSEDED first, but the figure is withheld → RESTRICTED, not OUTDATED.
+    expect(lineEstimationState("LINKED", { status: "ESTIMATED", validity: "SUPERSEDED", validityReason: "LATER_RUN", figureDelivered: false })).toBe("RESTRICTED");
+    expect(lineEstimationState("LINKED", { status: "ESTIMATED", validity: "SUPERSEDED", validityReason: "LATER_RUN", figureDelivered: true })).toBe("OUTDATED");
     expect(lineEstimationState("LINKED", { status: "INSUFFICIENT_DATA", validity: "NOT_USABLE", validityReason: "NO_FIGURE" })).toBe("INSUFFICIENT_DATA");
     expect(lineEstimationState("LINKED", { status: "INCOMPATIBLE_DATA", validity: "NOT_USABLE", validityReason: "NO_FIGURE" })).toBe("INSUFFICIENT_DATA");
     expect(lineEstimationState("LINKED", { status: "CALCULATION_FAILED", validity: "NOT_USABLE", validityReason: "NO_FIGURE" })).toBe("ERROR");
