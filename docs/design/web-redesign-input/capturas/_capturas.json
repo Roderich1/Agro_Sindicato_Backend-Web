@@ -739,16 +739,6 @@
  },
  {
   "files": [
-   "10_administracion/06_calendario_fuera_del_menu__escritorio.png"
-  ],
-  "ruta": "/calendar",
-  "rol": "directiva",
-  "desc": "Calendario operativo (pantalla heredada, fuera del menú colectivo; se llega por URL)",
-  "estado": "heredada",
-  "simulado": false
- },
- {
-  "files": [
    "01_acceso/03_agricultor_sin_acceso_web__escritorio.png",
    "01_acceso/03_agricultor_sin_acceso_web__movil.png"
   ],

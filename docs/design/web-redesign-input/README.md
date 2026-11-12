@@ -14,7 +14,7 @@ Material para rediseñar la Web de la Directiva en Claude Design y revisarlo en 
 
 | Pieza | Valor |
 |---|---|
-| Composición | Rama `feat/etapa3-estimacion-borrador`, commit **`9dc80f0`** (worktree `_wt/ET2-BE`), **más** la limpieza **`741e730`** y **`754cb25`** de la rama `chore/web-solo-institucional` (worktree `_wt/WEB-SOLO-INST`): la Web es sólo de Directiva y Administración y se retiraron las vistas del agricultor. Este paquete está en la rama `docs/web-redesign-input`, que parte de `9dc80f0` e integra esa limpieza (worktree `_wt/WEB-DESIGN-INPUT`) |
+| Composición | Rama `feat/etapa3-estimacion-borrador`, commit **`9dc80f0`** (worktree `_wt/ET2-BE`), **más** la limpieza **`741e730`**, **`754cb25`** y **`d5569a7`** de la rama `chore/web-solo-institucional` (worktree `_wt/WEB-SOLO-INST`): la Web es sólo de Directiva y Administración y se retiraron las vistas del agricultor. Este paquete está en la rama `docs/web-redesign-input`, que parte de `9dc80f0` e integra esa limpieza (worktree `_wt/WEB-DESIGN-INPUT`) |
 | Web en ejecución | Servidor de desarrollo Vite en `127.0.0.1:5175`, que sirve el árbol de `_wt/ET2-BE` en `9dc80f0` (sin cambios locales en `Web/src`), para las capturas institucionales. La limpieza no cambia ninguna pantalla institucional; el aviso del agricultor (`01_acceso/03`) y la verificación de acceso por rol se hicieron con Vite en `127.0.0.1:5176` sobre `741e730`. No es un build de producción |
 | API en ejecución | NestJS en el puerto 3350, desde el `dist` compilado el 2026-11-12 a las 12:03 a partir de `49ed870`. Entre `49ed870` y `9dc80f0`, `Back/src` sólo añade una prueba (`joint-purchase-calls.postgres.spec.ts`): el código de la API en ejecución es el de la composición |
 | Base | PostgreSQL del contenedor aislado `agro_et1_pg` (puerto 15434, sólo en `localhost`, base `agro_demo`), con 23 migraciones aplicadas; la última es `20261112180000_e2_pa_responsible_substitution` |
@@ -52,7 +52,8 @@ No hizo falta crear una rama de composición: todo lo terminado está en `9dc80f
 | Origen de la convocatoria (E3-P2) | `c87c352`, `fa44b5f` (Back), `91e9ef2` (Web) | Sí | `05_convocatorias/04`, `10` |
 | Exportación Excel y retirada del CSV | `eeaf327` (Back: rutas CSV retiradas), `7acf0a1` y `d5dc9cc` (Web) | Sí | `04_excel/*` y «Descargar Excel» en las pantallas |
 | Web sólo de Directiva y Administración (vistas del agricultor retiradas; aviso para la cuenta AGRICULTOR) | `741e730` (rama `chore/web-solo-institucional`) | Sí | `01_acceso/03` |
-| Página heredada `directiva.page.tsx` (sin ruta) retirada; Calendario revisado, con su retirada recomendada y pendiente del autor | `754cb25`, `b1bed3f` | Sí | sin cambios en las capturas |
+| Página heredada `directiva.page.tsx` (sin ruta) retirada | `754cb25`, `b1bed3f` | Sí | sin cambios en las capturas |
+| Calendario retirado de la Web: `/calendar` lleva a Campañas; el AGRICULTOR ve el aviso | `d5569a7`, `cff4fbd` | Sí | su captura sale del paquete (queda como evidencia histórica) |
 
 La Web **no tiene ninguna exportación en PDF**: el PDF existe sólo en la app móvil.
 
@@ -60,7 +61,7 @@ La Web **no tiene ninguna exportación en PDF**: el PDF existe sólo en la app m
 
 - **Git:** contención de `main` y de la integración del rediseño; revisión de las ramas con commits fuera de la composición; ningún cambio local en `Web/src` ni en `Back/src`.
 - **Entorno:** API 3350 con health 200; Web 5175 con 200; 23 migraciones aplicadas. Sin túnel y sin exponer PostgreSQL.
-- **Capturas:** 109 PNG (102 de la Web, de ellas 17 de estados no reales rotulados, y 7 de Excel), revisadas en hojas de miniaturas. Un detector de la pantalla de inicio de sesión confirmó que ninguna captura con sesión quedó en `/login` (las primeras rondas sí; se rehicieron, ver LIMITACIONES). El índice coincide con los archivos.
+- **Capturas:** 108 PNG (101 de la Web, de ellas 17 de estados no reales rotulados, y 7 de Excel), revisadas en hojas de miniaturas. Un detector de la pantalla de inicio de sesión confirmó que ninguna captura con sesión quedó en `/login` (las primeras rondas sí; se rehicieron, ver LIMITACIONES). El índice coincide con los archivos.
 - **Acceso por rol tras la limpieza (`741e730`):** Web completa 586/586, `tsc` y build correctos. En el navegador, una cuenta AGRICULTOR, al iniciar sesión y por 14 URL directas, sólo ve el aviso, sin consultas institucionales; Directiva y Administración entran con normalidad (evidencia `docs/evidence/WEB_SOLO_INSTITUCIONAL_2026-11-12.md`).
 - **Excel:** el borrador actual se descargó desde la Web y se abrió en Microsoft Excel. Se capturó cada hoja y se registró el filtro y el panel inmovilizado (`capturas/04_excel/_excel_abierto_borrador.json`).
 - **Datos sensibles:** sin contraseñas (se fijaron claves de un solo uso en la base aislada y nunca se escribieron en archivos), sin tokens ni datos reales. Se recortó la barra de título de Excel, que mostraba la cuenta de Office del equipo. Los correos visibles son sintéticos (`@example.test`).

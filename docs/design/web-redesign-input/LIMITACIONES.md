@@ -28,5 +28,5 @@
 ## Proceso
 
 - **Rondas de captura fallidas:** las primeras rondas perdieron la sesión por el límite de autenticación del entorno. Las capturas que mostraban la pantalla de inicio de sesión se borraron y se rehicieron, y un detector comprobó que no queda ninguna.
-- **Inventario a partir del código:** el inventario de vistas se redactó leyendo el código. Las capturas lo confirman en lo principal. Lo marcado «(no verificado)» sigue sin comprobar, salvo el Calendario, que sí se capturó.
+- **Inventario a partir del código:** el inventario de vistas se redactó leyendo el código. Las capturas lo confirman en lo principal. Lo marcado «(no verificado)» sigue sin comprobar. El Calendario se retiró de la Web; su captura se conserva sólo como evidencia histórica, fuera del paquete.
 - **Diagnóstico:** señala problemas, pero no propone ni aplica correcciones.

@@ -120,7 +120,6 @@ Archivos descargados desde la Web con «Descargar Excel» y abiertos en Microsof
 | [03_usuarios__escritorio.png](capturas/10_administracion/03_usuarios__escritorio.png) · [03_usuarios__movil.png](capturas/10_administracion/03_usuarios__movil.png) | `/users` | ADMINISTRADOR (Administración DEMO) | — | Usuarios (sólo Administrador) |
 | [04_bitacora_detalle__escritorio.png](capturas/10_administracion/04_bitacora_detalle__escritorio.png) | `/audit-logs` | DIRECTIVA (Directiva DEMO) | diálogo | Detalle de un registro de la bitácora |
 | [05_nuevo_usuario_dialogo__escritorio.png](capturas/10_administracion/05_nuevo_usuario_dialogo__escritorio.png) | `/users` | ADMINISTRADOR (Administración DEMO) | diálogo | Nuevo usuario (sólo Administrador; no se crea, sin contraseña escrita) |
-| [06_calendario_fuera_del_menu__escritorio.png](capturas/10_administracion/06_calendario_fuera_del_menu__escritorio.png) | `/calendar` | DIRECTIVA (Directiva DEMO) | heredada | Calendario operativo (pantalla heredada, fuera del menú colectivo; se llega por URL) |
 
 ## 99. Estados NO reales: fixtures del código y respuestas simuladas
 

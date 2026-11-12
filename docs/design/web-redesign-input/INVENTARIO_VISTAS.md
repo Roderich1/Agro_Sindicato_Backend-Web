@@ -2,7 +2,7 @@
 
 Insumo para el rediseño de la Web en Claude Design. Describe lo que hace el código, no lo que debería hacer.
 
-- **Fuente:** `_wt/ET2-BE/Web/src`, rama `feat/etapa3-estimacion-borrador`, commit `9dc80f0`, más la limpieza `741e730` y `754cb25` (rama `chore/web-solo-institucional`): **la Web es sólo de Directiva y Administración** (decisión del autor del 2026-11-12) y se retiraron las vistas del agricultor. Redactado leyendo el código; después se recorrió la Web en ejecución y las capturas de INDICE_CAPTURAS.md confirman las pantallas principales.
+- **Fuente:** `_wt/ET2-BE/Web/src`, rama `feat/etapa3-estimacion-borrador`, commit `9dc80f0`, más la limpieza `741e730`, `754cb25` y `d5569a7` (rama `chore/web-solo-institucional`): **la Web es sólo de Directiva y Administración** (decisión del autor del 2026-11-12) y se retiraron las vistas del agricultor. Redactado leyendo el código; después se recorrió la Web en ejecución y las capturas de INDICE_CAPTURAS.md confirman las pantallas principales.
 - **Fecha de redacción:** 2026-11-12.
 - **Convenciones:** «la persona» cuando no se sabe el género. «(no verificado)» marca lo que el código no deja claro. Los permisos que decide el servidor se indican como tales: la Web sólo oculta botones o rutas.
 
@@ -26,7 +26,7 @@ Insumo para el rediseño de la Web en Claude Design. Describe lo que hace el có
 | 12 | Ingresar (inicio de sesión) | `/login` | Sin sesión | No |
 | 13 | Aviso «Esta cuenta utiliza la aplicación móvil» | `/sin-acceso-web` | Cualquier rol no colectivo (AGRICULTOR) | No |
 | 14 | Estimación del consumo descargada (copia sin conexión) | `/estimacion/copia-sin-conexion` | Sin guarda de ruta; muestra datos sólo con un contexto local vigente | No (enlaces desde Ingresar y Estimación) |
-| 15 | Calendario operativo («Agenda y alertas») | `/calendar` | DIRECTIVA, ADMINISTRADOR | No (pantalla heredada, por URL) |
+| 15 | ~~Calendario~~ (retirado el 2026-11-12; `/calendar` lleva a Campañas) | `/calendar` | — | No |
 
 No hay vistas del agricultor: las páginas `/dashboard`, `/plots`, `/applications`, `/reports`, `/inventory`, `/purchases` y `/sync` y la bandera `VITE_LEGACY_FARMER_WEB` se retiraron el 2026-11-12 (`741e730`). Una cuenta AGRICULTOR, entre por donde entre, sólo llega al aviso de la pantalla 13.
 
@@ -60,7 +60,7 @@ Fuente: `lib/navigation.ts` (`COLLECTIVE_MENU`, `LEGACY_MENU`, `menuPathsFor`) y
 - `CollectiveRoute`: DIRECTIVA o ADMINISTRADOR; otro rol va a su pantalla inicial; sin sesión, a `/login`.
 - `AdminRoute`: sólo ADMINISTRADOR.
 - `RoleRoute` (Bitácora): DIRECTIVA o ADMINISTRADOR.
-- `PrivateRoute` (Campañas, Detalle de campaña, Calendario): DIRECTIVA o ADMINISTRADOR; otro rol, al aviso.
+- `PrivateRoute` (Campañas, Detalle de campaña y el enlace antiguo `/calendar`, que lleva a Campañas): DIRECTIVA o ADMINISTRADOR; otro rol, al aviso.
 - Pantalla inicial (`homePathFor`): DIRECTIVA y ADMINISTRADOR → Resumen; otro rol → `/sin-acceso-web`.
 - Ruta comodín (`*`): cualquier ruta desconocida o antigua lleva a la pantalla inicial de la sesión (o a `/login`).
 - El servidor sigue decidiendo los permisos: las guardas sólo evitan mostrar y consultar.
@@ -448,22 +448,16 @@ Contenedor con el selector «Vista»: «Productos» (`?vista=productos`, por def
 - **Acciones:** «Volver a la estimación (requiere conexión)» o «Iniciar sesión (requiere conexión)».
 - **Estados:** «No fue posible leer la copia…»; «No hay una copia accesible…»; «Al descargarla no había ninguna estimación…».
 
-### 4.15 Calendario operativo — `/calendar`
+### 4.15 Calendario: retirado
 
-- **Rol:** `PrivateRoute`: DIRECTIVA y ADMINISTRADOR pueden abrirla por URL aunque no esté en su menú. El servidor admite los tres roles.
-- **Objetivo:** ver eventos (vencimientos de lote, pagos, aplicaciones, compras programadas, stock bajo, cierre de campaña) y marcarlos.
-- **Datos:** tarjetas «Eventos visibles», «Próximos 7 días» y «Pendientes vencidos»; filtros Campaña, Tipo, Estado (Pendiente por defecto), Desde y Hasta; eventos agrupados por fecha.
-- **Acciones:** «Completar» y «Cancelar» por evento → diálogo «Completar evento» / «Cancelar evento» («Volver», «Confirmar» / «Cancelar evento»).
-- **Estados:** filas fantasma, error, «Sin eventos».
-- Pantalla con el estilo anterior al rediseño: sin `PageHeader`, por lo que no tiene título visible (`h1`); la barra superior dice «Agenda y alertas».
-- **Comprobado en el recorrido** (captura `10_administracion/06`): la Directiva la abre por URL y ve el evento «Cierre estimado de Invierno 2026 (DEMO)» con «Completar» y «Cancelar».
-- **Revisión del 2026-11-12** (`docs/evidence/WEB_PIEZAS_HEREDADAS_2026-11-12.md`):
-  - un rol institucional sólo recibe el recordatorio «Cierre estimado» de las campañas abiertas, el mismo dato que ya muestra Campañas;
-  - «Completar» y «Cancelar» sólo cambian el estado del recordatorio, no la campaña;
-  - el filtro «Tipo» ofrece cinco tipos que siempre salen vacíos;
-  - `GET /users` no sirve de nada para estos roles;
-  - la app móvil no usa `/calendar`.
-  - **Recomendación: retirarlo de la Web**, pendiente de la decisión del autor.
+El Calendario («Agenda y alertas», `/calendar`) se retiró de la Web el 2026-11-12 (`d5569a7`), con autorización del autor.
+
+- **Por qué:** para Directiva y Administración sólo mostraba el recordatorio de cierre estimado de las campañas abiertas, el mismo dato que ya está en Campañas.
+- **Enlace antiguo:** `/calendar` lleva a **Campañas**, con la misma guarda (el AGRICULTOR ve el aviso; sin sesión, `/login`).
+- **Lo que sigue en Campañas:** la fecha estimada de fin, el aviso de fin vencido y el «fin estimado» de la campaña activa y del detalle.
+- **Llamadas a la API:** la Web ya no llama a `/calendar/events` ni consulta Usuarios para esta pantalla.
+- **Backend:** el módulo del Backend y sus eventos no cambian.
+- **Evidencia histórica:** fuera de este paquete, en `docs/evidence/WEB_PIEZAS_HEREDADAS_2026-11-12.md`.
 
 ### 4.16–4.22 Pantallas del agricultor: retiradas
 
@@ -491,7 +485,6 @@ Las pantallas `/dashboard`, `/plots`, `/applications`, `/reports`, `/inventory`,
 - **Detalle de campaña** y **Detalle de convocatoria**: subrutas.
 - **Copia de estimación sin conexión**: enlace en Ingresar («Consultarla sin conexión», sólo si hay copia) y en Estimación («Ver las copias descargadas»).
 - **Aviso «sin acceso Web»** para el AGRICULTOR.
-- **Calendario operativo**: accesible por URL para la Directiva y el Administrador.
 - **Permiso del sindicato «Sustituir responsable»**: plegado al final de la lista de Compras conjuntas, no en Usuarios ni en Administración.
 - **Componentes de página no enrutados**: `CollectiveTrendsPage`, `EstimationPage`, `ProductsPage` y `ProductReconciliationPage` envuelven las vistas en su propio armazón, pero `App.tsx` no los usa (sólo se usan las vistas dentro de los contenedores).
 - **Páginas de desarrollo** (sólo con `npx vite`; `vite build` no las incluye):
@@ -503,6 +496,5 @@ Las pantallas `/dashboard`, `/plots`, `/applications`, `/reports`, `/inventory`,
 ## 7. Lo que quedó «(no verificado)»
 
 - Cuándo envía el servidor `can_cancel_or_close` a quien no es responsable ni tiene «Administrar».
-- ~~El contenido del Calendario para la Directiva~~: comprobado en el recorrido (captura `10_administracion/06`). Sigue sin decidir si debe estar en la Web colectiva.
 - Si la hora que se escribe y se muestra como «hora del servidor» en las convocatorias coincide con la del servidor: el campo `datetime-local` y las fechas usan la zona horaria del navegador.
 - Si el botón «Abrir» de Campañas aparece en una campaña ya abierta que no es la activa: la condición del código (`!isActive && !terminal`) lo permite; no se comprobó si el servidor puede devolver varias campañas abiertas.

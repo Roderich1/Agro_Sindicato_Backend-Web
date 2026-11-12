@@ -44,7 +44,7 @@ Nada de esto se corrigió durante la preparación.
 
 - **Decimales sin redondear:** «19,530798848 KG» en Estimación (captura `08_historico/02`) y «411.938805299» en el Excel (captura `04_excel/03`).
 - **Unidades escritas de dos maneras:** «kg» y «KG» en la misma tabla (captura `07_catalogo/02`).
-- **Campos de fecha y hora** con «mm/dd/aaaa», el orden de EE. UU., en el formulario de convocatoria, en Campañas y en Calendario. Depende del navegador, pero choca con «dd/mm» en el resto (capturas `05_convocatorias/06`, `10_administracion/06`).
+- **Campos de fecha y hora** con «mm/dd/aaaa», el orden de EE. UU., en el formulario de convocatoria y en Campañas. Depende del navegador, pero choca con «dd/mm» en el resto (capturas `05_convocatorias/06`, `10_administracion/06`).
 
 ### Información importante escondida
 
@@ -58,7 +58,6 @@ Nada de esto se corrigió durante la preparación.
 
 - **Tres contenedores con vistas** (`?vista=`) y varias rutas antiguas que redirigen a ellos (INVENTARIO §5).
 - **El detalle de campaña** lista sus borradores sin enlace a cada uno, y «Ver» de un borrador anterior no cambia la URL: no se puede volver a un borrador concreto (código).
-- **El Calendario** («Agenda y alertas») es una pantalla heredada fuera del menú. Se llega por URL y ofrece «Completar» y «Cancelar» sobre el cierre de la campaña (captura `10_administracion/06`). Para la Directiva repite el «fin estimado» de Campañas, y «Completar» no cierra la campaña. Se recomienda retirarlo; la decisión es del autor (`docs/evidence/WEB_PIEZAS_HEREDADAS_2026-11-12.md`).
 
 ## 2. Problemas funcionales (la interfaz dice una cosa y el sistema hace otra)
 
