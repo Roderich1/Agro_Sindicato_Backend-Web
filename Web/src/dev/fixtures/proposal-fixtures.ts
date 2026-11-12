@@ -8,6 +8,7 @@ import type { Proposal, ProposalLine, ProposalSummary } from '../../types/collec
 import type { ProposalEstimationReference, ReferenceEstimation, ReferenceLine } from '../../types/estimation';
 import type {
   ComparisonBlocker,
+  EstimateScope,
   EstimationLink,
   EstimationLinkLine,
   EstimationLinkRun,
@@ -129,7 +130,7 @@ export const BLOCKER_MESSAGE: Record<ComparisonBlocker, string> = {
   UNIT_MISMATCH: 'No se calcula la diferencia: no es la misma unidad.',
   PERIOD_MISMATCH: 'No se calcula la diferencia: la estimación no es para la campaña del borrador.',
   POPULATION_NOT_VERIFIED:
-    'No se calcula la diferencia: no hay datos para comprobar que la necesidad y la estimación cubran a las mismas personas.',
+    'No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).',
 };
 
 export const LINK_RUN_REF = 'run-0000-4000-8000-000000000002';
@@ -173,8 +174,13 @@ export function linkOf(overrides: Partial<EstimationLink> = {}): EstimationLink 
   };
 }
 
-/** Lo que una línea trae de la estimación; la comparación se deriva como en el servidor si no se da. */
-export type LinkLineSpec = Partial<EstimationLinkLine['estimation']> & { comparison?: LinkComparison };
+/**
+ * Lo que una línea trae de la estimación; la comparación se deriva como en el
+ * servidor si no se da. `scope` es el alcance conocido de la cifra de consumo
+ * (E3-P1 1b): como en el servidor, sólo llega a la vista si la línea trae
+ * cifra de estimación.
+ */
+export type LinkLineSpec = Partial<EstimationLinkLine['estimation']> & { comparison?: LinkComparison; scope?: EstimateScope };
 
 /**
  * Comparación como la decide hoy el servidor (§5): sin metadatos de población,
@@ -207,7 +213,7 @@ export function linkViewFor(proposal: Proposal, perLine: LinkLineSpec[], overrid
   const fallback: EstimationLinkLine['estimation']['state'] =
     state === 'NONE' ? 'NONE' : state === 'CALCULATING' ? 'CALCULATING' : state === 'UNAVAILABLE' ? 'ERROR' : state === 'RESTRICTED' ? 'RESTRICTED' : 'NO_RESULT';
   const lines = proposal.lines.map((line, index): EstimationLinkLine => {
-    const { comparison, ...spec } = perLine[index] ?? {};
+    const { comparison, scope, ...spec } = perLine[index] ?? {};
     const need = { status: line.status, quantity_base: line.quantity_base, quantity_presentation: line.quantity_presentation };
     const estimation: EstimationLinkLine['estimation'] = {
       state: fallback,
@@ -226,6 +232,10 @@ export function linkViewFor(proposal: Proposal, perLine: LinkLineSpec[], overrid
       need,
       estimation,
       comparison: comparison ?? serverComparison(need, estimation),
+      scope: {
+        need_contributors: line.status === 'DISCLOSED' ? line.contributors : null,
+        estimate: (estimation.state === 'AVAILABLE' || estimation.state === 'OUTDATED') && estimation.estimate_base !== null ? (scope ?? null) : null,
+      },
     };
   });
   return {
@@ -283,9 +293,9 @@ export const demo: ProposalFixture = {
     { absence: 'NO_RESULT', estimation: null },
   ]),
   link: linkViewFor(demoProposal, [
-    available('295000.000000'),
+    available('295000.000000', { scope: { span_campaigns: 11, contributors_min: 4, contributors_max: 6 } }),
     { state: 'INSUFFICIENT_DATA', status: 'INSUFFICIENT_DATA', reason_code: 'SPAN_TOO_SHORT', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
-    available('27500.500000'),
+    available('27500.500000', { scope: { span_campaigns: 8, contributors_min: 5, contributors_max: 5 } }),
     { state: 'NO_RESULT' },
   ]),
   selection: selectionFor(demoProposal),
@@ -346,19 +356,26 @@ export const worst: ProposalFixture = {
   link: linkViewFor(
     worstProposal,
     [
-      // Cifra grande vigente: hoy el servidor no compara (población no comprobada).
-      available('123456800000.250000'),
-      // Desactualizada: cifra rotulada, sin diferencia.
-      { state: 'OUTDATED', status: 'ESTIMATED', estimate_base: '30.123456', validity: 'OUTDATED', validity_reason: 'SOURCES_CHANGED' },
+      // Cifra grande vigente: hoy el servidor no compara (población no comprobada); alcance con cifras grandes.
+      available('123456800000.250000', { scope: { span_campaigns: 24, contributors_min: 3, contributors_max: 1280 } }),
+      // Desactualizada: cifra rotulada, sin diferencia; conserva el alcance de su resultado.
+      {
+        state: 'OUTDATED',
+        status: 'ESTIMATED',
+        estimate_base: '30.123456',
+        validity: 'OUTDATED',
+        validity_reason: 'SOURCES_CHANGED',
+        scope: { span_campaigns: 8, contributors_min: 5, contributors_max: 5 },
+      },
       { state: 'NO_RESULT' },
       { state: 'INSUFFICIENT_DATA', status: 'INSUFFICIENT_DATA', reason_code: 'LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
-      // Necesidad oculta: la estimación se muestra rotulada, sin diferencia.
-      available('12000.000000'),
+      // Necesidad oculta: la estimación se muestra rotulada, sin diferencia; una sola campaña en el tramo.
+      available('12000.000000', { scope: { span_campaigns: 1, contributors_min: 1, contributors_max: 1 } }),
       { state: 'ERROR', status: 'CALCULATION_FAILED', reason_code: 'CALCULATION_ERROR', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
       // Fuente retirada: restringida, sin cifra.
       { state: 'RESTRICTED', status: 'ESTIMATED', validity: 'OUTDATED', validity_reason: 'SOURCES_WITHDRAWN' },
       // Estimación cero.
-      available('0.000000'),
+      available('0.000000', { scope: { span_campaigns: 3, contributors_min: 3, contributors_max: 4 } }),
     ],
     { evaluated_at: '2026-10-18T23:59:00.000Z', update: { available: true, reason: 'OUTDATED' } },
   ),
@@ -379,7 +396,7 @@ export const one: ProposalFixture = {
   history: [summaryOf(oneProposal)],
   proposal: oneProposal,
   reference: referenceFor(oneProposal, [{ absence: null, estimation: estimated({ estimate_base: '1000.000000' }) }]),
-  link: linkViewFor(oneProposal, [available('1000.000000')]),
+  link: linkViewFor(oneProposal, [available('1000.000000', { scope: { span_campaigns: 3, contributors_min: 3, contributors_max: 3 } })]),
   selection: selectionFor(oneProposal),
 };
 

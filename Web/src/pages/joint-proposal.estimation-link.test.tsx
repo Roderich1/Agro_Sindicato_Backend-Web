@@ -261,6 +261,51 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     expect(cell('Urea', 'G').textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
   });
 
+  it('E3-P1 (1b): el alcance de la estimación sólo junto a su cifra, con singulares correctos; la necesidad no se duplica', async () => {
+    const scoped = linkViewFor(DRAFT, [
+      available('295000.000000', { scope: { span_campaigns: 1, contributors_min: 1, contributors_max: 1 } }),
+      { state: 'OUTDATED', status: 'ESTIMATED', estimate_base: '27500.500000', validity: 'SUPERSEDED', validity_reason: 'LATER_RUN', scope: { span_campaigns: 2, contributors_min: 1, contributors_max: 1 } },
+    ]);
+    serve(scoped);
+    const first = renderAt(<JointProposalPage />, { path: PATH });
+    await screen.findByText('295 L');
+    expect(within(cell('Glifosato')).getByTestId('estimate-scope').textContent).toBe('Cifra de 1 agricultor (1 campaña)');
+    expect(within(cell('Urea', 'G')).getByTestId('estimate-scope').textContent).toBe('Cifras de 1 agricultor por campaña (2 campañas)');
+    // La necesidad ya dice sus aportantes: una sola vez, en su celda.
+    expect(within(screen.getByTestId('line-Glifosato-ML')).getByTestId('contributors').textContent).toBe('7 aportantes');
+    expect(document.body.textContent!.split('7 aportantes').length - 1).toBe(1);
+    first.unmount();
+
+    // Aunque llegara un alcance, sin cifra no se muestra: restringida (fuente retirada o política pendiente),
+    // datos insuficientes, error, sin resultado, calculando y sin referencia.
+    const leaked = { span_campaigns: 11, contributors_min: 4, contributors_max: 6 };
+    const withScope = (view: EstimationLinkView): EstimationLinkView => ({
+      ...view,
+      lines: view.lines.map((l) => ({ ...l, scope: { need_contributors: l.scope.need_contributors, estimate: leaked } })),
+    });
+    const cases: [string, EstimationLinkView][] = [
+      [
+        'restringida y datos insuficientes',
+        linkViewFor(DRAFT, [
+          { state: 'RESTRICTED', status: 'ESTIMATED', validity: 'OUTDATED', validity_reason: 'SOURCES_WITHDRAWN' },
+          { state: 'INSUFFICIENT_DATA', status: 'INSUFFICIENT_DATA', reason_code: 'SPAN_TOO_SHORT', validity: 'NOT_USABLE', validity_reason: 'NO_FIGURE' },
+        ]),
+      ],
+      ['política pendiente', linkViewFor(DRAFT, [], { state: 'RESTRICTED' })],
+      ['error y sin resultado', linkViewFor(DRAFT, [{ state: 'ERROR', status: 'CALCULATION_FAILED' }, { state: 'NO_RESULT' }])],
+      ['calculando', CALCULATING],
+      ['sin referencia', NONE],
+    ];
+    for (const [, view] of cases) {
+      serve(withScope(view));
+      const rendered = renderAt(<JointProposalPage />, { path: PATH });
+      await waitFor(() => expect(cell('Glifosato').textContent).not.toBe('Cargando…'));
+      expect(screen.queryAllByTestId('estimate-scope')).toHaveLength(0);
+      expect(document.body.textContent).not.toMatch(/agricultores? por campaña|campañas?\)/);
+      rendered.unmount();
+    }
+  });
+
   it('política pendiente y casos no calculables: sin «Obtener referencia», con el motivo; un 409 POLICY_PENDING no escribe y lo explica', async () => {
     serve({ ...NONE, prepare_blocker: 'POLICY_PENDING' });
     const view = renderAt(<JointProposalPage />, { path: PATH });

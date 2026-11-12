@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type {
+  EstimateScope,
   EstimationLinkLine,
   EstimationLinkView,
   LinkAction,
@@ -22,9 +23,6 @@ import type {
 
 /** Cada cuánto se vuelve a leer la referencia mientras se calcula (sólo `GET`). */
 export const LINK_POLL_MS = 3000;
-
-export const POPULATION_NOT_VERIFIED_TEXT =
-  'No se calcula la diferencia: no hay datos para comprobar que la necesidad y la estimación cubran a las mismas personas.';
 
 /** Por qué no se puede obtener una referencia ahora. */
 export const PREPARE_BLOCKER_TEXT: Record<PrepareBlocker, string> = {
@@ -110,6 +108,20 @@ export function linkErrorText(code: LinkErrorCode): string | null {
 /** Hay cifra de estimación en la línea (sólo AVAILABLE y OUTDATED la traen). */
 export function hasEstimateFigure(line: EstimationLinkLine): boolean {
   return (line.estimation.state === 'AVAILABLE' || line.estimation.state === 'OUTDATED') && line.estimation.estimate_base !== null;
+}
+
+/**
+ * E3-P1 (1b): el alcance conocido de la cifra de consumo estimado, breve:
+ * «Cifras de 4 a 6 agricultores por campaña (11 campañas)», «Cifras de 5
+ * agricultores por campaña (8 campañas)» o, con una sola campaña, «Cifra de 5
+ * agricultores (1 campaña)». Sólo cuenta; nada por campaña concreta.
+ */
+export function estimateScopeText(scope: EstimateScope): string {
+  const farmers = (n: number) => `${n} ${n === 1 ? 'agricultor' : 'agricultores'}`;
+  const { span_campaigns: campaigns, contributors_min: min, contributors_max: max } = scope;
+  if (campaigns === 1) return `Cifra de ${farmers(max)} (1 campaña)`;
+  const who = min === max ? farmers(min) : `${min} a ${max} agricultores`;
+  return `Cifras de ${who} por campaña (${campaigns} campañas)`;
 }
 
 /**

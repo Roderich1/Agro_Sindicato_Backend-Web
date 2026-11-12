@@ -22,6 +22,7 @@ import { reportDisclosureMode } from '../lib/data-mode';
 import {
   ACTION_TEXT,
   comparisonMessages,
+  estimateScopeText,
   hasEstimateFigure,
   LINK_POLL_MS,
   linkErrorOf,
@@ -831,6 +832,11 @@ function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkL
           {e.state === 'AVAILABLE' ? 'Vigente' : 'Desactualizada'}
         </span>
       </div>
+      {ref.scope.estimate && (
+        <p className="text-[11px] text-slate-600" data-testid="estimate-scope">
+          {estimateScopeText(ref.scope.estimate)}
+        </p>
+      )}
       {e.state === 'OUTDATED' && e.validity_reason && (
         <p className="text-[11px] text-slate-600">{VALIDITY_REASON_TEXT[e.validity_reason]} No se compara con la necesidad.</p>
       )}

@@ -2,7 +2,7 @@
  * E3 (docs/architecture/E3_ESTIMACION_EN_BORRADOR_CONTRATO.md §4): la
  * referencia de consumo estimado fijada en un borrador de propuesta y la
  * selección de productos para una convocatoria. Formas exactas de
- * `Back/src/modules/estimation/api/rest/proposal-estimation-link.schema.ts`.
+ * `Back/src/modules/proposal-estimation/api/rest/proposal-estimation-link.schema.ts`.
  * Las cantidades son strings exactos en unidad base: la Web no calcula con
  * ellas; la comparación la decide el servidor.
  */
@@ -94,6 +94,25 @@ export interface LinkComparison {
   difference: LinkDifference | null;
 }
 
+/**
+ * E3-P1 (opción 1 + 1b): alcance conocido de la cifra de consumo estimado:
+ * campañas del tramo y menos/más aportantes de una cifra de consumo. Sin
+ * identidades ni detalle por campaña.
+ */
+export interface EstimateScope {
+  span_campaigns: number;
+  contributors_min: number;
+  contributors_max: number;
+}
+
+/** Alcance conocido de cada cifra de la línea (sólo perfil institucional). */
+export interface LineScope {
+  /** Aportantes de la necesidad; sólo si la línea está divulgada (DISCLOSED). */
+  need_contributors: number | null;
+  /** Sólo con cifra de estimación (AVAILABLE u OUTDATED con `estimate_base`). */
+  estimate: EstimateScope | null;
+}
+
 export interface EstimationLinkLine {
   position: number;
   product: ProductRef;
@@ -111,6 +130,7 @@ export interface EstimationLinkLine {
     validity_reason: ValidityReason | null;
   };
   comparison: LinkComparison;
+  scope: LineScope;
 }
 
 /** `GET /collective/proposals/{id}/estimation-link` y el `view` de cada respuesta. */

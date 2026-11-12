@@ -102,7 +102,17 @@ describe('Necesidades y propuestas (rediseño)', () => {
     // El motivo (población no comprobada) se dice una vez, no en cada fila.
     expect(screen.getByTestId('comparison-note').textContent).toBe(BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED);
     expect(screen.queryAllByTestId('comparison-message')).toHaveLength(0);
-    expect(document.body.textContent!.split('cubran a las mismas personas').length - 1).toBe(1);
+    // E3-P1 (1b): la nota remite al alcance de cada cifra, y se dice una sola vez.
+    expect(BLOCKER_MESSAGE.POPULATION_NOT_VERIFIED).toBe(
+      'No se calcula la diferencia: la necesidad y la estimación provienen de grupos de agricultores distintos (ver el alcance de cada cifra).',
+    );
+    expect(document.body.textContent!.split('grupos de agricultores distintos').length - 1).toBe(1);
+    // El alcance de la estimación va en su celda: mínimo ≠ máximo y mínimo = máximo.
+    expect(within(reference('Glifosato')).getByTestId('estimate-scope').textContent).toBe('Cifras de 4 a 6 agricultores por campaña (11 campañas)');
+    expect(within(reference('Urea', 'G')).getByTestId('estimate-scope').textContent).toBe('Cifras de 5 agricultores por campaña (8 campañas)');
+    // Sin cifra (datos insuficientes, sin resultado): sin alcance.
+    expect(within(reference('Cipermetrina')).queryByTestId('estimate-scope')).toBeNull();
+    expect(within(reference('Amina')).queryByTestId('estimate-scope')).toBeNull();
     // Datos insuficientes y necesidad oculta: no se compara.
     expect(within(reference('Cipermetrina')).queryByTestId('reference-difference')).toBeNull();
     expect(within(reference('Amina')).queryByTestId('reference-difference')).toBeNull();
