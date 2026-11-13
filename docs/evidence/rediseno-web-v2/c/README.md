@@ -55,3 +55,25 @@ La suite completa y el build no se ejecutaron aquí: los corre el orquestador.
 - Una sola lectura del resumen por visita del detalle (StrictMode) y una sola de `GET /collective/trends` en Campañas (H-25); sin cobertura en la lista (H-18).
 - Usuarios: la Directiva no entra (`AdminRoute`) y no se piden las cuentas; nadie se desactiva ni se quita el rol de administrador.
 - Bitácora: sólo las filas del servidor (H-08); campaña, persona y fechas van al servidor.
+
+## 4. Ronda 2 (adopción de la base `0945dd1`), código `3fdda79`
+
+- **Cambios:** `PageHeader attachToHeader` (con `primaryAction`, `actions`, `eyebrow` y `eyebrowPhoneOnly`) sustituye a `ViewHeader`, que se borra. En el detalle de campaña, los chips van por `chips`. `ICON.camera` sustituye a `CAMERA_PATH`. El catálogo mantiene el alto de la vista anterior mientras carga la nueva.
+- **Verificación (carpeta `Web/`):**
+  - `npx tsc -b`: sale con 0.
+  - `npx eslint` de `components/c` y de las 8 páginas tocadas: sale con 0.
+  - `npx vitest run` de los 11 archivos de C y de rutas/roles: 11 archivos, 126 pruebas, todas pasan.
+- **Capturas (`ronda2/`, plan `plan_c_ronda2.mjs`), a 1440 y 390:**
+
+  | Captura | Láminas |
+  |---|---|
+  | `21-39-catalogo-productos` | 21 y 39 |
+  | `28-41-campanas` | 28 y 41 |
+  | `29-detalle-campana` | 29 |
+  | `31-44-usuarios` | 31 y 44 |
+
+- **Comparación:**
+  - En teléfono coinciden con las láminas 39, 41 y 44: cabecera oscura pegada, nombre del sindicato y acción en lima a todo el ancho.
+  - En el detalle (29), «Datos sintéticos» queda solo arriba a la derecha y los chips van junto al título. La línea de pasos ya es completa.
+  - En Usuarios aparece el panel de B en modo gestión (tarjeta oscura en escritorio).
+  - **Diferencias que vienen de `PageHeader`:** el título es `sm:text-4xl` (la lámina usa uno mayor; diferencia aceptada por el orquestador) y la acción principal va en una fila bajo el título, a la derecha, en lugar de a la altura del título.
