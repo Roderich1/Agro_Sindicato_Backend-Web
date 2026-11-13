@@ -1,3 +1,4 @@
+import { PolicyLine } from '../components/collective-ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HeroCoverage } from '../components/a/coverage-figure';
@@ -100,6 +101,10 @@ export function CoveragePage() {
           </Card>
         )}
         {summary && !loading && <CoverageBody coverage={summary.coverage} sealedAt={summary.seal?.sealed_at ?? null} policyPending={summary.disclosure.mode === 'POLICY_PENDING'} />}
+        {/* E4 (verificación O1): la política de publicación aplicada, como en el Resumen. */}
+        {summary && !loading && summary.disclosure.mode !== 'POLICY_PENDING' && (
+          <PolicyLine policy={summary.disclosure.policy} threshold={summary.disclosure.threshold} testId="coverage-policy" />
+        )}
         <section aria-labelledby="aceptados-locales" className="rounded-card border border-line bg-surface px-5 py-6 shadow-card sm:px-8" data-testid="accepted-vs-local">
           <h2 id="aceptados-locales" className="text-xl font-bold text-ink">
             Aportes aceptados y registros locales

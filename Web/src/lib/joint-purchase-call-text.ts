@@ -206,14 +206,16 @@ export const SUBSTITUTION_ONLY_SELF_TEXT =
   'La única persona que podría ser responsable es usted, y quien sustituye no puede nombrarse como responsable. Otra persona de la Administración habilitada debe hacerlo. No hay una salida automática: mientras tanto, nadie gana acceso y, si la convocatoria está abierta, se cierra sola al vencer la fecha límite.';
 
 /**
- * E4 §3.1: participaciones con una autorización anterior, sin la nueva. Un
- * recuento, nunca nombres. El servidor envía su aviso en `/participants` y
- * `/closing`; éste es el del detalle, para la Directiva y la Administración.
+ * E4 §3.1: participaciones vigentes cuyo consentimiento no cubre el detalle
+ * identificado (`pending_consent_count`): una autorización anterior a CONV-4
+ * o una retirada a «sólo totales» (`TOTALS_ONLY`). Un recuento, nunca nombres.
+ * El texto no afirma cuál de las dos es (el servidor no lo distingue en el
+ * recuento) ni que haya totales pendientes: eso lo dice cada producto.
  */
 export function pendingConsentText(count: number): string {
   return count === 1
-    ? '1 participación tiene una autorización anterior y espera la nueva de su agricultor. Los totales pendientes se mostrarán cuando todas las participaciones del producto tengan la autorización nueva.'
-    : `${count} participaciones tienen una autorización anterior y esperan la nueva de su agricultor. Los totales pendientes se mostrarán cuando todas las participaciones del producto tengan la autorización nueva.`;
+    ? '1 participación no autoriza que la Administración vea su nombre y su cantidad: tiene una autorización anterior o su agricultor la limitó a los totales. Si algún total figura como pendiente, se mostrará cuando todas las participaciones de ese producto lo permitan.'
+    : `${count} participaciones no autorizan que la Administración vea su nombre y su cantidad: tienen una autorización anterior o su agricultor la limitó a los totales. Si algún total figura como pendiente, se mostrará cuando todas las participaciones de ese producto lo permitan.`;
 }
 /** Cómo se resuelve un pendiente: lo decide cada agricultor en su aplicación. */
 export const PENDING_CONSENT_HOW = 'Cada agricultor lo decide en su aplicación, en «Revisar quién puede ver mi participación».';

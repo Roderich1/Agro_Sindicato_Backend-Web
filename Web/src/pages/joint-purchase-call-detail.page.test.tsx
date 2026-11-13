@@ -496,7 +496,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     expect(within(urea).getByTestId('hidden-total').textContent).toBe(PENDING_CONSENT_TOTAL_TEXT);
     expect(urea.textContent).not.toMatch(/\b0 KG\b|50 KG/);
     expect(urea.textContent).toMatch(/1 persona/);
-    expect(screen.getByTestId('pending-consent-count').textContent).toMatch(/^1 participación tiene una autorización anterior/);
+    expect(screen.getByTestId('pending-consent-count').textContent).toMatch(/^1 participación no autoriza que la Administración vea su nombre/);
     expect(screen.getByTestId('products-note').textContent).toBe('Total provisional: puede cambiar hasta el cierre');
     expect(screen.getByTestId('participants-count').textContent).toMatch(/4 personas/);
   });
@@ -555,7 +555,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     const urea = within(panel).getByTestId('closing-line-p-3');
     expect(within(urea).getByTestId('hidden-total').textContent).toBe(PENDING_CONSENT_TOTAL_TEXT);
     expect(urea.textContent).not.toMatch(/\b0 KG\b/);
-    expect(within(panel).getByTestId('pending-consent-count').textContent).toMatch(/^2 participaciones tienen una autorización anterior/);
+    expect(within(panel).getByTestId('pending-consent-count').textContent).toMatch(/^2 participaciones no autorizan que la Administración vea su nombre/);
     expect(within(panel).getByText('Cantidad solicitada (total)')).toBeTruthy();
     expect(within(panel).getByTestId('closing-detail-hidden')).toBeTruthy();
     expect(within(panel).queryByText('Agricultora sintética')).toBeNull();

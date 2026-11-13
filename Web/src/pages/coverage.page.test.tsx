@@ -47,6 +47,13 @@ describe('Cobertura', () => {
     }
   });
 
+  it('E4: muestra la política de publicación aplicada que declara el servidor, como el Resumen', async () => {
+    show(fixtures.worst);
+    const line = await screen.findByTestId('coverage-policy');
+    expect(line.textContent).toMatch(/^Política aplicada:/);
+    expect(line.textContent).toContain(fixtures.worst.summary.disclosure.policy);
+  });
+
   it('distingue aportes aceptados de registros locales y dice que estos no están disponibles', async () => {
     show(fixtures.demo);
     await screen.findByTestId('coverage');
