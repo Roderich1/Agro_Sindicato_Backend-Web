@@ -163,7 +163,7 @@ export function UsersPage() {
               </div>
             ) : loadError ? (
               <div className={surfaceClass}>
-                <DataState state={loadError.kind} description={loadError.text} onRetry={loadError.kind === 'forbidden' ? undefined : () => void refresh()} testId="users-error" />
+                <DataState state={loadError.kind} description={loadError.kind === 'offline' ? undefined : loadError.text} onRetry={loadError.kind === 'forbidden' ? undefined : () => void refresh()} testId="users-error" />
               </div>
             ) : shown.length === 0 ? (
               <div className={surfaceClass}>

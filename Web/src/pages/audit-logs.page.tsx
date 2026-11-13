@@ -217,7 +217,7 @@ export function AuditLogsPage() {
           </div>
         ) : error ? (
           <div className={surfaceClass}>
-            <DataState state={error.kind} description={error.text} onRetry={error.kind === 'forbidden' ? undefined : () => void refresh()} testId="audit-error" />
+            <DataState state={error.kind} description={error.kind === 'offline' ? undefined : error.text} onRetry={error.kind === 'forbidden' ? undefined : () => void refresh()} testId="audit-error" />
           </div>
         ) : logs.length === 0 ? (
           <div className={surfaceClass}>
