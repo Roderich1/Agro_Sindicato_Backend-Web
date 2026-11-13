@@ -1,34 +1,34 @@
 import axios from 'axios';
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { AppShell } from '../components/app-shell';
+import { RowLink } from '../components/c/bits';
+import { SubstitutionSlot } from '../components/c/substitution-slot';
+import { ViewHeader } from '../components/c/view-header';
 import {
-  AppShell,
-  EmptyState,
-  Modal,
-  UserAvatar,
-  RoleBadge,
-  buttonClass,
-  dangerButtonClass,
-  inputClass,
-  labelClass,
-  secondaryButtonClass,
-  ROLE_COLORS,
-} from '../components/app-shell';
-import { PageHeader } from '../components/ui';
+  Avatar,
+  Button,
+  Checkbox,
+  Chip,
+  ConfirmDialog,
+  DataState,
+  dataStateKindForError,
+  Dialog,
+  FilterChips,
+  Icon,
+  ICON,
+  Notice,
+  SearchInput,
+  Select,
+  surfaceClass,
+  TextInput,
+  type DataStateKind,
+  type TagTone,
+} from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
-import {
-  createUser,
-  deactivateUser,
-  listUsers,
-  resetUserPassword,
-  updateUser,
-} from '../services/users.service';
-import {
-  ROLE_LABELS,
-  USER_ROLES,
-  type AdminUser,
-  type UserRole,
-} from '../types/users';
 import { offlineMessage } from '../lib/format';
+import { normalizeName } from '../lib/product-text';
+import { createUser, deactivateUser, listUsers, resetUserPassword, updateUser } from '../services/users.service';
+import { ROLE_LABELS, USER_ROLES, type AdminUser, type UserRole } from '../types/users';
 
 type DialogState =
   | { kind: 'none' }
@@ -37,14 +37,19 @@ type DialogState =
   | { kind: 'password'; user: AdminUser }
   | { kind: 'deactivate'; user: AdminUser };
 
+type RoleFilter = 'ALL' | UserRole;
+
+const NUMBER = new Intl.NumberFormat('es-BO');
+const ROLE_TONE: Record<UserRole, TagTone> = { ADMINISTRADOR: 'dark', DIRECTIVA: 'positive', AGRICULTOR: 'neutral' };
+const ROLE_TAB: Record<UserRole, string> = { DIRECTIVA: 'Directiva', ADMINISTRADOR: 'Administración', AGRICULTOR: 'Agricultores' };
+const MIN_PASSWORD = 8;
+
 function extractError(err: unknown, fallback: string): string {
   const offline = offlineMessage(err);
   if (offline) return offline;
   if (axios.isAxiosError(err) && err.response) {
     const data = err.response.data as { message?: string | string[] } | undefined;
-    if (data?.message) {
-      return Array.isArray(data.message) ? data.message.join(', ') : data.message;
-    }
+    if (data?.message) return Array.isArray(data.message) ? data.message.join(', ') : data.message;
     if (err.response.status === 401) return 'Sesión expirada. Inicie sesión nuevamente.';
     if (err.response.status === 403) return 'No tiene permisos para esta acción.';
     if (err.response.status === 429) return 'Demasiadas solicitudes. Espere un momento.';
@@ -52,35 +57,36 @@ function extractError(err: unknown, fallback: string): string {
   return fallback;
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return '—';
-  try {
-    return new Date(value).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-    });
-  } catch {
-    return '—';
-  }
-}
-
+/**
+ * Usuarios (`/users`, sólo ADMINISTRADOR por `AdminRoute`; láminas 31 y 44,
+ * diálogos 33.1–33.3 y 34.6). Cuentas del sindicato con `GET /users`; crear,
+ * editar (nombre, rol y «Cuenta activa» = `isActive`), cambiar la contraseña y
+ * desactivar con las llamadas de siempre. El correo no se edita: la API no lo
+ * admite (H-13). Los filtros por rol, sus recuentos y la búsqueda se hacen en el
+ * navegador con la lista ya recibida.
+ *
+ * A la derecha (abajo en teléfono), el permiso «Sustituir responsable» (U.4):
+ * el componente de la sesión B en modo gestión; conceder y retirar dependen de
+ * `can_grant`, que decide el servidor.
+ */
 export function UsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ kind: DataStateKind; text: string } | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ kind: 'none' });
   const [search, setSearch] = useState('');
+  const [role, setRole] = useState<RoleFilter>('ALL');
+  const [message, setMessage] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const data = await listUsers();
-      setUsers(data);
+      setUsers(await listUsers());
     } catch (err) {
-      setLoadError(extractError(err, 'No fue posible cargar los usuarios.'));
+      const kind = dataStateKindForError(err);
+      setLoadError({ kind, text: extractError(err, 'No fue posible cargar los usuarios.') });
     } finally {
       setIsLoading(false);
     }
@@ -91,329 +97,289 @@ export function UsersPage() {
   }, [refresh]);
 
   const closeDialog = () => setDialog({ kind: 'none' });
-
   const handleCreated = (created: AdminUser) => {
     setUsers((prev) => [created, ...prev]);
+    setMessage(`Se creó la cuenta de «${created.name}».`);
     closeDialog();
   };
-
-  const handleUpdated = (updated: AdminUser) => {
+  const handleUpdated = (updated: AdminUser, text: string) => {
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+    setMessage(text);
     closeDialog();
   };
 
-  const filtered = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const headerActions = (
-    <button
-      type="button"
-      onClick={() => setDialog({ kind: 'create' })}
-      className={buttonClass}
-    >
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-      </svg>
-      Nuevo usuario
-    </button>
-  );
+  const wanted = normalizeName(search);
+  const byRole = users.filter((u) => role === 'ALL' || u.role === role);
+  const shown = byRole.filter((u) => !wanted || normalizeName(u.name).includes(wanted) || u.email.toLowerCase().includes(search.trim().toLowerCase()));
+  const activeCount = users.filter((u) => u.isActive).length;
+  const filtered = role !== 'ALL' || wanted.length > 0;
 
   return (
-    <AppShell title="Usuarios" section="Administración">
-      <div className="mb-5">
-        <PageHeader title="Usuarios" subtitle="Cuentas de acceso de su organización." actions={headerActions} />
-      </div>
-      {/* Search & stats */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex-1 max-w-sm">
-          <label htmlFor="user-search" className={labelClass}>Buscar</label>
-          <div className="input-icon-wrapper">
-            <input
-              id="user-search"
-              className={`${inputClass} pl-10`}
-              placeholder="Nombre o email…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              autoComplete="off"
-            />
-            <span className="input-icon">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </span>
-          </div>
-        </div>
-        <div className="flex gap-3 text-sm text-slate-500">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            {users.filter((u) => u.isActive).length} activos
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-            {users.length} total
-          </span>
-        </div>
-      </div>
+    <AppShell title="Usuarios" section="Sindicato">
+      <div className="space-y-5">
+        <ViewHeader
+          title="Usuarios"
+          eyebrow={currentUser?.tenant?.name ? `${currentUser.tenant.name} · solo Administración` : 'Solo Administración'}
+          subtitle={
+            isLoading || loadError
+              ? 'Los agricultores entran por la aplicación móvil, no por la Web.'
+              : `${NUMBER.format(activeCount)} ${activeCount === 1 ? 'cuenta activa' : 'cuentas activas'} de ${NUMBER.format(users.length)}. Los agricultores entran por la aplicación móvil, no por la Web.`
+          }
+          action={{ label: 'Nuevo usuario', onClick: () => setDialog({ kind: 'create' }) }}
+        />
+        {message && <Notice kind="ok">{message}</Notice>}
 
-      {loadError && (
-        <div role="alert" className="mb-6 flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          <svg className="h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {loadError}
-        </div>
-      )}
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <section className="min-w-0 space-y-3" aria-label="Cuentas del sindicato">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <FilterChips
+                label="Filtrar por rol"
+                testId="role-filter"
+                value={role}
+                onChange={setRole}
+                options={[
+                  { value: 'ALL', label: 'Todos', count: isLoading || loadError ? undefined : NUMBER.format(users.length) },
+                  ...(['DIRECTIVA', 'ADMINISTRADOR', 'AGRICULTOR'] as UserRole[]).map((value) => ({
+                    value,
+                    label: ROLE_TAB[value],
+                    count: isLoading || loadError ? undefined : NUMBER.format(users.filter((u) => u.role === value).length),
+                  })),
+                ]}
+              />
+              <SearchInput
+                id="user-search"
+                label="Buscar usuario"
+                value={search}
+                onChange={setSearch}
+                placeholder="Buscar por nombre o correo"
+                autoComplete="off"
+                fieldClassName="w-full lg:w-72"
+              />
+            </div>
 
-      {isLoading ? (
-        <div className="glass-card flex items-center justify-center px-6 py-20 text-emerald-700">
-          <svg className="mr-3 h-6 w-6 animate-spin motion-reduce:animate-none" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-          </svg>
-          <span className="text-sm font-medium">Cargando usuarios…</span>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="glass-card">
-          <EmptyState
-            icon={
-              <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            }
-            title={search ? 'Sin resultados' : 'No hay usuarios registrados'}
-            description={search ? 'Intente con otros términos de búsqueda.' : 'Cree el primer usuario de la organización.'}
-          />
-        </div>
-      ) : (
-        <>
-          {/* Desktop Table */}
-          <div className="hidden md:block table-container">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-600">
-                <tr>
-                  <th className="px-5 py-3.5">Usuario</th>
-                  <th className="px-5 py-3.5">Rol</th>
-                  <th className="px-5 py-3.5">Estado</th>
-                  <th className="px-5 py-3.5">Creado</th>
-                  <th className="px-5 py-3.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100/80">
-                {filtered.map((u) => {
-                  const isSelf = u.id === currentUser?.id;
-                  return (
-                    <tr key={u.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <UserAvatar name={u.name} size="sm" gradient={ROLE_COLORS[u.role]} />
-                          <div>
-                            <p className="font-semibold text-slate-800">
-                              {u.name}
-                              {isSelf && <span className="ml-1.5 text-xs font-medium text-brand-800">(usted)</span>}
-                            </p>
-                            <p className="text-xs text-slate-500">{u.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5"><RoleBadge role={u.role} /></td>
-                      <td className="px-5 py-3.5">
-                        {u.isActive ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-500/20">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                            Activo
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-500/10 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/20">
-                            <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                            Inactivo
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-slate-500">{formatDate(u.createdAt)}</td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="inline-flex gap-1.5">
-                          <ActionButton label="Editar" onClick={() => setDialog({ kind: 'edit', user: u })} />
-                          <ActionButton label="Contraseña" onClick={() => setDialog({ kind: 'password', user: u })} />
-                          <ActionButton
-                            label="Desactivar"
-                            danger
-                            disabled={!u.isActive || isSelf}
-                            onClick={() => setDialog({ kind: 'deactivate', user: u })}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="space-y-3 md:hidden">
-            {filtered.map((u) => {
-              const isSelf = u.id === currentUser?.id;
-              return (
-                <div key={u.id} className="glass-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <UserAvatar name={u.name} size="md" gradient={ROLE_COLORS[u.role]} />
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-slate-800">
-                          {u.name}
-                          {isSelf && <span className="ml-1.5 text-xs font-medium text-brand-800">(usted)</span>}
-                        </p>
-                        <p className="truncate text-xs text-slate-500">{u.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <RoleBadge role={u.role} />
-                      {u.isActive ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-800">
-                          <span className="h-1.5 w-1.5 rounded-full bg-brand-600" aria-hidden="true" /> Activo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
-                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden="true" /> Inactivo
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <ActionButton label="Editar" onClick={() => setDialog({ kind: 'edit', user: u })} />
-                    <ActionButton label="Contraseña" onClick={() => setDialog({ kind: 'password', user: u })} />
-                    <ActionButton
-                      label="Desactivar"
-                      danger
-                      disabled={!u.isActive || isSelf}
-                      onClick={() => setDialog({ kind: 'deactivate', user: u })}
+            {isLoading ? (
+              <div className={surfaceClass}>
+                <DataState state="loading" title="Cargando usuarios…" skeletonRows={4} />
+              </div>
+            ) : loadError ? (
+              <div className={surfaceClass}>
+                <DataState state={loadError.kind} description={loadError.text} onRetry={loadError.kind === 'forbidden' ? undefined : () => void refresh()} testId="users-error" />
+              </div>
+            ) : shown.length === 0 ? (
+              <div className={surfaceClass}>
+                {users.length === 0 ? (
+                  <DataState state="empty" title="No hay usuarios registrados" description="Cree la primera cuenta con «Nuevo usuario»." />
+                ) : (
+                  <DataState
+                    state="no-match"
+                    description="Ninguna cuenta coincide con el filtro o la búsqueda."
+                    onClearFilters={() => {
+                      setSearch('');
+                      setRole('ALL');
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <ul className={`${surfaceClass} divide-y divide-line overflow-hidden`} aria-label="Usuarios">
+                  {shown.map((u) => (
+                    <UserRow
+                      key={u.id}
+                      user={u}
+                      isSelf={u.id === currentUser?.id}
+                      onEdit={() => setDialog({ kind: 'edit', user: u })}
+                      onPassword={() => setDialog({ kind: 'password', user: u })}
+                      onDeactivate={() => setDialog({ kind: 'deactivate', user: u })}
                     />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+                  ))}
+                </ul>
+                {filtered && (
+                  <p className="text-sm text-ink-muted" data-testid="users-shown">
+                    Se muestran {NUMBER.format(shown.length)} de {NUMBER.format(users.length)}.
+                  </p>
+                )}
+              </>
+            )}
+          </section>
 
-      {/* Dialogs */}
+          <aside className="min-w-0" aria-label="Permiso «Sustituir responsable»">
+            <SubstitutionSlot userId={currentUser?.id ?? null} />
+          </aside>
+        </div>
+      </div>
+
       {dialog.kind === 'create' && <CreateUserDialog onCancel={closeDialog} onCreated={handleCreated} />}
       {dialog.kind === 'edit' && (
-        <EditUserDialog user={dialog.user} isSelf={dialog.user.id === currentUser?.id} onCancel={closeDialog} onUpdated={handleUpdated} />
+        <EditUserDialog
+          user={dialog.user}
+          isSelf={dialog.user.id === currentUser?.id}
+          onCancel={closeDialog}
+          onUpdated={(updated) => handleUpdated(updated, `Se guardaron los cambios de «${updated.name}».`)}
+        />
       )}
       {dialog.kind === 'password' && (
-        <ResetPasswordDialog user={dialog.user} onCancel={closeDialog} onDone={closeDialog} />
+        <PasswordDialog
+          user={dialog.user}
+          onCancel={closeDialog}
+          onDone={() => {
+            setMessage(`Se cambió la contraseña de «${dialog.user.name}».`);
+            closeDialog();
+          }}
+        />
       )}
       {dialog.kind === 'deactivate' && (
-        <DeactivateDialog user={dialog.user} onCancel={closeDialog} onConfirmed={handleUpdated} />
+        <DeactivateDialog user={dialog.user} onCancel={closeDialog} onConfirmed={(updated) => handleUpdated(updated, `«${updated.name}» quedó desactivada. Sus datos no se borran.`)} />
       )}
     </AppShell>
   );
 }
 
-/* ── ActionButton ── */
-function ActionButton({ label, onClick, danger, disabled }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
+function UserRow({
+  user,
+  isSelf,
+  onEdit,
+  onPassword,
+  onDeactivate,
+}: {
+  user: AdminUser;
+  isSelf: boolean;
+  onEdit: () => void;
+  onPassword: () => void;
+  onDeactivate: () => void;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`ui-press min-h-8 rounded-control px-2.5 py-1.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 ${
-        danger
-          ? 'border border-red-200 text-red-700 hover:bg-red-50 disabled:text-slate-400 disabled:border-slate-200 disabled:hover:bg-transparent'
-          : 'border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-      } disabled:cursor-not-allowed disabled:opacity-50`}
-    >
-      {label}
-    </button>
+    <li className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 sm:px-6" data-testid={`user-${user.email}`}>
+      <Avatar name={user.name} tone={user.isActive ? 'ink' : 'soft'} />
+      <div className="min-w-0 flex-1 basis-48">
+        <p className="font-semibold text-ink [overflow-wrap:anywhere]">
+          {user.name}
+          {isSelf && <span className="font-normal text-ink-muted"> (usted)</span>}
+        </p>
+        <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
+          {user.email}
+          {user.role === 'AGRICULTOR' && ' · usa la aplicación móvil'}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Chip tone={ROLE_TONE[user.role]}>{ROLE_LABELS[user.role]}</Chip>
+        <span className={`w-16 text-sm font-semibold ${user.isActive ? 'text-link' : 'text-ink-muted'}`} data-testid="user-status">
+          {user.isActive ? 'Activa' : 'Inactiva'}
+        </span>
+      </div>
+      <div className="ml-auto flex flex-wrap gap-1">
+        <RowLink onClick={onEdit} aria-label={`Editar a ${user.name}`}>
+          Editar
+        </RowLink>
+        <RowLink onClick={onPassword} aria-label={`Contraseña de ${user.name}`}>
+          Contraseña
+        </RowLink>
+        {user.isActive && !isSelf && (
+          <RowLink tone="danger" onClick={onDeactivate} aria-label={`Desactivar a ${user.name}`}>
+            Desactivar
+          </RowLink>
+        )}
+      </div>
+    </li>
   );
 }
 
-/* ── FieldError ── */
-function FieldError({ children }: { children: ReactNode }) {
-  return <p className="mt-1 text-xs text-red-600">{children}</p>;
-}
-
-/* ── Create User Dialog ── */
+/** Lámina 33.1. Rol propuesto: Directiva (la Web es institucional); los agricultores entran por la aplicación móvil. */
 function CreateUserDialog({ onCancel, onCreated }: { onCancel: () => void; onCreated: (user: AdminUser) => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('AGRICULTOR');
+  const [role, setRole] = useState<UserRole>('DIRECTIVA');
   const [allowAdmin, setAllowAdmin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nameValid = name.trim().length >= 2;
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const passwordValid = password.length >= 8;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const passwordValid = password.length >= MIN_PASSWORD;
   const adminConfirmed = role !== 'ADMINISTRADOR' || allowAdmin;
   const canSubmit = nameValid && emailValid && passwordValid && adminConfirmed && !isSubmitting;
+  const dirty = name.length > 0 || email.length > 0 || password.length > 0;
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     if (!canSubmit) return;
     setError(null);
     setIsSubmitting(true);
     try {
-      const created = await createUser({
-        name: name.trim(),
-        email: email.trim(),
-        password,
-        role,
-        ...(role === 'ADMINISTRADOR' ? { allowAdministrator: true } : {}),
-      });
-      onCreated(created);
+      onCreated(
+        await createUser({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          role,
+          ...(role === 'ADMINISTRADOR' ? { allowAdministrator: true } : {}),
+        }),
+      );
     } catch (err) {
       setError(extractError(err, 'No fue posible crear el usuario.'));
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal title="Nuevo usuario" onClose={onCancel}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        <div>
-          <label className={labelClass}>Nombre</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} className={inputClass} />
-          {name.length > 0 && !nameValid && <FieldError>Mínimo 2 caracteres.</FieldError>}
-        </div>
-        <div>
-          <label className={labelClass}>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isSubmitting} className={inputClass} />
-          {email.length > 0 && !emailValid && <FieldError>Email inválido.</FieldError>}
-        </div>
-        <div>
-          <label className={labelClass}>Contraseña</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSubmitting} className={inputClass} />
-          {password.length > 0 && !passwordValid && <FieldError>Mínimo 8 caracteres.</FieldError>}
-        </div>
-        <div>
-          <label className={labelClass}>Rol</label>
-          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} disabled={isSubmitting} className={inputClass}>
-            {USER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-          </select>
-        </div>
+    <Dialog
+      title="Nuevo usuario"
+      onClose={onCancel}
+      dirty={dirty}
+      busy={isSubmitting}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="user-create-form" disabled={!canSubmit} busy={isSubmitting}>
+            Crear usuario
+          </Button>
+        </>
+      }
+    >
+      <form id="user-create-form" onSubmit={(event) => void handleSubmit(event)} noValidate className="space-y-5">
+        <TextInput id="user-name" label="Nombre" value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} autoComplete="off" error={name.length > 0 && !nameValid ? 'Mínimo 2 caracteres.' : undefined} />
+        <TextInput
+          id="user-email"
+          label="Correo electrónico"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={isSubmitting}
+          autoComplete="off"
+          placeholder="nombre@correo.com"
+          error={email.length > 0 && !emailValid ? 'Correo no válido.' : undefined}
+        />
+        <TextInput
+          id="user-password"
+          label="Contraseña"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={isSubmitting}
+          autoComplete="new-password"
+          help="Al menos 8 caracteres."
+          error={password.length > 0 && !passwordValid ? 'Mínimo 8 caracteres.' : undefined}
+        />
+        <Select id="user-role" label="Rol" value={role} onChange={(e) => setRole(e.target.value as UserRole)} disabled={isSubmitting} help="Los agricultores entran por la aplicación móvil.">
+          {USER_ROLES.map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r]}
+            </option>
+          ))}
+        </Select>
         {role === 'ADMINISTRADOR' && (
-          <label className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">
-            <input type="checkbox" checked={allowAdmin} onChange={(e) => setAllowAdmin(e.target.checked)} disabled={isSubmitting} className="mt-0.5 accent-amber-600" />
-            <span>Confirmo crear otro usuario con rol <strong>Administrador</strong>.</span>
-          </label>
+          <Checkbox label="Confirmo crear otro usuario con rol Administrador." checked={allowAdmin} onChange={(e) => setAllowAdmin(e.target.checked)} disabled={isSubmitting} />
         )}
-        {error && <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">{error}</div>}
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onCancel} disabled={isSubmitting} className={secondaryButtonClass}>Cancelar</button>
-          <button type="submit" disabled={!canSubmit} className={buttonClass}>{isSubmitting ? 'Creando…' : 'Crear usuario'}</button>
-        </div>
+        {error && <Notice kind="error">{error}</Notice>}
       </form>
-    </Modal>
+    </Dialog>
   );
 }
 
-/* ── Edit User Dialog ── */
+/** Lámina 34.6. El correo es de sólo lectura (H-13): `UpdateUserDto` admite nombre, rol y `isActive`. */
 function EditUserDialog({ user, isSelf, onCancel, onUpdated }: { user: AdminUser; isSelf: boolean; onCancel: () => void; onUpdated: (user: AdminUser) => void }) {
   const [name, setName] = useState(user.name);
   const [role, setRole] = useState<UserRole>(user.role);
@@ -423,125 +389,156 @@ function EditUserDialog({ user, isSelf, onCancel, onUpdated }: { user: AdminUser
 
   const nameValid = name.trim().length >= 2;
   const hasChanges = name.trim() !== user.name || role !== user.role || isActive !== user.isActive;
-  const canSubmit = nameValid && hasChanges && !isSubmitting;
+  const selfDemotion = isSelf && user.role === 'ADMINISTRADOR' && role !== 'ADMINISTRADOR';
+  const canSubmit = nameValid && hasChanges && !selfDemotion && !isSubmitting;
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     if (!canSubmit) return;
     setError(null);
     setIsSubmitting(true);
     try {
-      const updated = await updateUser(user.id, {
-        ...(name.trim() !== user.name ? { name: name.trim() } : {}),
-        ...(role !== user.role ? { role } : {}),
-        ...(isActive !== user.isActive ? { isActive } : {}),
-      });
-      onUpdated(updated);
+      onUpdated(
+        await updateUser(user.id, {
+          ...(name.trim() !== user.name ? { name: name.trim() } : {}),
+          ...(role !== user.role ? { role } : {}),
+          ...(isActive !== user.isActive ? { isActive } : {}),
+        }),
+      );
     } catch (err) {
       setError(extractError(err, 'No fue posible actualizar el usuario.'));
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal title={`Editar ${user.name}`} onClose={onCancel}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+    <Dialog
+      title={`Editar a ${user.name}`}
+      onClose={onCancel}
+      dirty={hasChanges}
+      busy={isSubmitting}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="user-edit-form" disabled={!canSubmit} busy={isSubmitting}>
+            Guardar cambios
+          </Button>
+        </>
+      }
+    >
+      <form id="user-edit-form" onSubmit={(event) => void handleSubmit(event)} noValidate className="space-y-5">
+        <TextInput id="user-edit-name" label="Nombre" value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} autoComplete="off" error={name.length > 0 && !nameValid ? 'Mínimo 2 caracteres.' : undefined} />
         <div>
-          <label className={labelClass}>Nombre</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} className={inputClass} />
-          {name.length > 0 && !nameValid && <FieldError>Mínimo 2 caracteres.</FieldError>}
+          <p className="mb-1.5 text-sm font-semibold text-ink" id="user-edit-email-label">
+            Correo electrónico
+          </p>
+          <p className="flex min-h-11 items-center gap-2 rounded-field border border-line bg-sunken px-4 py-2.5 text-base text-ink [overflow-wrap:anywhere]" aria-labelledby="user-edit-email-label" data-testid="email-readonly">
+            <Icon d={ICON.lock} className="h-4 w-4 shrink-0" />
+            {user.email}
+          </p>
+          <p className="mt-1.5 text-xs text-ink-muted">El correo no se puede cambiar desde la Web.</p>
         </div>
-        <div>
-          <label className={labelClass}>Email</label>
-          <input type="email" value={user.email} disabled className={`${inputClass} !bg-slate-50 !text-slate-500`} />
-          <p className="mt-1 text-xs text-slate-400">El email no puede modificarse.</p>
-        </div>
-        <div>
-          <label className={labelClass}>Rol</label>
-          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} disabled={isSubmitting} className={inputClass}>
-            {USER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-          </select>
-          {isSelf && user.role === 'ADMINISTRADOR' && role !== 'ADMINISTRADOR' && (
-            <FieldError>No puede quitarse su propio rol de administrador.</FieldError>
-          )}
-        </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} disabled={isSubmitting || isSelf} className="accent-emerald-600" />
-          <span>Usuario activo</span>
-          {isSelf && <span className="text-xs text-slate-400">(no puede desactivarse a sí mismo)</span>}
-        </label>
-        {error && <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">{error}</div>}
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onCancel} disabled={isSubmitting} className={secondaryButtonClass}>Cancelar</button>
-          <button type="submit" disabled={!canSubmit} className={buttonClass}>{isSubmitting ? 'Guardando…' : 'Guardar cambios'}</button>
-        </div>
+        <Select
+          id="user-edit-role"
+          label="Rol"
+          value={role}
+          onChange={(e) => setRole(e.target.value as UserRole)}
+          disabled={isSubmitting}
+          help="Cambiar el rol no concede permisos sobre convocatorias."
+          error={selfDemotion ? 'No puede quitarse su propio rol de administrador.' : undefined}
+        >
+          {USER_ROLES.map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r]}
+            </option>
+          ))}
+        </Select>
+        <Checkbox
+          label="Cuenta activa"
+          description={isSelf ? 'No puede desactivar su propia cuenta.' : 'Una cuenta inactiva no puede ingresar; sus datos se conservan.'}
+          checked={isActive}
+          onChange={(e) => setIsActive(e.target.checked)}
+          disabled={isSubmitting || isSelf}
+        />
+        {error && <Notice kind="error">{error}</Notice>}
       </form>
-    </Modal>
+    </Dialog>
   );
 }
 
-/* ── Reset Password Dialog ── */
-function ResetPasswordDialog({ user, onCancel, onDone }: { user: AdminUser; onCancel: () => void; onDone: () => void }) {
+/** Lámina 33.2: nueva contraseña y su repetición (comprobada en el navegador; el servidor valida la longitud). */
+function PasswordDialog({ user, onCancel, onDone }: { user: AdminUser; onCancel: () => void; onDone: () => void }) {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
-  const passwordValid = password.length >= 8;
+  const passwordValid = password.length >= MIN_PASSWORD;
   const matches = password === confirm;
   const canSubmit = passwordValid && matches && !isSubmitting;
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     if (!canSubmit) return;
     setError(null);
     setIsSubmitting(true);
     try {
       await resetUserPassword(user.id, password);
-      setSuccess(true);
-      setTimeout(onDone, 1200);
+      onDone();
     } catch (err) {
-      setError(extractError(err, 'No fue posible actualizar la contraseña.'));
-    } finally {
+      setError(extractError(err, 'No fue posible cambiar la contraseña.'));
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal title={`Restablecer contraseña de ${user.name}`} onClose={onCancel}>
-      {success ? (
-        <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 animate-scale-in">
-          <svg className="h-5 w-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Contraseña actualizada correctamente.
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <div>
-            <label className={labelClass}>Nueva contraseña</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSubmitting} className={inputClass} />
-            {password.length > 0 && !passwordValid && <FieldError>Mínimo 8 caracteres.</FieldError>}
-          </div>
-          <div>
-            <label className={labelClass}>Confirmar contraseña</label>
-            <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} disabled={isSubmitting} className={inputClass} />
-            {confirm.length > 0 && !matches && <FieldError>Las contraseñas no coinciden.</FieldError>}
-          </div>
-          {error && <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">{error}</div>}
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onCancel} disabled={isSubmitting} className={secondaryButtonClass}>Cancelar</button>
-            <button type="submit" disabled={!canSubmit} className={buttonClass}>{isSubmitting ? 'Actualizando…' : 'Restablecer'}</button>
-          </div>
-        </form>
-      )}
-    </Modal>
+    <Dialog
+      title={`Contraseña de ${user.name}`}
+      onClose={onCancel}
+      dirty={password.length > 0 || confirm.length > 0}
+      busy={isSubmitting}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="user-password-form" disabled={!canSubmit} busy={isSubmitting}>
+            Guardar
+          </Button>
+        </>
+      }
+    >
+      <form id="user-password-form" onSubmit={(event) => void handleSubmit(event)} noValidate className="space-y-5">
+        <TextInput
+          id="user-new-password"
+          label="Nueva contraseña"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={isSubmitting}
+          autoComplete="new-password"
+          help="Al menos 8 caracteres."
+          error={password.length > 0 && !passwordValid ? 'Mínimo 8 caracteres.' : undefined}
+        />
+        <TextInput
+          id="user-repeat-password"
+          label="Repetir la contraseña"
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          disabled={isSubmitting}
+          autoComplete="new-password"
+          error={confirm.length > 0 && !matches ? 'Las contraseñas no coinciden.' : undefined}
+        />
+        {error && <Notice kind="error">{error}</Notice>}
+      </form>
+    </Dialog>
   );
 }
 
-/* ── Deactivate Dialog ── */
+/** Lámina 33.3. */
 function DeactivateDialog({ user, onCancel, onConfirmed }: { user: AdminUser; onCancel: () => void; onConfirmed: (user: AdminUser) => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -550,8 +547,7 @@ function DeactivateDialog({ user, onCancel, onConfirmed }: { user: AdminUser; on
     setError(null);
     setIsSubmitting(true);
     try {
-      const updated = await deactivateUser(user.id);
-      onConfirmed(updated);
+      onConfirmed(await deactivateUser(user.id));
     } catch (err) {
       setError(extractError(err, 'No fue posible desactivar al usuario.'));
       setIsSubmitting(false);
@@ -559,25 +555,10 @@ function DeactivateDialog({ user, onCancel, onConfirmed }: { user: AdminUser; on
   };
 
   return (
-    <Modal title="Desactivar usuario" onClose={onCancel} size="sm">
-      <div className="space-y-4">
-        <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4">
-          <svg className="h-6 w-6 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <p className="text-sm text-red-800">
-            ¿Confirmas que deseas desactivar a <strong>{user.name}</strong> ({user.email})?
-            El usuario no podrá iniciar sesión.
-          </p>
-        </div>
-        {error && <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">{error}</div>}
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onCancel} disabled={isSubmitting} className={secondaryButtonClass}>Cancelar</button>
-          <button type="button" onClick={handleConfirm} disabled={isSubmitting} className={dangerButtonClass}>
-            {isSubmitting ? 'Desactivando…' : 'Sí, desactivar'}
-          </button>
-        </div>
-      </div>
-    </Modal>
+    <ConfirmDialog tone="danger" title={`Desactivar a ${user.name}`} confirmLabel="Desactivar" busy={isSubmitting} error={error} onConfirm={() => void handleConfirm()} onCancel={onCancel}>
+      <p className="text-ink-muted">
+        {user.email}. Ya no podrá ingresar. Sus datos no se borran y la cuenta se puede volver a activar desde «Editar».
+      </p>
+    </ConfirmDialog>
   );
 }
