@@ -7,7 +7,7 @@ import type {
   SyncV1BaseUnit,
   UserRole,
 } from "@prisma/client";
-import { CONSENT_V1_TEXT as CONSENT_V1_TEXT_LEGACY, CONSENT_V1_VERSION as CONSENT_V1_VERSION_LEGACY } from "../domain/consent";
+import { CONSENT_V1_TEXT as CONSENT_V1_TEXT_LEGACY, CONSENT_V1_VERSION as CONSENT_V1_VERSION_LEGACY, ParticipationScope } from "../domain/consent";
 import { ProductTotalView } from "../domain/visibility";
 
 export type PresentationUnit = "L" | "KG";
@@ -40,7 +40,7 @@ export interface ParticipationView {
    * 0 = the first acceptance). Only in contract 2: `toLegacyFarmerBody`
    * removes it for phones that do not ask for it.
    */
-  consent_scope?: { scope: "RESPONSIBLE_ONLY" | "COLLABORATORS"; version: string; decided_at: string; received_at: string; sequence: number };
+  consent_scope?: { scope: ParticipationScope; version: string; decided_at: string; received_at: string; sequence: number };
   /**
    * P-A C1 (§12, contract 3 only): whether the farmer authorized the call's
    * CURRENT responsible (`authorized`) and which responsible version the
@@ -58,7 +58,7 @@ export interface ParticipationRow {
   consentVersion: string;
   consentAcceptedAt: Date;
   consentReceivedAt: Date;
-  consentScope: "RESPONSIBLE_ONLY" | "COLLABORATORS";
+  consentScope: ParticipationScope;
   consentScopeVersion: string;
   consentScopeDecidedAt: Date;
   consentScopeReceivedAt: Date;
