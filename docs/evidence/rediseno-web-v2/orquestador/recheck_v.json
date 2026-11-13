@@ -1,0 +1,33 @@
+{
+ "v2": {
+  "resumen": true,
+  "/colectivo/compras-conjuntas": false,
+  "/colectivo/catalogo?vista=productos": false,
+  "/campaigns": false,
+  "/audit-logs": false,
+  "users": false
+ },
+ "v1": {
+  "detail": "/campaigns/ec4db92b-9067-4083-944c-eae96e7571bc",
+  "links": 4,
+  "older": "/colectivo/propuestas?campaign=ec4db92b-9067-4083-944c-eae96e7571bc&borrador=84e18f96-fc27-4aec-9adf-7fdd6ab4a74c",
+  "wanted": "84e18f96",
+  "readWanted": true,
+  "proposalReads": [
+   "84e18f96",
+   "84e18f96"
+  ],
+  "tabAnterior": true,
+  "urlKeeps": true,
+  "writes": []
+ },
+ "v3": {
+  "approx": true,
+  "exact": true,
+  "nineDecimals": false
+ },
+ "v5": {
+  "campanas": true,
+  "resumen": false
+ }
+}
