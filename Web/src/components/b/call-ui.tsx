@@ -17,7 +17,7 @@ import type {
   JointPurchaseParticipationStatus,
   JointPurchaseResponsibleChange,
 } from '../../types/joint-purchase-calls';
-import { Chip, ICON, Icon, linkClass, surfaceClass } from '../ui';
+import { Chip, DataTable, ICON, Icon, linkClass, QuantityFigure, surfaceClass, type DataTableColumn } from '../ui';
 
 /*
  * Piezas de presentación de «Compras conjuntas» (sesión B del rediseño v2,
@@ -63,24 +63,6 @@ export function LockLine({ children, icon = 'lock', testId }: { children: ReactN
   );
 }
 
-/** «11 L» con la cifra grande y la unidad pequeña (láminas 11 y 12). `text` llega formateado. */
-export function BigQuantity({ text, size = 'lg' }: { text: string; size?: 'lg' | 'md' }) {
-  const cut = text.lastIndexOf(' ');
-  const figure = cut > 0 ? text.slice(0, cut) : text;
-  const unit = cut > 0 ? text.slice(cut + 1) : '';
-  return (
-    <span className="whitespace-nowrap tabular-nums text-ink">
-      <span className={`font-display font-extrabold leading-none ${size === 'lg' ? 'text-3xl sm:text-4xl' : 'text-lg'}`}>{figure}</span>
-      {unit && (
-        <>
-          {' '}
-          <span className="text-sm font-bold">{unit}</span>
-        </>
-      )}
-    </span>
-  );
-}
-
 /**
  * Total de un producto (05 §13): la cifra sólo con `VISIBLE`; si no, el chip
  * punteado con el texto del estado y, si ayuda, su motivo. Nunca 0.
@@ -108,7 +90,7 @@ export function CallTotal({
           Sin pedidos todavía
         </Chip>
       );
-    return <BigQuantity text={quantityText(total.total_quantity_base, baseUnit)} />;
+    return <QuantityFigure text={quantityText(total.total_quantity_base, baseUnit)} className="sm:text-4xl" />;
   }
   const state = totalState(total.visibility, threshold, hidden);
   return (
@@ -182,68 +164,43 @@ export interface ParticipantEntry {
   lines: JointPurchaseParticipantLine[];
 }
 
+type ParticipantRow = { participant: ParticipantEntry; line: JointPurchaseParticipantLine | null };
+
 /**
  * Nombres y cantidades por persona (láminas 11, 12 y 38): sólo con el permiso
- * del servidor. Una fila por producto pedido; en teléfono, una tarjeta.
+ * del servidor. Una fila por producto pedido (el nombre se repite, como en la
+ * lámina 12); en teléfono, `DataTable` apila cada fila con sus encabezados.
  * Nada de correo ni otros datos: sólo lo que envía `/participants` o `/closing`.
  */
 export function ParticipantsTable({ caption, participants, productName }: { caption: string; participants: ParticipantEntry[]; productName: (ref: string, fallback: string) => string }) {
   const showStatus = participants.some((participant) => participant.status !== undefined);
-  const rows = participants.flatMap((participant) => (participant.lines.length > 0 ? participant.lines : [null]).map((line) => ({ participant, line })));
-  const head = 'text-left text-xs font-bold uppercase tracking-wide text-ink-muted';
+  const rows: ParticipantRow[] = participants.flatMap((participant) =>
+    (participant.lines.length > 0 ? participant.lines : [null]).map((line) => ({ participant, line })),
+  );
+  const columns: DataTableColumn<ParticipantRow>[] = [
+    { key: 'name', header: 'Participante', rowHeader: true, cell: (row) => <span className="font-semibold [overflow-wrap:anywhere]">{row.participant.name}</span> },
+    { key: 'product', header: 'Producto', cell: (row) => <span className="[overflow-wrap:anywhere]">{row.line ? productName(row.line.product_ref, row.line.product_name) : 'Sin productos'}</span> },
+    {
+      key: 'quantity',
+      header: 'Cantidad',
+      numeric: true,
+      cell: (row) => (row.line ? <QuantityFigure text={quantityText(row.line.quantity_base, row.line.base_unit)} size="md" /> : '—'),
+    },
+    ...(showStatus
+      ? [{ key: 'status', header: 'Estado', cell: (row: ParticipantRow) => (row.participant.status ? (PARTICIPATION_STATUS_LABEL[row.participant.status] ?? row.participant.status) : '') }]
+      : []),
+    { key: 'received', header: 'Recibido', numeric: true, cell: (row) => fmtWhen(row.participant.accepted_at) },
+  ];
   return (
-    <table role="table" aria-label={caption} className="mt-3 block w-full sm:table">
-      <thead role="rowgroup" className="sr-only sm:not-sr-only sm:table-header-group">
-        <tr role="row">
-          <th role="columnheader" scope="col" className={`${head} pb-2 pr-3`}>
-            Participante
-          </th>
-          <th role="columnheader" scope="col" className={`${head} pb-2 pr-3`}>
-            Producto
-          </th>
-          <th role="columnheader" scope="col" className={`${head} pb-2 pr-3 text-right`}>
-            Cantidad
-          </th>
-          {showStatus && (
-            <th role="columnheader" scope="col" className={`${head} pb-2 pr-3`}>
-              Estado
-            </th>
-          )}
-          <th role="columnheader" scope="col" className={`${head} pb-2 text-right`}>
-            Recibido
-          </th>
-        </tr>
-      </thead>
-      <tbody role="rowgroup" className="block sm:table-row-group">
-        {rows.map(({ participant, line }) => (
-          <tr
-            key={`${participant.participation_ref}-${line?.product_ref ?? 'none'}`}
-            role="row"
-            data-testid="participant-row"
-            className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 border-t border-line py-3 sm:table-row"
-          >
-            <th role="rowheader" scope="row" className="col-start-1 text-left font-semibold text-ink [overflow-wrap:anywhere] sm:table-cell sm:py-3 sm:pr-3">
-              {participant.name}
-            </th>
-            <td role="cell" className="col-start-1 text-sm text-ink-muted [overflow-wrap:anywhere] sm:table-cell sm:py-3 sm:pr-3 sm:text-base sm:text-ink">
-              {line ? productName(line.product_ref, line.product_name) : 'Sin productos'}
-            </td>
-            <td role="cell" className="col-start-2 row-span-3 row-start-1 self-center text-right sm:table-cell sm:py-3 sm:pr-3">
-              {line ? <BigQuantity text={quantityText(line.quantity_base, line.base_unit)} size="md" /> : '—'}
-            </td>
-            {showStatus && (
-              <td role="cell" className="col-start-1 text-xs text-ink-muted sm:table-cell sm:py-3 sm:pr-3 sm:text-sm">
-                {participant.status ? (PARTICIPATION_STATUS_LABEL[participant.status] ?? participant.status) : ''}
-              </td>
-            )}
-            <td role="cell" className="col-start-1 text-xs text-ink-muted sm:table-cell sm:py-3 sm:text-right sm:text-sm">
-              <span className="sm:hidden">Recibido el </span>
-              {fmtWhen(participant.accepted_at)}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="mt-3">
+      <DataTable
+        caption={caption}
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => `${row.participant.participation_ref}-${row.line?.product_ref ?? 'none'}`}
+        rowTestId={() => 'participant-row'}
+      />
+    </div>
   );
 }
 

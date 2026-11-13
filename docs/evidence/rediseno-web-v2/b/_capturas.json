@@ -550,5 +550,105 @@
   "desc": "Esc cierra «Retirar el permiso» y el foco vuelve a «Retirar» (anillo de tinta sobre la tarjeta)",
   "estado": "",
   "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/09-compras-conjuntas__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Lista con PageHeader pegado (lámina 09)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/15-1-nueva-convocatoria__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Formulario en escritorio; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/11-abierta-responsable__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Participantes con DataTable (lámina 11)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/15-6-sustituir__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir en escritorio; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/37-compras-conjuntas__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Lista en teléfono (lámina 37): un solo h1, cabecera oscura",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/37-compras-conjuntas-pantalla__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Primera pantalla de la lista en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/45-nueva-convocatoria__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Formulario a pantalla completa en teléfono (lámina 45); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/38-abierta-responsable__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Abierta en teléfono con participantes apilados (lámina 38)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/49-sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a pantalla completa en teléfono (lámina 49); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/37-compras-conjuntas-pantalla__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Primera pantalla de la lista en teléfono (lámina 37)",
+  "estado": "",
+  "simulado": false
  }
 ]

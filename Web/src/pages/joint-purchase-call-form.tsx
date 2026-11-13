@@ -226,6 +226,7 @@ export function JointPurchaseCallForm({
       busy={busy}
       size="lg"
       hideCloseButton
+      fullScreenOnPhone
       testId="call-form"
       footer={
         confirmingHandOver ? (
