@@ -5,7 +5,7 @@
 - **Rama de esta evidencia:** `docs/web-rediseno-v2-verificacion` (`_wt/WEB2-VERIF`), sin cambios de código de la Web.
 - **Navegador:** Edge sin interfaz (puppeteer-core 23.11.1), zona horaria `America/La_Paz`. «Teléfono» = ventana de **390 px de ancho**, no un teléfono físico. «Zoom 200 %» = ventana de 720×450 a 2x, no el zoom real del navegador.
 - **Credenciales:** la herramienta fija una contraseña aleatoria de un solo uso en la base aislada para cada inicio de sesión y no la imprime ni la captura (cuentas `directiva`, `admin`, `admin2`, `suc` y `agricultor3`). Ningún token ni contraseña aparece en los registros.
-- **API real frente a simulado:** **todo** lo de esta carpeta sale de la API real. No se usó el paso `simulate` en ningún recorrido.
+- **API real frente a simulado:** los recorridos 1–10 y `capturas/` salen de la API real, sin `simulate`. La ronda posterior de estados SIMULADOS (al final de este documento, carpeta `simulados/`, código `1b7fbb4`) usa respuestas simuladas, y cada archivo lleva «SIMULADO» en el nombre.
 
 ## Herramientas
 
@@ -195,10 +195,36 @@ Sin cambios: compras, ítems, cuentas por pagar, pagos, lotes y movimientos (0 e
 
 - **Build de producción:** sólo se probó la Web de revisión (Vite de desarrollo con `StrictMode`). V-1 puede no reproducirse en producción.
 - **Teléfono físico, tableta y zoom real del navegador:** sólo anchos de ventana.
-- **Lámina 30.3 «Sellar las cifras» y Resumen §10–§11:** no hay campaña cerrada sin sellar; sellar o cerrar la campaña activa estaba fuera del encargo.
-- **Resumen §2–§6 y §12, U.8:** exigen datos que no existen (sin campañas, política pendiente, sin conexión, estados de la referencia) o simular; no se simuló nada.
+- **Lámina 30.3 «Sellar las cifras» y Resumen §10–§11 con la API real:** no hay campaña cerrada sin sellar; sellar o cerrar la campaña activa estaba fuera del encargo. Se capturaron después con respuestas SIMULADAS (ver la ronda simulada).
+- **Resumen §2–§6 y §12, U.8 con la API real:** exigen datos que no existen. §2–§5, §12 y U.8 se capturaron después con respuestas SIMULADAS; §6 «sin conexión» sigue sin captura.
 - **Lámina 18 exacta:** ninguna cuenta ADMINISTRADOR habilitada sin historial de permisos en una convocatoria cerrada con un total VISIBLE.
 - **Lámina 01 con el aviso de copia:** por diseño sólo tras perder la sesión sin cerrarla (ver arriba).
 - **Foto real (33.5):** privada; sólo se comprobó que carga autorizada y que sin sesión da 401.
 - **Diálogo «Unir con…»** con teclado (ver recorrido 10).
 - **Sustitución efectiva:** no se envió (encargo: cancelar sin enviar).
+
+## Ronda de estados SIMULADOS — `plan_v_simulados.mjs` y `plan_v_simulados_u8.mjs` · 2026-11-13, 15:22–15:27 UTC
+
+- **Código:** integración `65be8bf` (código `1b7fbb4`, con V-1…V-5 y D6 corregidos), fusionada en esta rama; la Web 5177 ya lo servía.
+- **Qué es simulado:** sólo las respuestas listadas abajo, con el paso `simulate` de `verif_v.mjs` (ahora admite una lista de reglas `{url, method, body}`; cada respuesta simulada queda en el registro de llamadas con «SIMULADO»). Los cuerpos salen de `tool/web_rediseno_v2/fixtures_v.json`, que genera `fixtures_v.mjs` importando los fixtures de la Web con el quitado de tipos de Node: `dev/fixtures/summary-fixtures.ts` (`empty`, `worst`, `worstPolicyPending`, `worstClosedUnsealed`, `worstSealed`), `campaigns-fixtures.ts` (`empty`, `worst`) y `proposal-fixtures.ts` (`demo` y `linkViewFor`/`linkOf` con los mismos argumentos que `joint-proposal.estimation-link.test.tsx`), más `CATALOG` copiado de `products.page.test.tsx`. Derivados sin campos nuevos: «todo oculto» = las celdas `SUPPRESSED_UNDER_THRESHOLD` de `worst`; «sin campaña activa» = `worst` sin la activa y `active: null`; la campaña del borrador = la activa de `demo` con el id `PROPOSAL_CAMPAIGN_REF`.
+- **Real:** inicio de sesión, `/auth/refresh` (una recarga por escenario, porque la campaña activa se lee al cargar), la insignia «Por identificar» y todo lo no listado.
+- **Nada se escribió:** en toda la ronda no hubo ninguna llamada que no fuera GET, salvo `/auth/refresh`.
+
+| Estado | Respuestas simuladas | Resultado | Captura (`simulados/`) |
+|---|---|---|---|
+| 05 §2 sin campañas | `GET /campaigns` = `[]`, `GET /campaigns/active` = `null` | «Todavía no hay campañas» con «Ir a Campañas»; «Para atender»: «Sin campaña activa… Ir a Campañas». «Ir a Campañas» lleva a `/campaigns` («No hay campaña activa», «Todavía no hay campañas») | `05-s2_sin_campanas__SIMULADO__escritorio.png` |
+| U.8 sin campaña activa | campañas de `worst` sin la activa, `active` = `null`, resumen `worstSealed` | «Para atender»: «Sin campaña activa: los agricultores no pueden registrar hasta que se abra una. Ir a Campañas» → `href="/campaigns"`; el clic lleva a `/campaigns` | `05-u8_sin_activa__SIMULADO__{escritorio,movil}.png`, `u8-campanas-destino__SIMULADO__escritorio.png` |
+| 05 §3 sin cifras | `S.empty` | Cobertura «0 de 7», «Ninguna…», «Ausencia de aporte = desconocido, no cero» | `05-s3_sin_cifras__SIMULADO__escritorio.png` |
+| 05 §4 todo oculto | `worst` con sólo celdas ocultas | Aviso `all-hidden`, sin cifras | `05-s4_todo_oculto__SIMULADO__escritorio.png` |
+| 05 §5 política pendiente | `S.worstPolicyPending` | `policy-pending`, sin cifras ni cobertura, sin «Datos sintéticos» | `05-s5_politica_pendiente__SIMULADO__escritorio.png` |
+| 05 §10 cerrada sin sellar | `S.worstClosedUnsealed` (`can_seal: true`, revisión) | «Siguiente paso: sellar las cifras», pasos Abierta → **Cerrada** → Sellada, «Sellar esta versión…» | `05-s10_cerrada_sin_sellar__SIMULADO__{escritorio,movil}.png` |
+| 30.3 «Sellar esta versión» | la misma revisión | Foco inicial en la casilla; revisión **sin números** (H-04: «0 de 0 agricultores…», «Hay productos sin cifra»); «Sellar» desactivado hasta la casilla. Se cerró con Esc (el foco volvió a «Sellar esta versión…») y `apiLog` = **ninguna llamada**: sin `POST …/seal` | `30-3-sellar-dialogo__SIMULADO__escritorio.png` |
+| 05 §11 sellada | `S.worstSealed` | «Cifras fijadas», versión sellada, «Cobertura al sellar» | `05-s11_sellada__SIMULADO__{escritorio,movil}.png` |
+| 05 §12 referencia (6) | borrador `demo` + `estimation-link` en NONE, CALCULATING, LINKED, LINKED con `update.available` (NEWER_RUN), RESTRICTED (`POLICY_PENDING`) y UNAVAILABLE (NOT_EXECUTED) | «Sin referencia… Obtener referencia»; «Calculando la referencia… En cola»; «Consumo estimado fijado…»; «Consumo estimado desactualizado… Actualizar · Quitar»; «Referencia restringida… no se muestra ninguna cifra ni recuento»; «El cálculo no se completó… Reintentar». No se pulsó ningún botón | `05-12-referencia-{NONE,CALCULATING,LINKED,LINKED_DESACTUALIZADA,RESTRICTED,UNAVAILABLE}__SIMULADO__escritorio.png` |
+| 21/39 productos inactivos | `GET /inventory/products` = `CATALOG` (2 activos y «Retirado sintético» inactivo) | «Ver productos inactivos (1)» abre la lista de sólo lectura con «Inactivo» y la fecha de modificación; sin reactivar. Sin chip «Datos sintéticos» (V-2 corregido) | `21-productos-inactivos__SIMULADO__{escritorio,movil}.png` |
+
+Medidas: sin desplazamiento horizontal en los 7 escenarios del Resumen a 1440.
+
+**Avisos de la herramienta:** en la primera pasada, U.8 se comprobó antes de que se dibujara «Para atender» y el clic no encontró el elemento (la captura `u8-campanas-destino` de esa pasada mostraba aún el Resumen); se repitió con `plan_v_simulados_u8.mjs`, que espera al elemento, y las capturas se sobrescribieron. En esa repetición, la comprobación del destino falló por una expresión regular mal escapada en el plan, pero `waitPath ^/campaigns` se cumplió y la captura muestra `/campaigns` (`_capturas.json`: `ruta /campaigns`). El registro de llamadas lista cada respuesta simulada dos veces: una con «SIMULADO» y otra sin la marca, emitida por el navegador para la misma petición.
+
+**Queda sin captura:** 05 §6 «sin conexión» (no estaba en el encargo de esta ronda; requiere cortar la red, no una respuesta).
