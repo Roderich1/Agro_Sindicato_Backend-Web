@@ -1,0 +1,223 @@
+# Matriz de láminas del rediseño de la Web (v2)
+
+Inventario de sólo lectura, hecho el 2026-11-13 sobre `_wt/WEB2-INT` en `50aa672` (base del rediseño `e8a440f`). Usa las 51 láminas de `laminas/` (`laboratorio.png` queda fuera). Las rutas de código son relativas a `Web/src/` salvo indicación. Los endpoints son los reales de `services/**`, contrastados con los controladores de `Back/src/modules/**`. Las rutas llevan el prefijo de la API que pone `lib/axios.ts`.
+
+## Cómo leer la matriz
+
+**Sesiones**
+- **A:** consulta y propuestas.
+- **B:** compras conjuntas.
+- **C:** catálogo y administración.
+- **O:** orquestador o BASE (acceso, aviso al agricultor, armazón, navegación y temas).
+
+**«Existe hoy»**
+- **sí:** la pantalla, el estado o el diálogo ya existen con sus datos. Sólo cambia la presentación.
+- **parcial:** la pantalla existe, pero falta algún elemento de la lámina, tenga o no sustento en la API. La diferencia se detalla en la fila.
+- **no:** no hay pantalla, estado o diálogo equivalente.
+
+**Abreviaturas de servicios**
+
+| Abreviatura | Servicio |
+|---|---|
+| `cs` | `collectiveService` |
+| `jpc` | `jointPurchaseCallsService` |
+| `idf` | `identificationService` |
+| `inv` | `inventoryService` |
+| `camp` | `campaignsService` |
+| `est` | `estimationService` |
+| `usr` | `users.service` |
+| `aud` | `auditLogsService` |
+
+**Armazón común.** Lo dibujan las láminas 03–34 y 35–51. En escritorio es un menú lateral oscuro y plegable con logotipo y «Sindicato DEMO». Arriba van Resumen · Borrador de compra · Compras conjuntas · Catálogo (insignia «6», desplegable: Productos / Nombres equivalentes / Por identificar) · Histórico (desplegable: Histórico sellado / Estimación del consumo). Debajo, el grupo «SINDICATO»: Campañas · Usuarios (sólo ADMINISTRADOR) · Bitácora. Al pie, la tarjeta de usuario con un icono de salir. En teléfono hay una barra inferior Resumen · Borrador · Compras · Catálogo · Más. Responde O, y se describe en la lámina 43 y en `TAREAS_POR_SESION.md`.
+
+## Grupos: láminas que son estados o diálogos de una misma pantalla
+
+| Grupo | Pantalla | Láminas |
+|---|---|---|
+| G1 | Acceso | 01 y 02 |
+| G2 | Resumen y cobertura | 03, 04, 05 (catálogo de estados) y 35 (teléfono) |
+| G3 | Borrador de compra (`/colectivo/propuestas`) | 06 (actual), 07 (anteriores), 08 (cómo se calculó), 36 y 51 (teléfono); los estados de la referencia están en 05 §12 |
+| G4 | Lista de convocatorias | 09 y 37 (teléfono) |
+| G5 | Detalle de convocatoria (`/colectivo/compras-conjuntas/:id`) | **Estados:** 10 borrador · 11 abierta (responsable) · 12 cerrada con consolidado · 13 cancelada · 14 nueva responsable · 16 sin permiso de participantes · 17 permiso retirado · 18 cerrada sin permiso de detalle · 19 cerrada con menos de 3 · 20 responsable no habilitada · 38, 48 y 50 (teléfono)<br>**Diálogos:** 15, 34.1, 34.2, 45, 46 y 49<br>**Estados de los totales:** 05 §13 |
+| G6 | Catálogo | 21 Productos · 22 Nombres equivalentes · 23 y 24 Por identificar · 39 y 47 (teléfono)<br>**Diálogos:** 30.4–30.6, 33.5, 34.4 y 34.5 |
+| G7 | Histórico y estimación | 25 y 40 (histórico sellado) · 26 (estimación) · 27 (copia sin conexión) |
+| G8 | Campañas | 28 y 41 (lista) · 29 (detalle)<br>**Diálogos:** 30.1–30.3 y 34.3 |
+| G9 | Administración | 31 y 44 (usuarios y permiso «Sustituir responsable») · 32 y 42 (bitácora)<br>**Diálogos:** 33.1–33.4 y 34.6 |
+| G10 | Navegación en teléfono | 43 (menú «Más») |
+
+## Matriz
+
+| Nº | Título | Ruta(s) y componente(s) actual(es) | Rol(es) y estado/variante | Sesión | Existe hoy | Datos y llamadas | Diferencias o capacidades faltantes | Notas |
+|---|---|---|---|---|---|---|---|---|
+| 01 | Ingresar | `/login` · `pages/login.page.tsx` (`PublicOnlyRoute`) | Sin sesión. Variante con el aviso condicional «Este navegador tiene una copia de la estimación…» y el enlace «Consultarla sin conexión» | O | sí | `POST /auth/login` y `/auth/me` (`contexts/auth.context.tsx:82`). La copia se lee con `lib/estimation-copy.ts` (almacenamiento local, sin llamada). El aviso ya existe (`login.page.tsx:232-235`, `offline-copy-link`) | Ninguna funcional. Lo nuevo es la mitad izquierda de marca («La Web de la Directiva…») | «Mostrar» ya existe (`login.page.tsx:181`) |
+| 02 | Aviso para una cuenta de agricultor | `/sin-acceso-web` · `pages/web-not-for-farmers.page.tsx` | AGRICULTOR con sesión; sin armazón | O | sí | Ninguna llamada nueva: «Cambiar de cuenta» y «Cerrar sesión» usan `POST /auth/logout` | Ninguna | Regla de COORDINACION §5 |
+| 03 | Resumen | `/colectivo/resumen` · `pages/collective-summary.page.tsx`, `components/coverage-card.tsx`, `needs-bars.tsx`, `seal-panel.tsx`, `export-buttons.tsx` | DIRECTIVA (la lámina) y ADMINISTRADOR. Campaña abierta y activa, sin sellar, modo `PROVISIONAL_SYNTHETIC` | A | parcial | `GET /collective/campaigns/:id/summary` (`cs.summary`): celdas, cobertura, sello y `disclosure`. Campañas: `GET /campaigns` (`useSelectedCampaign`) y `GET /campaigns/active`. Excel: `lib/collective-summary-xlsx.ts`, con la misma respuesta. «6 productos por identificar» necesita `GET /catalog/identification-requests?status=PENDING` (`idf.list`), que hoy no se llama en el Resumen | Sí tienen sustento:<br>- «Cifra anterior · hay cambios sin publicar» (`pending_changes`, `types/collective.ts:62`)<br>- «Datos sintéticos» (`disclosure.mode`)<br>- «Versión de las cifras» (estado de la campaña + `seal`)<br>- «Consumo publicado» (`CONSUMPTION_TOTAL`)<br>- «Para atender» (sólo con datos)<br>- buscador y filtros (en cliente)<br><br>Falta cablear el recuento de «Por identificar» (H-07). «Ocultas por privacidad» sólo cuenta `SUPPRESSED_UNDER_THRESHOLD`: `SUPPRESSED_REVISION`, `OVERFLOW` y `WITHDRAWN_AFTER_SEAL` necesitan su propio rótulo (H-06) | Hoy hay «Pendiente según los datos» (`collective-summary.page.tsx:168-228`): es el equivalente de «Para atender». También existe «Cifra más reciente» (`LatestFigure`). La chapa «Datos sintéticos» la pone hoy el armazón (`app-shell.tsx:423`) |
+| 04 | Cobertura | `/colectivo/cobertura` · `pages/coverage.page.tsx`, `components/coverage-card.tsx` | DIRECTIVA/ADMIN; campaña abierta | A | sí | `GET /collective/campaigns/:id/summary` (`coverage.linked_members` y `members_with_contribution`) | Ninguna. «Quién aportó» es texto fijo y no pide datos (bien: la API no los tiene) | Se llega desde el Resumen («14 de 15») y desde el detalle de campaña |
+| 05 | Estados del Resumen | Las mismas páginas que 03 + `components/ui/data-state.tsx` (O), `seal-panel.tsx`, la tarjeta de referencia de `joint-proposal.page.tsx` y la tarjeta de totales de `joint-purchase-call-detail.page.tsx` | Estado por estado:<br>(1) cargando<br>(2) sin campañas<br>(3) sin datos publicados<br>(4) todo oculto<br>(5) política pendiente (`POLICY_PENDING`)<br>(6) sin conexión<br>(7) error del servidor<br>(8) sin permiso (403)<br>(9) servidor ocupado (429)<br>(10) cerrada, lista para sellar<br>(11) sellada<br>(12) seis estados de la referencia de consumo estimado<br>(13) cinco estados del total de un producto en una convocatoria | A (1–12) y B (13); los componentes base son de O | parcial | (1–9) salen de `cs.summary` y de su error de axios (sin respuesta → red; `status` 403/429/5xx). (10–11) salen de `GET/POST /collective/campaigns/:id/seal` (`cs.sealState`/`cs.seal`). (12) sale de `GET /collective/proposals/:id/estimation-link` (`state`: NONE/CALCULATING/LINKED/UNAVAILABLE/RESTRICTED; `update.reason`). (13) sale de `totals.visibility`: VISIBLE / UNDER_THRESHOLD / RESTRICTED / RESPONSIBLE_ONLY (abierta) / RESPONSIBLE_ONLY (cerrada o sin motivo) | Hoy el Resumen distingue sólo `error` y `forbidden` (`collective-summary.page.tsx:40,59`). Hay que separar sin conexión, 429 y 5xx, sin API nueva. (4) «Hay 2 productos declarados que aún no llegan» es un recuento de filas suprimidas: la Web ya lo hace (`NeedsCounts`, `:280-299`), pero no es un recuento de aportantes. (8) «Cerrar sesión» como acción: confirmar con O | Diagnóstico previo: un 429 en `/auth/refresh` echa al login (`lib/axios.ts`), lo que contradice (9). Es tarea de O (H-17) |
+| 06 | Necesidades y propuestas (borrador) | `/colectivo/propuestas` · `pages/joint-proposal.page.tsx`, `components/estimation-figure.tsx`, `export-buttons.tsx` | DIRECTIVA. Borrador actual, referencia «fijada» (LINKED, vigente), 1 producto marcado | A | sí | - `GET /collective/campaigns/:id/proposals` (`cs.proposals`)<br>- `GET /collective/proposals/:id` (`cs.proposal`)<br>- `POST /collective/campaigns/:id/proposals` («Generar borrador nuevo»)<br>- `GET /collective/proposals/:id/estimation-link` y `POST …/estimation-link/prepare\|clear` («Actualizar» y «Quitar»)<br>- `GET\|PUT /collective/proposals/:id/selection` (casillas «Llevar»)<br>- «Preparar convocatoria» navega a `/colectivo/compras-conjuntas?nueva=1&campana=&propuesta=&productos=` (`joint-proposal.page.tsx:398`; `joint-purchase-calls.page.tsx:48-64`) | «Entre 4 y 6 aportantes por campaña · 10 campañas» sale de `scope.estimate` (`types/estimation-link.ts:102-106`). Ya existe. «Aportantes no revelados» sale de `scope.need_contributors = null`. No muestra la diferencia (correcto, E3-P1). El estado «comparable» (diferencia) no está dibujado: ver H-09 | E3-R6: «Preparar» usa la selección **guardada**. La barra inferior fija no debe tapar la última fila (COORDINACION §6) |
+| 07 | Borrador · borradores anteriores | La misma página. Hoy está en la sección plegable «Historial, huella y trazabilidad» (`joint-proposal.page.tsx:1153-1193`) | DIRECTIVA. Lista de borradores con «Actual» y «Anterior» | A | parcial | `GET /collective/campaigns/:id/proposals` (`ProposalSummary`: `generated_at`, `generated_by.name`, `line_count`) y `GET /collective/proposals/:id` para «Ver» | Pasa a ser una pestaña con contador. Sin capacidades nuevas | Las dos filas idénticas de las 14:02 son un dato de muestra |
+| 08 | Borrador · cómo se calculó | La misma página. Hoy es «Ver cálculo», plegado (`joint-proposal.page.tsx:943-981`) | DIRECTIVA. Pestaña «Cómo se calculó» | A | parcial | `GET …/estimation-link`:<br>- `run.generated_at`, `run.season`, `run.method`, `run.method_version`<br>- `link.created_at` y `link.created_by.name`<br>- `state` y `update`<br>- `lines[].scope` (rangos) | «Campañas usadas: entre 7 y 11» y «Aportantes: entre 3 y 6» son el mínimo y el máximo de los `scope` de las líneas, sin cifras nuevas. «Sin estimación: 4 productos, por falta de datos» debe contar por estado (`INSUFFICIENT_DATA`, `RESTRICTED`, etc.), sin atribuirlo todo a «falta de datos» | «Ver la estimación completa» lleva a `/colectivo/historico?vista=estimacion` |
+| 09 | Compras conjuntas | `/colectivo/compras-conjuntas` · `pages/joint-purchase-calls.page.tsx`, `substitution-permissions-section.tsx` | DIRECTIVA. Lista con filtros por estado y contadores; secciones Abiertas, Borradores y Terminadas; franja del permiso «Sustituir responsable» | B | parcial | - `GET /joint-purchase-calls?campaignId=&status=` (`jpc.list` → `JointPurchaseCallSummary`)<br>- `GET /joint-purchase-substitution-permissions` (`jpc.substitutionPermissions`: `holders`)<br>- `GET /campaigns` (selector) | **Sin sustento en la lista:**<br>- chip «Responsable no habilitada» (la fila no trae `eligible`; H-11)<br>- «Cancelada … · Administración DEMO» (quien canceló: la fila no trae `cancelled_by` ni `closed_by`; H-11)<br><br>«Usted es responsable» se puede deducir de `responsible.user_ref` frente a `user.id` | Contadores por estado: se calculan en cliente sobre la lista. «+ Nueva convocatoria» debe desactivarse si la campaña no está abierta (diagnóstico previo, «Nueva convocatoria activa en una campaña cerrada») |
+| 10 | Convocatoria · borrador | `/colectivo/compras-conjuntas/:id` · `pages/joint-purchase-call-detail.page.tsx`, `joint-purchase-call-form.tsx` | DIRECTIVA responsable; `status = DRAFT` | B | sí | - `GET /joint-purchase-calls/:id` (`origin`, `products[].reference`, `history`)<br>- `PATCH /joint-purchase-calls/:id` (Editar)<br>- `POST …/open`<br>- `POST …/cancel`<br>- `GET\|POST …/collaborators` (conceder en DRAFT: permitido, E2 §10.2, contrato :332) | Ninguna. «Necesidad declarada en el borrador: 51,1 L» sale de `reference.quantity_base`, con estado `DISCLOSED` | Nota fija: «Una convocatoria no es una compra» |
+| 11 | Convocatoria abierta (responsable) | Ídem | DIRECTIVA responsable; `OPEN`, `totals_source = LIVE`, con colaborador «Consultar participantes» | B | sí | - `GET /joint-purchase-calls/:id`<br>- `GET …/participants` (nombres, líneas, `accepted_at` = «Recibido»)<br>- `GET …/collaborators`<br>- `POST …/collaborators/revoke` («Retirar»)<br>- `POST …/close`<br>- `POST …/cancel` | Ninguna. «Sin pedidos todavía» corresponde a `participant_count = 0` del producto | El acordeón «Cómo funciona el acceso» es texto fijo |
+| 12 | Convocatoria · cerrada con consolidado | Ídem | DIRECTIVA responsable; `CLOSED`, cierre `MANUAL`, con detalle por participante | B | sí | `GET /joint-purchase-calls/:id/closing` (`mode`, `cutoff_at`, `lines`, `participants`), `GET …/collaborators` («Ver historial de permisos» = `history`) y `GET /joint-purchase-calls/:id` | Ninguna | «Qué sigue» es texto fijo |
+| 13 | Convocatoria · cancelada | Ídem | DIRECTIVA (no es responsable); `CANCELLED` por Administración | B | sí | `GET /joint-purchase-calls/:id` (`cancelled_at`, `cancelled_by`, `cancel_reason`, `history`) | Ninguna. Que una ADMINISTRADOR cancele exige que tenga `MANAGE` o sea responsable (`can_cancel_or_close`); no hay cancelación por rol (N2 rechazada) | El sufijo «16:36:26» del título es un dato sintético |
+| 14 | Convocatoria · nueva responsable | Ídem | Sucesora (DIRECTIVA) tras P-A; `OPEN`, totales `RESTRICTED`, 2 delegaciones `PENDING_REVIEW` | B | sí | - `GET /joint-purchase-calls/:id`: `responsible_changes[]` («responsable desde el 12 nov»), `pending_authorization_count` («3 participaciones…»), `pending_delegation_reviews`<br>- `GET …/collaborators` (`status: PENDING_REVIEW`, `can_review`)<br>- `POST …/collaborators/review` (CONFIRM/RETIRE) | Ninguna | P-A §12. La actividad «Responsable sustituida» lleva el motivo (`responsible_changes[].reason`) |
+| 15 | Diálogos · compras conjuntas | `joint-purchase-call-form.tsx` y los diálogos de `joint-purchase-call-detail.page.tsx` | 6 diálogos (subfilas 15.1–15.6) | B | sí | Ver subfilas | El botón primario aparece activo con la casilla sin marcar: no se copia (COORDINACION §6) | — |
+| 15.1 | Nueva convocatoria | `joint-purchase-call-form.tsx` | DIRECTIVA/ADMIN; productos «Del catálogo» o «De un borrador de compra» | B | sí | - `POST /joint-purchase-calls` (`campaign_id`, `name`, `deadline_at`, `responsible_user_id`, `products`, `source_proposal_id`)<br>- `GET /joint-purchase-calls/eligible-responsibles`<br>- productos del catálogo o del borrador (`cs.proposal` + `cs.proposalSelection`) | La ayuda «Podrá ver el nombre y las cantidades de quienes participen» contradice el consentimiento (P-A C1). Usar el texto de la lámina 45: «solo de quienes la autoricen» (H-15). La ayuda «Vale la hora del sindicato» se revisa en H-14 | — |
+| 15.2 | Abrir la convocatoria | Detalle | Responsable o `MANAGE`; DRAFT | B | sí | `POST /joint-purchase-calls/:id/open` `{confirmed:true}` | Ninguna | 422 `DEADLINE_IN_PAST` |
+| 15.3 | Cerrar y consolidar | Detalle | `can_cancel_or_close`; OPEN | B | sí | `POST …/close` `{confirmed:true}` → `JointPurchaseCallClosing` | Ninguna | — |
+| 15.4 | Cancelar la convocatoria | Detalle | `can_cancel_or_close`; DRAFT u OPEN | B | sí | `POST …/cancel` `{reason, confirmed:true}` | Ninguna | El motivo es obligatorio |
+| 15.5 | Conceder permiso | Detalle | Sólo la responsable (`can_grant`) | B | sí | `POST …/collaborators` `{user_ref, grant: PARTICIPANTS\|MANAGE, confirmed:true}`; personas de `eligible-responsibles` | Ninguna | Un 409 en una convocatoria cancelada (E2-R20) |
+| 15.6 | Sustituir a la responsable | Detalle | Persona con el permiso «Sustituir responsable»; `can_substitute_responsible` | B | sí | `POST …/responsible` `{request_id, expected_responsible_version, new_responsible_ref, reason, confirmed:true}`; candidatas de `eligible-responsibles` excepto la propia persona | Ninguna | 409 `RESPONSIBLE_CHANGED`; no hay autosustitución |
+| 16 | Convocatoria · sin permiso para ver participantes | Detalle | ADMINISTRADOR sin `PARTICIPANTS`; `OPEN`; totales `RESPONSIBLE_ONLY` («No disponible mientras esté abierta») | B | sí | `GET /joint-purchase-calls/:id` (`can_view_participants=false`, `my_grants=[]`) y `GET …/collaborators` (sin `can_grant`; sin «Retirar») | Ninguna | No llama a `…/participants`: daría 403 `PARTICIPANTS_FORBIDDEN` |
+| 17 | Convocatoria · permiso retirado | Detalle | Excolaboradora (DIRECTIVA); `OPEN`; totales sin acceso | B | parcial | `GET /joint-purchase-calls/:id` y `GET …/collaborators` (`history[]` con `action: REVOKED`, `user`, `actor` y `at`) | El aviso «Su permiso … se retiró el 13 nov, 09:12» y la tarjeta «Su acceso» se deducen del `history` de colaboradores, filtrando por `user.user_ref = user.id`. Hoy no hay un estado específico (comprobar en `joint-purchase-call-detail.page.tsx`) | `GET …/collaborators` lo puede leer cualquier DIRECTIVA o ADMIN del tenant (`institutional-calls.controller.ts:214-226`) |
+| 18 | Convocatoria · cerrada, vista sin permiso de detalle | Detalle | ADMINISTRADOR sin `PARTICIPANTS`; `CLOSED`; un total `VISIBLE` y otro `UNDER_THRESHOLD` | B | sí | `GET …/closing` (`participants = null`, `lines[].visibility`) y `GET /joint-purchase-calls/:id` | Ninguna. «3 personas» es `participant_count` por producto, siempre visible (E2-R11) | — |
+| 19 | Convocatoria · cerrada, menos de 3 participantes | Detalle | DIRECTIVA sin permiso; `CLOSED`, cierre `AUTOMATIC`; todos `UNDER_THRESHOLD` | B | sí | `GET …/closing` (`mode: AUTOMATIC`, `closed_by: null`) e `history` (actor `null` → «Sistema») | Ninguna | La lámina usa «Participaron» y la 18 «Lo pidieron»: unificar el texto |
+| 20 | Convocatoria · responsable no habilitada | Detalle | DIRECTIVA con el permiso «Sustituir responsable» y `MANAGE` suspendido; `OPEN`; `delegations_suspended` | B | sí | - `GET /joint-purchase-calls/:id` (`responsible.eligible=false`, `can_substitute_responsible`, `has_substitution_permission`, `delegations_suspended`)<br>- `GET …/collaborators` (`status: SUSPENDED`)<br>- `POST …/collaborators/revoke` («Renunciar» = el colaborador revoca el suyo)<br>- diálogo 15.6 | «Renunciar» a un permiso **suspendido**: el contrato permite revocar en cualquier estado y renunciar al propio (E2 :330, :332, m1). No lo comprobé contra el servidor | «Permisos concedidos (2)» agrupa eventos `ACCESS_GRANTED`; es una decisión de presentación |
+| 21 | Catálogo · Productos | `/colectivo/catalogo?vista=productos` · `pages/catalog.page.tsx`, `products.page.tsx`, `components/product-form.tsx` | DIRECTIVA; productos activos agrupados por categoría | C | parcial | - `GET /inventory/products?search=&category=&isActive=` (`inv.list`)<br>- `POST /inventory/products`, `PATCH /inventory/products/:id`, `POST …/deactivate`<br>- «Ver productos inactivos» = `isActive=false` | Agrupar «Por categoría / Por unidad / Sin agrupar» es presentación (campo `category`). El subtítulo sale de `activeIngredient`. No hay reactivación (H-19); la lámina 30.5 lo dice y está bien | El submenú del catálogo (O) sustituye al `SegmentedControl` (`catalog.page.tsx:42`) |
+| 22 | Catálogo · Nombres equivalentes | `?vista=equivalencias` · `pages/product-reconciliation.page.tsx` | DIRECTIVA; 1 unión vigente y 11 nombres sueltos | C | sí | - `GET /collective/product-associations` (`current`, `history`)<br>- `GET /collective/product-associations/catalog`<br>- `POST /collective/product-associations` («Unir con…» y «Corregir…»: reemplaza la unión vigente)<br>- `POST /collective/product-associations/:productId/close` («Separar…») | «Corregir…» sobre una unión **sí** tiene operación: `POST` con otro canónico cierra la vigente y crea otra (`Back/…/product-reconciliation.use-case.ts:135-158`; ya hay un «Corregir…» en `product-reconciliation.page.tsx:218`). «Nombres sueltos» excluye los canónicos y los alias vigentes (en cliente) | Resuelve el defecto del diagnóstico previo («Pendientes de asociar» listaba canónicos) |
+| 23 | Catálogo · Por identificar (pendientes) | `?vista=identificacion` · `pages/product-identification.page.tsx` | DIRECTIVA; 6 pendientes; seleccionada una con foto; opción «Ya está en el catálogo» | C | sí | - `GET /catalog/identification-requests?status=PENDING` (`idf.list`)<br>- `GET …/:id/candidates` (`similarity`, `matched_on`)<br>- `GET …/:id/photo` (blob)<br>- `GET …/:id/history`<br>- `POST …/:id/link`, `POST …/:id/create-product`, `POST …/:id/defer` | Ninguna. «Falta información» = `pending_note` no nulo; «con foto» = `photo.state = STORED`. «Es un producto nuevo» necesita los campos nombre e ingrediente, que la lámina no dibuja | No se revela quién lo reportó (E1-D5); la API no lo envía (`types/identification.ts:8`) |
+| 24 | Catálogo · Ya identificados | La misma vista, pestaña «Ya identificados» | DIRECTIVA; corrigiendo una identificación | C | parcial | `GET …?status=LINKED` y `POST …/:id/link` sobre una solicitud `LINKED` (evento `RELINKED`, E1 :183, :277, :298). Ya existe «Corregir vínculo…» (`product-identification.page.tsx:196`) | «Identificado como … · 11 nov 2026, 14:10 · **Directiva DEMO**»: la fila (`resolution`) no trae quién identificó, sólo `resolved_at` (`types/identification.ts:40-48`). El nombre está en `GET …/:id/history` (`actor.name`), una llamada por solicitud (H-12) | — |
+| 25 | Histórico sellado | `/colectivo/historico?vista=tendencias` · `pages/history.page.tsx`, `collective-trends.page.tsx` | DIRECTIVA; «Consumo publicado»; un producto; 11 selladas y 2026 sin sellar | A | parcial | `GET /collective/trends?projection_type=CONSUMPTION_TOTAL\|DECLARED_NEED` (`cs.trends`); Excel: `lib/trends-xlsx.ts` | - «Campaña más alta: 536,5 kg» y el resalte del máximo: comparación derivada entre campañas, con riesgo frente a F07 §8 (H-10)<br>- la lámina no muestra la cobertura por campaña, que F07 §8 exige junto a cada serie<br>- las etiquetas por año (2015…) deben ser el nombre de la campaña | Huecos `NO_DATA` y `NOT_SEALED` sin interpolar: ya existe |
+| 26 | Estimación del consumo | `/colectivo/historico?vista=estimacion` · `pages/estimation.page.tsx`, `components/estimation-figure.tsx` | DIRECTIVA; campaña abierta; resultados vigentes y «Faltan datos» | A | sí | - `GET /estimation/results?target_campaign_ref=`<br>- `POST /estimation/jobs` y `GET /estimation/jobs/:id`<br>- `GET /estimation/runs` (`counts`: «7 estimados · 4 con datos insuficientes»)<br>- `GET /estimation/runs/:id`<br>- `GET /estimation/download` («Guardar copia») | «Último consumo publicado … en 2025» sale de `naive_base` y de la campaña del último punto. Ya existe (`estimation.page.tsx:621-698`). La lámina sólo dibuja Vigente y Faltan datos; se conservan OUTDATED, SUPERSEDED, INCOMPATIBLE_DATA, CALCULATION_FAILED y POLICY_PENDING (COORDINACION §5) | Sin diferencia ni porcentaje: correcto |
+| 27 | Estimación guardada sin conexión | `/estimacion/copia-sin-conexion` · `pages/estimation-copy.page.tsx`, `components/estimation-copy-view.tsx` | Tres estados: (1) copia legible, (2) sin copia, (3) sesión cerrada o de otra persona | A | sí | Sin llamadas: `lib/estimation-copy.ts` (`owner.name`, `saved_at`, `download.results`) | Ninguna. «Último publicado» = `naive_base` | Fuera del armazón y del menú |
+| 28 | Campañas | `/campaigns` · `pages/campaigns.page.tsx` | DIRECTIVA; activa abierta y 11 cerradas y selladas | C | parcial | `GET /campaigns?status=&search=` (`camp.list`), `GET /campaigns/active`, `POST /campaigns/:id/close`, `POST /campaigns` | El chip «Sellada · versión 1» por campaña no viene en `Campaign` (`types/campaigns.ts:5-16`). Sale sin API nueva de `GET /collective/trends` (`campaigns[].seal`; excluye CANCELADA, `collective-trends.use-case.ts:89-93`). No uses `GET …/seal` por campaña: ejecuta la decisión de divulgación si es sellable (F07 §9) | La lámina no dibuja PLANIFICADA ni «Abrir campaña» (`POST /campaigns/:id/open`); se conservan |
+| 29 | Detalle de campaña | `/campaigns/:id` · `pages/campaign-detail.page.tsx` (+ `seal-panel.tsx` de A) | DIRECTIVA; abierta, sin sellar; sellado bloqueado (`CAMPAIGN_NOT_CLOSED`) | C | sí | - `GET /campaigns` (fila)<br>- `GET /collective/campaigns/:id/summary` (participación)<br>- `GET /collective/campaigns/:id/seal` (`blocked_by`)<br>- `GET /collective/campaigns/:id/proposals` (borradores)<br>- `PATCH /campaigns/:id`<br>- `POST /campaigns/:id/close` | Ninguna | «Ver resumen» lleva a `/colectivo/resumen?campaign=` (ya existe, `campaign-detail.page.tsx:141`) |
+| 30 | Diálogos · campañas y catálogo | Ver subfilas | 6 diálogos | C (30.3 usa un componente de A) | sí | Ver subfilas | Botones primarios activos con la casilla sin marcar: no se copia | — |
+| 30.1 | Nueva campaña | `campaigns.page.tsx` | DIRECTIVA/ADMIN | C | sí | `POST /campaigns` `{name, startDate, estimatedEndDate?, notes?}` | Ninguna | — |
+| 30.2 | Cerrar campaña | `campaigns.page.tsx` y `campaign-detail.page.tsx` | Campaña abierta | C | sí | `POST /campaigns/:id/close` `{notes?}` | Ninguna | — |
+| 30.3 | Sellar las cifras | `components/seal-panel.tsx` (A), usado en el Resumen y en el detalle de campaña | Campaña cerrada sin sellar | A (componente) / C (lo incrusta en 29) | sí | `GET /collective/campaigns/:id/seal` (`review`) y `POST …/seal` `{confirmed, review_ref}` | «2 cifras muestran un valor anterior» y «4 productos no tienen cifra»: la revisión sólo trae **booleanos sin conteo** (`types/collective.ts:122-130`; F07 contrato :97). Va sin número (H-04) | «Cobertura 14 de 15» y «Datos aceptados hasta» sí vienen en `review` |
+| 30.4 | Nuevo producto | `components/product-form.tsx` | DIRECTIVA/ADMIN | C | sí | `POST /inventory/products` | La lámina omite «Nombre comercial», que el formulario tiene (`product-form.tsx:44`). Es opcional: decidir si se conserva | Unidades L y kg (`lib/product-text.ts:9-13`) |
+| 30.5 | Inactivar producto | `products.page.tsx` | Producto activo | C | sí | `POST /inventory/products/:id/deactivate` | Ninguna. «No se puede reactivar» coincide con la API | — |
+| 30.6 | Unir nombres | `product-reconciliation.page.tsx` (diálogo «Asociar») | Nombre suelto | C | sí | `POST /collective/product-associations` `{productId, canonicalProductId, reason, confirmed}` | Ninguna (misma dimensión: `UNIT_DIMENSION_MISMATCH`) | — |
+| 31 | Usuarios (Administrador) | `/users` · `pages/users.page.tsx` (`AdminRoute`) + panel del permiso (hoy `substitution-permissions-section.tsx`, dentro de Compras conjuntas) | ADMINISTRADOR; 22 cuentas; filtros por rol con contador; panel «Sustituir responsable» | C (el panel es un componente de B) | parcial | `GET /users` (`listUsers`), `POST /users`, `PATCH /users/:id`, `PATCH /users/:id/password`, `PATCH /users/:id/deactivate` y `GET\|POST /joint-purchase-substitution-permissions` (+ `/revoke`) | Pestañas con contador, «(usted)», «Se muestran 10 de 22»: en cliente. Llevar el panel del permiso a Usuarios es una unión C↔B. La edición de correo de 34.6 no existe (H-13) | Hoy «Nuevo usuario» propone «Agricultor» por defecto (diagnóstico previo); la lámina 33.1 propone «Directiva» |
+| 32 | Bitácora | `/audit-logs` · `pages/audit-logs.page.tsx` (`RoleRoute` DIRECTIVA/ADMIN) | DIRECTIVA; agrupada por día; filtros de campaña, persona, acción y fechas | C | parcial | `GET /audit-logs?campaignId=&actorUserId=&action=&entityName=&from=&to=` (máximo 300, `list-audit-logs.use-case.ts:14`), `GET /campaigns` y `GET /users` (a la Directiva le llegan sólo id, nombre, rol y estado: `users.controller.ts:51-64`) | Frases legibles por evento («Se canceló «X»»): `summary` y `entityName` del servidor, con correspondencia en la Web. **Sin registro en AuditLog:**<br>- «Se generó un borrador de compra»<br>- «Se unió «Herbicida 48 DEMO» con…»<br>- «Consumo estimado fijado en el borrador» (lámina 42)<br><br>Esas filas no se pueden mostrar (H-08) | El filtro de personas usa hoy sólo usuarios activos (`audit-logs.page.tsx:111`) |
+| 33 | Diálogos · usuarios, bitácora y foto | Ver subfilas | 5 diálogos | C | parcial | Ver subfilas | — | El diálogo para conceder «Sustituir responsable» no está dibujado; se usa el existente de `substitution-permissions-section.tsx` (motivo obligatorio) |
+| 33.1 | Nuevo usuario | `users.page.tsx` | ADMINISTRADOR | C | sí | `POST /users` `{name, email, password, role, allowAdministrator?}` | Ninguna | — |
+| 33.2 | Cambiar contraseña | `users.page.tsx` | ADMINISTRADOR | C | sí | `PATCH /users/:id/password` `{password}` | «Repetir la contraseña» es una validación en cliente (comprobar si existe) | — |
+| 33.3 | Desactivar usuario | `users.page.tsx` | ADMINISTRADOR (no a sí mismo) | C | sí | `PATCH /users/:id/deactivate` | Ninguna. Reactivar = `PATCH /users/:id {isActive:true}` | — |
+| 33.4 | Qué pasó (detalle de una acción) | `audit-logs.page.tsx:259-277` (modal con antes, después y metadatos) | DIRECTIVA/ADMIN | C | parcial | La fila de `GET /audit-logs` (`summary`, `actor`, `campaign`, `metadata`, `before`, `after`) | La «Nota» de identificación sí está (`metadata.reason`, `institutional-identification.use-case.ts:293-297, 355-366`). «Dónde: Catálogo · «Polvo azul sin etiqueta»» no: el registro no lleva el nombre local; habría que cruzar `entityId` con `idf.list('ALL')` (H-08) | «Ver datos técnicos» = el JSON actual |
+| 33.5 | Foto de la etiqueta | `product-identification.page.tsx` (modal «Ver foto») | DIRECTIVA/ADMIN | C | sí | `GET /catalog/identification-requests/:id/photo` (blob, `no-store`) | Ninguna | No se nombra a quien la envió |
+| 34 | Diálogos · editar, retirar y separar | Ver subfilas | 6 diálogos (34.1–34.6) | C (34.3–34.6) y B (34.1–34.2) | parcial | Ver subfilas | — | — |
+| 34.1 | Editar la convocatoria | `joint-purchase-call-form.tsx` | Responsable o `MANAGE`; sólo DRAFT | B | sí | `PATCH /joint-purchase-calls/:id` | Ninguna | — |
+| 34.2 | Retirar el permiso | `joint-purchase-call-detail.page.tsx` | Responsable (o la propia persona, al renunciar) | B | sí | `POST …/collaborators/revoke` `{user_ref, grant}`. No lleva `confirmed`: la casilla es sólo de la interfaz | El rótulo «Consultar participantes» frente a «…y cantidades» de la bitácora: usar `label` del servidor | — |
+| 34.3 | Editar campaña | `campaigns.page.tsx` y `campaign-detail.page.tsx` | Campaña abierta | C | sí | `PATCH /campaigns/:id` `{name, startDate, estimatedEndDate, notes}` | Ninguna. El estado se muestra bloqueado | Las fechas difieren de 28 y 29: es un dato de muestra |
+| 34.4 | Editar producto | `components/product-form.tsx` | Producto activo | C | sí | `PATCH /inventory/products/:id` | Ninguna. La Web bloquea la unidad (`product-form.tsx:107-124`), aunque `UpdateProductDto` acepta `unit` | — |
+| 34.5 | Separar nombres | `product-reconciliation.page.tsx:446` | Unión vigente | C | sí | `POST /collective/product-associations/:productId/close` `{reason, confirmed}` | Ninguna | — |
+| 34.6 | Editar usuario | `users.page.tsx` | ADMINISTRADOR | C | parcial | `PATCH /users/:id` `{name?, role?, isActive?}` | El **correo** se muestra editable y la API no lo admite (`Back/…/update-user.dto.ts:14-28`; `types/users.ts` `UpdateUserPayload`). Se muestra de sólo lectura (H-13) | — |
+| 35 | Resumen en teléfono | Como 03 | DIRECTIVA; 390 px | A | parcial | Como 03 | Como 03 | La barra inferior es de O |
+| 36 | Teléfono · borrador de compra | Como 06 | DIRECTIVA; 2 productos marcados | A | parcial | Como 06 | «Se muestran 6 de 11 productos» es de la muestra; en la Web se listan todos. El botón «2 Preparar convocatoria» no debe tapar la última fila | — |
+| 37 | Teléfono · compras conjuntas | Como 09 | DIRECTIVA | B | parcial | Como 09 | Como 09. La lámina dice «Abiertas · 4» y muestra 3: es un dato de muestra | — |
+| 38 | Teléfono · convocatoria abierta | Como 11 | DIRECTIVA responsable | B | parcial | Como 11 | «Conceder permiso» junto a una persona que ya lo tiene: es el botón general, no el de esa persona | — |
+| 39 | Teléfono · catálogo | Como 21 (pestañas Productos · Nombres equivalentes · Por identificar) | DIRECTIVA | C | parcial | Como 21 + `GET /collective/product-associations` («1 nombre unido») + `idf.list('PENDING')` («Por identificar · 6») | «Productos · 12», «Por identificar · 6» y «1 nombre unido» son recuentos en cliente con datos existentes | — |
+| 40 | Teléfono · histórico sellado | Como 25 | DIRECTIVA; barras horizontales | A | parcial | Como 25 | «El mayor consumo fue en 2024» y el resalte del máximo (H-10) | — |
+| 41 | Teléfono · campañas | Como 28 | DIRECTIVA | C | parcial | Como 28 | «14 de 15 agricultores con cifras publicadas» en la tarjeta activa exige `GET …/summary` desde la lista. En una campaña sin sellar, esa lectura ejecuta la decisión de divulgación (`collective-summary.page.tsx:33-34`). Ver H-18 | — |
+| 42 | Teléfono · bitácora | Como 32 | DIRECTIVA; chips Todas, Convocatorias, Permisos, Catálogo y Campañas | C | parcial | Como 32. Los chips equivalen a `entityName` (`JointPurchaseCall`, `JointPurchaseSubstitutionGrant`, `ProductIdentificationRequest`, `AgriculturalCampaign`…) | «Permisos» abarca varios `entityName`, y el filtro de la API admite uno solo: hay que agrupar en cliente o hacer varias llamadas. Filas sin registro (H-08) | — |
+| 43 | Teléfono · menú «Más» | `components/app-shell.tsx` (hoy la barra inferior lleva Resumen, Campañas, Necesidades e Histórico: `app-shell.tsx:176`) | DIRECTIVA; «Más» = Histórico y estimaciones, Campañas, Bitácora y Cerrar sesión. Para ADMINISTRADOR, además Usuarios (lámina 44) | O | no | Sin llamadas | Barra nueva (Resumen · Borrador · Compras · Catálogo · Más) y pantalla «Más» | — |
+| 44 | Teléfono · usuarios y permiso de sustitución | Como 31 | ADMINISTRADOR | C (el panel es de B) | parcial | Como 31 | Como 31 | Se llega por «Más» (O) |
+| 45 | Teléfono · formulario (nueva convocatoria) | Como 15.1, a pantalla completa | DIRECTIVA | B | parcial | Como 15.1 | «Vale la hora del sindicato, no la de este teléfono» (H-14) | — |
+| 46 | Teléfono · confirmación con motivo | Como 15.4, en hoja inferior | Responsable | B | parcial | `POST …/cancel` | Ninguna | Al cerrar, el foco vuelve al control que la abrió |
+| 47 | Teléfono · identificar un producto con fotografía | Como 23 | DIRECTIVA | C | parcial | Como 23 | Ninguna. El selector de producto sustituye a la lista de «Parecidos» | — |
+| 48 | Teléfono · convocatoria con permiso retirado | Como 17 | Excolaboradora | B | parcial | Como 17 | Como 17 | El avatar «RV» es un defecto de la muestra; las iniciales se calculan del nombre (`app-shell.tsx:183-188`) |
+| 49 | Teléfono · sustituir a la responsable | Como 15.6, a pantalla completa | Persona con el permiso | B | parcial | Como 15.6 | Ninguna | — |
+| 50 | Teléfono · nueva responsable revisar permisos | Como 14 | Sucesora | B | parcial | Como 14 | Ninguna | — |
+| 51 | Teléfono · cómo se calculó y detalle técnico | Como 08 | DIRECTIVA | A | parcial | Como 08 | Como 08 | «El alcance de cada producto está en su fila del borrador» coincide con E3-P1 1b |
+
+## Recuentos
+
+**Por sesión** (sesión principal de cada lámina; 51 en total)
+
+| Sesión | Láminas | Total |
+|---|---|---|
+| O | 01, 02 y 43 | 3 |
+| A | 03–08, 25–27, 35, 36, 40 y 51 | 13 |
+| B | 09–20, 37, 38 y 45–50 | 19 |
+| C | 21–24, 28–34, 39, 41, 42, 44 y 47 | 16 |
+
+Láminas mixtas:
+- **05:** §13 es de B.
+- **30:** 30.3 usa `seal-panel.tsx` de A.
+- **31 y 44:** el panel del permiso es de B.
+- **34:** 34.1 y 34.2 son de B.
+
+**Por «existe hoy»** (nivel de lámina; 51 en total)
+
+| Existe hoy | Láminas | Total |
+|---|---|---|
+| sí | 01, 02, 04, 06, 10–16, 18–20, 22, 23, 26, 27, 29 y 30 | 20 |
+| parcial | 03, 05, 07, 08, 09, 17, 21, 24, 25, 28, 31–42 y 44–51 | 30 |
+| no | 43 | 1 |
+
+En las láminas de teléfono, «parcial» indica que hoy existe la Web adaptable con otra barra y otro reparto. Las funciones son las mismas que en escritorio.
+
+## Discrepancias de muestra entre láminas (no son requisitos)
+
+- **Fechas de Invierno 2026:** «22 oct 2026 – 21 mar 2027» en 28 y 29; «01/05/2026 – 28/09/2026» en 34.3 y 41.
+- **Correo de Rosa Vargas:** distinto en 31 y en 34.6.
+- **Avatar «RV»:** aparece con «Responsable PA 2» en 11, 16, 17 y 48.
+- **Sustitución:** la 49 la hace sobre «Convocatoria de demostración…»; la 14, la 50 y la bitácora la refieren a «P-A app anterior».
+- **Abiertas:** la 37 cuenta 4 y muestra 3.
+- **Productos:** 12 en el catálogo y 11 en el Resumen. Es coherente: el alias «Herbicida 48 DEMO» se agrupa.
+- **Hora de la 13:** el título dice «16:36:26» y la actividad «12:36».
+- **Borradores:** hay dos idénticos de las 14:02 en 07 y 29.
+- **Botones de confirmación:** se ven habilitados con la casilla sin marcar en 15, 23, 24, 30 y 45–49. No se copia (COORDINACION §6).
+
+
+## Seguimiento: implementación, prueba y captura
+
+Lo actualiza el orquestador con cada integración. «Implementación» es el commit integrado en `feat/web-rediseno-v2`; «Prueba», el archivo de prueba que cubre la lámina; «Captura», la de la implementación en `docs/evidence/rediseno-web-v2/`.
+
+| Lámina | Implementación | Prueba | Captura |
+|---|---|---|---|
+| 01 | pendiente | pendiente | pendiente |
+| 02 | pendiente | pendiente | pendiente |
+| 03 | pendiente | pendiente | pendiente |
+| 04 | pendiente | pendiente | pendiente |
+| 05 | pendiente | pendiente | pendiente |
+| 06 | pendiente | pendiente | pendiente |
+| 07 | pendiente | pendiente | pendiente |
+| 08 | pendiente | pendiente | pendiente |
+| 09 | pendiente | pendiente | pendiente |
+| 10 | pendiente | pendiente | pendiente |
+| 11 | pendiente | pendiente | pendiente |
+| 12 | pendiente | pendiente | pendiente |
+| 13 | pendiente | pendiente | pendiente |
+| 14 | pendiente | pendiente | pendiente |
+| 15 | pendiente | pendiente | pendiente |
+| 16 | pendiente | pendiente | pendiente |
+| 17 | pendiente | pendiente | pendiente |
+| 18 | pendiente | pendiente | pendiente |
+| 19 | pendiente | pendiente | pendiente |
+| 20 | pendiente | pendiente | pendiente |
+| 21 | pendiente | pendiente | pendiente |
+| 22 | pendiente | pendiente | pendiente |
+| 23 | pendiente | pendiente | pendiente |
+| 24 | pendiente | pendiente | pendiente |
+| 25 | pendiente | pendiente | pendiente |
+| 26 | pendiente | pendiente | pendiente |
+| 27 | pendiente | pendiente | pendiente |
+| 28 | pendiente | pendiente | pendiente |
+| 29 | pendiente | pendiente | pendiente |
+| 30 | pendiente | pendiente | pendiente |
+| 31 | pendiente | pendiente | pendiente |
+| 32 | pendiente | pendiente | pendiente |
+| 33 | pendiente | pendiente | pendiente |
+| 34 | pendiente | pendiente | pendiente |
+| 35 | pendiente | pendiente | pendiente |
+| 36 | pendiente | pendiente | pendiente |
+| 37 | pendiente | pendiente | pendiente |
+| 38 | pendiente | pendiente | pendiente |
+| 39 | pendiente | pendiente | pendiente |
+| 40 | pendiente | pendiente | pendiente |
+| 41 | pendiente | pendiente | pendiente |
+| 42 | pendiente | pendiente | pendiente |
+| 43 | pendiente | pendiente | pendiente |
+| 44 | pendiente | pendiente | pendiente |
+| 45 | pendiente | pendiente | pendiente |
+| 46 | pendiente | pendiente | pendiente |
+| 47 | pendiente | pendiente | pendiente |
+| 48 | pendiente | pendiente | pendiente |
+| 49 | pendiente | pendiente | pendiente |
+| 50 | pendiente | pendiente | pendiente |
+| 51 | pendiente | pendiente | pendiente |
