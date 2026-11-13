@@ -39,12 +39,17 @@ export const CALL_EVENT_LABEL: Record<JointPurchaseCallEventKind, string> = {
   OPENED: 'Convocatoria abierta',
   CLOSED: 'Convocatoria cerrada',
   CANCELLED: 'Convocatoria cancelada',
-  RESPONSIBLE_ASSIGNED: 'Responsable asignado',
+  RESPONSIBLE_ASSIGNED: 'Responsable asignada',
   ACCESS_GRANTED: 'Permiso concedido',
   ACCESS_REVOKED: 'Permiso retirado',
   RESPONSIBLE_REPLACED: 'Responsable sustituida',
   ACCESS_CONFIRMED: 'Permiso confirmado',
 };
+
+/** Cierre por plazo: el servidor registra el evento `CLOSED` sin actor (cierre automático). */
+export const AUTO_CLOSED_EVENT_LABEL = 'Convocatoria cerrada al vencer el plazo';
+/** Actor de un evento sin usuario institucional (el cierre automático). */
+export const SYSTEM_ACTOR = 'Sistema';
 
 /** E2-P3 (§10.2): nombres de los permisos por convocatoria, como los publica el servidor (`GRANT_LABEL`). */
 export const GRANT_LABEL: Record<JointPurchaseCallGrant, string> = {
@@ -52,16 +57,25 @@ export const GRANT_LABEL: Record<JointPurchaseCallGrant, string> = {
   MANAGE: 'Administrar la convocatoria',
 };
 
-/** Qué permite cada permiso (§10.2). */
+/** Qué permite cada permiso (§10.2), con el texto de la lámina 15. */
 export const GRANT_DESCRIPTION: Record<JointPurchaseCallGrant, string> = {
   PARTICIPANTS:
-    'Ver los nombres y las cantidades solicitadas por persona, sólo de quienes autorizaron que también los vean las personas que la responsable autorice, y el detalle del consolidado al cierre.',
-  MANAGE: 'Editar el borrador, abrirla, cancelarla y cerrarla a mano. No permite ver participantes ni conceder permisos.',
+    'Ve a los participantes y sus cantidades, y el detalle del consolidado al cierre, sólo de quienes lo autorizaron.',
+  MANAGE: 'Edita, abre, cierra y cancela la convocatoria. No da acceso a participantes ni a cantidades individuales.',
 };
+
+/** Qué deja de ver o hacer quien pierde un permiso (lámina 34.2). */
+export const GRANT_LOSS: Record<JointPurchaseCallGrant, string> = {
+  PARTICIPANTS: 'Dejará de ver los nombres y las cantidades de esta convocatoria.',
+  MANAGE: 'Dejará de poder editarla, abrirla, cerrarla o cancelarla.',
+};
+
+/** Ningún permiso de la convocatoria pasa por encima de lo que autorizó cada agricultor (§10.6, P-A C1). */
+export const GRANT_CONSENT_NOTE = 'Ningún permiso sustituye la autorización de cada agricultor.';
 
 export const CLOSE_MODE_LABEL: Record<JointPurchaseCallCloseMode, string> = {
   MANUAL: 'Manual',
-  AUTOMATIC: 'Automático, al vencer la fecha límite',
+  AUTOMATIC: 'Automático, al vencer el plazo',
 };
 
 export const PARTICIPATION_STATUS_LABEL: Record<JointPurchaseParticipationStatus, string> = {
@@ -74,8 +88,19 @@ export const ROLE_LABEL: Record<string, string> = {
   ADMINISTRADOR: 'Administrador',
 };
 
+/**
+ * H-15 (P-A C1): la responsable sólo ve nombres y cantidades de quienes la
+ * autorizan desde su aplicación; no de todos los que participen.
+ */
 export const RESPONSIBLE_NOTICE =
-  'El responsable podrá ver el nombre y las cantidades de quienes participen y autorizar a otras personas de la Directiva o la Administración para coordinarla. No se puede cambiar después de abrir.';
+  'Verá nombres y cantidades sólo de quienes la autoricen, y podrá autorizar a otras personas de la Directiva o la Administración para coordinarla. No se cambia después de abrir, salvo con la sustitución autorizada.';
+/**
+ * H-14 (E2-D4): el plazo es un instante del reloj del servidor; la API no
+ * tiene zona horaria del sindicato. El campo se lee en la hora del navegador.
+ */
+export const DEADLINE_HELP = 'El plazo se cumple con el reloj del servidor. La fecha se escribe y se muestra en la hora de este equipo.';
+/** Pie del formulario de creación (lámina 15.1). */
+export const CREATE_AS_DRAFT_NOTE = 'Se crea como borrador: los agricultores no la ven hasta que la abra.';
 /**
  * P-B (aviso previo al creador, 2026-11-12). E2 §10.2: editar, abrir, cancelar
  * y cerrar exigen ser la persona responsable o tener «Administrar» (403
@@ -96,7 +121,10 @@ export function handOverText(responsibleName: string): { lead: string; losses: s
   };
 }
 
-export const PARTICIPANTS_FORBIDDEN_TEXT =
+/** Quien consulta no tiene «Consultar participantes» (lámina 16); la vista añade quién lo concede. */
+export const PARTICIPANTS_FORBIDDEN_TEXT = `Usted no tiene el permiso «${GRANT_LABEL.PARTICIPANTS}».`;
+/** Respuesta 403 `PARTICIPANTS_FORBIDDEN` del servidor. */
+const PARTICIPANTS_FORBIDDEN_ERROR =
   'Sólo la persona responsable de esta convocatoria y quienes ella autorice pueden ver a los participantes.';
 /** §10.2: el permiso se perdió mientras la página mostraba participantes; texto exacto del contrato. */
 export const PARTICIPANTS_REVOKED_TEXT =
@@ -110,8 +138,19 @@ export const MANAGE_ONLY_TEXT =
  * quedan suspendidos; la salida es la sustitución por quien tenga el permiso
  * «Sustituir responsable». El cierre automático por plazo se mantiene.
  */
-export const RESPONSIBLE_INELIGIBLE_TEXT =
-  'La persona responsable ya no es un usuario activo de la Directiva o la Administración. Los permisos que concedió quedan suspendidos y nadie puede administrar la convocatoria por su rol. Quien tenga el permiso «Sustituir responsable» puede nombrar a otra persona responsable. Si está abierta, se cierra sola al vencer la fecha límite.'
+export const RESPONSIBLE_INELIGIBLE_TITLE = 'Nadie puede administrarla.';
+const RESPONSIBLE_INELIGIBLE_BODY =
+  'La responsable ya no tiene una cuenta habilitada: los permisos que concedió quedan suspendidos y ningún cargo la administra por sí solo.';
+const RESPONSIBLE_INELIGIBLE_CLOSES = 'Si no se hace nada, se cerrará sola al vencer el plazo.';
+/** Texto del aviso con la convocatoria abierta (lámina 20). */
+export const RESPONSIBLE_INELIGIBLE_TEXT = `${RESPONSIBLE_INELIGIBLE_TITLE} ${RESPONSIBLE_INELIGIBLE_BODY} ${RESPONSIBLE_INELIGIBLE_CLOSES}`;
+/** El cierre automático sólo existe con la convocatoria abierta. */
+export function responsibleIneligibleBody(status: JointPurchaseCallStatus): string {
+  return status === 'OPEN' ? `${RESPONSIBLE_INELIGIBLE_BODY} ${RESPONSIBLE_INELIGIBLE_CLOSES}` : RESPONSIBLE_INELIGIBLE_BODY;
+}
+/** Quien consulta no puede sustituir: se dice quién puede. */
+export const RESPONSIBLE_INELIGIBLE_WHO =
+  'Quien tenga el permiso del sindicato «Sustituir responsable» puede nombrar a otra persona responsable.';
 /** El servidor respondió `MANAGE_FORBIDDEN`: el permiso cambió mientras la página estaba abierta. */
 export const MANAGE_LOST_TEXT =
   'Ya no puede administrar esta convocatoria: el permiso cambió. Se volvió a cargar con sus permisos actuales.';
@@ -122,14 +161,25 @@ export const COLLABORATORS_LOST_TEXT =
 /** P-A §12: nombre del permiso del sindicato y qué permite (y qué no). */
 export const SUBSTITUTION_PERMISSION_LABEL = 'Sustituir responsable';
 export const SUBSTITUTION_PERMISSION_DESCRIPTION =
-  'Permite nombrar a otra persona responsable cuando la actual ya no está habilitada, con motivo y confirmación. No permite ver participantes, administrar convocatorias ni conceder otros permisos.';
-/** P-A B1: qué hace la sustitución, para el diálogo de confirmación. */
+  'Quien lo tiene puede nombrar a otra responsable cuando la de una convocatoria ya no está habilitada, con motivo y confirmación. No da acceso a participantes, no administra convocatorias ni concede otros permisos.';
+/** Quién lo concede (A1): una persona Administrador habilitada, a personas concretas. */
+export const SUBSTITUTION_PERMISSION_WHO =
+  'Lo concede o lo retira una persona Administrador habilitada, a personas concretas de la Directiva o la Administración; nunca a sí misma ni a un rol entero. Si nadie más está habilitado, no hay una salida automática.';
+/** P-A B1: qué hace la sustitución, para el diálogo de confirmación (lámina 15.6). */
 export const SUBSTITUTION_IMPLICATIONS = [
-  'La nueva persona responsable podrá administrar la convocatoria y conceder permisos.',
-  'Los permisos que concedió la responsable anterior quedan suspendidos hasta que la nueva los confirme o los retire.',
-  'La nueva responsable no verá el nombre ni las cantidades de ningún agricultor hasta que cada uno la autorice desde su aplicación.',
-  'No reabre la convocatoria ni cambia su fecha límite, las participaciones, las cantidades ni el consolidado. No genera compras, pagos, deudas ni inventario.',
+  'La nueva responsable administrará la convocatoria y podrá conceder permisos.',
+  'No verá nombres ni cantidades hasta que cada agricultor la autorice desde su aplicación.',
+  'Los permisos anteriores quedan suspendidos hasta que ella los revise.',
+  'Confirmar un permiso anterior no sustituye la autorización de cada agricultor.',
+  'No reabre la convocatoria ni cambia su fecha límite, los pedidos, las cantidades ni el consolidado.',
   'La responsable anterior no recupera nada aunque vuelva a estar habilitada.',
+];
+/** Lámina 14: lo que la sucesora puede y no puede hacer. */
+export const NEW_RESPONSIBLE_POINTS = [
+  'Puede administrar la convocatoria.',
+  'Las participaciones que no la autorizaron siguen restringidas.',
+  'Los permisos anteriores siguen suspendidos hasta que usted los revise.',
+  'Confirmar un permiso no sustituye la autorización de cada agricultor.',
 ];
 /**
  * P-A, decisión del autor del 2026-11-12: quien sustituye no puede nombrarse
@@ -147,12 +197,9 @@ export const SUBSTITUTION_ONLY_SELF_TEXT =
 /** P-A C1: participaciones a la espera de que su agricultor autorice a la responsable actual, si el servidor no lo envió. */
 export function pendingAuthorizationText(count: number): string {
   return count === 1
-    ? '1 participación pendiente de que su agricultor autorice a la persona responsable actual: sus datos no se muestran.'
-    : `${count} participaciones pendientes de que sus agricultores autoricen a la persona responsable actual: sus datos no se muestran.`;
+    ? '1 participación aún no autorizó a la persona responsable actual. Sus datos siguen restringidos: cada agricultor lo decide desde su aplicación.'
+    : `${count} participaciones aún no autorizaron a la persona responsable actual. Sus datos siguen restringidos: cada agricultor lo decide desde su aplicación.`;
 }
-/** P-A C1: total retenido para la responsable y sus colaboradores. */
-export const RESTRICTED_TOTAL_TEXT =
-  'Total no visible: incluye participaciones cuyos agricultores aún no autorizaron a la persona responsable actual.';
 
 /** §10.6: aviso de participaciones autorizadas sólo para la persona responsable, si el servidor no lo envió. */
 export function hiddenParticipantsText(count: number): string {
@@ -160,37 +207,84 @@ export function hiddenParticipantsText(count: number): string {
     ? '1 participación autorizada sólo para la persona responsable: sólo la ve ella.'
     : `${count} participaciones autorizadas sólo para la persona responsable: sólo las ve ella.`;
 }
-export const PROVISIONAL_NOTE = 'Puede cambiar hasta el cierre. Son cantidades solicitadas, no compras ni deudas.';
+export const PROVISIONAL_NOTE = 'Puede cambiar hasta el cierre';
+/** Lo que es un consolidado (E2-D13); también va al pie del consolidado al cierre. */
 export const NOT_A_PURCHASE_TEXT = 'Son cantidades solicitadas: no son compras, entregas ni deudas.';
+/** Nota al pie del detalle (láminas 10–20). */
+export const CALL_FOOTNOTE = 'Una convocatoria no es una compra: no genera pagos ni deudas.';
+/** «Qué sigue» al cierre (lámina 12). */
+export const WHAT_NEXT_TEXT = 'El consolidado queda fijo. La compra, el pago y la entrega se coordinan fuera de Agrocuentas.';
+/** Al abrir (lámina 15.2). La línea de la persona responsable la añade la vista. */
 export const OPEN_IMPLICATIONS = [
-  'Los agricultores verán la convocatoria al actualizar su aplicación.',
-  'No se podrán cambiar productos, fecha límite ni responsable.',
+  'Los agricultores la verán en su aplicación y podrán pedir.',
+  'Al abrirla, el nombre, la fecha límite y los productos dejan de ser editables.',
+  'El cambio de responsable requiere el procedimiento autorizado de sustitución.',
 ];
-export const CLOSE_IMPLICATION = 'Se consolidan las participaciones recibidas hasta ahora con la hora del servidor. No se puede reabrir.';
-
-/** §10.3: total retenido porque incluye participaciones que quien consulta no puede ver (abierta o cerrada). */
-export const RESPONSIBLE_ONLY_HIDDEN_TEXT =
-  'Total visible sólo para la persona responsable: incluye participaciones autorizadas sólo para ella, que usted no puede ver.';
+/** Al cerrar (lámina 15.3). */
+export const CLOSE_IMPLICATION = 'Se consolidan los pedidos recibidos hasta este momento, con la hora del servidor.';
+export const CLOSE_IMPLICATIONS = [CLOSE_IMPLICATION, 'No se puede reabrir.', 'No es una compra: no genera pagos ni deudas.'];
+/** «Cómo funciona el acceso» (láminas 10–20): texto fijo, sin datos. */
+export function accessRules(threshold: number): { term: string; text: string }[] {
+  return [
+    { term: 'Administrar', text: 'gestionar la convocatoria. No da acceso a datos de cada persona.' },
+    { term: 'Consultar participantes', text: 'ver nombres y cantidades, sólo de quienes lo autorizaron.' },
+    { term: 'Autorización del agricultor', text: 'cada uno decide en su aplicación quién ve su pedido.' },
+    {
+      term: 'Totales',
+      text: `sin permiso, no se ven mientras está abierta; al cierre se ven si lo pidieron ${threshold} o más personas. El servidor decide en cada consulta.`,
+    },
+  ];
+}
 
 /**
- * Texto en lugar de un total retenido (E2-D7 / E2-P1 / §10.3); nunca se
- * muestra 0. `RESPONSIBLE_ONLY` con la convocatoria abierta, para quien no
- * tiene `PARTICIPANTS`: E2-P1. `RESPONSIBLE_ONLY` en el consolidado, o para un
- * colaborador con `PARTICIPANTS`: el total incluye participaciones ocultas para
- * él (`hidden`). `UNDER_THRESHOLD`: al cierre, menos del umbral de personas.
+ * 05 §13: estado del total de un producto en una convocatoria. Nunca se
+ * muestra 0: fuera de `VISIBLE` va el texto del estado (chip punteado) y, si
+ * ayuda, una línea con el motivo.
  */
-export function withheldTotalText(
+export const UNDER_THRESHOLD_TEXT = 'Oculto por umbral';
+export const RESTRICTED_TOTAL_TEXT = 'Restringido para su acceso';
+export const RESPONSIBLE_ONLY_OPEN_TEXT = 'No disponible mientras esté abierta';
+/** §10.3: el total incluye participaciones que quien consulta no puede ver (abierta o cerrada), o el motivo no consta. */
+export const RESPONSIBLE_ONLY_HIDDEN_TEXT = 'Total no disponible para su acceso actual';
+export function totalState(
   visibility: JointPurchaseCallTotalVisibility,
   threshold: number | null | undefined,
   hidden = false,
-): string {
+): { label: string; note: string | null } {
   const k = threshold ?? 3;
-  if (visibility === 'RESTRICTED') return RESTRICTED_TOTAL_TEXT;
-  if (visibility === 'RESPONSIBLE_ONLY')
-    return hidden
-      ? RESPONSIBLE_ONLY_HIDDEN_TEXT
-      : `Total visible sólo para el responsable mientras la convocatoria está abierta; al cierre se muestra si hay ${k} o más personas en el producto.`;
-  return `Total no visible: menos de ${k} personas pidieron este producto.`;
+  if (visibility === 'RESTRICTED') return { label: RESTRICTED_TOTAL_TEXT, note: 'Faltan autorizaciones de agricultores' };
+  if (visibility === 'UNDER_THRESHOLD') return { label: UNDER_THRESHOLD_TEXT, note: `Lo pidieron menos de ${k} personas` };
+  if (visibility === 'RESPONSIBLE_ONLY' && !hidden) return { label: RESPONSIBLE_ONLY_OPEN_TEXT, note: null };
+  return { label: RESPONSIBLE_ONLY_HIDDEN_TEXT, note: null };
+}
+
+/** «12 nov, 08:00»; con el año si no es el de hoy (o si se pide), «12 nov 2026, 08:00». Hora de 24 h del navegador. */
+export function fmtWhen(iso: string | null | undefined, withYear: 'auto' | 'always' = 'auto'): string {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  const showYear = withYear === 'always' || date.getFullYear() !== new Date().getFullYear();
+  const day = date.toLocaleDateString('es-BO', { day: 'numeric', month: 'short', ...(showYear ? { year: 'numeric' } : {}) }).replace(/\./g, '').replace(/ de /g, ' ');
+  const time = date.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return `${day}, ${time}`;
+}
+
+/** «12 nov 2026»: sólo la fecha. */
+export function fmtDay(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('es-BO', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, '').replace(/ de /g, ' ');
+}
+
+/** «1 persona» / «N personas». */
+export function peopleText(count: number): string {
+  return count === 1 ? '1 persona' : `${count} personas`;
+}
+
+/** «En litros» o «En kilogramos» (unidad base de la API). */
+export function unitText(unit: BaseUnit | string): string {
+  return unit === 'G' || unit === 'KG' ? 'En kilogramos' : 'En litros';
 }
 
 /**
@@ -222,7 +316,7 @@ const ERROR_TEXT: Record<string, string> = {
   INVALID_TRANSITION: 'La convocatoria cambió de estado mientras tanto. Recargue la página y revise su estado.',
   CALL_NOT_EDITABLE: 'Sólo un borrador se puede modificar: la convocatoria ya se abrió, se cerró o se canceló.',
   CALL_NOT_CLOSED: 'El consolidado sólo existe cuando la convocatoria está cerrada.',
-  PARTICIPANTS_FORBIDDEN: PARTICIPANTS_FORBIDDEN_TEXT,
+  PARTICIPANTS_FORBIDDEN: PARTICIPANTS_FORBIDDEN_ERROR,
   MANAGE_FORBIDDEN: `No tiene permiso para administrar esta convocatoria. ${MANAGE_ONLY_TEXT}`,
   COLLABORATORS_FORBIDDEN: 'Sólo la persona responsable de esta convocatoria puede conceder o retirar permisos.',
   COLLABORATOR_NOT_ELIGIBLE:
@@ -328,15 +422,15 @@ export function quantityText(base: string | null | undefined, unit: BaseUnit): s
 }
 
 /**
- * Cifra de la línea del borrador de propuesta, como referencia (E2-D14): sólo
- * la cifra ya divulgada; nunca una cantidad comprometida.
+ * Cifra de la línea del borrador de compra, como referencia (E2-D14): sólo la
+ * necesidad declarada ya publicada en el borrador; nunca una cantidad comprometida.
  */
 export function referenceText(
   ref: { status: string; quantity_base: string | null; quantity_presentation?: string | null },
   unit: BaseUnit,
 ): string {
   const figure = ref.status === 'DISCLOSED' ? formatQuantity(ref.quantity_base, unit, ref.quantity_presentation ?? null) : null;
-  return figure ? `Referencia del borrador: ${figure} (divulgada)` : 'Sin cifra divulgada';
+  return figure ? `Necesidad declarada en el borrador: ${figure}` : 'Sin cifra publicada en el borrador';
 }
 
 const pad = (value: number) => String(value).padStart(2, '0');
