@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigationType } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useIdentificationPending } from '../contexts/identification-pending';
 import {
@@ -572,6 +572,7 @@ export interface AppShellProps {
  */
 export function AppShell({ title, section, actions, children, navCounts }: AppShellProps) {
   const location = useLocation();
+  const navigationType = useNavigationType();
   // Insignia «Por identificar» (H-02): sólo con un recuento real mayor que cero; sin dato no hay insignia.
   const pending = useIdentificationPending();
   const counts: NavCounts = { ...(pending !== null && pending > 0 ? { [IDENTIFICATION_PENDING_KEY]: pending } : {}), ...navCounts };
@@ -633,6 +634,21 @@ export function AppShell({ title, section, actions, children, navCounts }: AppSh
       window.removeEventListener('offline', handleStatus);
     };
   }, []);
+
+  /*
+   * Al llegar a otra ruta dentro de la aplicación (enlace o `navigate`), la vista
+   * empieza arriba. Sólo cambia con `pathname`: `?vista=` y la consulta de la
+   * misma ruta conservan la posición. Atrás y Adelante (POP) dejan la posición
+   * que restaure el navegador. El foco no se mueve. `BrowserRouter` no admite
+   * `ScrollRestoration` (exige un enrutador de datos), por eso es un efecto.
+   */
+  useEffect(() => {
+    if (navigationType === 'POP') return;
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    // Sólo al cambiar de ruta: el tipo de navegación se lee en ese momento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // El nombre de la vista no se repite en la barra: queda en el título de la pestaña.
   useEffect(() => {
