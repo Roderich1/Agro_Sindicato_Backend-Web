@@ -687,8 +687,8 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
                     <td className="px-4 py-4 max-sm:block max-sm:py-1 sm:text-right">
                       <span className="mb-0.5 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Consumo estimado</span>
                       {estimated ? (
-                        <span className="text-xl leading-tight sm:text-2xl" data-testid="estimate">
-                          <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />
+                        <span className="text-2xl leading-tight sm:text-[1.75rem]" data-testid="estimate">
+                          <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} rounded />
                         </span>
                       ) : (
                         <>
