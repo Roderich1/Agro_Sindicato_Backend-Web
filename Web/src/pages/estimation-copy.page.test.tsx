@@ -46,7 +46,8 @@ describe('lectura sin conexión de la copia (F12-EST-07-WEB, #180)', () => {
     const view = await screen.findByTestId('copy-c-1');
     expect(within(view).getByTestId('copy-estimate').textContent).toBe('111 L111.000 mL');
     expect(within(view).getByTestId('copy-current').textContent).toBe('Desconocida sin conexión');
-    expect(screen.getByRole('link', { name: 'Iniciar sesión (requiere conexión)' })).toBeTruthy();
+    // Rediseño v2 (lámina 27): «Ir a Ingresar».
+    expect(screen.getByRole('link', { name: 'Ir a Ingresar' })).toBeTruthy();
   });
 
   it('acceso directo sin contexto propietario: no muestra nada aunque queden copias en IndexedDB', async () => {

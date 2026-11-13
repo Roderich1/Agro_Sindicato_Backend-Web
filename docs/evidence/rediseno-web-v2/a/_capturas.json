@@ -1,0 +1,581 @@
+[
+ {
+  "files": [
+   "resumen/03-resumen__escritorio.png",
+   "resumen/03-resumen__portatil.png",
+   "resumen/03-resumen__tableta.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen (lámina 03), campaña activa",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/03-resumen-pantalla__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen, primera pantalla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/03-resumen-busqueda__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Buscador en el navegador («Fungi»)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/05-sin-coincidencias__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Sin coincidencias con «Quitar filtros»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/03-resumen-filtro-ocultas__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Filtro «Ocultas»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "cobertura/04-cobertura__escritorio.png",
+   "cobertura/04-cobertura__portatil.png"
+  ],
+  "ruta": "/colectivo/cobertura",
+  "rol": "directiva",
+  "desc": "Cobertura (lámina 04)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "estados/05-07-error-servidor__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Error del servidor (05 §7)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "estados/05-09-servidor-ocupado__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Servidor ocupado, 429 (05 §9)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "estados/05-08-sin-permiso__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Sin permiso, 403 (05 §8)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "estados/05-01-cargando__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Cargando (05 §1)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "telefono/35-resumen-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen en teléfono (lámina 35, 390 px por ancho de navegador)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/04-cobertura-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/cobertura",
+  "rol": "directiva",
+  "desc": "Cobertura en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/03-resumen-zoom200__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/06-borrador-actual__escritorio.png",
+   "borrador/06-borrador-actual__portatil.png",
+   "borrador/06-borrador-actual__tableta.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador actual (lámina 06)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/06-borrador-actual-pantalla__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador actual, primera pantalla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/06-barra-con-cambios__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Barra con un producto marcado sin guardar (no se guarda)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/07-anteriores__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borradores anteriores (lámina 07)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/08-como-se-calculo__escritorio.png",
+   "borrador/08-como-se-calculo__portatil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó (lámina 08)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/08-detalle-tecnico-abierto__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Detalle técnico con parámetros, fuentes e historial",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/36-borrador-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador en teléfono (lámina 36, 390 px por ancho de navegador)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/51-como-se-calculo-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó en teléfono (lámina 51)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/06-borrador-zoom200__zoom200.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/06-borrador-actual__escritorio.png",
+   "borrador/06-borrador-actual__portatil.png",
+   "borrador/06-borrador-actual__tableta.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador actual (lámina 06)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/06-borrador-actual-pantalla__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador actual, primera pantalla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/06-barra-con-cambios__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Barra con un producto marcado sin guardar (no se guarda)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/07-anteriores__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borradores anteriores (lámina 07)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/08-como-se-calculo__escritorio.png",
+   "borrador/08-como-se-calculo__portatil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó (lámina 08)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "borrador/08-detalle-tecnico-abierto__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Detalle técnico con parámetros, fuentes e historial",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/36-borrador-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador en teléfono (lámina 36, 390 px por ancho de navegador)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/51-como-se-calculo-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó en teléfono (lámina 51)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/06-borrador-zoom200__zoom200.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "historico/25-historico-sellado__escritorio.png",
+   "historico/25-historico-sellado__portatil.png",
+   "historico/25-historico-sellado__tableta.png"
+  ],
+  "ruta": "/colectivo/historico?vista=tendencias",
+  "rol": "directiva",
+  "desc": "Histórico sellado (lámina 25), H-10 provisional y cobertura por campaña",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "historico/25-historico-necesidad__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico?vista=tendencias",
+  "rol": "directiva",
+  "desc": "Histórico sellado, «Necesidad declarada»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "estimacion/26-estimacion__escritorio.png",
+   "estimacion/26-estimacion__portatil.png",
+   "estimacion/26-estimacion__tableta.png"
+  ],
+  "ruta": "/colectivo/historico?vista=estimacion",
+  "rol": "directiva",
+  "desc": "Estimación del consumo (lámina 26)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "copia/27-copia-estado__escritorio.png"
+  ],
+  "ruta": "/estimacion/copia-sin-conexion",
+  "rol": "directiva",
+  "desc": "Copia sin conexión con la sesión abierta y sin copia guardada en este navegador (lámina 27, estado 2)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/40-historico-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/historico?vista=tendencias",
+  "rol": "directiva",
+  "desc": "Histórico sellado en teléfono (lámina 40, 390 px por ancho de navegador)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/26-estimacion-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/historico?vista=estimacion",
+  "rol": "directiva",
+  "desc": "Estimación en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/25-historico-zoom200__zoom200.png"
+  ],
+  "ruta": "/colectivo/historico?vista=tendencias",
+  "rol": "directiva",
+  "desc": "Histórico al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "copia/27-copia-sin-sesion__escritorio.png",
+   "copia/27-copia-sin-sesion__movil.png"
+  ],
+  "ruta": "/estimacion/copia-sin-conexion",
+  "rol": "anon",
+  "desc": "Copia sin conexión sin sesión ni acceso local (lámina 27, estado 3)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/03-resumen__escritorio.png",
+   "resumen/03-resumen__portatil.png",
+   "resumen/03-resumen__tableta.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen (lámina 03), campaña activa",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/03-resumen-pantalla__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen, primera pantalla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/03-resumen-busqueda__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Buscador en el navegador («Fungi»)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/05-sin-coincidencias__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Sin coincidencias con «Quitar filtros»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "resumen/03-resumen-filtro-ocultas__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Filtro «Ocultas»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "cobertura/04-cobertura__escritorio.png",
+   "cobertura/04-cobertura__portatil.png"
+  ],
+  "ruta": "/colectivo/cobertura",
+  "rol": "directiva",
+  "desc": "Cobertura (lámina 04)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "estados/05-07-error-servidor__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Error del servidor (05 §7)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "estados/05-09-servidor-ocupado__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Servidor ocupado, 429 (05 §9)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "estados/05-08-sin-permiso__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Sin permiso, 403 (05 §8)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "estados/05-01-cargando__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Cargando (05 §1)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "telefono/35-resumen-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen en teléfono (lámina 35, 390 px por ancho de navegador)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/04-cobertura-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/cobertura",
+  "rol": "directiva",
+  "desc": "Cobertura en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/03-resumen-zoom200__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "historico/25-historico-sellado__escritorio.png",
+   "historico/25-historico-sellado__portatil.png"
+  ],
+  "ruta": "/colectivo/historico?vista=tendencias",
+  "rol": "directiva",
+  "desc": "Histórico sellado (lámina 25), las 11 campañas sin desplazamiento a 1440",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "estimacion/26-estimacion__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico?vista=estimacion",
+  "rol": "directiva",
+  "desc": "Estimación del consumo (lámina 26)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "estimacion/26-copia-guardada__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico?vista=estimacion",
+  "rol": "directiva",
+  "desc": "«Llevarla sin conexión» tras guardar la copia en el navegador de captura",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "copia/27-copia-legible__escritorio.png",
+   "copia/27-copia-legible__movil.png"
+  ],
+  "ruta": "/estimacion/copia-sin-conexion",
+  "rol": "directiva",
+  "desc": "Copia sin conexión legible (lámina 27, estado 1), con la sesión abierta",
+  "estado": "",
+  "simulado": false
+ }
+]

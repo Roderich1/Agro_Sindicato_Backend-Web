@@ -2,18 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { ExportButtons } from '../components/export-buttons';
-import {
-  Button,
-  CampaignSelector,
-  Collapsible,
-  DataState,
-  type DataStateKind,
-  Notice,
-  PageHeader,
-  Section,
-  SectionHeader,
-  secondaryButtonClass,
-} from '../components/ui';
+import { CampaignPill } from '../components/a/campaign-pill';
+import { Button, Card, DataState, type DataStateKind, ICON, Icon, Notice, PageHeader, SectionHeader, secondaryButtonClass } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { fmtDateTime } from '../lib/collective-text';
@@ -358,34 +348,41 @@ export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
 
   const offline = error?.kind === 'offline';
   const blocked = error?.kind === 'policy' || error?.kind === 'forbidden' || error?.kind === 'session';
+  const calculatedAt = latestGeneratedAt(results);
   return (
       <div className="space-y-5">
         <PageHeader
           headingLevel={headingLevel}
           title="Estimación del consumo"
-          subtitle="Estimación exploratoria que calcula el servidor para una campaña comparable. Es una referencia aparte: no se suma a la necesidad declarada ni crea compras."
-          campaign={<CampaignSelector campaigns={campaigns} selected={selected} onSelect={select} />}
-          actions={
-            <>
-              <ExportButtons kind="estimation" reference={selected} disabled={stale || !results || results.results.length === 0} />
-              {!blocked && selected && (
-                <Button onClick={() => void request()} disabled={busy || !eligible}>
-                  {busy ? 'Generando…' : 'Generar estimación'}
-                </Button>
-              )}
-            </>
-          }
+          subtitle="Un cálculo a partir de campañas anteriores, hecho por el servidor. Es una referencia: no se suma a la necesidad ni crea compras."
         />
+        <div className="flex flex-wrap items-center gap-3" data-testid="estimation-toolbar">
+          <CampaignPill campaigns={campaigns} selected={selected} onSelect={select} />
+          {calculatedAt && (
+            <p className="text-sm text-ink-muted" data-testid="calculated-at">
+              Calculada el {fmtDateTime(calculatedAt)}
+              {results?.season ? ` · temporada ${results.season.key.toLowerCase()}` : ''}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+            <ExportButtons kind="estimation" reference={selected} disabled={stale || !results || results.results.length === 0} />
+            {!blocked && selected && (
+              <Button onClick={() => void request()} disabled={busy || !eligible} busy={busy}>
+                {busy ? 'Generando…' : 'Generar estimación'}
+              </Button>
+            )}
+          </div>
+        </div>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && (
           <div data-testid={`error-${error.kind}`}>
-            <Section>
-              <DataState compact state={ERROR_STATE[error.kind]} title={ERROR_TITLE[error.kind]} description={error.message} />
-            </Section>
+            <Card>
+              <DataState state={ERROR_STATE[error.kind]} title={ERROR_TITLE[error.kind]} description={error.message} />
+            </Card>
           </div>
         )}
         {stale && (
-          <p className="text-xs text-amber-700" data-testid="stale">
+          <p className="rounded-control bg-warn-bg px-4 py-2 text-sm text-warn-ink" data-testid="stale">
             Lo que se muestra es de la última consulta que respondió; puede no estar actualizado. Sin conexión no se
             exporta, y generar, actualizar o descargar también requieren conexión.
           </p>
@@ -399,24 +396,43 @@ export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
             {job && <JobPanel job={job} polling={polling} onRecheck={() => void recheckJob()} />}
           </div>
         )}
-        {loading && <DataState state="loading" compact />}
-        {results && <ResultsSection results={results} details={details} latestRun={job?.run_ref ?? null} />}
-        {opened && <RunDetail run={opened} onClose={() => setOpened(null)} />}
-        {results && (
-          <HistorySection runs={runs} hasMore={cursor !== null} onMore={() => void moreRuns()} onOpen={(id) => void openRun(id)} openedId={opened?.run_ref ?? null} />
+        {loading && (
+          <Card>
+            <DataState state="loading" title="Cargando la estimación…" skeletonRows={3} />
+          </Card>
         )}
-        {!blocked && selected && (
-          <CopyPanel
-            copy={copy}
-            offline={offline}
-            downloading={downloading}
-            note={copyNote}
-            onDownload={() => void downloadCopy()}
-          />
-        )}
-        {!blocked && offline && copy && <EstimationCopyView copy={copy} />}
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] xl:items-start">
+          <div className="min-w-0 space-y-5">
+            {results && <ResultsSection results={results} details={details} latestRun={job?.run_ref ?? null} />}
+            {opened && <RunDetail run={opened} onClose={() => setOpened(null)} />}
+            {!blocked && offline && copy && <EstimationCopyView copy={copy} />}
+          </div>
+          {((!blocked && selected) || results) && (
+            <div className="min-w-0 space-y-5">
+              {!blocked && selected && (
+                <CopyPanel copy={copy} offline={offline} downloading={downloading} note={copyNote} onDownload={() => void downloadCopy()} />
+              )}
+              {results && (
+                <HistorySection runs={runs} hasMore={cursor !== null} onMore={() => void moreRuns()} onOpen={(id) => void openRun(id)} openedId={opened?.run_ref ?? null} />
+              )}
+            </div>
+          )}
+        </div>
       </div>
   );
+}
+
+/**
+ * «Calculada el …» de la barra (lámina 26): la ejecución más reciente entre
+ * los resultados mostrados (regla de presentación, como «Cifra más reciente»).
+ */
+function latestGeneratedAt(results: InstitutionalResults | null): string | null {
+  let latest: { at: number; value: string } | null = null;
+  for (const result of results?.results ?? []) {
+    const at = Date.parse(result.generated_at);
+    if (Number.isFinite(at) && (!latest || at > latest.at)) latest = { at, value: result.generated_at };
+  }
+  return latest?.value ?? null;
 }
 
 /** Cómo se presenta cada clase de error de INT-09 (§4 del contrato compartido). */
@@ -457,17 +473,20 @@ function CopyPanel({
   onDownload: () => void;
 }) {
   return (
-    <section className="glass-card overflow-hidden" aria-label="Copia para consultar sin conexión" data-testid="copy-panel">
-      <SectionHeader
-        title="Copia para consultar sin conexión"
-        note="Distinta del Excel de la consulta: guarda en este navegador la última estimación permitida de esta campaña, con su vigencia al descargarse. Sólo la lee esta sesión y sin conexión puede estar desactualizada."
-        actions={
-          <button type="button" className={secondaryButtonClass} onClick={onDownload} disabled={downloading || offline}>
-            {downloading ? 'Descargando…' : 'Descargar copia para consultar sin conexión'}
-          </button>
-        }
-      />
-      <div className="space-y-1 px-5 py-2.5 text-sm text-slate-700">
+    <section className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-7" aria-labelledby="llevarla-sin-conexion" data-testid="copy-panel">
+      <h2 id="llevarla-sin-conexion" className="text-2xl font-bold text-ink">
+        Llevarla sin conexión
+      </h2>
+      <p className="mt-2 text-base leading-relaxed text-ink-muted">
+        Guarde una copia en este navegador para consultarla sin internet. Es distinta del Excel: sólo la lee esta sesión y sin conexión puede
+        estar desactualizada.
+      </p>
+      <div className="mt-4">
+        <Button variant="secondary" block onClick={onDownload} disabled={downloading || offline} busy={downloading}>
+          {downloading ? 'Guardando…' : 'Guardar copia'}
+        </Button>
+      </div>
+      <div className="mt-3 space-y-1 text-sm text-ink-muted">
         <p data-testid="copy-status">
           {copy
             ? `Hay una copia de esta campaña en este navegador, descargada el ${fmtDateTime(copy.download.downloaded_at)}.`
@@ -477,18 +496,18 @@ function CopyPanel({
           {copy && (
             <>
               {' '}
-              <Link className="font-semibold text-emerald-700 underline" to={ESTIMATION_COPY_PATH}>
+              <Link className="font-semibold text-link underline" to={ESTIMATION_COPY_PATH}>
                 Ver las copias descargadas
               </Link>
             </>
           )}
         </p>
         {note && (
-          <p className="text-xs text-slate-600" data-testid="copy-note">
+          <p className="text-sm text-ink" data-testid="copy-note">
             {note}
           </p>
         )}
-        {offline && <p className="text-xs text-slate-500">Descargar requiere conexión.</p>}
+        {offline && <p>Guardar una copia requiere conexión.</p>}
       </div>
     </section>
   );
@@ -636,123 +655,74 @@ function lastObservedCampaign(detail: ResultDetail | null): string | null {
  */
 function ResultsSection({ results, details, latestRun }: { results: InstitutionalResults; details: Record<string, Run>; latestRun: string | null }) {
   return (
-    <section className="glass-card overflow-hidden" aria-label="Resultados por producto">
-      <SectionHeader
-        title={`Resultados para ${results.target.name}`}
-        note={
-          <span data-testid="results-evaluated">
-            Vigencia evaluada el {fmtDateTime(results.evaluated_at)}
-            {results.season ? ` · temporada ${results.season.key}` : ''}. Cada cifra es una estimación puntual para esta
-            campaña, con la fecha de su ejecución; no es un rango histórico.
-          </span>
-        }
-      />
+    <section className="overflow-hidden rounded-card border border-line bg-surface shadow-card" aria-labelledby="resultados-estimacion">
+      <h2 id="resultados-estimacion" className="sr-only">
+        Resultados para {results.target.name}
+      </h2>
       {results.results.length === 0 ? (
         <DataState state="empty" title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra: eso no significa cero." />
       ) : (
         <div className={`overflow-x-auto ${SCROLL_HINT}`}>
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600 max-sm:hidden">
+          <table className="w-full text-base">
+            <thead className="border-b-2 border-ink text-left text-xs font-bold uppercase tracking-wider text-ink-muted max-sm:hidden">
               <tr>
-                <th className={`bg-slate-50 px-4 py-2.5 sm:sticky sm:left-0 sm:z-[1] sm:shadow-[inset_-1px_0_0_#e2e8f0]`}>Producto</th>
-                <th className="px-4 py-2.5">Estimación de consumo</th>
-                <th className="px-4 py-2.5">Línea base: último consumo publicado</th>
-                <th className="px-4 py-2.5">Vigencia</th>
-                <th className="px-4 py-2.5 font-medium normal-case tracking-normal text-slate-400">Detalle</th>
+                <th className="px-5 pb-3 pt-5 sm:pl-8">Producto</th>
+                <th className="px-4 pb-3 pt-5 text-right">Consumo estimado</th>
+                <th className="px-4 pb-3 pt-5 text-right">Último consumo publicado</th>
+                <th className="min-w-36 px-5 pb-3 pt-5 sm:pr-8">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-line">
               {results.results.map((result) => {
                 const detail = detailOf(details, result);
                 const baseCampaign = lastObservedCampaign(detail);
                 const earlier = latestRun !== null && result.run_ref !== latestRun;
                 const estimated = result.status === 'ESTIMATED';
                 return (
-                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top max-sm:block max-sm:border-b max-sm:border-slate-200 max-sm:py-2">
-                    <td className="px-4 py-3 text-base font-semibold text-slate-900 [overflow-wrap:anywhere] sm:sticky sm:left-0 sm:z-[1] sm:min-w-48 sm:bg-white sm:shadow-[inset_-1px_0_0_#e2e8f0] max-sm:block max-sm:border-0 max-sm:py-1.5">
-                      {result.product.name}
-                      <span className="ml-1 text-xs font-normal text-slate-400">{result.presentation_unit}</span>
+                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top max-sm:block max-sm:px-1 max-sm:py-3">
+                    <td className="px-5 py-4 [overflow-wrap:anywhere] max-sm:block max-sm:py-1 sm:min-w-48 sm:pl-8">
+                      <span className="text-base font-semibold text-ink">{result.product.name}</span>
+                      <span className="ml-1 text-sm font-normal text-ink-muted">{result.presentation_unit}</span>
+                      <RowDetail result={result} detail={detailOf(details, result)} />
                     </td>
-                    <td className="px-4 py-3 max-sm:block max-sm:border-0 max-sm:py-1.5">
-                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Estimación de consumo</span>
+                    <td className="px-4 py-4 max-sm:block max-sm:py-1 sm:text-right">
+                      <span className="mb-0.5 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Consumo estimado</span>
                       {estimated ? (
-                        <span className="text-xl leading-none sm:text-3xl" data-testid="estimate">
+                        <span className="text-xl leading-tight sm:text-2xl" data-testid="estimate">
                           <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />
                         </span>
                       ) : (
                         <>
-                          <span className="block text-base font-bold text-amber-800" data-testid="estimate">
+                          <span className="block text-base text-ink-muted" data-testid="estimate">
                             {RESULT_STATUS_TEXT[result.status]}
                           </span>
                           {result.reason_code && (
-                            <p className="mt-0.5 max-w-xs text-[11px] leading-snug text-slate-500" data-testid="reason">
+                            <p className="mt-0.5 max-w-xs text-sm leading-snug text-ink-muted sm:ml-auto" data-testid="reason">
                               {REASON_TEXT[result.reason_code]}
                             </p>
                           )}
                         </>
                       )}
                     </td>
-                    <td className="px-4 py-3 max-sm:block max-sm:border-0 max-sm:py-1.5">
-                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Línea base: último consumo publicado</span>
-                      <span className="text-lg" data-testid="naive">
+                    <td className="px-4 py-4 max-sm:block max-sm:py-1 sm:text-right">
+                      <span className="mb-0.5 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Último consumo publicado</span>
+                      <span className="text-base" data-testid="naive">
                         <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
                       </span>
-                      <span className="block text-[11px] text-slate-500" data-testid="observed-last">
-                        {estimated && baseCampaign ? `Consumo publicado en ${baseCampaign}` : estimated ? 'Último consumo publicado de la serie' : '—'}
+                      <span className="block text-sm text-ink-muted" data-testid="observed-last">
+                        {estimated && baseCampaign ? `en ${baseCampaign}` : estimated ? 'Último consumo publicado de la serie' : '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 max-sm:block max-sm:border-0 max-sm:py-1.5">
-                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Vigencia</span>
+                    <td className="px-5 py-4 max-sm:block max-sm:py-1 sm:pr-8">
+                      <span className="mb-0.5 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Estado</span>
                       <span data-testid="validity">
                         <ValidityBadge validity={result.validity} reason={result.validity_reason} />
                       </span>
                       {earlier && (
-                        <span className="mt-1 block text-[11px] font-medium text-amber-700" data-testid="earlier-run">
+                        <span className="mt-1 block text-sm font-medium text-caution" data-testid="earlier-run">
                           De una ejecución anterior, no de la última solicitada
                         </span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 max-sm:block max-sm:border-0 max-sm:py-1.5">
-                      <details>
-                        <summary className="cursor-pointer font-semibold text-emerald-700">Ver detalle</summary>
-                        <dl className="mt-2 max-w-xs space-y-1 sm:w-max">
-                          <div data-testid="observed">
-                            <dt className="inline text-slate-500">Serie observada: </dt>
-                            <dd className="inline">
-                              <span data-testid="observed-span">{observed(detail)}</span>
-                              {observedValues(detail, result.presentation_unit) && (
-                                <span className="block tabular-nums text-slate-800" data-testid="observed-values">
-                                  {observedValues(detail, result.presentation_unit)}
-                                </span>
-                              )}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="inline text-slate-500">Método: </dt>
-                            <dd className="inline">
-                              SES frente a la línea base naive · α <span className="tabular-nums" data-testid="alpha">{formatAlpha(detail?.alpha ?? null)}</span>
-                              {detail?.fit_informative === false && <span className="ml-1 text-slate-500">(ajuste no informativo)</span>}
-                            </dd>
-                          </div>
-                          {result.coverage.campaigns.length > 0 && (
-                            <div>
-                              <dt className="inline text-slate-500">Cobertura: </dt>
-                              <dd className="inline">
-                                {result.coverage.status === 'IDENTIFIED' ? 'identificada en cada campaña del tramo (participación, no integridad)' : 'desconocida en alguna campaña'}
-                              </dd>
-                            </div>
-                          )}
-                          <div>
-                            <dt className="inline text-slate-500">Ejecución: </dt>
-                            <dd className="inline">
-                              <span data-testid="run">{fmtDateTime(result.generated_at)}</span>{' '}
-                              <span className="text-slate-500">
-                                (ref. <code title={result.run_ref}>{result.run_ref.slice(0, 8)}</code>)
-                              </span>
-                            </dd>
-                          </div>
-                        </dl>
-                      </details>
                     </td>
                   </tr>
                 );
@@ -761,7 +731,63 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
           </table>
         </div>
       )}
+      <div className="space-y-1 border-t border-line px-5 py-4 text-sm leading-relaxed text-ink-muted sm:px-8">
+        <p>«{RESULT_STATUS_TEXT.INSUFFICIENT_DATA}» significa que no hay suficientes campañas comparables seguidas con consumo publicado (el motivo va en cada fila). No es cero.</p>
+        <p data-testid="results-evaluated">
+          Vigencia evaluada el {fmtDateTime(results.evaluated_at)}
+          {results.season ? ` · temporada ${results.season.key}` : ''}. Cada cifra es una estimación puntual para esta campaña, con la fecha de
+          su ejecución; no es un rango histórico.
+        </p>
+      </div>
     </section>
+  );
+}
+
+/** «Ver detalle» de una fila: serie observada, método (α), cobertura y ejecución (detalle técnico). */
+function RowDetail({ result, detail }: { result: InstitutionalResult; detail: ResultDetail | null }) {
+  return (
+    <div className="mt-1 text-sm text-ink-muted">
+      <details>
+        <summary className="cursor-pointer font-semibold text-link">Ver detalle</summary>
+        <dl className="mt-2 max-w-xs space-y-1 sm:w-max">
+          <div data-testid="observed">
+            <dt className="inline text-ink-muted">Serie observada: </dt>
+            <dd className="inline">
+              <span data-testid="observed-span">{observed(detail)}</span>
+              {observedValues(detail, result.presentation_unit) && (
+                <span className="block tabular-nums text-ink" data-testid="observed-values">
+                  {observedValues(detail, result.presentation_unit)}
+                </span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="inline text-ink-muted">Método: </dt>
+            <dd className="inline">
+              SES frente a la línea base naive · α <span className="tabular-nums" data-testid="alpha">{formatAlpha(detail?.alpha ?? null)}</span>
+              {detail?.fit_informative === false && <span className="ml-1 text-ink-muted">(ajuste no informativo)</span>}
+            </dd>
+          </div>
+          {result.coverage.campaigns.length > 0 && (
+            <div>
+              <dt className="inline text-ink-muted">Cobertura: </dt>
+              <dd className="inline">
+                {result.coverage.status === 'IDENTIFIED' ? 'identificada en cada campaña del tramo (participación, no integridad)' : 'desconocida en alguna campaña'}
+              </dd>
+            </div>
+          )}
+          <div>
+            <dt className="inline text-ink-muted">Ejecución: </dt>
+            <dd className="inline">
+              <span data-testid="run">{fmtDateTime(result.generated_at)}</span>{' '}
+              <span className="text-ink-muted">
+                (ref. <code title={result.run_ref}>{result.run_ref.slice(0, 8)}</code>)
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </details>
+    </div>
   );
 }
 
@@ -791,18 +817,21 @@ function HistorySection({
   openedId: string | null;
 }) {
   return (
-    <Collapsible title={`Ejecuciones anteriores (${runs.length}${hasMore ? '+' : ''})`} label="Ejecuciones anteriores">
-      <p className="px-5 pt-3 text-xs text-slate-500">De la más reciente a la más antigua, incluidas las fallidas. Ninguna se modifica.</p>
+    <section className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-7" aria-labelledby="calculos-anteriores">
+      <h2 id="calculos-anteriores" className="text-2xl font-bold text-ink">
+        Cálculos anteriores{runs.length > 0 ? ` (${runs.length}${hasMore ? '+' : ''})` : ''}
+      </h2>
+      <p className="mt-1 text-sm text-ink-muted">De la más reciente a la más antigua, incluidas las fallidas. Ninguna se modifica.</p>
       {runs.length === 0 ? (
         <DataState state="empty" compact title="Sin ejecuciones" description="" />
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="mt-3 divide-y divide-line border-t border-line">
           {runs.map((run) => (
-            <li key={run.run_ref} className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5" data-testid="history-item">
-              <div className="text-sm">
-                <span className="font-semibold text-slate-800">{fmtDateTime(run.generated_at)}</span>
-                <span className="ml-2 text-xs text-slate-500">Temporada {run.season.key}</span>
-                <span className="ml-2 text-xs text-slate-600" data-testid="history-outcome">
+            <li key={run.run_ref} className="flex items-center justify-between gap-3 py-3" data-testid="history-item">
+              <div className="min-w-0 text-sm">
+                <span className="block text-base font-semibold text-ink">{fmtDateTime(run.generated_at)}</span>
+                <span className="text-ink-muted">Temporada {run.season.key.toLowerCase()} · </span>
+                <span className="text-ink-muted" data-testid="history-outcome">
                   {run.outcome === 'CALCULATED'
                     ? `Calculada: ${countsText(run.counts)}`
                     : `Fallida. ${run.failure_code ? FAILURE_TEXT[run.failure_code] : ''}`}
@@ -810,24 +839,25 @@ function HistorySection({
               </div>
               <button
                 type="button"
-                className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline disabled:text-slate-400"
+                className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-semibold text-link disabled:text-ink-muted"
                 onClick={() => onOpen(run.run_ref)}
                 disabled={openedId === run.run_ref}
               >
                 Ver detalle
+                <Icon d={ICON.chevronRight} className="h-4 w-4" />
               </button>
             </li>
           ))}
         </ul>
       )}
       {hasMore && (
-        <div className="border-t border-slate-100 px-5 py-3">
+        <div className="border-t border-line pt-3">
           <button type="button" className={secondaryButtonClass} onClick={onMore}>
             Cargar más
           </button>
         </div>
       )}
-    </Collapsible>
+    </section>
   );
 }
 
@@ -846,7 +876,7 @@ const EXCLUSION_TEXT: Record<NonNullable<SeriesPoint['exclusion_reason']>, strin
 function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
   const useful = run.results;
   return (
-    <section className="glass-card overflow-hidden" aria-label="Detalle de la ejecución" data-testid="run-detail">
+    <section className="overflow-hidden rounded-card border border-line bg-surface shadow-card" aria-label="Detalle de la ejecución" data-testid="run-detail">
       <SectionHeader
         title={`Ejecución del ${fmtDateTime(run.generated_at)}`}
         note={

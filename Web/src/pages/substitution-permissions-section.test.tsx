@@ -40,7 +40,8 @@ const ADMIN_VIEW: SubstitutionPermissions = {
   ],
 };
 
-const dialog = () => screen.getByRole('dialog');
+// Las confirmaciones destructivas son `alertdialog` (ConfirmDialog de BASE, tono `danger`).
+const dialog = () => screen.queryByRole('dialog') ?? screen.getByRole('alertdialog');
 
 describe('Permiso «Sustituir responsable» (P-A A1)', () => {
   beforeEach(() => vi.resetAllMocks());

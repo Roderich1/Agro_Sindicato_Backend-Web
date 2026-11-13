@@ -40,14 +40,16 @@ describe('NeedsBars (variante «Analítica comparativa»)', () => {
     expect(name.className).toMatch(/overflow-wrap:anywhere/);
     // La fila del nombre y la cifra se envuelven: en estrecho, la cifra baja a su línea.
     expect(figure.parentElement!.className).toMatch(/flex-wrap/);
-    expect(long.textContent).toMatch(/47 aportantes · datos hasta/);
+    // Rediseño v2 (lámina 03): «aportantes» pasa a «agricultores».
+    expect(long.textContent).toMatch(/47 agricultores · datos hasta/);
     expect(long.textContent).toMatch(/aún no alcanzan el umbral/);
   });
 
   it('cero publicado «0 L» sin barra; restringidas con motivo, sin barra, número ni cero', () => {
     render(<NeedsBars cells={needs} threshold={3} />);
     const zero = row(byName('Adherente agrícola no iónico'));
-    expect(within(zero).getByText('0 L')).toBeTruthy();
+    // Rediseño v2: número y unidad van en dos tamaños; la cifra se lee del elemento [data-figure].
+    expect(zero.querySelector('[data-figure]')!.textContent).toBe('0 L');
     expect(zero.querySelector('[data-bar-track]')).toBeNull();
     for (const status of ['SUPPRESSED_UNDER_THRESHOLD', 'SUPPRESSED_REVISION', 'OVERFLOW'] as const) {
       const cell = needs.find((entry) => entry.status === status)!;
@@ -64,8 +66,8 @@ describe('NeedsBars (variante «Analítica comparativa»)', () => {
     render(<NeedsBars cells={fixtures.one.summary.cells} threshold={3} bars={false} />);
     const only = row(fixtures.one.summary.cells[0]);
     expect(only.querySelector('[data-bar-track]')).toBeNull();
-    expect(within(only).getByText('1 L')).toBeTruthy();
-    expect(only.textContent).toMatch(/1 aportante(?!s)/);
+    expect(only.querySelector('[data-figure]')!.textContent).toBe('1 L');
+    expect(only.textContent).toMatch(/1 agricultor(?!es)/);
   });
 
   it('un dato no válido del servidor se señala y no se dibuja', () => {

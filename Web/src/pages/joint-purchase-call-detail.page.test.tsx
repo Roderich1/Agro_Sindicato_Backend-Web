@@ -2,9 +2,9 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { AxiosError, AxiosHeaders } from 'axios';
 import { Link } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fmtDateTime } from '../lib/collective-text';
 import {
   CLOSE_IMPLICATION,
+  fmtWhen,
   MANAGE_LOST_TEXT,
   MANAGE_ONLY_TEXT,
   NOT_A_PURCHASE_TEXT,
@@ -236,9 +236,9 @@ const NO_COLLABORATORS: JointPurchaseCallCollaborators = {
   history: [],
 };
 
-const RESPONSIBLE_ONLY_TEXT =
-  'Total visible sólo para el responsable mientras la convocatoria está abierta; al cierre se muestra si hay 3 o más personas en el producto.';
-const UNDER_THRESHOLD_TEXT = 'Total no visible: menos de 3 personas pidieron este producto.';
+/** Rediseño v2 (05 §13): el chip punteado lleva el texto corto del estado; el motivo va en una línea aparte. */
+const RESPONSIBLE_ONLY_TEXT = 'No disponible mientras esté abierta';
+const UNDER_THRESHOLD_TEXT = 'Oculto por umbral';
 
 function axiosError(status: number, data: unknown = {}) {
   const error = new AxiosError(String(status), String(status));
@@ -251,7 +251,9 @@ const render = () =>
     path: `/colectivo/compras-conjuntas/c-1?campaign=${CAMPAIGN.id}`,
     routePath: '/colectivo/compras-conjuntas/:id',
   });
-const dialog = () => screen.getByRole('dialog');
+// Rediseño v2: las confirmaciones destructivas usan `ConfirmDialog` de BASE con `role="alertdialog"`.
+const dialog = () => screen.queryByRole('dialog') ?? screen.getByRole('alertdialog');
+const anyDialog = () => screen.queryByRole('dialog') ?? screen.queryByRole('alertdialog');
 const confirmBox = () => within(dialog()).getByRole('checkbox');
 const FORBIDDEN_WORDS = /comprad|entregad|deuda/i;
 
@@ -272,15 +274,16 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     render();
     expect((await screen.findByTestId('call-status')).textContent).toBe('Borrador');
     expect(jointPurchaseCallsService.get).toHaveBeenCalledWith('c-1');
-    const facts = screen.getByTestId('call-facts');
+    // Rediseño v2 (lámina 10): los datos clave van en la cabecera; en un borrador, «Los agricultores: Aún no la ven».
+    const facts = screen.getByTestId('call-key-facts');
     expect(facts.textContent).toMatch(/Responsable sintética/);
-    expect(facts.textContent).toMatch(/Todavía no se abrió/);
-    expect(facts.textContent).toMatch(/0 personas/);
-    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/Referencia del borrador: 120 L \(divulgada\)/);
-    expect(screen.getByTestId('call-product-p-3').textContent).toMatch(/Sin cifra divulgada/);
+    expect(facts.textContent).toMatch(/Aún no la ven/);
+    expect(screen.getByTestId('draft-requests').textContent).toMatch(/Nadie puede pedir todavía/);
+    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/Necesidad declarada en el borrador: 120 L/);
+    expect(screen.getByTestId('call-product-p-3').textContent).toMatch(/Sin cifra publicada en el borrador/);
     expect(within(screen.getByTestId('call-history')).getByText('Borrador creado')).toBeTruthy();
-    for (const name of ['Editar', 'Abrir', 'Cancelar convocatoria']) expect(screen.getByRole('button', { name })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull();
+    for (const name of ['Editar', 'Abrir convocatoria…', 'Cancelar convocatoria…']) expect(screen.getByRole('button', { name })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull();
     expect(screen.queryByTestId('participants-panel')).toBeNull();
     expect(jointPurchaseCallsService.participants).not.toHaveBeenCalled();
   });
@@ -288,7 +291,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
   it('abrir: el diálogo dice lo que implica y exige confirmar; luego recarga la convocatoria', async () => {
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValueOnce(DRAFT).mockResolvedValue(OPEN);
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir convocatoria…' }));
     const implications = within(dialog()).getByTestId('open-implications').textContent;
     for (const text of OPEN_IMPLICATIONS) expect(implications).toContain(text);
     const submit = within(dialog()).getByRole('button', { name: 'Abrir convocatoria' }) as HTMLButtonElement;
@@ -298,7 +301,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     await waitFor(() => expect(jointPurchaseCallsService.open).toHaveBeenCalledWith('c-1'));
     expect(await screen.findByText('Convocatoria abierta. Los agricultores la verán al actualizar su aplicación.')).toBeTruthy();
     expect((await screen.findByTestId('call-status')).textContent).toBe('Abierta');
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(anyDialog()).toBeNull();
   });
 
   it.each([
@@ -309,7 +312,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
   ])('abrir con %s %s: el motivo se explica en español y el diálogo sigue abierto', async (status, errorCode, text) => {
     vi.mocked(jointPurchaseCallsService.open).mockRejectedValue(axiosError(status, { errorCode }));
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir convocatoria…' }));
     fireEvent.click(confirmBox());
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Abrir convocatoria' }));
     expect(await within(dialog()).findByText(text)).toBeTruthy();
@@ -320,7 +323,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
   it('abrir con 409 INVALID_TRANSITION y status: dice el estado actual en español', async () => {
     vi.mocked(jointPurchaseCallsService.open).mockRejectedValue(axiosError(409, { errorCode: 'INVALID_TRANSITION', status: 'CANCELLED' }));
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir convocatoria…' }));
     fireEvent.click(confirmBox());
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Abrir convocatoria' }));
     expect(await within(dialog()).findByText(/cambió de estado mientras tanto.*Estado actual: Cancelada\./)).toBeTruthy();
@@ -328,7 +331,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
 
   it('cancelar exige motivo y confirmación; envía el motivo', async () => {
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar convocatoria' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar convocatoria…' }));
     const submit = within(dialog()).getByRole('button', { name: 'Cancelar convocatoria' }) as HTMLButtonElement;
     fireEvent.click(confirmBox());
     expect(submit.disabled).toBe(true);
@@ -341,7 +344,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
   it('cancelar: REASON_REQUIRED del servidor se explica', async () => {
     vi.mocked(jointPurchaseCallsService.cancel).mockRejectedValue(axiosError(422, { errorCode: 'REASON_REQUIRED' }));
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar convocatoria' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar convocatoria…' }));
     fireEvent.change(within(dialog()).getByLabelText('Motivo'), { target: { value: 'x' } });
     fireEvent.click(confirmBox());
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancelar convocatoria' }));
@@ -369,7 +372,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
     await waitFor(() => expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('u-2'));
     expect((await within(dialog()).findByRole('checkbox', { name: /Urea/ }) as HTMLInputElement).checked).toBe(true);
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', {
         name: 'Urea de la siembra',
@@ -413,7 +416,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
   it('P-B al editar: la responsable que nombra a otra persona ve el aviso y sólo con «Confirmar» se envía', async () => {
     await openEditor(mineDraft());
     fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-2' } });
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
     const warning = within(dialog()).getByTestId('handover-warning');
     expect(warning.textContent).toContain('Eligió a Responsable sintética como responsable. Si guarda así, usted deja de administrar esta convocatoria:');
     expect(warning.textContent).toContain('no podrá editar el borrador;');
@@ -427,7 +430,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
 
   it('P-B al editar: la responsable que se mantiene no ve ningún aviso', async () => {
     await openEditor(mineDraft());
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-1' })),
     );
@@ -438,7 +441,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     // DRAFT: responsable u-2; quien consulta (u-1) tiene MANAGE.
     await openEditor({ ...DRAFT, source_proposal_ref: null, products: [{ ...DRAFT.products[1]!, position: 0, reference: null }] });
     fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-3' } });
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-3' })),
     );
@@ -448,7 +451,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
   it('abierta: cerrar pide confirmación con lo que implica y llama al servidor', async () => {
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValueOnce(OPEN).mockResolvedValue(CLOSED);
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar y consolidar…' }));
     expect(within(dialog()).getByTestId('close-implication').textContent).toBe(CLOSE_IMPLICATION);
     const submit = within(dialog()).getByRole('button', { name: 'Cerrar convocatoria' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
@@ -457,7 +460,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     await waitFor(() => expect(jointPurchaseCallsService.close).toHaveBeenCalledWith('c-1'));
     expect(await screen.findByTestId('closing-panel')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Abrir' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Abrir convocatoria…' })).toBeNull();
   });
 
   it('abierta sin permiso (E2-P1): no pide participantes y retiene todos los totales, sin un 0, con el número de personas', async () => {
@@ -492,11 +495,12 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN_RESPONSIBLE);
     render();
     const panel = await screen.findByTestId('participants-panel');
-    await within(panel).findByText('Agricultora sintética');
-    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/9,5 L.*3 personas/);
-    expect(screen.getByTestId('call-product-p-3').textContent).toMatch(/50 KG.*1 persona/);
+    await within(panel).findAllByText('Agricultora sintética');
+    // Rediseño v2 (lámina 11): el número de personas va bajo el nombre y el total a la derecha.
+    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/3 personas.*9,5 L/);
+    expect(screen.getByTestId('call-product-p-3').textContent).toMatch(/1 persona.*50 KG/);
     expect(screen.queryByTestId('hidden-total')).toBeNull();
-    expect(within(panel).getByRole('heading', { name: 'Participantes (lista provisional)' })).toBeTruthy();
+    expect(within(panel).getByRole('heading', { name: 'Quién pidió' })).toBeTruthy();
     expect(within(panel).getByTestId('provisional-note').textContent).toBe(PARTICIPANTS.notice);
     const rows = within(panel).getAllByTestId('participant-row').map((row) => row.textContent);
     expect(rows).toHaveLength(3);
@@ -513,8 +517,9 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     const panel = await screen.findByTestId('closing-panel');
     await within(panel).findByTestId('closing-cutoff');
     expect(within(panel).getByRole('heading', { name: 'Consolidado al cierre' })).toBeTruthy();
-    expect(within(panel).getByTestId('closing-mode').textContent).toMatch(/Manual/);
-    expect(within(panel).getByTestId('closing-participants').textContent).toMatch(/4 personas/);
+    // Rediseño v2 (lámina 12): modo de cierre y personas van en la cabecera, con el resto de los datos clave.
+    expect(screen.getByTestId('closing-mode').textContent).toMatch(/Manual/);
+    expect(screen.getByTestId('closing-participants').textContent).toMatch(/4 personas/);
     expect(within(panel).getByTestId('closing-line-p-1').textContent).toMatch(/9,5 L/);
     expect(within(panel).getByTestId('closing-label').textContent).toBe(CLOSING.label);
     const under = within(panel).getByTestId('closing-line-p-3');
@@ -528,8 +533,8 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     // Sólo la frase que lo niega explícitamente menciona compras, entregas o deudas.
     const text = (document.body.textContent ?? '').split(NOT_A_PURCHASE_TEXT).join(' ');
     expect(text).not.toMatch(FORBIDDEN_WORDS);
-    expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Cancelar convocatoria' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancelar convocatoria…' })).toBeNull();
   });
 
   it('cerrada con permiso: detalle por participante congelado, sin correo', async () => {
@@ -543,8 +548,8 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     });
     render();
     const panel = await screen.findByTestId('closing-panel');
-    expect(await within(panel).findByText('Agricultora sintética')).toBeTruthy();
-    expect(within(panel).getByTestId('closing-mode').textContent).toMatch(/Automático/);
+    expect(await within(panel).findAllByText('Agricultora sintética')).toBeTruthy();
+    expect(screen.getByTestId('closing-mode').textContent).toMatch(/Automático/);
     expect(within(panel).getByText('Detalle por participante')).toBeTruthy();
     expect(document.body.textContent).not.toContain('@');
     const text = (document.body.textContent ?? '').split(NOT_A_PURCHASE_TEXT).join(' ');
@@ -572,13 +577,14 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
         { position: 1, product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', proposal_position: 1 },
       ],
     };
-    const draftDate = fmtDateTime(ORIGIN.proposal_generated_at);
+    // Rediseño v2: fecha con hora de 24 h, como en el resto del detalle; «borrador de compra» es el nombre del menú.
+    const draftDate = fmtWhen(ORIGIN.proposal_generated_at, 'always');
     const originText = async () => (await screen.findByTestId('call-origin')).textContent;
 
     it('desde el borrador con la selección guardada: fecha del borrador y n.º de la selección', async () => {
       vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...DRAFT, origin: ORIGIN, origin_differs_from_current: false });
       render();
-      expect(await originText()).toBe(`Creada desde el borrador de propuesta del ${draftDate} (selección guardada n.º 2).`);
+      expect(await originText()).toBe(`Creada desde el borrador de compra del ${draftDate} (selección guardada n.º 2).`);
       expect(within(screen.getByTestId('call-facts')).getByText('Origen:')).toBeTruthy();
       expect(screen.queryByTestId('call-origin-edited')).toBeNull();
       // Ni la huella ni el identificador del borrador se muestran.
@@ -593,7 +599,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
       });
       render();
       expect(await originText()).toBe(
-        `Creada desde el borrador de propuesta del ${draftDate}, con productos distintos de la selección guardada (n.º 2).`,
+        `Creada desde el borrador de compra del ${draftDate}, con productos distintos de la selección guardada (n.º 2).`,
       );
     });
 
@@ -604,7 +610,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
         origin_differs_from_current: false,
       });
       render();
-      expect(await originText()).toBe(`Creada desde el borrador de propuesta del ${draftDate}.`);
+      expect(await originText()).toBe(`Creada desde el borrador de compra del ${draftDate}.`);
     });
 
     it('desde el catálogo', async () => {
@@ -733,7 +739,7 @@ function expectNoIdentifiedData() {
 
 async function participantsShown() {
   const panel = await screen.findByTestId('participants-panel');
-  await within(panel).findByText('Agricultora sintética');
+  await within(panel).findAllByText('Agricultora sintética');
   return panel;
 }
 
@@ -766,7 +772,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(NO_COLLABORATORS);
     render();
     expect((await screen.findByTestId('manage-note')).textContent).toBe(MANAGE_ONLY_TEXT);
-    for (const name of ['Editar', 'Abrir', 'Cerrar', 'Cancelar convocatoria']) expect(screen.queryByRole('button', { name })).toBeNull();
+    for (const name of ['Editar', 'Abrir convocatoria…', 'Cerrar y consolidar…', 'Cancelar convocatoria…']) expect(screen.queryByRole('button', { name })).toBeNull();
     expect(screen.getByTestId('call-facts').textContent).toMatch(/Sus permisos:Ninguno/);
   });
 
@@ -774,7 +780,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(DRAFT);
     vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(NO_COLLABORATORS);
     render();
-    for (const name of ['Editar', 'Abrir', 'Cancelar convocatoria']) expect(await screen.findByRole('button', { name })).toBeTruthy();
+    for (const name of ['Editar', 'Abrir convocatoria…', 'Cancelar convocatoria…']) expect(await screen.findByRole('button', { name })).toBeTruthy();
     expect(screen.queryByTestId('manage-note')).toBeNull();
     expect(screen.getByTestId('call-facts').textContent).toMatch(/Sus permisos:Administrar la convocatoria/);
   });
@@ -813,11 +819,13 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     render();
     expect((await screen.findByTestId('responsible-ineligible')).textContent).toBe(RESPONSIBLE_INELIGIBLE_TEXT);
     // N2 rechazada: ningún rol cierra ni cancela.
-    expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Cancelar convocatoria' })).toBeNull();
-    expect(screen.getByTestId('call-facts').textContent).toMatch(/Responsable sintética \(ya no está activa\)/);
-    fireEvent.click(screen.getByRole('button', { name: 'Sustituir responsable' }));
-    expect(within(dialog()).getByTestId('substitute-implications').textContent).toMatch(/no verá el nombre ni las cantidades de ningún agricultor hasta que cada uno la autorice/);
+    expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancelar convocatoria…' })).toBeNull();
+    // Rediseño v2 (lámina 20): la responsable va en la cabecera con el chip «Responsable no habilitada».
+    expect(screen.getByTestId('hero-responsible').textContent).toMatch(/Responsable sintética/);
+    expect(screen.getByTestId('responsible-ineligible-chip').textContent).toBe('Responsable no habilitada');
+    fireEvent.click(screen.getByRole('button', { name: 'Sustituir responsable…' }));
+    expect(within(dialog()).getByTestId('substitute-implications').textContent).toMatch(/No verá nombres ni cantidades hasta que cada agricultor la autorice/);
     const select = (await within(dialog()).findByLabelText('Nueva persona responsable')) as HTMLSelectElement;
     await waitFor(() => expect([...select.options].map((option) => option.value)).toEqual(['', 'u-9']));
     // Decisión del autor: quien sustituye (u-1, elegible) no aparece y se le explica por qué.
@@ -858,7 +866,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
       ...eligible,
     ]);
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable…' }));
     expect((await within(dialog()).findByTestId('substitute-no-candidates')).textContent).toContain(text);
     expect(within(dialog()).queryByLabelText('Nueva persona responsable')).toBeNull();
     expect(within(dialog()).queryByTestId('substitute-self-note')).toBeNull();
@@ -873,7 +881,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([{ user_ref: 'u-9', name: 'Sucesora sintética', role: 'DIRECTIVA' }]);
     vi.mocked(jointPurchaseCallsService.substituteResponsible).mockRejectedValue(axiosError(409, { errorCode: 'RESPONSIBLE_CHANGED', responsible_version: 2 }));
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable…' }));
     const select = (await within(dialog()).findByLabelText('Nueva persona responsable')) as HTMLSelectElement;
     await waitFor(() => expect(select.options.length).toBe(2));
     fireEvent.change(select, { target: { value: 'u-9' } });
@@ -881,7 +889,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     fireEvent.click(confirmBox());
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Sustituir responsable' }));
     expect((await screen.findByTestId('call-alert')).textContent).toMatch(/Otra persona sustituyó a la responsable mientras tanto/);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(anyDialog()).toBeNull();
     expect(jointPurchaseCallsService.substituteResponsible).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2));
   });
@@ -947,12 +955,12 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(NO_COLLABORATORS);
     vi.mocked(jointPurchaseCallsService.close).mockRejectedValue(axiosError(403, { errorCode: 'MANAGE_FORBIDDEN' }));
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar y consolidar…' }));
     fireEvent.click(confirmBox());
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Cerrar convocatoria' }));
     expect((await screen.findByTestId('call-alert')).textContent).toBe(MANAGE_LOST_TEXT);
-    expect(screen.queryByRole('dialog')).toBeNull();
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull());
+    expect(anyDialog()).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull());
     expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId('manage-note').textContent).toBe(MANAGE_ONLY_TEXT);
   });
@@ -969,9 +977,9 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
     await waitFor(() => expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('u-2'));
     await within(dialog()).findByRole('checkbox', { name: /Urea/ });
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar borrador' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
     expect((await screen.findByTestId('call-alert')).textContent).toBe(MANAGE_LOST_TEXT);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(anyDialog()).toBeNull();
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull());
   });
 
@@ -980,7 +988,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     render();
     const panel = await screen.findByTestId('collaborators-panel');
     const row = await within(panel).findByTestId('collaborator-u-4');
-    expect(row.textContent).toMatch(/Colaboradora sintética.*Directiva.*Consultar participantes y cantidades.*Concedido por Usuario sintético el/);
+    expect(row.textContent).toMatch(/Colaboradora sintética.*Directiva.*Consultar participantes y cantidades.*Usted lo concedió el/);
     expect(within(panel).getByRole('button', { name: 'Conceder permiso' })).toBeTruthy();
     const events = within(screen.getByTestId('access-history'))
       .getAllByTestId('access-history-event')
@@ -1025,7 +1033,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     fireEvent.click(submit);
     await waitFor(() => expect(jointPurchaseCallsService.grant).toHaveBeenCalledWith('c-1', 'u-3', 'MANAGE'));
     expect(await screen.findByText('Permiso «Administrar la convocatoria» concedido a Administrador sintético.')).toBeTruthy();
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(anyDialog()).toBeNull();
     expect(screen.getByTestId('collaborator-u-3').textContent).toMatch(/Administrar la convocatoria/);
     // El detalle se vuelve a pedir (recuento de colaboradores y permisos propios).
     await waitFor(() => expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2));
@@ -1095,7 +1103,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
     render();
     const panel = await participantsShown();
     expect(within(panel).getByTestId('hidden-participants-notice').textContent).toBe(HIDDEN_NOTICE);
-    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/9,5 L.*3 personas/);
+    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/3 personas.*9,5 L/);
     const urea = screen.getByTestId('call-product-p-3');
     expect(within(urea).getByTestId('hidden-total').textContent).toBe(RESPONSIBLE_ONLY_HIDDEN_TEXT);
     expect(urea.textContent).toMatch(/2 personas/);
@@ -1137,7 +1145,8 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
   it('revocación detectada al recuperar el foco: borra nombres y cantidades y lo dice con el texto exacto', async () => {
     render();
     await participantsShown();
-    expect(screen.getByText('9,5 L')).toBeTruthy();
+    // Rediseño v2: la cifra y la unidad van en elementos distintos (cifra grande, unidad pequeña).
+    expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/9,5 L/);
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN_REVOKED);
     act(() => {
       window.dispatchEvent(new Event('focus'));
@@ -1211,7 +1220,7 @@ describe('Compras conjuntas: colaboradores y visibilidad (E2-P3, §10.2 y §10.3
       .mockResolvedValueOnce({ ...CLOSING, can_view_participants: true, participants: CLOSING_PARTICIPANTS })
       .mockResolvedValue(CLOSING);
     render();
-    await within(await screen.findByTestId('closing-panel')).findByText('Agricultora sintética');
+    await within(await screen.findByTestId('closing-panel')).findAllByText('Agricultora sintética');
     act(() => {
       window.dispatchEvent(new Event('focus'));
     });

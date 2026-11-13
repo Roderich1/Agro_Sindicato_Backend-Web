@@ -83,7 +83,9 @@ describe('Necesidades y propuestas (rediseño)', () => {
     await screen.findByText('295 L');
     // E3 §8: Producto · Necesidad declarada · Consumo estimado (antes «Estimación del consumo (referencia)», F12 §7.1).
     expect(screen.getByTestId('reference-header').textContent).toBe('Consumo estimado');
+    // Rediseño v2 (lámina 06): la casilla «Llevar» pasa a su propia columna.
     expect([...screen.getByRole('table', { name: 'Líneas del borrador' }).querySelectorAll('thead th')].map((th) => th.textContent)).toEqual([
+      'Llevar',
       'Producto',
       'Necesidad declarada',
       'Consumo estimado',
@@ -132,16 +134,17 @@ describe('Necesidades y propuestas (rediseño)', () => {
     );
     renderAt(<JointProposalPage />, { path: PATH });
     await screen.findByText('295 L');
-    expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toMatch(
-      /^La necesidad declarada supera en 15 L la estimación de consumo para el mismo período y alcance\. Diferencia: \+5\s?% respecto de la estimación\. Sólo informativo/,
+    expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toBe(
+      'La necesidad declarada supera en 15 L la estimación de consumo para el mismo período y alcance. Sólo informativo: no cambia el borrador.',
     );
     // El texto es el del servidor, redondeado allí (no la resta exacta del navegador, 2,5005 KG).
     expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/es inferior en 2,501 KG a la estimación/);
     expect(document.body.textContent).not.toMatch(/2,5005/);
-    // E3 §5 (decisión del autor): con cifras comparables, también la diferencia porcentual del servidor, redondeada
-    // sólo al presentar (formateador del rediseño, sin decimales); nunca la cifra cruda ni sumas.
-    expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).toMatch(/Diferencia: \+5\s?% respecto de la estimación\./);
-    expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/Diferencia: −9\s?% respecto de la estimación\./);
+    // Cambio por contrato, no adaptación (H-09, E3-R7 de E3_ESTIMACION_EN_BORRADOR_CONTRATO.md): «La Web no muestra el
+    // porcentaje aunque el servidor lo calcule». Antes esta prueba exigía «Diferencia: +5 %»; ahora exige que no aparezca.
+    expect(within(reference('Glifosato')).getByTestId('reference-difference').textContent).not.toMatch(/%|Diferencia:/);
+    expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).not.toMatch(/%|Diferencia:/);
+    expect(document.body.textContent).not.toMatch(/\d\s?%/);
     expect(document.body.textContent).not.toMatch(/5,0847|5\.0847|605/);
     expect(within(reference('Cipermetrina')).queryByTestId('reference-difference')).toBeNull();
     // Ninguna línea comparable queda pendiente: no se repite el motivo de población.
@@ -195,9 +198,10 @@ describe('Necesidades y propuestas (rediseño)', () => {
     // Huella oculta en el borrador mostrado y en el historial; plurales correctos.
     expect(screen.getAllByText('huella oculta').length).toBeGreaterThanOrEqual(2);
     const history = screen.getByLabelText('Historial de borradores');
-    expect(history.textContent).toMatch(/8 líneas/);
-    expect(history.textContent).toMatch(/1 línea(?!s)/);
-    expect(history.textContent).toMatch(/sin líneas/);
+    // Rediseño v2 (lámina 07): «N productos».
+    expect(history.textContent).toMatch(/8 productos/);
+    expect(history.textContent).toMatch(/1 producto(?!s)/);
+    expect(history.textContent).toMatch(/sin productos/);
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
     expect(collectiveService.prepareEstimationLink).not.toHaveBeenCalled();
   });
@@ -217,7 +221,8 @@ describe('Necesidades y propuestas (rediseño)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     await waitFor(() => expect(within(reference('Urea', 'G')).getByTestId('reference-difference').textContent).toMatch(/coincide con la estimación de consumo/));
     expect(screen.getByTestId('lines-summary').textContent).toMatch(/^1 producto en el borrador: 1 con cifra publicada\./);
-    expect(screen.getByLabelText('Historial de borradores').textContent).toMatch(/\(1 borrador\)/);
+    // Rediseño v2 (lámina 07): el recuento va en la pestaña «Borradores anteriores (1)».
+    expect(screen.getByRole('tab', { name: /anteriores/i }).textContent).toMatch(/\(1\)$/);
     expect(screen.getByRole('button', { name: 'Preparar convocatoria (0 productos)' })).toBeTruthy();
   });
 
@@ -283,8 +288,8 @@ describe('La comparación es la del servidor', () => {
     const difference = await waitFor(() => within(reference('Glifosato')).getByTestId('reference-difference'));
     expect(difference.textContent).toMatch(/supera en 310 L la estimación/);
     expect(reference('Glifosato').textContent).toMatch(/0 L/);
-    // Estimación cero: el porcentaje no está definido y se dice; nunca un número.
-    expect(difference.textContent).toMatch(/Porcentaje no definido: la estimación es cero\./);
+    // Cambio por contrato (H-09, E3-R7): la Web no escribe ningún porcentaje, ni «no definido»; nunca un número.
+    expect(difference.textContent).not.toMatch(/Porcentaje|%/);
     expect(document.body.textContent).not.toMatch(/\d\s?%|Infinity|NaN|recomendad|excesiv/i);
   });
 });
