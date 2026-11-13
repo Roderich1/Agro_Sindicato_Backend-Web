@@ -117,3 +117,10 @@ Los publica BASE en `components/ui/README.md`, con firma, variantes, accesibilid
 | 2026-11-13 | Inventario: matriz, hallazgos y tareas | `b9fd3d3` | Sólo lectura. Decisiones del autor: H-10, H-11 y H-08 (provisionales según la propuesta) |
 | 2026-11-13 | BASE integrada | `77195bf` (fusión de `1b15cc3`) | Según la sesión: 633/633, tsc limpio, eslint 0 errores (7 avisos previos), build correcto. Revisión: la franja superior de escritorio no está en las láminas y vuelve a BASE para quitarla |
 | 2026-11-13 | Encargo común y arranque de A, B y C | `c9abb34` | Ramas `feat/web-rediseno-v2-{a,b,c}` desde `77195bf` |
+| 2026-11-13 | Correcciones de BASE (franja superior, fuentes sin conexión, zoom y tableta) | `76beffd` | Revisadas con captura |
+| 2026-11-13 | Reinicio del equipo | — | Docker y los servicios se relevantaron. Las sesiones se reanudaron tras un 403 transitorio de la API del modelo |
+| 2026-11-13 | C integrada | `ed048cd` | Revisada contra la lámina 28 |
+| 2026-11-13 | B y A integradas, y U.4 en Usuarios | `284174a`, `e02972f`, `016b0d3` | Revisadas contra la lámina 11. Recorrido del orquestador: 96 de 96 sin observaciones (`e286b9f`) |
+| 2026-11-13 | BASE, rondas 2 y 3 | `0945dd1` | Margen del héroe, Stepper, desplazamiento, cámara, pestañas en píldora, `DataTable`, `PageHeader` pegado, `Dialog` a pantalla completa, `QuantityFigure` y `CampaignPill` |
+| 2026-11-13 | Adopción en C, B y A, y correcciones del orquestador en `PageHeader` y `Tabs` | `5c6f867`, `d6485b9`, `06283da` | — |
+| 2026-11-13 | **Comprobaciones sobre `06283da`** | — | `tsc` 0; `eslint` 0 errores (7 avisos previos); `vite build` correcto (5 fuentes precacheadas); `vitest` **69 archivos, 700/700** |
