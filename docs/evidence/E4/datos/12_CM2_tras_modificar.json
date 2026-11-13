@@ -1,0 +1,62 @@
+[
+ {
+  "key": "CM2",
+  "code": "A1",
+  "status": 200,
+  "state": "OPEN",
+  "responsible": "A2 sintético VER1",
+  "version": 1,
+  "participant_count": 1,
+  "totals": [
+   [
+    "Herbicida E4V CM2",
+    1,
+    "3000",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ],
+   [
+    "Fertilizante E4V CM2",
+    0,
+    "0",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ]
+  ]
+ },
+ {
+  "key": "CM2",
+  "code": "D1",
+  "status": 200,
+  "state": "OPEN",
+  "responsible": "A2 sintético VER1",
+  "version": 1,
+  "participant_count": 1,
+  "totals": [
+   [
+    "Herbicida E4V CM2",
+    1,
+    "3000",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ],
+   [
+    "Fertilizante E4V CM2",
+    0,
+    "0",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ]
+  ]
+ },
+ {
+  "key": "CM2",
+  "code": "A1",
+  "participants_status": 200,
+  "quantities": [
+   [
+    "3000"
+   ]
+  ]
+ }
+]

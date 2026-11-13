@@ -1,0 +1,314 @@
+[
+ {
+  "files": [
+   "web/D1_lista__escritorio.png",
+   "web/D1_lista__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas",
+  "rol": "D1",
+  "desc": "Directiva D1: lista de convocatorias (sin totales ni nombres)",
+  "at": "2026-11-13T21:21:38.909Z"
+ },
+ {
+  "files": [
+   "web/D1_CA__escritorio.png",
+   "web/D1_CA__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D1",
+  "desc": "Directiva responsable (D1) en CA abierta: total provisional ROLE_CONSENT (1 persona) y PENDING_CONSENT",
+  "at": "2026-11-13T21:21:45.888Z"
+ },
+ {
+  "files": [
+   "web/D1_CA_conceder__escritorio.png",
+   "web/D1_CA_conceder__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D1",
+  "desc": "D1 responsable: el único permiso que se concede es «Administrar la convocatoria»",
+  "at": "2026-11-13T21:21:50.022Z"
+ },
+ {
+  "files": [
+   "web/D1_CB__escritorio.png",
+   "web/D1_CB__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D1",
+  "desc": "Directiva no responsable (D1) en CB cerrada: consolidado PREVIOUS_POLICY_K3 en Herbicida, PENDING_CONSENT en Fertilizante",
+  "at": "2026-11-13T21:21:57.882Z"
+ },
+ {
+  "files": [
+   "web/D1_CC__escritorio.png",
+   "web/D1_CC__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D1",
+  "desc": "Directiva (D1) en CC abierta con la responsable D3 no habilitada: explicación para pedir a la Administración, sin botón",
+  "at": "2026-11-13T21:22:04.969Z"
+ },
+ {
+  "files": [
+   "web/D1_CD__escritorio.png",
+   "web/D1_CD__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D1",
+  "desc": "Directiva (D1) en CD cerrada con la responsable D3 no habilitada (2 personas CONV-4: VISIBLE)",
+  "at": "2026-11-13T21:22:11.891Z"
+ },
+ {
+  "files": [
+   "web/D1_CX__escritorio.png",
+   "web/D1_CX__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D1",
+  "desc": "Directiva responsable (D1) en CX cancelada",
+  "at": "2026-11-13T21:22:18.774Z"
+ },
+ {
+  "files": [
+   "web/D2_CA__escritorio.png",
+   "web/D2_CA__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D2",
+  "desc": "Directiva no responsable (D2) en CA abierta",
+  "at": "2026-11-13T21:22:43.610Z"
+ },
+ {
+  "files": [
+   "web/D2_CB__escritorio.png",
+   "web/D2_CB__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "D2",
+  "desc": "Directiva no responsable (D2) en CB cerrada (PREVIOUS_POLICY_K3)",
+  "at": "2026-11-13T21:22:50.533Z"
+ },
+ {
+  "files": [
+   "web/A1_CA__escritorio.png",
+   "web/A1_CA__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "Administración no responsable (A1) en CA abierta: detalle identificado sólo de F1 (CONV-4) y aviso de 1 pendiente",
+  "at": "2026-11-13T21:23:15.394Z"
+ },
+ {
+  "files": [
+   "web/A1_CB__escritorio.png",
+   "web/A1_CB__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "Administración responsable (A1) en CB cerrada: detalle de F2 (CONV-4), Herbicida PENDING_CONSENT porque ve a F2 por nombre, aviso de 2 pendientes",
+  "at": "2026-11-13T21:23:22.399Z"
+ },
+ {
+  "files": [
+   "web/A1_CC__escritorio.png",
+   "web/A1_CC__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "Administración (A1) en CC abierta con responsable no habilitada: «Sustituir responsable…» visible",
+  "at": "2026-11-13T21:23:29.352Z"
+ },
+ {
+  "files": [
+   "web/A1_CC_dialogo_sustituir__escritorio.png",
+   "web/A1_CC_dialogo_sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "Diálogo de sustitución (A1): A1 no figura entre las candidatas (autosustitución prohibida)",
+  "at": "2026-11-13T21:23:33.526Z"
+ },
+ {
+  "files": [
+   "web/A1_usuarios__escritorio.png",
+   "web/A1_usuarios__movil.png"
+  ],
+  "ruta": "/users",
+  "rol": "A1",
+  "desc": "Usuarios (A1): sin gestión del permiso «Sustituir responsable»; historia plegada de sólo lectura",
+  "at": "2026-11-13T21:23:44.567Z"
+ },
+ {
+  "files": [
+   "web/A2_CM1__escritorio.png",
+   "web/A2_CM1__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "Administración responsable (A2) en CM1 abierta: F2 por nombre",
+  "at": "2026-11-13T21:24:09.365Z"
+ },
+ {
+  "files": [
+   "web/A2_CA__escritorio.png",
+   "web/A2_CA__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "Administración no responsable (A2) en CA",
+  "at": "2026-11-13T21:24:16.341Z"
+ },
+ {
+  "files": [
+   "web/A1_CC_sustituir_listo__escritorio.png",
+   "web/A1_CC_sustituir_listo__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "A1 en CC (abierta): sucesora, motivo y casilla marcados antes de confirmar",
+  "at": "2026-11-13T21:25:17.248Z"
+ },
+ {
+  "files": [
+   "web/A1_CC_sustituida__escritorio.png",
+   "web/A1_CC_sustituida__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "A1 en CC (abierta) tras la sustitución: nueva responsable, historial y totales",
+  "at": "2026-11-13T21:25:24.380Z"
+ },
+ {
+  "files": [
+   "web/A1_CD_sustituir_listo__escritorio.png",
+   "web/A1_CD_sustituir_listo__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "A1 en CD (cerrada): sucesora, motivo y casilla marcados antes de confirmar",
+  "at": "2026-11-13T21:25:35.344Z"
+ },
+ {
+  "files": [
+   "web/A1_CD_sustituida__escritorio.png",
+   "web/A1_CD_sustituida__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "A1 en CD (cerrada) tras la sustitución: nueva responsable, historial y totales",
+  "at": "2026-11-13T21:25:42.454Z"
+ },
+ {
+  "files": [
+   "web/D1_resumen__escritorio.png",
+   "web/D1_resumen__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "D1",
+  "desc": "Resumen (Directiva): Herbicida con 1 aportante y Fertilizante con 2, publicados con F07-POL-02",
+  "at": "2026-11-13T21:27:19.873Z"
+ },
+ {
+  "files": [
+   "web/D1_cobertura__escritorio.png",
+   "web/D1_cobertura__movil.png"
+  ],
+  "ruta": "/colectivo/cobertura",
+  "rol": "D1",
+  "desc": "Cobertura (Directiva) con F07-POL-02",
+  "at": "2026-11-13T21:27:50.535Z"
+ },
+ {
+  "files": [
+   "web/D1_historico__escritorio.png",
+   "web/D1_historico__movil.png"
+  ],
+  "ruta": "/colectivo/historico",
+  "rol": "D1",
+  "desc": "Histórico (Directiva): sin campañas selladas en este tenant",
+  "at": "2026-11-13T21:27:59.239Z"
+ },
+ {
+  "files": [
+   "web/A1_resumen__escritorio.png",
+   "web/A1_resumen__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "A1",
+  "desc": "Resumen (Administración): las mismas cifras de 1 y 2 aportantes",
+  "at": "2026-11-13T21:28:26.101Z"
+ },
+ {
+  "files": [
+   "web/A2_rol_1_antes__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "A2 (Administración) en CA: ve a F1 por nombre",
+  "at": "2026-11-13T21:30:26.051Z"
+ },
+ {
+  "files": [
+   "web/A2_rol_2_directiva__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "A2 pasada a Directiva por A1: al recuperar el foco, sin nombres ni cantidades por persona",
+  "at": "2026-11-13T21:30:32.963Z"
+ },
+ {
+  "files": [
+   "web/A2_rol_3_admin_otra_vez__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "A2 vuelve a Administración: la consulta siguiente vuelve a mostrar el detalle autorizado",
+  "at": "2026-11-13T21:30:39.581Z"
+ },
+ {
+  "files": [
+   "web/A2_rol_4_deshabilitada__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "A2 deshabilitada por A1: la consulta siguiente recibe 401 y la Web sale de la sesión",
+  "at": "2026-11-13T21:30:48.217Z"
+ },
+ {
+  "files": [
+   "web/A2_deshabilitada_viendo__escritorio.png"
+  ],
+  "ruta": "/login",
+  "rol": "A2",
+  "desc": "A2 deshabilitada mientras veía el detalle: la consulta siguiente recibe 401",
+  "at": "2026-11-13T21:31:34.650Z"
+ },
+ {
+  "files": [
+   "web/movil_autorizada_CM2__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "A1 en CM2 tras «autorizada» en el teléfono",
+  "at": "2026-11-13T22:00:12.011Z"
+ },
+ {
+  "files": [
+   "web/movil_retirada_CM2__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "A1 en CM2 tras «retirada» en el teléfono",
+  "at": "2026-11-13T22:02:08.101Z"
+ },
+ {
+  "files": [
+   "web/movil_revisada_cerrada_CB__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A1",
+  "desc": "A1 en CB tras «revisada_cerrada» en el teléfono",
+  "at": "2026-11-13T22:10:18.291Z"
+ }
+]

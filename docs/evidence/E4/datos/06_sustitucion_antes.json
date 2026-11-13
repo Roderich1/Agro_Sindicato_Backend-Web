@@ -1,0 +1,145 @@
+[
+ {
+  "key": "CC",
+  "code": "A1",
+  "status": 200,
+  "state": "OPEN",
+  "responsible": "D3 sintético VER1",
+  "version": 1,
+  "participant_count": 2,
+  "totals": [
+   [
+    "Herbicida E4V CC",
+    1,
+    "1500",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ],
+   [
+    "Fertilizante E4V CC",
+    1,
+    null,
+    "PENDING_CONSENT",
+    null
+   ]
+  ]
+ },
+ {
+  "key": "CC",
+  "code": "D1",
+  "status": 200,
+  "state": "OPEN",
+  "responsible": "D3 sintético VER1",
+  "version": 1,
+  "participant_count": 2,
+  "totals": [
+   [
+    "Herbicida E4V CC",
+    1,
+    "1500",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ],
+   [
+    "Fertilizante E4V CC",
+    1,
+    null,
+    "PENDING_CONSENT",
+    null
+   ]
+  ]
+ },
+ {
+  "key": "CC",
+  "code": "A1",
+  "participants_status": 200,
+  "quantities": [
+   [
+    "1500"
+   ]
+  ]
+ },
+ {
+  "key": "CD",
+  "code": "A1",
+  "status": 200,
+  "state": "CLOSED",
+  "responsible": "D3 sintético VER1",
+  "version": 1,
+  "participant_count": 2,
+  "totals": [
+   [
+    "Herbicida E4V CD",
+    2,
+    "2500",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ],
+   [
+    "Fertilizante E4V CD",
+    0,
+    "0",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ]
+  ]
+ },
+ {
+  "key": "CD",
+  "code": "D1",
+  "status": 200,
+  "state": "CLOSED",
+  "responsible": "D3 sintético VER1",
+  "version": 1,
+  "participant_count": 2,
+  "totals": [
+   [
+    "Herbicida E4V CD",
+    2,
+    "2500",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ],
+   [
+    "Fertilizante E4V CD",
+    0,
+    "0",
+    "VISIBLE",
+    "ROLE_CONSENT"
+   ]
+  ]
+ },
+ {
+  "key": "CD",
+  "code": "A1",
+  "participants_status": 200,
+  "quantities": [
+   [
+    "1200"
+   ],
+   [
+    "1300"
+   ]
+  ]
+ },
+ {
+  "key": "CD",
+  "code": "A1",
+  "closing": {
+   "status": 200,
+   "cutoff_at": "2026-11-13T21:18:31.674Z",
+   "lines": [
+    [
+     2,
+     "2500",
+     "VISIBLE"
+    ],
+    [
+     0,
+     "0",
+     "VISIBLE"
+    ]
+   ]
+  }
+ }
+]

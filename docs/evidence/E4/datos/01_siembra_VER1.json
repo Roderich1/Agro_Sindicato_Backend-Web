@@ -1,0 +1,43 @@
+{
+  "seed": {
+    "label": "VER1",
+    "tenant_ref": "3df6583a-c725-4fca-a613-e533015f5de8",
+    "campaign_ref": "018e370b-34f2-4be3-8da4-85230b46238c",
+    "accounts": {
+      "D1": {
+        "email": "e4-ver1-d1@example.test",
+        "role": "DIRECTIVA"
+      },
+      "D2": {
+        "email": "e4-ver1-d2@example.test",
+        "role": "DIRECTIVA"
+      },
+      "A1": {
+        "email": "e4-ver1-a1@example.test",
+        "role": "ADMINISTRADOR"
+      },
+      "A2": {
+        "email": "e4-ver1-a2@example.test",
+        "role": "ADMINISTRADOR"
+      },
+      "DB": {
+        "email": "e4-ver1-db@example.test",
+        "role": "DIRECTIVA"
+      },
+      "F1": {
+        "email": "e4-ver1-f1@example.test",
+        "role": "AGRICULTOR"
+      },
+      "F2": {
+        "email": "e4-ver1-f2@example.test",
+        "role": "AGRICULTOR"
+      },
+      "F3": {
+        "email": "e4-ver1-f3@example.test",
+        "role": "AGRICULTOR"
+      }
+    }
+  },
+  "call_ref": null,
+  "walk": []
+}
