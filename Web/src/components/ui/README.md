@@ -211,14 +211,29 @@ Tarjeta blanca de sección. Con `title`, `Section` dibuja un `<h2>` de 20–24 p
 
 ```ts
 interface PageHeaderProps { title: string; subtitle?: ReactNode; campaign?: ReactNode; actions?: ReactNode;
-  headingLevel?: 1 | 2; eyebrow?: ReactNode; showSynthetic?: boolean; testId?: string }
+  headingLevel?: 1 | 2; eyebrow?: ReactNode; eyebrowPhoneOnly?: boolean; showSynthetic?: boolean;
+  attachToHeader?: boolean;        // oscura y pegada a la barra en < 1024 px; clara en escritorio
+  primaryAction?: PageHeaderAction; testId?: string }
+interface PageHeaderAction { label: string; onClick(): void; disabled?: boolean; testId?: string; plusIcon?: boolean /* true */ }
 ```
 
-Cabecera **clara** de una vista, con el título grande en Bricolage (lámina 21, «Catálogo»).
+Cabecera de una vista, con el título grande en Bricolage. Por defecto es **clara** (lámina 21, «Catálogo»).
 
 - `eyebrow`: migas encima del título.
 - «Datos sintéticos»: arriba a la derecha, sola, cuando el servidor declara `PROVISIONAL_SYNTHETIC`. Por defecto sólo con `headingLevel` 1; una vista anidada (`headingLevel={2}`) no la repite. `showSynthetic` cambia el comportamiento por defecto.
 - Debajo, la campaña a la izquierda y la acción a la derecha. En pantallas estrechas se apilan.
+- **`attachToHeader`** (láminas 37, 39, 41, 42 y 44; cubre el caso de `ViewHeader` de C):
+  - por debajo de 1024 px es oscura y continúa la barra superior del armazón; en escritorio, clara;
+  - es un solo bloque con un solo `<h1>`: sólo cambian los colores con el ancho, sin duplicar nada en el DOM;
+  - úsela sólo si la cabecera es lo primero de la vista;
+  - `eyebrowPhoneOnly` muestra `eyebrow` (p. ej. el sindicato) sólo en teléfono.
+- **`primaryAction`:** la acción principal integrada. Con `attachToHeader`, lima a todo el ancho en teléfono y tinta con «+» en escritorio; sin él, botón primario.
+- **`actions` y `campaign` con `attachToHeader`:** en teléfono se ven sobre tinta. Use controles que funcionen en los dos fondos (`SegmentedControl` o `Tabs variant="pill"`, que son blancos) o pase la acción por `primaryAction`.
+
+```tsx
+<PageHeader attachToHeader title="Campañas" eyebrow={user.tenant.name} eyebrowPhoneOnly
+  primaryAction={canManage ? { label: 'Nueva campaña', onClick: () => setCreating(true) } : undefined} />
+```
 
 ### `HeroPanel`: cabecera oscura (láminas 03 y 35)
 
@@ -244,6 +259,7 @@ interface HeroPanelProps {
 - **Selector:** con `select`, el título es un `<select>` nativo grande con chevron lima. El `<h1>` queda para lectores de pantalla, y `title` del selector lleva el nombre completo.
 - **Cifras:** `figure.value` y `stats[].value` llegan formateados. Un valor oculto se pasa como `<PrivacyChip />` o como el texto del estado, **nunca como 0**.
 - **«Datos sintéticos»:** la cabecera la muestra sola, arriba a la derecha, cuando el servidor la declara (ver `SyntheticDataChip`). No la repita en `corner`.
+- **`attachToHeader` dentro de `space-y-*`:** funciona. Los márgenes negativos de `ui-hero-attach` (sólo por debajo de 1024 px) están fuera de capa en `index.css`, así que ganan al `margin-block-start: 0` que pone `space-y-*`. Por la misma razón, una utilidad `mt-*`, `mx-*` o `-mt-*` sobre la cabecera **no** cambia esos márgenes en teléfono: si hace falta otro margen, envuelva la cabecera en un `div`. En escritorio, la cabecera conserva los márgenes que le dé su contenedor. Lo mismo vale para `PageHeader attachToHeader`.
 
 ```tsx
 <HeroPanel
@@ -330,7 +346,9 @@ Firma de v1, más `hideLabel?`. Es la píldora blanca con la opción elegida en 
 ### `Tabs` y `TabPanel`
 
 ```ts
-interface TabsProps<T extends string> { label: string; tabs: { value: T; label: ReactNode; count?: ReactNode }[]; value: T; onChange(v: T): void; idBase: string; testId?: string }
+interface TabsProps<T extends string> { label: string; tabs: { value: T; label: ReactNode; count?: ReactNode }[]; value: T; onChange(v: T): void; idBase: string;
+  variant?: 'underline' | 'pill';  // 'underline' por defecto
+  testId?: string }
 interface TabPanelProps { idBase: string; value: string; active: boolean; children: ReactNode }
 ```
 
@@ -339,8 +357,8 @@ Pestañas ARIA para paneles de la misma página («Borradores anteriores (4)», 
 - `tablist`, `tab` y `tabpanel`;
 - flechas, Inicio y Fin;
 - tabulación itinerante (sólo la pestaña activa entra en el orden de tabulación);
-- subrayado de tinta y negrita;
-- recuento en una pastilla ámbar.
+- `underline`: subrayado de tinta y negrita, con el recuento en una pastilla ámbar;
+- `pill` (láminas 06, 07, 08, 36 y 51): píldora blanca con la pestaña activa en tinta y el recuento entre paréntesis («Borradores anteriores (4)»). Mismo ARIA y teclado.
 
 ### `DataState`
 
@@ -421,11 +439,13 @@ interface DataTableProps<T> {
   caption?: string; minWidth?: number; maxHeight?: number | string; testId?: string;
   children?: ReactNode;                                                // modo libre (v1)
   columns?: DataTableColumn<T>[]; rows?: readonly T[]; rowKey?(row: T, i: number): Key;  // modo declarativo (v2)
-  stack?: boolean;                                                     // true por defecto en modo declarativo
+  rowTestId?(row: T, i: number): string | undefined;                  // data-testid de cada <tr> (declarativo)
+  stack?: boolean;     // tarjetas en < 640 px: true por defecto en modo declarativo, false en modo libre
 }
 ```
 
 - **Modo libre (v1):** igual que antes. El desplazamiento horizontal queda **dentro** del contenedor, la región es enfocable, la cabecera es pegajosa (con `maxHeight`) y la cabecera lleva mayúsculas pequeñas sobre una línea de tinta.
+  - Con `stack`, también pasa a tarjetas en estrecho: cada celda sin `data-label` toma el texto de su `<th>` de la última fila de `<thead>`, respetando `colSpan`. Si el encabezado no es texto, ponga `data-label` en la celda. En las filas, el `data-testid` lo pone la vista en su `<tr>`.
 - **Modo declarativo:** por debajo de 640 px, cada fila pasa a ser una tarjeta y cada celda repite su encabezado (`data-label`).
   - Para lectores de pantalla sigue siendo una tabla.
   - `rowHeader` da `<th scope="row">`.
@@ -437,6 +457,30 @@ interface DataTableProps<T> {
   { key: 'role', header: 'Rol', cell: (u) => <RoleBadge role={u.role} /> },
 ]} rows={users} rowKey={(u) => u.id} />
 ```
+
+### `QuantityFigure` (promovido desde A)
+
+```ts
+function QuantityFigure(props: { text: string; size?: 'xl' | 'lg' | 'md' | 'sm' /* 'lg' */; prefix?: string; className?: string }): JSX.Element;
+```
+
+Cifra grande con la unidad en pequeño («771,2 kg», láminas 03, 06 y 26).
+- Recibe el texto ya formateado (`formatQuantity`) y sólo lo parte en número y unidad por el último espacio.
+- No calcula ni redondea; `textContent` es el mismo texto.
+- `prefix`: un signo delante, p. ej. «≈ » en una estimación.
+- Misma firma que `components/a/quantity-figure.tsx`.
+
+### `CampaignPill` (promovido desde A)
+
+```ts
+function CampaignPill(props: { campaigns: Campaign[]; selected: string | null; onSelect(id: string): void; id?: string /* 'campaign-selector' */; label?: string /* 'Campaña' */ }): JSX.Element | null;
+```
+
+Selector de campaña compacto en píldora blanca (láminas 06 y 26).
+- Es un `<select>` nativo con etiqueta para lectores de pantalla; el nombre completo va en `title`.
+- Cada opción dice su estado, y «Activa» sólo la marcada por el servidor.
+- Sin campañas o sin selección no dibuja nada.
+- Misma firma que `components/a/campaign-pill.tsx`.
 
 ### `ProgressBar` (medidor)
 
@@ -500,6 +544,7 @@ interface DialogProps {
   hideCloseButton?: boolean;
   role?: 'dialog' | 'alertdialog';
   label?: string;               // aria-label explícito (Modal lo usa por compatibilidad)
+  fullScreenOnPhone?: boolean;  // < 640 px: pantalla completa (láminas 45 y 49); por defecto, hoja inferior
   testId?: string;
 }
 ```
@@ -513,6 +558,7 @@ Láminas 15, 30, 33, 34 y 46.
   - «Cancelar» del pie es explícito y cierra directamente.
 - **Al cerrar:** el foco vuelve al control que lo abrió.
 - **Teléfono (< 640 px):** hoja inferior a todo el ancho con asa decorativa; el pie se apila con la acción arriba (lámina 46). El contenido se desplaza dentro.
+  - Con `fullScreenOnPhone`, ocupa toda la pantalla (sin asa ni esquinas) para formularios largos (láminas 45 y 49). En escritorio no cambia.
 - **Página:** se dibuja en un portal sobre `document.body` y bloquea el desplazamiento de la página.
 
 `Modal` de `app-shell.tsx` mantiene su firma y ahora delega aquí.
@@ -565,7 +611,7 @@ Patrón de confirmación con motivo (H-16).
 |---|---|
 | Estados | `check`, `alert`, `warn`, `info`, `inbox`, `search`, `lock`, `eye`, `eyeOff`, `chart`, `clock`, `tick` |
 | Navegación | `home`, `clipboard`, `megaphone`, `archive`, `bars`, `calendar`, `document`, `users`, `menu`, `sprout` (marca) |
-| Acciones | `chevronDown/Up/Left/Right`, `arrowRight`, `download`, `refresh`, `logout`, `close`, `plus`, `mail` |
+| Acciones | `chevronDown/Up/Left/Right`, `arrowRight`, `download`, `refresh`, `logout`, `close`, `plus`, `mail`, `camera` |
 
 Un icono nuevo se pide a BASE o se añade aquí en la integración.
 
@@ -594,6 +640,14 @@ interface AppShellProps { title: string; section: string; actions?: ReactNode; c
 - En horizontal, la barra inferior se oculta y la cabecera ofrece «Menú».
 
 **Grupos:** se abren solos en su sección; el ítem activo depende de la ruta y de `?vista=`.
+
+**Posición al navegar:** al llegar a otra ruta con un enlace o `navigate` (PUSH o REPLACE), la vista empieza arriba.
+- Cambiar sólo `?vista=` o la consulta de la misma ruta conserva la posición. Si una vista quiere volver arriba en ese caso, lo hace ella.
+- Atrás y Adelante (POP) dejan la posición que restaure el navegador.
+- El foco no se mueve.
+- Es un efecto del armazón: `BrowserRouter` no admite `ScrollRestoration`.
+
+**Barra lateral:** es `position: fixed` a toda la altura de la ventana. En una captura de página completa (Puppeteer `fullPage`), los elementos fijos se dibujan sólo en el primer alto de ventana; en el navegador real queda fija al desplazar.
 
 **Contadores (`navCounts`):** la clave es la ruta (`/colectivo/catalogo`) o la subvista (`/colectivo/catalogo?vista=identificacion`).
 

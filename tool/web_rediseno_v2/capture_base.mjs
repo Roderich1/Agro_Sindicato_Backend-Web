@@ -3,7 +3,7 @@
  * adaptada por la sesión BASE del rediseño v2 (2026-11-13): añade el ancho de portátil (1280), el
  * paso `viewport` (fija el ancho para interactuar en teléfono), `sizes` en `shot` y el paso `key`
  * (teclado, para capturar el foco visible), `measure` (desplazamiento horizontal) y los anchos
- * `zoom200` (720×450 a 2x, zoom al 200 %) y `tableta` (820). Lo demás es igual.
+ * `zoom200` (720×450 a 2x, zoom al 200 %) y `tableta` (820), y `probe` (medida libre). Lo demás es igual.
  *
  * Capturas de la Web REAL (entorno AISLADO → API 3350, datos sintéticos) para el material de
  * rediseño. Edge sin interfaz. Contraseñas de un solo uso fijadas en la base aislada y nunca
@@ -160,6 +160,11 @@ try {
           console.log(`INSPECCIÓN ${step.inspect}: ${JSON.stringify(info)}`);
         }
         else if (step.escape) { await page.keyboard.press('Escape'); await sleep(800); }
+        else if (step.probe) {
+          // Medida libre en el navegador real (expresión JS que devuelve un objeto serializable).
+          const r = await page.evaluate(step.js);
+          console.log(`SONDA ${step.probe}: ${JSON.stringify(r)}`);
+        }
         else if (step.measure) {
           // Desplazamiento horizontal de la página entera (COORDINACION §6): ancho del documento frente al de la ventana.
           const m = await page.evaluate(() => ({ path: location.pathname + location.search, doc: document.documentElement.scrollWidth, win: document.documentElement.clientWidth }));

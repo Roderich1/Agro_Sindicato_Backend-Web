@@ -25,28 +25,31 @@ export interface StepperProps {
 export function Stepper({ label, steps, current, note, testId }: StepperProps) {
   return (
     <div data-testid={testId}>
-      <ol aria-label={label} className="flex items-start">
-        {steps.map((step, index) => {
-          const done = index < current;
-          const isCurrent = index === current;
-          const last = index === steps.length - 1;
-          return (
-            <li key={step.key} aria-current={isCurrent ? 'step' : undefined} className={`relative flex min-w-0 flex-1 flex-col ${last ? 'items-end text-right' : index === 0 ? 'items-start' : 'items-center text-center'}`}>
-              {!last && <span className="absolute left-0 right-0 top-[11px] -z-0 h-0.5 bg-track" style={{ left: index === 0 ? '24px' : '50%', right: index === steps.length - 2 ? '24px' : '-50%' }} aria-hidden="true" />}
-              <span
-                className={`relative z-[1] h-6 w-6 rounded-full border-2 ${
-                  isCurrent ? 'border-ink bg-ink ring-4 ring-lime' : done ? 'border-ink bg-ink' : 'border-ink-muted bg-surface'
-                }`}
-                aria-hidden="true"
-              />
-              <span className={`mt-2 text-sm ${isCurrent ? 'font-bold text-ink' : 'text-ink-muted'}`}>
-                {step.label}
-                {done && <span className="sr-only"> (completado)</span>}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="relative">
+        {/* Una sola línea del primer círculo al último: pasa por todos (lámina 03, «Versión de las cifras»). */}
+        {steps.length > 1 && <span aria-hidden="true" className="pointer-events-none absolute left-3 right-3 top-[11px] h-0.5 bg-track" data-testid={testId ? `${testId}-line` : undefined} />}
+        <ol aria-label={label} className="relative flex items-start">
+          {steps.map((step, index) => {
+            const done = index < current;
+            const isCurrent = index === current;
+            const last = index === steps.length - 1;
+            return (
+              <li key={step.key} aria-current={isCurrent ? 'step' : undefined} className={`relative flex min-w-0 flex-1 flex-col ${last ? 'items-end text-right' : index === 0 ? 'items-start' : 'items-center text-center'}`}>
+                <span
+                  className={`relative z-[1] h-6 w-6 rounded-full border-2 ${
+                    isCurrent ? 'border-ink bg-ink ring-4 ring-lime' : done ? 'border-ink bg-ink' : 'border-ink-muted bg-surface'
+                  }`}
+                  aria-hidden="true"
+                />
+                <span className={`mt-2 text-sm ${isCurrent ? 'font-bold text-ink' : 'text-ink-muted'}`}>
+                  {step.label}
+                  {done && <span className="sr-only"> (completado)</span>}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
       {note && <p className="mt-3 text-sm leading-relaxed text-ink-muted">{note}</p>}
     </div>
   );

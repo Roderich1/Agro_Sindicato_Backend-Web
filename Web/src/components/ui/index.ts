@@ -2,6 +2,7 @@
 export { AttentionList, type AttentionItem, type AttentionListProps } from './attention-list';
 export { Avatar, type AvatarProps } from './avatar';
 export { Button, IconButton, type ButtonProps, type IconButtonProps } from './button';
+export { CampaignPill } from './campaign-pill';
 export { CampaignSelector, type CampaignSelectorProps } from './campaign-selector';
 export { Card, type CardProps } from './card';
 export { Chip, PrivacyChip, Tag, type ChipProps } from './chip';
@@ -50,8 +51,9 @@ export { Icon } from './icons';
 export { initialsOf } from './initials';
 export { KpiTile, type KpiTileProps } from './kpi-tile';
 export { Notice } from './notice';
-export { PageHeader, type PageHeaderProps } from './page-header';
+export { PageHeader, type PageHeaderAction, type PageHeaderProps } from './page-header';
 export { ProgressBar, type ProgressBarProps } from './progress-bar';
+export { QuantityFigure } from './quantity-figure';
 export { Section, SectionHeader, type SectionHeaderProps, type SectionProps } from './section';
 export { SegmentedControl, type SegmentedControlProps } from './segmented-control';
 export { StatusChip, type StatusChipProps } from './status-chip';

@@ -28,6 +28,8 @@ export interface DialogProps {
   role?: 'dialog' | 'alertdialog';
   /** Nombre accesible explícito (`aria-label`) en lugar del título; lo usa `Modal` por compatibilidad. */
   label?: string;
+  /** Teléfono (< 640 px): pantalla completa en lugar de hoja inferior (formularios largos, láminas 45 y 49). */
+  fullScreenOnPhone?: boolean;
   testId?: string;
 }
 
@@ -53,6 +55,7 @@ export function Dialog({
   hideCloseButton = false,
   role = 'dialog',
   label,
+  fullScreenOnPhone = false,
   testId,
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -133,10 +136,13 @@ export function Dialog({
         aria-label={label}
         aria-describedby={descId}
         tabIndex={-1}
-        className={`ui-dialog-panel ui-safe-bottom relative flex max-h-[92dvh] w-full flex-col rounded-t-[28px] bg-surface shadow-raised focus:outline-none sm:max-h-[calc(100dvh-3rem)] sm:rounded-card ${widths[size]}`}
+        className={`ui-dialog-panel ui-safe-bottom relative flex w-full flex-col bg-surface shadow-raised focus:outline-none sm:max-h-[calc(100dvh-3rem)] sm:rounded-card ${
+          fullScreenOnPhone ? 'ui-safe-top h-dvh max-h-dvh sm:h-auto' : 'max-h-[92dvh] rounded-t-[28px]'
+        } ${widths[size]}`}
+        data-fullscreen-phone={fullScreenOnPhone || undefined}
       >
-        {/* Asa decorativa de la hoja inferior (lámina 46). */}
-        <div className="mx-auto mt-3 h-1.5 w-11 shrink-0 rounded-full bg-track sm:hidden" aria-hidden="true" />
+        {/* Asa decorativa de la hoja inferior (lámina 46); no en pantalla completa. */}
+        {!fullScreenOnPhone && <div className="mx-auto mt-3 h-1.5 w-11 shrink-0 rounded-full bg-track sm:hidden" aria-hidden="true" />}
         <div className="flex items-start justify-between gap-3 px-6 pt-5 sm:px-8 sm:pt-8">
           <h2 id={titleId} className="min-w-0 text-2xl font-extrabold leading-tight text-ink sm:text-[1.75rem]">
             {title}

@@ -125,6 +125,28 @@ describe('AppShell: menú por tareas', () => {
   });
 });
 
+describe('AppShell: posición al navegar', () => {
+  const page = () => document.documentElement;
+  afterEach(() => {
+    page().scrollTop = 0;
+  });
+
+  it('al cambiar de ruta con un enlace, la vista nueva empieza arriba', () => {
+    renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary, routes: [{ path: '/campaigns', element: shell('Campañas') }] });
+    page().scrollTop = 480;
+    fireEvent.click(within(mainNav()).getByRole('link', { name: 'Campañas' }));
+    expect(page().scrollTop).toBe(0);
+  });
+
+  it('cambiar sólo `?vista=` (misma ruta) conserva la posición', () => {
+    renderAt(shell('Catálogo'), { role: 'DIRECTIVA', path: `${COLLECTIVE_PATHS.catalog}?vista=productos` });
+    page().scrollTop = 480;
+    fireEvent.click(within(mainNav()).getByRole('link', { name: 'Nombres equivalentes' }));
+    expect(within(mainNav()).getByRole('link', { name: 'Nombres equivalentes' }).getAttribute('aria-current')).toBe('page');
+    expect(page().scrollTop).toBe(480);
+  });
+});
+
 describe('AppShell: insignia «Por identificar» (H-02)', () => {
   function withPending(pending: number | null, path: string) {
     return renderAt(

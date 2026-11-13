@@ -358,24 +358,13 @@
     display: none;
   }
 
-  /* HeroPanel `attachToHeader`: en teléfono y tableta continúa la barra superior oscura (lámina 35). */
+  /* HeroPanel `attachToHeader` (y ViewHeader de C): esquinas. Los márgenes van fuera de capa, más abajo. */
   .ui-hero-attach {
-    margin-top: -1.25rem;
-    margin-left: calc(-1 * max(1rem, env(safe-area-inset-left, 0px)));
-    margin-right: calc(-1 * max(1rem, env(safe-area-inset-right, 0px)));
     border-radius: 0 0 var(--radius-hero) var(--radius-hero);
-  }
-
-  @media (min-width: 640px) {
-    .ui-hero-attach {
-      margin-left: calc(-1 * max(1.5rem, env(safe-area-inset-left, 0px)));
-      margin-right: calc(-1 * max(1.5rem, env(safe-area-inset-right, 0px)));
-    }
   }
 
   @media (min-width: 1024px) {
     .ui-hero-attach {
-      margin: 0;
       border-radius: var(--radius-hero);
     }
   }
@@ -393,6 +382,28 @@
     .ui-content[data-rail='true'] {
       padding-left: var(--sidebar-rail);
     }
+  }
+}
+
+/*
+ * HeroPanel `attachToHeader`: en teléfono y tableta continúa la barra superior
+ * oscura (lámina 35), sin margen superior ni lateral. Fuera de capa a propósito:
+ * dentro de un `space-y-*` (utilidad, que gana a la capa `components`) el
+ * margen superior quedaba en 0. Sólo por debajo de 1024 px; en escritorio la
+ * cabecera conserva los márgenes que le dé su contenedor.
+ */
+@media (max-width: 1023.98px) {
+  .ui-hero-attach {
+    margin-top: -1.25rem;
+    margin-left: calc(-1 * max(1rem, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(1rem, env(safe-area-inset-right, 0px)));
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  .ui-hero-attach {
+    margin-left: calc(-1 * max(1.5rem, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(1.5rem, env(safe-area-inset-right, 0px)));
   }
 }
 

@@ -190,6 +190,7 @@ describe('Medidas y secuencias', () => {
     render(
       <Stepper
         label="Versión de las cifras"
+        testId="st"
         current={1}
         steps={[
           { key: 'a', label: 'Abierta' },
@@ -198,6 +199,10 @@ describe('Medidas y secuencias', () => {
         ]}
       />,
     );
+    // Una sola línea decorativa de extremo a extremo (fuera de la lista): une también «Cerrada» y «Sellada».
+    const line = screen.getByTestId('st-line');
+    expect(line.getAttribute('aria-hidden')).toBe('true');
+    expect(line.className).toMatch(/left-3 right-3/);
     const items = within(screen.getByRole('list', { name: 'Versión de las cifras' })).getAllByRole('listitem');
     expect(items.map((item) => item.getAttribute('aria-current'))).toEqual([null, 'step', null]);
     expect(items[0]!.textContent).toBe('Abierta (completado)');
