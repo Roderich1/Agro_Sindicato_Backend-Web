@@ -1,11 +1,14 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { StrictMode } from 'react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { AuthContext } from '../contexts/auth.context';
+import { CampaignContext } from '../contexts/campaign.context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { available, linkViewFor, selectionFor } from '../dev/fixtures/proposal-fixtures';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
 import { line, proposalWith } from '../test/fixtures';
-import { CAMPAIGN, renderAt } from '../test/render';
+import { CAMPAIGN, renderAt, userWith } from '../test/render';
 import type { Proposal, ProposalSummary } from '../types/collective';
 import { JointProposalPage } from './joint-proposal.page';
 
@@ -105,6 +108,32 @@ describe('Borrador de compra v2', () => {
     await screen.findByText('295 L');
     // El parámetro ya no apunta a un borrador anterior.
     expect(screen.getByTestId('where').textContent).not.toMatch(/borrador=/);
+    for (const write of WRITES()) expect(write).not.toHaveBeenCalled();
+  });
+
+  it('U.3 con StrictMode (V-1): el efecto doble no pisa el borrador pedido con el más reciente', async () => {
+    // StrictMode en la raíz, como en `main.tsx`: en desarrollo repite los efectos al montar.
+    render(
+      <StrictMode>
+        <AuthContext.Provider value={{ user: userWith('DIRECTIVA'), isLoading: false, login: async () => undefined, logout: async () => undefined }}>
+          <CampaignContext.Provider value={{ activeCampaign: CAMPAIGN, isLoading: false, error: null, refreshActiveCampaign: async () => undefined, hasActiveCampaign: true }}>
+            <MemoryRouter initialEntries={[`/colectivo/propuestas?campaign=${CAMPAIGN.id}&borrador=${OLDER.proposal_ref}`]}>
+              <Routes>
+                <Route path="/colectivo/propuestas" element={<JointProposalPage />} />
+              </Routes>
+            </MemoryRouter>
+          </CampaignContext.Provider>
+        </AuthContext.Provider>
+      </StrictMode>,
+    );
+    await screen.findByText('280 L');
+    // Se espera a que terminen las lecturas del efecto repetido: el último borrador abierto sigue siendo el pedido.
+    await waitFor(() => expect(collectiveService.estimationLink).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByText('295 L')).toBeNull();
+    expect(screen.getByText('280 L')).toBeTruthy();
+    expect(collectiveService.proposal).not.toHaveBeenCalledWith(LATEST.proposal_ref);
+    expect(screen.getAllByRole('tab')[0]!.textContent).toBe('Borrador anterior');
     for (const write of WRITES()) expect(write).not.toHaveBeenCalled();
   });
 

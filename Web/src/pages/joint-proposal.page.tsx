@@ -127,8 +127,17 @@ export function JointProposalPage() {
   /** Aviso cuando `?borrador=` no es de la campaña elegida (se muestra el más reciente). */
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
-  /** U.3: el borrador pedido en la URL; se lee al cargar el historial de la campaña. */
-  const wantedDraft = useRef<string | null>(params.get('borrador'));
+  /**
+   * U.3: el borrador pedido en la URL. Se deriva de la URL en cada render y no
+   * se consume al leerlo: una segunda ejecución del efecto (StrictMode, o un
+   * cambio de identidad) vuelve a abrir el mismo borrador, no el más reciente
+   * (V-1). Sólo cambia cuando cambia la URL (Ver, Ver el actual, otra campaña).
+   */
+  const requestedDraft = params.get('borrador');
+  const wantedDraft = useRef<string | null>(requestedDraft);
+  useEffect(() => {
+    wantedDraft.current = requestedDraft;
+  }, [requestedDraft]);
 
   // El contexto de lo que se muestra: identidad y campaña. Cada respuesta se aplica sólo si sigue siendo el mismo.
   const context = `${user?.id ?? ''}|${user?.tenantId ?? ''}|${user?.role ?? ''}|${selected ?? ''}`;
@@ -243,7 +252,6 @@ export function JointProposalPage() {
         setHistory(list);
         setLoadingHistory(false);
         const wanted = wantedDraft.current;
-        wantedDraft.current = null;
         const target = wanted ? list.find((entry) => entry.proposal_ref === wanted) : undefined;
         if (wanted && !target) {
           setDraftNotice('El borrador pedido no es de esta campaña o ya no existe: se muestra el más reciente.');
@@ -432,7 +440,6 @@ export function JointProposalPage() {
 
   /** Cambiar de campaña quita `?borrador=` (era de otra campaña). */
   const chooseCampaign = (id: string) => {
-    wantedDraft.current = null;
     setDraftNotice(null);
     setParams((prev) => {
       const next = new URLSearchParams(prev);
