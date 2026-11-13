@@ -1,72 +1,91 @@
 import axios from 'axios';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { AppShell, Modal } from '../components/app-shell';
+import { AppShell } from '../components/app-shell';
+import { CallHero, HeroDangerButton, type CallHeroFact } from '../components/b/call-hero';
 import {
+  AccessRules,
+  ActivityTimeline,
+  CallCard,
+  CallTotal,
+  DisclosureLink,
+  LockLine,
+  ParticipantsTable,
+  ProductLines,
+  type ParticipantEntry,
+} from '../components/b/call-ui';
+import {
+  Avatar,
   Button,
-  Collapsible,
+  buttonClassFor,
+  Checkbox,
+  Chip,
+  ConfirmDialog,
   DataState,
-  DataTable,
-  inputClass,
-  KpiTile,
-  labelClass,
+  Dialog,
   Notice,
-  PageHeader,
-  Section,
+  RadioCards,
+  Select,
   StatusChip,
+  Textarea,
+  type ConfirmDialogProps,
 } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
-import { fmtDateTime } from '../lib/collective-text';
 import {
-  CALL_EVENT_LABEL,
+  CALL_FOOTNOTE,
   CALL_STATUS_CHIP,
-  CLOSE_IMPLICATION,
+  CLOSE_IMPLICATIONS,
   CLOSE_MODE_LABEL,
   callError,
   callErrorCode,
   callOriginEditedText,
   callOriginText,
   COLLABORATORS_LOST_TEXT,
+  fmtDay,
+  fmtWhen,
+  GRANT_CONSENT_NOTE,
   GRANT_DESCRIPTION,
   GRANT_LABEL,
+  GRANT_LOSS,
   hiddenParticipantsText,
   MANAGE_LOST_TEXT,
   MANAGE_ONLY_TEXT,
+  NEW_RESPONSIBLE_POINTS,
   NOT_A_PURCHASE_TEXT,
   OPEN_IMPLICATIONS,
-  pendingAuthorizationText,
   PARTICIPANTS_FORBIDDEN_TEXT,
   PARTICIPANTS_REVOKED_TEXT,
-  PARTICIPATION_STATUS_LABEL,
+  peopleText,
+  pendingAuthorizationText,
   PROVISIONAL_NOTE,
-  quantityText,
   referenceText,
-  RESPONSIBLE_INELIGIBLE_TEXT,
+  RESPONSIBLE_INELIGIBLE_TITLE,
+  RESPONSIBLE_INELIGIBLE_WHO,
+  responsibleIneligibleBody,
   ROLE_LABEL,
   SELF_SUBSTITUTION_TEXT,
   SUBSTITUTION_IMPLICATIONS,
   SUBSTITUTION_NO_CANDIDATES_TEXT,
   SUBSTITUTION_ONLY_SELF_TEXT,
-  withheldTotalText,
+  SUBSTITUTION_PERMISSION_LABEL,
+  unitText,
+  WHAT_NEXT_TEXT,
 } from '../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
-import type { BaseUnit } from '../lib/quantity';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import type {
   EligibleResponsible,
   JointPurchaseCallClosing,
   JointPurchaseCallCollaborators,
+  JointPurchaseCallCollaboratorGrant,
   JointPurchaseCallDetail,
   JointPurchaseCallGrant,
   JointPurchaseCallParticipants,
-  JointPurchaseCallProductTotal,
   JointPurchaseCallUserRef,
-  JointPurchaseParticipantLine,
-  JointPurchaseParticipationStatus,
 } from '../types/joint-purchase-calls';
 import { JointPurchaseCallForm } from './joint-purchase-call-form';
 
-type Dialog =
+type DialogState =
   | { kind: 'edit' | 'open' | 'close' | 'cancel' | 'grant' | 'substitute' }
   | { kind: 'revoke'; user: JointPurchaseCallUserRef; grant: JointPurchaseCallGrant; self: boolean }
   | { kind: 'review'; user: JointPurchaseCallUserRef; grant: JointPurchaseCallGrant; decision: 'CONFIRM' | 'RETIRE' };
@@ -78,12 +97,21 @@ const FOCUS_RECHECK_GAP_MS = 2_000;
 const GRANTS: JointPurchaseCallGrant[] = ['PARTICIPANTS', 'MANAGE'];
 
 type Problem = { message: string; forbidden: boolean };
+type PermissionLostCode = 'MANAGE_FORBIDDEN' | 'COLLABORATORS_FORBIDDEN';
+
+/** Un permiso propio que ya no se tiene: el último evento de esa persona y ese permiso es un retiro (láminas 17 y 48). */
+interface RevokedGrant {
+  grant: JointPurchaseCallGrant;
+  at: string;
+  actor: JointPurchaseCallUserRef;
+  self: boolean;
+}
 
 /**
  * E2 §6 y §10.2/§10.3: detalle de una convocatoria
- * (`/colectivo/compras-conjuntas/:id`). La vista se monta de nuevo al cambiar
- * de convocatoria o de identidad (usuario, tenant o rol): lo que respondan las
- * peticiones del contexto anterior se descarta.
+ * (`/colectivo/compras-conjuntas/:id`, láminas 10–20, 38, 48 y 50). La vista
+ * se monta de nuevo al cambiar de convocatoria o de identidad (usuario, tenant
+ * o rol): lo que respondan las peticiones del contexto anterior se descarta.
  */
 export function JointPurchaseCallDetailPage() {
   const { id = '' } = useParams();
@@ -99,6 +127,7 @@ export function JointPurchaseCallDetailPage() {
  * `can_view_participants`; mientras se muestran, el permiso se vuelve a
  * comprobar al recuperar el foco y cada 60 s, y si se perdió se borran de la
  * página los nombres y las cantidades. Nada de esto se guarda en el navegador.
+ * Tras cada acción se recargan el detalle y los colaboradores (U.6).
  */
 function CallDetail({ id, userId }: { id: string; userId: string | null }) {
   const location = useLocation();
@@ -107,7 +136,7 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [message, setMessage] = useState<string | null>(() => (location.state as { message?: string } | null)?.message ?? null);
   const [alert, setAlert] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
   const [participants, setParticipants] = useState<JointPurchaseCallParticipants | null>(null);
   const [participantsProblem, setParticipantsProblem] = useState<string | null>(null);
   const [closing, setClosing] = useState<JointPurchaseCallClosing | null>(null);
@@ -220,7 +249,7 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
       setCollaborators(view);
       setCollaboratorsProblem(null);
     } catch (err) {
-      if (current()) setCollaboratorsProblem(callError(err, 'No fue posible cargar los colaboradores.'));
+      if (current()) setCollaboratorsProblem(callError(err, 'No fue posible cargar quién más puede verla.'));
     }
   }, [id]);
 
@@ -264,7 +293,7 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
   };
 
   /** El servidor dijo que el permiso cambió: se explica y se vuelve a cargar con los permisos actuales. */
-  const lostPermission = async (code: 'MANAGE_FORBIDDEN' | 'COLLABORATORS_FORBIDDEN') => {
+  const lostPermission = async (code: PermissionLostCode) => {
     setDialog(null);
     setMessage(null);
     setAlert(code === 'MANAGE_FORBIDDEN' ? MANAGE_LOST_TEXT : COLLABORATORS_LOST_TEXT);
@@ -280,30 +309,24 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
 
   const campaignId = call?.campaign.campaign_ref ?? params.get('campaign');
   const backTo = `${COLLECTIVE_PATHS.jointPurchaseCalls}${campaignId ? `?campaign=${encodeURIComponent(campaignId)}` : ''}`;
-  const back = (
-    <Link to={backTo} className="text-sm font-semibold text-brand-800 underline-offset-2 hover:underline">
-      Volver a las convocatorias
-    </Link>
-  );
 
   if (problem || !call) {
     return (
       <AppShell title="Convocatoria" section="Colectivo">
         <div className="space-y-4">
-          {back}
-          <Section>
-            {problem ? (
-              <DataState
-                compact
-                state={problem.forbidden ? 'forbidden' : 'error'}
-                description={problem.message}
-                onRetry={problem.forbidden ? undefined : () => void refresh()}
-                testId="call-error"
-              />
-            ) : (
-              <DataState compact state="loading" testId="call-loading" />
-            )}
-          </Section>
+          <Link to={backTo} className={buttonClassFor('secondary', 'sm')}>
+            Volver a las convocatorias
+          </Link>
+          {problem ? (
+            <DataState
+              state={problem.forbidden ? 'forbidden' : 'error'}
+              description={problem.message}
+              onRetry={problem.forbidden ? undefined : () => void refresh()}
+              testId="call-error"
+            />
+          ) : (
+            <DataState state="loading" skeletonRows={4} testId="call-loading" />
+          )}
         </div>
       </AppShell>
     );
@@ -312,40 +335,68 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
   const canManage = call.can_manage === true;
   const canEnd = canManage || call.can_cancel_or_close === true;
   const active = call.status === 'DRAFT' || call.status === 'OPEN';
+  const responsibleIneligible = call.responsible.eligible === false && call.status !== 'CANCELLED';
+  const lastChange = call.responsible_changes?.at(-1) ?? null;
+  const newResponsible = call.is_responsible && lastChange !== null && lastChange.next.user_ref === userId;
+  const revokedGrants = myRevokedGrants(collaborators, userId, call.is_responsible);
+  const myGrantsNow = collaborators?.collaborators.find((person) => person.user_ref === userId)?.grants ?? [];
+  // §10.3: quien tuvo «Consultar participantes» (revocado o suspendido) no recibe el total en vivo «por la regla de la abierta».
+  const hadParticipants =
+    call.can_view_participants || revoked || revokedGrants.some((entry) => entry.grant === 'PARTICIPANTS') || myGrantsNow.some((grant) => grant.grant === 'PARTICIPANTS');
+  const pendingReviews = call.is_responsible ? (call.pending_delegation_reviews ?? 0) : 0;
+  const reviewFirst = pendingReviews > 0 || newResponsible;
+
+  const chips = (
+    <>
+      <StatusChip status={CALL_STATUS_CHIP[call.status] ?? call.status} testId="call-status" />
+      {responsibleIneligible ? (
+        <Chip tone="attention" dot testId="responsible-ineligible-chip">
+          Responsable no habilitada
+        </Chip>
+      ) : call.is_responsible ? (
+        <Chip tone="on-dark">{newResponsible && lastChange ? `Usted es responsable desde el ${fmtShortDay(lastChange.at)}` : 'Usted es responsable'}</Chip>
+      ) : canManage ? (
+        <Chip tone="on-dark">Puede administrarla</Chip>
+      ) : (
+        <Chip tone="on-dark">Solo consulta</Chip>
+      )}
+    </>
+  );
+
   const actions = (
-    <div className="flex flex-wrap gap-2">
+    <>
+      {active && canEnd && <HeroDangerButton onClick={() => setDialog({ kind: 'cancel' })}>Cancelar convocatoria…</HeroDangerButton>}
       {call.status === 'DRAFT' && canManage && (
         <>
-          <Button variant="secondary" onClick={() => setDialog({ kind: 'edit' })}>
+          <Button variant="on-dark" onClick={() => setDialog({ kind: 'edit' })}>
             Editar
           </Button>
-          <Button onClick={() => setDialog({ kind: 'open' })}>Abrir</Button>
+          <Button variant="accent" onClick={() => setDialog({ kind: 'open' })}>
+            Abrir convocatoria…
+          </Button>
         </>
       )}
-      {call.status === 'OPEN' && canEnd && <Button onClick={() => setDialog({ kind: 'close' })}>Cerrar</Button>}
-      {active && canEnd && (
-        <Button variant="danger" onClick={() => setDialog({ kind: 'cancel' })}>
-          Cancelar convocatoria
+      {call.status === 'OPEN' && canEnd && (
+        <Button variant="accent" onClick={() => setDialog({ kind: 'close' })}>
+          Cerrar y consolidar…
         </Button>
       )}
-      {call.can_substitute_responsible === true && (
-        <Button variant="secondary" onClick={() => setDialog({ kind: 'substitute' })}>
-          Sustituir responsable
-        </Button>
-      )}
-    </div>
+    </>
   );
-  const responsibleIneligible = call.responsible.eligible === false && call.status !== 'CANCELLED';
+  const hasActions = (active && canEnd) || (call.status === 'DRAFT' && canManage);
 
   return (
     <AppShell title={call.name} section="Colectivo">
-      <div className="space-y-5">
-        {back}
-        <PageHeader
+      <div className="space-y-5 pb-4">
+        <CallHero
           title={call.name}
-          subtitle={<StatusChip status={CALL_STATUS_CHIP[call.status] ?? call.status} testId="call-status" />}
-          actions={actions}
+          backTo={backTo}
+          eyebrow={`Compra conjunta · ${call.campaign.name}`}
+          chips={chips}
+          facts={heroFacts(call, closing)}
+          actions={hasActions ? actions : undefined}
         />
+
         {alert && (
           <Notice kind="warn">
             <span data-testid="call-alert">{alert}</span>
@@ -353,78 +404,102 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
         )}
         {message && <Notice kind="ok">{message}</Notice>}
         {responsibleIneligible && (
-          <Notice kind="warn" compact>
-            <span data-testid="responsible-ineligible">{RESPONSIBLE_INELIGIBLE_TEXT}</span>
+          <Notice
+            kind="warn"
+            action={
+              call.can_substitute_responsible === true ? (
+                <Button onClick={() => setDialog({ kind: 'substitute' })}>Sustituir responsable…</Button>
+              ) : undefined
+            }
+          >
+            <span data-testid="responsible-ineligible">
+              <strong>{RESPONSIBLE_INELIGIBLE_TITLE}</strong> {responsibleIneligibleBody(call.status)}
+            </span>
+            {call.can_substitute_responsible !== true && <span> {RESPONSIBLE_INELIGIBLE_WHO}</span>}
           </Notice>
         )}
-        {active && !canManage && !responsibleIneligible && (
-          <Notice kind="info" compact>
-            <span data-testid="manage-note">{MANAGE_ONLY_TEXT}</span>
-          </Notice>
-        )}
-        {call.is_responsible && (call.pending_delegation_reviews ?? 0) > 0 && (
-          <Notice kind="info" compact>
-            <span data-testid="pending-delegation-reviews">
-              {call.pending_delegation_reviews === 1
-                ? '1 permiso concedido por la responsable anterior espera su revisión en «Colaboradores»: confírmelo o retírelo. Mientras tanto no se ejerce.'
-                : `${call.pending_delegation_reviews} permisos concedidos por la responsable anterior esperan su revisión en «Colaboradores»: confírmelos o retírelos. Mientras tanto no se ejercen.`}
+        {call.status === 'CANCELLED' && call.cancel_reason && (
+          <Notice kind="error">
+            <span data-testid="cancel-reason">
+              <strong>Motivo de la cancelación:</strong> {call.cancel_reason}
             </span>
           </Notice>
         )}
+        {!call.is_responsible &&
+          call.status !== 'CANCELLED' &&
+          revokedGrants.map((entry) => (
+            <Notice kind="warn" key={entry.grant}>
+              <span data-testid={`access-revoked-${entry.grant}`}>
+                <strong>
+                  {entry.self
+                    ? `Renunció a su permiso «${GRANT_LABEL[entry.grant]}» el ${fmtWhen(entry.at)}.`
+                    : `Su permiso «${GRANT_LABEL[entry.grant]}» se retiró el ${fmtWhen(entry.at)}.`}
+                </strong>{' '}
+                {entry.grant === 'PARTICIPANTS' ? 'Ya no ve nombres ni cantidades de esta convocatoria.' : 'Ya no puede administrarla.'}
+              </span>
+            </Notice>
+          ))}
 
-        <Section title="Datos de la convocatoria">
-          <CallFacts call={call} />
-        </Section>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,25rem)] lg:grid-rows-[auto_1fr] lg:items-start">
+          <div className="min-w-0 space-y-5 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+            {call.status === 'CLOSED' ? (
+              <ClosingPanel call={call} data={closing} problem={closingProblem} revoked={revoked} onRetry={() => void refresh()} />
+            ) : (
+              <>
+                <ProductsCard call={call} hidden={hadParticipants} />
+                {call.status === 'DRAFT' ? (
+                  <CallCard title="Quién pidió" testId="draft-requests">
+                    <LockLine icon="info">
+                      {canManage ? 'Nadie puede pedir todavía. Los pedidos empiezan cuando usted la abra.' : 'Nadie puede pedir todavía. Los pedidos empiezan cuando se abra.'}
+                    </LockLine>
+                  </CallCard>
+                ) : (
+                  <ParticipantsPanel
+                    call={call}
+                    data={participants}
+                    problem={participantsProblem}
+                    revoked={revoked}
+                    revokedBefore={revokedGrants.some((entry) => entry.grant === 'PARTICIPANTS')}
+                    onRetry={() => void refresh()}
+                  />
+                )}
+              </>
+            )}
+          </div>
 
-        <Section
-          title="Productos"
-          note={
-            call.status === 'OPEN'
-              ? 'Total de cantidades solicitadas hasta ahora; puede cambiar hasta el cierre.'
-              : call.source_proposal_ref
-                ? 'Tomados de un borrador de propuesta: su cifra es sólo la referencia divulgada en ese borrador.'
-                : undefined
-          }
-        >
-          <ProductsTable call={call} />
-        </Section>
+          <div className={`min-w-0 space-y-5 lg:col-start-2 lg:row-start-1 ${reviewFirst ? 'order-first lg:order-none' : ''}`}>
+            {call.status === 'CLOSED' && (
+              <CallCard title="Qué sigue" testId="what-next">
+                <LockLine icon="info">{WHAT_NEXT_TEXT}</LockLine>
+              </CallCard>
+            )}
+            {newResponsible && (
+              <CallCard title="Su acceso como nueva responsable" testId="new-responsible">
+                <ul className="list-disc space-y-1.5 pl-5 pt-3 text-base leading-relaxed text-ink">
+                  {NEW_RESPONSIBLE_POINTS.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </CallCard>
+            )}
+            <CollaboratorsSection
+              call={call}
+              view={collaborators}
+              problem={collaboratorsProblem}
+              userId={userId}
+              revokedGrants={revokedGrants}
+              onRetry={() => void loadCollaborators()}
+              onGrant={() => setDialog({ kind: 'grant' })}
+              onRevoke={(user, grant) => setDialog({ kind: 'revoke', user, grant, self: user.user_ref === userId })}
+              onReview={(user, grant, decision) => setDialog({ kind: 'review', user, grant, decision })}
+            />
+          </div>
 
-        {(call.status === 'OPEN' || call.status === 'CANCELLED') && (
-          <ParticipantsPanel call={call} data={participants} problem={participantsProblem} revoked={revoked} onRetry={() => void refresh()} />
-        )}
-        {call.status === 'CLOSED' && (
-          <ClosingPanel call={call} data={closing} problem={closingProblem} revoked={revoked} onRetry={() => void refresh()} />
-        )}
-
-        <CollaboratorsSection
-          call={call}
-          view={collaborators}
-          problem={collaboratorsProblem}
-          userId={userId}
-          onRetry={() => void loadCollaborators()}
-          onGrant={() => setDialog({ kind: 'grant' })}
-          onRevoke={(user, grant) => setDialog({ kind: 'revoke', user, grant, self: user.user_ref === userId })}
-          onReview={(user, grant, decision) => setDialog({ kind: 'review', user, grant, decision })}
-        />
-
-        <Collapsible title="Historial" testId="call-history">
-          {call.history.length === 0 ? (
-            <DataState compact state="empty" title="Sin eventos" description="El servidor no registra eventos para esta convocatoria." />
-          ) : (
-            <ol className="divide-y divide-slate-100" aria-label="Historial de la convocatoria">
-              {call.history.map((event, index) => (
-                <li key={`${event.at}-${index}`} className="px-5 py-2 text-sm" data-testid="call-history-event">
-                  <p>
-                    <span className="font-semibold text-slate-900">{CALL_EVENT_LABEL[event.kind] ?? event.kind}</span>
-                    <span className="ml-2 text-xs text-slate-600">{fmtDateTime(event.at)}</span>
-                    <span className="ml-2 text-xs text-slate-600">· {event.actor?.name ?? 'Automático (servidor)'}</span>
-                  </p>
-                  {event.detail && <p className="text-xs text-slate-700 [overflow-wrap:anywhere]">{event.detail}</p>}
-                </li>
-              ))}
-            </ol>
-          )}
-        </Collapsible>
+          <div className="min-w-0 space-y-5 lg:col-start-2 lg:row-start-2">
+            <ActivityTimeline history={call.history} changes={call.responsible_changes ?? []} />
+            <CallFootnote call={call} canManage={canManage} responsibleIneligible={responsibleIneligible} />
+          </div>
+        </div>
       </div>
 
       {dialog?.kind === 'edit' && (
@@ -438,66 +513,70 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
         />
       )}
       {dialog?.kind === 'open' && (
-        <ConfirmDialog
+        <ActionDialog
           title="Abrir la convocatoria"
-          actionLabel="Abrir convocatoria"
-          confirmText={`Confirmo que se abre «${call.name}» con ${call.responsible.name} como responsable.`}
-          onClose={() => setDialog(null)}
+          confirmLabel="Abrir convocatoria"
+          acknowledgement={`Confirmo que se abre «${call.name}».`}
+          onCancel={() => setDialog(null)}
           onPermissionLost={(code) => void lostPermission(code)}
-          onConfirm={async () => {
+          run={async () => {
             await jointPurchaseCallsService.open(call.call_id);
             await done('Convocatoria abierta. Los agricultores la verán al actualizar su aplicación.');
           }}
         >
-          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700" data-testid="open-implications">
+          <ul data-testid="open-implications">
             {OPEN_IMPLICATIONS.map((line) => (
               <li key={line}>{line}</li>
             ))}
             <li>
-              {call.responsible.name} podrá ver el nombre y las cantidades de quienes participen y autorizar a otras personas para
-              coordinarla; el resto de la Directiva verá sólo cuántas personas participan.
+              {call.is_responsible ? 'Usted, como responsable, verá' : `${call.responsible.name}, como responsable, verá`} nombres y cantidades sólo de quienes la
+              autoricen; el resto de la Directiva verá sólo cuántas personas participan.
             </li>
-            <li>Fecha límite: {fmtDateTime(call.deadline_at)} (hora del servidor del sindicato).</li>
+            <li>Fecha límite: {fmtWhen(call.deadline_at, 'always')}. El plazo se cumple con el reloj del servidor.</li>
           </ul>
-        </ConfirmDialog>
+        </ActionDialog>
       )}
       {dialog?.kind === 'close' && (
-        <ConfirmDialog
-          title="Cerrar la convocatoria"
-          actionLabel="Cerrar convocatoria"
-          confirmText={`Confirmo que se cierra «${call.name}».`}
-          onClose={() => setDialog(null)}
+        <ActionDialog
+          title="Cerrar y consolidar"
+          confirmLabel="Cerrar convocatoria"
+          acknowledgement={`Confirmo que se cierra «${call.name}».`}
+          onCancel={() => setDialog(null)}
           onPermissionLost={(code) => void lostPermission(code)}
-          onConfirm={async () => {
+          run={async () => {
             await jointPurchaseCallsService.close(call.call_id);
             await done('Convocatoria cerrada. El consolidado al cierre ya no cambia.');
           }}
         >
-          <p className="text-sm text-slate-700" data-testid="close-implication">
-            {CLOSE_IMPLICATION}
-          </p>
-        </ConfirmDialog>
+          <ul>
+            {CLOSE_IMPLICATIONS.map((line, index) => (
+              <li key={line} data-testid={index === 0 ? 'close-implication' : undefined}>
+                {line}
+              </li>
+            ))}
+          </ul>
+        </ActionDialog>
       )}
       {dialog?.kind === 'cancel' && (
-        <ConfirmDialog
+        <ActionDialog
           title="Cancelar la convocatoria"
-          actionLabel="Cancelar convocatoria"
-          variant="danger"
-          withReason
-          confirmText={`Confirmo que se cancela «${call.name}». No se puede deshacer.`}
-          onClose={() => setDialog(null)}
+          confirmLabel="Cancelar convocatoria"
+          tone="danger"
+          reason={{ maxLength: MAX_REASON }}
+          acknowledgement={`Confirmo que se cancela «${call.name}». No se puede deshacer.`}
+          onCancel={() => setDialog(null)}
           onPermissionLost={(code) => void lostPermission(code)}
-          onConfirm={async (reason) => {
+          run={async (reason) => {
             await jointPurchaseCallsService.cancel(call.call_id, reason);
             await done('Convocatoria cancelada.');
           }}
         >
-          <p className="text-sm text-slate-700">
+          <p>
             {call.status === 'OPEN'
-              ? 'Los agricultores la verán como cancelada. Las participaciones recibidas se conservan, sin consolidado, y los productos quedan libres para otra convocatoria.'
+              ? 'Los pedidos quedan sin efecto y no habrá consolidado; lo recibido queda en el historial. Los agricultores lo verán en su aplicación y los productos quedan libres para otra convocatoria.'
               : 'El borrador no se podrá abrir. Los agricultores nunca lo vieron.'}
           </p>
-        </ConfirmDialog>
+        </ActionDialog>
       )}
       {dialog?.kind === 'grant' && (
         <GrantDialog
@@ -509,62 +588,61 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
         />
       )}
       {dialog?.kind === 'revoke' && (
-        <ConfirmDialog
+        <ActionDialog
           title={dialog.self ? 'Renunciar a este permiso' : 'Retirar el permiso'}
-          actionLabel={dialog.self ? 'Renunciar a este permiso' : 'Retirar permiso'}
-          variant="danger"
-          confirmText={
-            dialog.self
-              ? `Confirmo que renuncio al permiso «${GRANT_LABEL[dialog.grant]}» en «${call.name}».`
-              : `Confirmo que retiro el permiso «${GRANT_LABEL[dialog.grant]}» a ${dialog.user.name} en «${call.name}».`
-          }
-          onClose={() => setDialog(null)}
+          confirmLabel={dialog.self ? 'Renunciar a este permiso' : 'Retirar permiso'}
+          tone="danger"
+          acknowledgement={dialog.self ? 'Confirmo que renuncio a este permiso.' : 'Confirmo que retiro este permiso.'}
+          onCancel={() => setDialog(null)}
           onPermissionLost={(code) => void lostPermission(code)}
-          onConfirm={async () => {
+          run={async () => {
             const view = await jointPurchaseCallsService.revoke(call.call_id, dialog.user.user_ref, dialog.grant);
             await collaboratorsChanged(
               view,
-              dialog.self
-                ? `Renunció al permiso «${GRANT_LABEL[dialog.grant]}».`
-                : `Permiso «${GRANT_LABEL[dialog.grant]}» retirado a ${dialog.user.name}.`,
+              dialog.self ? `Renunció al permiso «${GRANT_LABEL[dialog.grant]}».` : `Permiso «${GRANT_LABEL[dialog.grant]}» retirado a ${dialog.user.name}.`,
             );
           }}
         >
-          <p className="text-sm text-slate-700">
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-1">
+            <dt className="text-ink-muted">Persona</dt>
+            <dd className="font-semibold [overflow-wrap:anywhere]">{dialog.user.name}</dd>
+            <dt className="text-ink-muted">Permiso</dt>
+            <dd className="font-semibold">{GRANT_LABEL[dialog.grant]}</dd>
+          </dl>
+          <p className="text-ink-muted">
+            {dialog.self ? GRANT_LOSS[dialog.grant].replace('Dejará', 'Usted dejará') : GRANT_LOSS[dialog.grant]}{' '}
             {dialog.self
               ? 'Rige desde la próxima consulta. Sólo la persona responsable puede volver a concederlo.'
-              : 'Rige desde la próxima consulta de esa persona. Lo que haya copiado, impreso o capturado antes no se puede retirar desde aquí.'}
+              : 'Rige desde su próxima consulta. Lo que haya copiado, impreso o capturado antes no se puede retirar desde aquí.'}
           </p>
-        </ConfirmDialog>
+        </ActionDialog>
       )}
       {dialog?.kind === 'review' && (
-        <ConfirmDialog
+        <ActionDialog
           title={dialog.decision === 'CONFIRM' ? 'Confirmar el permiso' : 'Retirar el permiso'}
-          actionLabel={dialog.decision === 'CONFIRM' ? 'Confirmar permiso' : 'Retirar permiso'}
-          variant={dialog.decision === 'CONFIRM' ? 'primary' : 'danger'}
-          confirmText={
+          confirmLabel={dialog.decision === 'CONFIRM' ? 'Confirmar permiso' : 'Retirar permiso'}
+          tone={dialog.decision === 'CONFIRM' ? 'primary' : 'danger'}
+          acknowledgement={
             dialog.decision === 'CONFIRM'
-              ? `Confirmo que ${dialog.user.name} conserva «${GRANT_LABEL[dialog.grant]}» en «${call.name}», ahora concedido por mí.`
-              : `Confirmo que retiro «${GRANT_LABEL[dialog.grant]}» a ${dialog.user.name} en «${call.name}».`
+              ? `Confirmo que ${dialog.user.name} conserva «${GRANT_LABEL[dialog.grant]}», ahora concedido por mí.`
+              : `Confirmo que retiro «${GRANT_LABEL[dialog.grant]}» a ${dialog.user.name}.`
           }
-          onClose={() => setDialog(null)}
+          onCancel={() => setDialog(null)}
           onPermissionLost={(code) => void lostPermission(code)}
-          onConfirm={async () => {
+          run={async () => {
             const view = await jointPurchaseCallsService.reviewDelegation(call.call_id, dialog.user.user_ref, dialog.grant, dialog.decision);
             await collaboratorsChanged(
               view,
-              dialog.decision === 'CONFIRM'
-                ? `Permiso «${GRANT_LABEL[dialog.grant]}» de ${dialog.user.name} confirmado.`
-                : `Permiso «${GRANT_LABEL[dialog.grant]}» retirado a ${dialog.user.name}.`,
+              dialog.decision === 'CONFIRM' ? `Permiso «${GRANT_LABEL[dialog.grant]}» de ${dialog.user.name} confirmado.` : `Permiso «${GRANT_LABEL[dialog.grant]}» retirado a ${dialog.user.name}.`,
             );
           }}
         >
-          <p className="text-sm text-slate-700" data-testid="review-implication">
+          <p data-testid="review-implication">
             {dialog.decision === 'CONFIRM'
               ? 'Lo concedió la responsable anterior y quedó suspendido al sustituirla. Si lo confirma, rige otra vez desde la próxima consulta de esa persona, con el mismo límite: sólo verá lo que cada agricultor autorizó.'
               : 'Lo concedió la responsable anterior. Si lo retira, queda registrado y esa persona no lo recupera salvo que usted se lo conceda de nuevo.'}
           </p>
-        </ConfirmDialog>
+        </ActionDialog>
       )}
       {dialog?.kind === 'substitute' && (
         <SubstituteDialog
@@ -584,6 +662,42 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
   );
 }
 
+/** «12 nov»: el día sin hora ni año (chip «Usted es responsable desde…»). */
+function fmtShortDay(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-BO', { day: 'numeric', month: 'short' }).replace(/\./g, '');
+}
+
+/** Datos clave de la cabecera según el estado (láminas 10–20); el primero va en lima. */
+function heroFacts(call: JointPurchaseCallDetail, closing: JointPurchaseCallClosing | null): CallHeroFact[] {
+  const responsible: CallHeroFact[] = call.is_responsible ? [] : [{ key: 'responsible', label: 'Responsable', value: call.responsible.name, testId: 'hero-responsible' }];
+  if (call.status === 'DRAFT')
+    return [
+      { key: 'deadline', label: 'Fecha límite', value: fmtWhen(call.deadline_at) },
+      ...responsible,
+      { key: 'farmers', label: 'Los agricultores', value: 'Aún no la ven' },
+    ];
+  if (call.status === 'OPEN')
+    return [
+      { key: 'deadline', label: 'Recibe pedidos hasta', value: fmtWhen(call.deadline_at) },
+      ...responsible,
+      { key: 'participants', label: 'Participan', value: peopleText(call.participant_count) },
+      { key: 'opened', label: 'Abierta el', value: fmtWhen(call.opened_at) },
+    ];
+  if (call.status === 'CLOSED')
+    return [
+      { key: 'closed', label: 'Cerrada el', value: fmtWhen(call.closed_at) },
+      ...responsible,
+      ...(closing ? [{ key: 'participants', label: 'Participaron', value: peopleText(closing.participant_count), testId: 'closing-participants' }] : []),
+      { key: 'opened', label: 'Abierta el', value: fmtWhen(call.opened_at) },
+      ...(closing ? [{ key: 'mode', label: 'Cierre', value: CLOSE_MODE_LABEL[closing.mode] ?? closing.mode, testId: 'closing-mode' }] : []),
+    ];
+  return [
+    { key: 'cancelled', label: 'Cancelada el', value: fmtWhen(call.cancelled_at) },
+    ...(call.cancelled_by ? [{ key: 'by', label: 'Por', value: call.cancelled_by.name }] : []),
+    { key: 'responsible', label: 'Responsable', value: call.responsible.name, testId: 'hero-responsible' },
+  ];
+}
+
 /** Sin `PARTICIPANTS`: ningún total por producto que dependiera del permiso queda a la vista hasta la próxima respuesta. */
 function withoutParticipantsPermission(call: JointPurchaseCallDetail): JointPurchaseCallDetail {
   return {
@@ -601,182 +715,109 @@ function isParticipantsForbidden(err: unknown): boolean {
   return callErrorCode(err) === 'PARTICIPANTS_FORBIDDEN' || (axios.isAxiosError(err) && err.response?.status === 403);
 }
 
+/** Permisos propios retirados: según el historial de colaboradores, que lo lee cualquier DIRECTIVA o ADMINISTRADOR del tenant. */
+function myRevokedGrants(view: JointPurchaseCallCollaborators | null, userId: string | null, isResponsible: boolean): RevokedGrant[] {
+  if (!view || !userId || isResponsible) return [];
+  const holding = new Set((view.collaborators.find((person) => person.user_ref === userId)?.grants ?? []).map((grant) => grant.grant));
+  const result: RevokedGrant[] = [];
+  for (const grant of GRANTS) {
+    if (holding.has(grant)) continue;
+    const last = [...view.history].reverse().find((event) => event.user.user_ref === userId && event.grant === grant);
+    if (last?.action === 'REVOKED') result.push({ grant, at: last.at, actor: last.actor, self: last.actor.user_ref === userId });
+  }
+  return result;
+}
+
 function grantsText(grants: JointPurchaseCallGrant[] | null | undefined, responsible: boolean): string {
   const labels = (grants ?? []).map((grant) => GRANT_LABEL[grant] ?? grant);
   if (labels.length === 0) return 'Ninguno';
   return responsible ? `${labels.join(' y ')} (persona responsable)` : labels.join(' y ');
 }
 
-function CallFacts({ call }: { call: JointPurchaseCallDetail }) {
-  const facts: [string, ReactNode][] = [
-    ['Campaña', call.campaign.name],
-    ['Responsable', call.responsible.eligible === false ? `${call.responsible.name} (ya no está activa)` : call.responsible.name],
-    ['Fecha límite', `${fmtDateTime(call.deadline_at)} (hora del servidor)`],
-    ['Abierta el', call.opened_at ? fmtDateTime(call.opened_at) : 'Todavía no se abrió'],
-  ];
-  if (call.closed_at) facts.push(['Cerrada el', fmtDateTime(call.closed_at)]);
-  if (call.cancelled_at) facts.push(['Cancelada el', fmtDateTime(call.cancelled_at)]);
-  if (call.cancel_reason) facts.push(['Motivo de la cancelación', call.cancel_reason]);
+/** Pie de la columna derecha (lámina 11): origen (E3-P2), permisos propios, sustitución y la nota «no es una compra». */
+function CallFootnote({ call, canManage, responsibleIneligible }: { call: JointPurchaseCallDetail; canManage: boolean; responsibleIneligible: boolean }) {
   const origin = callOriginText(call.origin);
-  if (origin)
-    facts.push([
-      'Origen',
-      <span data-testid="call-origin">
-        {origin}
-        {call.origin && call.origin_differs_from_current && (
-          <span className="block text-slate-600" data-testid="call-origin-edited">
-            {callOriginEditedText(call.origin)}
-          </span>
-        )}
-      </span>,
-    ]);
   const lastChange = call.responsible_changes?.at(-1);
-  if (lastChange)
-    facts.push([
-      'Sustitución',
-      <span data-testid="responsible-change">
-        {`${lastChange.next.name} sustituyó a ${lastChange.previous.name} el ${fmtDateTime(lastChange.at)}, por decisión de ${lastChange.actor.name}. Motivo: ${lastChange.reason}`}
-      </span>,
-    ]);
-  facts.push(['Participantes', participantsText(call.participant_count)]);
-  if (typeof call.collaborator_count === 'number') facts.push(['Colaboradores', peopleText(call.collaborator_count)]);
-  if (Array.isArray(call.my_grants)) facts.push(['Sus permisos', grantsText(call.my_grants, call.is_responsible)]);
+  const active = call.status === 'DRAFT' || call.status === 'OPEN';
+  const row = 'flex flex-wrap gap-x-1.5';
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-2 px-5 py-4 text-sm sm:grid-cols-2" data-testid="call-facts">
-      {facts.map(([term, value]) => (
-        <div key={term} className="flex min-w-0 gap-2">
-          <dt className="shrink-0 text-slate-500">{term}:</dt>
-          <dd className="min-w-0 text-slate-800 [overflow-wrap:anywhere]">{value}</dd>
+    <div className="space-y-2 px-1 text-sm leading-relaxed text-ink-muted">
+      <dl className="space-y-1.5" data-testid="call-facts">
+        {origin && (
+          <div className={row}>
+            <dt className="font-semibold text-ink">Origen:</dt>
+            <dd className="min-w-0 [overflow-wrap:anywhere]" data-testid="call-origin">
+              {origin}
+              {call.origin && call.origin_differs_from_current && (
+                <span className="block" data-testid="call-origin-edited">
+                  {callOriginEditedText(call.origin)}
+                </span>
+              )}
+            </dd>
+          </div>
+        )}
+        {Array.isArray(call.my_grants) && (
+          <div className={row}>
+            <dt className="font-semibold text-ink">Sus permisos:</dt>
+            <dd className="min-w-0">{grantsText(call.my_grants, call.is_responsible)}</dd>
+          </div>
+        )}
+        {lastChange && (
+          <div className={row}>
+            <dt className="font-semibold text-ink">Sustitución:</dt>
+            <dd className="min-w-0 [overflow-wrap:anywhere]" data-testid="responsible-change">
+              {`${lastChange.next.name} sustituyó a ${lastChange.previous.name} el ${fmtWhen(lastChange.at, 'always')}, por decisión de ${lastChange.actor.name}. Motivo: ${lastChange.reason}`}
+            </dd>
+          </div>
+        )}
+      </dl>
+      {active && !canManage && !responsibleIneligible && <p data-testid="manage-note">{MANAGE_ONLY_TEXT}</p>}
+      {/* Cerrada: el consolidado ya dice qué son las cantidades y «Qué sigue» lo completa. */}
+      {call.status !== 'CLOSED' && <p data-testid="call-footnote">{CALL_FOOTNOTE}</p>}
+    </div>
+  );
+}
+
+/** Productos de un borrador, de una abierta («Pedido hasta ahora») o de una cancelada (láminas 10, 11, 13 y 16–20). */
+function ProductsCard({ call, hidden }: { call: JointPurchaseCallDetail; hidden: boolean }) {
+  const open = call.status === 'OPEN';
+  const draft = call.status === 'DRAFT';
+  const sourceDate = call.origin?.proposal_generated_at ?? null;
+  const note = open
+    ? PROVISIONAL_NOTE
+    : draft
+      ? call.source_proposal_ref
+        ? sourceDate
+          ? `Tomados del borrador de compra del ${fmtDay(sourceDate)}`
+          : 'Tomados de un borrador de compra'
+        : 'Elegidos del catálogo'
+      : 'Los pedidos quedaron sin efecto';
+  return (
+    <CallCard title={open ? 'Pedido hasta ahora' : 'Productos'} note={note} testId="call-products">
+      {call.products.length === 0 ? (
+        <div className="pt-3">
+          <DataState compact state="empty" title="Sin productos" description="El borrador todavía no tiene productos." />
         </div>
-      ))}
-    </dl>
-  );
-}
-
-function participantsText(count: number | null | undefined): string {
-  if (count === null || count === undefined) return '—';
-  return count === 1 ? '1 persona' : `${count} personas`;
-}
-
-function peopleText(count: number): string {
-  return count === 0 ? 'Ninguno' : participantsText(count);
-}
-
-function ProductsTable({ call }: { call: JointPurchaseCallDetail }) {
-  const showTotals = call.status === 'OPEN';
-  if (call.products.length === 0) return <DataState compact state="empty" title="Sin productos" description="El borrador todavía no tiene productos." />;
-  return (
-    <DataTable caption="Productos de la convocatoria" minWidth={showTotals ? 720 : 520}>
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Unidad</th>
-          <th>Referencia</th>
-          {showTotals && <th>Total solicitado</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {call.products.map((product) => (
-          <tr key={product.product_ref} data-testid={`call-product-${product.product_ref}`}>
-            <td className="[overflow-wrap:anywhere]">{product.name}</td>
-            <td>{product.unit}</td>
-            <td className="text-xs text-slate-700">{product.reference ? referenceText(product.reference, product.base_unit) : 'Del catálogo, sin referencia'}</td>
-            {showTotals && (
-              <td className="text-sm">
-                {/* Con `PARTICIPANTS`, un total retenido sólo puede deberse a participaciones ocultas (§10.3). */}
-                <TotalCell
-                  total={product.totals}
-                  baseUnit={product.base_unit}
-                  threshold={call.totals_threshold}
-                  hidden={call.can_view_participants === true}
-                  withCount
-                />
-              </td>
-            )}
-          </tr>
-        ))}
-      </tbody>
-    </DataTable>
-  );
-}
-
-/**
- * Total solicitado de un producto (E2-D7 / E2-P1 / §10.3). Si el servidor lo
- * retiene (`total_quantity_base: null`), se explica por qué; nunca se muestra
- * 0. El número de personas es un conteo y se muestra siempre.
- */
-function TotalCell({
-  total,
-  baseUnit,
-  threshold,
-  hidden = false,
-  withCount = false,
-}: {
-  total: JointPurchaseCallProductTotal;
-  baseUnit: BaseUnit;
-  threshold: number;
-  /** `RESPONSIBLE_ONLY` por participaciones ocultas para quien consulta, no por E2-P1. */
-  hidden?: boolean;
-  withCount?: boolean;
-}) {
-  const count = withCount ? <span className="ml-1 text-xs text-slate-600">· {participantsText(total.participant_count)}</span> : null;
-  if (total.visibility === 'VISIBLE' && total.total_quantity_base !== null) {
-    return (
-      <>
-        <span className="tabular-nums">{quantityText(total.total_quantity_base, baseUnit)}</span>
-        {count}
-      </>
-    );
-  }
-  return (
-    <>
-      <span className="text-xs text-slate-600" data-testid="hidden-total">
-        {withheldTotalText(total.visibility, threshold, hidden)}
-      </span>
-      {count}
-    </>
-  );
-}
-
-interface ParticipantRow {
-  participation_ref: string;
-  name: string;
-  /** Ausente en el consolidado al cierre: ahí sólo están las participaciones vigentes al corte. */
-  status?: JointPurchaseParticipationStatus;
-  accepted_at: string;
-  lines: JointPurchaseParticipantLine[];
-}
-
-/** Tabla de participantes identificados: nombre, producto, cantidad solicitada, estado y hora de aceptación. Nada más. */
-function ParticipantsTable({ participants, call, caption }: { participants: ParticipantRow[]; call: JointPurchaseCallDetail; caption: string }) {
-  const showStatus = participants.some((participant) => participant.status !== undefined);
-  const nameOf = (ref: string, fallback: string) => fallback || call.products.find((product) => product.product_ref === ref)?.name || '—';
-  return (
-    <DataTable caption={caption} minWidth={720}>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Producto</th>
-          <th className="ui-num">Cantidad solicitada</th>
-          {showStatus && <th>Estado</th>}
-          <th>Aceptada el</th>
-        </tr>
-      </thead>
-      <tbody>
-        {participants.flatMap((participant) => {
-          const lines = participant.lines.length > 0 ? participant.lines : [null];
-          return lines.map((line, index) => (
-            <tr key={`${participant.participation_ref}-${line?.product_ref ?? 'none'}`} data-testid="participant-row">
-              <td className="[overflow-wrap:anywhere]">{index === 0 ? participant.name : ''}</td>
-              <td className="[overflow-wrap:anywhere]">{line ? nameOf(line.product_ref, line.product_name) : 'Sin productos'}</td>
-              <td className="ui-num">{line ? quantityText(line.quantity_base, line.base_unit) : '—'}</td>
-              {showStatus && <td>{participant.status ? (PARTICIPATION_STATUS_LABEL[participant.status] ?? participant.status) : ''}</td>}
-              <td>{fmtDateTime(participant.accepted_at)}</td>
-            </tr>
-          ));
-        })}
-      </tbody>
-    </DataTable>
+      ) : (
+        <ProductLines
+          caption="Productos de la convocatoria"
+          valueHeader={open ? 'Total solicitado hasta ahora' : draft ? 'Referencia del borrador de compra' : undefined}
+          lines={call.products.map((product) => ({
+            key: product.product_ref,
+            testId: `call-product-${product.product_ref}`,
+            name: product.name,
+            sub: open && product.totals.participant_count > 0 ? `${unitText(product.unit)} · ${peopleText(product.totals.participant_count)}` : unitText(product.unit),
+            value: open ? (
+              // Con «Consultar participantes» (vigente o perdido), un total retenido se debe a participaciones ocultas (§10.3).
+              <CallTotal total={product.totals} baseUnit={product.base_unit} threshold={call.totals_threshold} hidden={hidden} open />
+            ) : draft ? (
+              <span className="text-sm text-ink-muted">{product.reference ? referenceText(product.reference, product.base_unit) : 'Del catálogo, sin referencia'}</span>
+            ) : null,
+          }))}
+        />
+      )}
+      {draft && <p className="border-t border-line pt-3 text-sm text-ink-muted">Al abrirla, el nombre, la fecha límite y los productos dejan de ser editables.</p>}
+    </CallCard>
   );
 }
 
@@ -784,99 +825,134 @@ function ParticipantsTable({ participants, call, caption }: { participants: Part
 function HiddenParticipantsNotice({ count, notice }: { count: number | null | undefined; notice: string | null | undefined }) {
   if (!count || count <= 0) return null;
   return (
-    <Notice kind="info" compact>
+    <LockLine>
       <span data-testid="hidden-participants-notice">{notice ?? hiddenParticipantsText(count)}</span>
-    </Notice>
+    </LockLine>
   );
 }
 
-/** P-A C1: participaciones a la espera de que su agricultor autorice a la responsable actual. */
+/** P-A C1: participaciones a la espera de que su agricultor autorice a la responsable actual (lámina 14). */
 function PendingAuthorizationNotice({ count, notice }: { count: number | null | undefined; notice: string | null | undefined }) {
   if (!count || count <= 0) return null;
   return (
-    <Notice kind="warn" compact>
-      <span data-testid="pending-authorization-notice">{notice ?? pendingAuthorizationText(count)}</span>
-    </Notice>
+    <LockLine>
+      <span data-testid="pending-authorization-notice" className="text-ink">
+        {notice ?? pendingAuthorizationText(count)}
+      </span>
+    </LockLine>
   );
 }
 
-/** El permiso se perdió mientras la página mostraba participantes (§10.2). */
+/** El permiso se perdió mientras la página mostraba participantes (§10.2): texto exacto del contrato. */
 function RevokedNotice() {
   return (
-    <Notice kind="warn" compact>
-      <span data-testid="participants-revoked">{PARTICIPANTS_REVOKED_TEXT}</span>
-    </Notice>
+    <div className="pt-3">
+      <Notice kind="warn" compact>
+        <span data-testid="participants-revoked">{PARTICIPANTS_REVOKED_TEXT}</span>
+      </Notice>
+    </div>
   );
 }
 
-/** Participantes de una convocatoria abierta o cancelada; sólo con `can_view_participants`. */
+/** Por qué la persona ve nombres y cantidades (láminas 11 y 12). */
+function whyVisible(call: JointPurchaseCallDetail): string {
+  return call.is_responsible
+    ? 'Usted ve nombres y cantidades por ser la responsable, y sólo de quienes la autorizaron.'
+    : `Usted ve nombres y cantidades por el permiso «${GRANT_LABEL.PARTICIPANTS}», y sólo de quienes autorizaron ese acceso.`;
+}
+
+function rowsFooter(participants: ParticipantEntry[]): string {
+  const lines = participants.reduce((sum, participant) => sum + Math.max(participant.lines.length, 1), 0);
+  const people = peopleText(participants.length);
+  const head = `${lines === 1 ? '1 pedido' : `${lines} pedidos`} de ${people}.`;
+  return lines > participants.length ? `${head} Una persona puede aparecer en varias filas.` : head;
+}
+
+/** «Quién pidió» de una convocatoria abierta o cancelada; los nombres sólo con `can_view_participants` (láminas 11, 13, 14, 16, 17, 20). */
 function ParticipantsPanel({
   call,
   data,
   problem,
   revoked,
+  revokedBefore,
   onRetry,
 }: {
   call: JointPurchaseCallDetail;
   data: JointPurchaseCallParticipants | null;
   problem: string | null;
   revoked: boolean;
+  /** El permiso se había retirado antes de abrir la página (historial de colaboradores). */
+  revokedBefore: boolean;
   onRetry: () => void;
 }) {
   const allowed = call.can_view_participants === true;
   const open = call.status === 'OPEN';
+  const productName = (ref: string, fallback: string) => fallback || call.products.find((product) => product.product_ref === ref)?.name || '—';
   if (revoked || !allowed) {
     return (
-      <Section title="Participantes" testId="participants-panel">
-        <div className="px-5 py-4">
-          {revoked ? (
-            <RevokedNotice />
-          ) : (
-            <Notice kind="info" compact>
-              <span data-testid="participants-forbidden">{PARTICIPANTS_FORBIDDEN_TEXT}</span>
-            </Notice>
-          )}
-          <p className="mt-2 text-xs text-slate-600">Número de participantes: {participantsText(call.participant_count)}.</p>
-        </div>
-      </Section>
+      <CallCard title="Quién pidió" testId="participants-panel">
+        {revoked ? (
+          <RevokedNotice />
+        ) : !open ? (
+          <LockLine icon="info" testId="participants-cancelled">
+            No hay consolidado: la convocatoria se canceló antes del cierre.
+          </LockLine>
+        ) : call.delegations_suspended && !call.is_responsible ? (
+          <LockLine>No se muestran nombres ni cantidades: los permisos de esta convocatoria están suspendidos.</LockLine>
+        ) : revokedBefore ? (
+          <LockLine>No se muestran nombres ni cantidades. Si necesita el acceso, pídalo a la responsable, {call.responsible.name}.</LockLine>
+        ) : (
+          <LockLine>
+            <strong className="text-ink" data-testid="participants-forbidden">
+              {PARTICIPANTS_FORBIDDEN_TEXT}
+            </strong>{' '}
+            Lo concede la responsable, {call.responsible.name}. Su cargo no da acceso por sí solo.
+          </LockLine>
+        )}
+        {open && <p className="pt-2 text-sm text-ink-muted">Participan {peopleText(call.participant_count)}; sus nombres y cantidades no se muestran.</p>}
+      </CallCard>
     );
   }
-  const title = open ? 'Participantes (lista provisional)' : 'Participantes (convocatoria cancelada, sin consolidado)';
-  // El aviso del servidor («Lista provisional…» mientras está abierta) manda; si no llegó, el propio.
-  const notice = data?.notice ?? (open ? PROVISIONAL_NOTE : null);
+  // El aviso del servidor («Lista provisional…» mientras está abierta) manda.
+  const notice = data?.notice ?? null;
   const hidden = data?.hidden_participant_count ?? 0;
   const pending = data?.pending_authorization_count ?? 0;
   return (
-    <Section title={title} note={notice ? <span data-testid="provisional-note">{notice}</span> : undefined} testId="participants-panel">
+    <CallCard
+      title="Quién pidió"
+      note={notice ? <span data-testid="provisional-note">{notice}</span> : open ? undefined : 'Sin efecto: se canceló antes del cierre'}
+      testId="participants-panel"
+    >
       {problem ? (
-        <DataState compact state="error" description={problem} onRetry={onRetry} />
+        <div className="pt-3">
+          <DataState compact state="error" description={problem} onRetry={onRetry} />
+        </div>
       ) : !data ? (
-        <DataState compact state="loading" />
+        <div className="pt-3">
+          <DataState compact state="loading" />
+        </div>
       ) : (
         <>
-          {(hidden > 0 || pending > 0) && (
-            <div className="space-y-2 px-5 pt-4">
-              <PendingAuthorizationNotice count={pending} notice={data.pending_authorization_notice} />
-              <HiddenParticipantsNotice count={hidden} notice={data.hidden_notice} />
-            </div>
-          )}
+          {data.participants.length > 0 && <LockLine>{whyVisible(call)}</LockLine>}
+          <PendingAuthorizationNotice count={pending} notice={data.pending_authorization_notice} />
+          <HiddenParticipantsNotice count={hidden} notice={data.hidden_notice} />
           {data.participants.length === 0 ? (
-            <DataState
-              compact
-              state="empty"
-              title="Sin participantes"
-              description={hidden > 0 || pending > 0 ? 'No hay participaciones que usted pueda ver.' : 'Todavía nadie confirmó su participación.'}
-            />
+            hidden > 0 || pending > 0 ? null : (
+              <LockLine icon="info">Todavía nadie confirmó su participación.</LockLine>
+            )
           ) : (
-            <ParticipantsTable participants={data.participants} call={call} caption="Participantes de la convocatoria" />
+            <>
+              <ParticipantsTable caption="Participantes de la convocatoria" participants={data.participants} productName={productName} />
+              <p className="border-t border-line pt-3 text-sm text-ink-muted">{rowsFooter(data.participants)}</p>
+            </>
           )}
         </>
       )}
-    </Section>
+    </CallCard>
   );
 }
 
-/** «Consolidado al cierre» (E2-D13): cantidades solicitadas hasta el corte; detalle por persona según §10.3. */
+/** «Consolidado al cierre» (E2-D13) y «Detalle por participante» (láminas 12, 18 y 19): cantidades solicitadas hasta el corte. */
 function ClosingPanel({
   call,
   data,
@@ -891,105 +967,105 @@ function ClosingPanel({
   onRetry: () => void;
 }) {
   const closing = data;
+  const productName = (ref: string, fallback: string) => fallback || call.products.find((product) => product.product_ref === ref)?.name || '—';
+  const full = call.can_view_participants === true;
   return (
-    <Section
-      title="Consolidado al cierre"
-      note="Cantidades solicitadas hasta el corte, con la hora del servidor. No cambia después del cierre."
-      testId="closing-panel"
-    >
-      {problem ? (
-        <DataState compact state="error" description={problem} onRetry={onRetry} />
-      ) : !closing ? (
-        <div className="space-y-3 px-5 py-4">
-          {revoked && <RevokedNotice />}
-          <DataState compact state="loading" />
-        </div>
-      ) : (
-        <div className="space-y-4 px-5 py-4">
-          <p className="text-sm font-semibold text-slate-900" data-testid="closing-label">
-            {closing.label}
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <KpiTile label="Corte" value={fmtDateTime(closing.cutoff_at)} note={`Cerrada el ${fmtDateTime(closing.closed_at)}`} testId="closing-cutoff" />
-            <KpiTile
-              label="Modo de cierre"
-              value={CLOSE_MODE_LABEL[closing.mode] ?? closing.mode}
-              note={closing.closed_by ? `Por ${closing.closed_by.name}` : 'Por el servidor'}
-              testId="closing-mode"
-            />
-            <KpiTile label="Participantes" value={participantsText(closing.participant_count)} note="Cada persona cuenta una vez." testId="closing-participants" />
+    <div className="space-y-5" data-testid="closing-panel">
+      <CallCard
+        title="Consolidado al cierre"
+        note={
+          closing ? (
+            <>
+              {!full && 'Totales que su acceso permite ver · '}
+              <span data-testid="closing-cutoff">Pedidos recibidos hasta el {fmtWhen(closing.cutoff_at, 'always')}</span>
+            </>
+          ) : undefined
+        }
+      >
+        {problem ? (
+          <div className="pt-3">
+            <DataState compact state="error" description={problem} onRetry={onRetry} />
           </div>
-          <p className="text-sm text-slate-700" data-testid="not-a-purchase">
-            {NOT_A_PURCHASE_TEXT}
-          </p>
-          {closing.lines.length === 0 ? (
-            <DataState compact state="empty" title="Sin cantidades solicitadas" description="Nadie tenía una participación vigente al corte." />
-          ) : (
-            <DataTable caption="Cantidades solicitadas por producto" minWidth={560}>
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th className="ui-num">Cantidad solicitada (total)</th>
-                  <th className="ui-num">Personas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {closing.lines.map((line) => (
-                  <tr key={line.product_ref} data-testid={`closing-line-${line.product_ref}`}>
-                    <td className="[overflow-wrap:anywhere]">{line.product_name}</td>
-                    <td className="ui-num">
-                      {/* En el consolidado, `RESPONSIBLE_ONLY` sólo se debe a participaciones ocultas para quien consulta (§10.3). */}
-                      <TotalCell total={line} baseUnit={line.base_unit} threshold={closing.totals_threshold} hidden />
-                    </td>
-                    <td className="ui-num">{line.participant_count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
-          )}
+        ) : !closing ? (
+          <div className="space-y-3 pt-3">
+            {revoked && <RevokedNotice />}
+            <DataState compact state="loading" />
+          </div>
+        ) : (
+          <>
+            {closing.lines.length === 0 ? (
+              <div className="pt-3">
+                <DataState compact state="empty" title="Sin cantidades solicitadas" description="Nadie tenía una participación vigente al corte." />
+              </div>
+            ) : (
+              <ProductLines
+                caption="Cantidades solicitadas por producto"
+                valueHeader="Cantidad solicitada (total)"
+                lines={closing.lines.map((line) => ({
+                  key: line.product_ref,
+                  testId: `closing-line-${line.product_ref}`,
+                  name: line.product_name,
+                  sub: line.participant_count > 0 ? `${unitText(line.base_unit)} · ${peopleText(line.participant_count)}` : `${unitText(line.base_unit)} · Nadie lo pidió`,
+                  // En el consolidado, `RESPONSIBLE_ONLY` sólo se debe a participaciones ocultas para quien consulta (§10.3).
+                  value: <CallTotal total={line} baseUnit={line.base_unit} threshold={closing.totals_threshold} hidden />,
+                }))}
+              />
+            )}
+            <p className="border-t border-line pt-3 text-sm text-ink-muted">
+              <span data-testid="closing-label">{closing.label}</span>. <span data-testid="not-a-purchase">{NOT_A_PURCHASE_TEXT}</span>
+            </p>
+          </>
+        )}
+      </CallCard>
+      {closing && (
+        <CallCard title="Detalle por participante" testId="closing-detail">
           {revoked ? (
             <RevokedNotice />
-          ) : Array.isArray(closing.participants) && call.can_view_participants ? (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-900">Detalle por participante</h3>
+          ) : Array.isArray(closing.participants) && full ? (
+            <>
+              {closing.participants.length > 0 && <LockLine>{whyVisible(call)} Las personas con permiso para consultar participantes sólo ven los nombres y cantidades de quienes autorizaron ese acceso.</LockLine>}
               <PendingAuthorizationNotice count={closing.pending_authorization_count} notice={closing.pending_authorization_notice} />
               <HiddenParticipantsNotice count={closing.hidden_participant_count} notice={closing.hidden_notice} />
               {closing.participants.length === 0 ? (
-                <DataState
-                  compact
-                  state="empty"
-                  title="Sin participantes"
-                  description={
-                    (closing.hidden_participant_count ?? 0) > 0 || (closing.pending_authorization_count ?? 0) > 0
-                      ? 'No hay participaciones que usted pueda ver.'
-                      : 'Nadie tenía una participación vigente al corte.'
-                  }
-                />
+                (closing.hidden_participant_count ?? 0) > 0 || (closing.pending_authorization_count ?? 0) > 0 ? null : (
+                  <LockLine icon="info">Nadie tenía una participación vigente al corte.</LockLine>
+                )
               ) : (
-                <ParticipantsTable participants={closing.participants} call={call} caption="Detalle por participante al cierre" />
+                <>
+                  <ParticipantsTable caption="Detalle por participante al cierre" participants={closing.participants} productName={productName} />
+                  <p className="border-t border-line pt-3 text-sm text-ink-muted">{rowsFooter(closing.participants)}</p>
+                </>
               )}
-            </div>
+            </>
           ) : (
-            <p className="text-xs text-slate-600" data-testid="closing-detail-hidden">
-              El detalle por participante sólo lo ven la persona responsable de esta convocatoria y quienes ella autorice.
-            </p>
+            <LockLine testId="closing-detail-hidden">
+              <strong className="text-ink">{PARTICIPANTS_FORBIDDEN_TEXT}</strong> No se muestran nombres ni cantidades de cada persona.
+            </LockLine>
           )}
-        </div>
+        </CallCard>
       )}
-    </Section>
+    </div>
   );
 }
 
+function grantLine(grant: JointPurchaseCallCollaboratorGrant, userId: string | null): string {
+  if (grant.status === 'PENDING_REVIEW' || grant.status === 'SUSPENDED') return `Lo concedió ${grant.granted_by.name} el ${fmtWhen(grant.granted_at)}`;
+  return grant.granted_by.user_ref === userId ? `Usted lo concedió el ${fmtWhen(grant.granted_at)}` : `Concedido por ${grant.granted_by.name} el ${fmtWhen(grant.granted_at)}`;
+}
+
 /**
- * §10.2: colaboradores vigentes e historial de concesiones y revocaciones.
- * Sólo la persona responsable concede (`DRAFT`, `OPEN` o `CLOSED`) y retira;
- * un colaborador puede renunciar a su propio permiso.
+ * §10.2 y P-A §12.3: quién más puede ver o administrar la convocatoria
+ * (láminas 10–12, 14, 16, 17 y 20). Sólo la persona responsable concede
+ * (`DRAFT`, `OPEN` o `CLOSED`) y retira; un colaborador renuncia al suyo
+ * (también suspendido: el servidor lo admite en cualquier estado); la nueva
+ * responsable revisa las delegaciones de la anterior.
  */
 function CollaboratorsSection({
   call,
   view,
   problem,
   userId,
+  revokedGrants,
   onRetry,
   onGrant,
   onRevoke,
@@ -999,6 +1075,7 @@ function CollaboratorsSection({
   view: JointPurchaseCallCollaborators | null;
   problem: string | null;
   userId: string | null;
+  revokedGrants: RevokedGrant[];
   onRetry: () => void;
   onGrant: () => void;
   onRevoke: (user: JointPurchaseCallUserRef, grant: JointPurchaseCallGrant) => void;
@@ -1007,87 +1084,111 @@ function CollaboratorsSection({
   const canGrant = view?.can_grant === true;
   const canReview = view?.can_review === true;
   const grantable = canGrant && call.status !== 'CANCELLED';
+  const people = [...(view?.collaborators ?? [])].sort((a, b) => Number(b.user_ref === userId) - Number(a.user_ref === userId));
+  const allGrants = people.flatMap((person) => person.grants);
+  const pending = allGrants.filter((grant) => grant.status === 'PENDING_REVIEW').length;
+  const suspended = allGrants.filter((grant) => grant.status === 'SUSPENDED').length;
+  const mine = people.some((person) => person.user_ref === userId) || revokedGrants.length > 0;
+  const final = call.status === 'CLOSED' || call.status === 'CANCELLED';
+  // Cerrada o cancelada, sin nada que mostrar a quien no es responsable (láminas 13, 18 y 19): no se dibuja.
+  if (view && final && !call.is_responsible && people.length === 0 && revokedGrants.length === 0 && !problem) return null;
+
+  const title =
+    call.delegations_suspended && suspended > 0
+      ? `Permisos suspendidos · ${suspended}`
+      : canReview && pending > 0
+        ? `Permisos por revisar · ${pending}`
+        : !call.is_responsible && mine
+          ? 'Su acceso'
+          : 'Quién más puede verla';
+  const pendingReviews = call.is_responsible ? (call.pending_delegation_reviews ?? 0) : 0;
+  const emptyText = call.is_responsible
+    ? final
+      ? 'Nadie más tiene permiso.'
+      : 'Solo usted.'
+    : mine
+      ? 'No hay permisos vigentes en esta convocatoria.'
+      : 'Sólo la persona responsable tiene permisos en esta convocatoria.';
+
   return (
-    <Section
-      title="Colaboradores"
-      note="Personas de la Directiva o la Administración a quienes la persona responsable autorizó para esta convocatoria. Ningún rol concede permisos por sí solo."
-      actions={grantable ? <Button onClick={onGrant}>Conceder permiso</Button> : undefined}
-      testId="collaborators-panel"
-    >
+    <CallCard title={title} testId="collaborators-panel">
       {problem ? (
-        <DataState compact state="error" description={problem} onRetry={onRetry} />
+        <div className="pt-3">
+          <DataState compact state="error" description={problem} onRetry={onRetry} />
+        </div>
       ) : !view ? (
-        <DataState compact state="loading" />
+        <div className="pt-3">
+          <DataState compact state="loading" />
+        </div>
       ) : (
-        <div className="space-y-3 pb-4">
-          {view.collaborators.length === 0 ? (
-            <DataState
-              compact
-              state="empty"
-              title="Sin colaboradores"
-              description="Sólo la persona responsable tiene permisos en esta convocatoria."
-              testId="collaborators-empty"
-            />
+        <div className="space-y-1">
+          {pendingReviews > 0 && (
+            <p className="pt-3 text-sm text-ink-muted" data-testid="pending-delegation-reviews">
+              {pendingReviews === 1
+                ? '1 permiso concedido por la responsable anterior espera su revisión: confírmelo o retírelo. Mientras tanto no se ejerce.'
+                : `${pendingReviews} permisos concedidos por la responsable anterior esperan su revisión: confírmelos o retírelos. Mientras tanto no se ejercen.`}
+            </p>
+          )}
+          {people.length === 0 ? (
+            revokedGrants.length === 0 && (
+              <p className="flex items-center gap-2 pt-3 text-base text-ink-muted" data-testid="collaborators-empty">
+                {emptyText}
+              </p>
+            )
           ) : (
-            <DataTable caption="Colaboradores de la convocatoria" minWidth={640}>
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Rol</th>
-                  <th>Permisos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {view.collaborators.map((person) => {
-                  const self = person.user_ref === userId;
-                  return (
-                    <tr key={person.user_ref} data-testid={`collaborator-${person.user_ref}`}>
-                      <td className="[overflow-wrap:anywhere]">
+            <ul className="divide-y divide-line" aria-label="Personas con permisos en esta convocatoria">
+              {people.map((person) => {
+                const self = person.user_ref === userId;
+                return (
+                  <li key={person.user_ref} className="flex gap-3 py-4" data-testid={`collaborator-${person.user_ref}`}>
+                    <Avatar name={person.name} tone="soft" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-ink [overflow-wrap:anywhere]">
                         {person.name}
                         {self ? ' (usted)' : ''}
-                      </td>
-                      <td>{person.role ? (ROLE_LABEL[person.role] ?? person.role) : '—'}</td>
-                      <td>
-                        <ul className="space-y-2">
-                          {person.grants.map((grant) => (
-                            <li key={grant.grant} className="flex flex-wrap items-center gap-2" data-testid={`collaborator-grant-${person.user_ref}-${grant.grant}`}>
-                              <span className="min-w-0">
-                                <span className="font-semibold text-slate-900">{GRANT_LABEL[grant.grant] ?? grant.label}</span>
-                                <span className="block text-xs text-slate-600">
-                                  Concedido por {grant.granted_by.name} el {fmtDateTime(grant.granted_at)}
-                                </span>
-                                {grant.status && grant.status !== 'IN_FORCE' && (
-                                  <span className="block text-xs font-semibold text-amber-800" data-testid={`grant-status-${person.user_ref}-${grant.grant}`}>
-                                    {grant.status === 'PENDING_REVIEW'
-                                      ? 'Suspendido: lo concedió la responsable anterior y espera la revisión de la actual.'
-                                      : 'Suspendido: la persona responsable no está habilitada.'}
-                                  </span>
-                                )}
-                              </span>
-                              {grant.status === 'PENDING_REVIEW' && canReview ? (
-                                <span className="flex flex-wrap gap-2">
-                                  <Button
-                                    size="sm"
-                                    aria-label={`Confirmar «${GRANT_LABEL[grant.grant]}» de ${person.name}`}
-                                    onClick={() => onReview({ user_ref: person.user_ref, name: person.name }, grant.grant, 'CONFIRM')}
-                                  >
-                                    Confirmar
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    aria-label={`Retirar «${GRANT_LABEL[grant.grant]}» a ${person.name}`}
-                                    onClick={() => onReview({ user_ref: person.user_ref, name: person.name }, grant.grant, 'RETIRE')}
-                                  >
-                                    Retirar
-                                  </Button>
-                                </span>
-                              ) : self ? (
-                                <Button size="sm" variant="secondary" onClick={() => onRevoke({ user_ref: person.user_ref, name: person.name }, grant.grant)}>
-                                  Renunciar a este permiso
+                        {person.role && <span className="font-normal text-ink-muted"> · {ROLE_LABEL[person.role] ?? person.role}</span>}
+                      </p>
+                      <ul className="mt-2 space-y-3">
+                        {person.grants.map((grant) => (
+                          <li key={grant.grant} className="space-y-1.5" data-testid={`collaborator-grant-${person.user_ref}-${grant.grant}`}>
+                            <Chip tone={grant.status === 'PENDING_REVIEW' ? 'attention' : grant.status === 'SUSPENDED' ? 'neutral' : 'positive'} size="md">
+                              {GRANT_LABEL[grant.grant] ?? grant.label}
+                            </Chip>
+                            <p className="text-xs text-ink-muted">{grantLine(grant, userId)}</p>
+                            {grant.status && grant.status !== 'IN_FORCE' && (
+                              <p className="text-xs font-semibold text-caution" data-testid={`grant-status-${person.user_ref}-${grant.grant}`}>
+                                {grant.status === 'PENDING_REVIEW'
+                                  ? 'Suspendido: espera la revisión de la actual responsable.'
+                                  : 'Suspendido: la responsable no está habilitada.'}
+                              </p>
+                            )}
+                            {grant.status === 'PENDING_REVIEW' && canReview ? (
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                <Button
+                                  size="sm"
+                                  aria-label={`Confirmar «${GRANT_LABEL[grant.grant]}» de ${person.name}`}
+                                  onClick={() => onReview({ user_ref: person.user_ref, name: person.name }, grant.grant, 'CONFIRM')}
+                                >
+                                  Confirmar
                                 </Button>
-                              ) : (
-                                canGrant && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  aria-label={`Retirar «${GRANT_LABEL[grant.grant]}» a ${person.name}`}
+                                  onClick={() => onReview({ user_ref: person.user_ref, name: person.name }, grant.grant, 'RETIRE')}
+                                >
+                                  Retirar
+                                </Button>
+                              </div>
+                            ) : self ? (
+                              <div className="pt-1">
+                                <Button size="sm" variant="secondary" aria-label="Renunciar a este permiso" onClick={() => onRevoke({ user_ref: person.user_ref, name: person.name }, grant.grant)}>
+                                  Renunciar
+                                </Button>
+                              </div>
+                            ) : (
+                              canGrant && (
+                                <div className="pt-1">
                                   <Button
                                     size="sm"
                                     variant="secondary"
@@ -1096,45 +1197,75 @@ function CollaboratorsSection({
                                   >
                                     Retirar
                                   </Button>
-                                )
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </DataTable>
+                                </div>
+                              )
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          {canGrant && call.status === 'CANCELLED' && (
-            <p className="px-5 text-xs text-slate-600">Una convocatoria cancelada no admite permisos nuevos; los vigentes se pueden retirar.</p>
-          )}
-          <div className="px-5">
-            <Collapsible title="Historial de permisos" testId="access-history">
-              {view.history.length === 0 ? (
-                <DataState compact state="empty" title="Sin cambios" description="Nadie concedió ni retiró permisos en esta convocatoria." />
-              ) : (
-                <ol className="divide-y divide-slate-100" aria-label="Historial de permisos">
-                  {view.history.map((entry, index) => (
-                    <li key={`${entry.at}-${index}`} className="px-5 py-2 text-sm" data-testid="access-history-event">
-                      <span className="font-semibold text-slate-900">{accessActionText(entry.action, entry.user.user_ref === entry.actor.user_ref)}</span>
-                      <span className="ml-2">
-                        «{GRANT_LABEL[entry.grant] ?? entry.grant}» · {entry.user.name}
-                      </span>
-                      <span className="ml-2 text-xs text-slate-600">
-                        · por {entry.actor.name} · {fmtDateTime(entry.at)}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
+          {revokedGrants.length > 0 && (
+            <ul className={people.length > 0 ? 'divide-y divide-line border-t border-line' : 'divide-y divide-line'} aria-label="Sus permisos retirados">
+              {revokedGrants.map((entry) => (
+                <li key={entry.grant} className="flex gap-3 py-4" data-testid={`my-revoked-${entry.grant}`}>
+                  <Avatar name={people.find((person) => person.user_ref === userId)?.name ?? entry.actor.name} tone="soft" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <p className="font-semibold text-ink">Usted</p>
+                    <Chip size="md">{GRANT_LABEL[entry.grant]}</Chip>
+                    <p className="text-xs text-ink-muted">{entry.self ? `Renunció el ${fmtWhen(entry.at)}` : `Retirado por ${entry.actor.name} el ${fmtWhen(entry.at)}`}</p>
+                  </div>
+                </li>
+              ))}
+              {people.length === 0 && (
+                <li className="sr-only" data-testid="collaborators-empty">
+                  {emptyText}
+                </li>
               )}
-            </Collapsible>
-          </div>
+            </ul>
+          )}
+          {grantable && (
+            <div className="pt-2">
+              <Button variant="secondary" block onClick={onGrant}>
+                Conceder permiso
+              </Button>
+            </div>
+          )}
+          {canGrant && call.status === 'CANCELLED' && <p className="pt-2 text-xs text-ink-muted">Una convocatoria cancelada no admite permisos nuevos; los vigentes se pueden retirar.</p>}
+          {call.has_substitution_permission === true && call.can_substitute_responsible === true && (
+            <p className="pt-3 text-sm text-ink-muted" data-testid="substitution-why">
+              Usted ve «{SUBSTITUTION_PERMISSION_LABEL}» porque la Administración le concedió ese permiso del sindicato.
+            </p>
+          )}
+          <DisclosureLink label="Ver historial de permisos" testId="access-history">
+            {view.history.length === 0 ? (
+              <p className="pb-2 text-sm text-ink-muted">Nadie concedió ni retiró permisos en esta convocatoria.</p>
+            ) : (
+              <ol className="space-y-2 pb-2" aria-label="Historial de permisos">
+                {view.history.map((entry, index) => (
+                  <li key={`${entry.at}-${index}`} className="text-sm" data-testid="access-history-event">
+                    <span className="font-semibold text-ink">{accessActionText(entry.action, entry.user.user_ref === entry.actor.user_ref)}</span>
+                    <span className="text-ink">
+                      {' '}
+                      «{GRANT_LABEL[entry.grant] ?? entry.grant}» · {entry.user.name}
+                    </span>
+                    <span className="text-xs text-ink-muted">
+                      {' '}
+                      · por {entry.actor.name} · {fmtWhen(entry.at, 'always')}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </DisclosureLink>
+          <AccessRules threshold={call.totals_threshold} />
         </div>
       )}
-    </Section>
+    </CallCard>
   );
 }
 
@@ -1146,12 +1277,47 @@ function accessActionText(action: 'GRANTED' | 'REVOKED' | 'SUSPENDED' | 'CONFIRM
 }
 
 /**
- * P-A B1 (§12): sustituir a una responsable que ya no está habilitada. Sólo
- * con el permiso «Sustituir responsable» (`can_substitute_responsible`); el
- * servidor revalida todo. La sucesora es otra persona activa de la Directiva
- * o la Administración, distinta de quien sustituye y de la responsable
- * actual. Motivo de 1 a 280 caracteres y confirmación. El identificador de la
- * solicitud se fija al abrir el diálogo: reintentar no duplica nada.
+ * Confirmación de una acción (H-16, láminas 15, 34.2 y 46) sobre `ConfirmDialog`
+ * de BASE: el botón queda desactivado hasta marcar la casilla (y escribir el
+ * motivo, si se pide). El error del servidor se muestra dentro sin perder el
+ * motivo; 403 `MANAGE_FORBIDDEN`/`COLLABORATORS_FORBIDDEN` lo explica la vista.
+ */
+function ActionDialog({
+  run,
+  onPermissionLost,
+  ...props
+}: Omit<ConfirmDialogProps, 'onConfirm' | 'busy' | 'error'> & {
+  run: (reason: string) => Promise<void>;
+  onPermissionLost?: (code: PermissionLostCode) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const submit = async (reason: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await run(reason);
+    } catch (err) {
+      const code = callErrorCode(err);
+      if (onPermissionLost && (code === 'MANAGE_FORBIDDEN' || code === 'COLLABORATORS_FORBIDDEN')) {
+        onPermissionLost(code);
+        return;
+      }
+      setError(callError(err, 'No fue posible completar la acción.'));
+      setBusy(false);
+    }
+  };
+  return <ConfirmDialog {...props} busy={busy} error={error} onConfirm={(reason) => void submit(reason)} />;
+}
+
+/**
+ * P-A B1 (§12, láminas 15.6 y 49): sustituir a una responsable que ya no está
+ * habilitada. Sólo con el permiso «Sustituir responsable»
+ * (`can_substitute_responsible`); el servidor revalida todo. La sucesora es
+ * otra persona activa de la Directiva o la Administración, distinta de quien
+ * sustituye (decisión del autor) y de la responsable actual. Motivo de 1 a 280
+ * caracteres y confirmación. El identificador de la solicitud se fija al abrir
+ * el diálogo: reintentar no duplica nada.
  */
 function SubstituteDialog({
   call,
@@ -1219,105 +1385,102 @@ function SubstituteDialog({
   };
 
   return (
-    <Modal title="Sustituir a la persona responsable" onClose={onClose} size="lg">
-      <div className="space-y-4" data-testid="substitute-dialog">
-        <p className="text-sm text-slate-700">
-          {call.responsible.name} ya no está habilitada. Elija a otra persona responsable para «{call.name}».
+    <Dialog
+      title="Sustituir a la responsable"
+      description={<span className="[overflow-wrap:anywhere]">«{call.name}»</span>}
+      onClose={onClose}
+      dirty={reason.length > 0 || userRef !== ''}
+      busy={busy}
+      size="lg"
+      hideCloseButton
+      testId="substitute-dialog"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            Volver
+          </Button>
+          <Button onClick={() => void submit()} disabled={!ready} busy={busy}>
+            Sustituir responsable
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-5 text-base leading-relaxed text-ink">
+        <p>
+          <strong className="[overflow-wrap:anywhere]">{call.responsible.name}</strong> <span className="text-ink-muted">ya no está habilitada.</span>
         </p>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700" data-testid="substitute-implications">
+        <ul className="list-disc space-y-1.5 pl-5" data-testid="substitute-implications">
           {SUBSTITUTION_IMPLICATIONS.map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
-        {error && <Notice kind="error">{error}</Notice>}
-        <div>
-          <label className={labelClass} htmlFor="substitute-user">
-            Nueva persona responsable
-          </label>
-          {usersError ? (
-            <DataState compact state="error" description={usersError} onRetry={() => void loadUsers()} />
-          ) : users && candidates.length === 0 ? (
-            <DataState
-              compact
-              state="empty"
-              title="Sin personas disponibles"
-              description={selfEligible ? SUBSTITUTION_ONLY_SELF_TEXT : SUBSTITUTION_NO_CANDIDATES_TEXT}
-              testId="substitute-no-candidates"
-            />
-          ) : (
-            <select
-              id="substitute-user"
-              className={inputClass}
-              value={userRef}
-              disabled={!users}
-              onChange={(event) => {
-                setUserRef(event.target.value);
-                setConfirmed(false);
-              }}
-            >
-              <option value="">{users ? 'Seleccione…' : 'Cargando…'}</option>
-              {candidates.map((user) => (
-                <option key={user.user_ref} value={user.user_ref}>
-                  {user.name}
-                  {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
-                </option>
-              ))}
-            </select>
-          )}
-          <p className="mt-1 text-xs text-slate-600">Otra persona activa de la Directiva o la Administración, distinta de usted y de la responsable actual.</p>
-          {selfEligible && candidates.length > 0 && (
-            <p className="mt-1 text-xs text-slate-600" data-testid="substitute-self-note">
-              {SELF_SUBSTITUTION_TEXT}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="substitute-reason">
-            Motivo
-          </label>
-          <textarea
-            id="substitute-reason"
-            className={inputClass}
-            maxLength={MAX_REASON}
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            aria-describedby="substitute-reason-count"
+        <p className="text-sm text-ink-muted">Sólo puede hacerlo quien tiene el permiso del sindicato «{SUBSTITUTION_PERMISSION_LABEL}».</p>
+        {usersError ? (
+          <DataState compact state="error" description={usersError} onRetry={() => void loadUsers()} />
+        ) : users && candidates.length === 0 ? (
+          <DataState
+            compact
+            state="empty"
+            title="Sin personas disponibles"
+            description={selfEligible ? SUBSTITUTION_ONLY_SELF_TEXT : SUBSTITUTION_NO_CANDIDATES_TEXT}
+            testId="substitute-no-candidates"
           />
-          <p id="substitute-reason-count" className="mt-1 text-xs text-slate-500">
-            {reason.length} de {MAX_REASON} caracteres. Queda en el historial y en la bitácora.
-          </p>
-        </div>
-        <label className="flex items-start gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            className="mt-0.5 shrink-0"
-            checked={confirmed}
-            disabled={!chosen}
-            onChange={(event) => setConfirmed(event.target.checked)}
-          />
-          <span className="min-w-0 [overflow-wrap:anywhere]">
-            {chosen
+        ) : (
+          <Select
+            id="substitute-user"
+            label="Nueva persona responsable"
+            value={userRef}
+            disabled={!users}
+            onChange={(event) => {
+              setUserRef(event.target.value);
+              setConfirmed(false);
+            }}
+            help={
+              selfEligible && candidates.length > 0 ? (
+                <span data-testid="substitute-self-note">{SELF_SUBSTITUTION_TEXT}</span>
+              ) : (
+                'Otra persona activa de la Directiva o la Administración, distinta de usted y de la responsable actual.'
+              )
+            }
+          >
+            <option value="">{users ? 'Seleccione…' : 'Cargando…'}</option>
+            {candidates.map((user) => (
+              <option key={user.user_ref} value={user.user_ref}>
+                {user.name}
+                {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
+              </option>
+            ))}
+          </Select>
+        )}
+        <Textarea
+          id="substitute-reason"
+          label="Motivo"
+          help="Obligatorio. Queda en el historial y en la bitácora."
+          maxLength={MAX_REASON}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          disabled={busy}
+        />
+        <Checkbox
+          label={
+            chosen
               ? `Confirmo que ${chosen.name} sustituye a ${call.responsible.name} como persona responsable de «${call.name}».`
-              : 'Elija a la nueva persona responsable para confirmar.'}
-          </span>
-        </label>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>
-            Volver
-          </Button>
-          <Button onClick={() => void submit()} disabled={!ready}>
-            {busy ? 'Guardando…' : 'Sustituir responsable'}
-          </Button>
-        </div>
+              : 'Elija a la nueva persona responsable para confirmar.'
+          }
+          checked={confirmed}
+          disabled={!chosen || busy}
+          onChange={(event) => setConfirmed(event.target.checked)}
+        />
+        {error && <Notice kind="error">{error}</Notice>}
       </div>
-    </Modal>
+    </Dialog>
   );
 }
 
 /**
- * Conceder un permiso (§10.2): otro usuario activo de la Directiva o la
- * Administración, distinto de quien concede y de la persona responsable (el
- * servidor lo vuelve a comprobar: 422 `COLLABORATOR_NOT_ELIGIBLE`).
+ * Conceder un permiso (§10.2, lámina 15.5): otro usuario activo de la Directiva
+ * o la Administración, distinto de quien concede y de la persona responsable
+ * (el servidor lo vuelve a comprobar: 422 `COLLABORATOR_NOT_ELIGIBLE`).
  */
 function GrantDialog({
   call,
@@ -1375,174 +1538,71 @@ function GrantDialog({
   };
 
   return (
-    <Modal title="Conceder permiso" onClose={onClose} size="lg">
-      <div className="space-y-4">
-        {error && <Notice kind="error">{error}</Notice>}
-        <div>
-          <label className={labelClass} htmlFor="grant-user">
-            Persona
-          </label>
-          {usersError ? (
-            <DataState compact state="error" description={usersError} onRetry={() => void loadUsers()} />
-          ) : users && candidates.length === 0 ? (
-            <DataState
-              compact
-              state="empty"
-              title="Sin personas disponibles"
-              description="No hay otros usuarios activos de la Directiva o la Administración a quienes conceder permisos."
-            />
-          ) : (
-            <select
-              id="grant-user"
-              className={inputClass}
-              value={userRef}
-              disabled={!users}
-              onChange={(event) => {
-                setUserRef(event.target.value);
-                setConfirmed(false);
-              }}
-            >
-              <option value="">{users ? 'Seleccione…' : 'Cargando…'}</option>
-              {candidates.map((user) => (
-                <option key={user.user_ref} value={user.user_ref}>
-                  {user.name}
-                  {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
-                </option>
-              ))}
-            </select>
-          )}
-          <p className="mt-1 text-xs text-slate-600">Otra persona de la Directiva o la Administración, distinta de usted y de la persona responsable.</p>
-        </div>
-        <fieldset className="space-y-2">
-          <legend className={labelClass}>Permiso</legend>
-          {GRANTS.map((option) => (
-            <label key={option} className="flex items-start gap-2 text-sm text-slate-700">
-              <input
-                type="radio"
-                name="grant"
-                className="mt-0.5 shrink-0"
-                checked={grant === option}
-                onChange={() => {
-                  setGrant(option);
-                  setConfirmed(false);
-                }}
-              />
-              <span className="min-w-0">
-                <span className="font-semibold text-slate-900">{GRANT_LABEL[option]}</span>
-                <span className="block text-xs text-slate-600">{GRANT_DESCRIPTION[option]}</span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
-        <label className="flex items-start gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            className="mt-0.5 shrink-0"
-            checked={confirmed}
-            disabled={!chosen}
-            onChange={(event) => setConfirmed(event.target.checked)}
-          />
-          <span className="min-w-0 [overflow-wrap:anywhere]">
-            {chosen
-              ? `Confirmo que concedo «${GRANT_LABEL[grant]}» a ${chosen.name} en «${call.name}».`
-              : 'Elija a la persona para confirmar.'}
-          </span>
-        </label>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>
+    <Dialog
+      title="Conceder permiso"
+      onClose={onClose}
+      dirty={userRef !== ''}
+      busy={busy}
+      hideCloseButton
+      testId="grant-dialog"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
             Volver
           </Button>
-          <Button onClick={() => void submit()} disabled={!ready}>
-            {busy ? 'Guardando…' : 'Conceder permiso'}
+          <Button onClick={() => void submit()} disabled={!ready} busy={busy}>
+            Conceder permiso
           </Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-/** Confirmación (y motivo, si aplica) antes de una acción; el error del servidor se muestra aquí mismo. */
-function ConfirmDialog({
-  title,
-  actionLabel,
-  confirmText,
-  variant = 'primary',
-  withReason = false,
-  children,
-  onClose,
-  onConfirm,
-  onPermissionLost,
-}: {
-  title: string;
-  actionLabel: string;
-  confirmText: string;
-  variant?: 'primary' | 'danger';
-  withReason?: boolean;
-  children: ReactNode;
-  onClose: () => void;
-  onConfirm: (reason: string) => Promise<void>;
-  /** §10.2: 403 `MANAGE_FORBIDDEN` o `COLLABORATORS_FORBIDDEN`: el permiso cambió; quien abrió el diálogo explica y recarga. */
-  onPermissionLost?: (code: 'MANAGE_FORBIDDEN' | 'COLLABORATORS_FORBIDDEN') => void;
-}) {
-  const [confirmed, setConfirmed] = useState(false);
-  const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const ready = confirmed && (!withReason || reason.trim().length > 0) && !busy;
-
-  const submit = async () => {
-    if (!ready) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await onConfirm(reason.trim());
-    } catch (err) {
-      const code = callErrorCode(err);
-      if (onPermissionLost && (code === 'MANAGE_FORBIDDEN' || code === 'COLLABORATORS_FORBIDDEN')) {
-        onPermissionLost(code);
-        return;
+        </>
       }
-      setError(callError(err, 'No fue posible completar la acción.'));
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Modal title={title} onClose={onClose} size="lg">
-      <div className="space-y-4">
-        {children}
-        {error && <Notice kind="error">{error}</Notice>}
-        {withReason && (
-          <div>
-            <label className={labelClass} htmlFor="call-reason">
-              Motivo
-            </label>
-            <textarea
-              id="call-reason"
-              className={inputClass}
-              maxLength={MAX_REASON}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              aria-describedby="call-reason-count"
-            />
-            <p id="call-reason-count" className="mt-1 text-xs text-slate-500">
-              {reason.length} de {MAX_REASON} caracteres. Queda en el historial y en la bitácora.
-            </p>
-          </div>
+    >
+      <div className="space-y-5">
+        {usersError ? (
+          <DataState compact state="error" description={usersError} onRetry={() => void loadUsers()} />
+        ) : users && candidates.length === 0 ? (
+          <DataState compact state="empty" title="Sin personas disponibles" description="No hay otros usuarios activos de la Directiva o la Administración a quienes conceder permisos." />
+        ) : (
+          <Select
+            id="grant-user"
+            label="Persona"
+            help="Otra persona de la Directiva o la Administración, distinta de usted y de la persona responsable."
+            value={userRef}
+            disabled={!users}
+            onChange={(event) => {
+              setUserRef(event.target.value);
+              setConfirmed(false);
+            }}
+          >
+            <option value="">{users ? 'Seleccione…' : 'Cargando…'}</option>
+            {candidates.map((user) => (
+              <option key={user.user_ref} value={user.user_ref}>
+                {user.name}
+                {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
+              </option>
+            ))}
+          </Select>
         )}
-        <label className="flex items-start gap-2 text-sm text-slate-700">
-          <input type="checkbox" className="mt-0.5 shrink-0" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-          <span className="min-w-0 [overflow-wrap:anywhere]">{confirmText}</span>
-        </label>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>
-            Volver
-          </Button>
-          <Button variant={variant} onClick={() => void submit()} disabled={!ready}>
-            {busy ? 'Guardando…' : actionLabel}
-          </Button>
-        </div>
+        <RadioCards
+          legend="Permiso"
+          hideLegend
+          name="grant"
+          value={grant}
+          onChange={(value) => {
+            setGrant(value);
+            setConfirmed(false);
+          }}
+          options={GRANTS.map((option) => ({ value: option, label: GRANT_LABEL[option], description: GRANT_DESCRIPTION[option] }))}
+          help={GRANT_CONSENT_NOTE}
+        />
+        <Checkbox
+          label={chosen ? `Confirmo que concedo «${GRANT_LABEL[grant]}» a ${chosen.name} en «${call.name}».` : 'Elija a la persona para confirmar.'}
+          checked={confirmed}
+          disabled={!chosen || busy}
+          onChange={(event) => setConfirmed(event.target.checked)}
+        />
+        {error && <Notice kind="error">{error}</Notice>}
       </div>
-    </Modal>
+    </Dialog>
   );
 }
+
