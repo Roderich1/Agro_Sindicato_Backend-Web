@@ -1,32 +1,107 @@
 @import 'tailwindcss';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ══════════════════════════════════════════
-   SISTEMA VISUAL — Web institucional (rediseño 2026-11-10)
-   Un solo acento (verde institucional), superficies sólidas, movimiento
-   breve y funcional (≤ 200 ms). Contrato: docs/web-rediseno/01 §3.
+   SISTEMA VISUAL — Web institucional, rediseño v2 (2026-11-13)
+   Identidad de las láminas «Agrocuentas · Rediseño de la Web» y de la app
+   móvil del mismo diseño: verde muy oscuro (tinta), lima como acento y fondos
+   claros. Tipografías autoalojadas (public/fonts, ver LICENSES.md): DM Sans
+   para el texto, Bricolage Grotesque para títulos y cifras grandes. Contrato
+   de componentes: src/components/ui/README.md.
    ══════════════════════════════════════════ */
 
-/* Tokens de Tailwind: generan utilidades (`bg-canvas`, `rounded-card`,
-   `shadow-card`…). `--ease-out` sustituye la curva de la utilidad `ease-out`. */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/DMSans-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/DMSans-500.ttf') format('truetype');
+}
+/* 600 no tiene instancia propia: `font-semibold` usa la de 700 (sin negrita sintética). */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('/fonts/DMSans-700.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('/fonts/BricolageGrotesque-700.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800 900;
+  font-display: swap;
+  src: url('/fonts/BricolageGrotesque-800.ttf') format('truetype');
+}
+
+/* Tokens de Tailwind: generan utilidades (`bg-ink`, `text-lime`, `rounded-card`,
+   `font-display`…). Contrastes AA medidos (WCAG 2.x) en el README de ui. */
 @theme {
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d1fae5;
-  --color-brand-600: #059669;
-  --color-brand-700: #047857;
-  --color-brand-800: #065f46;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
 
-  --color-canvas: #f8faf4;
+  /* Tinta (verde muy oscuro) y sus superficies elevadas sobre oscuro. */
+  --color-ink: #0f2a1d;
+  --color-ink-raised: #29473a;
+  --color-ink-line: #1e3a2d;
+  --color-ink-muted: #55645a;
+  --color-on-ink: #e8f1ea;
+  --color-on-ink-muted: #b9c9be;
+
+  /* Lima: acento sobre oscuro y fondo de botones primarios en la cabecera. */
+  --color-lime: #c8f04a;
+  --color-lime-soft: #e3f6a8;
+  --color-lime-ink: #24400a;
+
+  /* Fondos claros. */
+  --color-canvas: #f2f4ee;
   --color-surface: #ffffff;
-  --color-line: #e2e8f0;
-  --color-ink: #0f172a;
-  --color-ink-muted: #475569;
+  --color-sunken: #e9ede4;
+  --color-field: #f2f4ee;
+  --color-line: #dfe4da;
+  --color-track: #e3e8dd;
+  --color-field-border: #7d8d82;
+  --color-link: #1f6b3a;
 
-  --radius-control: 8px;
-  --radius-card: 12px;
+  /* Estados (siempre con texto). */
+  --color-warn-bg: #ffe0a3;
+  --color-warn-ink: #3d2700;
+  --color-caution: #8a5300;
+  --color-danger: #b3261e;
+  --color-danger-bg: #ffdad6;
+  --color-danger-ink: #8c1d18;
 
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-raised: 0 4px 12px -2px rgba(15, 23, 42, 0.1), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+  /*
+   * Compatibilidad: la escala `brand-*` del rediseño v1 la usan vistas de A/B/C
+   * (`bg-brand-700 text-white`, `text-brand-800`…). Se reasigna a la identidad
+   * nueva para que esas vistas no queden con el verde anterior.
+   */
+  --color-brand-50: #f1f8d9;
+  --color-brand-100: #e3f6a8;
+  --color-brand-600: #1f6b3a;
+  --color-brand-700: #0f2a1d;
+  --color-brand-800: #1e3a2d;
+
+  /* Radios: controles, campos, tarjetas grandes y cabeceras oscuras. */
+  --radius-control: 12px;
+  --radius-field: 14px;
+  --radius-card: 24px;
+  --radius-hero: 28px;
+
+  --shadow-card: 0 1px 2px rgba(15, 42, 29, 0.04);
+  --shadow-raised: 0 12px 32px -8px rgba(15, 42, 29, 0.22), 0 2px 6px -2px rgba(15, 42, 29, 0.1);
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -41,12 +116,18 @@
   --bg-card: var(--color-surface);
   --bg-card-solid: var(--color-surface);
 
+  /* Foco: tinta sobre claro; lima sobre oscuro (`.ui-on-ink`). */
+  --color-focus: var(--color-ink);
+
   --duration-fast: 120ms;
   --duration-base: 180ms;
 
-  font-family:
-    'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
+  /* Espaciado del armazón (múltiplos de 4 px). */
+  --space-gutter: 1rem;
+  --sidebar-width: 272px;
+  --sidebar-rail: 88px;
+
+  font-family: var(--font-sans);
   color: var(--color-ink);
   color-scheme: light;
   font-synthesis: none;
@@ -71,8 +152,17 @@
   body {
     margin: 0;
     background: var(--color-canvas);
+    color: var(--color-ink);
     min-height: 100vh;
     min-height: 100dvh;
+  }
+
+  /* Títulos con la tipografía de pantalla; el peso lo pone cada componente. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 
   /* Controles: respuesta inmediata al tocar (sin espera de doble toque) y
@@ -108,10 +198,17 @@
   }
 }
 
-/* Foco visible en todo control (teclado), sin animación. */
+/* Foco visible en todo control (teclado), sin animación. Sobre superficies
+   oscuras (`.ui-on-ink`) el anillo pasa a lima. Las utilidades
+   `focus-visible:outline-*` heredadas usan el mismo color. */
 :focus-visible {
-  outline: 2px solid var(--color-brand-700);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+.ui-on-ink {
+  --color-focus: var(--color-lime);
+  color: var(--color-on-ink);
 }
 
 /* ══════════════════════════════════════════
@@ -120,7 +217,7 @@
    ≤ 200 ms con `--ease-out`. Sin bucles salvo indicadores de carga.
    ══════════════════════════════════════════ */
 
-/* Panel lateral que entra desde la derecha (inventario/compras legacy): ocasional. */
+/* Panel lateral que entra desde la derecha (vistas heredadas): ocasional. */
 @keyframes ui-enter-right {
   from {
     opacity: 0;
@@ -142,6 +239,18 @@
   }
 }
 
+/* Hoja inferior del teléfono (diálogos): sube 24 px una sola vez. */
+@keyframes ui-enter-sheet {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @layer components {
   .animate-slide-in-right {
     animation: ui-enter-right var(--duration-base) var(--ease-out) both;
@@ -150,6 +259,16 @@
   .animate-fade-slide,
   .animate-scale-in {
     animation: ui-enter-fade var(--duration-fast) var(--ease-out) both;
+  }
+
+  .ui-dialog-panel {
+    animation: ui-enter-fade var(--duration-fast) var(--ease-out) both;
+  }
+
+  @media (max-width: 639px) {
+    .ui-dialog-panel {
+      animation: ui-enter-sheet var(--duration-base) var(--ease-out) both;
+    }
   }
 
   /* Respuesta al pulsar un control: escala mínima, sólo transform y colores. */
@@ -198,7 +317,7 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Paneles a toda altura (menú del teléfono): el pie queda sobre el indicador de inicio. */
+  /* Paneles a toda altura (menú «Más»): el pie queda sobre el indicador de inicio. */
   .ui-safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -210,14 +329,44 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
 
-  /* El contenido no queda tapado por la barra inferior (4 rem + zona segura). */
+  /* El contenido no queda tapado por la barra inferior (4,5 rem + zona segura). */
   .ui-main {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
   }
 
   @media (min-width: 1024px) {
     .ui-main {
-      padding-bottom: 2rem;
+      padding-bottom: 2.5rem;
+    }
+  }
+
+  /* Menú «Más»: deja libre la barra inferior, que sigue visible debajo. */
+  .ui-more-panel {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Accesos de la barra inferior repetidos en «Más»: sólo cuando la barra se oculta (horizontal). */
+  .ui-more-primary {
+    display: none;
+  }
+
+  /* Botón «Menú» de la cabecera: sólo cuando la barra inferior se oculta (horizontal). */
+  .ui-header-menu {
+    display: none;
+  }
+
+  /* Barra lateral de escritorio: ancho completo o plegada. */
+  .ui-content {
+    transition: none;
+  }
+
+  @media (min-width: 1024px) {
+    .ui-content {
+      padding-left: var(--sidebar-width);
+    }
+
+    .ui-content[data-rail='true'] {
+      padding-left: var(--sidebar-rail);
     }
   }
 }
@@ -242,14 +391,15 @@
     box-shadow: var(--shadow-raised);
   }
 
+  /* Velo de diálogos: verde grisáceo de las láminas (46), sin desenfoque. */
   .modal-backdrop {
-    background: rgba(15, 23, 42, 0.45);
+    background: rgba(15, 42, 29, 0.5);
   }
 
   /* Bloque de carga estático (sin brillo animado). */
   .skeleton {
-    background: #e2e8f0;
-    border-radius: var(--radius-control);
+    background: var(--color-sunken);
+    border-radius: 999px;
   }
 
   .sidebar-item-text {
@@ -259,6 +409,11 @@
 
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Estado «oculto»: borde discontinuo (no es cero ni error). */
+  .ui-dashed {
+    border: 1px dashed currentColor;
   }
 }
 
@@ -276,15 +431,15 @@
   }
 
   .table-container table tbody tr:nth-child(even) {
-    background-color: #f8fafc;
+    background-color: #f7f8f4;
   }
 
   /* DataTable (components/ui): desplazamiento horizontal interno, cabecera
      pegajosa, cifras alineadas. */
   /*
-   * Sombra lateral sólo cuando hay más tabla a ese lado (propuesta de C, etapa
-   * 3): dos velos blancos que se desplazan con el contenido (`local`) tapan dos
-   * sombras fijas (`scroll`) al llegar a cada borde. Sin desplazamiento no se ve.
+   * Sombra lateral sólo cuando hay más tabla a ese lado: dos velos blancos que
+   * se desplazan con el contenido (`local`) tapan dos sombras fijas (`scroll`)
+   * al llegar a cada borde. Sin desplazamiento no se ve.
    */
   .ui-table-scroll {
     overflow: auto;
@@ -292,8 +447,8 @@
     background:
       linear-gradient(to right, #fff 30%, rgb(255 255 255 / 0)) left center / 40px 100% no-repeat local,
       linear-gradient(to left, #fff 30%, rgb(255 255 255 / 0)) right center / 40px 100% no-repeat local,
-      radial-gradient(farthest-side at 0 50%, rgb(15 23 42 / 0.2), transparent) left center / 12px 100% no-repeat scroll,
-      radial-gradient(farthest-side at 100% 50%, rgb(15 23 42 / 0.2), transparent) right center / 12px 100% no-repeat scroll;
+      radial-gradient(farthest-side at 0 50%, rgb(15 42 29 / 0.2), transparent) left center / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(15 42 29 / 0.2), transparent) right center / 12px 100% no-repeat scroll;
     background-color: var(--color-surface);
   }
 
@@ -302,7 +457,7 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.875rem;
-    line-height: 1.35;
+    line-height: 1.4;
     font-variant-numeric: tabular-nums;
   }
 
@@ -311,20 +466,22 @@
     top: 0;
     z-index: 1;
     /* Translúcido: deja ver la sombra lateral también en la fila de cabecera. */
-    background: rgb(248 250 252 / 0.88);
-    border-bottom: 1px solid var(--color-line);
-    padding: 0.625rem 1rem;
+    background: rgb(255 255 255 / 0.92);
+    border-bottom: 2px solid var(--color-ink);
+    padding: 0.75rem 1rem;
     text-align: left;
     font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-ink-muted);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-ink);
     white-space: nowrap;
   }
 
   .ui-table tbody td,
   .ui-table tbody th {
-    border-bottom: 1px solid #f1f5f9;
-    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    padding: 0.75rem 1rem;
     vertical-align: top;
     text-align: left;
   }
@@ -338,17 +495,73 @@
     text-align: right;
     white-space: nowrap;
   }
+
+  /*
+   * Tabla apilada (DataTable con `columns`): por debajo de 640 px cada fila es
+   * una tarjeta y cada celda repite su encabezado (`data-label`). Para lectores
+   * de pantalla sigue siendo una tabla: sólo cambia la presentación.
+   */
+  @media (max-width: 639px) {
+    .ui-table-stack thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .ui-table-stack,
+    .ui-table-stack tbody,
+    .ui-table-stack tr,
+    .ui-table-stack td,
+    .ui-table-stack tbody th {
+      display: block;
+      width: 100%;
+    }
+
+    .ui-table-stack tbody tr {
+      border-bottom: 1px solid var(--color-line);
+      padding: 0.5rem 0;
+    }
+
+    .ui-table-stack tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    .ui-table-stack tbody td,
+    .ui-table-stack tbody th {
+      display: grid;
+      grid-template-columns: minmax(7rem, 40%) 1fr;
+      gap: 0.75rem;
+      border-bottom: 0;
+      padding: 0.375rem 1rem;
+    }
+
+    .ui-table-stack tbody td::before,
+    .ui-table-stack tbody th::before {
+      content: attr(data-label);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-ink-muted);
+    }
+
+    .ui-table-stack .ui-num {
+      text-align: left;
+      white-space: normal;
+    }
+  }
 }
 
 /* Hover sólo con ratón: en pantallas táctiles se quedaría pegado tras tocar. */
 @media (hover: hover) and (pointer: fine) {
   .table-container table tbody tr:hover,
   .table-container table tbody tr:nth-child(even):hover {
-    background-color: #f1f5f9;
+    background-color: var(--color-canvas);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(15, 23, 42, 0.24);
+    background: rgba(15, 42, 29, 0.28);
   }
 }
 
@@ -366,7 +579,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.16);
+  background: rgba(15, 42, 29, 0.18);
   border-radius: 999px;
 }
 
@@ -377,37 +590,37 @@
 /* Enlace «Saltar al contenido»: aparece con el foco, sin animación. */
 .skip-link {
   position: absolute;
-  top: -40px;
+  top: -48px;
   left: 0;
   z-index: 100;
-  padding: 8px 16px;
-  background: var(--color-brand-700);
-  color: #fff;
+  padding: 10px 18px;
+  background: var(--color-lime);
+  color: var(--color-ink);
   font-size: 0.875rem;
-  font-weight: 600;
-  border-radius: 0 0 8px 0;
+  font-weight: 700;
+  border-radius: 0 0 14px 0;
 }
 .skip-link:focus {
   top: 0;
 }
 
-/* Campos con icono (inicio de sesión, usuarios). */
+/* Campos con icono (vistas heredadas: usuarios). */
 .input-icon-wrapper {
   position: relative;
 }
 
 .input-icon-wrapper .input-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #64748b;
+  color: var(--color-ink-muted);
   pointer-events: none;
 }
 
 .input-icon-wrapper input:focus ~ .input-icon,
 .input-icon-wrapper select:focus ~ .input-icon {
-  color: var(--color-brand-700);
+  color: var(--color-ink);
 }
 
 /* ══════════════════════════════════════════
@@ -416,9 +629,21 @@
    ══════════════════════════════════════════ */
 
 @media (orientation: landscape) and (max-height: 500px) {
-  /* La barra inferior se oculta: el menú desplegable da acceso a todas las tareas. */
+  /* La barra inferior se oculta: el botón «Menú» de la cabecera abre «Más», con todas las tareas. */
   .ui-bottom-nav {
     display: none;
+  }
+
+  .ui-header-menu {
+    display: inline-flex;
+  }
+
+  .ui-more-primary {
+    display: block;
+  }
+
+  .ui-more-panel {
+    bottom: 0;
   }
 
   .ui-main {
@@ -436,33 +661,20 @@
     padding-bottom: 0.25rem;
   }
 
-  /* El menú desplaza entero dentro del diálogo, en lugar de sólo su lista. */
+  /* El menú desplaza entero dentro del diálogo. */
   .ui-menu-panel {
     max-height: 100dvh;
     overflow-y: auto;
     overscroll-behavior: contain;
-  }
-
-  .ui-menu-body {
-    flex: none;
-    min-height: auto;
-  }
-
-  .ui-menu-panel .ui-nav-content {
-    height: auto;
-  }
-
-  .ui-menu-panel .ui-nav-list {
-    flex: none;
-    overflow: visible;
   }
 }
 
 /* Movimiento reducido: se conservan opacidad y color; se quita todo
    desplazamiento y escala. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-slide-in-right {
-    animation-name: ui-enter-fade;
+  .animate-slide-in-right,
+  .ui-dialog-panel {
+    animation-name: ui-enter-fade !important;
   }
 
   .ui-press:active:not(:disabled) {
