@@ -13,7 +13,7 @@ import { ESTIMATION_COPY_PATH } from '../lib/navigation';
  * (min-h-dvh, sin alto fijo ni overflow oculto) puede desplazarse y el margen de desplazamiento deja el
  * campo enfocado por encima del teclado cuando el navegador lo lleva a la vista.
  */
-const fieldClass = `${inputClass} scroll-my-24 min-h-12 text-base sm:text-sm`;
+const fieldClass = `${inputClass} scroll-my-24 min-h-12 text-base!`;
 
 function Logo() {
   return (

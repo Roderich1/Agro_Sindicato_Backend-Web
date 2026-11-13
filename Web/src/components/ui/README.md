@@ -489,6 +489,7 @@ interface DialogProps {
   initialFocusRef?: RefObject<HTMLElement | null>;
   hideCloseButton?: boolean;
   role?: 'dialog' | 'alertdialog';
+  label?: string;               // aria-label explícito (Modal lo usa por compatibilidad)
   testId?: string;
 }
 ```

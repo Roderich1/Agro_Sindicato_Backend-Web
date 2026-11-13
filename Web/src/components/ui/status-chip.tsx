@@ -33,12 +33,14 @@ export function StatusChip({ status, threshold, testId }: StatusChipProps) {
   const reason = statusReason(status as AnyStatus, threshold);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold leading-tight ${TAG_TONE[TONE[entry.tone]]}`}
+      // El punto de los estados positivos es un pseudoelemento: no añade nodos al árbol accesible.
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold leading-tight ${TAG_TONE[TONE[entry.tone]]} ${
+        entry.tone === 'positive' ? "before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current before:content-['']" : ''
+      }`}
       title={reason ?? undefined}
       data-status={status}
       data-testid={testId}
     >
-      {entry.tone === 'positive' && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />}
       {entry.tone === 'hidden' && <Icon d={ICON.lock} className="h-3.5 w-3.5" />}
       {entry.label}
     </span>

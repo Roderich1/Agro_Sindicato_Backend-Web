@@ -744,7 +744,7 @@ export function RoleBadge({ role }: { role: string }) {
  */
 export function Modal({ title, children, onClose, size = 'md' }: { title: string; children: ReactNode; onClose: () => void; size?: 'sm' | 'md' | 'lg' }) {
   return (
-    <Dialog title={title} onClose={onClose} size={size}>
+    <Dialog title={title} label={title} onClose={onClose} size={size}>
       <div className="pb-6">{children}</div>
     </Dialog>
   );

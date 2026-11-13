@@ -26,6 +26,8 @@ export interface DialogProps {
   hideCloseButton?: boolean;
   /** `alertdialog` para confirmaciones destructivas. */
   role?: 'dialog' | 'alertdialog';
+  /** Nombre accesible explícito (`aria-label`) en lugar del título; lo usa `Modal` por compatibilidad. */
+  label?: string;
   testId?: string;
 }
 
@@ -50,6 +52,7 @@ export function Dialog({
   initialFocusRef,
   hideCloseButton = false,
   role = 'dialog',
+  label,
   testId,
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -126,7 +129,8 @@ export function Dialog({
         ref={panelRef}
         role={role}
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={label ? undefined : titleId}
+        aria-label={label}
         aria-describedby={descId}
         tabIndex={-1}
         className={`ui-dialog-panel ui-safe-bottom relative flex max-h-[92dvh] w-full flex-col rounded-t-[28px] bg-surface shadow-raised focus:outline-none sm:max-h-[calc(100dvh-3rem)] sm:rounded-card ${widths[size]}`}
