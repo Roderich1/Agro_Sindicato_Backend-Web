@@ -33,7 +33,8 @@ describe('Cobertura', () => {
     show(fixtures.worst, { strict: true });
     const coverage = await screen.findByTestId('coverage');
     expect(coverage.textContent).toMatch(/51 de 1\.284 agricultores vinculados con cifras publicadas/);
-    expect(coverage.textContent).toMatch(/Vinculados \(1\.284\)/);
+    // Rediseño v2 (lámina 04): «Vinculados · 1.284».
+    expect(coverage.textContent).toMatch(/Vinculados · 1\.284/);
     expect(coverage.textContent).toMatch(/aporten o no/);
     expect(coverage.textContent).toMatch(/no que los datos estén completos ni que sean suficientes/);
     expect(coverage.getAttribute('data-tone')).toBeNull();
