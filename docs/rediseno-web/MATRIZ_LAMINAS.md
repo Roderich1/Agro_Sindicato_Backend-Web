@@ -168,56 +168,64 @@ En las láminas de teléfono, «parcial» indica que hoy existe la Web adaptable
 
 Lo actualiza el orquestador con cada integración. «Implementación» es el commit integrado en `feat/web-rediseno-v2`; «Prueba», el archivo de prueba que cubre la lámina; «Captura», la de la implementación en `docs/evidence/rediseno-web-v2/`.
 
+Preparada por la verificación sobre `06283da` (`docs/evidence/rediseno-web-v2/SEGUIMIENTO_MATRIZ.md`). Los defectos V-1…V-5 que cita están **corregidos** y comprobados de nuevo en el navegador sobre `1b7fbb4`:
+- V-1, en `cee56d5`;
+- V-2, en `690cbfa` y `6ae5240`;
+- V-3, en `a69949d`;
+- V-5, en `690cbfa`.
+
+La comprobación está en `orquestador/recheck_v.json`. V-4 («KG») se mantiene como diferencia intencional: es la unidad de los contratos (E3-R8). Las comparativas lámina-implementación están en `docs/evidence/rediseno-web-v2/comparativas/NN.png`, con su `README.md`.
+
 | Lámina | Implementación | Prueba | Captura |
 |---|---|---|---|
-| 01 | pendiente | pendiente | pendiente |
-| 02 | pendiente | pendiente | pendiente |
-| 03 | pendiente | pendiente | pendiente |
-| 04 | pendiente | pendiente | pendiente |
-| 05 | pendiente | pendiente | pendiente |
-| 06 | pendiente | pendiente | pendiente |
-| 07 | pendiente | pendiente | pendiente |
-| 08 | pendiente | pendiente | pendiente |
-| 09 | pendiente | pendiente | pendiente |
-| 10 | pendiente | pendiente | pendiente |
-| 11 | pendiente | pendiente | pendiente |
-| 12 | pendiente | pendiente | pendiente |
-| 13 | pendiente | pendiente | pendiente |
-| 14 | pendiente | pendiente | pendiente |
-| 15 | pendiente | pendiente | pendiente |
-| 16 | pendiente | pendiente | pendiente |
-| 17 | pendiente | pendiente | pendiente |
-| 18 | pendiente | pendiente | pendiente |
-| 19 | pendiente | pendiente | pendiente |
-| 20 | pendiente | pendiente | pendiente |
-| 21 | pendiente | pendiente | pendiente |
-| 22 | pendiente | pendiente | pendiente |
-| 23 | pendiente | pendiente | pendiente |
-| 24 | pendiente | pendiente | pendiente |
-| 25 | pendiente | pendiente | pendiente |
-| 26 | pendiente | pendiente | pendiente |
-| 27 | pendiente | pendiente | pendiente |
-| 28 | pendiente | pendiente | pendiente |
-| 29 | pendiente | pendiente | pendiente |
-| 30 | pendiente | pendiente | pendiente |
-| 31 | pendiente | pendiente | pendiente |
-| 32 | pendiente | pendiente | pendiente |
-| 33 | pendiente | pendiente | pendiente |
-| 34 | pendiente | pendiente | pendiente |
-| 35 | pendiente | pendiente | pendiente |
-| 36 | pendiente | pendiente | pendiente |
-| 37 | pendiente | pendiente | pendiente |
-| 38 | pendiente | pendiente | pendiente |
-| 39 | pendiente | pendiente | pendiente |
-| 40 | pendiente | pendiente | pendiente |
-| 41 | pendiente | pendiente | pendiente |
-| 42 | pendiente | pendiente | pendiente |
-| 43 | pendiente | pendiente | pendiente |
-| 44 | pendiente | pendiente | pendiente |
-| 45 | pendiente | pendiente | pendiente |
-| 46 | pendiente | pendiente | pendiente |
-| 47 | pendiente | pendiente | pendiente |
-| 48 | pendiente | pendiente | pendiente |
-| 49 | pendiente | pendiente | pendiente |
-| 50 | pendiente | pendiente | pendiente |
-| 51 | pendiente | pendiente | pendiente |
+| 01 | `pages/login.page.tsx` · `0945dd1` | `components/__tests__/web-access-by-role.test.tsx`, `lib/estimation-copy.test.ts` | `base/acceso/01-ingresar__{escritorio,movil}.png`; el aviso de copia, sin captura (ver `verificacion/README.md`) |
+| 02 | `pages/web-not-for-farmers.page.tsx` · `0945dd1` | `components/__tests__/web-access-by-role.test.tsx`, `components/__tests__/routes-roles.test.tsx` | `verificacion/acceso/02-agricultor-aviso__{escritorio,movil}.png` |
+| 03 | `pages/collective-summary.page.tsx`, `components/coverage-card.tsx`, `needs-bars.tsx`, `seal-panel.tsx`, `export-buttons.tsx` · `e02972f` (+ ronda 2 `06283da`) | `pages/collective-summary.v2.test.tsx`, `collective-summary.page.test.tsx`, `collective-summary.fixtures.test.tsx`, `lib/exports.test.ts` | `a/resumen/03-resumen__escritorio.png`, `verificacion/acceso/directiva-inicio__escritorio.png` |
+| 04 | `pages/coverage.page.tsx`, `components/coverage-card.tsx` · `e02972f` | `pages/coverage.page.test.tsx` | `a/cobertura/04-cobertura__escritorio.png` |
+| 05 | `collective-summary.page.tsx`, `components/ui/data-state.tsx`, `seal-panel.tsx` · `e02972f`; §13 en `joint-purchase-call-detail.page.tsx` · `284174a` | `pages/collective-summary.v2.test.tsx`, `components/seal-panel.test.tsx`, `components/ui/data-state.test.tsx`, `pages/joint-purchase-call-detail.rediseno.test.tsx` | `a/estados/05-*__SIMULADO__escritorio.png` (§1, §7–§9); §13 en `verificacion/participantes/*`; §2–§6 y §10–§12 sin captura |
+| 06 | `pages/joint-proposal.page.tsx`, `components/estimation-figure.tsx` · `e02972f` (+ píldoras `06283da`) | `pages/joint-proposal.v2.test.tsx`, `joint-proposal.rediseno.test.tsx`, `joint-proposal.reference.test.tsx`, `joint-proposal.estimation-link.test.tsx`, `lib/joint-purchase-xlsx.test.ts` | `verificacion/capturas/06-borrador-pagina__escritorio.png` |
+| 07 | `pages/joint-proposal.page.tsx` (pestaña «Borradores anteriores») · `e02972f` (+ `06283da`) | `pages/joint-proposal.v2.test.tsx` | `a/pestanas/07-anteriores-pildora__escritorio.png`; **V-1** (`?borrador=`): `verificacion/uniones/u3-borrador-anterior__escritorio.png` |
+| 08 | `pages/joint-proposal.page.tsx` (pestaña «Cómo se calculó») · `e02972f` (+ `06283da`) | `pages/joint-proposal.v2.test.tsx`, `joint-proposal.estimation-link.test.tsx` | `verificacion/capturas/08-como-se-calculo-pagina__escritorio.png` |
+| 09 | `pages/joint-purchase-calls.page.tsx`, `components/b/substitution-permissions.tsx` · `284174a` (+ ronda 2 `06283da`) | `pages/joint-purchase-calls.rediseno.test.tsx`, `joint-purchase-calls.page.test.tsx` | `b/adopcion/09-compras-conjuntas__escritorio.png`, `verificacion/pa/09-directiva-ve-titulares__escritorio.png` |
+| 10 | `pages/joint-purchase-call-detail.page.tsx`, `components/b/call-hero.tsx`, `call-ui.tsx` · `284174a` | `pages/joint-purchase-call-detail.rediseno.test.tsx`, `joint-purchase-call-detail.page.test.tsx` | `b/detalle/10-borrador__escritorio.png`, `verificacion/convocatoria/03-detalle-borrador__escritorio.png` |
+| 11 | Ídem · `284174a` (+ participantes con `DataTable` `06283da`) | Ídem, `components/b/call-ui.test.tsx` | `b/adopcion/11-abierta-responsable__escritorio.png`, `verificacion/participantes/11-directiva-responsable-abierta__escritorio.png` |
+| 12 | Ídem · `284174a` | Ídem | `b/detalle/12-cerrada-consolidado__escritorio.png`, `verificacion/participantes/12-directiva-responsable-cerrada__escritorio.png`, `verificacion/convocatoria/07-detalle-cerrada__escritorio.png` |
+| 13 | Ídem · `284174a` | Ídem | `b/detalle/13-cancelada__escritorio.png` |
+| 14 | Ídem · `284174a` | Ídem | `b/detalle/14-nueva-responsable__escritorio.png`, `verificacion/participantes/14-sucesora-nueva-responsable__escritorio.png` |
+| 15 | `pages/joint-purchase-call-form.tsx` y diálogos de `joint-purchase-call-detail.page.tsx` · `284174a` (+ `Dialog fullScreenOnPhone` `06283da`) | `pages/joint-purchase-call-detail.rediseno.test.tsx`, `joint-purchase-calls.rediseno.test.tsx`, `components/ui/dialog.test.tsx` | 15.1 `b/adopcion/15-1-nueva-convocatoria__escritorio.png` y `verificacion/convocatoria/01-formulario-lleno__escritorio.png`; 15.2 `verificacion/convocatoria/04-dialogo-abrir__escritorio.png`; 15.3 `verificacion/convocatoria/06-dialogo-cerrar__escritorio.png`; 15.4–15.5 `b/dialogos/15-*`; 15.6 `verificacion/pa/20-sustituir-dialogo__escritorio.png` |
+| 16 | `pages/joint-purchase-call-detail.page.tsx` · `284174a` | `pages/joint-purchase-call-detail.rediseno.test.tsx` | `verificacion/participantes/16-admin2-sin-permiso__escritorio.png` |
+| 17 | Ídem · `284174a` | Ídem | `verificacion/participantes/17-admin2-permiso-retirado__escritorio.png` |
+| 18 | Ídem · `284174a` | Ídem | `verificacion/participantes/18-admin-cerrada-sin-detalle__escritorio.png` (cuenta a la que se le retiró el permiso; la variante exacta, sin captura) |
+| 19 | Ídem · `284174a` | Ídem | `verificacion/participantes/19-admin-cerrada-menos-de-3__escritorio.png` |
+| 20 | Ídem (+ `SubstituteDialog`) · `284174a` | Ídem | `b/detalle/20-responsable-no-habilitada__escritorio.png`, `verificacion/pa/20-sustituir-dialogo__escritorio.png` |
+| 21 | `pages/catalog.page.tsx`, `products.page.tsx`, `components/product-form.tsx`, `components/c/*` · `ed048cd` (+ ronda 2 `06283da`) | `pages/catalog.page.test.tsx`, `products.page.test.tsx` | `c/ronda2/21-39-catalogo-productos__escritorio.png` |
+| 22 | `pages/product-reconciliation.page.tsx` · `ed048cd` | `pages/product-reconciliation.page.test.tsx` | `c/catalogo/22-nombres-equivalentes__escritorio.png` |
+| 23 | `pages/product-identification.page.tsx` · `ed048cd` | `pages/product-identification.page.test.tsx`, `contexts/identification-pending.test.tsx` | `c/catalogo/23-por-identificar-con-foto__escritorio.png`, `verificacion/identificacion/23-antes-de-confirmar__escritorio.png`, `verificacion/identificacion/23-despues__escritorio.png` |
+| 24 | Ídem (pestaña «Ya identificados») · `ed048cd` | `pages/product-identification.page.test.tsx` | `c/catalogo/24-corregir-identificacion__escritorio.png`, `verificacion/identificacion/24-ya-identificados__escritorio.png` |
+| 25 | `pages/history.page.tsx`, `collective-trends.page.tsx` · `e02972f` | `pages/collective-trends.v2.test.tsx`, `collective-trends.page.test.tsx`, `history.page.test.tsx`, `lib/collective-xlsx.test.ts` | `a/historico/25-historico-sellado__escritorio.png` |
+| 26 | `pages/estimation.page.tsx`, `components/estimation-figure.tsx` · `e02972f` | `pages/estimation.page.test.tsx`, `lib/estimation-lib.test.ts` | `verificacion/hallazgos/26-estimacion-decimales__escritorio.png` (**V-3**) |
+| 27 | `pages/estimation-copy.page.tsx`, `components/estimation-copy-view.tsx` · `e02972f` | `pages/estimation-copy.v2.test.tsx`, `estimation-copy.page.test.tsx`, `lib/estimation-copy.revocation.test.ts` | `a/copia/27-copia-{legible,estado,sin-sesion}__escritorio.png` |
+| 28 | `pages/campaigns.page.tsx` · `ed048cd` (+ ronda 2 y cabecera `06283da`) | `pages/campaigns.page.test.tsx`, `campaign-dates.test.ts` | `orquestador/cabecera/28-campanas-accion__escritorio.png`, `c/ronda2/28-41-campanas__escritorio.png` |
+| 29 | `pages/campaign-detail.page.tsx` (+ `seal-panel.tsx` de A) · `ed048cd` | `pages/campaign-detail.page.test.tsx`, `components/seal-panel.test.tsx` | `c/ronda2/29-detalle-campana__escritorio.png` |
+| 30 | `campaigns.page.tsx`, `campaign-detail.page.tsx`, `product-form.tsx`, `products.page.tsx`, `product-reconciliation.page.tsx` · `ed048cd`; 30.3 `seal-panel.tsx` · `e02972f` | `pages/campaigns.page.test.tsx`, `products.page.test.tsx`, `product-reconciliation.page.test.tsx`, `components/seal-panel.test.tsx` | 30.1 `verificacion/admin/30-1-nueva-campana__escritorio.png`; 30.2, 30.4–30.6 `c/dialogos/30.*`; 30.3 sin captura (no hay campaña cerrada sin sellar) |
+| 31 | `pages/users.page.tsx` + `components/b/substitution-permissions.tsx` (modo `manage`, `components/c/substitution-slot.tsx`) · `ed048cd` y `284174a` | `pages/users.page.test.tsx`, `pages/substitution-permissions-section.test.tsx` | `c/ronda2/31-44-usuarios__escritorio.png`, `verificacion/pa/31-concedido__escritorio.png`, `verificacion/pa/31-retirado-historial__escritorio.png` |
+| 32 | `pages/audit-logs.page.tsx`, `components/c/audit-text.ts` · `ed048cd` | `pages/audit-logs.page.test.tsx` | `c/bitacora/32-bitacora__escritorio.png`, `verificacion/admin/32-bitacora-filtrada__escritorio.png` |
+| 33 | `users.page.tsx`, `audit-logs.page.tsx`, `product-identification.page.tsx` · `ed048cd` | `pages/users.page.test.tsx`, `audit-logs.page.test.tsx`, `product-identification.page.test.tsx` | 33.1 y 33.3 `verificacion/admin/33-{1-nuevo-usuario,3-desactivar}__escritorio.png`; 33.2 `c/dialogos/33.2-*`; 33.4 `verificacion/admin/33-4-que-paso__escritorio.png`; 33.5 sólo `c/dialogos/33.5-foto-no-disponible__SIMULADO` (la foto real no se captura) |
+| 34 | 34.1–34.2 `joint-purchase-call-form.tsx`, `joint-purchase-call-detail.page.tsx` · `284174a`; 34.3–34.6 `campaigns.page.tsx`, `product-form.tsx`, `product-reconciliation.page.tsx`, `users.page.tsx` · `ed048cd` | `pages/joint-purchase-call-detail.rediseno.test.tsx`, `campaigns.page.test.tsx`, `products.page.test.tsx`, `product-reconciliation.page.test.tsx`, `users.page.test.tsx` | 34.1–34.2 `b/dialogos/34-*`; 34.3 y 34.6 `verificacion/admin/34-{3-editar-campana,6-editar-usuario}__escritorio.png`; 34.4–34.5 `c/dialogos/34.*` |
+| 35 | Como 03 + `components/app-shell.tsx` · `e02972f` y `0945dd1` | `pages/collective-summary.v2.test.tsx`, `components/app-shell.test.tsx` | `a/telefono/35-resumen-telefono__movil.png` |
+| 36 | Como 06 · `e02972f` (+ píldoras `06283da`) | `pages/joint-proposal.v2.test.tsx` | `verificacion/hallazgos/36-borrador-primera-pantalla__movil.png`, `verificacion/telefono/36-borrador-final__movil.png` |
+| 37 | Como 09 · `284174a` (+ `06283da`) | `pages/joint-purchase-calls.rediseno.test.tsx` | `b/adopcion/37-compras-conjuntas__movil.png` |
+| 38 | Como 11 · `284174a` (+ `06283da`) | `pages/joint-purchase-call-detail.rediseno.test.tsx` | `b/adopcion/38-abierta-responsable__movil.png` |
+| 39 | Como 21 · `ed048cd` (+ `06283da`) | `pages/catalog.page.test.tsx` | `c/ronda2/21-39-catalogo-productos__movil.png` |
+| 40 | Como 25 · `e02972f` | `pages/collective-trends.v2.test.tsx` | `a/telefono/40-historico-telefono__movil.png` (**V-5**) |
+| 41 | Como 28 · `ed048cd` (+ `06283da`) | `pages/campaigns.page.test.tsx` | `verificacion/hallazgos/41-campanas-barra__movil.png` (**V-5**), `c/ronda2/28-41-campanas__movil.png` |
+| 42 | Como 32 · `ed048cd` | `pages/audit-logs.page.test.tsx` | `c/bitacora/32-bitacora__movil.png`, `c/telefono/42-bitacora-filtros__movil.png` |
+| 43 | `components/app-shell.tsx`, `lib/navigation.ts` · `0945dd1` | `components/app-shell.test.tsx`, `app-routes.test.ts` | `verificacion/telefono/43-menu-mas__movil.png`, `verificacion/zoom200/43-menu__zoom200.png` |
+| 44 | Como 31 · `ed048cd` y `284174a` (+ `06283da`) | `pages/users.page.test.tsx`, `pages/substitution-permissions-section.test.tsx` | `c/ronda2/31-44-usuarios__movil.png`, `verificacion/hallazgos/44-usuarios-final__movil.png` |
+| 45 | `joint-purchase-call-form.tsx` (`Dialog fullScreenOnPhone`) · `284174a` (+ `06283da`) | `pages/joint-purchase-calls.rediseno.test.tsx`, `components/ui/dialog.test.tsx` | `verificacion/telefono/45-nueva-convocatoria__movil.png`, `verificacion/hallazgos/45-formulario__movil.png` |
+| 46 | Diálogo «Cancelar la convocatoria» (`ConfirmDialog`, hoja inferior) · `284174a` | `pages/joint-purchase-call-detail.rediseno.test.tsx`, `components/ui/dialog.test.tsx` | `verificacion/telefono/46-cancelar-hoja__movil.png` |
+| 47 | Como 23 · `ed048cd` | `pages/product-identification.page.test.tsx` | `c/catalogo/23-por-identificar-con-foto__movil.png` |
+| 48 | Como 17 · `284174a` | `pages/joint-purchase-call-detail.rediseno.test.tsx` | `verificacion/capturas/48-permiso-retirado__movil.png` |
+| 49 | `SubstituteDialog` en `joint-purchase-call-detail.page.tsx` (`fullScreenOnPhone`) · `284174a` (+ `06283da`) | `pages/joint-purchase-call-detail.rediseno.test.tsx` | `b/adopcion/49-sustituir__movil.png`, `verificacion/capturas/49-sustituir-final__movil.png` |
+| 50 | Como 14 · `284174a` | `pages/joint-purchase-call-detail.rediseno.test.tsx` | `verificacion/capturas/50-nueva-responsable__movil.png` |
+| 51 | Como 08 · `e02972f` (+ `06283da`) | `pages/joint-proposal.v2.test.tsx` | `verificacion/capturas/51-como-se-calculo__movil.png` |

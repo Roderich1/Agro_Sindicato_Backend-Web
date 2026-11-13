@@ -124,3 +124,7 @@ Los publica BASE en `components/ui/README.md`, con firma, variantes, accesibilid
 | 2026-11-13 | BASE, rondas 2 y 3 | `0945dd1` | Margen del héroe, Stepper, desplazamiento, cámara, pestañas en píldora, `DataTable`, `PageHeader` pegado, `Dialog` a pantalla completa, `QuantityFigure` y `CampaignPill` |
 | 2026-11-13 | Adopción en C, B y A, y correcciones del orquestador en `PageHeader` y `Tabs` | `5c6f867`, `d6485b9`, `06283da` | — |
 | 2026-11-13 | **Comprobaciones sobre `06283da`** | — | `tsc` 0; `eslint` 0 errores (7 avisos previos); `vite build` correcto (5 fuentes precacheadas); `vitest` **69 archivos, 700/700** |
+| 2026-11-13 | Verificación con escritura y comparativas | `1483b78` | Recorridos con la API real y 51 comparativas. Defectos V-1…V-5 y D6 |
+| 2026-11-13 | Correcciones: V-5 y V-2 (orquestador), D6 y V-2 (C), V-1 y V-3 (A) | `690cbfa`, `dae88df`, `1b7fbb4` | V-4 («KG») queda como diferencia intencional (E3-R8). Comprobado de nuevo en el navegador (`orquestador/recheck_v.json`) |
+| 2026-11-13 | **Comprobaciones finales sobre `1b7fbb4`** | — | `tsc` 0; `eslint` 0 errores (7 avisos previos); build correcto; `vitest` **69 archivos, 706/706**; recorrido 96/96 sin observaciones |
+| 2026-11-13 | Entrega para la revisión del autor | — | `docs/rediseno-web/ENTREGA.md` |
