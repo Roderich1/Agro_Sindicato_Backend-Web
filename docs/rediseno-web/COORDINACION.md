@@ -113,4 +113,7 @@ Los publica BASE en `components/ui/README.md`, con firma, variantes, accesibilid
 
 | Fecha | Qué | Commit | Notas |
 |---|---|---|---|
-| 2026-11-13 | Base `e8a440f` y este documento | — | — |
+| 2026-11-13 | Base `e8a440f` y este documento | `50aa672` | Suite de la Web en la base: 54 archivos, 589/589 |
+| 2026-11-13 | Inventario: matriz, hallazgos y tareas | `b9fd3d3` | Sólo lectura. Decisiones del autor: H-10, H-11 y H-08 (provisionales según la propuesta) |
+| 2026-11-13 | BASE integrada | `77195bf` (fusión de `1b15cc3`) | Según la sesión: 633/633, tsc limpio, eslint 0 errores (7 avisos previos), build correcto. Revisión: la franja superior de escritorio no está en las láminas y vuelve a BASE para quitarla |
+| 2026-11-13 | Encargo común y arranque de A, B y C | `c9abb34` | Ramas `feat/web-rediseno-v2-{a,b,c}` desde `77195bf` |
