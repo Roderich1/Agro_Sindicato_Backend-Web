@@ -14,12 +14,12 @@ export interface CollapsibleProps {
 export function Collapsible({ title, children, testId, label, defaultOpen = false }: CollapsibleProps) {
   return (
     <details className={`${surfaceClass} group overflow-hidden`} data-testid={testId} aria-label={label ?? title} open={defaultOpen}>
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-base font-semibold text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:-outline-offset-2 sm:px-7 [&::-webkit-details-marker]:hidden">
         {title}
-        <span className="text-xs font-medium text-brand-800 group-open:hidden">Ver</span>
-        <span className="hidden text-xs font-medium text-slate-600 group-open:inline">Ocultar</span>
+        <span className="ml-auto text-sm font-semibold text-link group-open:hidden">Ver</span>
+        <span className="ml-auto hidden text-sm font-semibold text-ink-muted group-open:inline">Ocultar</span>
       </summary>
-      <div className="border-t border-slate-100">{children}</div>
+      <div className="border-t border-line">{children}</div>
     </details>
   );
 }

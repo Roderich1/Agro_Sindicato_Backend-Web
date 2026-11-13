@@ -38,8 +38,8 @@ export function ProductCell({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="text-base font-semibold text-slate-900">{name}</span>
-      {unit && <span className="text-xs text-slate-400">{unit}</span>}
+      <span className="text-base font-semibold text-ink">{name}</span>
+      {unit && <span className="text-xs text-ink-muted">{unit}</span>}
       <StatusBadge status={status} threshold={threshold} />
     </div>
   );
@@ -69,16 +69,16 @@ export function QuantityCell({
   size?: 'md' | 'lg';
 }) {
   if (status !== 'DISCLOSED') {
-    return <span className="text-xs leading-snug text-slate-500">{statusReason(status, threshold)}</span>;
+    return <span className="text-xs leading-snug text-ink-muted">{statusReason(status, threshold)}</span>;
   }
   const text = formatQuantity(base, unit, serverPresentation);
   if (text === null) {
-    return <span className="text-xs font-semibold text-red-700">Dato no válido recibido del servidor; no se muestra.</span>;
+    return <span className="text-xs font-semibold text-danger-ink">Dato no válido recibido del servidor; no se muestra.</span>;
   }
   return (
     <span className="block">
-      <span className={`${size === 'lg' ? 'text-2xl' : 'text-lg'} font-bold leading-tight tabular-nums text-slate-900`}>{text}</span>
-      {asOf !== undefined && <span className="block text-[11px] text-slate-400">datos hasta {fmtDateTime(asOf)}</span>}
+      <span className={`${size === 'lg' ? 'text-2xl' : 'text-lg'} font-display font-bold leading-tight tabular-nums text-ink`}>{text}</span>
+      {asOf !== undefined && <span className="block text-xs text-ink-muted">datos hasta {fmtDateTime(asOf)}</span>}
     </span>
   );
 }
@@ -86,14 +86,14 @@ export function QuantityCell({
 /** Huella del borrador; oculta cuando alguna de sus cifras ya no se publica. */
 export function Fingerprint({ value }: { value: string | null }) {
   if (value === null) {
-    return <span className="text-slate-400" title="Alguna cifra del borrador ya no se publica">huella oculta</span>;
+    return <span className="text-ink-muted" title="Alguna cifra del borrador ya no se publica">huella oculta</span>;
   }
   return <code title={value}>{value.slice(0, 12)}</code>;
 }
 
 export function PendingChangesNote() {
   return (
-    <span className="mt-1 block text-[11px] font-medium text-amber-700">
+    <span className="mt-1 inline-block rounded-full bg-warn-bg px-2.5 py-0.5 text-xs font-semibold text-warn-ink">
       Hay cambios recibidos que aún no alcanzan el umbral: se muestra la cifra anterior.
     </span>
   );
@@ -132,19 +132,19 @@ export function CoverageBanner({
       : `agricultores vinculados con cifras publicadas${asOf ? ' en esa fecha' : ''}`;
   return (
     <div
-      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-5 py-3"
+      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-card bg-lime-soft/60 px-5 py-4 text-ink"
       data-testid="coverage"
       title={campaignName}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-800/70">{title}</p>
-        <p className="mt-0.5 text-slate-900">
-          <span className="text-3xl font-bold leading-tight tabular-nums">
+        <p className="text-xs font-bold uppercase tracking-[0.08em] text-lime-ink">{title}</p>
+        <p className="mt-0.5 text-ink">
+          <span className="font-display text-3xl font-extrabold leading-tight tabular-nums">
             {COUNT.format(coverage.members_with_contribution)} de {COUNT.format(coverage.linked_members)}
           </span>{' '}
           <span className="text-sm font-semibold">{headline}</span>
         </p>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <p className="mt-0.5 text-xs text-ink-muted">
           {coverage.basis === 'ALL_CONTRIBUTORS' &&
             'Borrador guardado con la regla anterior a F10-SEC-02: el conteo incluye a quienes aportaron a filas sin cifra. '}
           {asOf && 'No es la cobertura actual: la de hoy está en el resumen. '}
@@ -154,7 +154,7 @@ export function CoverageBanner({
         </p>
       </div>
       {link && (
-        <Link to={link} className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline">
+        <Link to={link} className="text-sm font-semibold text-link underline underline-offset-2 hover:text-ink">
           Ver cobertura
         </Link>
       )}
@@ -168,13 +168,13 @@ export function CoverageBanner({
  */
 export function SealBanner({ seal }: { seal: SealRef }) {
   return (
-    <div className="rounded-xl border-l-4 border-emerald-600 bg-white/70 px-4 py-2.5 shadow-sm" data-testid="seal-banner">
-      <p className="text-sm font-bold text-slate-900">
+    <div className="rounded-[18px] border-l-4 border-ink bg-surface px-4 py-3 shadow-card" data-testid="seal-banner">
+      <p className="text-sm font-bold text-ink">
         Versión {seal.version} sellada el {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} (
         {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) · datos aceptados hasta{' '}
         {fmtDateTime(seal.accepted_until)} · ref. <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>
       </p>
-      <p className="mt-0.5 text-xs text-slate-500">
+      <p className="mt-0.5 text-xs text-ink-muted">
         Cada cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor no
         puede asegurar que todos los teléfonos publicaron todo. Las correcciones privadas posteriores no cambian esta
         versión.
@@ -257,17 +257,17 @@ export function CollectiveToolbar({
         {campaign && (
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${
                 campaign.status === 'ABIERTA'
-                  ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20'
-                  : 'bg-slate-500/10 text-slate-600 ring-slate-500/20'
+                  ? 'bg-lime-soft text-lime-ink ring-transparent'
+                  : 'bg-sunken text-ink ring-transparent'
               }`}
             >
               {CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}
             </span>
             {differs ? (
               <span
-                className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-500/20"
+                className="inline-flex items-center rounded-full bg-warn-bg px-2.5 py-0.5 text-xs font-semibold text-warn-ink"
                 title={`La campaña activa del sindicato es ${activeCampaign!.name}`}
                 data-testid="campaign-differs"
               >
@@ -276,7 +276,7 @@ export function CollectiveToolbar({
             ) : (
               activeCampaign &&
               campaign.id === activeCampaign.id && (
-                <span className="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                <span className="inline-flex items-center rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-white">
                   Activa
                 </span>
               )
@@ -292,7 +292,7 @@ export function CollectiveToolbar({
 /** Explicación breve de la vista, bajo la barra: una línea, sin caja. */
 export function PageNote({ children, testId }: { children: ReactNode; testId?: string }) {
   return (
-    <p className="text-sm leading-relaxed text-slate-600" data-testid={testId}>
+    <p className="text-sm leading-relaxed text-ink-muted" data-testid={testId}>
       {children}
     </p>
   );
@@ -331,7 +331,7 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
   const max = values.reduce<bigint>((top, value) => (value !== null && value > top ? value : top), 0n);
   const width = (value: bigint | null) => (value === null || max === 0n ? 0 : Number((value * 1000n) / max) / 10);
   return (
-    <ul className="divide-y divide-slate-100" aria-label={`Comparación en ${unit}`}>
+    <ul className="divide-y divide-line" aria-label={`Comparación en ${unit}`}>
       {rows.map((row, index) => {
         const value = values[index]!;
         const text = row.status === 'DISCLOSED' ? formatQuantity(row.base, unit === 'L' ? 'ML' : 'G', row.presentation) : null;
@@ -340,28 +340,28 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
             <ProductCell name={row.name} unit={row.unit} status={row.status} threshold={threshold} />
             {row.status === 'DISCLOSED' ? (
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" title={text ?? undefined}>
-                <div className="h-3 min-w-24 flex-1 rounded-full bg-slate-100">
+                <div className="h-2 min-w-24 flex-1 rounded-full bg-track">
                   <div
-                    className="h-3 rounded-full bg-emerald-600"
+                    className="h-2 rounded-full bg-ink"
                     style={{ width: `${value !== null && value > 0n ? Math.max(width(value), 1) : 0}%` }}
                   />
                 </div>
                 {/* Ancho mínimo para alinear filas; una cifra larga pasa a su propia línea en vez de desbordar. */}
-                <span className="ml-auto min-w-44 whitespace-nowrap text-right text-2xl font-bold leading-none tabular-nums text-slate-900 sm:text-3xl">
-                  {text ?? <span className="text-sm text-red-700">Dato no válido</span>}
+                <span className="ml-auto min-w-44 whitespace-nowrap text-right font-display text-2xl font-bold leading-none tabular-nums text-ink sm:text-3xl">
+                  {text ?? <span className="text-sm text-danger-ink">Dato no válido</span>}
                 </span>
               </div>
             ) : (
-              <p className="text-xs leading-snug text-slate-500">{statusReason(row.status, threshold)}</p>
+              <p className="text-xs leading-snug text-ink-muted">{statusReason(row.status, threshold)}</p>
             )}
-            <div className="text-right text-xs text-slate-500 sm:w-44">
+            <div className="text-right text-xs text-ink-muted sm:w-44">
               {row.status === 'DISCLOSED' ? (
                 <>
-                  <span className="block text-sm font-semibold text-slate-700">{row.contributors} aportantes</span>
+                  <span className="block text-sm font-semibold text-ink">{row.contributors} aportantes</span>
                   <span>datos hasta {fmtDateTime(row.asOf)}</span>
                 </>
               ) : (
-                <span className="text-slate-400">aportantes no revelados</span>
+                <span className="text-ink-muted">aportantes no revelados</span>
               )}
             </div>
             {row.status === 'DISCLOSED' && row.pending && (

@@ -206,9 +206,12 @@
   outline-offset: 2px;
 }
 
-.ui-on-ink {
-  --color-focus: var(--color-lime);
-  color: var(--color-on-ink);
+/* En capa: las utilidades (`lg:text-ink`, `text-white`) pueden sobrescribir el color. */
+@layer components {
+  .ui-on-ink {
+    --color-focus: var(--color-lime);
+    color: var(--color-on-ink);
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -353,6 +356,28 @@
   /* Botón «Menú» de la cabecera: sólo cuando la barra inferior se oculta (horizontal). */
   .ui-header-menu {
     display: none;
+  }
+
+  /* HeroPanel `attachToHeader`: en teléfono y tableta continúa la barra superior oscura (lámina 35). */
+  .ui-hero-attach {
+    margin-top: -1.25rem;
+    margin-left: calc(-1 * max(1rem, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(1rem, env(safe-area-inset-right, 0px)));
+    border-radius: 0 0 var(--radius-hero) var(--radius-hero);
+  }
+
+  @media (min-width: 640px) {
+    .ui-hero-attach {
+      margin-left: calc(-1 * max(1.5rem, env(safe-area-inset-left, 0px)));
+      margin-right: calc(-1 * max(1.5rem, env(safe-area-inset-right, 0px)));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .ui-hero-attach {
+      margin: 0;
+      border-radius: var(--radius-hero);
+    }
   }
 
   /* Barra lateral de escritorio: ancho completo o plegada. */
@@ -518,6 +543,11 @@
     .ui-table-stack tbody th {
       display: block;
       width: 100%;
+    }
+
+    /* Gana al `minWidth` en línea: apilada no hace falta desplazar. */
+    .ui-table-stack {
+      min-width: 0 !important;
     }
 
     .ui-table-stack tbody tr {
