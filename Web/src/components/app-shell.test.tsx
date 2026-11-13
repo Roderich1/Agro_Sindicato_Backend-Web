@@ -65,6 +65,14 @@ describe('AppShell: menú por tareas', () => {
     expect(within(nav).getByRole('link', { name: 'Usuarios' }).getAttribute('aria-current')).toBe('page');
   });
 
+  it('teléfono: si la sección actual vive en «Más» (Campañas), se marca «Más»; en una tarea de la barra, no (V-5)', () => {
+    const view = renderAt(shell('Campañas'), { role: 'DIRECTIVA', path: '/campaigns' });
+    expect(moreButton().getAttribute('data-section-in-more')).toBe('true');
+    view.unmount();
+    renderAt(shell('Resumen'), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+    expect(moreButton().getAttribute('data-section-in-more')).toBeNull();
+  });
+
   it('las rutas antiguas y las subrutas marcan su sección como activa; el grupo se abre con la subvista vigente', () => {
     renderAt(shell('Estimación del consumo'), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.estimation });
     const nav = mainNav();

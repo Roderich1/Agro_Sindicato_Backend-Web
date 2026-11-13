@@ -33,6 +33,7 @@ export function CallHero({
   return (
     <HeroPanel
       attachToHeader
+      showSynthetic={false}
       title={title}
       testId="call-hero"
       breadcrumb={

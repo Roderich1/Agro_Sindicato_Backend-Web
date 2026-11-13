@@ -505,6 +505,9 @@ function BottomNav({ menuOpen, onMore, onNavigate, menuId }: { menuOpen: boolean
   const cell =
     'flex min-h-[4.5rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-xs leading-tight focus-visible:outline-2 focus-visible:-outline-offset-2';
   const pill = (active: boolean) => `inline-flex h-8 w-14 items-center justify-center rounded-full ${active ? 'bg-ink text-lime' : 'text-ink'}`;
+  // La sección actual vive en «Más» (Campañas, Histórico, Bitácora, Usuarios…): se marca «Más» (láminas 40–44).
+  const inMore = !items.some((item) => isNavItemActive(item, location.pathname)) && available.some((item) => isNavItemActive(item, location.pathname));
+  const moreActive = menuOpen || inMore;
   return (
     <nav className="ui-bottom-nav fixed inset-x-0 bottom-0 z-50 flex border-t border-line bg-surface lg:hidden" aria-label="Navegación rápida">
       {items.map((item) => {
@@ -532,9 +535,10 @@ function BottomNav({ menuOpen, onMore, onNavigate, menuId }: { menuOpen: boolean
         aria-expanded={menuOpen}
         aria-haspopup="dialog"
         aria-controls={menuOpen ? menuId : undefined}
-        className={`${cell} ${menuOpen ? 'font-bold text-ink' : 'font-medium text-ink-muted'}`}
+        data-section-in-more={inMore || undefined}
+        className={`${cell} ${moreActive ? 'font-bold text-ink' : 'font-medium text-ink-muted'}`}
       >
-        <span className={pill(menuOpen)}>
+        <span className={pill(moreActive)}>
           <Icon d={ICON.menu} className="h-6 w-6" strokeWidth={1.8} />
         </span>
         <span>Más</span>

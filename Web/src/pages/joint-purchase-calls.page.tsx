@@ -151,6 +151,7 @@ export function JointPurchaseCallsPage() {
       <div className="flex flex-col gap-6 pb-4">
         <PageHeader
           attachToHeader
+          showSynthetic={false}
           title="Compras conjuntas"
           testId="calls-header"
           eyebrow={
