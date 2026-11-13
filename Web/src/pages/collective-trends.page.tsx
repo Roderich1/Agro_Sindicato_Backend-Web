@@ -188,7 +188,7 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
             />
           </Card>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] xl:items-start">
+          <div className="grid gap-5 min-[1600px]:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] min-[1600px]:items-start">
             <section aria-label="Gráfico del historial" className="min-w-0 rounded-card border border-line bg-surface py-6 shadow-card">
               <div className="px-5 sm:px-8">
                 <h2 className="text-2xl font-bold text-ink [overflow-wrap:anywhere] sm:text-[1.75rem]">{selected.product_name}</h2>

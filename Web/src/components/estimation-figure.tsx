@@ -20,7 +20,7 @@ const VALIDITY_CLASS: Record<Validity, string> = {
 export function ValidityBadge({ validity, reason }: { validity: Validity; reason: string | null }) {
   return (
     <div>
-      <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${VALIDITY_CLASS[validity]}`}>{VALIDITY_TEXT[validity]}</span>
+      <span className={`inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold ${VALIDITY_CLASS[validity]}`}>{VALIDITY_TEXT[validity]}</span>
       {reason && <p className="mt-1 text-sm leading-snug text-ink-muted">{VALIDITY_REASON_TEXT[reason as keyof typeof VALIDITY_REASON_TEXT]}</p>}
     </div>
   );

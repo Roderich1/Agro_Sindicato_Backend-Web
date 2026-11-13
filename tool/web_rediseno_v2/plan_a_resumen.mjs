@@ -60,6 +60,18 @@ export default [
       { shot: 'zoom200/03-resumen-zoom200', desc: 'Resumen al 200 %', sizes: ['actual'] },
       { measure: 'resumen zoom 200' },
       { viewport: 'escritorio' },
+      // Correcciones tras la primera pasada: histórico con «Cómo leerlo» debajo hasta 1600 px y estimación.
+      { goto: '/colectivo/historico?vista=tendencias', after: 6000 },
+      { shot: 'historico/25-historico-sellado', desc: 'Histórico sellado (lámina 25), las 11 campañas sin desplazamiento a 1440', sizes: ['escritorio', 'portatil'] },
+      { goto: '/colectivo/historico?vista=estimacion', after: 7000 },
+      { shot: 'estimacion/26-estimacion', desc: 'Estimación del consumo (lámina 26)', sizes: ['escritorio'] },
+      // Estado 1 de la copia: «Guardar copia» hace GET /estimation/download y guarda sólo en el navegador de captura (se descarta al cerrar).
+      { click: '^Guardar copia$' },
+      { wait: 3000 },
+      { scroll: '[data-testid="copy-panel"]' },
+      { shot: 'estimacion/26-copia-guardada', desc: '«Llevarla sin conexión» tras guardar la copia en el navegador de captura', sizes: ['escritorio'], full: false },
+      { goto: '/estimacion/copia-sin-conexion', after: 4000 },
+      { shot: 'copia/27-copia-legible', desc: 'Copia sin conexión legible (lámina 27, estado 1), con la sesión abierta', sizes: ['escritorio', 'movil'] },
     ],
   },
 ];
