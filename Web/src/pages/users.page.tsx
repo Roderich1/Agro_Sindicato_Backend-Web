@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { AppShell } from '../components/app-shell';
 import { RowLink } from '../components/c/bits';
 import { SubstitutionSlot } from '../components/c/substitution-slot';
-import { ViewHeader } from '../components/c/view-header';
 import {
   Avatar,
   Button,
@@ -11,18 +10,19 @@ import {
   Chip,
   ConfirmDialog,
   DataState,
+  type DataStateKind,
   dataStateKindForError,
   Dialog,
   FilterChips,
-  Icon,
   ICON,
+  Icon,
   Notice,
+  PageHeader,
   SearchInput,
   Select,
   surfaceClass,
-  TextInput,
-  type DataStateKind,
   type TagTone,
+  TextInput,
 } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { offlineMessage } from '../lib/format';
@@ -127,7 +127,9 @@ export function UsersPage() {
   return (
     <AppShell title="Usuarios" section="Sindicato">
       <div className="flex flex-col gap-5">
-        <ViewHeader
+        <PageHeader
+          attachToHeader
+          eyebrowPhoneOnly
           title="Usuarios"
           eyebrow={currentUser?.tenant?.name ? `${currentUser.tenant.name} · solo Administración` : 'Solo Administración'}
           subtitle={
@@ -135,7 +137,7 @@ export function UsersPage() {
               ? 'Los agricultores entran por la aplicación móvil, no por la Web.'
               : `${NUMBER.format(activeCount)} ${activeCount === 1 ? 'cuenta activa' : 'cuentas activas'} de ${NUMBER.format(users.length)}. Los agricultores entran por la aplicación móvil, no por la Web.`
           }
-          action={{ label: 'Nuevo usuario', onClick: () => setDialog({ kind: 'create' }) }}
+          primaryAction={{ label: 'Nuevo usuario', onClick: () => setDialog({ kind: 'create' }) }}
         />
         {message && <Notice kind="ok">{message}</Notice>}
 

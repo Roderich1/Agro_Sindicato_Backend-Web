@@ -4,9 +4,19 @@ import { Link, type To } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { RowLink, UnitBadge } from '../components/c/bits';
 import { unitInfo } from '../components/c/unit';
-import { ViewHeader } from '../components/c/view-header';
 import { ProductForm } from '../components/product-form';
-import { Button, ConfirmDialog, DataState, Dialog, linkClass, Notice, SearchInput, SegmentedControl, surfaceClass } from '../components/ui';
+import {
+  Button,
+  ConfirmDialog,
+  DataState,
+  Dialog,
+  linkClass,
+  Notice,
+  PageHeader,
+  SearchInput,
+  SegmentedControl,
+  surfaceClass,
+} from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { fmtDateTime } from '../lib/collective-text';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
@@ -113,7 +123,9 @@ export function ProductsView({
 
   return (
     <div className="flex flex-col gap-5">
-      <ViewHeader headingLevel={headingLevel} title={title} eyebrow={user?.tenant?.name} action={{ label: 'Nuevo producto', onClick: openCreate }} />
+      <PageHeader
+          attachToHeader
+          eyebrowPhoneOnly headingLevel={headingLevel} title={title} eyebrow={user?.tenant?.name} primaryAction={{ label: 'Nuevo producto', onClick: openCreate }} />
       {nav}
       {message && <Notice kind="ok">{message}</Notice>}
       {error ? (
