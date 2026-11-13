@@ -16,6 +16,9 @@
 | `18f4554` | Ingresar (01) y aviso para la cuenta de agricultor (02) |
 | `2df7ecb` | Pruebas: adaptadas y nuevas |
 | `7b3e03b` | Compatibilidad de `Modal` (`aria-label`) y de `StatusChip` (punto como pseudoelemento) con las pruebas de las vistas; campos de Ingresar a 16 px |
+| `1b15cc3` | Esta evidencia (primera entrega) |
+| `a3047a6` | Corrección 1 del orquestador: sin franja superior en escritorio; «Datos sintéticos» en `PageHeader` y `HeroPanel` (`SyntheticDataChip`); conexión en la tarjeta de usuario y, en teléfono, sólo «Sin conexión» |
+| `79ed788` | Corrección 2: el service worker precachea las `.ttf`; manifiesto con `theme_color #0f2a1d` y `background_color #f2f4ee` |
 
 ## 2. Verificación sobre `7b3e03b` (2026-11-13, carpeta `Web/`)
 
@@ -32,6 +35,17 @@ La 1.ª ejecución completa, sobre `2df7ecb`, dio `2 failed | 631 passed`:
 - `product-identification.page.test.tsx` leía `aria-label` del diálogo de `Modal`.
 
 Las dos se corrigieron en el componente (`7b3e03b`), no en las pruebas.
+
+### Verificación de las correcciones sobre `79ed788` (2026-11-13)
+
+| Comando | Resultado |
+|---|---|
+| `npx tsc -b` | código 0 |
+| `npx eslint .` | `✖ 7 problems (0 errors, 7 warnings)` (los mismos 7) |
+| `npx vite build` | `✓ built`; `precache 35 entries (1071.70 KiB)`; `dist/sw.js` incluye `fonts/DMSans-400/500/700.ttf` y `fonts/BricolageGrotesque-700/800.ttf`; `dist/manifest.webmanifest` con `theme_color #0f2a1d` y `background_color #f2f4ee` |
+| `npx vitest run` focalizado: `app-shell.test`, `components/ui`, `components/__tests__`, `collective-ui.test`, `contexts`, `lib/axios.refresh.test`, `pages/estimation-copy.page.test`, `lib/estimation-copy.test`, `lib/estimation-copy.revocation.test` (`--no-file-parallelism`) | `Test Files 25 passed (25)` · `Tests 228 passed (228)` |
+
+La suite completa no se volvió a ejecutar (la ejecuta el orquestador al integrar).
 
 ## 3. Capturas
 
@@ -52,7 +66,14 @@ Las dos se corrigieron en el componente (`7b3e03b`), no en las pruebas.
 | 2 | `2df7ecb` + campos de Ingresar a 16 px (después en `7b3e03b`) | `plan_base_medidas.mjs` | Medidas de desplazamiento horizontal a 390 px |
 | 3 | Igual que la pasada 2 | `plan_base_ingresar.mjs` | `acceso/01-ingresar__*` definitivas |
 
+| 4 | `79ed788` | `plan_base_correcciones.mjs` | `correcciones/*`, `zoom200/01-ingresar`, `zoom200/03-resumen*`, `tableta/*` y medidas a 720 y 820 px |
+| 5 | `79ed788` | `plan_base_zoom_menu.mjs` | `zoom200/43-menu-mas*`: ventana visible, sin página completa |
+
 El índice está en `_capturas.json`.
+
+**Aviso:** las capturas de `armazon/`, `foco/`, `dialogos/` y `telefono/` son de la pasada 1 (`2df7ecb`). Las de escritorio aún muestran la franja superior, retirada en `a3047a6`. Las vigentes del escritorio están en `correcciones/`.
+
+En la pasada 4, la captura de página completa de «Más» a 720×450 mezclaba el panel fijo con la página de detrás: es un efecto de la captura de página completa, no de la Web. Se repitió en la pasada 5 con la ventana visible, arriba, en las tareas repetidas y al final del panel.
 
 ### Desplazamiento horizontal a 390 px (pasada 2)
 
@@ -68,6 +89,8 @@ El índice está en `_capturas.json`.
 - `/audit-logs`
 
 El resultado: sin desplazamiento horizontal de la página.
+
+Pasada 4: `/login` y `/colectivo/resumen` con zoom al 200 % (720 = 720) y en tableta (820 = 820). Tampoco hay desplazamiento horizontal.
 
 ### Comparación con las láminas
 
@@ -86,12 +109,22 @@ El resultado: sin desplazamiento horizontal de la página.
 | `telefono/43-menu-mas-directiva__movil` | 43 | Cabecera oscura con el sindicato y «Más», tarjetas con icono, título, descripción y flecha (Histórico y estimaciones, Campañas, Bitácora), usuario «DD» y «Cerrar sesión». «Más» queda activo en la barra |
 | `telefono/44-menu-mas-administrador__movil` | 44 | Igual que la anterior, más Usuarios |
 | `telefono/46-dialogo-hoja-inferior__movil` | 46 | El mismo diálogo como hoja inferior, con asa, sobre el velo |
+| `correcciones/03-resumen-sin-franja__{escritorio,portatil}` | 03 | Sin franja superior. «Datos sintéticos» arriba a la derecha de la cabecera de la vista (`PageHeader`). «En línea» con su punto bajo el rol, en la tarjeta de usuario. La campaña activa la muestra la vista (selector y chip «Activa») |
+| `correcciones/25-historico-chip-unico__escritorio` | 25 | Contenedor con una vista anidada (`h2`): un solo «Datos sintéticos». Histórico abierto con «Histórico sellado» activo |
+| `correcciones/barra-plegada-conexion__escritorio` | 03 | Barra plegada: con red, «En línea» sólo para lectores de pantalla |
+| `zoom200/01-ingresar__zoom200` | 01 | Zoom al 200 %: la marca va arriba y la tarjeta después, sin solapes ni recortes |
+| `zoom200/03-resumen*__zoom200` | 03 | Zoom al 200 %, horizontal de poco alto: barra superior no fija con «Menú», sin barra inferior, «Datos sintéticos» en la cabecera de la vista. Texto y botones sin recortes |
+| `zoom200/43-menu-mas*__zoom200` | 43 | «Más» desde «Menú»: las otras secciones, las tareas de la barra inferior repetidas (sólo en horizontal), el usuario y «Cerrar sesión». El panel se desplaza dentro |
+| `tableta/01-ingresar__tableta` | 01 | Tableta (820): la misma disposición que en teléfono, con la tarjeta centrada |
+| `tableta/03-resumen-pantalla__tableta`, `tableta/43-menu-mas__tableta` | 35 y 43 | Barra superior oscura y barra inferior de cinco, con «Más» como en el teléfono |
 
 ## 4. Diferencias intencionales con las láminas
 
 1. **Lámina 02, texto del aviso.** Se conservan `WEB_NOT_FOR_FARMERS_TITLE` («Esta cuenta utiliza la aplicación móvil.») y `_TEXT`, que son textos funcionales probados. La lámina dice «Esta cuenta se usa en la aplicación móvil / La Web es para la Directiva y la Administración del sindicato». Cambiarlos es decisión del autor.
-2. **Desktop sin barra superior en las láminas.** Se añade una franja clara mínima con la sección, «Datos sintéticos» (regla H-03, la declara el servidor), la campaña activa y la conexión.
-   - La lámina pone «Datos sintéticos» dentro del hero. El armazón la muestra en todas las vistas, también en las que no tienen hero, así que la vista **no** debe repetirla.
+2. **Escritorio sin barra superior, como en las láminas (corrección del 2026-11-13).**
+   - «Datos sintéticos» (H-03) lo muestran solos `PageHeader` y `HeroPanel`, arriba a la derecha.
+   - La conexión (`navigator.onLine`, dato previo al rediseño) va en la tarjeta de usuario.
+   - La campaña activa la muestra cada vista.
 3. **Contador del menú.** La insignia «Por identificar» sale de la API (H-02). Nunca se copia el «6» de la lámina: sin dato o con 0 no hay insignia.
 4. **Sección «SINDICATO».** Agrupa Campañas, **Usuarios** (sólo ADMINISTRADOR) y Bitácora, según el inventario §O.2. La lámina 03 es de la Directiva y no muestra Usuarios. Ya no hay un grupo «Administración».
 5. **Etiqueta «Borrador de compra»** para `/colectivo/propuestas`, como en la lámina 03. El rótulo largo de la franja y de «Más» es «Necesidades y borrador de compra». La página de A aún se titula «Necesidades y propuestas».
@@ -103,6 +136,7 @@ El resultado: sin desplazamiento horizontal de la página.
 
 ## 5. Limitaciones
 
-- **Capturas:** son del navegador a 390 px, no de un teléfono físico. No se midió el zoom al 200 % ni la tableta (820).
-- **Fuentes sin conexión:** el service worker (`vite.config.ts`, no es de BASE) no precachea `.ttf`. Sin conexión, la copia de la estimación usa las fuentes del sistema.
+- **Capturas:** son del navegador a 390, 720 (zoom al 200 %) y 820 px, no de un teléfono ni de una tableta físicos.
+- **Zoom al 200 %:** se emuló con una ventana de 720×450 a 2x, no con el zoom del navegador.
+- **Fuentes sin conexión:** el precacheo de las `.ttf` se comprobó en el `sw.js` generado y con las pruebas de la copia, no abriendo la copia sin red en un navegador.
 - **Contenido de las páginas:** es el del v1 dentro del armazón nuevo; lo rediseñan A, B y C.
