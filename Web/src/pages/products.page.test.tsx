@@ -58,18 +58,22 @@ describe('Gestión → Productos', () => {
     vi.mocked(productsService.deactivate).mockReset();
   });
 
-  it('lista los activos con nombre, unidad y categoría; los inactivos quedan en «Ver inactivos»', async () => {
+  it('lista los activos con nombre, unidad y categoría; los inactivos quedan en «Ver productos inactivos»', async () => {
     renderAt(<ProductsPage />, { path: PATH });
     const herb = await screen.findByTestId('product-Herbicida sintético');
-    expect(herb.textContent).toMatch(/Herbicida sintético.*Glifosato.*L.*Herbicida/);
+    // Rediseño v2: la categoría es el título del grupo («Por categoría») y la unidad va en el recuadro y en texto para lectores.
+    expect(herb.textContent).toMatch(/Unidad: litros.*Herbicida sintético.*Glifosato/);
+    expect(within(screen.getByTestId('group-herbicida')).getByTestId('product-Herbicida sintético')).toBeTruthy();
+    expect(screen.getByTestId('group-herbicida').textContent).toMatch(/^Herbicida/);
     expect(within(screen.getByTestId('product-Urea sintética')).getByText('kg')).toBeTruthy();
     expect(screen.queryByTestId('product-Retirado sintético')).toBeNull();
     const inactive = screen.getByTestId('inactive-products');
-    expect(inactive.textContent).toMatch(/Ver inactivos \(1\)/);
+    expect(inactive.textContent).toMatch(/Ver productos inactivos \(1\)/);
+    fireEvent.click(within(inactive).getByRole('button', { name: /Ver productos inactivos/ }));
     expect(within(inactive).getByTestId('inactive-Retirado sintético')).toBeTruthy();
     // Una sola acción primaria y el enlace a las equivalencias.
     expect(screen.getByRole('button', { name: 'Nuevo producto' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Ver equivalencias' }).getAttribute('href')).toBe(`${COLLECTIVE_PATHS.catalog}?vista=equivalencias`);
+    expect(within(screen.getByRole('main')).getByRole('link', { name: 'Nombres equivalentes' }).getAttribute('href')).toBe(`${COLLECTIVE_PATHS.catalog}?vista=equivalencias`);
   });
 
   it('la Directiva crea un producto con nombre y unidad (opcionales aparte) y aparece en el listado', async () => {
@@ -80,30 +84,30 @@ describe('Gestión → Productos', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo producto' }));
     const submit = screen.getByRole('button', { name: 'Crear producto' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: '  Fungicida nuevo ' } });
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: '  Fungicida nuevo ' } });
     // Sin unidad no se puede crear.
     expect(submit.disabled).toBe(true);
-    fireEvent.click(screen.getByLabelText('Kilogramos (kg)'));
-    fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'Fungicida' } });
+    fireEvent.click(screen.getByLabelText(/^Kilogramos/));
+    fireEvent.change(screen.getByLabelText(/^Categoría/), { target: { value: 'Fungicida' } });
     expect(submit.disabled).toBe(false);
     vi.mocked(productsService.list).mockResolvedValue([...CATALOG, created]);
     fireEvent.click(submit);
     await waitFor(() => expect(productsService.create).toHaveBeenCalledWith({ name: 'Fungicida nuevo', unit: 'kg', category: 'Fungicida' }));
     expect(await screen.findByText('«Fungicida nuevo» quedó creado en el catálogo.')).toBeTruthy();
-    const row = await screen.findByTestId('product-Fungicida nuevo');
-    expect(row.textContent).toMatch(/kg.*Fungicida/);
+    await screen.findByTestId('product-Fungicida nuevo');
+    expect(within(screen.getByTestId('group-fungicida')).getByTestId('product-Fungicida nuevo').textContent).toMatch(/kg/);
   });
 
   it('un nombre que ya existe (sin importar mayúsculas ni tildes) se avisa y no se envía', async () => {
     renderAt(<ProductsPage />, { path: PATH });
     await screen.findByTestId('product-Herbicida sintético');
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo producto' }));
-    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'herbicida SINTETICO' } });
-    fireEvent.click(screen.getByLabelText('Litros (L)'));
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'herbicida SINTETICO' } });
+    fireEvent.click(screen.getByLabelText(/^Litros/));
     expect(screen.getByRole('alert').textContent).toMatch(/Ya existe «Herbicida sintético» en el catálogo del sindicato/);
     expect((screen.getByRole('button', { name: 'Crear producto' }) as HTMLButtonElement).disabled).toBe(true);
     // También contra los inactivos.
-    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Retirado sintético' } });
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Retirado sintético' } });
     expect(screen.getByRole('alert').textContent).toMatch(/\(inactivo\)/);
     expect(productsService.create).not.toHaveBeenCalled();
   });
@@ -113,8 +117,8 @@ describe('Gestión → Productos', () => {
     renderAt(<ProductsPage />, { path: PATH });
     await screen.findByTestId('product-Herbicida sintético');
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo producto' }));
-    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Otro nombre' } });
-    fireEvent.click(screen.getByLabelText('Litros (L)'));
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Otro nombre' } });
+    fireEvent.click(screen.getByLabelText(/^Litros/));
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }));
     expect(await screen.findByText(/Ya existe un producto con ese nombre en este sindicato\. Use el existente o elija otro nombre\./)).toBeTruthy();
   });
@@ -122,10 +126,11 @@ describe('Gestión → Productos', () => {
   it('editar cambia los datos descriptivos y conserva la unidad', async () => {
     vi.mocked(productsService.update).mockResolvedValue(product('Herbicida sintético', { category: 'Herbicida total' }));
     renderAt(<ProductsPage />, { path: PATH });
-    fireEvent.click(within(await screen.findByTestId('product-Herbicida sintético')).getByRole('button', { name: 'Editar' }));
-    expect(screen.getByTestId('unit-locked').textContent).toMatch(/L.*La unidad no se cambia/);
-    expect(screen.queryByLabelText('Litros (L)')).toBeNull();
-    fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'Herbicida total' } });
+    fireEvent.click(within(await screen.findByTestId('product-Herbicida sintético')).getByRole('button', { name: /^Editar/ }));
+    expect(screen.getByTestId('unit-locked').textContent).toMatch(/Litros/);
+    expect(screen.getByText('No se puede cambiar: las cifras ya publicadas están en litros.')).toBeTruthy();
+    expect(screen.queryByLabelText(/^Litros/)).toBeNull();
+    fireEvent.change(screen.getByLabelText(/^Categoría/), { target: { value: 'Herbicida total' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() => expect(productsService.update).toHaveBeenCalled());
     const [id, payload] = vi.mocked(productsService.update).mock.calls[0]!;
@@ -137,13 +142,13 @@ describe('Gestión → Productos', () => {
   it('inactivar pide confirmación y no borra', async () => {
     vi.mocked(productsService.deactivate).mockResolvedValue(product('Urea sintética', { isActive: false }));
     renderAt(<ProductsPage />, { path: PATH });
-    fireEvent.click(within(await screen.findByTestId('product-Urea sintética')).getByRole('button', { name: 'Inactivar' }));
+    fireEvent.click(within(await screen.findByTestId('product-Urea sintética')).getByRole('button', { name: /^Inactivar/ }));
     expect(productsService.deactivate).not.toHaveBeenCalled();
     expect(screen.getByText(/No se borra: sus cifras publicadas, sus equivalencias y su historial se\s+conservan/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
     expect(productsService.deactivate).not.toHaveBeenCalled();
-    fireEvent.click(within(screen.getByTestId('product-Urea sintética')).getByRole('button', { name: 'Inactivar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar inactivación' }));
+    fireEvent.click(within(screen.getByTestId('product-Urea sintética')).getByRole('button', { name: /^Inactivar/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Inactivar producto' }));
     await waitFor(() => expect(productsService.deactivate).toHaveBeenCalledWith('id-Urea sintética'));
     expect(await screen.findByText(/«Urea sintética» quedó inactivo/)).toBeTruthy();
   });

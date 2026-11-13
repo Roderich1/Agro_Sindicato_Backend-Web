@@ -1,15 +1,16 @@
 import axios from 'axios';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
-import { CoverageCard } from '../components/coverage-card';
+import { Facts } from '../components/c/bits';
+import { ParticipationCard } from '../components/c/participation-card';
 import { SealPanel } from '../components/seal-panel';
-import { buttonClassFor, DataState, DataTable, Notice, PageHeader, Section, StatusChip, surfaceClass } from '../components/ui';
+import { buttonClassFor, Chip, DataState, HeroPanel, Icon, ICON, linkClass, Notice, StatusChip, Stepper, surfaceClass } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaignList } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
-import { COLLECTIVE_PATHS, isCollectiveRole } from '../lib/navigation';
+import { CAMPAIGNS_PATH, COLLECTIVE_PATHS, isCollectiveRole } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
 import type { Campaign } from '../types/campaigns';
 import type { CollectiveSummary, ProposalSummary } from '../types/collective';
@@ -19,21 +20,37 @@ import { CampaignActions, OverdueNote } from './campaigns.page';
 type Failure = { kind: 'error' | 'forbidden'; text: string };
 
 const COUNT = new Intl.NumberFormat('es-BO');
+const STEPS = [
+  { key: 'ABIERTA', label: 'Abierta' },
+  { key: 'CERRADA', label: 'Cerrada' },
+  { key: 'SELLADA', label: 'Sellada' },
+];
 
 function failure(err: unknown, fallback: string, text: (err: unknown, fallback: string) => string): Failure {
   return { kind: axios.isAxiosError(err) && err.response?.status === 403 ? 'forbidden' : 'error', text: text(err, fallback) };
 }
 
+const enc = encodeURIComponent;
+
 /**
- * Detalle de una campaña (`/campaigns/:id`). No existe `GET /campaigns/:id`
- * (matriz C2): se compone con la fila de `GET /campaigns`, `GET …/summary`
- * (cobertura, cifras y sello), `GET …/seal` sólo si no está sellada (lo pide
- * `SealPanel`) y `GET …/proposals` (borradores vinculados).
+ * Detalle de una campaña (`/campaigns/:id`, lámina 29; diálogos 30.2, 30.3 y
+ * 34.3). No existe `GET /campaigns/:id` (matriz C2): se compone con la fila de
+ * `GET /campaigns`, `GET …/summary` (participación, cifras y sello),
+ * `GET …/seal` sólo si no está sellada (lo pide `SealPanel`, de la sesión A)
+ * y `GET …/proposals` (borradores de compra).
  *
  * `GET …/summary` sobre una campaña sin sellar ejecuta la decisión de
  * divulgación en el servidor: una sola llamada por visita, sin sondeo ni
  * recarga automática; «Reintentar» es una acción explícita. Ninguna lectura
  * escribe nada por sí misma.
+ *
+ * Uniones: «Ver resumen» → `/colectivo/resumen?campaign=` (U.7); el histórico
+ * sellado → `/colectivo/historico?vista=tendencias&campaign=` (U.2); cada fila
+ * de «Borradores de compra» → `/colectivo/propuestas?campaign=&borrador=`
+ * (U.3) y «Abrir el más reciente» → `/colectivo/propuestas?campaign=`.
+ *
+ * «Versión de las cifras» (H-05): el paso «Cerrada» es el estado de la
+ * campaña; con PLANIFICADA o CANCELADA no se dibuja la línea de pasos.
  */
 export function CampaignDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
@@ -104,17 +121,18 @@ export function CampaignDetailPage() {
   };
 
   const backLink = (
-    <Link to="/campaigns" className={buttonClassFor('ghost')}>
-      Volver a Campañas
+    <Link to={CAMPAIGNS_PATH} className={`${buttonClassFor('on-dark', 'sm')} border-transparent bg-ink-raised`}>
+      <Icon d={ICON.arrowRight} className="h-4 w-4 rotate-180" />
+      Campañas
     </Link>
   );
 
   if (!campaign) {
     const waiting = listLoading || (!listError && rechecked !== id);
     return (
-      <AppShell title="Campaña" section="Gestión">
-        <div className="space-y-4">
-          <PageHeader title="Detalle de campaña" actions={backLink} />
+      <AppShell title="Campaña" section="Sindicato">
+        <div className="flex flex-col gap-5">
+          <HeroPanel attachToHeader title="Detalle de campaña" breadcrumb={backLink} />
           <div className={surfaceClass}>
             {waiting ? (
               <DataState state="loading" title="Cargando la campaña…" />
@@ -129,46 +147,56 @@ export function CampaignDetailPage() {
     );
   }
 
+  const summaryUrl = `${COLLECTIVE_PATHS.summary}?campaign=${enc(campaign.id)}`;
+  const proposalsUrl = `${COLLECTIVE_PATHS.proposals}?campaign=${enc(campaign.id)}`;
+
   return (
-    <AppShell title="Campaña" section="Gestión">
-      <div className="space-y-4">
-        <PageHeader
+    <AppShell title={campaign.name} section="Sindicato">
+      <div className="flex flex-col gap-5">
+        <HeroPanel
+          attachToHeader
           title={campaign.name}
-          subtitle="Detalle de la campaña: datos generales, participación, versión sellada y borradores vinculados."
-          actions={
+          testId="general"
+          breadcrumb={backLink}
+          corner={
             <>
-              {backLink}
-              <Link to={`${COLLECTIVE_PATHS.summary}?campaign=${encodeURIComponent(campaign.id)}`} className={buttonClassFor('secondary')}>
-                Ver resumen
-              </Link>
+              <StatusChip status={campaign.status} />
+              {campaign.isActive && <Chip tone="on-dark">Campaña activa</Chip>}
             </>
           }
-        />
+          stats={[
+            { key: 'start', label: 'Empezó', value: fmtCampaignDay(campaign.startDate) ?? '—' },
+            {
+              key: 'end',
+              label: 'Fin estimado',
+              value: (
+                <span data-testid="estimated-end">
+                  {fmtCampaignDay(campaign.estimatedEndDate) ?? 'Sin fecha estimada'}
+                  {isEstimatedEndOverdue(campaign) && <OverdueNote onDark />}
+                </span>
+              ),
+            },
+            {
+              key: 'closed',
+              label: 'Cierre',
+              value: <span data-testid="closed-at">{campaign.closedAt ? `Cerrada el ${fmtDateTime(campaign.closedAt)}` : 'Sin cierre registrado'}</span>,
+            },
+          ]}
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <p className="max-w-3xl whitespace-pre-line text-sm leading-relaxed text-on-ink-muted [overflow-wrap:anywhere]">
+              <span className="font-semibold text-on-ink">Notas: </span>
+              {campaign.notes || 'Sin notas'}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 lg:shrink-0" data-testid="detail-actions">
+              <CampaignActions campaign={campaign} onChanged={changed} onDark />
+              <Link to={summaryUrl} className={buttonClassFor('accent')}>
+                Ver resumen
+              </Link>
+            </div>
+          </div>
+        </HeroPanel>
         {message && <Notice kind="ok">{message}</Notice>}
-
-        <Section title="Datos generales" actions={<div className="flex flex-wrap gap-2" data-testid="detail-actions"><CampaignActions campaign={campaign} onChanged={changed} /></div>}>
-          <dl className="grid gap-x-6 gap-y-3 px-5 py-4 text-sm sm:grid-cols-2 lg:grid-cols-3" data-testid="general">
-            <Field label="Nombre"><span className="[overflow-wrap:anywhere]">{campaign.name}</span></Field>
-            <Field label="Estado">
-              <span className="flex flex-wrap items-center gap-1.5">
-                <StatusChip status={campaign.status} />
-                {campaign.isActive && <span className="inline-flex items-center rounded-full bg-brand-700 px-2 py-0.5 text-[11px] font-semibold text-white">Activa</span>}
-              </span>
-            </Field>
-            <Field label="Campaña activa">{campaign.isActive ? 'Sí, es la campaña activa del sindicato' : 'No'}</Field>
-            <Field label="Inicio">{fmtCampaignDay(campaign.startDate) ?? '—'}</Field>
-            <Field label="Fin estimado" testId="estimated-end">
-              {fmtCampaignDay(campaign.estimatedEndDate) ?? 'Sin fecha estimada'}
-              {isEstimatedEndOverdue(campaign) && <OverdueNote />}
-            </Field>
-            <Field label="Cierre registrado" testId="closed-at">
-              {campaign.closedAt ? `Cerrada el ${fmtDateTime(campaign.closedAt)}` : 'Sin cierre registrado'}
-            </Field>
-            <Field label="Notas" className="sm:col-span-2 lg:col-span-3">
-              <span className="whitespace-pre-line [overflow-wrap:anywhere]">{campaign.notes || 'Sin notas'}</span>
-            </Field>
-          </dl>
-        </Section>
 
         {!collective ? (
           <div className={surfaceClass}>
@@ -180,76 +208,34 @@ export function CampaignDetailPage() {
           </div>
         ) : summaryError ? (
           <div className={surfaceClass}>
-            <DataState
-              state={summaryError.kind}
-              description={summaryError.text}
-              onRetry={() => void loadSummary(campaign.id)}
-              testId="summary-error"
-            />
+            <DataState state={summaryError.kind} description={summaryError.text} onRetry={() => void loadSummary(campaign.id)} testId="summary-error" />
           </div>
         ) : !summary ? (
           <div className={surfaceClass}>
             <DataState state="loading" title="Cargando participación y versión…" />
           </div>
         ) : (
-          <>
-            <Section
-              title="Participación"
-              note="Cuántos agricultores vinculados están dentro de las cifras publicadas de esta campaña. No se muestra quién aportó ni cuánto."
-            >
-              <div className="p-4">
-                <CoverageCard
-                  coverage={summary.coverage}
-                  sealedAt={summary.seal?.sealed_at}
-                  link={`${COLLECTIVE_PATHS.coverage}?campaign=${encodeURIComponent(campaign.id)}`}
-                  variant="full"
-                />
-              </div>
-            </Section>
-            <Section title="Versión sellada" testId="detail-seal">
-              {summary.seal ? (
-                <div className="px-5 py-4" data-testid="seal-banner">
-                <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-                  <Field label="Versión">Versión {summary.seal.version} sellada</Field>
-                  <Field label="Sellada el">{fmtDateTime(summary.seal.sealed_at)}</Field>
-                  <Field label="Por">
-                    <span className="[overflow-wrap:anywhere]">
-                      {summary.seal.sealed_by.name} ({summary.seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'})
-                    </span>
-                  </Field>
-                  <Field label="Datos aceptados hasta">{fmtDateTime(summary.seal.accepted_until)}</Field>
-                </dl>
-                  <p className="mt-3 text-xs leading-relaxed text-slate-600">
-                    Cada cifra indica su propia fecha. El servidor no puede asegurar que todos los teléfonos publicaron todo. Referencia{' '}
-                    <code title={summary.seal.seal_ref}>{summary.seal.seal_ref.slice(0, 8)}</code>.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3 px-5 py-4">
-                  <p className="text-sm text-slate-700" data-testid="unsealed">
-                    <span className="font-semibold text-ink">Sin sellar.</span> Las cifras pueden cambiar mientras la campaña no tenga una
-                    versión sellada. Cerrar no es sellar.
-                  </p>
-                  <div id="sellado">
-                    <SealPanel campaignId={campaign.id} onSealed={() => void loadSummary(campaign.id)} />
-                  </div>
-                </div>
-              )}
-            </Section>
-          </>
+          <div className="grid items-start gap-5 xl:grid-cols-2">
+            <ParticipationCard coverage={summary.coverage} sealedAt={summary.seal?.sealed_at} link={`${COLLECTIVE_PATHS.coverage}?campaign=${enc(campaign.id)}`} />
+            <VersionCard campaign={campaign} summary={summary} onSealed={() => void loadSummary(campaign.id)} />
+          </div>
         )}
 
         {collective && (
-          <Section
-            title="Propuestas vinculadas"
-            note="Borradores de propuesta de compra conjunta generados para esta campaña. Un borrador no crea compras, lotes, movimientos, deudas ni pagos."
-            actions={
-              <Link to={`${COLLECTIVE_PATHS.proposals}?campaign=${encodeURIComponent(campaign.id)}`} className={buttonClassFor('secondary', 'sm')}>
-                Abrir en Necesidades y propuestas
-              </Link>
-            }
-            testId="detail-proposals"
-          >
+          <section className={`${surfaceClass} min-w-0 px-5 py-6 sm:px-8`} aria-labelledby="drafts-title" data-testid="detail-proposals">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+              <div className="min-w-0">
+                <h2 id="drafts-title" className="font-display text-2xl font-bold text-ink">
+                  Borradores de compra
+                </h2>
+                <p className="mt-0.5 text-sm text-ink-muted">Un borrador no crea compras, lotes, movimientos, deudas ni pagos.</p>
+              </div>
+              {proposals && proposals.length > 0 && (
+                <Link to={proposalsUrl} className={buttonClassFor('secondary', 'sm')}>
+                  Abrir el más reciente
+                </Link>
+              )}
+            </div>
             {proposalsError ? (
               <DataState state={proposalsError.kind} description={proposalsError.text} onRetry={() => void loadProposals(campaign.id)} />
             ) : proposals === null ? (
@@ -257,41 +243,82 @@ export function CampaignDetailPage() {
             ) : proposals.length === 0 ? (
               <DataState state="empty" title="Sin borradores" description="Todavía no se generó ningún borrador para esta campaña." />
             ) : (
-              <DataTable caption="Borradores de la campaña" minWidth={560}>
-                <thead>
-                  <tr>
-                    <th scope="col">Generado el</th>
-                    <th scope="col">Por</th>
-                    <th scope="col" className="ui-num">Líneas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {proposals.map((proposal) => (
-                    <tr key={proposal.proposal_ref}>
-                      <td className="whitespace-nowrap tabular-nums">{fmtDateTime(proposal.generated_at)}</td>
-                      <td className="max-w-[18rem] [overflow-wrap:anywhere]">{proposal.generated_by.name}</td>
-                      <td className="ui-num">
-                        {COUNT.format(proposal.line_count)} {proposal.line_count === 1 ? 'línea' : 'líneas'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </DataTable>
+              <ul className="divide-y divide-line" aria-label="Borradores de la campaña">
+                {proposals.map((proposal) => (
+                  <li key={proposal.proposal_ref} className="relative flex min-w-0 flex-wrap items-center gap-x-6 gap-y-1 py-4 hover:bg-canvas">
+                    <p className="min-w-0 flex-1 basis-44 font-semibold tabular-nums text-ink">{fmtDateTime(proposal.generated_at)}</p>
+                    <p className="min-w-0 flex-1 basis-44 text-ink-muted [overflow-wrap:anywhere]">{proposal.generated_by.name}</p>
+                    <p className="ml-auto text-ink-muted tabular-nums">
+                      {COUNT.format(proposal.line_count)} {proposal.line_count === 1 ? 'producto' : 'productos'}
+                    </p>
+                    <Link
+                      to={`${proposalsUrl}&borrador=${enc(proposal.proposal_ref)}`}
+                      aria-label={`Abrir el borrador del ${fmtDateTime(proposal.generated_at)}`}
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink after:absolute after:inset-0 after:content-[''] hover:bg-sunken focus-visible:outline-2"
+                    >
+                      <Icon d={ICON.chevronRight} className="h-5 w-5" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
-          </Section>
+          </section>
         )}
       </div>
     </AppShell>
   );
 }
 
-function Field({ label, children, testId, className = '' }: { label: string; children: ReactNode; testId?: string; className?: string }) {
+/** «Versión de las cifras» (lámina 29) con el panel de sellado de la sesión A (30.3), sin editarlo. */
+function VersionCard({ campaign, summary, onSealed }: { campaign: Campaign; summary: CollectiveSummary; onSealed: () => void }) {
+  const seal = summary.seal;
+  const step = seal ? 2 : campaign.status === 'CERRADA' ? 1 : campaign.status === 'ABIERTA' ? 0 : -1;
+  const historyUrl = `${COLLECTIVE_PATHS.history}?vista=tendencias&campaign=${enc(campaign.id)}`;
   return (
-    <div className={`min-w-0 ${className}`}>
-      <dt className="text-xs font-semibold text-slate-600">{label}</dt>
-      <dd className="mt-0.5 text-ink tabular-nums" data-testid={testId}>
-        {children}
-      </dd>
-    </div>
+    <section className={`${surfaceClass} min-w-0 px-5 py-6 sm:px-8`} aria-labelledby="version-title" data-testid="detail-seal">
+      <h2 id="version-title" className="font-display text-2xl font-bold text-ink">
+        Versión de las cifras
+      </h2>
+      <div className="mt-4 space-y-4">
+        {step >= 0 ? (
+          <Stepper label="Versión de las cifras" steps={STEPS} current={step} />
+        ) : (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-ink">
+            Estado de la campaña: <StatusChip status={campaign.status} />
+          </p>
+        )}
+        {seal ? (
+          <div data-testid="seal-banner" className="space-y-3">
+            <Facts
+              rows={[
+                ['Versión', `Versión ${seal.version} sellada`],
+                ['Sellada el', fmtDateTime(seal.sealed_at)],
+                ['Por', `${seal.sealed_by.name} (${seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'})`],
+                ['Datos aceptados hasta', fmtDateTime(seal.accepted_until)],
+              ]}
+            />
+            <p className="text-sm leading-relaxed text-ink-muted">
+              La versión sellada ya no se corrige. Cada cifra indica su propia fecha. El servidor no puede asegurar que todos los teléfonos publicaron todo.
+              Referencia <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-base leading-relaxed text-ink-muted" data-testid="unsealed">
+              <span className="font-semibold text-ink">Sin sellar.</span>{' '}
+              {campaign.status === 'CERRADA'
+                ? 'La campaña está cerrada: revise la cobertura y los avisos y selle la versión. Una vez sellada, ya no se corrige.'
+                : 'Las cifras todavía pueden cambiar. Primero se cierra la campaña; después se sella la versión, y ya no se corrige. Cerrar no es sellar.'}
+            </p>
+            <div id="sellado">
+              <SealPanel campaignId={campaign.id} onSealed={onSealed} />
+            </div>
+          </>
+        )}
+        <Link to={historyUrl} className={`${linkClass} inline-flex min-h-11 items-center`}>
+          Ver el histórico sellado
+        </Link>
+      </div>
+    </section>
   );
 }

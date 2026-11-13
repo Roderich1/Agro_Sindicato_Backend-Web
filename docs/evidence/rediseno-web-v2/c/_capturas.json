@@ -1,0 +1,440 @@
+[
+ {
+  "files": [
+   "catalogo/21-productos__escritorio.png",
+   "catalogo/21-productos__portatil.png",
+   "catalogo/21-productos__tableta.png",
+   "catalogo/21-productos__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Catálogo · Productos agrupados por categoría (lámina 21; teléfono 39)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/21-productos-inactivos__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "«Ver productos inactivos»: lista de sólo lectura (sin inactivos en la base sintética: estado vacío real)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/21-productos-por-unidad__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Agrupado por unidad",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/30.4-nuevo-producto__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Diálogo «Nuevo producto» (30.4); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/34.4-editar-producto__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Diálogo «Editar producto» con la unidad bloqueada (34.4); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/30.5-inactivar-producto__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Confirmación «Inactivar producto» (30.5); se vuelve sin inactivar",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "estados/21-productos-error__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=productos&e=1",
+  "rol": "directiva",
+  "desc": "Error del servidor al cargar productos, con «Reintentar»",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "catalogo/22-nombres-equivalentes__escritorio.png",
+   "catalogo/22-nombres-equivalentes__portatil.png",
+   "catalogo/22-nombres-equivalentes__tableta.png",
+   "catalogo/22-nombres-equivalentes__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=equivalencias",
+  "rol": "directiva",
+  "desc": "Nombres equivalentes: uniones, historial y nombres sueltos (lámina 22)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/22-historial-abierto__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=equivalencias",
+  "rol": "directiva",
+  "desc": "«Historial de cambios» abierto",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/30.6-unir-nombres__escritorio.png",
+   "dialogos/30.6-unir-nombres__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=equivalencias",
+  "rol": "directiva",
+  "desc": "Diálogo «Unir» (30.6): botón desactivado hasta producto, motivo y casilla; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/34.5-separar-nombres__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=equivalencias",
+  "rol": "directiva",
+  "desc": "Diálogo «Separar» (34.5); se vuelve sin separar",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/22-corregir-union__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=equivalencias",
+  "rol": "directiva",
+  "desc": "«Corregir…» una unión (H-01: nueva unión con otro producto); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/23-por-identificar__escritorio.png",
+   "catalogo/23-por-identificar__portatil.png",
+   "catalogo/23-por-identificar__tableta.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Por identificar: lista y panel de la primera solicitud (lámina 23)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/23-por-identificar-con-foto__escritorio.png",
+   "catalogo/23-por-identificar-con-foto__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Solicitud con foto elegida: «Ya está en el catálogo» con parecidos (lámina 23)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/23-producto-nuevo__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "«Es un producto nuevo»: nombre, ingrediente y unidad bloqueada",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/23-falta-informacion__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "«Falta información»: nota y casilla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/33.5-foto-no-disponible__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Diálogo de la foto (33.5) con respuesta simulada 404: la imagen real es privada y no se captura",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "catalogo/24-ya-identificados__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Ya identificados (lámina 24)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "catalogo/24-corregir-identificacion__escritorio.png",
+   "catalogo/24-corregir-identificacion__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Panel «Corregir la identificación» (link → RELINKED); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "campanas/28-campanas__escritorio.png",
+   "campanas/28-campanas__portatil.png",
+   "campanas/28-campanas__tableta.png",
+   "campanas/28-campanas__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Campañas: activa y las demás con «Sellada · versión N» (lámina 28; teléfono 41)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/30.1-nueva-campana__escritorio.png",
+   "dialogos/30.1-nueva-campana__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Diálogo «Nueva campaña» (30.1); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/30.2-cerrar-campana__escritorio.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Confirmación «Cerrar campaña» (30.2); se vuelve sin cerrar",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/34.3-editar-campana__escritorio.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Diálogo «Editar campaña» con el estado bloqueado (34.3); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "campanas/29-detalle-activa__escritorio.png",
+   "campanas/29-detalle-activa__portatil.png",
+   "campanas/29-detalle-activa__tableta.png",
+   "campanas/29-detalle-activa__movil.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "Detalle de la campaña activa: participación, versión y borradores (lámina 29)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "campanas/29-detalle-sellada__escritorio.png",
+   "campanas/29-detalle-sellada__movil.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "Detalle de una campaña cerrada y sellada",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "bitacora/32-bitacora__escritorio.png",
+   "bitacora/32-bitacora__portatil.png",
+   "bitacora/32-bitacora__tableta.png",
+   "bitacora/32-bitacora__movil.png"
+  ],
+  "ruta": "/audit-logs",
+  "rol": "directiva",
+  "desc": "Bitácora agrupada por día (lámina 32; teléfono 42)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/33.4-que-paso__escritorio.png",
+   "dialogos/33.4-que-paso__movil.png"
+  ],
+  "ruta": "/audit-logs",
+  "rol": "directiva",
+  "desc": "Diálogo «Qué pasó» (33.4)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "estados/32-bitacora-ocupado__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/audit-logs?e=1",
+  "rol": "directiva",
+  "desc": "Servidor ocupado (429) en la Bitácora, con «Reintentar»",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "telefono/47-por-identificar__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Por identificar en teléfono (lámina 47)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/42-bitacora-filtros__movil.png"
+  ],
+  "ruta": "/audit-logs",
+  "rol": "directiva",
+  "desc": "Bitácora en teléfono con «Más filtros» abierto",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/21-productos__zoom200.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Productos al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/28-campanas__zoom200.png"
+  ],
+  "ruta": "/campaigns?z=1",
+  "rol": "directiva",
+  "desc": "Campañas al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "foco/21-foco-teclado__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Foco visible con teclado en Productos",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "usuarios/31-usuarios__escritorio.png",
+   "usuarios/31-usuarios__portatil.png",
+   "usuarios/31-usuarios__tableta.png",
+   "usuarios/31-usuarios__movil.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Usuarios (Administración) con el permiso «Sustituir responsable» (lámina 31; teléfono 44)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "usuarios/31-permiso-abierto__escritorio.png",
+   "usuarios/31-permiso-abierto__movil.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Permiso «Sustituir responsable» desplegado (componente actual de B, sin editar)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/33.1-nuevo-usuario__escritorio.png",
+   "dialogos/33.1-nuevo-usuario__movil.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Diálogo «Nuevo usuario» (33.1), rol propuesto Directiva; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/33.2-contrasena__escritorio.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Diálogo «Contraseña» (33.2); no se escribe ni se envía nada",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/33.3-desactivar__escritorio.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Confirmación «Desactivar» (33.3); se vuelve sin desactivar",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/34.6-editar-usuario__escritorio.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Diálogo «Editar usuario» con el correo de sólo lectura (34.6, H-13); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "usuarios/31-filtro-directiva__escritorio.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Filtro por rol «Directiva»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/44-menu-mas-admin__movil.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Menú «Más» del Administrador (armazón de BASE) para llegar a Usuarios",
+  "estado": "",
+  "simulado": false
+ }
+]

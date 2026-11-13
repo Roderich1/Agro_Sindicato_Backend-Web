@@ -3,6 +3,7 @@ import { AxiosError, AxiosHeaders } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import { identificationService } from '../services/identification.service';
+import { IDENTIFICATION_CHANGED_EVENT } from '../contexts/identification-pending';
 import { renderAt } from '../test/render';
 import type { CatalogEntry } from '../types/collective';
 import type { IdentificationCandidate, IdentificationEvent, IdentificationRequest } from '../types/identification';
@@ -105,11 +106,19 @@ function axiosError(status: number | null, data: unknown = {}) {
 const render = () => renderAt(<ProductIdentificationView />, { path: '/colectivo/catalogo' });
 const card = (id: string) => screen.findByTestId(`identification-${id}`);
 const dialog = () => screen.getByRole('dialog');
-const openAction = async (id: string, action: 'Vincular…' | 'Crear producto colectivo…' | 'Dejar pendiente…') => {
-  fireEvent.click(within(await card(id)).getByRole('button', { name: action }));
-  return dialog();
+/**
+ * Rediseño v2 (láminas 23 y 47): la solicitud se elige en la lista y la decisión se toma en el panel de al lado
+ * (antes, un diálogo por acción). Sólo cambia cómo se llega; lo que se comprueba es lo mismo.
+ */
+const panel = () => screen.getByTestId('identification-panel');
+const CHOICE = { 'Vincular…': /^Ya está en el catálogo/, 'Crear producto colectivo…': /^Es un producto nuevo/, 'Dejar pendiente…': /^Falta información/ } as const;
+const openAction = async (id: string, action: keyof typeof CHOICE) => {
+  fireEvent.click(within(await card(id)).getByRole('button'));
+  fireEvent.click(within(panel()).getByRole('radio', { name: CHOICE[action] }));
+  return panel();
 };
-const submitButton = (name: string) => within(dialog()).getByRole('button', { name }) as HTMLButtonElement;
+const submitButton = (name: string) => within(panel()).getByRole('button', { name }) as HTMLButtonElement;
+const candidateRadios = () => screen.queryAllByTestId(/^candidate-/).map((item) => within(item).getByRole('radio') as HTMLInputElement);
 
 describe('Productos por identificar (E1 §6)', () => {
   beforeEach(() => {
@@ -129,14 +138,19 @@ describe('Productos por identificar (E1 §6)', () => {
     const a = await card('r-a');
     expect(identificationService.list).toHaveBeenCalledWith('PENDING');
     expect(a.textContent).toContain('Glifosato 480 del Sur');
-    expect(a.textContent).toContain('Ingrediente activo:Glifosato');
-    expect(a.textContent).toContain('Unidad:L');
-    expect(a.textContent).toContain('Recibida:');
-    expect(within(a).getByRole('button', { name: 'Ver foto' })).toBeTruthy();
+    expect(a.textContent).toMatch(/Litros · .* · con foto/);
+    // La primera solicitud queda elegida: su panel muestra los datos y la foto (sin pedirla todavía).
+    expect(panel().textContent).toContain('Ingrediente activoGlifosato');
+    expect(panel().textContent).toContain('Se mide enlitros');
+    expect(panel().textContent).toContain('Recibido');
+    expect(within(panel()).getByRole('button', { name: 'Ver la foto' })).toBeTruthy();
+    expect(identificationService.photoBlob).not.toHaveBeenCalled();
     const b = await card('r-b');
-    expect(b.textContent).toContain('Ingrediente activo:Sin dato');
-    expect(within(b).queryByRole('button', { name: 'Ver foto' })).toBeNull();
-    expect(within(b).getByTestId('pending-note').textContent).toContain('Pendiente por falta de información: Falta la concentración en la etiqueta');
+    expect(within(b).getByText('Falta información')).toBeTruthy();
+    fireEvent.click(within(b).getByRole('button'));
+    expect(panel().textContent).toContain('Ingrediente activoSin dato');
+    expect(within(panel()).queryByRole('button', { name: 'Ver la foto' })).toBeNull();
+    expect(within(panel()).getByTestId('pending-note').textContent).toContain('Pendiente por falta de información: Falta la concentración en la etiqueta');
     expect(screen.queryByTestId('identification-loading')).toBeNull();
     for (const write of [identificationService.link, identificationService.createProduct, identificationService.defer]) expect(write).not.toHaveBeenCalled();
     // Ni la API ni la vista identifican a quien reportó.
@@ -185,7 +199,8 @@ describe('Productos por identificar (E1 §6)', () => {
       const blob = new Blob(['jpeg'], { type: 'image/jpeg' });
       vi.mocked(identificationService.photoBlob).mockResolvedValue(blob);
       render();
-      fireEvent.click(within(await card('r-a')).getByRole('button', { name: 'Ver foto' }));
+      await card('r-a');
+      fireEvent.click(within(panel()).getByRole('button', { name: 'Ver la foto' }));
       const image = (await screen.findByAltText('Foto de la etiqueta reportada')) as HTMLImageElement;
       expect(identificationService.photoBlob).toHaveBeenCalledWith('r-a');
       expect(createObjectURL).toHaveBeenCalledWith(blob);
@@ -200,7 +215,8 @@ describe('Productos por identificar (E1 §6)', () => {
     it('un 404 se explica en el diálogo, sin imagen', async () => {
       vi.mocked(identificationService.photoBlob).mockRejectedValue(axiosError(404));
       render();
-      fireEvent.click(within(await card('r-a')).getByRole('button', { name: 'Ver foto' }));
+      await card('r-a');
+      fireEvent.click(within(panel()).getByRole('button', { name: 'Ver la foto' }));
       expect(await within(dialog()).findByText('La foto ya no está disponible: fue retirada o no existe.')).toBeTruthy();
       expect(screen.queryByAltText('Foto de la etiqueta reportada')).toBeNull();
       expect(createObjectURL).not.toHaveBeenCalled();
@@ -209,6 +225,8 @@ describe('Productos por identificar (E1 §6)', () => {
 
   it('vincular: sugerencias con su parecido y la aclaración; exige motivo y confirmación y envía el cuerpo del contrato', async () => {
     vi.mocked(identificationService.link).mockResolvedValue({ ...REQ_A, status: 'LINKED' });
+    const changed = vi.fn();
+    window.addEventListener(IDENTIFICATION_CHANGED_EVENT, changed);
     render();
     const modal = await openAction('r-a', 'Vincular…');
     expect(identificationService.candidates).toHaveBeenCalledWith('r-a');
@@ -222,9 +240,9 @@ describe('Productos por identificar (E1 §6)', () => {
     expect((within(inactive).getByRole('radio') as HTMLInputElement).disabled).toBe(true);
     expect(within(modal).getByTestId('candidates-disclaimer').textContent).toBe('Sugerencias por parecido del nombre; la decisión es suya.');
     // Nada viene elegido: la sugerencia no es una decisión.
-    expect(within(modal).getAllByRole('radio').some((radio) => (radio as HTMLInputElement).checked)).toBe(false);
+    expect(candidateRadios().some((radio) => radio.checked)).toBe(false);
 
-    const confirm = submitButton('Confirmar vínculo');
+    const confirm = submitButton('Confirmar identificación');
     expect(confirm.disabled).toBe(true);
     fireEvent.click(within(first).getByRole('radio'));
     expect(confirm.disabled).toBe(true);
@@ -236,8 +254,10 @@ describe('Productos por identificar (E1 §6)', () => {
 
     expect(await screen.findByText('“Glifosato 480 del Sur” vinculado con “Glifosato 48 SL”. La decisión queda en la bitácora.')).toBeTruthy();
     expect(identificationService.link).toHaveBeenCalledWith('r-a', { product_ref: 'p-1', reason: 'misma etiqueta', confirmed: true });
-    expect(screen.queryByRole('dialog')).toBeNull();
     expect(identificationService.list).toHaveBeenCalledTimes(2);
+    // U.5: el armazón vuelve a contar los pendientes (una señal por decisión).
+    expect(changed).toHaveBeenCalledTimes(1);
+    window.removeEventListener(IDENTIFICATION_CHANGED_EVENT, changed);
   });
 
   it('vincular: el catálogo se limita a productos activos de la misma dimensión y se puede buscar sin tildes', async () => {
@@ -252,7 +272,7 @@ describe('Productos por identificar (E1 §6)', () => {
     fireEvent.change(select, { target: { value: 'p-2' } });
     fireEvent.change(within(modal).getByLabelText('Motivo'), { target: { value: 'misma etiqueta' } });
     fireEvent.click(within(modal).getByRole('checkbox'));
-    fireEvent.click(submitButton('Confirmar vínculo'));
+    fireEvent.click(submitButton('Confirmar identificación'));
     expect(await screen.findByText('“Glifosato 480 del Sur” ya estaba vinculado con “Glifosato 480”; no cambió nada.')).toBeTruthy();
     expect(identificationService.link).toHaveBeenCalledWith('r-a', { product_ref: 'p-2', reason: 'misma etiqueta', confirmed: true });
   });
@@ -266,9 +286,9 @@ describe('Productos por identificar (E1 §6)', () => {
     fireEvent.click(within(await within(modal).findByTestId('candidate-p-1')).getByRole('radio'));
     fireEvent.change(within(modal).getByLabelText('Motivo'), { target: { value: 'misma etiqueta' } });
     fireEvent.click(within(modal).getByRole('checkbox'));
-    fireEvent.click(submitButton('Confirmar vínculo'));
+    fireEvent.click(submitButton('Confirmar identificación'));
     expect(await within(modal).findByText('El producto elegido está inactivo: elija un producto activo.')).toBeTruthy();
-    fireEvent.click(submitButton('Confirmar vínculo'));
+    fireEvent.click(submitButton('Confirmar identificación'));
     expect(await within(modal).findByText('No fue posible guardar el vínculo.')).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/ALGO_NUEVO|PRODUCT_INACTIVE/);
   });
@@ -281,7 +301,7 @@ describe('Productos por identificar (E1 §6)', () => {
     expect(name.value).toBe('Glifosato 480 del Sur');
     expect((within(modal).getByLabelText('Ingrediente activo (opcional)') as HTMLInputElement).value).toBe('Glifosato');
     expect(within(modal).getByTestId('identification-unit-locked').textContent).toContain('Unidad: L');
-    expect(within(modal).queryByRole('radio')).toBeNull();
+    expect(candidateRadios()).toHaveLength(0);
 
     // Un nombre que ya está en el catálogo se avisa antes de enviar y ofrece vincular.
     await vi.waitFor(() => expect(collectiveService.catalog).toHaveBeenCalled());
@@ -290,7 +310,7 @@ describe('Productos por identificar (E1 §6)', () => {
     expect(within(modal).getByRole('button', { name: 'Vincular con “Glifosato 48 SL”' })).toBeTruthy();
     fireEvent.change(name, { target: { value: 'Glifosato 480 Sur' } });
 
-    const create = submitButton('Crear y vincular');
+    const create = submitButton('Crear e identificar');
     fireEvent.change(within(modal).getByLabelText('Motivo'), { target: { value: 'producto nuevo' } });
     expect(create.disabled).toBe(true);
     fireEvent.click(within(modal).getByRole('checkbox'));
@@ -304,9 +324,8 @@ describe('Productos por identificar (E1 §6)', () => {
       reason: 'producto nuevo',
       confirmed: true,
     });
-    const action = within(modal).getByRole('group', { name: 'Acción' });
-    expect(within(action).getByRole('button', { name: 'Vincular' }).getAttribute('aria-pressed')).toBe('true');
-    expect(within(modal).getByRole('button', { name: 'Confirmar vínculo' })).toBeTruthy();
+    expect((within(modal).getByRole('radio', { name: /^Ya está en el catálogo/ }) as HTMLInputElement).checked).toBe(true);
+    expect(within(modal).getByRole('button', { name: 'Confirmar identificación' })).toBeTruthy();
     expect(screen.queryByText(/Se creó el producto colectivo/)).toBeNull();
   });
 
@@ -317,7 +336,7 @@ describe('Productos por identificar (E1 §6)', () => {
     expect(within(modal).getByTestId('identification-unit-locked').textContent).toContain('Unidad: KG');
     fireEvent.change(within(modal).getByLabelText('Motivo'), { target: { value: 'no existe en el catálogo' } });
     fireEvent.click(within(modal).getByRole('checkbox'));
-    fireEvent.click(submitButton('Crear y vincular'));
+    fireEvent.click(submitButton('Crear e identificar'));
     expect(await screen.findByText('Se creó el producto colectivo “Urea perlada” y “Urea perlada” quedó vinculado con él. La decisión queda en la bitácora.')).toBeTruthy();
     expect(identificationService.createProduct).toHaveBeenCalledWith('r-b', { name: 'Urea perlada', active_ingredient: null, reason: 'no existe en el catálogo', confirmed: true });
   });
@@ -326,7 +345,7 @@ describe('Productos por identificar (E1 §6)', () => {
     vi.mocked(identificationService.defer).mockResolvedValue(REQ_B);
     render();
     const modal = await openAction('r-b', 'Dejar pendiente…');
-    const save = submitButton('Guardar como pendiente');
+    const save = submitButton('Dejar pendiente');
     fireEvent.change(within(modal).getByLabelText('Nota'), { target: { value: 'Falta la concentración' } });
     expect(save.disabled).toBe(true);
     fireEvent.click(within(modal).getByRole('checkbox'));
@@ -364,21 +383,37 @@ describe('Productos por identificar (E1 §6)', () => {
     expect(document.body.textContent).not.toMatch(/@|RELINKED|PRODUCT_CREATED/);
   });
 
-  it('«Identificadas» se consulta al abrirla y permite corregir el vínculo', async () => {
+  it('«Ya identificados» se consulta al abrirla y permite corregir la identificación (link → RELINKED) con motivo y confirmación', async () => {
+    vi.mocked(identificationService.link).mockResolvedValue({ ...REQ_LINKED });
+    const changed = vi.fn();
+    window.addEventListener(IDENTIFICATION_CHANGED_EVENT, changed);
     render();
     await card('r-a');
     expect(identificationService.list).not.toHaveBeenCalledWith('LINKED');
-    const details = screen.getByTestId('identified') as HTMLDetailsElement;
-    details.open = true;
-    fireEvent(details, new Event('toggle'));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Lista' })).getByRole('button', { name: /^Ya identificados/ }));
     const row = await screen.findByTestId('identified-r-c');
     expect(identificationService.list).toHaveBeenCalledWith('LINKED');
-    expect(row.textContent).toContain('Manco 80 → Mancozeb 80 WP');
+    expect(row.textContent).toContain('«Manco 80»');
+    expect(row.textContent).toContain('Identificado como Mancozeb 80 WP');
     expect(row.textContent).toContain('Producto colectivo creado');
-    fireEvent.click(within(row).getByRole('button', { name: 'Corregir vínculo…' }));
-    const modal = dialog();
-    expect(modal.getAttribute('aria-label')).toBe('Corregir el vínculo de «Manco 80»');
-    expect(within(modal).queryByRole('group', { name: 'Acción' })).toBeNull();
-    expect(within(modal).getByRole('button', { name: 'Confirmar vínculo' })).toBeTruthy();
+    fireEvent.click(within(row).getByRole('button', { name: /^Corregir la identificación/ }));
+    const correction = screen.getByRole('region', { name: 'Corregir la identificación' });
+    expect(within(correction).queryByRole('radio')).toBeNull();
+    const save = within(correction).getByRole('button', { name: 'Guardar corrección' }) as HTMLButtonElement;
+    const select = within(correction).getByLabelText('Producto correcto') as HTMLSelectElement;
+    await vi.waitFor(() => expect(select.disabled).toBe(false));
+    // Sólo productos activos de la misma dimensión (kg).
+    expect([...select.options].map((o) => o.textContent)).toEqual(['Seleccione…', 'Urea (kg)']);
+    fireEvent.change(select, { target: { value: 'p-3' } });
+    expect(save.disabled).toBe(true);
+    fireEvent.change(within(correction).getByLabelText('Motivo'), { target: { value: 'era urea' } });
+    expect(save.disabled).toBe(true);
+    fireEvent.click(within(correction).getByRole('checkbox'));
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+    expect(await screen.findByText('“Manco 80” vinculado con “Urea”. La decisión queda en la bitácora.')).toBeTruthy();
+    expect(identificationService.link).toHaveBeenCalledWith('r-c', { product_ref: 'p-3', reason: 'era urea', confirmed: true });
+    expect(changed).toHaveBeenCalledTimes(1);
+    window.removeEventListener(IDENTIFICATION_CHANGED_EVENT, changed);
   });
 });

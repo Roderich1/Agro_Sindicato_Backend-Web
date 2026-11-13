@@ -1,23 +1,38 @@
-import { useState, type FormEvent } from 'react';
-import { CATEGORY_SUGGESTIONS, normalizeName, productError, UNIT_OPTIONS, type ProductUnit } from '../lib/product-text';
+import { useEffect, useState, type FormEvent } from 'react';
+import { CATEGORY_SUGGESTIONS, normalizeName, productError, type ProductUnit } from '../lib/product-text';
 import { productsService } from '../services/inventory.service';
 import type { Product } from '../types/inventory';
-import { buttonClass, inputClass, labelClass, Notice, secondaryButtonClass } from './app-shell';
+import { Button, Icon, ICON, Notice, RadioCards, TextInput } from './ui';
 
 /**
- * Formulario de producto del sindicato (Gestión → Productos y «Crear producto
- * nuevo» desde una denominación pendiente). Usa los endpoints existentes
+ * Formulario de producto del sindicato (láminas 30.4 «Nuevo producto» y 34.4
+ * «Editar producto»), usado en Catálogo → Productos y en «Crear producto
+ * distinto» desde Nombres equivalentes. Usa los endpoints existentes
  * (`POST`/`PATCH /inventory/products`); el servidor sólo los admite para la
  * Directiva y el Administrador.
  *
  * La unidad se elige al crear (L o kg: las dos que el servidor convierte a una
  * unidad base vinculable, mL o g) y no se cambia después, para no romper los
- * vínculos de cifras, equivalencias y declaraciones ya recibidas.
+ * vínculos de cifras, equivalencias y declaraciones ya recibidas. «Nombre
+ * comercial» no está en la lámina, pero es un dato que ya existe: se conserva
+ * como campo opcional para no dejarlo sin forma de editarse.
  */
 export interface ExistingName {
   id: string;
   name: string;
   isActive: boolean;
+}
+
+const UNIT_CARDS: { value: ProductUnit; label: string; description: string }[] = [
+  { value: 'L', label: 'Litros', description: 'Para productos líquidos.' },
+  { value: 'kg', label: 'Kilogramos', description: 'Para productos sólidos.' },
+];
+
+function lockedUnitText(unit: string): { name: string; help: string } {
+  const upper = unit.trim().toUpperCase();
+  if (upper === 'L') return { name: 'Litros', help: 'No se puede cambiar: las cifras ya publicadas están en litros.' };
+  if (upper === 'KG') return { name: 'Kilogramos', help: 'No se puede cambiar: las cifras ya publicadas están en kilogramos.' };
+  return { name: unit, help: 'No se puede cambiar desde aquí. Esta unidad no se vincula a cifras colectivas.' };
 }
 
 export function ProductForm({
@@ -27,20 +42,23 @@ export function ProductForm({
   onSaved,
   onCancel,
   submitLabel,
+  onDirtyChange,
 }: {
   /** Producto a editar; sin él, se crea uno nuevo. */
   product?: Product | null;
   /** Nombres ya usados en el sindicato, para avisar antes de enviar. */
   existing: ExistingName[];
-  /** Unidad fija (p. ej. la de la denominación que se quiere asociar). */
+  /** Unidad fija (p. ej. la del nombre que se quiere unir). */
   lockedUnit?: ProductUnit;
   onSaved: (product: Product) => void;
   onCancel: () => void;
   submitLabel?: string;
+  /** Avisa si hay cambios sin guardar (el diálogo pregunta antes de descartarlos). */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const editing = Boolean(product);
   const [name, setName] = useState(product?.name ?? '');
-  const [unit, setUnit] = useState<ProductUnit | ''>(lockedUnit ?? '');
+  const [unit, setUnit] = useState<ProductUnit | null>(lockedUnit ?? null);
   const [commercialName, setCommercialName] = useState(product?.commercialName ?? '');
   const [activeIngredient, setActiveIngredient] = useState(product?.activeIngredient ?? '');
   const [category, setCategory] = useState(product?.category ?? '');
@@ -49,7 +67,14 @@ export function ProductForm({
 
   const trimmed = name.trim();
   const clash = trimmed.length > 0 ? existing.find((entry) => entry.id !== product?.id && normalizeName(entry.name) === normalizeName(trimmed)) ?? null : null;
-  const ready = trimmed.length >= 2 && trimmed.length <= 160 && (editing || unit !== '') && !clash && !saving;
+  const ready = trimmed.length >= 2 && trimmed.length <= 160 && (editing || unit !== null) && !clash && !saving;
+  const dirty = product
+    ? name !== product.name || commercialName !== (product.commercialName ?? '') || activeIngredient !== (product.activeIngredient ?? '') || category !== (product.category ?? '')
+    : name.length > 0 || commercialName.length > 0 || activeIngredient.length > 0 || category.length > 0 || (!lockedUnit && unit !== null);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -80,94 +105,91 @@ export function ProductForm({
     }
   };
 
+  const locked = product ? lockedUnitText(product.unit) : null;
+
   return (
-    <form className="space-y-4" onSubmit={(event) => void submit(event)} aria-label={editing ? 'Editar producto' : 'Nuevo producto'}>
-      <div>
-        <label htmlFor="product-name" className={labelClass}>
-          Nombre *
-        </label>
-        <input
-          id="product-name"
-          className={inputClass}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          maxLength={160}
-          autoComplete="off"
-          aria-invalid={clash ? true : undefined}
-          aria-describedby={clash ? 'product-name-clash' : undefined}
-        />
-        {clash && (
-          <p id="product-name-clash" className="mt-1.5 text-xs font-semibold text-red-700" role="alert">
-            Ya existe «{clash.name}»{clash.isActive ? '' : ' (inactivo)'} en el catálogo del sindicato. Use ese producto o elija otro nombre.
-          </p>
-        )}
-      </div>
+    <form className="space-y-5" onSubmit={(event) => void submit(event)} aria-label={editing ? 'Editar producto' : 'Nuevo producto'} noValidate>
+      <TextInput
+        id="product-name"
+        label="Nombre"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        maxLength={160}
+        autoComplete="off"
+        placeholder="Como lo conocen los agricultores"
+        error={
+          clash ? (
+            <span role="alert">
+              Ya existe «{clash.name}»{clash.isActive ? '' : ' (inactivo)'} en el catálogo del sindicato. Use ese producto o elija otro nombre.
+            </span>
+          ) : undefined
+        }
+      />
 
-      <fieldset>
-        <legend className={labelClass}>Unidad *</legend>
-        {editing ? (
-          <p className="text-sm text-slate-700" data-testid="unit-locked">
-            <span className="font-semibold">{product!.unit}</span>
-            <span className="ml-2 text-xs text-slate-500">La unidad no se cambia: protege los vínculos con cifras y equivalencias.</span>
+      {locked ? (
+        <div>
+          <p className="mb-1.5 block text-sm font-semibold text-ink" id="product-unit-label">
+            Unidad
           </p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {UNIT_OPTIONS.map((option) => {
-              const disabled = lockedUnit !== undefined && lockedUnit !== option.value;
-              return (
-                <label
-                  key={option.value}
-                  className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold ${
-                    unit === option.value ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-700'
-                  } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
-                >
-                  <input type="radio" name="product-unit" value={option.value} checked={unit === option.value} disabled={disabled} onChange={() => setUnit(option.value)} />
-                  {option.label}
-                </label>
-              );
-            })}
-            {lockedUnit && <p className="w-full text-xs text-slate-500">Misma unidad que la denominación que va a asociar.</p>}
-          </div>
-        )}
-      </fieldset>
-
-      <details className="rounded-xl border border-slate-200 px-4 py-3" open={editing || undefined}>
-        <summary className="cursor-pointer text-sm font-semibold text-slate-700">Datos opcionales</summary>
-        <div className="mt-3 space-y-3">
-          <div>
-            <label htmlFor="product-commercial" className={labelClass}>
-              Nombre comercial
-            </label>
-            <input id="product-commercial" className={inputClass} value={commercialName} onChange={(event) => setCommercialName(event.target.value)} maxLength={160} autoComplete="off" />
-          </div>
-          <div>
-            <label htmlFor="product-ingredient" className={labelClass}>
-              Ingrediente activo
-            </label>
-            <input id="product-ingredient" className={inputClass} value={activeIngredient} onChange={(event) => setActiveIngredient(event.target.value)} maxLength={160} autoComplete="off" />
-          </div>
-          <div>
-            <label htmlFor="product-category" className={labelClass}>
-              Categoría
-            </label>
-            <input id="product-category" className={inputClass} value={category} onChange={(event) => setCategory(event.target.value)} maxLength={80} list="product-categories" autoComplete="off" />
-            <datalist id="product-categories">
-              {CATEGORY_SUGGESTIONS.map((suggestion) => (
-                <option key={suggestion} value={suggestion} />
-              ))}
-            </datalist>
-          </div>
+          <p
+            className="flex min-h-11 items-center gap-2 rounded-field border border-line bg-sunken px-4 py-2.5 text-base text-ink"
+            aria-labelledby="product-unit-label"
+            data-testid="unit-locked"
+          >
+            <Icon d={ICON.lock} className="h-4 w-4 shrink-0" />
+            {locked.name}
+          </p>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">{locked.help}</p>
         </div>
-      </details>
+      ) : (
+        <RadioCards
+          legend="Unidad"
+          name="product-unit"
+          value={unit}
+          onChange={setUnit}
+          help={lockedUnit ? 'Misma unidad que el nombre que va a unir. La unidad no se puede cambiar después.' : 'La unidad no se puede cambiar después.'}
+          options={UNIT_CARDS.map((option) => ({ ...option, disabled: lockedUnit !== undefined && lockedUnit !== option.value }))}
+        />
+      )}
+
+      <TextInput id="product-ingredient" label="Ingrediente activo" optional value={activeIngredient} onChange={(event) => setActiveIngredient(event.target.value)} maxLength={160} autoComplete="off" />
+      <div>
+        <TextInput
+          id="product-category"
+          label="Categoría"
+          optional
+          value={category}
+          onChange={(event) => setCategory(event.target.value)}
+          maxLength={80}
+          list="product-categories"
+          autoComplete="off"
+          placeholder="Herbicida, fungicida…"
+        />
+        <datalist id="product-categories">
+          {CATEGORY_SUGGESTIONS.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
+      </div>
+      <TextInput
+        id="product-commercial"
+        label="Nombre comercial"
+        optional
+        help="Como figura en la etiqueta, si es distinto."
+        value={commercialName}
+        onChange={(event) => setCommercialName(event.target.value)}
+        maxLength={160}
+        autoComplete="off"
+      />
 
       {error && <Notice kind="error">{error}</Notice>}
-      <div className="flex justify-end gap-2">
-        <button type="button" className={secondaryButtonClass} onClick={onCancel}>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button variant="secondary" onClick={onCancel} disabled={saving}>
           Cancelar
-        </button>
-        <button type="submit" className={buttonClass} disabled={!ready}>
-          {saving ? 'Guardando…' : submitLabel ?? (editing ? 'Guardar cambios' : 'Crear producto')}
-        </button>
+        </Button>
+        <Button type="submit" disabled={!ready} busy={saving}>
+          {submitLabel ?? (editing ? 'Guardar cambios' : 'Crear producto')}
+        </Button>
       </div>
     </form>
   );

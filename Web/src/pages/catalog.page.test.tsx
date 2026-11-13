@@ -42,6 +42,7 @@ const render = (search = '') =>
     { path: `${BASE}${search}` },
   );
 
+const viewNav = () => screen.getByRole('navigation', { name: 'Vistas del catálogo' });
 const search = (value: string) => fireEvent.change(screen.getByLabelText(/^Buscar/), { target: { value } });
 const shownProducts = () => screen.queryAllByTestId(/^product-/).map((row) => row.getAttribute('data-testid')!.slice('product-'.length));
 
@@ -56,11 +57,11 @@ describe('Catálogo y equivalencias (contenedor)', () => {
     render(`?campaign=${CAMPAIGN.id}`);
     await screen.findByTestId(`product-${LONG}`);
     expect(identificationService.list).not.toHaveBeenCalled();
-    const views = within(screen.getByRole('group', { name: 'Vista' })).getAllByRole('button').map((button) => button.textContent);
-    expect(views).toEqual(['Productos', 'Equivalencias', 'Por identificar']);
-    fireEvent.click(within(screen.getByRole('group', { name: 'Vista' })).getByRole('button', { name: 'Por identificar' }));
+    const views = within(viewNav()).getAllByRole('link').map((link) => link.textContent);
+    expect(views).toEqual(['Productos', 'Nombres equivalentes', 'Por identificar']);
+    fireEvent.click(within(viewNav()).getByRole('link', { name: 'Por identificar' }));
     expect(await screen.findByText('No hay productos por identificar.')).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 2, name: 'Productos por identificar' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Por identificar' })).toBeTruthy();
     const query = new URLSearchParams(screen.getByTestId('location').textContent!);
     expect(query.get('vista')).toBe('identificacion');
     expect(query.get('campaign')).toBe(CAMPAIGN.id);
@@ -76,14 +77,14 @@ describe('Catálogo y equivalencias (contenedor)', () => {
     view.unmount();
     render('?vista=identificacion');
     expect(await screen.findByText('No hay productos por identificar.')).toBeTruthy();
-    expect(within(screen.getByRole('group', { name: 'Vista' })).getByRole('button', { name: 'Por identificar' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(viewNav()).getByRole('link', { name: 'Por identificar' }).getAttribute('aria-current')).toBe('page');
   });
 
   it('abre «Productos» por defecto, cambia con ?vista= conservando los demás parámetros y no escribe al abrir', async () => {
     render(`?campaign=${CAMPAIGN.id}`);
     await screen.findByTestId(`product-${LONG}`);
     expect(collectiveService.catalog).not.toHaveBeenCalled();
-    fireEvent.click(within(screen.getByRole('group', { name: 'Vista' })).getByRole('button', { name: 'Equivalencias' }));
+    fireEvent.click(within(viewNav()).getByRole('link', { name: 'Nombres equivalentes' }));
     await screen.findByTestId('current-GLIFOSATO 480');
     const query = new URLSearchParams(screen.getByTestId('location').textContent!);
     expect(query.get('vista')).toBe('equivalencias');
@@ -93,9 +94,10 @@ describe('Catálogo y equivalencias (contenedor)', () => {
     }
   });
 
-  it('el enlace «Ver equivalencias» cambia de vista dentro del contenedor', async () => {
+  it('el enlace «Nombres equivalentes» de Productos cambia de vista dentro del contenedor', async () => {
     render(`?campaign=${CAMPAIGN.id}`);
-    fireEvent.click(await screen.findByRole('link', { name: 'Ver equivalencias' }));
+    await screen.findByTestId(`product-${LONG}`);
+    fireEvent.click(screen.getByText('Nombres equivalentes', { selector: 'p a' }));
     await screen.findByTestId('current-GLIFOSATO 480');
     expect(new URLSearchParams(screen.getByTestId('location').textContent!).get('campaign')).toBe(CAMPAIGN.id);
   });
@@ -138,18 +140,20 @@ describe('Catálogo y equivalencias (contenedor)', () => {
     expect(within(herbicides).getByTestId('product-GLIFOSATO 480')).toBeTruthy();
     expect(within(herbicides).getByTestId('product-Glifósato 480')).toBeTruthy();
     expect(within(screen.getByTestId('group-~sin')).getByTestId('product-Jo')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Unidad' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Por unidad' }));
     const others = screen.getByTestId('group-~otras');
     expect(others.textContent).toMatch(/Otras unidades \(no vinculables a cifras colectivas\)/);
     expect(within(others).getByTestId('product-Semilla de papa certificada')).toBeTruthy();
     expect(within(others).getAllByText('no vinculable a cifras colectivas').length).toBe(5);
-    expect(screen.getByTestId('inactive-products').textContent).toMatch(/Ver inactivos \(2\)/);
+    expect(screen.getByTestId('inactive-products').textContent).toMatch(/Ver productos inactivos \(2\)/);
   });
 
   it('equivalencias del peor caso: plurales, motivo de 280 caracteres completo, búsqueda sin tildes y sin sugerencias ni porcentajes', async () => {
     render('?vista=equivalencias');
     await screen.findByTestId('current-GLIFOSATO 480');
-    expect(screen.getByTestId('product-Glifosato 480').textContent).toMatch(/Canónico de 1 denominación(?!es)/);
+    // Rediseño v2 (lámina 22): el nombre principal de una unión no figura entre los sueltos; se dice en una nota.
+    expect(screen.queryByTestId('product-Glifosato 480')).toBeNull();
+    expect(screen.getByTestId('canonical-note').textContent).toContain('«Glifosato 480»');
     const closed = screen.getByTestId('history-a-w1');
     expect(closed.textContent).toContain(fx.worst.associations.history[0]!.close_reason!);
     expect(fx.worst.associations.history[0]!.close_reason).toHaveLength(280);
@@ -158,10 +162,10 @@ describe('Catálogo y equivalencias (contenedor)', () => {
     expect(screen.queryByTestId('current-GLIFOSATO 480')).toBeNull();
     search('');
     // Unidad no vinculable: no se asocia.
-    expect((within(screen.getByTestId('product-Adherente')).getByRole('button', { name: 'Asociar…' }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(within(screen.getByTestId('product-Cal agrícola')).getByRole('button', { name: 'Asociar…' }));
+    expect((within(screen.getByTestId('product-Adherente')).getByRole('button', { name: /^Unir/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(screen.getByTestId('product-Cal agrícola')).getByRole('button', { name: /^Unir/ }));
     expect(screen.getByTestId('impact-unavailable').textContent).toMatch(/antes y después: no disponible/);
-    const options = [...(screen.getByLabelText('Producto canónico') as HTMLSelectElement).options].map((o) => o.textContent!);
+    const options = [...(screen.getByLabelText('Con el producto') as HTMLSelectElement).options].map((o) => o.textContent!);
     // Sólo la misma dimensión (kg), sin porcentajes ni marcas de «sugerido».
     expect(options.every((text) => text === 'Seleccione…' || /\((kg)\)$/.test(text))).toBe(true);
     expect(document.body.textContent).not.toMatch(/%\s*de\s*(parecido|confianza)|sugerid/i);
