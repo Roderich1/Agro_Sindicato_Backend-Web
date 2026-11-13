@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { Overline } from '../components/c/bits';
-import { ViewHeader } from '../components/c/view-header';
 import {
   Button,
   buttonClassFor,
@@ -14,6 +13,7 @@ import {
   Icon,
   ICON,
   Notice,
+  PageHeader,
   SearchInput,
   Select,
   StatusChip,
@@ -166,10 +166,12 @@ export function CampaignsPage() {
   return (
     <AppShell title="Campañas" section="Sindicato">
       <div className="flex flex-col gap-5">
-        <ViewHeader
+        <PageHeader
+          attachToHeader
+          eyebrowPhoneOnly
           title="Campañas"
           eyebrow={user?.tenant?.name}
-          action={canManage ? { label: 'Nueva campaña', onClick: () => setCreating(true) } : undefined}
+          primaryAction={canManage ? { label: 'Nueva campaña', onClick: () => setCreating(true) } : undefined}
         />
 
         {message && <Notice kind="ok">{message}</Notice>}

@@ -45,9 +45,6 @@ export function Overline({ children, as: Tag = 'h2', id }: { children: ReactNode
   );
 }
 
-/** Trazo de una cámara (24×24) para «con foto»; BASE no lo publica todavía (pedido en el informe). */
-export const CAMERA_PATH = 'M4 8h3l2-3h6l2 3h3v11H4z M12 17a3.5 3.5 0 100-7 3.5 3.5 0 000 7z';
-
 /** Fila de datos «término / valor» (detalle de una solicitud, «Qué pasó», «Separar»). */
 export function Facts({ rows, className = '' }: { rows: [ReactNode, ReactNode][]; className?: string }) {
   return (

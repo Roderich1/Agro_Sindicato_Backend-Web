@@ -158,7 +158,7 @@ export function CampaignDetailPage() {
           title={campaign.name}
           testId="general"
           breadcrumb={backLink}
-          corner={
+          chips={
             <>
               <StatusChip status={campaign.status} />
               {campaign.isActive && <Chip tone="on-dark">Campaña activa</Chip>}

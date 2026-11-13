@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { CAMERA_PATH, Facts, Overline, UnitBadge } from '../components/c/bits';
-import { ViewHeader } from '../components/c/view-header';
+import { Facts, Overline, UnitBadge } from '../components/c/bits';
 import {
   Button,
   Checkbox,
@@ -12,6 +11,7 @@ import {
   Icon,
   ICON,
   Notice,
+  PageHeader,
   RadioCards,
   SearchInput,
   SegmentedControl,
@@ -172,7 +172,9 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
 
   return (
     <div className="flex flex-col gap-5">
-      <ViewHeader
+      <PageHeader
+          attachToHeader
+          eyebrowPhoneOnly
         headingLevel={headingLevel}
         title="Por identificar"
         eyebrow={user?.tenant?.name ? `Catálogo · ${user.tenant.name}` : 'Catálogo'}
@@ -294,7 +296,7 @@ function PendingItem({ request, selected, onSelect }: { request: IdentificationR
         className={`flex w-full min-w-0 items-start gap-4 rounded-[20px] px-4 py-3.5 text-left focus-visible:outline-2 ${selected ? 'ui-on-ink bg-ink text-white' : 'text-ink hover:bg-sunken'}`}
       >
         <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control ${selected ? 'bg-lime text-ink' : 'bg-sunken text-ink'}`}>
-          <Icon d={withPhoto ? CAMERA_PATH : ICON.archive} className="h-5 w-5" />
+          <Icon d={withPhoto ? ICON.camera : ICON.archive} className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-base font-semibold [overflow-wrap:anywhere]">{request.local_name}</span>
@@ -580,7 +582,7 @@ function PhotoFrame({ request, onOpen }: { request: IdentificationRequest; onOpe
   const stored = request.photo.state === 'STORED';
   return (
     <div className="ui-dashed flex min-h-40 w-full shrink-0 flex-col items-center justify-center gap-3 rounded-card bg-canvas px-5 py-5 text-center xl:w-56">
-      <Icon d={CAMERA_PATH} className="h-7 w-7 text-ink-muted" />
+      <Icon d={ICON.camera} className="h-7 w-7 text-ink-muted" />
       {stored ? (
         <>
           <p className="text-sm text-ink-muted">El agricultor envió una foto de la etiqueta.</p>

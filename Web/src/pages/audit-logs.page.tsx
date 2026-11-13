@@ -2,20 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../components/app-shell';
 import { AUDIT_CATEGORIES, auditCategory, auditNote, auditScope, CATEGORY_ICON, type AuditCategory } from '../components/c/audit-text';
 import { Facts, Overline, RowLink } from '../components/c/bits';
-import { ViewHeader } from '../components/c/view-header';
 import {
   Button,
   Collapsible,
   DataState,
+  type DataStateKind,
   dataStateKindForError,
   Dialog,
   FilterChips,
   Icon,
   ICON,
   inputClass,
+  PageHeader,
   Select,
   surfaceClass,
-  type DataStateKind,
 } from '../components/ui';
 import { fmtDateTime } from '../lib/collective-text';
 import { extractError } from '../lib/format';
@@ -152,11 +152,13 @@ export function AuditLogsPage() {
   return (
     <AppShell title="Bitácora" section="Sindicato">
       <div className="flex flex-col gap-5">
-        <ViewHeader
+        <PageHeader
+          attachToHeader
+          eyebrowPhoneOnly
           title="Bitácora"
           eyebrow="Lo que se hizo en la Web"
           subtitle={<span className="hidden lg:inline">Lo que se hizo en la Web, de lo más reciente a lo más antiguo.</span>}
-          aside={
+          actions={
             <Button variant="secondary" icon={<Icon d={ICON.refresh} className="h-4 w-4" />} onClick={() => void refresh()} disabled={loading}>
               Actualizar
             </Button>

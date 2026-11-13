@@ -1,3 +1,4 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { useIdentificationPending } from '../contexts/identification-pending';
@@ -78,8 +79,11 @@ export function CatalogPage() {
     </nav>
   );
 
+  const [holderRef, holderStyle] = useKeptHeight(view);
+
   return (
     <AppShell title={TAB_TITLE[view]} section="Catálogo">
+      <div ref={holderRef} style={holderStyle}>
       {view === 'productos' ? (
         <ProductsView title="Catálogo" nav={nav} equivalencesTo={{ search: searchFor('equivalencias') }} />
       ) : view === 'equivalencias' ? (
@@ -87,6 +91,59 @@ export function CatalogPage() {
       ) : (
         <ProductIdentificationView nav={nav} />
       )}
+      </div>
     </AppShell>
   );
+}
+
+/**
+ * Al cambiar de `?vista=`, la vista nueva empieza cargando y mide menos que la
+ * anterior: la página se acortaría y el navegador perdería la posición de
+ * desplazamiento. Se mantiene el alto de la vista anterior como mínimo hasta
+ * que la nueva lo alcanza o pasan unos segundos. Sólo presentación.
+ */
+function useKeptHeight(key: string) {
+  const ref = useRef<HTMLDivElement>(null);
+  const last = useRef(0);
+  const previousKey = useRef(key);
+  const [minHeight, setMinHeight] = useState<number | null>(null);
+
+  // Antes de pintar la vista nueva: fija como mínimo el último alto medido.
+  useLayoutEffect(() => {
+    if (previousKey.current === key) return;
+    previousKey.current = key;
+    if (last.current > 0) setMinHeight(last.current);
+  }, [key]);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => {
+      const content = node.scrollHeight;
+      last.current = content;
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (minHeight === null) return undefined;
+    const node = ref.current;
+    const release = () => setMinHeight(null);
+    const timer = window.setTimeout(release, 4000);
+    let observer: ResizeObserver | null = null;
+    if (node && typeof ResizeObserver !== 'undefined') {
+      const child = node.firstElementChild;
+      observer = new ResizeObserver(() => {
+        if (child && child.getBoundingClientRect().height >= minHeight) release();
+      });
+      if (child) observer.observe(child);
+    }
+    return () => {
+      window.clearTimeout(timer);
+      observer?.disconnect();
+    };
+  }, [minHeight]);
+
+  return [ref, minHeight !== null ? { minHeight } : undefined] as const;
 }

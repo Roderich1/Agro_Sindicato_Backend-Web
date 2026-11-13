@@ -3,9 +3,22 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AppShell } from '../components/app-shell';
 import { Facts, UnitBadge } from '../components/c/bits';
 import { unitInfo } from '../components/c/unit';
-import { ViewHeader } from '../components/c/view-header';
 import { ProductForm } from '../components/product-form';
-import { Button, Checkbox, ConfirmDialog, DataState, Dialog, Icon, ICON, Notice, SearchInput, Select, surfaceClass, Textarea } from '../components/ui';
+import {
+  Button,
+  Checkbox,
+  ConfirmDialog,
+  DataState,
+  Dialog,
+  Icon,
+  ICON,
+  Notice,
+  PageHeader,
+  SearchInput,
+  Select,
+  surfaceClass,
+  Textarea,
+} from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import { normalizeName, type ProductUnit } from '../lib/product-text';
@@ -99,7 +112,9 @@ export function ProductReconciliationView({ headingLevel = 1, title = 'Nombres e
 
   return (
     <div className="flex flex-col gap-5">
-      <ViewHeader
+      <PageHeader
+          attachToHeader
+          eyebrowPhoneOnly
         headingLevel={headingLevel}
         title={title}
         eyebrow={user?.tenant?.name}
