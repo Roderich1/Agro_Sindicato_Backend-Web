@@ -2,7 +2,6 @@ import axios from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
-import { SubstitutionPermissionsStrip } from '../components/b/substitution-permissions';
 import { buttonClassFor, CampaignPill, Chip, DataState, FilterChips, ICON, Icon, Notice, PageHeader, StatusChip, surfaceClass } from '../components/ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { CAMPAIGN_STATUS_TEXT } from '../lib/collective-text';
@@ -249,8 +248,6 @@ export function JointPurchaseCallsPage() {
           </>
         )}
 
-        {/* P-A A1 (§12) y U.4: la Directiva consulta aquí quién tiene «Sustituir responsable». */}
-        <SubstitutionPermissionsStrip userId={user?.id ?? null} />
       </div>
 
       {prepared && preparedCampaign && !creating && (

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { AppShell } from '../components/app-shell';
 import { RowLink } from '../components/c/bits';
-import { SubstitutionSlot } from '../components/c/substitution-slot';
+import { SubstitutionPermissionsHistoryPanel } from '../components/b/substitution-permissions';
 import {
   Avatar,
   Button,
@@ -66,9 +66,9 @@ function extractError(err: unknown, fallback: string): string {
  * admite (H-13). Los filtros por rol, sus recuentos y la búsqueda se hacen en el
  * navegador con la lista ya recibida.
  *
- * A la derecha (abajo en teléfono), el permiso «Sustituir responsable» (U.4):
- * el componente de la sesión B en modo gestión; conceder y retirar dependen de
- * `can_grant`, que decide el servidor.
+ * A la derecha (abajo en teléfono), la historia plegada y de sólo lectura del
+ * permiso «Sustituir responsable», que ya no se usa (E4 §3.2): hoy sustituye la
+ * Administración habilitada, sin permiso adicional.
  */
 export function UsersPage() {
   const { user: currentUser } = useAuth();
@@ -214,8 +214,8 @@ export function UsersPage() {
             )}
           </section>
 
-          <aside className="min-w-0" aria-label="Permiso «Sustituir responsable»">
-            <SubstitutionSlot userId={currentUser?.id ?? null} />
+          <aside className="min-w-0" aria-label="Historial del permiso «Sustituir responsable»">
+            <SubstitutionPermissionsHistoryPanel />
           </aside>
         </div>
       </div>

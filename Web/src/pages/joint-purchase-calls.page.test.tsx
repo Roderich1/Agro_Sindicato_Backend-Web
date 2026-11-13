@@ -30,9 +30,7 @@ vi.mock('../services/joint-purchase-calls.service', () => ({
     collaborators: vi.fn(),
     grant: vi.fn(),
     revoke: vi.fn(),
-    substitutionPermissions: vi.fn(),
-    grantSubstitution: vi.fn(),
-    revokeSubstitution: vi.fn(),
+    substitutionPermissionsHistory: vi.fn(),
   },
 }));
 vi.mock('../services/collective.service', () => ({
@@ -69,7 +67,7 @@ const RESPONSIBLES: EligibleResponsible[] = [
 
 /** Respuesta 201 de `POST /joint-purchase-calls`: el detalle del borrador, identificado por `call_id`. */
 const CREATED: JointPurchaseCallDetail = {
-  contractVersion: 1,
+  contractVersion: 2,
   call_id: 'c-9',
   name: 'Herbicidas de verano',
   status: 'DRAFT',
@@ -82,18 +80,22 @@ const CREATED: JointPurchaseCallDetail = {
   created_at: '2026-11-11T10:00:00.000Z',
   updated_at: '2026-11-11T10:00:00.000Z',
   server_time: '2026-11-11T10:00:00.000Z',
-  responsible: { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR', eligible: true },
+  responsible: { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR', eligible: true, version: 1 },
   created_by: { user_ref: 'u-1', name: 'Usuario sintético' },
   opened_by: null,
   cancelled_by: null,
   source_proposal_ref: null,
   participant_count: 0,
   totals_source: 'NONE',
-  totals_threshold: 3,
   can_view_participants: false,
   is_responsible: false,
   can_manage: true,
   can_cancel_or_close: true,
+  delegations_suspended: false,
+  can_substitute_responsible: false,
+  pending_delegation_reviews: 0,
+  pending_consent_count: 0,
+  responsible_changes: [],
   my_grants: ['MANAGE'],
   collaborator_count: 0,
   products: [
@@ -105,7 +107,7 @@ const CREATED: JointPurchaseCallDetail = {
       base_unit: 'G',
       is_active: true,
       reference: null,
-      totals: { participant_count: 0, total_quantity_base: null, visibility: 'UNDER_THRESHOLD' },
+      totals: { participant_count: 0, total_quantity_base: '0', visibility: 'VISIBLE', totals_basis: 'ROLE_CONSENT' },
     },
   ],
   history: [],
@@ -378,7 +380,10 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     expect(warning.textContent).toContain(text.lead);
     for (const loss of text.losses) expect(warning.textContent).toContain(loss);
     expect(warning.textContent).toContain('sólo Responsable sintética, como responsable, puede devolverle «Administrar la convocatoria»');
-    expect(warning.textContent).toMatch(/editar.*abrir.*cancelarla ni cerrarla.*participantes/s);
+    // Reescrito por E4 §6.1: la responsabilidad ya no da acceso a participantes, así que ver nombres y cantidades
+    // deja de figurar entre lo que se pierde al nombrar a otra responsable.
+    expect(warning.textContent).toMatch(/editar.*abrir.*cancelarla ni cerrarla/s);
+    expect(warning.textContent).not.toMatch(/participantes/);
     expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
 
     // «Volver»: nada se envía y el formulario conserva lo escrito.
