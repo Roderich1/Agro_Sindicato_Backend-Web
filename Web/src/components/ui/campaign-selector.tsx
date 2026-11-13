@@ -55,13 +55,13 @@ export function CampaignSelector({ campaigns, selected, onSelect, showActiveBadg
         <div className="flex flex-wrap items-center gap-1.5 pb-2" data-testid="campaign-state">
           <StatusChip status={current.status} />
           {showActiveBadge && current.isActive && (
-            <span className="inline-flex items-center rounded-full bg-brand-700 px-2 py-0.5 text-[11px] font-semibold text-white" data-testid="campaign-active">
+            <span className="inline-flex items-center rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-white" data-testid="campaign-active">
               Activa
             </span>
           )}
           {showActiveBadge && !current.isActive && active && (
             <span
-              className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-inset ring-amber-600/30"
+              className="inline-flex items-center rounded-full bg-warn-bg px-2.5 py-0.5 text-xs font-semibold text-warn-ink"
               title={`La campaña activa del sindicato es ${active.name}`}
               data-testid="campaign-differs"
             >

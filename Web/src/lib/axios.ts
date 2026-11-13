@@ -65,6 +65,12 @@ api.interceptors.response.use(
       } catch (refreshError) {
         failedQueue.forEach((p) => p.reject(refreshError));
         failedQueue = [];
+        // H-17 (inventario v2): con 429 el servidor está ocupado, no rechazó la sesión. Se conserva
+        // el token y la página; la petición original falla con ese 429 y cada vista muestra
+        // «servidor ocupado» con «Reintentar». El siguiente 401 vuelve a intentar renovarla.
+        if (axios.isAxiosError(refreshError) && refreshError.response?.status === 429) {
+          return Promise.reject(refreshError);
+        }
         clearAccessToken();
         // F12-EST-07-WEB (#180): si el servidor rechaza la sesión, el contexto local se cierra
         // (ninguna copia es legible ni se guarda una descarga en curso) y se intenta el borrado.

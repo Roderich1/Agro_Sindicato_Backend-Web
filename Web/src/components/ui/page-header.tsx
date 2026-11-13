@@ -9,20 +9,25 @@ export interface PageHeaderProps {
   actions?: ReactNode;
   /** 1 por defecto: es el título de la vista. Use 2 si la vista ya tiene un <h1>. */
   headingLevel?: 1 | 2;
+  /** Línea pequeña sobre el título (migas: «Catálogo · Productos»). */
+  eyebrow?: ReactNode;
   testId?: string;
 }
 
 /**
- * Cabecera de una vista: título y contexto; debajo, la campaña a la izquierda
- * y la acción a la derecha. En pantallas estrechas se apilan sin truncar.
+ * Cabecera clara de una vista (lámina 21: «Catálogo»): título grande en
+ * Bricolage y contexto; debajo, la campaña a la izquierda y la acción a la
+ * derecha. En pantallas estrechas se apilan sin truncar. Para la cabecera
+ * oscura con cifra grande (Resumen), use `HeroPanel`.
  */
-export function PageHeader({ title, subtitle, campaign, actions, headingLevel = 1, testId }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, campaign, actions, headingLevel = 1, eyebrow, testId }: PageHeaderProps) {
   const Heading = headingLevel === 1 ? 'h1' : 'h2';
   return (
-    <header className="flex flex-col gap-3" data-testid={testId}>
+    <header className="flex flex-col gap-4" data-testid={testId}>
       <div className="min-w-0">
-        <Heading className="text-xl font-bold leading-tight text-ink sm:text-2xl">{title}</Heading>
-        {subtitle && <div className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-600">{subtitle}</div>}
+        {eyebrow && <div className="mb-1 text-sm font-medium text-ink-muted">{eyebrow}</div>}
+        <Heading className="break-words text-3xl font-extrabold leading-[1.1] text-ink sm:text-4xl">{title}</Heading>
+        {subtitle && <div className="mt-2 max-w-3xl text-base leading-relaxed text-ink-muted">{subtitle}</div>}
       </div>
       {(campaign || actions) && (
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">

@@ -1,13 +1,25 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
+import { useIdentificationPending } from '../contexts/identification-pending';
 import { useDisclosureMode } from '../lib/data-mode';
-import { AUDIT_LOGS_PATH, CAMPAIGNS_PATH, COLLECTIVE_PATHS, menuPathsFor, USERS_PATH } from '../lib/navigation';
-import { StatusChip } from './ui';
+import {
+  activeSubItem,
+  IDENTIFICATION_PENDING_KEY,
+  isNavItemActive,
+  MOBILE_BOTTOM_PATHS,
+  NAV_ITEMS,
+  NAV_SECTIONS,
+  navItemsFor,
+  sectionLabelFor,
+  subItemPath,
+  type NavItemDef,
+} from '../lib/navigation';
+import { Avatar, Chip, Dialog, ICON, Icon, IconButton, StatusChip, initialsOf } from './ui';
 
 /* ══════════════════════════════════════════
-   CONSTANTS
+   CONSTANTES
    ══════════════════════════════════════════ */
 
 const ROLE_LABELS: Record<string, string> = {
@@ -17,304 +29,314 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 /**
- * Fondo sólido del avatar por rol (rediseño 2026-11-10: sin degradados). El
- * nombre se conserva por compatibilidad con las vistas que lo importan.
+ * Fondo del avatar por rol. El nombre se conserva por compatibilidad con las
+ * vistas que lo importan; en el armazón el avatar es lima sobre tinta.
  */
 const ROLE_COLORS: Record<string, string> = {
-  ADMINISTRADOR: 'bg-brand-800 text-white',
-  DIRECTIVA: 'bg-brand-700 text-white',
-  AGRICULTOR: 'bg-brand-100 text-brand-800',
+  ADMINISTRADOR: 'bg-lime text-ink',
+  DIRECTIVA: 'bg-lime text-ink',
+  AGRICULTOR: 'bg-sunken text-ink',
 };
 
 /** El rol siempre se lee en el texto; el tono sólo acompaña. */
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  ADMINISTRADOR: 'bg-brand-50 text-brand-800 ring-brand-700/25',
-  DIRECTIVA: 'bg-slate-100 text-slate-700 ring-slate-500/25',
-  AGRICULTOR: 'bg-slate-100 text-slate-700 ring-slate-500/25',
+  ADMINISTRADOR: 'bg-ink text-white ring-ink/20',
+  DIRECTIVA: 'bg-lime-soft text-lime-ink ring-lime-ink/20',
+  AGRICULTOR: 'bg-sunken text-ink ring-ink/15',
 };
 
-/* ══════════════════════════════════════════
-   NAVIGATION ITEMS
-   ══════════════════════════════════════════ */
-
-interface NavItem {
-  label: string;
-  /** Etiqueta corta para la barra inferior del teléfono. */
-  short?: string;
-  to: string;
-  icon: ReactNode;
-  /** Rutas antiguas o internas que pertenecen a esta sección (ítem activo). */
-  also?: readonly string[];
-}
-
-function NavIcon({ d }: { d: string }) {
-  return (
-    <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true" focusable="false">
-      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
-    </svg>
-  );
-}
-
-/**
- * Menú por tareas (rediseño 2026-11-10, contrato §2): las cinco tareas de la
- * Directiva y, bajo «Administración», Bitácora y Usuarios. El orden y los
- * permisos vienen de `menuPathsFor`; aquí sólo se agrupan. Un grupo sin ítems
- * para el rol no se muestra.
- */
-const NAV_GROUPS: { label: string | null; paths: readonly string[] }[] = [
-  { label: null, paths: [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.jointPurchaseCalls, COLLECTIVE_PATHS.history, COLLECTIVE_PATHS.catalog] },
-  { label: 'Administración', paths: [AUDIT_LOGS_PATH, USERS_PATH] },
-];
-
-const NAV_ITEMS: NavItem[] = [
-  {
-    label: 'Resumen',
-    to: COLLECTIVE_PATHS.summary,
-    // La cobertura sale del menú y se abre desde el Resumen.
-    also: [COLLECTIVE_PATHS.coverage],
-    icon: <NavIcon d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />,
-  },
-  {
-    label: 'Campañas',
-    to: CAMPAIGNS_PATH,
-    icon: <NavIcon d="M8 7V3m8 4V3M5 11h14M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />,
-  },
-  {
-    label: 'Necesidades y propuestas',
-    short: 'Necesidades',
-    to: COLLECTIVE_PATHS.proposals,
-    icon: <NavIcon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
-  },
-  {
-    /* E2 §6 (2026-11-11): convocatorias de compra conjunta; el detalle es una subruta. */
-    label: 'Compras conjuntas',
-    short: 'Compras',
-    to: COLLECTIVE_PATHS.jointPurchaseCalls,
-    icon: <NavIcon d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />,
-  },
-  {
-    label: 'Histórico y estimaciones',
-    short: 'Histórico',
-    to: COLLECTIVE_PATHS.history,
-    also: [COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation],
-    icon: <NavIcon d="M3 17l6-6 4 4 8-8M14 7h7v7" />,
-  },
-  {
-    label: 'Catálogo y equivalencias',
-    short: 'Catálogo',
-    to: COLLECTIVE_PATHS.catalog,
-    also: [COLLECTIVE_PATHS.products, COLLECTIVE_PATHS.reconciliation],
-    icon: <NavIcon d="M9 3h6v4l4 6v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6l4-6V3zm-3 12h12" />,
-  },
-  {
-    label: 'Bitácora',
-    to: AUDIT_LOGS_PATH,
-    icon: <NavIcon d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
-  },
-  {
-    label: 'Usuarios',
-    to: USERS_PATH,
-    icon: <NavIcon d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />,
-  },
-];
-
-/** Ítems del menú de un rol, en el orden de `menuPathsFor` (F07-WEB-01). */
-function navItemsFor(role: string | null | undefined): NavItem[] {
-  return menuPathsFor(role)
-    .map((path) => NAV_ITEMS.find((item) => item.to === path))
-    .filter((item): item is NavItem => Boolean(item));
-}
-
-/** Los ítems permitidos, agrupados; lo que no encaja en un grupo va al final. */
-function navGroupsFor(items: NavItem[]): { label: string | null; items: NavItem[] }[] {
-  const placed = new Set<string>();
-  const groups = NAV_GROUPS.map((group) => ({
-    label: group.label,
-    items: group.paths.map((path) => items.find((item) => item.to === path)).filter((item): item is NavItem => Boolean(item)),
-  }));
-  groups.forEach((group) => group.items.forEach((item) => placed.add(item.to)));
-  const rest = items.filter((item) => !placed.has(item.to));
-  if (rest.length > 0) groups.push({ label: null, items: rest });
-  return groups.filter((group) => group.items.length > 0);
-}
-
-/** La sección está activa en su ruta, en sus subrutas y en sus rutas antiguas. */
-function isItemActive(item: NavItem, pathname: string): boolean {
-  return [item.to, ...(item.also ?? [])].some((path) => pathname === path || pathname.startsWith(`${path}/`));
-}
-
-/** Ítems de las cinco tareas (la sección de la barra superior sale de aquí). */
-const TASK_PATHS: readonly string[] = [
-  COLLECTIVE_PATHS.summary,
-  CAMPAIGNS_PATH,
-  COLLECTIVE_PATHS.proposals,
-  COLLECTIVE_PATHS.jointPurchaseCalls,
-  COLLECTIVE_PATHS.history,
-  COLLECTIVE_PATHS.catalog,
-];
-
-/**
- * Etiqueta de sección de la barra superior, derivada de la ruta (etapa 2): el
- * rótulo de la tarea del menú, «Administración» para Bitácora y Usuarios y,
- * fuera del menú por tareas (legacy, avisos), el `section` que pasa la vista.
- */
-function sectionFor(pathname: string, fallback: string): string {
-  const admin = NAV_ITEMS.filter((item) => item.to === AUDIT_LOGS_PATH || item.to === USERS_PATH);
-  if (admin.some((item) => isItemActive(item, pathname))) return 'Administración';
-  const task = NAV_ITEMS.find((item) => TASK_PATHS.includes(item.to) && isItemActive(item, pathname));
-  return task?.label ?? fallback;
-}
-
-/** Marca de la entrada del historial que abre el menú del teléfono. */
+/** Marca de la entrada del historial que abre el menú «Más» del teléfono. */
 const MENU_HISTORY_KEY = 'agroMenu';
+/** Preferencia del visitante (sólo comodidad): barra lateral plegada. */
+const RAIL_STORAGE_KEY = 'agro.web.barraPlegada';
 
 function menuEntryToken(state: unknown): unknown {
   return state && typeof state === 'object' ? (state as Record<string, unknown>)[MENU_HISTORY_KEY] : undefined;
 }
 
-/** Barra inferior del teléfono: cuatro tareas como máximo (contrato §2). */
-const MOBILE_PATHS_COLLECTIVE = [COLLECTIVE_PATHS.summary, CAMPAIGNS_PATH, COLLECTIVE_PATHS.proposals, COLLECTIVE_PATHS.history];
+function readRail(): boolean {
+  try {
+    return window.localStorage.getItem(RAIL_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeRail(value: boolean) {
+  try {
+    window.localStorage.setItem(RAIL_STORAGE_KEY, value ? '1' : '0');
+  } catch {
+    /* Sin almacenamiento (ventana privada): la preferencia dura la sesión. */
+  }
+}
+
+/** Contadores opcionales del menú, por ruta (`/colectivo/catalogo`) o subvista (`/colectivo/catalogo?vista=identificacion`). */
+export type NavCounts = Readonly<Record<string, number>>;
 
 /* ══════════════════════════════════════════
-   AVATAR COMPONENT
+   PIEZAS
    ══════════════════════════════════════════ */
+
+/** Marca: cuadro lima con el brote. Decorativa (el nombre va escrito al lado). */
+function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  return (
+    <span className={`inline-flex shrink-0 items-center justify-center bg-lime text-ink ${size === 'sm' ? 'h-8 w-8 rounded-[10px]' : 'h-11 w-11 rounded-[14px]'}`} aria-hidden="true">
+      <Icon d={ICON.sprout} className={size === 'sm' ? 'h-5 w-5' : 'h-6 w-6'} strokeWidth={2.2} />
+    </span>
+  );
+}
 
 /** Iniciales sobre fondo sólido; `gradient` conserva su nombre, pero recibe las clases de fondo de `ROLE_COLORS`. */
 function UserAvatar({ name, size = 'md', gradient }: { name: string; size?: 'sm' | 'md' | 'lg'; gradient?: string }) {
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  const sizeClasses = {
-    sm: 'h-7 w-7 text-[10px]',
-    md: 'h-9 w-9 text-xs',
-    lg: 'h-12 w-12 text-sm',
-  };
-
+  const sizeClasses = { sm: 'h-7 w-7 text-[10px]', md: 'h-9 w-9 text-xs', lg: 'h-12 w-12 text-sm' };
   return (
     <div className={`${sizeClasses[size]} flex shrink-0 items-center justify-center rounded-full font-bold ${gradient ?? ROLE_COLORS.AGRICULTOR}`} aria-hidden="true">
-      {initials}
+      {initialsOf(name)}
     </div>
   );
 }
 
+/** Contador del menú: la cifra se ve; el lector de pantalla oye «(6 pendientes)». */
+function CountBadge({ value, rail = false }: { value: number; rail?: boolean }) {
+  return (
+    <>
+      <span
+        className={`inline-flex min-w-6 items-center justify-center rounded-full bg-warn-bg px-1.5 text-xs font-bold tabular-nums text-warn-ink ${rail ? 'absolute -right-1 -top-1 h-5 min-w-5 text-[11px]' : 'h-6'}`}
+        aria-hidden="true"
+      >
+        {value}
+      </span>
+      <span className="sr-only"> ({value} pendientes)</span>
+    </>
+  );
+}
+
 /* ══════════════════════════════════════════
-   SIDEBAR
+   BARRA LATERAL (escritorio, lámina 03 y 21)
    ══════════════════════════════════════════ */
 
+const SIDE_LINK =
+  'relative flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-[16px] px-4 py-2.5 text-base focus-visible:outline-2 focus-visible:-outline-offset-2';
+
 /**
- * Contenido de la navegación: marca y sindicato (sin truncar), grupos de
- * tareas y sesión. Superficie clara; el ítem activo lleva acento de marca,
- * peso de texto y `aria-current="page"`. Sin animación al cambiar de ruta.
+ * Navegación de la barra lateral: tareas, «Sindicato» y «Administración». El
+ * ítem activo va en lima con texto en tinta y en negrita; los grupos (Catálogo,
+ * Histórico) se pliegan con un botón propio y se abren solos en su sección.
  */
-function NavContent({
-  onNavigate,
-  firstLinkRef,
-}: {
-  /** En el menú del teléfono: cierra el menú y la navegación reemplaza la entrada del historial del menú. */
-  onNavigate?: () => void;
-  firstLinkRef?: Ref<HTMLAnchorElement>;
-}) {
-  const { user, logout } = useAuth();
+function SidebarNav({ rail, counts }: { rail: boolean; counts?: NavCounts }) {
+  const { user } = useAuth();
   const location = useLocation();
-  const groups = navGroupsFor(navItemsFor(user?.role));
-  const firstPath = groups[0]?.items[0]?.to;
+  const items = navItemsFor(user?.role);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const uid = useId();
+
+  const sections = NAV_SECTIONS.map((section) => ({
+    label: section.label,
+    items: section.paths.map((path) => items.find((item) => item.path === path)).filter((item): item is NavItemDef => Boolean(item)),
+  }));
+  // Lo que no encaja en una sección va al final (no se pierde ningún ítem permitido).
+  const placed = new Set(sections.flatMap((section) => section.items.map((item) => item.path)));
+  const rest = items.filter((item) => !placed.has(item.path));
+  if (rest.length > 0) sections.push({ label: null, items: rest });
 
   return (
-    <div className="ui-nav-content flex h-full flex-col">
-      <div className="flex items-start gap-3 px-4 py-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-brand-700 text-white" aria-hidden="true">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-          </svg>
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold leading-tight text-ink">Agrocuentas</p>
-          {/* El nombre del sindicato se parte en líneas: nunca se trunca. */}
-          <p className="mt-0.5 whitespace-normal break-words text-xs font-medium leading-snug text-slate-600" title={user?.tenant?.name}>
-            {user?.tenant?.name}
-          </p>
-        </div>
-      </div>
-
-      <nav className="ui-nav-list flex-1 space-y-5 overflow-y-auto overscroll-contain border-t border-line px-3 py-4" aria-label="Navegación principal">
-        {groups.map((group, index) => (
-          <div key={group.label ?? index} className="space-y-0.5">
-            {group.label && <p className="px-3 pb-1 text-xs font-semibold text-slate-500">{group.label}</p>}
-            {group.items.map((item) => {
-              const active = isItemActive(item, location.pathname);
+    <nav className="ui-nav-list min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-2" aria-label="Navegación principal">
+      {sections
+        .filter((section) => section.items.length > 0)
+        .map((section, index) => (
+          <div key={section.label ?? `s${index}`} className="space-y-1">
+            {section.label && <p className={rail ? 'sr-only' : 'px-4 pb-1 text-xs font-bold uppercase tracking-[0.1em] text-on-ink-muted'}>{section.label}</p>}
+            {section.items.map((item) => {
+              const active = isNavItemActive(item, location.pathname);
+              const sub = activeSubItem(item, location.pathname, location.search);
+              const hasChildren = Boolean(item.children?.length) && !rail;
+              const expanded = hasChildren && (open[item.path] ?? active);
+              const childrenShown = expanded && sub !== null;
+              // Con el grupo plegado (o la barra en modo icono), el contador de una subvista sube al grupo.
+              const childCounts = (item.children ?? []).map((child) => counts?.[subItemPath(item, child)]).filter((value): value is number => value !== undefined);
+              const count = counts?.[item.path] ?? (!expanded ? childCounts[0] : undefined);
+              const listId = `${uid}-${item.path.replace(/\W+/g, '')}`;
               return (
-                <Link
-                  key={item.to}
-                  ref={item.to === firstPath ? firstLinkRef : undefined}
-                  to={item.to}
-                  onClick={onNavigate}
-                  replace={Boolean(onNavigate)}
-                  aria-current={active ? 'page' : undefined}
-                  className={`relative flex min-h-10 items-center gap-3 rounded-control px-3 py-2 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700 ${
-                    active
-                      ? 'bg-brand-50 font-semibold text-brand-800 before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-brand-700'
-                      : 'font-medium text-slate-700 hover:bg-slate-100 hover:text-ink'
-                  }`}
-                >
-                  <span className={active ? 'text-brand-700' : 'text-slate-500'}>{item.icon}</span>
-                  <span className="min-w-0">{item.label}</span>
-                </Link>
+                <div key={item.path}>
+                  <div className={`flex items-center rounded-[16px] ${active ? 'bg-lime text-ink' : 'text-on-ink hover:bg-ink-raised'}`}>
+                    <Link
+                      to={item.path}
+                      aria-current={active ? (childrenShown ? 'true' : 'page') : undefined}
+                      title={rail ? item.label : undefined}
+                      className={`${SIDE_LINK} ${active ? 'font-semibold' : 'font-medium'} ${rail ? 'justify-center px-0' : ''}`}
+                    >
+                      <span className="relative">
+                        <Icon d={ICON[item.icon]} className="h-6 w-6" strokeWidth={1.8} />
+                        {rail && count !== undefined && <CountBadge value={count} rail />}
+                      </span>
+                      <span className={rail ? 'sr-only' : 'min-w-0 flex-1 break-words'}>{item.label}</span>
+                      {!rail && count !== undefined && <CountBadge value={count} />}
+                    </Link>
+                    {hasChildren && (
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        aria-controls={listId}
+                        aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} las vistas de ${item.label}`}
+                        onClick={() => setOpen((prev) => ({ ...prev, [item.path]: !expanded }))}
+                        className="mr-1.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:-outline-offset-2"
+                      >
+                        <Icon d={expanded ? ICON.chevronUp : ICON.chevronDown} className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                  {expanded && item.children && (
+                    <ul id={listId} className="ml-7 mt-1 space-y-1 border-l border-ink-line pl-3" aria-label={item.label}>
+                      {item.children.map((child) => {
+                        const to = subItemPath(item, child);
+                        const current = sub?.vista === child.vista;
+                        const childCount = counts?.[to];
+                        return (
+                          <li key={child.vista}>
+                            <Link
+                              to={to}
+                              aria-current={current ? 'page' : undefined}
+                              className={`flex min-h-11 items-center gap-2 rounded-[14px] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 ${
+                                current ? 'bg-ink-raised font-bold text-white' : 'font-medium text-on-ink-muted hover:bg-ink-raised hover:text-white'
+                              }`}
+                            >
+                              <span className="min-w-0 flex-1 break-words">{child.label}</span>
+                              {childCount !== undefined && <CountBadge value={childCount} />}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               );
             })}
           </div>
         ))}
-      </nav>
+    </nav>
+  );
+}
 
-      <div className="border-t border-line p-4">
-        {user && (
-          <div className="flex items-center gap-3">
-            <UserAvatar name={user.name} size="md" gradient={ROLE_COLORS[user.role]} />
-            <div className="min-w-0 flex-1">
-              <p className="break-words text-sm font-semibold text-ink">{user.name}</p>
-              <p className="text-xs text-slate-600">{ROLE_LABELS[user.role] ?? user.role}</p>
-            </div>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="ui-press mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-control border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span>Cerrar sesión</span>
-        </button>
+function Sidebar({ rail, onToggleRail, counts }: { rail: boolean; onToggleRail: () => void; counts?: NavCounts }) {
+  const { user, logout } = useAuth();
+  return (
+    <aside
+      id="barra-lateral"
+      className="ui-on-ink hidden bg-ink text-on-ink lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:flex-col"
+      style={{ width: rail ? 'var(--sidebar-rail)' : 'var(--sidebar-width)' }}
+      data-rail={rail}
+    >
+      <div className={`relative flex items-center gap-3 pb-5 pt-6 ${rail ? 'justify-center px-2' : 'px-5'}`}>
+        <BrandMark />
+        <div className={rail ? 'sr-only' : 'min-w-0'}>
+          <p className="font-display text-xl font-extrabold leading-tight text-white">Agrocuentas</p>
+          {/* El nombre del sindicato sale de la sesión y se parte en líneas: nunca se trunca. */}
+          {user?.tenant?.name && (
+            <p className="mt-0.5 whitespace-normal break-words text-sm leading-snug text-on-ink-muted" title={user.tenant.name}>
+              {user.tenant.name}
+            </p>
+          )}
+        </div>
+        <IconButton
+          label={rail ? 'Desplegar la barra lateral' : 'Plegar la barra lateral'}
+          icon={rail ? ICON.chevronRight : ICON.chevronLeft}
+          variant="accent"
+          size="sm"
+          aria-expanded={!rail}
+          aria-controls="barra-lateral"
+          onClick={onToggleRail}
+          className="absolute -right-[18px] top-7 z-10 border-4 border-canvas"
+        />
       </div>
-    </div>
+
+      <SidebarNav rail={rail} counts={counts} />
+
+      {user && (
+        <div className={`m-4 flex items-center gap-3 rounded-[18px] bg-ink-raised py-3 ${rail ? 'flex-col px-2' : 'px-3'}`}>
+          <Avatar name={user.name} tone="lime" />
+          <div className={rail ? 'sr-only' : 'min-w-0 flex-1'}>
+            <p className="break-words text-sm font-semibold leading-snug text-white">{user.name}</p>
+            <p className="text-xs text-on-ink-muted">{ROLE_LABELS[user.role] ?? user.role}</p>
+          </div>
+          <IconButton label="Cerrar sesión" icon={ICON.logout} variant="on-dark" size="sm" className="border-0" onClick={() => void logout()} />
+        </div>
+      )}
+    </aside>
+  );
+}
+
+/* ══════════════════════════════════════════
+   MENÚ «MÁS» (teléfono, lámina 43)
+   ══════════════════════════════════════════ */
+
+function MoreLink({ item, onNavigate, linkRef }: { item: NavItemDef; onNavigate: () => void; linkRef?: Ref<HTMLAnchorElement> }) {
+  const location = useLocation();
+  const uid = useId();
+  const active = isNavItemActive(item, location.pathname);
+  return (
+    <li>
+      <Link
+        ref={linkRef}
+        to={item.path}
+        replace
+        onClick={onNavigate}
+        aria-labelledby={`${uid}-t`}
+        aria-describedby={item.description ? `${uid}-d` : undefined}
+        aria-current={active ? 'page' : undefined}
+        className="flex min-h-16 items-center gap-4 px-4 py-3.5 hover:bg-canvas focus-visible:outline-2 focus-visible:-outline-offset-2"
+      >
+        <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] ${active ? 'bg-lime' : 'bg-sunken'} text-ink`}>
+          <Icon d={ICON[item.icon]} className="h-6 w-6" strokeWidth={1.8} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span id={`${uid}-t`} className={`block text-base leading-snug text-ink ${active ? 'font-extrabold' : 'font-bold'}`}>
+            {item.title ?? item.label}
+          </span>
+          {item.description && (
+            <span id={`${uid}-d`} className="block text-sm leading-snug text-ink-muted">
+              {item.description}
+            </span>
+          )}
+        </span>
+        <Icon d={ICON.chevronRight} className="h-5 w-5 text-ink" />
+      </Link>
+    </li>
   );
 }
 
 /**
- * Menú desplegable del teléfono (≤ lg): diálogo modal con nombre, foco en el
- * primer enlace al abrir, Escape y el botón «Cerrar menú» lo cierran y el foco
- * vuelve al botón que lo abrió. Aparece sin animación.
+ * Menú «Más» del teléfono: diálogo modal a pantalla completa (salvo la barra
+ * inferior, que sigue visible). Foco en el primer enlace al abrir; Escape y
+ * «Cerrar menú» lo cierran y el foco vuelve al botón que lo abrió; Tab no sale
+ * del diálogo. Lista las tareas que no caben en la barra inferior y, en
+ * horizontal (sin barra inferior), también las de la barra.
  */
-function MobileMenu({ onClose, onNavigate }: { onClose: () => void; onNavigate: () => void }) {
+function MoreMenu({ onClose, onNavigate, id }: { onClose: () => void; onNavigate: () => void; id: string }) {
+  const { user, logout } = useAuth();
+  const items = navItemsFor(user?.role);
+  // Orden de la lámina 43 (el de NAV_ITEMS), no el de `menuPathsFor`.
+  const secondary = NAV_ITEMS.filter((item) => items.includes(item) && !MOBILE_BOTTOM_PATHS.includes(item.path));
+  const primary = items.filter((item) => MOBILE_BOTTOM_PATHS.includes(item.path));
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    (firstLinkRef.current ?? panelRef.current)?.focus();
+    const first = firstLinkRef.current;
+    const firstVisible = first && !(first.closest<HTMLElement>('.ui-more-primary') && window.getComputedStyle(first.closest<HTMLElement>('.ui-more-primary')!).display === 'none');
+    (firstVisible ? first : panelRef.current)?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         onClose();
         return;
       }
-      // El foco no sale del menú mientras está abierto (diálogo modal).
       if (event.key === 'Tab' && panelRef.current) {
-        const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'));
+        // Los accesos repetidos de la barra inferior sólo se muestran en horizontal: ocultos, no cuentan.
+        const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')).filter((node) => {
+          const repeated = node.closest<HTMLElement>('.ui-more-primary');
+          return !repeated || window.getComputedStyle(repeated).display !== 'none';
+        });
         const firstEl = focusables[0];
         const lastEl = focusables[focusables.length - 1];
         if (!firstEl || !lastEl) return;
@@ -335,123 +357,147 @@ function MobileMenu({ onClose, onNavigate }: { onClose: () => void; onNavigate: 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="modal-backdrop absolute inset-0" aria-hidden="true" onClick={onClose} />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Menú"
-        tabIndex={-1}
-        className="ui-menu-panel ui-safe-top ui-safe-bottom absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-line bg-surface shadow-raised"
-        data-testid="mobile-menu"
-      >
-        <div className="flex justify-end px-3 pt-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="ui-press inline-flex min-h-10 items-center gap-1.5 rounded-control px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Cerrar menú
-          </button>
+    <div
+      ref={panelRef}
+      id={id}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Más"
+      tabIndex={-1}
+      className="ui-menu-panel ui-more-panel fixed inset-x-0 top-0 z-40 overflow-y-auto overscroll-contain bg-canvas focus:outline-none lg:hidden"
+      data-testid="mobile-menu"
+    >
+      <div className="ui-on-ink ui-safe-top rounded-b-[28px] bg-ink px-5 pb-6 text-white">
+        <div className="flex items-start justify-between gap-3 pt-4">
+          <div className="min-w-0">
+            {user?.tenant?.name && <p className="break-words text-sm text-on-ink-muted">{user.tenant.name}</p>}
+            <h2 className="mt-1 text-4xl font-extrabold leading-tight">Más</h2>
+          </div>
+          <IconButton label="Cerrar menú" icon={ICON.close} variant="on-dark" onClick={onClose} />
         </div>
-        <div className="ui-menu-body min-h-0 flex-1">
-          <NavContent onNavigate={onNavigate} firstLinkRef={firstLinkRef} />
+      </div>
+      <div className="ui-gutter space-y-4 py-5">
+        {secondary.length > 0 && (
+          <ul className="divide-y divide-line overflow-hidden rounded-card bg-surface shadow-card" aria-label="Otras secciones">
+            {secondary.map((item, index) => (
+              <MoreLink key={item.path} item={item} onNavigate={onNavigate} linkRef={index === 0 ? firstLinkRef : undefined} />
+            ))}
+          </ul>
+        )}
+        <div className="ui-more-primary">
+          <ul className="divide-y divide-line overflow-hidden rounded-card bg-surface shadow-card" aria-label="Tareas principales">
+            {primary.map((item, index) => (
+              <MoreLink key={item.path} item={item} onNavigate={onNavigate} linkRef={secondary.length === 0 && index === 0 ? firstLinkRef : undefined} />
+            ))}
+          </ul>
         </div>
+        {user && (
+          <div className="flex items-center gap-4 rounded-card bg-surface px-4 py-4 shadow-card">
+            <Avatar name={user.name} tone="ink" size="lg" />
+            <div className="min-w-0">
+              <p className="break-words text-base font-bold text-ink">{user.name}</p>
+              <p className="text-sm text-ink-muted">{ROLE_LABELS[user.role] ?? user.role}</p>
+            </div>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => void logout()}
+          className="ui-press flex min-h-12 w-full items-center justify-center rounded-full border border-ink bg-transparent px-5 text-base font-semibold text-ink hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          Cerrar sesión
+        </button>
       </div>
     </div>
   );
 }
 
 /* ══════════════════════════════════════════
-   HEADER
+   CABECERA
    ══════════════════════════════════════════ */
 
 /**
- * Barra superior. No lleva el `h1` (lo pone `PageHeader` en cada vista):
- * conserva la sección y el nombre de la vista como texto, la etiqueta «Datos
- * sintéticos» cuando el servidor la declara, la campaña activa y la conexión,
- * siempre con texto.
+ * Barra superior. No lleva el `h1` (lo pone cada vista). En teléfono y tableta
+ * es oscura (lámina 35): marca, «Datos sintéticos» cuando el servidor la
+ * declara y la conexión cuando falta; en escritorio, una franja clara con la
+ * sección, la etiqueta, la campaña activa y la conexión. Siempre con texto.
  */
 function Header({
   section,
   actions,
+  isOnline,
   onMenuClick,
   menuOpen,
-  isOnline,
+  menuId,
 }: {
   section: string;
   actions?: ReactNode;
+  isOnline: boolean;
   onMenuClick: () => void;
   menuOpen: boolean;
-  isOnline: boolean;
+  menuId: string;
 }) {
   const { activeCampaign, isLoading } = useCampaign();
   const disclosureMode = useDisclosureMode();
 
   return (
-    <header className="ui-shell-header ui-safe-top sticky top-0 z-20 border-b border-line bg-surface">
-      <div className="ui-shell-bar ui-gutter flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={onMenuClick}
-            aria-label="Abrir menú"
-            aria-expanded={menuOpen}
-            aria-haspopup="dialog"
-            className="ui-press -ml-1 inline-flex h-10 w-10 items-center justify-center rounded-control text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700 lg:hidden"
-          >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="min-w-0">
-            {/* Sólo la sección del menú por tareas: el título visible es el h1 de PageHeader. */}
-            <p className="text-xs font-semibold text-brand-800" data-testid="shell-section">
-              {section}
-            </p>
-          </div>
+    <header className="ui-shell-header ui-safe-top ui-on-ink sticky top-0 z-20 bg-ink text-white lg:static lg:bg-transparent lg:text-ink lg:[--color-focus:var(--color-ink)]">
+      <div className="ui-shell-bar ui-gutter flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 lg:min-h-12 lg:pt-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="lg:hidden">
+            <BrandMark size="sm" />
+          </span>
+          <span className="font-display text-lg font-extrabold leading-tight lg:hidden">Agrocuentas</span>
+          {/* Sólo la sección del menú: el título visible es el h1 de cada vista. */}
+          <p className="sr-only text-sm font-semibold text-ink-muted lg:not-sr-only" data-testid="shell-section">
+            {section}
+          </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {disclosureMode === 'PROVISIONAL_SYNTHETIC' && (
-            <span
-              className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-inset ring-amber-600/30"
-              title="El servidor declara datos sintéticos (modo provisional de la política de divulgación)."
-              data-testid="synthetic-badge"
-            >
-              Datos sintéticos
+            <span title="El servidor declara datos sintéticos (modo provisional de la política de divulgación)." data-testid="synthetic-badge" className="inline-flex">
+              <Chip tone="attention">Datos sintéticos</Chip>
             </span>
           )}
           <Link
-            to={CAMPAIGNS_PATH}
+            to="/campaigns"
             title="Campaña activa del sindicato"
-            className="hidden min-w-0 max-w-[min(22rem,100%)] items-center gap-1.5 rounded-control px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700 sm:inline-flex"
+            className="hidden min-w-0 max-w-[min(22rem,100%)] items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-on-ink hover:bg-ink-raised focus-visible:outline-2 sm:inline-flex lg:text-ink lg:hover:bg-sunken"
           >
             {isLoading ? (
               'Campaña…'
             ) : activeCampaign ? (
               <>
-                <span className="shrink-0 font-semibold text-brand-800">Activa</span>
+                <span className="shrink-0 font-semibold text-lime lg:text-link">Activa</span>
                 {/* Una línea: con zoom o nombre largo se recorta y el nombre completo queda en `title`. */}
-                <span className="min-w-0 truncate font-medium text-ink" title={activeCampaign.name} data-testid="active-campaign-name">
+                <span className="min-w-0 truncate font-semibold" title={activeCampaign.name} data-testid="active-campaign-name">
                   {activeCampaign.name}
                 </span>
               </>
             ) : (
-              <span className="font-semibold text-amber-900">Sin campaña activa</span>
+              <span className="font-semibold text-warn-bg lg:text-caution">Sin campaña activa</span>
             )}
           </Link>
           <span
-            className={`items-center gap-1.5 text-xs font-medium ${isOnline ? 'hidden text-slate-600 sm:inline-flex' : 'inline-flex text-red-800'}`}
+            className={`items-center gap-1.5 text-sm font-medium ${isOnline ? 'hidden text-on-ink-muted sm:inline-flex lg:text-ink-muted' : 'inline-flex rounded-full bg-danger-bg px-2.5 py-0.5 text-danger-ink'}`}
             data-testid="connection"
           >
-            <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-brand-600' : 'bg-red-700'}`} aria-hidden="true" />
+            <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-lime lg:bg-link' : 'bg-danger'}`} aria-hidden="true" />
             {isOnline ? 'En línea' : 'Sin conexión'}
           </span>
           {actions}
+          {/* Teléfono en horizontal: la barra inferior se oculta y este botón abre «Más» con todas las tareas. */}
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-expanded={menuOpen}
+            aria-haspopup="dialog"
+            aria-controls={menuOpen ? menuId : undefined}
+            className="ui-header-menu ui-press min-h-10 items-center gap-1.5 rounded-full border border-on-ink-muted px-3 text-sm font-semibold text-white focus-visible:outline-2 lg:hidden"
+          >
+            <Icon d={ICON.menu} className="h-4 w-4" />
+            Menú
+          </button>
         </div>
       </div>
     </header>
@@ -459,32 +505,98 @@ function Header({
 }
 
 /* ══════════════════════════════════════════
-   APP SHELL
+   BARRA INFERIOR (teléfono, láminas 35 y 43)
    ══════════════════════════════════════════ */
 
-/**
- * Armazón de la Web institucional. Firma estable: `title` va al título de la
- * pestaña (el único título visible es el `h1` de `PageHeader`); la barra muestra
- * sólo la sección, derivada de la ruta (menú por tareas) y, fuera de él,
- * `section`; `actions` a la derecha de la barra.
- */
-export function AppShell({ title, section, actions, children }: { title: string; section: string; actions?: ReactNode; children: ReactNode }) {
+function BottomNav({ menuOpen, onMore, onNavigate, menuId }: { menuOpen: boolean; onMore: () => void; onNavigate: () => void; menuId: string }) {
   const { user } = useAuth();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const availableNav = navItemsFor(user?.role);
-  const mobileNav = MOBILE_PATHS_COLLECTIVE
-    .map((path) => availableNav.find((item) => item.to === path))
-    .filter((item): item is NavItem => Boolean(item));
-  /*
-   * El menú del teléfono ocupa una entrada del historial: el botón o gesto
-   * Atrás de Android lo cierra en lugar de salir de la página (hallazgo H1 del
-   * emulador). Cerrarlo con su botón, Escape o un toque fuera deshace esa
-   * entrada; elegir una sección la reemplaza (enlaces con `replace`).
+  const available = navItemsFor(user?.role);
+  const items = MOBILE_BOTTOM_PATHS.map((path) => available.find((item) => item.path === path)).filter((item): item is NavItemDef => Boolean(item));
+  if (available.length === 0) return null;
+  const cell =
+    'flex min-h-[4.5rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-xs leading-tight focus-visible:outline-2 focus-visible:-outline-offset-2';
+  const pill = (active: boolean) => `inline-flex h-8 w-14 items-center justify-center rounded-full ${active ? 'bg-ink text-lime' : 'text-ink'}`;
+  return (
+    <nav className="ui-bottom-nav fixed inset-x-0 bottom-0 z-50 flex border-t border-line bg-surface lg:hidden" aria-label="Navegación rápida">
+      {items.map((item) => {
+        const active = !menuOpen && isNavItemActive(item, location.pathname);
+        return (
+          <Link
+            key={item.path}
+            to={item.path}
+            // Con «Más» abierto, el destino reemplaza la entrada del historial del menú.
+            replace={menuOpen}
+            onClick={menuOpen ? onNavigate : undefined}
+            aria-current={active ? 'page' : undefined}
+            className={`${cell} ${active ? 'font-bold text-ink' : 'font-medium text-ink-muted'}`}
+          >
+            <span className={pill(active)}>
+              <Icon d={ICON[item.icon]} className="h-6 w-6" strokeWidth={1.8} />
+            </span>
+            <span className="max-w-full break-words">{item.short ?? item.label}</span>
+          </Link>
+        );
+      })}
+      <button
+        type="button"
+        onClick={onMore}
+        aria-expanded={menuOpen}
+        aria-haspopup="dialog"
+        aria-controls={menuOpen ? menuId : undefined}
+        className={`${cell} ${menuOpen ? 'font-bold text-ink' : 'font-medium text-ink-muted'}`}
+      >
+        <span className={pill(menuOpen)}>
+          <Icon d={ICON.menu} className="h-6 w-6" strokeWidth={1.8} />
+        </span>
+        <span>Más</span>
+      </button>
+    </nav>
+  );
+}
+
+/* ══════════════════════════════════════════
+   ARMAZÓN
+   ══════════════════════════════════════════ */
+
+export interface AppShellProps {
+  /** Título de la pestaña del navegador («<title> · Agrocuentas»). */
+  title: string;
+  /** Sección de la barra superior fuera del menú por tareas; dentro, se deriva de la ruta. */
+  section: string;
+  /** Controles propios de la vista en la barra superior (poco usado). */
+  actions?: ReactNode;
+  children: ReactNode;
+  /**
+   * Contadores adicionales del menú, por ruta o subvista (p. ej. `{ '/colectivo/catalogo?vista=identificacion': 6 }`).
+   * Sólo se dibujan si la vista los pasa con un dato real del servidor; sin él, no hay contador. La
+   * insignia «Por identificar» ya la pone el armazón (contexto `identification-pending`).
    */
-  // Cada apertura marca su entrada con una ficha propia: una entrada de menú antigua
-  // (p. ej. de una página restaurada desde la caché) no se confunde con la actual.
+  navCounts?: NavCounts;
+}
+
+/**
+ * Armazón de la Web institucional (rediseño v2). Firma estable: `title` va al
+ * título de la pestaña (el título visible es el `h1` de cada vista); la barra
+ * muestra la sección, derivada de la ruta y, fuera del menú, `section`.
+ * Escritorio: barra lateral oscura plegable. Teléfono y tableta (< 1024 px):
+ * barra superior oscura, barra inferior con cuatro tareas y «Más».
+ */
+export function AppShell({ title, section, actions, children, navCounts }: AppShellProps) {
+  const location = useLocation();
+  // Insignia «Por identificar» (H-02): sólo con un recuento real mayor que cero; sin dato no hay insignia.
+  const pending = useIdentificationPending();
+  const counts: NavCounts = { ...(pending !== null && pending > 0 ? { [IDENTIFICATION_PENDING_KEY]: pending } : {}), ...navCounts };
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [rail, setRail] = useState(readRail);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const menuId = useId();
+  /*
+   * El menú «Más» ocupa una entrada del historial: el botón o gesto Atrás de
+   * Android lo cierra en lugar de salir de la página (hallazgo H1 del
+   * emulador). Cerrarlo con su botón, Escape o «Más» deshace esa entrada;
+   * elegir una sección la reemplaza (enlaces con `replace`).
+   */
   const menuToken = useRef<string | null>(null);
   const openMenu = useCallback(() => {
     const state: unknown = window.history.state;
@@ -498,6 +610,13 @@ export function AppShell({ title, section, actions, children }: { title: string;
     else setMenuOpen(false);
   }, []);
   const leaveMenu = useCallback(() => setMenuOpen(false), []);
+  const toggleMenu = useCallback(() => (menuOpen ? closeMenu() : openMenu()), [menuOpen, closeMenu, openMenu]);
+  const toggleRail = useCallback(() => {
+    setRail((prev) => {
+      writeRail(!prev);
+      return !prev;
+    });
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -527,84 +646,82 @@ export function AppShell({ title, section, actions, children }: { title: string;
     };
   }, []);
 
-
-  // El nombre de la vista ya no se repite en la barra: queda en el título de la pestaña.
+  // El nombre de la vista no se repite en la barra: queda en el título de la pestaña.
   useEffect(() => {
     document.title = `${title} · Agrocuentas`;
   }, [title]);
 
   return (
     <div className="min-h-dvh bg-canvas">
-      <aside className="hidden border-r border-line bg-surface lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[248px] lg:flex-col">
-        <NavContent />
-      </aside>
-      {menuOpen && <MobileMenu onClose={closeMenu} onNavigate={leaveMenu} />}
+      <a href="#contenido" className="skip-link">
+        Saltar al contenido
+      </a>
+      <Sidebar rail={rail} onToggleRail={toggleRail} counts={counts} />
+      {menuOpen && <MoreMenu id={menuId} onClose={closeMenu} onNavigate={leaveMenu} />}
 
-      <div className="lg:pl-[248px]">
-        <Header section={sectionFor(location.pathname, section)} actions={actions} onMenuClick={openMenu} menuOpen={menuOpen} isOnline={isOnline} />
-        <main className="ui-gutter ui-main mx-auto max-w-7xl pt-5 lg:pt-6">{children}</main>
+      <div className="ui-content" data-rail={rail}>
+        <Header section={sectionLabelFor(location.pathname, section)} actions={actions} isOnline={isOnline} onMenuClick={toggleMenu} menuOpen={menuOpen} menuId={menuId} />
+        <main id="contenido" tabIndex={-1} className="ui-gutter ui-main mx-auto max-w-[1400px] pt-5 focus:outline-none lg:pt-4">
+          {children}
+        </main>
       </div>
 
-      {mobileNav.length > 0 && (
-        <nav className="ui-bottom-nav fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface lg:hidden" aria-label="Navegación rápida">
-          {mobileNav.map((item) => {
-            const active = isItemActive(item, location.pathname);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                aria-current={active ? 'page' : undefined}
-                className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[11px] font-semibold leading-tight focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700 ${
-                  active ? 'text-brand-800' : 'text-slate-600'
-                }`}
-              >
-                <span className={`rounded-full px-3 py-0.5 ${active ? 'bg-brand-50 text-brand-700' : ''}`}>{item.icon}</span>
-                <span>{item.short ?? item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      )}
+      <BottomNav menuOpen={menuOpen} onMore={toggleMenu} onNavigate={leaveMenu} menuId={menuId} />
     </div>
   );
 }
 
 /* ══════════════════════════════════════════
-   NOTICE / TOAST
+   PIEZAS HEREDADAS (se conservan sus firmas; estilo v2)
    ══════════════════════════════════════════ */
 
 /** Movido a `components/ui` (rediseño 2026-11-10); se re-exporta para no romper importaciones. */
 export { Notice } from './ui';
 
 export function SkeletonRow({ cols = 5 }: { cols?: number }) {
-  return <tr>{Array.from({ length: cols }).map((_, i) => <td key={i} className="px-5 py-3.5"><div className="skeleton h-4 w-full rounded-md" /></td>)}</tr>;
+  return (
+    <tr>
+      {Array.from({ length: cols }).map((_, i) => (
+        <td key={i} className="px-5 py-3.5">
+          <div className="skeleton h-4 w-full" />
+        </td>
+      ))}
+    </tr>
+  );
 }
 
 export function EmptyState({ icon, title, description, compact = false }: { icon?: ReactNode; title: string; description?: string; compact?: boolean }) {
   return (
     <div className={`flex flex-col items-center justify-center text-center ${compact ? 'py-7' : 'py-16'}`}>
-      {icon && <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-card bg-slate-100 text-slate-500" aria-hidden="true">{icon}</div>}
-      <p className="text-sm font-semibold text-slate-700">{title}</p>
-      {description && <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-slate-600">{description}</p>}
+      {icon && (
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[16px] bg-sunken text-ink" aria-hidden="true">
+          {icon}
+        </div>
+      )}
+      <p className="font-display text-lg font-bold text-ink">{title}</p>
+      {description && <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-ink-muted">{description}</p>}
     </div>
   );
 }
 
 /**
- * Tarjeta de cifra de las vistas heredadas (bitácora y legacy). Rediseño
- * 2026-11-10: superficie sólida, sin degradado; `color` se conserva en la
- * firma pero ya no tiñe el icono (un solo acento).
+ * Tarjeta de cifra de las vistas heredadas (bitácora). `color` se conserva en
+ * la firma pero no tiñe el icono (un solo acento).
  */
 export function StatCard({ label, value, icon, trend }: { label: string; value: string | number; icon?: ReactNode; trend?: string; color?: 'emerald' | 'red' | 'amber' | 'sky' | 'violet' | 'slate' }) {
   return (
     <div className="glass-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-600">{label}</p>
-          <p className="mt-1.5 text-2xl font-bold text-ink tabular-nums">{value}</p>
-          {trend && <p className="mt-1 text-xs font-medium text-slate-600">{trend}</p>}
+          <p className="text-sm font-medium text-ink-muted">{label}</p>
+          <p className="mt-1.5 font-display text-2xl font-bold text-ink tabular-nums">{value}</p>
+          {trend && <p className="mt-1 text-xs font-medium text-ink-muted">{trend}</p>}
         </div>
-        {icon && <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-slate-100 text-slate-600" aria-hidden="true">{icon}</div>}
+        {icon && (
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-sunken text-ink" aria-hidden="true">
+            {icon}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -616,39 +733,25 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function RoleBadge({ role }: { role: string }) {
-  const cls = ROLE_BADGE_COLORS[role] ?? 'bg-slate-500/10 text-slate-600 ring-slate-500/20';
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${cls}`}>{ROLE_LABELS[role] ?? role}</span>;
+  const cls = ROLE_BADGE_COLORS[role] ?? 'bg-sunken text-ink ring-ink/15';
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${cls}`}>{ROLE_LABELS[role] ?? role}</span>;
 }
 
+/**
+ * Diálogo heredado: ahora delega en `Dialog` (components/ui), con foco inicial,
+ * trampa de foco, Esc, retorno del foco y hoja inferior en el teléfono. Firma
+ * sin cambios.
+ */
 export function Modal({ title, children, onClose, size = 'md' }: { title: string; children: ReactNode; onClose: () => void; size?: 'sm' | 'md' | 'lg' }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
-  const sizeClasses = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg' };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 modal-backdrop">
-      <button
-        type="button"
-        aria-label="Cerrar modal"
-        className="absolute inset-0 cursor-default"
-        onClick={onClose}
-      />
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain ${sizeClasses[size]} rounded-card border border-line bg-surface p-6 shadow-raised`}>
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h3 className="text-lg font-bold text-ink">{title}</h3>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="ui-press rounded-control p-1.5 text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-brand-700"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Dialog title={title} label={title} onClose={onClose} size={size}>
+      <div className="pb-6">{children}</div>
+    </Dialog>
   );
 }
 
 /* ══════════════════════════════════════════
-   SHARED STYLE CLASSES
+   CLASES COMPARTIDAS
    ══════════════════════════════════════════ */
 
 /* Clases movidas a `components/ui/classes.ts` con los tokens nuevos; se re-exportan. */

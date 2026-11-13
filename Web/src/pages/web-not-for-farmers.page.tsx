@@ -1,4 +1,5 @@
 import { Navigate, useNavigate } from 'react-router-dom';
+import { Button, ICON, Icon } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { homePathFor, isCollectiveRole } from '../lib/navigation';
 
@@ -19,27 +20,21 @@ export function WebNotForFarmersPage() {
   if (!user) return <Navigate to="/login" replace />;
   if (isCollectiveRole(user.role)) return <Navigate to={homePathFor(user.role)} replace />;
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#f8faf4] px-4">
-      <section aria-labelledby="web-not-for-farmers" className="max-w-md rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-        <h1 id="web-not-for-farmers" className="text-lg font-bold text-slate-900">
+    <main className="ui-gutter flex min-h-dvh items-center justify-center bg-ink py-10">
+      {/* Lámina 02: tarjeta blanca sobre fondo oscuro; sin menú, sin datos y sin enlace de descarga. */}
+      <section aria-labelledby="web-not-for-farmers" className="w-full max-w-lg rounded-[28px] bg-surface px-6 py-9 text-center shadow-raised sm:px-12 sm:py-11">
+        <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-[14px] bg-lime text-ink" aria-hidden="true">
+          <Icon d={ICON.sprout} className="h-6 w-6" strokeWidth={2.2} />
+        </span>
+        <h1 id="web-not-for-farmers" className="mt-5 text-balance text-3xl font-extrabold leading-tight text-ink">
           {WEB_NOT_FOR_FARMERS_TITLE}
         </h1>
-        <p className="mt-3 text-sm text-slate-600">{WEB_NOT_FOR_FARMERS_TEXT}</p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => void logout().then(() => navigate('/login', { replace: true }))}
-            className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-          >
-            Cambiar de cuenta
-          </button>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50"
-          >
+        <p className="mt-3 text-base leading-relaxed text-ink-muted">{WEB_NOT_FOR_FARMERS_TEXT}</p>
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <Button onClick={() => void logout().then(() => navigate('/login', { replace: true }))}>Cambiar de cuenta</Button>
+          <Button variant="secondary" onClick={() => void logout()}>
             Cerrar sesión
-          </button>
+          </Button>
         </div>
       </section>
     </main>
