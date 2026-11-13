@@ -5,12 +5,15 @@ import * as fixtures from '../dev/fixtures/campaigns-fixtures';
 import { CAMPAIGN_IDS, LONG_CAMPAIGN_NAME } from '../dev/fixtures/campaigns-fixtures';
 import { renderWithFixture } from '../dev/fixtures/summary-render';
 import { campaignsService } from '../services/campaigns.service';
+import { collectiveService } from '../services/collective.service';
 import type { Campaign } from '../types/campaigns';
 import { CampaignsPage } from './campaigns.page';
 
 vi.mock('../services/campaigns.service', () => ({
   campaignsService: { list: vi.fn(), active: vi.fn(), create: vi.fn(), update: vi.fn(), open: vi.fn(), close: vi.fn() },
 }));
+// H-25 (rediseño v2): «Sellada · versión N» sale de una sola lectura de `GET /collective/trends`.
+vi.mock('../services/collective.service', () => ({ collectiveService: { trends: vi.fn() } }));
 
 function show(list: Campaign[], { role = 'DIRECTIVA', active = fixtures.activeOf(list) }: { role?: string; active?: Campaign | null } = {}) {
   vi.mocked(campaignsService.list).mockResolvedValue(list);
@@ -30,6 +33,7 @@ function expectNoWrites() {
 describe('Campañas', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(collectiveService.trends).mockResolvedValue({ campaigns: [] } as never);
     // Sólo se fija la fecha («hoy» = 10 nov 2026); los temporizadores siguen siendo reales.
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 10, 10, 9, 0));
@@ -47,13 +51,13 @@ describe('Campañas', () => {
     for (const campaign of open) expect(within(row(campaign.name)).getByText('Abierta')).toBeTruthy();
     // Nombres que sólo difieren en mayúsculas: dos filas distintas.
     expect(row('Campaña de verano 2026')).not.toBe(row('Campaña de Verano 2026'));
-    const activeRows = fixtures.worst.filter((campaign) => within(row(campaign.name)).queryByText('Activa'));
+    const activeRows = fixtures.worst.filter((campaign) => within(row(campaign.name)).queryByText('Campaña activa'));
     expect(activeRows.map((campaign) => campaign.id)).toEqual([CAMPAIGN_IDS.worstActive]);
     expect(screen.getByTestId('campaign-counts').textContent).toMatch(/hay 3 campañas abiertas/);
 
-    // Columnas distintas: «Cerrada el …» sólo con closedAt.
-    expect(screen.getByRole('columnheader', { name: 'Fin estimado' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Cierre registrado' })).toBeTruthy();
+    // Datos distintos (rediseño v2: tarjeta activa y filas en lugar de columnas): «Cerrada el …» sólo con closedAt.
+    expect(within(screen.getByTestId('active-campaign')).getByText('Fin estimado')).toBeTruthy();
+    expect(within(screen.getByTestId('active-campaign')).getByText('Cierre')).toBeTruthy();
     expect(within(row('Campaña de invierno 2025')).getByTestId('closed-at').textContent).toMatch(/^Cerrada el /);
     expect(within(row(LONG_CAMPAIGN_NAME)).getByTestId('closed-at').textContent).toBe('Sin cierre registrado');
     // El día de calendario no se corre al día anterior.
@@ -70,19 +74,35 @@ describe('Campañas', () => {
     expect(within(screen.getByTestId('active-campaign')).getByText('Fin estimado vencido · sin cierre registrado')).toBeTruthy();
   });
 
+  it('H-25: «Sellada · versión N» sale de una sola lectura de la serie sellada; sin dato no hay chip', async () => {
+    const sealedCampaign = fixtures.worst.find((campaign) => campaign.id === CAMPAIGN_IDS.worstClosedSealed)!;
+    vi.mocked(collectiveService.trends).mockResolvedValue({
+      campaigns: [{ campaign_ref: sealedCampaign.id, name: sealedCampaign.name, status: 'CERRADA', start_date: sealedCampaign.startDate, seal: { version: 1 }, coverage: null }],
+    } as never);
+    show(fixtures.worst);
+    await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`);
+    expect(await within(row(sealedCampaign.name)).findByText('Sellada · versión 1')).toBeTruthy();
+    expect(collectiveService.trends).toHaveBeenCalledTimes(1);
+    expect(collectiveService.trends).toHaveBeenCalledWith(null);
+    expect(within(row('Campaña de invierno 2025')).queryByText(/Sellada/)).toBeNull();
+    // La cobertura de cada campaña no va en la lista (H-18).
+    expect(screen.queryByText(/agricultores (vinculados )?con cifras/)).toBeNull();
+  });
+
   it('cada fila enlaza a su detalle; sin reabrir ni cancelar', async () => {
     show(fixtures.worst);
     await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`);
     const link = within(row('Campaña de invierno 2025')).getByRole('link', { name: /Ver detalle/ });
     expect(link.getAttribute('href')).toBe(`/campaigns/${CAMPAIGN_IDS.worstClosedUnsealed}`);
     expect(screen.queryByRole('button', { name: /Reabrir|Cancelar campaña/ })).toBeNull();
-    expect(within(row('Campaña de invierno 2025')).queryByRole('button', { name: 'Abrir' })).toBeNull();
+    expect(within(row('Campaña de invierno 2025')).queryByRole('button', { name: 'Abrir campaña' })).toBeNull();
+    expect(within(row('Campaña de invierno 2025')).queryByRole('button', { name: 'Editar' })).toBeNull();
   });
 
   it('cerrar conserva la confirmación: nada se envía hasta confirmar', async () => {
     vi.mocked(campaignsService.close).mockResolvedValue({ ...fixtures.worst[0], status: 'CERRADA', isActive: false });
     show(fixtures.worst);
-    fireEvent.click(await within(await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`)).findByRole('button', { name: 'Cerrar' }));
+    fireEvent.click(await within(await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`)).findByRole('button', { name: 'Cerrar campaña…' }));
     expect(campaignsService.close).not.toHaveBeenCalled();
     expect(screen.getByText(/Cerrar no es sellar/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar campaña' }));
@@ -98,8 +118,8 @@ describe('Campañas', () => {
       const active = await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`);
       expect(screen.getByRole('button', { name: 'Nueva campaña' })).toBeTruthy();
       expect(within(active).getByRole('button', { name: 'Editar' })).toBeTruthy();
-      expect(within(active).getByRole('button', { name: 'Cerrar' })).toBeTruthy();
-      expect(within(row('Campaña de verano 2026')).getByRole('button', { name: 'Abrir' })).toBeTruthy();
+      expect(within(active).getByRole('button', { name: 'Cerrar campaña…' })).toBeTruthy();
+      expect(within(row('Campaña de verano 2026')).getByRole('button', { name: 'Abrir campaña' })).toBeTruthy();
       expect(screen.queryByText('Sólo consulta')).toBeNull();
       unmount();
     }
@@ -109,7 +129,7 @@ describe('Campañas', () => {
   it('H6: la búsqueda declara tipo, tecla «buscar» y modo de entrada para el teclado del teléfono', async () => {
     show(fixtures.one);
     await screen.findByTestId('campaign-row-Campaña única 2026');
-    const input = screen.getByLabelText('Buscar');
+    const input = screen.getByLabelText('Buscar campaña');
     expect(input.getAttribute('type')).toBe('search');
     expect(input.getAttribute('enterkeyhint')).toBe('search');
     expect(input.getAttribute('inputmode')).toBe('search');
@@ -164,9 +184,9 @@ describe('Campañas', () => {
     vi.mocked(campaignsService.create).mockResolvedValue(created);
     vi.mocked(campaignsService.list).mockResolvedValue([...fixtures.one, created]);
     fireEvent.click(screen.getByRole('button', { name: 'Nueva campaña' }));
-    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Campaña nueva 2027' } });
-    fireEvent.change(screen.getByLabelText('Inicio *'), { target: { value: '2027-01-10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Campaña nueva 2027' } });
+    fireEvent.change(screen.getByLabelText('Inicio'), { target: { value: '2027-01-10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crear campaña' }));
     await screen.findByTestId('campaign-row-Campaña nueva 2027');
     expect(campaignsService.create).toHaveBeenCalledTimes(1);
     expect(campaignsService.list).toHaveBeenCalledTimes(2);

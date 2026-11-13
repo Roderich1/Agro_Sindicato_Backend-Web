@@ -59,7 +59,7 @@ describe('Detalle de campaña', () => {
   it('datos generales: activa, fin estimado vencido como texto, sin cierre registrado, notas', async () => {
     show(fixtures.worst);
     const general = await screen.findByTestId('general');
-    expect(within(general).getByText('Sí, es la campaña activa del sindicato')).toBeTruthy();
+    expect(within(general).getByText('Campaña activa')).toBeTruthy();
     expect(within(general).getByTestId('estimated-end').textContent).toMatch(/Fin estimado vencido · sin cierre registrado/);
     expect(within(general).getByTestId('closed-at').textContent).toBe('Sin cierre registrado');
     expect(general.textContent).toMatch(/helada de agosto/);
@@ -75,14 +75,19 @@ describe('Detalle de campaña', () => {
     expect(within(coverage).getByRole('link', { name: 'Ver cobertura' }).getAttribute('href')).toBe(`/colectivo/cobertura?campaign=${CAMPAIGN_IDS.worstActive}`);
   });
 
-  it('borradores vinculados: fecha, autor largo, líneas con plural y enlace a Necesidades y propuestas', async () => {
+  it('borradores de compra: fecha, autor largo, productos con plural, el más reciente y cada borrador (U.3)', async () => {
     show(fixtures.worst);
     const section = await screen.findByTestId('detail-proposals');
     await within(section).findByText(fixtures.LONG_AUTHOR);
-    expect(within(section).getByText('12 líneas')).toBeTruthy();
-    expect(within(section).getAllByText('1 línea').length).toBe(2);
-    expect(within(section).getByRole('link', { name: 'Abrir en Necesidades y propuestas' }).getAttribute('href')).toBe(
+    expect(within(section).getByText('12 productos')).toBeTruthy();
+    expect(within(section).getAllByText('1 producto').length).toBe(2);
+    expect(within(section).getByRole('link', { name: 'Abrir el más reciente' }).getAttribute('href')).toBe(
       `/colectivo/propuestas?campaign=${CAMPAIGN_IDS.worstActive}`,
+    );
+    const rows = within(section).getAllByRole('link', { name: /^Abrir el borrador del / });
+    expect(rows).toHaveLength(fixtures.worst.proposals.length);
+    expect(rows[0]!.getAttribute('href')).toBe(
+      `/colectivo/propuestas?campaign=${CAMPAIGN_IDS.worstActive}&borrador=${encodeURIComponent(fixtures.worst.proposals[0]!.proposal_ref)}`,
     );
   });
 

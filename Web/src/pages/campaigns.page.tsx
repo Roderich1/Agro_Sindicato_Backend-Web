@@ -1,26 +1,34 @@
 import axios from 'axios';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { AppShell, Modal } from '../components/app-shell';
+import { AppShell } from '../components/app-shell';
+import { Overline } from '../components/c/bits';
+import { ViewHeader } from '../components/c/view-header';
 import {
   Button,
-  buttonClass,
   buttonClassFor,
+  Chip,
+  ConfirmDialog,
   DataState,
-  DataTable,
-  inputClass,
-  labelClass,
+  Dialog,
+  Icon,
+  ICON,
   Notice,
-  PageHeader,
+  SearchInput,
+  Select,
   StatusChip,
   surfaceClass,
+  Textarea,
+  TextInput,
 } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { useCampaignList } from '../hooks/use-selected-campaign';
 import { fmtDateTime } from '../lib/collective-text';
 import { extractError } from '../lib/format';
+import { campaignDetailPath, isCollectiveRole } from '../lib/navigation';
 import { campaignsService } from '../services/campaigns.service';
+import { collectiveService } from '../services/collective.service';
 import type { Campaign, CampaignStatus, CreateCampaignPayload } from '../types/campaigns';
 import { fmtCampaignDay, isEstimatedEndOverdue, OVERDUE_TEXT } from './campaign-dates';
 
@@ -41,15 +49,21 @@ const COUNT_TEXT: [CampaignStatus, string, string][] = [
 ];
 
 /**
- * Campañas del sindicato (`GET /campaigns`, los tres roles). Crear, editar,
- * abrir y cerrar: sólo Directiva y Administrador (el servidor lo comprueba).
+ * Campañas del sindicato (láminas 28 y 41; diálogos 30.1, 30.2 y 34.3).
+ * `GET /campaigns`; crear, editar, abrir y cerrar: sólo Directiva y
+ * Administrador (el servidor lo comprueba). Sin reabrir ni cancelar (no
+ * existen rutas).
  *
- * Rediseño (sesión B, 2026-11-10): «Fin estimado» y «Cierre registrado» en
- * columnas distintas (matriz C4); «Fin estimado vencido · sin cierre
- * registrado» es una regla de presentación de la Web, no un dato del servidor.
- * La lista no supone una sola campaña abierta: muestra todas las `ABIERTA` que
- * lleguen y «Activa» sólo con `isActive`. Sin reabrir ni cancelar (no existen
- * rutas, C10). Cada fila enlaza a su detalle `/campaigns/:id`.
+ * - La campaña activa del sindicato (`isActive`, de la sesión) va arriba en
+ *   una tarjeta oscura con «Cerrar campaña…» y «Ver detalle». Las demás, en
+ *   la lista de abajo, cada una con su detalle `/campaigns/:id`. La lista no
+ *   supone una sola campaña abierta: muestra todas las `ABIERTA` que lleguen.
+ * - «Fin estimado vencido · sin cierre registrado» es una regla de
+ *   presentación de la Web, no un dato del servidor.
+ * - «Sellada · versión N» sale de `GET /collective/trends` (una sola llamada,
+ *   H-25), nunca de `GET …/seal` por campaña. Si esa lectura falla no hay
+ *   chip: no se deduce nada.
+ * - La cobertura de cada campaña no va en la lista (H-18): está en el detalle.
  *
  * Sin filtros, la lista es la de la sesión (`CampaignProvider`, una sola
  * `GET /campaigns`). Con búsqueda o estado se consulta al servidor (la búsqueda
@@ -68,9 +82,27 @@ export function CampaignsPage() {
   const [findError, setFindError] = useState<{ kind: 'error' | 'forbidden'; text: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [sealed, setSealed] = useState<Map<string, number>>(new Map());
 
   const canManage = Boolean(user && MANAGER_ROLES.includes(user.role));
+  const collective = isCollectiveRole(user?.role);
   const filtered = Boolean(status || term);
+
+  // H-25: la versión sellada de cada campaña, con una sola lectura de la serie sellada.
+  useEffect(() => {
+    if (!collective) return undefined;
+    let alive = true;
+    collectiveService
+      .trends(null)
+      .then((trends) => {
+        if (!alive) return;
+        setSealed(new Map(trends.campaigns.filter((row) => row.seal).map((row) => [row.campaign_ref, row.seal!.version])));
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [collective]);
 
   // La búsqueda consulta al servidor cuando la persona deja de escribir, no en cada tecla.
   useEffect(() => {
@@ -126,171 +158,212 @@ export function CampaignsPage() {
     [campaigns],
   );
   const openCount = campaigns.filter((campaign) => campaign.status === 'ABIERTA').length;
+  // La tarjeta de arriba usa la fila más reciente de la lista si está; si no, la de la sesión.
+  const active = activeCampaign ? (session.campaigns.find((row) => row.id === activeCampaign.id) ?? activeCampaign) : null;
+  const others = campaigns.filter((campaign) => campaign.id !== active?.id);
+  const onlyActiveMatches = filtered && others.length === 0 && campaigns.length > 0;
 
   return (
-    <AppShell title="Campañas" section="Gestión">
-      <div className="space-y-4">
-        <PageHeader
+    <AppShell title="Campañas" section="Sindicato">
+      <div className="space-y-5">
+        <ViewHeader
           title="Campañas"
-          subtitle="Campañas compartidas del sindicato: fechas, estado y acceso al detalle de cada una."
-          actions={canManage ? <Button onClick={() => setCreating(true)}>Nueva campaña</Button> : null}
+          eyebrow={user?.tenant?.name}
+          action={canManage ? { label: 'Nueva campaña', onClick: () => setCreating(true) } : undefined}
         />
-
-        <div className={`px-5 py-3 ${surfaceClass}`} data-testid="active-campaign">
-          <p className={labelClass}>Campaña activa</p>
-          {activeCampaign ? (
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <p className="min-w-0 text-xl font-bold leading-tight text-ink [overflow-wrap:anywhere]">{activeCampaign.name}</p>
-              <span className="inline-flex shrink-0 items-center rounded-full bg-brand-700 px-2.5 py-0.5 text-[11px] font-semibold text-white">Activa</span>
-              <p className="text-sm text-slate-600 tabular-nums">
-                Inicio {fmtCampaignDay(activeCampaign.startDate) ?? '—'}
-                {activeCampaign.estimatedEndDate ? ` · fin estimado ${fmtCampaignDay(activeCampaign.estimatedEndDate)}` : ''}
-              </p>
-              {isEstimatedEndOverdue(activeCampaign) && <OverdueNote />}
-            </div>
-          ) : (
-            <Notice kind="warn" compact>
-              No hay campaña activa. Los agricultores no pueden registrar en una campaña hasta que la Directiva abra una.
-            </Notice>
-          )}
-        </div>
 
         {message && <Notice kind="ok">{message}</Notice>}
 
-        <section className={`overflow-hidden ${surfaceClass}`}>
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 px-5 py-3">
+        <section aria-labelledby="active-title" className="space-y-3">
+          <div className="lg:sr-only">
+            <Overline id="active-title">Campaña activa</Overline>
+          </div>
+          {active ? (
+            <ActiveCampaignCard campaign={active} sealedVersion={sealed.get(active.id) ?? null} onChanged={changed} />
+          ) : (
+            <div data-testid="active-campaign">
+              <Notice kind="warn">No hay campaña activa. Los agricultores no pueden registrar en una campaña hasta que la Directiva abra una.</Notice>
+            </div>
+          )}
+        </section>
+
+        <section aria-labelledby="list-title" className="space-y-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-ink">Historial de campañas</h2>
-              <p className="mt-0.5 text-xs text-slate-600" data-testid="campaign-counts">
-                {isLoading || error ? ' ' : campaigns.length === 0 ? 'Sin campañas en la lista' : counts}
-                {!isLoading && openCount > 1 && ` · hay ${openCount} campañas abiertas; «Activa» es sólo la que el servidor marca como activa`}
+              <Overline id="list-title">{active && !filtered ? 'Otras campañas' : 'Campañas'}</Overline>
+              <p className="mt-0.5 text-sm text-ink-muted" data-testid="campaign-counts">
+                {isLoading || error ? ' ' : campaigns.length === 0 ? 'Sin campañas en la lista' : counts}
+                {!isLoading && openCount > 1 && ` · hay ${openCount} campañas abiertas; «Campaña activa» es sólo la que el servidor marca como activa`}
               </p>
             </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="w-full min-w-0 sm:w-48">
-                <label htmlFor="campaign-search" className={labelClass}>Buscar</label>
-                <input
-                  id="campaign-search"
-                  type="search"
-                  enterKeyHint="search"
-                  inputMode="search"
-                  className={inputClass}
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Invierno, verano…"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="w-full min-w-0 sm:w-40">
-                <label htmlFor="campaign-status" className={labelClass}>Estado</label>
-                <select
-                  id="campaign-status"
-                  className={inputClass}
-                  value={status}
-                  onChange={(event) => setStatus(event.target.value as CampaignStatus | '')}
-                >
-                  <option value="">Todos</option>
-                  {(Object.keys(STATUS_FILTER_TEXT) as CampaignStatus[]).map((value) => (
-                    <option key={value} value={value}>{STATUS_FILTER_TEXT[value]}</option>
-                  ))}
-                </select>
-              </div>
-              <Button variant="ghost" onClick={() => void refresh()} disabled={isLoading}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <SearchInput
+                id="campaign-search"
+                label="Buscar campaña"
+                value={search}
+                onChange={setSearch}
+                placeholder="Buscar campaña"
+                enterKeyHint="search"
+                inputMode="search"
+                autoComplete="off"
+                fieldClassName="w-full sm:w-64"
+              />
+              <Select id="campaign-status" label="Estado" hideLabel value={status} onChange={(event) => setStatus(event.target.value as CampaignStatus | '')} fieldClassName="w-full sm:w-44" className="rounded-full bg-surface">
+                <option value="">Todas</option>
+                {(Object.keys(STATUS_FILTER_TEXT) as CampaignStatus[]).map((value) => (
+                  <option key={value} value={value}>
+                    {STATUS_FILTER_TEXT[value]}
+                  </option>
+                ))}
+              </Select>
+              <Button variant="secondary" icon={<Icon d={ICON.refresh} className="h-4 w-4" />} onClick={() => void refresh()} disabled={isLoading}>
                 Actualizar
               </Button>
             </div>
           </div>
 
           {isLoading ? (
-            <DataState state="loading" title="Cargando campañas…" />
+            <div className={surfaceClass}>
+              <DataState state="loading" title="Cargando campañas…" />
+            </div>
           ) : error ? (
-            <DataState state={error.kind} description={error.kind === 'forbidden' ? undefined : error.text} onRetry={() => void refresh()} testId="campaigns-error" />
-          ) : campaigns.length === 0 ? (
-            filtered ? (
-              <DataState
-                state="no-match"
-                description={`Ninguna campaña coincide con el filtro aplicado (${[term && `«${term}»`, status && STATUS_FILTER_TEXT[status]].filter(Boolean).join(', ')}).`}
-                onClearFilters={() => {
-                  setSearch('');
-                  setTerm('');
-                  setStatus('');
-                }}
-              />
-            ) : (
-              <DataState
-                state="empty"
-                title="Todavía no hay campañas"
-                description={canManage ? 'Cree la primera con «Nueva campaña».' : 'La Directiva aún no creó ninguna campaña.'}
-              />
-            )
+            <div className={surfaceClass}>
+              <DataState state={error.kind} description={error.kind === 'forbidden' ? undefined : error.text} onRetry={() => void refresh()} testId="campaigns-error" />
+            </div>
+          ) : campaigns.length === 0 || onlyActiveMatches ? (
+            <div className={surfaceClass}>
+              {filtered ? (
+                <DataState
+                  state="no-match"
+                  description={
+                    onlyActiveMatches
+                      ? 'Sólo coincide la campaña activa, que está arriba.'
+                      : `Ninguna campaña coincide con el filtro aplicado (${[term && `«${term}»`, status && STATUS_FILTER_TEXT[status]].filter(Boolean).join(', ')}).`
+                  }
+                  onClearFilters={() => {
+                    setSearch('');
+                    setTerm('');
+                    setStatus('');
+                  }}
+                />
+              ) : (
+                <DataState
+                  state="empty"
+                  title="Todavía no hay campañas"
+                  description={canManage ? 'Cree la primera con «Nueva campaña».' : 'La Directiva aún no creó ninguna campaña.'}
+                />
+              )}
+            </div>
+          ) : others.length === 0 ? (
+            <p className="text-sm text-ink-muted">No hay otras campañas: sólo la activa.</p>
           ) : (
-            <DataTable caption="Historial de campañas" minWidth={980}>
-              <thead>
-                <tr>
-                  <th scope="col">Campaña</th>
-                  <th scope="col">Estado</th>
-                  <th scope="col">Inicio</th>
-                  <th scope="col">Fin estimado</th>
-                  <th scope="col">Cierre registrado</th>
-                  <th scope="col" className="text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((campaign) => (
-                  <tr key={campaign.id} data-testid={`campaign-row-${campaign.name}`}>
-                    <td className="max-w-[22rem]">
-                      <p className="font-semibold text-ink [overflow-wrap:anywhere]">{campaign.name}</p>
-                      {campaign.notes && (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-slate-600" title={campaign.notes}>
-                          {campaign.notes}
-                        </p>
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <StatusChip status={campaign.status} />
-                        {campaign.isActive && (
-                          <span className="inline-flex shrink-0 items-center rounded-full bg-brand-700 px-2 py-0.5 text-[11px] font-semibold text-white">Activa</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap tabular-nums text-slate-700">{fmtCampaignDay(campaign.startDate) ?? '—'}</td>
-                    <td className="tabular-nums text-slate-700" data-testid="estimated-end">
-                      <span className="whitespace-nowrap">{fmtCampaignDay(campaign.estimatedEndDate) ?? 'Sin fecha estimada'}</span>
-                      {isEstimatedEndOverdue(campaign) && <OverdueNote />}
-                    </td>
-                    <td className="tabular-nums text-slate-700" data-testid="closed-at">
-                      {campaign.closedAt ? `Cerrada el ${fmtDateTime(campaign.closedAt)}` : <span className="text-slate-500">Sin cierre registrado</span>}
-                    </td>
-                    <td className="whitespace-nowrap">
-                      <div className="flex flex-nowrap items-center justify-end gap-2">
-                        <Link to={`/campaigns/${encodeURIComponent(campaign.id)}`} className={buttonClassFor('ghost', 'sm')} aria-label={`Ver detalle de ${campaign.name}`}>
-                          Ver detalle
-                        </Link>
-                        <CampaignActions campaign={campaign} onChanged={changed} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
+            <ul className={`${surfaceClass} divide-y divide-line overflow-hidden`} aria-label="Otras campañas">
+              {others.map((campaign) => (
+                <CampaignRow key={campaign.id} campaign={campaign} sealedVersion={sealed.get(campaign.id) ?? null} onChanged={changed} />
+              ))}
+            </ul>
           )}
+          <p className="text-sm text-ink-muted">Cerrar una campaña no la sella, y una campaña cerrada no se puede reabrir.</p>
         </section>
       </div>
 
-      {creating && (
-        <Modal title="Nueva campaña" onClose={() => setCreating(false)}>
-          <CampaignForm campaign={null} onDone={changed} />
-        </Modal>
-      )}
+      {creating && <CampaignFormDialog campaign={null} onClose={() => setCreating(false)} onDone={changed} />}
     </AppShell>
   );
 }
 
-/** Texto (no sólo color) de la regla de presentación «fin estimado vencido». */
-export function OverdueNote() {
+function SealChip({ version }: { version: number | null }) {
+  if (version === null) return null;
   return (
-    <span className="mt-0.5 block text-xs font-semibold text-amber-900" data-testid="overdue">
+    <Chip tone="positive" dot>
+      Sellada · versión {version}
+    </Chip>
+  );
+}
+
+/** Lámina 28: la campaña activa en una tarjeta oscura (lámina 41 en teléfono). */
+function ActiveCampaignCard({ campaign, sealedVersion, onChanged }: { campaign: Campaign; sealedVersion: number | null; onChanged: (text: string) => Promise<void> }) {
+  return (
+    <div className="ui-on-ink rounded-hero bg-ink px-5 py-6 text-white sm:px-8" data-testid="active-campaign">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between" data-testid={`campaign-row-${campaign.name}`}>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusChip status={campaign.status} />
+            {campaign.isActive && <Chip tone="on-dark">Campaña activa</Chip>}
+            <SealChip version={sealedVersion} />
+          </div>
+          <p className="mt-3 font-display text-3xl font-extrabold leading-tight text-white [overflow-wrap:anywhere] sm:text-4xl">{campaign.name}</p>
+        </div>
+        <dl className="flex flex-wrap gap-x-10 gap-y-3">
+          <div>
+            <dt className="text-sm text-on-ink-muted">Empezó</dt>
+            <dd className="font-display text-xl font-bold tabular-nums text-white">{fmtCampaignDay(campaign.startDate) ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-on-ink-muted">Fin estimado</dt>
+            <dd className="font-display text-xl font-bold tabular-nums text-white" data-testid="estimated-end">
+              {fmtCampaignDay(campaign.estimatedEndDate) ?? 'Sin fecha estimada'}
+              {isEstimatedEndOverdue(campaign) && <OverdueNote onDark />}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm text-on-ink-muted">Cierre</dt>
+            <dd className="font-display text-xl font-bold text-white" data-testid="closed-at">
+              {campaign.closedAt ? `Cerrada el ${fmtDateTime(campaign.closedAt)}` : 'Sin cierre registrado'}
+            </dd>
+          </div>
+        </dl>
+        <div className="flex flex-wrap items-center gap-2">
+          <CampaignActions campaign={campaign} onChanged={onChanged} onDark />
+          <Link to={campaignDetailPath(campaign.id)} className={buttonClassFor('accent')} aria-label={`Ver detalle de ${campaign.name}`}>
+            Ver detalle
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CampaignRow({ campaign, sealedVersion, onChanged }: { campaign: Campaign; sealedVersion: number | null; onChanged: (text: string) => Promise<void> }) {
+  return (
+    <li className="relative flex min-w-0 flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 hover:bg-canvas sm:px-7" data-testid={`campaign-row-${campaign.name}`}>
+      <div className="min-w-0 flex-1 basis-56">
+        <p className="text-lg font-semibold text-ink [overflow-wrap:anywhere]">{campaign.name}</p>
+        <p className="text-sm tabular-nums text-ink-muted">
+          <span data-testid="estimated-end">
+            {fmtCampaignDay(campaign.startDate) ?? '—'} – {fmtCampaignDay(campaign.estimatedEndDate) ?? 'Sin fecha estimada'}
+          </span>
+          <span className="sr-only"> (inicio y fin estimado)</span>
+          {' · '}
+          <span data-testid="closed-at">{campaign.closedAt ? `Cerrada el ${fmtDateTime(campaign.closedAt)}` : 'Sin cierre registrado'}</span>
+        </p>
+        {isEstimatedEndOverdue(campaign) && <OverdueNote />}
+        {campaign.notes && <p className="mt-0.5 line-clamp-2 text-xs text-ink-muted [overflow-wrap:anywhere]">{campaign.notes}</p>}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusChip status={campaign.status} />
+        {campaign.isActive && <Chip tone="dark">Campaña activa</Chip>}
+        <SealChip version={sealedVersion} />
+      </div>
+      {/* Las acciones quedan por encima del enlace que cubre la fila. */}
+      <div className="relative z-[1] flex flex-wrap items-center gap-2">
+        <CampaignActions campaign={campaign} onChanged={onChanged} />
+      </div>
+      <Link
+        to={campaignDetailPath(campaign.id)}
+        aria-label={`Ver detalle de ${campaign.name}`}
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink after:absolute after:inset-0 after:content-[''] hover:bg-sunken focus-visible:outline-2"
+      >
+        <Icon d={ICON.chevronRight} className="h-5 w-5" />
+      </Link>
+    </li>
+  );
+}
+
+/** Texto (no sólo color) de la regla de presentación «fin estimado vencido». */
+export function OverdueNote({ onDark = false }: { onDark?: boolean }) {
+  return (
+    <span className={`mt-0.5 block font-sans text-xs font-semibold ${onDark ? 'text-warn-bg' : 'text-caution'}`} data-testid="overdue">
       {OVERDUE_TEXT}
     </span>
   );
@@ -298,20 +371,24 @@ export function OverdueNote() {
 
 /**
  * Editar, abrir y cerrar una campaña, con los mismos permisos y confirmaciones
- * que antes (lista y detalle). Quien no es Directiva ni Administrador sólo
- * consulta. Cerrar exige confirmar en una ventana; cerrar no es sellar.
+ * que antes (lista, tarjeta activa y detalle). Quien no es Directiva ni
+ * Administrador sólo consulta. Cerrar exige confirmar en un diálogo (30.2);
+ * cerrar no es sellar.
  */
-export function CampaignActions({ campaign, onChanged }: { campaign: Campaign; onChanged: (message: string) => Promise<void> | void }) {
+export function CampaignActions({ campaign, onChanged, onDark = false }: { campaign: Campaign; onChanged: (message: string) => Promise<void> | void; onDark?: boolean }) {
   const { user } = useAuth();
   const { refreshActiveCampaign } = useCampaign();
   const [editing, setEditing] = useState(false);
   const [closing, setClosing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [closeBusy, setCloseBusy] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canManage = Boolean(user && MANAGER_ROLES.includes(user.role));
-  if (!canManage) return <span className="self-center text-xs text-slate-600">Sólo consulta</span>;
+  if (!canManage) return <span className={`self-center text-xs ${onDark ? 'text-on-ink-muted' : 'text-ink-muted'}`}>Sólo consulta</span>;
 
   const terminal = campaign.status === 'CERRADA' || campaign.status === 'CANCELADA';
+  const variant = onDark ? 'on-dark' : 'secondary';
   const done = async (text: string) => {
     setEditing(false);
     setClosing(false);
@@ -330,50 +407,80 @@ export function CampaignActions({ campaign, onChanged }: { campaign: Campaign; o
       setBusy(false);
     }
   };
+  const close = async (notes: string) => {
+    setCloseBusy(true);
+    setCloseError(null);
+    try {
+      await campaignsService.close(campaign.id, { notes: notes || null });
+      setCloseBusy(false);
+      await done('Campaña cerrada.');
+    } catch (err) {
+      setCloseError(extractError(err, 'No fue posible cerrar la campaña.'));
+      setCloseBusy(false);
+    }
+  };
 
   return (
     <>
-      <Button variant="secondary" size="sm" disabled={terminal} onClick={() => setEditing(true)}>
-        Editar
-      </Button>
+      {!terminal && (
+        <Button variant={variant} size="sm" onClick={() => setEditing(true)}>
+          Editar
+        </Button>
+      )}
       {!campaign.isActive && !terminal && (
-        <Button size="sm" onClick={() => void open()} disabled={busy}>
-          {busy ? 'Abriendo…' : 'Abrir'}
+        <Button variant={onDark ? 'accent' : 'primary'} size="sm" onClick={() => void open()} busy={busy}>
+          Abrir campaña
         </Button>
       )}
       {campaign.isActive && (
-        <Button variant="secondary" size="sm" onClick={() => setClosing(true)}>
-          Cerrar
+        <Button variant={variant} size="sm" onClick={() => setClosing(true)}>
+          Cerrar campaña…
         </Button>
       )}
       {error && (
         <div className="max-w-xs basis-full whitespace-normal">
-          <Notice kind="error" compact>{error}</Notice>
+          <Notice kind="error" compact>
+            {error}
+          </Notice>
         </div>
       )}
-      {editing && (
-        <Modal title="Editar campaña" onClose={() => setEditing(false)}>
-          <CampaignForm campaign={campaign} onDone={done} />
-        </Modal>
-      )}
+      {editing && <CampaignFormDialog campaign={campaign} onClose={() => setEditing(false)} onDone={done} />}
       {closing && (
-        <Modal title="Cerrar campaña" onClose={() => setClosing(false)}>
-          <CloseCampaignForm campaign={campaign} onDone={done} />
-        </Modal>
+        <ConfirmDialog
+          title={`Cerrar «${campaign.name}»`}
+          confirmLabel="Cerrar campaña"
+          reason={{ label: 'Motivo o notas', required: false, help: 'Opcional.', maxLength: 500 }}
+          busy={closeBusy}
+          error={closeError}
+          onConfirm={(notes) => void close(notes)}
+          onCancel={() => {
+            setClosing(false);
+            setCloseError(null);
+          }}
+        >
+          <Notice kind="warn">
+            Cerrar no es sellar, y una campaña cerrada no se puede reabrir. Al cerrarla se bloquean las operaciones normales asociadas a este periodo.
+          </Notice>
+        </ConfirmDialog>
       )}
     </>
   );
 }
 
-function CampaignForm({ campaign, onDone }: { campaign: Campaign | null; onDone: (message: string) => Promise<void> }) {
-  const [form, setForm] = useState({
+/** Diálogos 30.1 «Nueva campaña» y 34.3 «Editar campaña» (el estado se ve bloqueado: se cambia con «Cerrar campaña»). */
+function CampaignFormDialog({ campaign, onClose, onDone }: { campaign: Campaign | null; onClose: () => void; onDone: (message: string) => Promise<void> }) {
+  const initial = {
     name: campaign?.name ?? '',
     startDate: campaign?.startDate.slice(0, 10) ?? '',
     estimatedEndDate: campaign?.estimatedEndDate?.slice(0, 10) ?? '',
     notes: campaign?.notes ?? '',
-  });
+  };
+  const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formId = campaign ? `campaign-form-${campaign.id}` : 'campaign-form-new';
+  const dirty = (Object.keys(initial) as (keyof typeof initial)[]).some((key) => form[key] !== initial[key]);
+  const ready = form.name.trim().length >= 2 && form.startDate !== '' && !saving;
 
   const set = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -381,6 +488,7 @@ function CampaignForm({ campaign, onDone }: { campaign: Campaign | null; onDone:
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!ready) return;
     setSaving(true);
     setError(null);
     const payload: CreateCampaignPayload = {
@@ -389,7 +497,6 @@ function CampaignForm({ campaign, onDone }: { campaign: Campaign | null; onDone:
       estimatedEndDate: form.estimatedEndDate || null,
       notes: form.notes || null,
     };
-
     try {
       if (campaign) {
         await campaignsService.update(campaign.id, payload);
@@ -400,73 +507,57 @@ function CampaignForm({ campaign, onDone }: { campaign: Campaign | null; onDone:
       }
     } catch (err) {
       setError(extractError(err, 'No fue posible guardar la campaña.'));
-    } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form className="space-y-4" onSubmit={submit}>
-      <div>
-        <label htmlFor="campaign-name" className={labelClass}>Nombre *</label>
-        <input id="campaign-name" className={inputClass} required maxLength={160} value={form.name} onChange={(event) => set('name', event.target.value)} autoComplete="off" />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label htmlFor="campaign-start" className={labelClass}>Inicio *</label>
-          <input id="campaign-start" className={inputClass} required type="date" value={form.startDate} onChange={(event) => set('startDate', event.target.value)} />
+    <Dialog
+      title={campaign ? `Editar «${campaign.name}»` : 'Nueva campaña'}
+      onClose={onClose}
+      dirty={dirty}
+      busy={saving}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={formId} disabled={!ready} busy={saving}>
+            {campaign ? 'Guardar cambios' : 'Crear campaña'}
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} className="space-y-5" onSubmit={(event) => void submit(event)} noValidate>
+        <TextInput
+          id="campaign-name"
+          label="Nombre"
+          required
+          maxLength={160}
+          value={form.name}
+          onChange={(event) => set('name', event.target.value)}
+          placeholder="Por ejemplo: Invierno 2027"
+          autoComplete="off"
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput id="campaign-start" label="Inicio" required type="date" value={form.startDate} onChange={(event) => set('startDate', event.target.value)} />
+          <TextInput id="campaign-end" label="Fin estimado" optional type="date" value={form.estimatedEndDate} onChange={(event) => set('estimatedEndDate', event.target.value)} />
         </div>
-        <div>
-          <label htmlFor="campaign-end" className={labelClass}>Fin estimado</label>
-          <input id="campaign-end" className={inputClass} type="date" value={form.estimatedEndDate} onChange={(event) => set('estimatedEndDate', event.target.value)} />
-        </div>
-      </div>
-      <div>
-        <label htmlFor="campaign-notes" className={labelClass}>Notas</label>
-        <textarea id="campaign-notes" className={inputClass} rows={3} maxLength={500} value={form.notes} onChange={(event) => set('notes', event.target.value)} />
-      </div>
-      {error && <Notice kind="error">{error}</Notice>}
-      <button type="submit" disabled={saving} className={buttonClass}>{getCampaignSubmitLabel(saving, Boolean(campaign))}</button>
-    </form>
-  );
-}
-
-function getCampaignSubmitLabel(saving: boolean, isEditing: boolean) {
-  if (saving) return 'Guardando…';
-  return isEditing ? 'Actualizar' : 'Crear';
-}
-
-function CloseCampaignForm({ campaign, onDone }: { campaign: Campaign; onDone: (message: string) => Promise<void> }) {
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setSaving(true);
-    setError(null);
-    try {
-      await campaignsService.close(campaign.id, { notes: notes || null });
-      await onDone('Campaña cerrada.');
-    } catch (err) {
-      setError(extractError(err, 'No fue posible cerrar la campaña.'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <form className="space-y-4" onSubmit={submit}>
-      <Notice kind="warn">
-        Se cerrará «{campaign.name}». Al cerrar la campaña se bloquearán las operaciones normales asociadas a este periodo. Cerrar no
-        es sellar y no se puede reabrir.
-      </Notice>
-      <div>
-        <label htmlFor="close-notes" className={labelClass}>Motivo o notas</label>
-        <textarea id="close-notes" className={inputClass} rows={3} maxLength={500} value={notes} onChange={(event) => setNotes(event.target.value)} />
-      </div>
-      {error && <Notice kind="error">{error}</Notice>}
-      <button type="submit" disabled={saving} className={buttonClass}>{saving ? 'Cerrando…' : 'Cerrar campaña'}</button>
-    </form>
+        <Textarea id="campaign-notes" label="Notas" help="Opcional." maxLength={500} value={form.notes} onChange={(event) => set('notes', event.target.value)} />
+        {campaign && (
+          <div>
+            <p className="mb-1.5 text-sm font-semibold text-ink" id={`${formId}-status`}>
+              Estado
+            </p>
+            <p className="flex min-h-11 items-center gap-2 rounded-field border border-line bg-sunken px-4 py-2.5 text-base text-ink" aria-labelledby={`${formId}-status`}>
+              <Icon d={ICON.lock} className="h-4 w-4 shrink-0" />
+              {STATUS_FILTER_TEXT[campaign.status] ?? campaign.status}
+            </p>
+            <p className="mt-1.5 text-xs text-ink-muted">Se cambia con «Cerrar campaña», no desde aquí.</p>
+          </div>
+        )}
+        {error && <Notice kind="error">{error}</Notice>}
+      </form>
+    </Dialog>
   );
 }
