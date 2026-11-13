@@ -6,8 +6,9 @@
  * Siembra un tenant NUEVO por ejecución (E4_LABEL), con:
  * - Directiva D1 y D2, Administración A1 y A2 (inician sesión con E4_PASSWORD,
  *   contraseña que sólo vive en el proceso; nunca se imprime);
- * - agricultores F1, F2 y F3 (sesiones del canal del agricultor, firmadas con
- *   el JWT_SECRET de la API en marcha, sólo en memoria);
+ * - agricultores F1, F2 y F3 (también con E4_PASSWORD; en el recorrido, sus
+ *   sesiones del canal del agricultor se firman con el JWT_SECRET de la API
+ *   en marcha, sólo en memoria);
  * - una campaña ABIERTA y dos productos (L y KG).
  *
  * Con E4_WALK=yes recorre después, por HTTP: Directiva frente a
@@ -18,9 +19,9 @@
  * Sólo desarrollo: se niega con NODE_ENV=production, con una base que no sea
  * local o sin E4_SYNTHETIC_SEED=yes. Nada se borra.
  *
- * Entorno: DATABASE_URL, JWT_SECRET (el de la API), API_URL (por ejemplo
- * http://127.0.0.1:3400), E4_PASSWORD, E4_LABEL (1–12 letras o dígitos),
- * E4_SYNTHETIC_SEED=yes, E4_WALK=yes (opcional).
+ * Entorno: DATABASE_URL, E4_PASSWORD, E4_LABEL (1–12 letras o dígitos),
+ * E4_SYNTHETIC_SEED=yes; con E4_WALK=yes además JWT_SECRET (el de la API) y
+ * API_URL (por ejemplo http://127.0.0.1:3400).
  */
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
@@ -31,10 +32,11 @@ const env = process.env;
 if (env.NODE_ENV === "production") throw new Error("Refused: NODE_ENV=production");
 if (env.E4_SYNTHETIC_SEED !== "yes") throw new Error("Refused: set E4_SYNTHETIC_SEED=yes");
 if (!["127.0.0.1", "localhost"].includes(new URL(env.DATABASE_URL).hostname)) throw new Error("Refused: database is not local");
-for (const key of ["JWT_SECRET", "API_URL", "E4_PASSWORD", "E4_LABEL"]) if (!env[key]) throw new Error(`Missing ${key}`);
+for (const key of ["E4_PASSWORD", "E4_LABEL"]) if (!env[key]) throw new Error(`Missing ${key}`);
+if (env.E4_WALK === "yes") for (const key of ["JWT_SECRET", "API_URL"]) if (!env[key]) throw new Error(`Missing ${key} (needed by E4_WALK)`);
 const LABEL = env.E4_LABEL;
 if (!/^[A-Za-z0-9]{1,12}$/.test(LABEL)) throw new Error("E4_LABEL: 1–12 letters or digits");
-const API = env.API_URL.replace(/\/$/, "");
+const API = (env.API_URL ?? "").replace(/\/$/, "");
 const prisma = new PrismaClient();
 
 function farmerToken(member, user, sessionId) {
@@ -71,7 +73,8 @@ async function seed() {
   }
   people.DB = await person(other.id, "DB", "DIRECTIVA", hash);
   for (const code of ["F1", "F2", "F3"]) {
-    people[code] = await person(tenant.id, code, "AGRICULTOR", `unusable-${randomBytes(16).toString("hex")}`);
+    // Farmers also log in with E4_PASSWORD (the phone, or the orchestrator's own checks).
+    people[code] = await person(tenant.id, code, "AGRICULTOR", hash);
   }
   const campaign = await prisma.agriculturalCampaign.create({
     data: { tenantId: tenant.id, name: `Campaña sintética E4 ${LABEL}`, status: "ABIERTA", isActive: true, startDate: new Date("2026-09-01T00:00:00.000Z") },
