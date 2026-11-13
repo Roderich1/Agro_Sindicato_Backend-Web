@@ -33,9 +33,32 @@ export const CONSENT_V1_VERSION = "CONV-1";
 export const CONSENT_V1_TEXT =
   "El responsable de esta compra conjunta podrá ver tu nombre y las cantidades que solicitas para coordinar la compra y la entrega. Esta confirmación no genera una deuda.";
 
+/**
+ * E4 §4.1 (2026-11-13): `CONV-4`, the text of the access by role. Accepting
+ * it gives `ADMINISTRATION`: the eligible Administración of the tenant sees
+ * the farmer's name and quantities, the Directiva only totals without names,
+ * and totals may be shown with a single participant. `help` is part of the
+ * version: changing the text or the help needs a new version. Mobile copies
+ * both strings byte for byte (`E4_EJEMPLOS_RESPUESTAS.md`).
+ */
+export const CONSENT_V4_VERSION = "CONV-4";
+export const CONSENT_V4_TEXT =
+  "Las personas de Administración habilitadas de su sindicato podrán ver su nombre y las cantidades que solicita para coordinar esta compra conjunta y su entrega. La Directiva podrá consultar los totales por producto, sin el detalle identificado de su participación. Los totales pueden mostrarse aunque participe una sola persona. Esta participación no genera una deuda.";
+export const CONSENT_V4_HELP =
+  "Aunque el total no muestre nombres, con pocas participaciones podría deducirse cuánto solicitó una persona.";
+
 export const ACCEPTED_CONSENT_VERSIONS: readonly string[] = [CONSENT_V1_VERSION, CONSENT_V2_VERSION, CONSENT_VERSION];
 
 export type ConsentScope = "RESPONSIBLE_ONLY" | "COLLABORATORS";
+
+/**
+ * E4 §4.2: every scope a participation may hold. `ADMINISTRATION` (CONV-4)
+ * and `TOTALS_ONLY` (withdrawal of the CONV-4 authorization, D-05) are new;
+ * the two earlier ones are kept as they were accepted and no longer reach
+ * anybody's identified detail.
+ */
+export type ParticipationScope = "RESPONSIBLE_ONLY" | "COLLABORATORS" | "ADMINISTRATION" | "TOTALS_ONLY";
+export const PARTICIPATION_SCOPES: readonly ParticipationScope[] = ["RESPONSIBLE_ONLY", "COLLABORATORS", "ADMINISTRATION", "TOTALS_ONLY"];
 
 /** A first confirmation is accepted with any of the known versions. */
 export function isAcceptedConsent(version: unknown): boolean {

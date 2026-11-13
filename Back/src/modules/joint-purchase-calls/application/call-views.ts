@@ -412,6 +412,316 @@ export function pendingAuthorizationNotice(count: number): string | null {
     : `${count} participaciones pendientes de que sus agricultores autoricen a la persona responsable actual: sus datos no se muestran.`;
 }
 
+// =====================================================================
+// E4 (2026-11-13): access by role and totals without a farmer threshold.
+// Institutional contract v2 and farmer contract 4. Examples of every
+// answer: docs/architecture/E4_EJEMPLOS_RESPUESTAS.md.
+// =====================================================================
+
+/**
+ * E4 §5.2 (rule T): `VISIBLE` (with its basis) or `PENDING_CONSENT` (no
+ * figure). `UNDER_THRESHOLD`, `RESPONSIBLE_ONLY` and `RESTRICTED` are no
+ * longer produced.
+ */
+export type TotalVisibilityV2 = "VISIBLE" | "PENDING_CONSENT";
+
+/**
+ * - `ROLE_CONSENT`: every counted participation covers the totals (scope
+ *   `ADMINISTRATION` or `TOTALS_ONLY`), with any number of persons;
+ * - `PREVIOUS_POLICY_K3`: only in a closing, 3 or more persons, some with an
+ *   earlier consent, for a viewer who sees none of them by name: the total
+ *   was visible under the earlier rule and stays so (D-02).
+ */
+export type TotalsBasis = "ROLE_CONSENT" | "PREVIOUS_POLICY_K3";
+
+export interface ProductTotalViewV2 {
+  /** Persons counted in the product (a count, always shown). */
+  participant_count: number;
+  /** Exact integer in the base unit; null unless VISIBLE. */
+  total_quantity_base: string | null;
+  visibility: TotalVisibilityV2;
+  /** Null when PENDING_CONSENT. */
+  totals_basis: TotalsBasis | null;
+}
+
+export interface InstitutionalCallProductViewV2 extends CallProductView {
+  position: number;
+  is_active: boolean;
+  reference: ProposalReferenceView | null;
+  totals: ProductTotalViewV2;
+}
+
+/**
+ * E4 §3.1: `GET /joint-purchase-calls/{id}` (and the answers of create,
+ * patch, open, cancel and substitute). Withdrawn: `totals_threshold`,
+ * `has_substitution_permission`, `pending_authorization_count`.
+ */
+export interface CallDetailViewV2 {
+  contractVersion: 2;
+  call_id: string;
+  name: string;
+  status: JointPurchaseCallStatus;
+  campaign: { campaign_ref: string; name: string; status: string };
+  deadline_at: string;
+  opened_at: string | null;
+  closed_at: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  server_time: string;
+  /** Who coordinates. Being the responsible gives no access to identified data (E4 §6.1). */
+  responsible: UserRefView & { role: UserRole | null; eligible: boolean; version: number };
+  created_by: UserRefView;
+  opened_by: UserRefView | null;
+  cancelled_by: UserRefView | null;
+  source_proposal_ref: string | null;
+  participant_count: number;
+  /** LIVE (provisional, OPEN/CANCELLED), CLOSING (consolidated) or NONE (draft). */
+  totals_source: "NONE" | "LIVE" | "CLOSING";
+  /** E4 §2: this user is an eligible ADMINISTRADOR of the tenant now (read at this request). */
+  can_view_participants: boolean;
+  is_responsible: boolean;
+  /** The responsible or a MANAGE in force (edit the draft, open, cancel, close). */
+  can_manage: boolean;
+  /** Equal to can_manage. */
+  can_cancel_or_close: boolean;
+  /** m6: the responsible is not eligible, so the MANAGE she granted is suspended. */
+  delegations_suspended: boolean;
+  /** Only MANAGE (the responsible holds it by being the responsible). */
+  my_grants: "MANAGE"[];
+  /** Users with a MANAGE in force from the responsible now. */
+  collaborator_count: number;
+  /** E4 §3.1: eligible ADMINISTRADOR, responsible not eligible and the call not CANCELLED. */
+  can_substitute_responsible: boolean;
+  /** MANAGE delegations of earlier responsible versions waiting for the successor's review. */
+  pending_delegation_reviews: number;
+  /** E4 §3.1: counted participations whose consent does not cover the new scope (`ADMINISTRATION`). A count, never names. */
+  pending_consent_count: number;
+  responsible_changes: ResponsibleChangeView[];
+  products: InstitutionalCallProductViewV2[];
+  origin: CallOriginView | null;
+  origin_differs_from_current: boolean;
+  history: HistoryEntryView[];
+}
+
+/** E4 §3.1: `GET /{id}/participants`, only for an eligible ADMINISTRADOR (else 403 PARTICIPANTS_FORBIDDEN). */
+export interface ParticipantsViewV2 {
+  contractVersion: 2;
+  call_id: string;
+  status: JointPurchaseCallStatus;
+  provisional: boolean;
+  notice: string | null;
+  /** Every current (ACTIVE) participation, listed or not. */
+  participant_count: number;
+  /** ACTIVE participations whose scope is not `ADMINISTRATION` (not listed; never named). */
+  pending_consent_count: number;
+  pending_consent_notice: string | null;
+  /** Only ACTIVE participations with scope `ADMINISTRATION`. */
+  participants: ParticipantView[];
+}
+
+export interface ClosingLineViewV2 extends ProductTotalViewV2 {
+  product_ref: string;
+  product_name: string;
+  unit: PresentationUnit;
+  base_unit: SyncV1BaseUnit;
+}
+
+/** E4 §3.1: `GET /{id}/closing` (and the answer of `POST /{id}/close`). */
+export interface ClosingViewV2 {
+  contractVersion: 2;
+  call_id: string;
+  name: string;
+  status: "CLOSED";
+  label: string;
+  mode: JointPurchaseCallCloseMode;
+  cutoff_at: string;
+  closed_at: string;
+  closed_by: UserRefView | null;
+  participant_count: number;
+  /** Eligible ADMINISTRADOR now. */
+  can_view_participants: boolean;
+  lines: ClosingLineViewV2[];
+  /** Only for an eligible ADMINISTRADOR: the frozen participations with scope `ADMINISTRATION`. Null otherwise. */
+  participants: ClosingParticipantView[] | null;
+  /** Frozen participations whose scope is not `ADMINISTRATION` (a count). */
+  pending_consent_count: number;
+  pending_consent_notice: string | null;
+}
+
+export interface CollaboratorGrantViewV2 {
+  grant: "MANAGE";
+  label: string;
+  granted_at: string;
+  granted_by: UserRefView;
+  status: "IN_FORCE" | "SUSPENDED" | "PENDING_REVIEW";
+  responsible_version: number;
+}
+
+export interface CollaboratorViewV2 {
+  user_ref: string;
+  name: string;
+  role: UserRole | null;
+  grants: CollaboratorGrantViewV2[];
+}
+
+/** E4 §3.1: a stored view permission (`PARTICIPANTS`), kept only as history. It gives no access. */
+export interface RetiredGrantView {
+  grant: "PARTICIPANTS";
+  label: string;
+  user: UserRefView;
+  granted_at: string;
+  /** Null: created by the system for the responsible at opening or substitution. */
+  granted_by: UserRefView | null;
+  responsible_version: number;
+  retired: true;
+  /** «Permiso de visualización retirado el AAAA-MM-DD; no da acceso». */
+  notice: string;
+}
+
+export interface AccessHistoryEntryViewV2 {
+  at: string;
+  action: "GRANTED" | "REVOKED" | "SUSPENDED" | "CONFIRMED";
+  grant: "PARTICIPANTS" | "MANAGE";
+  user: UserRefView;
+  actor: UserRefView;
+  /** True for every `PARTICIPANTS` event. */
+  retired: boolean;
+  /** The notice of a retired permission; null for MANAGE. */
+  notice: string | null;
+}
+
+/** E4 §3.1: `GET /{id}/collaborators` (and the answers of grant, revoke and review with MANAGE). */
+export interface CollaboratorsViewV2 {
+  contractVersion: 2;
+  call_id: string;
+  status: JointPurchaseCallStatus;
+  responsible: UserRefView;
+  /** Only the responsible grants and revokes MANAGE. */
+  can_grant: boolean;
+  /** The current, eligible responsible reviews the MANAGE delegations of earlier versions. */
+  can_review: boolean;
+  responsible_version: number;
+  /** Only MANAGE. */
+  collaborators: CollaboratorViewV2[];
+  /** Stored PARTICIPANTS rows, as history only. */
+  retired_grants: RetiredGrantView[];
+  history: AccessHistoryEntryViewV2[];
+}
+
+/** E4 §3.2: `GET /joint-purchase-substitution-permissions`, read-only history. */
+export interface SubstitutionPermissionsHistoryView {
+  contractVersion: 2;
+  /** When the permission stopped being used in this environment (the E4 migration). */
+  retired_at: string;
+  /** «Ya no se usa: sustituye la Administración habilitada». */
+  notice: string;
+  /** Always false. */
+  can_grant: false;
+  /** Who held it when it was retired (rows kept, never deleted). */
+  holders: {
+    user_ref: string;
+    name: string;
+    role: UserRole | null;
+    granted_at: string;
+    granted_by: UserRefView;
+    reason: string;
+  }[];
+  history: {
+    at: string;
+    action: "GRANTED" | "REVOKED";
+    user: UserRefView;
+    actor: UserRefView;
+    reason: string | null;
+  }[];
+}
+
+// ------------------------------------------------- farmer contract 4 (E4 §3.3)
+
+/** E4 §4.1: the consent served to contract 4 (and, as the only honest text, to every read). */
+export interface FarmerConsentV4 {
+  version: "CONV-4";
+  text: string;
+  help: string;
+}
+
+export interface ParticipationViewV4 {
+  status: JointPurchaseParticipationStatus;
+  lines: ParticipationLineView[];
+  last_sequence: number;
+  last_operation_id: string;
+  accepted_at: string;
+  /** The text accepted when the participation was first confirmed (never rewritten). */
+  consent: { version: string; accepted_at: string; received_at: string };
+  /** The scope in force and the decision that set it (`sequence` 0 = the first acceptance). */
+  consent_scope: {
+    scope: "RESPONSIBLE_ONLY" | "COLLABORATORS" | "ADMINISTRATION" | "TOTALS_ONLY";
+    version: string;
+    decided_at: string;
+    received_at: string;
+    sequence: number;
+  };
+}
+
+/** One call as the farmer sees it in contract 4: no `responsible.version`, no `responsible_authorization`. */
+export interface FarmerCallViewV4 {
+  call_id: string;
+  name: string;
+  status: Exclude<JointPurchaseCallStatus, "DRAFT">;
+  campaign: { campaign_ref: string; name: string };
+  opened_at: string | null;
+  deadline_at: string;
+  closed_at: string | null;
+  cancelled_at: string | null;
+  server_time: string;
+  accepts_operations: boolean;
+  responsible: { name: string };
+  products: CallProductView[];
+  participation: ParticipationViewV4 | null;
+  closing: FarmerClosingView | null;
+}
+
+/** `GET /me/joint-purchase-calls`: served with this shape to every contract (E4 §7.1). */
+export interface FarmerListViewV4 {
+  contractVersion: 4;
+  server_time: string;
+  consent: FarmerConsentV4;
+  calls: FarmerCallViewV4[];
+  history: { older_count: number };
+}
+
+/** `GET /me/joint-purchase-calls/history`: served with this shape to every contract. */
+export interface FarmerHistoryViewV4 {
+  contractVersion: 4;
+  server_time: string;
+  consent: FarmerConsentV4;
+  calls: FarmerCallViewV4[];
+  next_cursor: string | null;
+}
+
+/** The answer of an accepted farmer write in contract 4 (contracts 1–3 get their own shape, E4 §7.2). */
+export interface AcceptedViewV4 {
+  outcome: "ACCEPTED";
+  participation: ParticipationViewV4 | null;
+}
+
+/** E4 §3.1: never names anyone; the count is of participations, not of persons per product. */
+export function pendingConsentNotice(count: number): string | null {
+  if (count === 0) return null;
+  return count === 1
+    ? "1 participación sin la autorización vigente para que la Administración vea su nombre y cantidades: sus datos no se muestran."
+    : `${count} participaciones sin la autorización vigente para que la Administración vea su nombre y cantidades: sus datos no se muestran.`;
+}
+
+/** E4 §3.1: the notice of a stored view permission (`date` = AAAA-MM-DD of the E4 migration in this environment). */
+export function retiredGrantNotice(date: string): string {
+  return `Permiso de visualización retirado el ${date}; no da acceso.`;
+}
+
+/** E4 §3.2. */
+export const SUBSTITUTION_PERMISSION_RETIRED_NOTICE = "Ya no se usa: sustituye la Administración habilitada";
+
 export const CLOSING_LABEL = "Consolidado al cierre: cantidades solicitadas";
 export const PROVISIONAL_NOTICE = "Lista provisional: puede cambiar hasta el cierre";
 export const REFERENCE_DISCLOSED_LABEL = "Cifra divulgada en el borrador";

@@ -20,6 +20,18 @@
  * REQUEST_ID_REUSED, 409 DELEGATION_NOT_PENDING and, for the farmer, 409
  * AUTHORIZATION_REQUIRED (widening before authorizing the current
  * responsible). Every code fits the 24 characters of the journal.
+ *
+ * E4 §3 (2026-11-13), four new codes:
+ * - 409 GRANT_RETIRED: granting, revoking or reviewing the view permission
+ *   (`PARTICIPANTS`) of a call; the stored rows stay as history;
+ * - 409 SUBSTITUTION_PERMISSION_RETIRED: granting or revoking «Sustituir
+ *   responsable»; the eligible Administración substitutes without it. Only
+ *   institutional: it is never journaled (the journal keeps farmer codes);
+ * - 409 CONSENT_VERSION_RETIRED (farmer): widening to `COLLABORATORS` or
+ *   authorizing a responsible, with any version; definitive;
+ * - 409 APP_UPDATE_REQUIRED (farmer): a phone of contracts 1–3 writes on a
+ *   participation whose scope it does not know (`ADMINISTRATION`,
+ *   `TOTALS_ONLY`); definitive until the app is updated.
  */
 export type CallErrorCode =
   | "PAYLOAD_INVALID"
@@ -61,6 +73,10 @@ export type CallErrorCode =
   | "REQUEST_ID_REUSED"
   | "AUTHORIZATION_REQUIRED"
   | "DELEGATION_NOT_PENDING"
+  | "GRANT_RETIRED"
+  | "SUBSTITUTION_PERMISSION_RETIRED"
+  | "CONSENT_VERSION_RETIRED"
+  | "APP_UPDATE_REQUIRED"
   | "PRODUCT_NOT_IN_CALL"
   | "QUANTITY_INVALID"
   | "RATE_LIMITED"
@@ -106,6 +122,10 @@ export const CALL_ERROR_CODES: readonly CallErrorCode[] = [
   "REQUEST_ID_REUSED",
   "AUTHORIZATION_REQUIRED",
   "DELEGATION_NOT_PENDING",
+  "GRANT_RETIRED",
+  "SUBSTITUTION_PERMISSION_RETIRED",
+  "CONSENT_VERSION_RETIRED",
+  "APP_UPDATE_REQUIRED",
   "PRODUCT_NOT_IN_CALL",
   "QUANTITY_INVALID",
   "RATE_LIMITED",
