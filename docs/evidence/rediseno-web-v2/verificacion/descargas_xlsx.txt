@@ -1,0 +1,8 @@
+estimacion-invierno-2026-demo.xlsx: zip válido=True, xl/workbook.xml=True, tipo spreadsheetml=True, hojas=['Estimación', 'Resultados', 'Serie observada'], partes=9
+propuesta-4bf1a6b6-b7cd-4675-95f8-85d690e21862.xlsx: zip válido=True, xl/workbook.xml=True, tipo spreadsheetml=True, hojas=['Borrador', 'Necesidades', 'Consumo estimado', 'Historial de la referencia'], partes=10
+resumen-invierno-2026-demo.xlsx: zip válido=True, xl/workbook.xml=True, tipo spreadsheetml=True, hojas=['Resumen', 'Necesidad declarada', 'Consumo publicado'], partes=9
+tendencias-consumo-publicado.xlsx: zip válido=True, xl/workbook.xml=True, tipo spreadsheetml=True, hojas=['Tendencias', 'Por campaña', 'Detalle', 'Campañas'], partes=10
+572bedf9027a6492976e6f50053e266808552fdeb42c5d96b4b5d1b4a77004c4 *estimacion-invierno-2026-demo.xlsx
+65d18b0ee25fac81570d64806de276d3b9fcefa9a97721bebfcb96c202fb0d60 *propuesta-4bf1a6b6-b7cd-4675-95f8-85d690e21862.xlsx
+ba5c40cf1dc7a5a66406117833b25969b55fcf4fc05ce98135b20c211a432730 *resumen-invierno-2026-demo.xlsx
+05d232a506af1d754f1010a1eb12d29a10b9cacdfd737b12385244020b3163a5 *tendencias-consumo-publicado.xlsx
