@@ -1,0 +1,86 @@
+[
+ {
+  "key": "CB",
+  "code": "A1",
+  "status": 200,
+  "state": "CLOSED",
+  "responsible": "A1 sintético VER1",
+  "version": 1,
+  "participant_count": 3,
+  "totals": [
+   [
+    "Herbicida E4V CB",
+    3,
+    null,
+    "PENDING_CONSENT",
+    null
+   ],
+   [
+    "Fertilizante E4V CB",
+    2,
+    null,
+    "PENDING_CONSENT",
+    null
+   ]
+  ]
+ },
+ {
+  "key": "CB",
+  "code": "D1",
+  "status": 200,
+  "state": "CLOSED",
+  "responsible": "A1 sintético VER1",
+  "version": 1,
+  "participant_count": 3,
+  "totals": [
+   [
+    "Herbicida E4V CB",
+    3,
+    "6000",
+    "VISIBLE",
+    "PREVIOUS_POLICY_K3"
+   ],
+   [
+    "Fertilizante E4V CB",
+    2,
+    null,
+    "PENDING_CONSENT",
+    null
+   ]
+  ]
+ },
+ {
+  "key": "CB",
+  "code": "A1",
+  "participants_status": 200,
+  "quantities": [
+   [
+    "500",
+    "1000"
+   ],
+   [
+    "2000"
+   ]
+  ]
+ },
+ {
+  "key": "CB",
+  "code": "A1",
+  "closing": {
+   "status": 200,
+   "cutoff_at": "2026-11-13T21:17:30.545Z",
+   "lines": [
+    [
+     3,
+     null,
+     "PENDING_CONSENT"
+    ],
+    [
+     2,
+     null,
+     "PENDING_CONSENT"
+    ]
+   ]
+  }
+ }
+]

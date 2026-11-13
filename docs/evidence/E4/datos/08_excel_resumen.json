@@ -1,0 +1,20 @@
+{
+ "archivo": "resumen_D1.xlsx",
+ "hojas": [
+  "xl/worksheets/sheet1.xml",
+  "xl/worksheets/sheet2.xml",
+  "xl/worksheets/sheet3.xml"
+ ],
+ "cadenas": 180,
+ "umbral": 0,
+ "anonim": 0,
+ "politica_aplicada": [
+  "Cifras publicadas por el servidor según la política de divulgación F07-POL-02. Son datos agregados, sin nombres. Necesidad declarada y consumo publicado son datos distintos: no se restan ni se comparan.",
+  "Política aplicada",
+  "F07-POL-02 (totales sin nombres, sin mínimo de aportantes)",
+  "Sin cifra (F07-POL-01) · Sin cifra publicada · Datos insuficientes: la celda numérica queda vacía y la explicación dice por qué.",
+  "Cifras publicadas por el servidor según la política de divulgación F07-POL-02. Son datos agregados, sin nombres. Necesidad declarada y consumo publicado son datos distintos: no se restan ni se comparan.",
+  "Política aplicada"
+ ],
+ "nombres_agricultores": 0
+}

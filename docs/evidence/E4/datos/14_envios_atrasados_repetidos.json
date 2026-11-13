@@ -1,0 +1,28 @@
+[
+ {
+  "what": "decisión ADMINISTRATION atrasada (secuencia 1, ya usada por TOTALS_ONLY)",
+  "status": 409,
+  "errorCode": "STALE_SEQUENCE",
+  "scope": "TOTALS_ONLY"
+ },
+ {
+  "what": "el mismo envío repetido (mismo operation_id y cuerpo)",
+  "status": 409,
+  "errorCode": "STALE_SEQUENCE",
+  "scope": "TOTALS_ONLY"
+ },
+ {
+  "what": "mismo operation_id con otro cuerpo (TOTALS_ONLY)",
+  "status": 409,
+  "errorCode": "OPERATION_ID_REUSED",
+  "scope": null
+ },
+ {
+  "what": "A1 participantes de CM1 después",
+  "status": 200,
+  "names": [
+   "F2"
+  ],
+  "pending_consent_count": 1
+ }
+]

@@ -1,0 +1,1291 @@
+[
+ {
+  "rol": "D1",
+  "text": "D1 lista",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 lista",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls?campaignId=<id>",
+   "GET /api/v1/joint-purchase-calls?campaignId=<id>"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "text": "D1 CA",
+  "expect": [
+   [
+    "Pendiente de autorización",
+    true
+   ],
+   [
+    "Total provisional|Pedido hasta ahora",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 CA",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "text": "D1 CA conceder",
+  "expect": [],
+  "forbid": [
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "text": "D1 CB",
+  "expect": [
+   [
+    "Visible por la regla anterior",
+    true
+   ],
+   [
+    "Pendiente de autorización",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 CB",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/closing"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "text": "D1 CC",
+  "expect": [
+   [
+    "Administración",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 CC",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "text": "D1 CD",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 CD",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/closing"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "text": "D1 CX",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 CX",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "bodies": "D1 todas las respuestas",
+  "responses": 31,
+  "paths": [
+   "GET /api/v1/catalog/identification-requests 200",
+   "GET /api/v1/campaigns 200",
+   "GET /api/v1/campaigns/active 200",
+   "GET /api/v1/collective/campaigns/<id>/summary 200",
+   "GET /api/v1/collective/campaigns/<id>/seal 200",
+   "GET /api/v1/joint-purchase-calls 200",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators 200",
+   "GET /api/v1/joint-purchase-calls/<id> 200",
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles 200",
+   "GET /api/v1/joint-purchase-calls/<id>/closing 200"
+  ],
+  "findings": []
+ },
+ {
+  "rol": "D2",
+  "text": "D2 CA",
+  "expect": [
+   [
+    "Pendiente de autorización",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D2",
+  "apiLog": "D2 CA",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D2",
+  "text": "D2 CB",
+  "expect": [
+   [
+    "Visible por la regla anterior",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D2",
+  "apiLog": "D2 CB",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/closing"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D2",
+  "bodies": "D2 todas las respuestas",
+  "responses": 14,
+  "paths": [
+   "GET /api/v1/catalog/identification-requests 200",
+   "GET /api/v1/campaigns 200",
+   "GET /api/v1/campaigns/active 200",
+   "GET /api/v1/collective/campaigns/<id>/summary 200",
+   "GET /api/v1/collective/campaigns/<id>/seal 200",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators 200",
+   "GET /api/v1/joint-purchase-calls/<id> 200",
+   "GET /api/v1/joint-purchase-calls/<id>/closing 200"
+  ],
+  "findings": []
+ },
+ {
+  "rol": "A1",
+  "text": "A1 CA",
+  "expect": [
+   [
+    "F1 sintético",
+    true
+   ],
+   [
+    "Pendiente de autorización",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "text": "A1 CA sin F2",
+  "expect": [],
+  "forbid": [
+   [
+    "F2 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 CA",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1",
+  "text": "A1 CB",
+  "expect": [
+   [
+    "F2 sintético",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "text": "A1 CB sin F1/F3",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 CB",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/closing"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "A1",
+  "text": "A1 CC",
+  "expect": [
+   [
+    "Sustituir responsable",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 CC",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1",
+  "probe": "opciones del selector",
+  "result": [
+   "Seleccione…",
+   "A2 sintético VER1 · Administrador",
+   "D1 sintético VER1 · Directiva",
+   "D2 sintético VER1 · Directiva"
+  ]
+ },
+ {
+  "rol": "A1",
+  "text": "A1 usuarios",
+  "expect": [
+   [
+    "ya no se usa",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "Conceder «Sustituir",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 usuarios",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "GET /api/v1/users",
+   "GET /api/v1/users",
+   "GET /api/v1/joint-purchase-substitution-permissions"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "A2",
+  "text": "A2 CM1",
+  "expect": [
+   [
+    "F2 sintético",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 CM1",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A2",
+  "text": "A2 CA",
+  "expect": [
+   [
+    "F1 sintético",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 CA",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 CC sustitución",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants",
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "POST /api/v1/joint-purchase-calls/<id>/responsible",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 CD sustitución",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/closing",
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "GET /api/v1/joint-purchase-calls/eligible-responsibles",
+   "POST /api/v1/joint-purchase-calls/<id>/responsible",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/closing"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "text": "D1 resumen",
+  "expect": [
+   [
+    "Política aplicada",
+    true
+   ],
+   [
+    "F07-POL-02",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "umbral",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "Menos de d+ agricultores",
+    false
+   ],
+   [
+    "alcanzan el umbral",
+    false
+   ],
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "download": "resumen_D1.xlsx"
+ },
+ {
+  "rol": "D1",
+  "text": "D1 cobertura",
+  "expect": [
+   [
+    "F07-POL-02|Política",
+    false
+   ]
+  ],
+  "forbid": [
+   [
+    "umbral",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "Menos de d+ agricultores",
+    false
+   ],
+   [
+    "alcanzan el umbral",
+    false
+   ],
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "text": "D1 historico",
+  "expect": [],
+  "forbid": [
+   [
+    "umbral",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "Menos de d+ agricultores",
+    false
+   ],
+   [
+    "alcanzan el umbral",
+    false
+   ],
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 colectivo",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/trends?projection_type=CONSUMPTION_TOTAL",
+   "GET /api/v1/collective/trends?projection_type=CONSUMPTION_TOTAL"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "bodies": "D1 colectivo",
+  "responses": 9,
+  "paths": [
+   "GET /api/v1/catalog/identification-requests 200",
+   "GET /api/v1/campaigns 200",
+   "GET /api/v1/campaigns/active 200",
+   "GET /api/v1/collective/campaigns/<id>/summary 200",
+   "GET /api/v1/collective/campaigns/<id>/seal 200",
+   "GET /api/v1/collective/trends 200"
+  ],
+  "findings": []
+ },
+ {
+  "rol": "A1",
+  "text": "A1 resumen",
+  "expect": [
+   [
+    "Política aplicada",
+    true
+   ],
+   [
+    "F07-POL-02",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "umbral",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "Menos de d+ agricultores",
+    false
+   ],
+   [
+    "alcanzan el umbral",
+    false
+   ],
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "download": "resumen_A1.xlsx"
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 colectivo",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/collective/campaigns/<id>/summary"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "download": "resumen_D1.xlsx"
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 antes",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A2",
+  "bodies": "A2 antes",
+  "responses": 10,
+  "paths": [
+   "GET /api/v1/catalog/identification-requests 200",
+   "GET /api/v1/campaigns/active 200",
+   "GET /api/v1/campaigns 200",
+   "GET /api/v1/collective/campaigns/<id>/summary 200",
+   "GET /api/v1/collective/campaigns/<id>/seal 200",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators 200",
+   "GET /api/v1/joint-purchase-calls/<id> 200",
+   "GET /api/v1/joint-purchase-calls/<id>/participants 200"
+  ],
+  "findings": [
+   "GET /api/v1/joint-purchase-calls/<id>/participants: contiene el nombre «F1»",
+   "GET /api/v1/joint-purchase-calls/<id>/participants: $.participants con 1 filas",
+   "GET /api/v1/joint-purchase-calls/<id>/participants: $.participants[0] une nombre y cantidad"
+  ]
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "role",
+  "user": "A2",
+  "role": "DIRECTIVA",
+  "status": 200,
+  "at": "2026-11-13T21:30:26.402Z"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 como Directiva",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 tras pasar a Directiva",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "A2",
+  "bodies": "A2 tras pasar a Directiva",
+  "responses": 1,
+  "paths": [
+   "GET /api/v1/joint-purchase-calls/<id> 200"
+  ],
+  "findings": []
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "role",
+  "user": "A2",
+  "role": "ADMINISTRADOR",
+  "status": 200,
+  "at": "2026-11-13T21:30:33.012Z"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 de nuevo Administración",
+  "expect": [
+   [
+    "F1 sintético",
+    false
+   ]
+  ],
+  "forbid": []
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 de vuelta",
+  "calls": [],
+  "participantsRequested": false
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "deactivate",
+  "user": "A2",
+  "role": null,
+  "status": 200,
+  "at": "2026-11-13T21:30:39.629Z"
+ },
+ {
+  "rol": "A2",
+  "url": "A2 deshabilitada",
+  "path": "/colectivo/compras-conjuntas/<id>"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 deshabilitada",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 deshabilitada",
+  "calls": [],
+  "participantsRequested": false
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "activate",
+  "user": "A2",
+  "role": null,
+  "status": 200,
+  "at": "2026-11-13T21:30:48.267Z"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 antes de deshabilitar",
+  "expect": [
+   [
+    "F1 sintético",
+    true
+   ]
+  ],
+  "forbid": []
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 antes",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "deactivate",
+  "user": "A2",
+  "role": null,
+  "status": 200,
+  "at": "2026-11-13T21:31:23.462Z"
+ },
+ {
+  "rol": "A2",
+  "url": "A2 deshabilitada",
+  "path": "/login"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 deshabilitada",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 deshabilitada",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "A2",
+  "bodies": "A2 deshabilitada",
+  "responses": 11,
+  "paths": [
+   "GET /api/v1/catalog/identification-requests 200",
+   "GET /api/v1/campaigns 200",
+   "GET /api/v1/campaigns/active 200",
+   "GET /api/v1/collective/campaigns/<id>/summary 200",
+   "GET /api/v1/collective/campaigns/<id>/seal 200",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators 200",
+   "GET /api/v1/joint-purchase-calls/<id> 200",
+   "GET /api/v1/joint-purchase-calls/<id>/participants 200",
+   "GET /api/v1/joint-purchase-calls/<id> 401"
+  ],
+  "findings": [
+   "GET /api/v1/joint-purchase-calls/<id>/participants: contiene el nombre «F1»",
+   "GET /api/v1/joint-purchase-calls/<id>/participants: $.participants con 1 filas",
+   "GET /api/v1/joint-purchase-calls/<id>/participants: $.participants[0] une nombre y cantidad"
+  ]
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "activate",
+  "user": "A2",
+  "role": null,
+  "status": 200,
+  "at": "2026-11-13T21:31:34.695Z"
+ },
+ {
+  "rol": "A1",
+  "text": "autorizada CM2",
+  "expect": [
+   [
+    "F1 sintético",
+    true
+   ]
+  ],
+  "forbid": []
+ },
+ {
+  "rol": "A1",
+  "apiLog": "autorizada CM2",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1",
+  "text": "retirada CM2",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "apiLog": "retirada CM2",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1",
+  "text": "revisada_cerrada CB",
+  "expect": [
+   [
+    "F1 sintético",
+    true
+   ],
+   [
+    "F2 sintético",
+    true
+   ]
+  ],
+  "forbid": [
+   [
+    "F3 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A1",
+  "apiLog": "revisada_cerrada CB",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/closing"
+  ],
+  "participantsRequested": false
+ }
+]
