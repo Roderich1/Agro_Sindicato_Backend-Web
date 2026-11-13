@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { SubstitutionPermissionsStrip } from '../components/b/substitution-permissions';
-import { Button, buttonClassFor, Chip, DataState, FilterChips, ICON, Icon, Notice, StatusChip, surfaceClass } from '../components/ui';
+import { buttonClassFor, CampaignPill, Chip, DataState, FilterChips, ICON, Icon, Notice, PageHeader, StatusChip, surfaceClass } from '../components/ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { CAMPAIGN_STATUS_TEXT } from '../lib/collective-text';
 import {
@@ -17,7 +17,6 @@ import {
 } from '../lib/joint-purchase-call-text';
 import { jointPurchaseCallPath } from '../lib/navigation';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
-import type { Campaign } from '../types/campaigns';
 import type { JointPurchaseCallStatus, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
 import { JointPurchaseCallForm } from './joint-purchase-call-form';
 import { useAuth } from '../hooks/use-auth';
@@ -150,34 +149,27 @@ export function JointPurchaseCallsPage() {
   return (
     <AppShell title="Compras conjuntas" section="Colectivo">
       <div className="flex flex-col gap-6 pb-4">
-        <header className="ui-hero-attach bg-ink px-5 pb-6 pt-5 text-white max-lg:[--color-focus:var(--color-lime)] sm:px-8 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:text-ink" data-testid="calls-header">
-          {campaigns.length > 0 && <CampaignPill campaigns={campaigns} selected={selected} onSelect={select} />}
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="break-words text-[2rem] font-extrabold leading-[1.1] sm:text-[2.5rem] lg:text-[2.75rem]">Compras conjuntas</h1>
-              <p className="mt-2 max-w-3xl text-base leading-relaxed text-on-ink-muted lg:text-ink-muted">
-                Los agricultores piden desde su aplicación. Pedir no es comprar ni genera deuda.
+        <PageHeader
+          attachToHeader
+          title="Compras conjuntas"
+          testId="calls-header"
+          eyebrow={
+            campaigns.length > 0 ? (
+              <div className="mb-2">
+                <CampaignPill campaigns={campaigns} selected={selected} onSelect={select} id="calls-campaign" />
+              </div>
+            ) : undefined
+          }
+          subtitle="Los agricultores piden desde su aplicación. Pedir no es comprar ni genera deuda."
+          primaryAction={{ label: 'Nueva convocatoria', onClick: () => setCreating(true), disabled: !canCreate }}
+          actions={
+            selected && campaign && !canCreate ? (
+              <p className="w-full text-sm text-on-ink-muted lg:w-auto lg:text-ink-muted" data-testid="calls-create-note">
+                La campaña está {(CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status).toLowerCase()}: no admite convocatorias nuevas.
               </p>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-              <Button
-                size="lg"
-                onClick={() => setCreating(true)}
-                disabled={!canCreate}
-                icon={<Icon d={ICON.plus} className="h-5 w-5" />}
-                className="w-full max-lg:bg-lime max-lg:text-ink max-lg:hover:bg-lime-soft sm:w-auto"
-                aria-describedby={selected && campaign && !canCreate ? 'calls-create-note' : undefined}
-              >
-                Nueva convocatoria
-              </Button>
-              {selected && campaign && !canCreate && (
-                <p id="calls-create-note" className="text-sm text-on-ink-muted lg:text-ink-muted" data-testid="calls-create-note">
-                  La campaña está {(CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status).toLowerCase()}: no admite convocatorias nuevas.
-                </p>
-              )}
-            </div>
-          </div>
-        </header>
+            ) : undefined
+          }
+        />
 
         {message && <Notice kind="ok">{message}</Notice>}
         {prepareProblem && (
@@ -292,36 +284,6 @@ export function JointPurchaseCallsPage() {
         />
       )}
     </AppShell>
-  );
-}
-
-/** Selector de campaña en forma de píldora (lámina 09); oscuro en teléfono, sobre la cabecera (lámina 37). */
-function CampaignPill({ campaigns, selected, onSelect }: { campaigns: Campaign[]; selected: string | null; onSelect: (id: string) => void }) {
-  const text = (campaign: Campaign) => `${campaign.name} · ${CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}${campaign.isActive ? ' · Activa' : ''}`;
-  const current = campaigns.find((campaign) => campaign.id === selected) ?? null;
-  return (
-    <div className="relative inline-flex max-w-full">
-      <label htmlFor="calls-campaign" className="sr-only">
-        Campaña
-      </label>
-      <select
-        id="calls-campaign"
-        value={selected ?? ''}
-        title={current ? text(current) : undefined}
-        onChange={(event) => onSelect(event.target.value)}
-        className="block min-h-11 max-w-full cursor-pointer appearance-none truncate rounded-full border border-ink-raised bg-ink-raised py-2 pl-4 pr-10 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 lg:border-line lg:bg-surface lg:text-ink"
-      >
-        {current === null && <option value="">Seleccione una campaña</option>}
-        {campaigns.map((campaign) => (
-          <option key={campaign.id} value={campaign.id} className="bg-surface text-ink">
-            {text(campaign)}
-          </option>
-        ))}
-      </select>
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-lime lg:text-ink">
-        <Icon d={ICON.chevronDown} className="h-5 w-5" />
-      </span>
-    </div>
   );
 }
 

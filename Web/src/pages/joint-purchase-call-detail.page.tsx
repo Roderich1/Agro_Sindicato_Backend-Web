@@ -1405,6 +1405,7 @@ function SubstituteDialog({
       size="lg"
       hideCloseButton
       testId="substitute-dialog"
+      fullScreenOnPhone
       initialFocusRef={introRef}
       footer={
         <>
