@@ -137,7 +137,7 @@ export class ParticipationConsentDto {
   @ApiProperty({
     example: CONSENT_VERSION,
     description:
-      "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)",
+      "Versión del texto mostrado: CONV-4 (vigente, da ADMINISTRATION), o CONV-3, CONV-2 y CONV-1 (operaciones de apps anteriores, con el alcance de su texto); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)",
   })
   @IsString()
   @MaxLength(16)
@@ -210,7 +210,7 @@ export class WithdrawParticipationDto {
 }
 
 export class ConsentDecisionTextDto {
-  @ApiProperty({ example: CONSENT_VERSION, description: "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir" })
+  @ApiProperty({ example: CONSENT_VERSION, description: "Texto mostrado: CONV-4 para ADMINISTRATION; cualquiera conocido para TOTALS_ONLY o RESPONSIBLE_ONLY" })
   @IsString()
   @MaxLength(16)
   version!: string;
@@ -231,9 +231,13 @@ export class ConsentDecisionDto {
   @IsInt()
   sequence!: number;
 
-  @ApiProperty({ enum: ["RESPONSIBLE_ONLY", "COLLABORATORS"], description: "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable" })
+  @ApiProperty({
+    enum: ["ADMINISTRATION", "TOTALS_ONLY", "RESPONSIBLE_ONLY", "COLLABORATORS"],
+    description:
+      "E4 §4.2: ADMINISTRATION (CONV-4: la Administración habilitada ve el detalle), TOTALS_ONLY (retira esa autorización; sólo totales), RESPONSIBLE_ONLY (reducción anterior). COLLABORATORS: 409 CONSENT_VERSION_RETIRED. Los contratos 1–3 sólo envían los dos anteriores",
+  })
   @IsString()
-  @IsIn(["RESPONSIBLE_ONLY", "COLLABORATORS"])
+  @IsIn(["ADMINISTRATION", "TOTALS_ONLY", "RESPONSIBLE_ONLY", "COLLABORATORS"])
   scope!: string;
 
   @ApiProperty({ type: ConsentDecisionTextDto })
@@ -249,7 +253,7 @@ export class ConsentDecisionDto {
 
   @ApiPropertyOptional({
     description:
-      "P-A C1 (contrato 3): true = autoriza a la persona responsable de responsible_version (acción explícita, separada de las cantidades); exige CONV-3 y esa versión vigente",
+      "P-A C1 (contrato 3), retirado por E4: true → 409 CONSENT_VERSION_RETIRED. Con ADMINISTRATION no se admite (400)",
   })
   @IsOptional()
   @IsBoolean()
@@ -263,7 +267,7 @@ export class GrantCollaboratorDto {
   @MaxLength(64)
   user_ref!: string;
 
-  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"], description: "PARTICIPANTS: consultar participantes y cantidades; MANAGE: administrar la convocatoria" })
+  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"], description: "MANAGE: administrar la convocatoria. PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED" })
   @IsString()
   @MaxLength(16)
   grant!: string;
@@ -281,7 +285,7 @@ export class RevokeCollaboratorDto {
   @MaxLength(64)
   user_ref!: string;
 
-  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"] })
+  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"], description: "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED" })
   @IsString()
   @MaxLength(16)
   grant!: string;
@@ -321,7 +325,7 @@ export class ReviewDelegationDto {
   @MaxLength(64)
   user_ref!: string;
 
-  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"] })
+  @ApiProperty({ enum: ["PARTICIPANTS", "MANAGE"], description: "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED" })
   @IsString()
   @MaxLength(16)
   grant!: string;

@@ -6,12 +6,11 @@ import { baseUnitForCentralUnit } from "@/modules/sync-v1/domain/units";
 import { CallHttpError, InstitutionalActor } from "../domain/call-error";
 import { isEditable } from "../domain/call-state";
 import { SERVER_ID } from "../domain/participation-input";
-import { CALL_TOTALS_THRESHOLD, CallVisibility, ParticipationForVisibility } from "../domain/visibility";
+import { CallVisibility, ParticipationForVisibility } from "../domain/visibility";
 import {
   accessOf,
   CallForAccess,
   eligibleMemberWhere,
-  holdsSubstitution,
   requireManage,
   responsibleIsEligible,
   rowInForce,
@@ -25,30 +24,32 @@ import {
   CALL_TRANSACTION_OPTIONS,
   CallGrant,
   ENTITY_NAME,
+  isoDate,
   lockCallRow,
   lockProposalSelection,
   lockTenantCalls,
+  permissionsRetiredAt,
   Tx,
 } from "./call-store";
 import {
-  CallDetailView,
+  CallDetailViewV2,
   CallOriginView,
   CallSummaryView,
   CLOSING_LABEL,
-  ClosingView,
-  CollaboratorsView,
-  CollaboratorView,
+  ClosingViewV2,
+  CollaboratorsViewV2,
+  CollaboratorViewV2,
   GRANT_LABEL,
-  hiddenNotice,
   HistoryEntryView,
-  pendingAuthorizationNotice,
   iso,
-  ParticipantsView,
+  ParticipantsViewV2,
+  pendingConsentNotice,
   presentationUnit,
   PROVISIONAL_NOTICE,
   ProposalReferenceView,
   REFERENCE_DISCLOSED_LABEL,
   REFERENCE_NO_FIGURE_LABEL,
+  retiredGrantNotice,
 } from "./call-views";
 import { Clock, JOINT_PURCHASE_CLOCK } from "./clock";
 
@@ -65,8 +66,8 @@ export const MAX_PRODUCTS = 50;
 const DRAFT_CAMPAIGN = new Set(["PLANIFICADA", "ABIERTA"]);
 const OPEN_CAMPAIGN = new Set(["ABIERTA"]);
 
-/** m11: the history says, at the opening, which access the system grants (no names: the responsible is the call's). */
-export const OPENED_DETAIL = "Convocatoria abierta. La persona responsable recibe el permiso de consultar participantes y cantidades.";
+/** E4 §3.1: the opening grants nothing (the detail is consulted by role). Earlier events keep their text. */
+export const OPENED_DETAIL = "Convocatoria abierta.";
 
 export interface DraftCommand {
   campaign_id: string;
@@ -113,9 +114,11 @@ interface ResolvedProduct {
  * ADMINISTRADOR holds the Directiva functions, RU-18/RU-19). Another tenant's
  * call is indistinguishable from a missing one (404). Every decision is an
  * event with its actor and an AuditLog entry with `ownerUserId: null`, never
- * with a farmer's name or quantity. Seeing identified participants needs the
- * specific permission of E2-D6 (`JointPurchaseCallAccess`), which no role
- * grants; the rest see counts and totals under E2-D7.
+ * with a farmer's name or quantity. E4 §2: the identified detail is
+ * consulted only by an eligible ADMINISTRADOR, and only for participations
+ * whose consent covers `ADMINISTRATION`; the Directiva and Administración see
+ * counts and the totals of rule T (§5.2). The responsible coordinates (MANAGE)
+ * and sees nothing more for being the responsible.
  */
 @Injectable()
 export class InstitutionalCallsUseCase {
@@ -185,16 +188,18 @@ export class InstitutionalCallsUseCase {
     };
   }
 
-  async detail(actor: InstitutionalActor, id: string): Promise<CallDetailView> {
+  async detail(actor: InstitutionalActor, id: string): Promise<CallDetailViewV2> {
     return this.renderDetail(this.prisma, actor, id);
   }
 
   /**
-   * E2-D6 and §10.3: identified participants, only with PARTICIPANTS (read at
-   * this request). The responsible sees all; a collaborator only the CONV-2
-   * ones, plus how many others there are.
+   * E4 §3.1: identified participants, only for an eligible ADMINISTRADOR (role
+   * and eligibility read at this request; anyone else 403
+   * PARTICIPANTS_FORBIDDEN, also the responsible and whoever held a view
+   * permission). Only ACTIVE participations with scope `ADMINISTRATION`; the
+   * others are a count without names.
    */
-  async participants(actor: InstitutionalActor, id: string): Promise<ParticipantsView> {
+  async participants(actor: InstitutionalActor, id: string): Promise<ParticipantsViewV2> {
     const call = await this.findCall(this.prisma, actor.tenantId, id);
     const access = await accessOf(this.prisma, call, actor.userId);
     if (!access.canViewParticipants) throw new CallHttpError(403, "PARTICIPANTS_FORBIDDEN");
@@ -206,7 +211,6 @@ export class InstitutionalCallsUseCase {
         status: true,
         acceptedAt: true,
         consentScope: true,
-        consentResponsibleVersion: true,
         member: { select: { user: { select: { name: true } } } },
         lines: {
           orderBy: { productId: "asc" },
@@ -214,22 +218,17 @@ export class InstitutionalCallsUseCase {
         },
       },
     });
-    // P-A C1: a participation counts as authorized only for the current responsible version.
-    const marked = all.map((row) => ({ ...row, authorizedForResponsible: row.consentResponsibleVersion === call.responsibleVersion }));
-    const rows = marked.filter((row) => access.visibility.canSeeParticipation(row));
-    const hidden = access.visibility.hiddenCount(marked);
-    const pending = access.visibility.pendingAuthorizationCount(marked);
+    const rows = all.filter((row) => access.visibility.canSeeParticipation(row));
+    const pending = access.visibility.pendingConsentCount(all);
     return {
-      contractVersion: 1,
+      contractVersion: 2,
       call_id: call.id,
       status: call.status,
       provisional: call.status === "OPEN",
       notice: call.status === "OPEN" ? PROVISIONAL_NOTICE : null,
       participant_count: all.length,
-      hidden_participant_count: hidden,
-      hidden_notice: hiddenNotice(hidden),
-      pending_authorization_count: pending,
-      pending_authorization_notice: pendingAuthorizationNotice(pending),
+      pending_consent_count: pending,
+      pending_consent_notice: pendingConsentNotice(pending),
       participants: rows.map((row) => ({
         participation_ref: row.id,
         name: row.member.user.name,
@@ -245,14 +244,14 @@ export class InstitutionalCallsUseCase {
     };
   }
 
-  /** E2-D13: the closing snapshot; per-person detail only with the permission. */
-  async closingView(actor: InstitutionalActor, id: string): Promise<ClosingView> {
+  /** E2-D13: the closing snapshot; per-person detail only for an eligible ADMINISTRADOR (E4). */
+  async closingView(actor: InstitutionalActor, id: string): Promise<ClosingViewV2> {
     return this.renderClosing(this.prisma, actor, id);
   }
 
   // ----------------------------------------------------------------- writes
 
-  async create(actor: InstitutionalActor, command: DraftCommand): Promise<CallDetailView> {
+  async create(actor: InstitutionalActor, command: DraftCommand): Promise<CallDetailViewV2> {
     const name = normalizeName(command.name);
     const deadlineAt = parseDeadline(command.deadline_at);
     const id = await this.prisma.$transaction(async (tx) => {
@@ -321,7 +320,7 @@ export class InstitutionalCallsUseCase {
   }
 
   /** Only DRAFT: name, deadline, responsible, products (and their source draft). */
-  async patch(actor: InstitutionalActor, id: string, command: PatchCommand): Promise<CallDetailView> {
+  async patch(actor: InstitutionalActor, id: string, command: PatchCommand): Promise<CallDetailViewV2> {
     const name = command.name !== undefined ? normalizeName(command.name) : undefined;
     const deadlineAt = command.deadline_at !== undefined ? parseDeadline(command.deadline_at) : undefined;
     if (command.products !== undefined && (!Array.isArray(command.products) || command.products.length === 0)) {
@@ -401,9 +400,9 @@ export class InstitutionalCallsUseCase {
   /**
    * E2-D3/D4/D5/D6: DRAFT → OPEN. Products, deadline and responsible are
    * validated again under the tenant's lock; the partial unique index backs
-   * the uniqueness of open products. Creates the responsible's permission.
+   * the uniqueness of open products. E4 §3.1: grants nothing (no PARTICIPANTS row).
    */
-  async open(actor: InstitutionalActor, id: string, command: ConfirmCommand): Promise<CallDetailView> {
+  async open(actor: InstitutionalActor, id: string, command: ConfirmCommand): Promise<CallDetailViewV2> {
     requireConfirmed(command.confirmed);
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -439,15 +438,6 @@ export class InstitutionalCallsUseCase {
           where: { id: call.id },
           data: { status: "OPEN", openedAt: now, openedByUserId: actor.userId },
         });
-        await tx.jointPurchaseCallAccess.create({
-          data: {
-            callId: call.id,
-            userId: call.responsibleUserId,
-            grant: ACCESS_PARTICIPANTS,
-            grantedAt: now,
-            responsibleVersion: call.responsibleVersion,
-          },
-        });
         await tx.jointPurchaseCallEvent.create({
           data: { callId: call.id, at: now, kind: "OPENED", actorUserId: actor.userId, detail: OPENED_DETAIL },
         });
@@ -469,7 +459,7 @@ export class InstitutionalCallsUseCase {
   }
 
   /** DRAFT|OPEN → CANCELLED with a reason; releases the products. Idempotent from CANCELLED. */
-  async cancel(actor: InstitutionalActor, id: string, command: CancelCommand): Promise<CallDetailView> {
+  async cancel(actor: InstitutionalActor, id: string, command: CancelCommand): Promise<CallDetailViewV2> {
     requireConfirmed(command.confirmed);
     const reason = typeof command.reason === "string" ? command.reason.trim() : "";
     if (!reason || reason.length > REASON_MAX) throw new CallHttpError(422, "REASON_REQUIRED");
@@ -498,7 +488,7 @@ export class InstitutionalCallsUseCase {
   }
 
   /** OPEN → CLOSED (manual); idempotent from CLOSED. Returns the closing as this user may see it. */
-  async close(actor: InstitutionalActor, id: string, command: ConfirmCommand): Promise<ClosingView> {
+  async close(actor: InstitutionalActor, id: string, command: ConfirmCommand): Promise<ClosingViewV2> {
     requireConfirmed(command.confirmed);
     if (!SERVER_ID.test(id)) throw NOT_FOUND();
     // §10.2: checked under the call's lock, in the closing's own transaction.
@@ -510,8 +500,8 @@ export class InstitutionalCallsUseCase {
 
   // ---------------------------------------------------------- collaborators
 
-  /** §10.2: current collaborators and the history of grants; any DIRECTIVA/ADMINISTRADOR of the tenant. */
-  async collaborators(actor: InstitutionalActor, id: string): Promise<CollaboratorsView> {
+  /** §10.2: current MANAGE collaborators and the history of grants (E4: PARTICIPANTS only as history); any DIRECTIVA/ADMINISTRADOR of the tenant. */
+  async collaborators(actor: InstitutionalActor, id: string): Promise<CollaboratorsViewV2> {
     return this.renderCollaborators(this.prisma, actor, id);
   }
 
@@ -522,10 +512,14 @@ export class InstitutionalCallsUseCase {
    * Each grant writes the access row, an access event, a history event and an
    * AuditLog entry, in one transaction under the call's lock; none of them
    * carries a farmer's name or quantity.
+   *
+   * E4 §3.1: only MANAGE. `PARTICIPANTS` is 409 GRANT_RETIRED for anyone,
+   * without a row, an event or an AuditLog entry.
    */
-  async grant(actor: InstitutionalActor, id: string, command: GrantCommand): Promise<CollaboratorsView> {
+  async grant(actor: InstitutionalActor, id: string, command: GrantCommand): Promise<CollaboratorsViewV2> {
     await this.prisma.$transaction(async (tx) => {
       const call = await this.lockAndRead(tx, actor.tenantId, id);
+      requireNotRetired(command);
       if (call.responsibleUserId !== actor.userId) throw new CallHttpError(403, "COLLABORATORS_FORBIDDEN");
       const { userRef, grant } = parseGrant(command);
       requireConfirmed(command.confirmed);
@@ -583,10 +577,14 @@ export class InstitutionalCallsUseCase {
    * 200 without a new event. The responsible's own permissions are not
    * collaborator grants (422 COLLABORATOR_NOT_ELIGIBLE). The permission is
    * read at every request, so the revocation applies from the next one.
+   *
+   * E4 §3.1: `PARTICIPANTS` is 409 GRANT_RETIRED (the stored row stays as
+   * history; the database refuses to delete it).
    */
-  async revoke(actor: InstitutionalActor, id: string, command: GrantCommand): Promise<CollaboratorsView> {
+  async revoke(actor: InstitutionalActor, id: string, command: GrantCommand): Promise<CollaboratorsViewV2> {
     await this.prisma.$transaction(async (tx) => {
       const call = await this.lockAndRead(tx, actor.tenantId, id);
+      requireNotRetired(command);
       const { userRef, grant } = parseGrant(command);
       const renouncing = userRef === actor.userId;
       if (call.responsibleUserId !== actor.userId && !renouncing) throw new CallHttpError(403, "COLLABORATORS_FORBIDDEN");
@@ -638,14 +636,17 @@ export class InstitutionalCallsUseCase {
    * Confirming never goes beyond each farmer's consent: what a collaborator
    * sees is still decided by the scope and the authorization of each
    * participation. A cancelled call only admits RETIRE.
+   *
+   * E4 §3.1: only MANAGE; `PARTICIPANTS` is 409 GRANT_RETIRED.
    */
   async reviewDelegation(
     actor: InstitutionalActor,
     id: string,
     command: { user_ref?: unknown; grant?: unknown; decision?: unknown },
-  ): Promise<CollaboratorsView> {
+  ): Promise<CollaboratorsViewV2> {
     await this.prisma.$transaction(async (tx) => {
       const call = await this.lockAndRead(tx, actor.tenantId, id);
+      requireNotRetired(command);
       if (call.responsibleUserId !== actor.userId || !(await responsibleIsEligible(tx, actor.tenantId, actor.userId))) {
         throw new CallHttpError(403, "COLLABORATORS_FORBIDDEN");
       }
@@ -878,7 +879,7 @@ export class InstitutionalCallsUseCase {
     };
   }
 
-  private async renderDetail(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<CallDetailView> {
+  private async renderDetail(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<CallDetailViewV2> {
     if (!SERVER_ID.test(id)) throw NOT_FOUND();
     const call = await db.jointPurchaseCall.findFirst({
       where: { id, tenantId: actor.tenantId },
@@ -935,16 +936,14 @@ export class InstitutionalCallsUseCase {
     const disclosureAuthorized = this.collective.mode === "PROVISIONAL_SYNTHETIC";
     const responsibleEligible = await responsibleIsEligible(db, actor.tenantId, call.responsibleUserId);
     const delegations = await db.jointPurchaseCallAccess.findMany({
-      where: { callId: call.id, grantedByUserId: { not: null } },
+      where: { callId: call.id, grant: ACCESS_MANAGE, grantedByUserId: { not: null } },
       select: { userId: true, grant: true, grantedByUserId: true, responsibleVersion: true },
     });
     const collaborators = new Set(delegations.filter((row) => rowInForce(call, row, true)).map((row) => row.userId));
     const pendingReviews = delegations.filter((row) => rowPendingReview(call, row)).length;
     const canManage = access.grants.has(ACCESS_MANAGE);
-    // P-A B1: holds the permission now and the responsible is no longer eligible; never on a cancelled call.
-    const holdsPermission = await holdsSubstitution(db, actor.tenantId, actor.userId);
     return {
-      contractVersion: 1,
+      contractVersion: 2,
       call_id: call.id,
       name: call.name,
       status: call.status,
@@ -970,7 +969,7 @@ export class InstitutionalCallsUseCase {
       source_proposal_ref: call.sourceProposalId,
       participant_count: totals.participantCount,
       totals_source: totals.source,
-      totals_threshold: CALL_TOTALS_THRESHOLD,
+      // E4 §2: by role (an eligible ADMINISTRADOR now), never by a permission row.
       can_view_participants: access.canViewParticipants,
       is_responsible: access.isResponsible,
       can_manage: canManage,
@@ -978,13 +977,12 @@ export class InstitutionalCallsUseCase {
       can_cancel_or_close: canManage,
       // m6: mientras la responsable no esté habilitada, los permisos que concedió quedan suspendidos (no borrados).
       delegations_suspended: !responsibleEligible,
-      my_grants: CALL_GRANTS.filter((grant) => access.grants.has(grant)).sort(),
+      my_grants: canManage ? [ACCESS_MANAGE] : [],
       collaborator_count: collaborators.size,
-      // P-A (§12)
-      has_substitution_permission: holdsPermission,
-      can_substitute_responsible: holdsPermission && !responsibleEligible && call.status !== "CANCELLED",
+      // E4 §3.1 / §6.3: an eligible ADMINISTRADOR, without any permission, when the responsible is no longer eligible.
+      can_substitute_responsible: access.canViewParticipants && !responsibleEligible && call.status !== "CANCELLED",
       pending_delegation_reviews: pendingReviews,
-      pending_authorization_count: access.visibility.pendingAuthorizationCount(totals.all),
+      pending_consent_count: access.visibility.pendingConsentCount(totals.all),
       responsible_changes: call.responsibleChanges.map((change) => ({
         version: change.version,
         at: change.at.toISOString(),
@@ -1032,13 +1030,13 @@ export class InstitutionalCallsUseCase {
    */
   private async totalsOf(
     db: Tx | PrismaService,
-    call: { id: string; status: JointPurchaseCallStatus; responsibleVersion: number },
+    call: { id: string; status: JointPurchaseCallStatus },
     closing: { participantCount: number; lines: { productId: string; totalQuantityBase: bigint; participantCount: number }[] } | null,
   ): Promise<CallTotals> {
     const callId = call.id;
     const status = call.status;
     if (closing) {
-      const frozen = await frozenParticipations(db, callId, call.responsibleVersion);
+      const frozen = await frozenParticipations(db, callId);
       return {
         source: "CLOSING",
         participantCount: closing.participantCount,
@@ -1054,14 +1052,13 @@ export class InstitutionalCallsUseCase {
     if (status === "DRAFT") return { source: "NONE", participantCount: 0, all: [], byProduct: new Map() };
     const active = await db.jointPurchaseParticipation.findMany({
       where: { callId, status: "ACTIVE" },
-      select: { consentScope: true, consentResponsibleVersion: true, lines: { select: { productId: true, quantityBase: true } } },
+      select: { consentScope: true, lines: { select: { productId: true, quantityBase: true } } },
     });
     const byProduct = new Map<string, ProductTotals>();
     const all: ParticipationForVisibility[] = [];
     for (const participation of active) {
       const forVisibility = {
         consentScope: participation.consentScope,
-        authorizedForResponsible: participation.consentResponsibleVersion === call.responsibleVersion,
         productIds: participation.lines.map((l) => l.productId),
       };
       all.push(forVisibility);
@@ -1076,7 +1073,7 @@ export class InstitutionalCallsUseCase {
     return { source: "LIVE", participantCount: active.length, all, byProduct };
   }
 
-  private async renderClosing(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<ClosingView> {
+  private async renderClosing(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<ClosingViewV2> {
     const call = await this.findCall(db, actor.tenantId, id);
     if (call.status !== "CLOSED") throw new CallHttpError(409, "CALL_NOT_CLOSED", { status: call.status });
     const access = await accessOf(db, call, actor.userId);
@@ -1095,14 +1092,11 @@ export class InstitutionalCallsUseCase {
     const nameOf = new Map(order.map((p) => [p.productId, p.product.name]));
     const position = new Map(order.map((p, index) => [p.productId, index]));
     const lines = [...closing.lines].sort((a, b) => (position.get(a.productId) ?? 0) - (position.get(b.productId) ?? 0));
-    const frozen = await frozenParticipations(db, call.id, call.responsibleVersion);
-    let participants: ClosingView["participants"] = null;
-    let hidden = 0;
-    let pending = 0;
+    const frozen = await frozenParticipations(db, call.id);
+    let participants: ClosingViewV2["participants"] = null;
+    const pending = access.visibility.pendingConsentCount(frozen);
     if (access.canViewParticipants) {
       const visible = frozen.filter((p) => access.visibility.canSeeParticipation(p));
-      hidden = access.visibility.hiddenCount(frozen);
-      pending = access.visibility.pendingAuthorizationCount(frozen);
       const members = await db.member.findMany({
         where: { id: { in: visible.map((row) => row.memberId) } },
         select: { id: true, user: { select: { name: true } } },
@@ -1122,7 +1116,7 @@ export class InstitutionalCallsUseCase {
       }));
     }
     return {
-      contractVersion: 1,
+      contractVersion: 2,
       call_id: call.id,
       name: call.name,
       status: "CLOSED",
@@ -1132,7 +1126,6 @@ export class InstitutionalCallsUseCase {
       closed_at: closing.closedAt.toISOString(),
       closed_by: closing.closedBy ? { user_ref: closing.closedBy.id, name: closing.closedBy.name } : null,
       participant_count: closing.participantCount,
-      totals_threshold: CALL_TOTALS_THRESHOLD,
       can_view_participants: access.canViewParticipants,
       lines: lines.map((line) => ({
         product_ref: line.productId,
@@ -1147,14 +1140,12 @@ export class InstitutionalCallsUseCase {
         ),
       })),
       participants,
-      hidden_participant_count: hidden,
-      hidden_notice: hiddenNotice(hidden),
-      pending_authorization_count: pending,
-      pending_authorization_notice: pendingAuthorizationNotice(pending),
+      pending_consent_count: pending,
+      pending_consent_notice: pendingConsentNotice(pending),
     };
   }
 
-  private async renderCollaborators(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<CollaboratorsView> {
+  private async renderCollaborators(db: Tx | PrismaService, actor: InstitutionalActor, id: string): Promise<CollaboratorsViewV2> {
     if (!SERVER_ID.test(id)) throw NOT_FOUND();
     const call = await db.jointPurchaseCall.findFirst({
       where: { id, tenantId: actor.tenantId },
@@ -1170,9 +1161,9 @@ export class InstitutionalCallsUseCase {
     if (!call) throw NOT_FOUND();
     const responsibleEligible = await responsibleIsEligible(db, actor.tenantId, call.responsibleUserId);
     const user = { select: { id: true, name: true, members: { where: { tenantId: actor.tenantId }, select: { role: true } } } } as const;
-    const [rows, events] = await Promise.all([
+    const [rows, events, retiredAt] = await Promise.all([
       db.jointPurchaseCallAccess.findMany({
-        where: { callId: call.id, grantedByUserId: { not: null } },
+        where: { callId: call.id },
         orderBy: [{ grantedAt: "asc" }, { userId: "asc" }, { grant: "asc" }],
         include: { user, grantedBy: { select: { id: true, name: true } } },
       }),
@@ -1181,11 +1172,13 @@ export class InstitutionalCallsUseCase {
         orderBy: [{ at: "asc" }, { id: "asc" }],
         include: { user: { select: { id: true, name: true } }, actor: { select: { id: true, name: true } } },
       }),
+      permissionsRetiredAt(db),
     ]);
-    const byUser = new Map<string, CollaboratorView>();
+    const notice = retiredGrantNotice(isoDate(retiredAt));
+    const byUser = new Map<string, CollaboratorViewV2>();
     for (const row of rows) {
-      // The responsible's own earlier delegations are not collaborators (she holds everything as responsible).
-      if (row.userId === call.responsibleUserId) continue;
+      // E4: stored view permissions are history (retired_grants); the responsible's own earlier delegations are not collaborators.
+      if (row.grant !== ACCESS_MANAGE || row.grantedByUserId === null || row.userId === call.responsibleUserId) continue;
       const entry = byUser.get(row.userId) ?? {
         user_ref: row.user.id,
         name: row.user.name,
@@ -1193,8 +1186,8 @@ export class InstitutionalCallsUseCase {
         grants: [],
       };
       entry.grants.push({
-        grant: row.grant as CallGrant,
-        label: GRANT_LABEL[row.grant as CallGrant],
+        grant: ACCESS_MANAGE,
+        label: GRANT_LABEL[ACCESS_MANAGE],
         granted_at: row.grantedAt.toISOString(),
         granted_by: { user_ref: row.grantedBy!.id, name: row.grantedBy!.name },
         // m6 and P-A §12: in force, suspended with an ineligible responsible, or waiting for the successor's review.
@@ -1204,21 +1197,35 @@ export class InstitutionalCallsUseCase {
       byUser.set(row.userId, entry);
     }
     return {
-      contractVersion: 1,
+      contractVersion: 2,
       call_id: call.id,
       status: call.status,
       responsible: { user_ref: call.responsible.id, name: call.responsible.name },
       can_grant: call.responsible.id === actor.userId,
-      // P-A §12: only the current, eligible responsible reviews the delegations of earlier versions.
+      // P-A §12: only the current, eligible responsible reviews the MANAGE delegations of earlier versions.
       can_review: call.responsible.id === actor.userId && responsibleEligible,
       responsible_version: call.responsibleVersion,
       collaborators: [...byUser.values()],
+      retired_grants: rows
+        .filter((row) => row.grant === ACCESS_PARTICIPANTS)
+        .map((row) => ({
+          grant: ACCESS_PARTICIPANTS,
+          label: GRANT_LABEL[ACCESS_PARTICIPANTS],
+          user: { user_ref: row.user.id, name: row.user.name },
+          granted_at: row.grantedAt.toISOString(),
+          granted_by: row.grantedBy ? { user_ref: row.grantedBy.id, name: row.grantedBy.name } : null,
+          responsible_version: row.responsibleVersion,
+          retired: true as const,
+          notice,
+        })),
       history: events.map((event) => ({
         at: event.at.toISOString(),
         action: event.action,
         grant: event.grant as CallGrant,
         user: { user_ref: event.user.id, name: event.user.name },
         actor: { user_ref: event.actor.id, name: event.actor.name },
+        retired: event.grant === ACCESS_PARTICIPANTS,
+        notice: event.grant === ACCESS_PARTICIPANTS ? notice : null,
       })),
     };
   }
@@ -1262,14 +1269,14 @@ interface CallTotals {
   byProduct: Map<string, ProductTotals>;
 }
 
-/** §10.3 through the one shared decision; a draft has no totals (0 persons, no figure shown as 0 to others). */
+/** Rule T (E4 §5.2) through the one shared decision. A draft has no participation: 0 persons and a total of 0 (nothing is withheld). */
 function productTotalOf(visibility: CallVisibility, totals: CallTotals, productId: string) {
   const entry = totals.byProduct.get(productId) ?? { total: 0n, count: 0, participations: [] };
   return visibility.productTotal(entry.total, entry.count, entry.participations, totals.source === "CLOSING" ? "CLOSING" : "LIVE");
 }
 
-/** The frozen participations of a closing, with the consent of the participation each froze. */
-async function frozenParticipations(db: Tx | PrismaService, callId: string, responsibleVersion: number) {
+/** The frozen participations of a closing, with the consent in force of the participation each froze (read now). */
+async function frozenParticipations(db: Tx | PrismaService, callId: string) {
   const rows = await db.jointPurchaseCallClosingParticipant.findMany({
     where: { callId },
     orderBy: [{ acceptedAt: "asc" }, { participationId: "asc" }],
@@ -1277,18 +1284,15 @@ async function frozenParticipations(db: Tx | PrismaService, callId: string, resp
   });
   const consents = await db.jointPurchaseParticipation.findMany({
     where: { id: { in: rows.map((row) => row.participationId) } },
-    select: { id: true, consentScope: true, consentResponsibleVersion: true },
+    select: { id: true, consentScope: true },
   });
   const consentOf = new Map(consents.map((c) => [c.id, c.consentScope as string]));
-  // P-A C1: authorized only for the current responsible version (read now, like the scope).
-  const authorizedOf = new Map(consents.map((c) => [c.id, c.consentResponsibleVersion === responsibleVersion]));
   return rows.map((row) => ({
     participationId: row.participationId,
     memberId: row.memberId,
     acceptedAt: row.acceptedAt,
-    // A frozen participation always has its row (FK chain); a missing one is treated as hidden.
+    // A frozen participation always has its row (FK chain); a missing one covers nothing.
     consentScope: consentOf.get(row.participationId) ?? "",
-    authorizedForResponsible: authorizedOf.get(row.participationId) ?? false,
     productIds: row.lines.map((line) => line.productId),
     lines: row.lines,
   }));
@@ -1300,6 +1304,11 @@ export function parseGrant(command: GrantCommand): { userRef: string; grant: Cal
   if (typeof userRef !== "string" || userRef.length < 1 || userRef.length > 64) throw INVALID();
   if (typeof grant !== "string" || !(CALL_GRANTS as readonly string[]).includes(grant)) throw INVALID();
   return { userRef, grant: grant as CallGrant };
+}
+
+/** E4 §3.1: the view permission is retired from every active flow (grant, revoke, review). */
+function requireNotRetired(command: { grant?: unknown }) {
+  if (command.grant === ACCESS_PARTICIPANTS) throw new CallHttpError(409, "GRANT_RETIRED");
 }
 
 export function requireConfirmed(confirmed: unknown) {

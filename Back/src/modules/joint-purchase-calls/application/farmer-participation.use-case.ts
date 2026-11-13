@@ -4,7 +4,14 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { QUANTITY_MAX } from "@/modules/sync-v1/domain/envelope";
 import { CallErrorCode, CallHttpError, FarmerContext } from "../domain/call-error";
 import { notOpenReason } from "../domain/call-state";
-import { CONSENT_TEXT, CONSENT_VERSION, decisionVersionAccepted, initialScopeOf, isAcceptedConsent } from "../domain/consent";
+import {
+  CONSENT_HELP,
+  CONSENT_TEXT,
+  CONSENT_V4_VERSION,
+  initialScopeOf,
+  isAcceptedConsent,
+  isNewScope,
+} from "../domain/consent";
 import {
   ConfirmInput,
   ConsentDecisionInput,
@@ -17,9 +24,13 @@ import {
 } from "../domain/participation-input";
 import { CALL_TRANSACTION_OPTIONS, lockCallRow, Tx } from "./call-store";
 import {
-  FarmerCallView,
+  FarmerCallViewV4,
+  FarmerConsentV4,
+  FarmerHistoryViewV4,
+  FarmerListViewV4,
   iso,
   ParticipationView,
+  ParticipationViewV4,
   presentationUnit,
   toParticipationView,
 } from "./call-views";
@@ -38,6 +49,17 @@ export interface AcceptedResponse {
   outcome: "ACCEPTED";
   participation: ParticipationView | null;
 }
+
+/**
+ * E4 §7: the contract the phone declared (`X-Joint-Purchase-Contract`).
+ * Reads always get the shape of contract 4; writes are decided knowing it
+ * (409 APP_UPDATE_REQUIRED for contracts 1–3 on a participation whose scope
+ * they do not know) and answered in the shape of that contract.
+ */
+export type FarmerContract = 1 | 2 | 3 | 4;
+
+/** E4 §4.1: the consent every read serves. */
+export const FARMER_CONSENT: FarmerConsentV4 = { version: "CONV-4", text: CONSENT_TEXT, help: CONSENT_HELP };
 
 /** What the journal keeps for an operation decided under the lock. */
 interface StoredResponse {
@@ -82,13 +104,7 @@ export class FarmerParticipationUseCase {
    * the farmer's own data). The window is only a presentation filter: nothing
    * is deleted on the server and the older ones are served by `history`.
    */
-  async list(context: FarmerContext): Promise<{
-    contractVersion: 3;
-    server_time: string;
-    consent: { version: string; text: string };
-    calls: FarmerCallView[];
-    history: { older_count: number };
-  }> {
+  async list(context: FarmerContext): Promise<FarmerListViewV4> {
     const now = this.clock.now();
     const since = recentSince(now);
     const rows = await this.prisma.jointPurchaseCall.findMany({
@@ -109,9 +125,9 @@ export class FarmerParticipationUseCase {
     const olderCount = await this.prisma.jointPurchaseCall.count({ where: olderWhere(context, since) });
     const serverTime = now.toISOString();
     return {
-      contractVersion: 3,
+      contractVersion: 4,
       server_time: serverTime,
-      consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
+      consent: FARMER_CONSENT,
       calls: rows.map((row) => toFarmerCallView(row, now)),
       history: { older_count: olderCount },
     };
@@ -128,7 +144,7 @@ export class FarmerParticipationUseCase {
   async history(
     context: FarmerContext,
     query: { before?: string; limit?: number },
-  ): Promise<{ contractVersion: 3; server_time: string; consent: { version: string; text: string }; calls: FarmerCallView[]; next_cursor: string | null }> {
+  ): Promise<FarmerHistoryViewV4> {
     const limit = query.limit ?? HISTORY_PAGE_DEFAULT;
     if (!Number.isInteger(limit) || limit < 1 || limit > HISTORY_PAGE_MAX) throw new CallHttpError(400, "PAYLOAD_INVALID");
     const before = query.before === undefined ? null : decodeHistoryCursor(query.before);
@@ -159,39 +175,49 @@ export class FarmerParticipationUseCase {
     const ordered = page.map((id) => byId.get(id)!).filter(Boolean);
     const last = ordered[ordered.length - 1];
     return {
-      contractVersion: 3,
+      contractVersion: 4,
       server_time: now.toISOString(),
-      consent: { version: CONSENT_VERSION, text: CONSENT_TEXT },
+      consent: FARMER_CONSENT,
       calls: ordered.map((row) => toFarmerCallView(row, now)),
       next_cursor: ids.length > limit && last ? encodeHistoryCursor((last.closedAt ?? last.cancelledAt)!, last.id) : null,
     };
   }
 
   /** `PUT /me/joint-purchase-calls/{id}/participation`. */
-  confirm(context: FarmerContext, callId: string, input: ConfirmInput): Promise<AcceptedResponse> {
+  confirm(context: FarmerContext, callId: string, input: ConfirmInput, contract: FarmerContract = 4): Promise<AcceptedResponse> {
     if (!SERVER_ID.test(callId)) throw new CallHttpError(404, "CALL_NOT_FOUND");
-    return this.apply(context, callId, normalizeConfirm(input));
+    return this.apply(context, callId, normalizeConfirm(input), contract);
   }
 
   /** `POST /me/joint-purchase-calls/{id}/participation/withdraw`. */
-  withdraw(context: FarmerContext, callId: string, input: WithdrawInput): Promise<AcceptedResponse> {
+  withdraw(context: FarmerContext, callId: string, input: WithdrawInput, contract: FarmerContract = 4): Promise<AcceptedResponse> {
     if (!SERVER_ID.test(callId)) throw new CallHttpError(404, "CALL_NOT_FOUND");
-    return this.apply(context, callId, normalizeWithdraw(input));
+    return this.apply(context, callId, normalizeWithdraw(input), contract);
   }
 
   /**
-   * `POST /me/joint-purchase-calls/{id}/participation/consent` (§10.6, P-C):
-   * widen (`COLLABORATORS`) or reduce (`RESPONSIBLE_ONLY`) who may see the
-   * farmer's name and quantities, as a decision of its own with its own order.
+   * `POST /me/joint-purchase-calls/{id}/participation/consent` (E4 §4.2): a
+   * decision of its own with its own order about who may see the farmer's
+   * name and quantities (`ADMINISTRATION`, `TOTALS_ONLY`, or the earlier
+   * reduction `RESPONSIBLE_ONLY`). Widening to `COLLABORATORS` and
+   * authorizing a responsible are retired.
    */
-  decideConsent(context: FarmerContext, callId: string, input: ConsentDecisionInput): Promise<AcceptedResponse> {
+  decideConsent(context: FarmerContext, callId: string, input: ConsentDecisionInput, contract: FarmerContract = 4): Promise<AcceptedResponse> {
     if (!SERVER_ID.test(callId)) throw new CallHttpError(404, "CALL_NOT_FOUND");
-    return this.apply(context, callId, normalizeConsentDecision(input));
+    const operation = normalizeConsentDecision(input);
+    // Contracts 1–3 cannot know the new scopes: they are never read from them.
+    if (contract < 4 && isNewScope(operation.scope!)) throw new CallHttpError(400, "PAYLOAD_INVALID");
+    return this.apply(context, callId, operation, contract);
   }
 
-  private async apply(context: FarmerContext, callId: string, operation: NormalizedOperation): Promise<AcceptedResponse> {
+  private async apply(
+    context: FarmerContext,
+    callId: string,
+    operation: NormalizedOperation,
+    contract: FarmerContract,
+  ): Promise<AcceptedResponse> {
     const result = await this.prisma.$transaction(
-      (tx) => this.decide(tx, context, callId, operation),
+      (tx) => this.decide(tx, context, callId, operation, contract),
       CALL_TRANSACTION_OPTIONS,
     );
     if (result.status === 200) return result.body as unknown as AcceptedResponse;
@@ -204,6 +230,7 @@ export class FarmerParticipationUseCase {
     context: FarmerContext,
     callId: string,
     operation: NormalizedOperation,
+    contract: FarmerContract,
   ): Promise<StoredResponse> {
     if (!(await lockCallRow(tx, context.tenantId, callId))) throw new CallHttpError(404, "CALL_NOT_FOUND");
     const call = await tx.jointPurchaseCall.findUniqueOrThrow({
@@ -234,6 +261,18 @@ export class FarmerParticipationUseCase {
         return { status: 409, body: { errorCode: "STALE_SEQUENCE", participation: view(await current()) } };
       }
       return stored;
+    }
+
+    // E4 §7.2: a phone of contracts 1–3 does not know `ADMINISTRATION` nor
+    // `TOTALS_ONLY` (nor CONV-4): answering it would either pass off a scope it
+    // cannot read or make it retry forever. Refused before deciding, and not
+    // journaled: the same operation is decided once the app is updated.
+    if (contract < 4) {
+      const own = await current();
+      if (own && isNewScope(own.consentScope)) throw new CallHttpError(409, "APP_UPDATE_REQUIRED");
+      if (!own && operation.kind === "CONFIRM" && operation.consent?.version === CONSENT_V4_VERSION) {
+        throw new CallHttpError(409, "APP_UPDATE_REQUIRED");
+      }
     }
 
     const now = this.clock.now();
@@ -302,14 +341,25 @@ export class FarmerParticipationUseCase {
         saved = await tx.jointPurchaseParticipation.update({ where: { id: existing.id }, data, select: { id: true } });
       } else {
         const consent = operation.consent!;
+        // E4 §4.3: CONV-4 gives ADMINISTRATION; an earlier text keeps its own
+        // scope (never read as CONV-4), restricted for the detail.
         const scope = initialScopeOf(consent.version);
-        // P-A C1: the first consent authorizes the responsible the phone showed,
-        // only if that is the current version. A phone that does not say which
-        // (contracts 1 and 2) can only have shown the current one when there was
-        // never a substitution (version 1); otherwise nothing is assumed.
+        // P-A C1, kept as history only (E4 §4.3: it no longer decides access).
+        // CONV-4 authorizes no responsible (NULL). An earlier text records, as
+        // before, the responsible the phone showed if it is the current one; a
+        // phone that does not say which (contracts 1 and 2) can only have shown
+        // the current one when there was never a substitution (version 1).
         const shown = operation.responsibleVersion;
         const authorizedVersion =
-          shown !== undefined ? (shown === call.responsibleVersion ? shown : null) : call.responsibleVersion === 1 ? 1 : null;
+          consent.version === CONSENT_V4_VERSION
+            ? null
+            : shown !== undefined
+              ? shown === call.responsibleVersion
+                ? shown
+                : null
+              : call.responsibleVersion === 1
+                ? 1
+                : null;
         saved = await tx.jointPurchaseParticipation.create({
           data: {
             callId,
@@ -377,31 +427,26 @@ export class FarmerParticipationUseCase {
   }
 
   /**
-   * §10.6 (P-C) and P-A C1 (§12), under the call's lock:
-   * - only on an existing participation of the farmer (409
-   *   PARTICIPATION_REQUIRED: the phone keeps the decision pending until its
-   *   first confirmation is accepted);
-   * - not tied to the deadline. A REDUCTION (`RESPONSIBLE_ONLY` without
-   *   authorizing anyone) is respected in any state, with any known text and
-   *   whatever responsible version it names: it never authorizes anyone;
-   * - AUTHORIZING the current responsible (`authorize_responsible`, contract
-   *   3) is an explicit decision of its own: it needs the current text
-   *   (`CONV-3`), names the responsible version the phone showed and is
-   *   refused if that is no longer the current one (409 RESPONSIBLE_CHANGED,
-   *   with the current version: the phone asks for a new review). It sets
-   *   the scope it carries: authorizing only the responsible never widens to
-   *   collaborators;
-   * - WIDENING (`COLLABORATORS`) needs the current text and the current
-   *   responsible authorized (now or in the same decision; otherwise 409
-   *   AUTHORIZATION_REQUIRED), and is refused on a CANCELLED call (409
-   *   WIDENING_NOT_ALLOWED), as is authorizing;
-   * - its own order: a decision whose sequence is not above the last accepted
-   *   one is STALE_SEQUENCE, so a late or out-of-order request never reverts
-   *   a later decision nor restores an earlier access (the same operation_id
-   *   gets the stored answer);
-   * - quantities, status and the first consent are untouched; the decision is
-   *   written to the insert-only register in the same transaction, with the
-   *   responsible version it authorizes (null when it authorizes none).
+   * E4 §4.2, under the call's lock, in the order of the checks:
+   * 1. only on an existing participation of the farmer (409
+   *    PARTICIPATION_REQUIRED: the phone keeps the decision pending until its
+   *    first confirmation is accepted);
+   * 2. `ADMINISTRATION` needs `CONV-4` (409 CONSENT_REQUIRED) and is refused on
+   *    a CANCELLED call (409 WIDENING_NOT_ALLOWED); it is valid in OPEN and
+   *    CLOSED whatever the deadline (`authorize_responsible` with it is 400,
+   *    checked in `normalizeConsentDecision`);
+   * 3. widening to `COLLABORATORS` (any version) or authorizing a responsible
+   *    is 409 CONSENT_VERSION_RETIRED, journaled (idempotent) without writing
+   *    a decision: no earlier widening ever reaches anybody again;
+   * 4. the earlier reduction `RESPONSIBLE_ONLY` is respected with any known
+   *    text and in any state; from `ADMINISTRATION` it stops covering the
+   *    detail;
+   * 5. `TOTALS_ONLY` (D-05) with any known text, not on a CANCELLED call;
+   * 6. its own order: a sequence not above the last accepted decision is
+   *    STALE_SEQUENCE with the participation in force, so a late request never
+   *    restores an earlier access (the same operation_id gets the stored answer).
+   * Quantities, status and the first consent are untouched; the decision is
+   * written to the insert-only register in the same transaction.
    */
   private async decideScope(
     tx: Tx,
@@ -416,21 +461,15 @@ export class FarmerParticipationUseCase {
   ): Promise<StoredResponse> {
     const scope = operation.scope!;
     const consent = operation.consent!;
-    const authorize = operation.authorizeResponsible === true;
-    const widen = scope === "COLLABORATORS";
     const existing = await current();
     if (!existing) return reject("PARTICIPATION_REQUIRED", 409);
-    if (!decisionVersionAccepted(scope, consent.version)) return reject("CONSENT_REQUIRED", 409);
-    if (authorize && consent.version !== CONSENT_VERSION) return reject("CONSENT_REQUIRED", 409);
-    if ((widen || authorize) && call.status === "CANCELLED") {
-      return reject("WIDENING_NOT_ALLOWED", 409, { status: call.status });
+    if (scope === "ADMINISTRATION") {
+      if (consent.version !== CONSENT_V4_VERSION) return reject("CONSENT_REQUIRED", 409);
+      if (call.status === "CANCELLED") return reject("WIDENING_NOT_ALLOWED", 409, { status: call.status });
     }
-    if ((widen || authorize) && operation.responsibleVersion !== undefined && operation.responsibleVersion !== call.responsibleVersion) {
-      return reject("RESPONSIBLE_CHANGED", 409, { responsible_version: call.responsibleVersion, participation: view(existing) });
-    }
-    if (widen && !authorize && existing.consentResponsibleVersion !== call.responsibleVersion) {
-      return reject("AUTHORIZATION_REQUIRED", 409, { responsible_version: call.responsibleVersion, participation: view(existing) });
-    }
+    if (scope === "COLLABORATORS" || operation.authorizeResponsible === true) return reject("CONSENT_VERSION_RETIRED", 409);
+    if (!isAcceptedConsent(consent.version)) return reject("CONSENT_REQUIRED", 409);
+    if (scope === "TOTALS_ONLY" && call.status === "CANCELLED") return reject("WIDENING_NOT_ALLOWED", 409, { status: call.status });
     if (operation.sequence <= existing.consentScopeSequence) {
       return reject("STALE_SEQUENCE", 409, { participation: view(existing) });
     }
@@ -442,7 +481,6 @@ export class FarmerParticipationUseCase {
         consentScopeDecidedAt: consent.acceptedAt,
         consentScopeReceivedAt: now,
         consentScopeSequence: operation.sequence,
-        ...(authorize ? { consentResponsibleVersion: call.responsibleVersion } : {}),
       },
     });
     await tx.jointPurchaseConsentDecision.create({
@@ -457,12 +495,10 @@ export class FarmerParticipationUseCase {
         sequence: operation.sequence,
         operationId: operation.operationId,
         source: "DECISION",
-        responsibleVersion: authorize ? call.responsibleVersion : null,
+        responsibleVersion: null,
       },
     });
-    this.logger.log(
-      `[JOINT PURCHASE CONSENT ${scope}${authorize ? " AUTHORIZE" : ""}] tenant=${context.tenantId} call=${existing.callId} outcome=ACCEPTED`,
-    );
+    this.logger.log(`[JOINT PURCHASE CONSENT ${scope}] tenant=${context.tenantId} call=${existing.callId} outcome=ACCEPTED`);
     return record("ACCEPTED", {
       status: 200,
       body: { outcome: "ACCEPTED", participation: view(await current()) } as unknown as Record<string, unknown>,
@@ -508,14 +544,14 @@ function farmerCallInclude(memberId: string) {
 
 type FarmerCallRow = Prisma.JointPurchaseCallGetPayload<{ include: ReturnType<typeof farmerCallInclude> }>;
 
-/** One call as the farmer sees it: never another farmer's data. */
-function toFarmerCallView(row: FarmerCallRow, now: Date): FarmerCallView {
+/** One call as the farmer sees it (contract 4): never another farmer's data. */
+function toFarmerCallView(row: FarmerCallRow, now: Date): FarmerCallViewV4 {
   const baseOf = new Map(row.products.map((p) => [p.productId, p.baseUnit]));
   const own = row.closing?.participants[0] ?? null;
   return {
     call_id: row.id,
     name: row.name,
-    status: row.status as FarmerCallView["status"],
+    status: row.status as FarmerCallViewV4["status"],
     campaign: { campaign_ref: row.campaign.id, name: row.campaign.name },
     opened_at: iso(row.openedAt),
     deadline_at: row.deadlineAt.toISOString(),
@@ -523,14 +559,15 @@ function toFarmerCallView(row: FarmerCallRow, now: Date): FarmerCallView {
     cancelled_at: iso(row.cancelledAt),
     server_time: now.toISOString(),
     accepts_operations: notOpenReason(row, now) === null,
-    responsible: { name: row.responsible.name, version: row.responsibleVersion },
+    responsible: { name: row.responsible.name },
     products: row.products.map((p) => ({
       product_ref: p.productId,
       name: p.product.name,
       unit: presentationUnit(p.baseUnit),
       base_unit: p.baseUnit,
     })),
-    participation: toParticipationView(row.participations[0] ?? null, row.responsibleVersion),
+    // Contract 4: no responsible_authorization (P-A C1 no longer decides access).
+    participation: toParticipationView(row.participations[0] ?? null) as ParticipationViewV4 | null,
     closing: row.closing
       ? {
           cutoff_at: row.closing.cutoffAt.toISOString(),

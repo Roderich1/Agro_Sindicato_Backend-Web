@@ -15,10 +15,11 @@ const error = (status: number, description: string) => ApiResponse({ status, des
 const actorOf = (user: AuthenticatedPrincipal): InstitutionalActor => ({ tenantId: user.tenantId, userId: user.sub });
 
 /**
- * P-A A1 (§12): the tenant permission «Sustituir responsable». Any
- * DIRECTIVA/ADMINISTRADOR of the tenant reads who holds it (no farmer data);
- * only an eligible ADMINISTRADOR grants and revokes it, to concrete persons,
- * never to themselves nor to a whole role.
+ * P-A A1 (§12) with E4 §3.2: the tenant permission «Sustituir responsable»
+ * is retired (the eligible Administración substitutes by role). Any
+ * DIRECTIVA/ADMINISTRADOR of the tenant reads its history (no farmer data);
+ * granting and revoking answer 409 SUBSTITUTION_PERMISSION_RETIRED and write
+ * nothing. The rows are kept.
  */
 @ApiTags("joint purchase calls")
 @ApiBearerAuth()
@@ -30,7 +31,7 @@ export class SubstitutionPermissionsController {
 
   @Get()
   @Header("Cache-Control", "no-store")
-  @ApiOperation({ summary: "Quién tiene «Sustituir responsable» en el sindicato y el historial de concesiones y revocaciones" })
+  @ApiOperation({ summary: "E4: historia de sólo lectura de «Sustituir responsable» (ya no se usa: sustituye la Administración habilitada)" })
   @ApiResponse({ status: 200, schema: substitutionPermissionsSchema })
   @error(401, "Sin credencial vigente.")
   @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR.")
@@ -41,15 +42,10 @@ export class SubstitutionPermissionsController {
   @Post()
   @HttpCode(HttpStatus.OK)
   @Header("Cache-Control", "no-store")
-  @ApiOperation({
-    summary:
-      "Conceder «Sustituir responsable» a una persona DIRECTIVA o ADMINISTRADOR habilitada del sindicato, distinta de quien concede, con motivo y confirmación (sólo una ADMINISTRADOR habilitada); idempotente",
-  })
-  @ApiResponse({ status: 200, schema: substitutionPermissionsSchema })
-  @error(400, "PAYLOAD_INVALID.")
+  @ApiOperation({ summary: "E4 §3.2: retirado. Siempre 409 SUBSTITUTION_PERMISSION_RETIRED; no escribe nada" })
   @error(401, "Sin credencial vigente.")
-  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o SUBSTITUTION_FORBIDDEN: no es una ADMINISTRADOR habilitada.")
-  @error(422, "CONFIRMATION_REQUIRED, REASON_REQUIRED o GRANTEE_NOT_ELIGIBLE (sin distinguir el motivo; también a sí misma).")
+  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR.")
+  @error(409, "SUBSTITUTION_PERMISSION_RETIRED.")
   grant(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: GrantSubstitutionDto) {
     return this.substitution.grantPermission(actorOf(user), dto);
   }
@@ -57,12 +53,10 @@ export class SubstitutionPermissionsController {
   @Post("revoke")
   @HttpCode(HttpStatus.OK)
   @Header("Cache-Control", "no-store")
-  @ApiOperation({ summary: "Revocar «Sustituir responsable» (una ADMINISTRADOR habilitada) o renunciar al propio; idempotente" })
-  @ApiResponse({ status: 200, schema: substitutionPermissionsSchema })
-  @error(400, "PAYLOAD_INVALID.")
+  @ApiOperation({ summary: "E4 §3.2: retirado. Siempre 409 SUBSTITUTION_PERMISSION_RETIRED; las filas no se borran" })
   @error(401, "Sin credencial vigente.")
-  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o SUBSTITUTION_FORBIDDEN.")
-  @error(422, "REASON_REQUIRED: motivo de más de 280 caracteres.")
+  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR.")
+  @error(409, "SUBSTITUTION_PERMISSION_RETIRED.")
   revoke(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: RevokeSubstitutionDto) {
     return this.substitution.revokePermission(actorOf(user), dto);
   }

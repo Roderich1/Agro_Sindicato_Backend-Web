@@ -43,3 +43,31 @@ export const ACCESS_MANAGE = "MANAGE";
 export const CALL_GRANTS = [ACCESS_PARTICIPANTS, ACCESS_MANAGE] as const;
 export type CallGrant = (typeof CALL_GRANTS)[number];
 export const ENTITY_NAME = "JointPurchaseCall";
+
+/** E4 (2026-11-13): the migration that retired the view and substitution permissions. */
+export const E4_MIGRATION = "20261113120000_e4_acceso_rol_sin_k";
+
+let retiredAtCache: Date | null = null;
+
+/**
+ * E4 §3.1–§3.2: when the view permissions (`PARTICIPANTS`) and «Sustituir
+ * responsable» stopped being used IN THIS ENVIRONMENT: the moment its
+ * migration finished (`_prisma_migrations`), never a date written by hand.
+ * Read once per process.
+ */
+export async function permissionsRetiredAt(db: Pick<Prisma.TransactionClient, "$queryRaw">): Promise<Date> {
+  if (retiredAtCache) return retiredAtCache;
+  const rows = await db.$queryRaw<{ finished_at: Date | null }[]>`
+    SELECT "finished_at" FROM "_prisma_migrations"
+    WHERE "migration_name" = ${E4_MIGRATION} AND "finished_at" IS NOT NULL AND "rolled_back_at" IS NULL
+    ORDER BY "finished_at" ASC LIMIT 1`;
+  const finished = rows[0]?.finished_at;
+  if (!finished) throw new Error(`Migration ${E4_MIGRATION} is not applied`);
+  retiredAtCache = finished;
+  return finished;
+}
+
+/** AAAA-MM-DD (UTC) of an instant. */
+export function isoDate(at: Date): string {
+  return at.toISOString().slice(0, 10);
+}
