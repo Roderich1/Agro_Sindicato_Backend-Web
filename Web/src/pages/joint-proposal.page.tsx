@@ -1,22 +1,16 @@
 import axios from 'axios';
-import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CampaignPill } from '../components/a/campaign-pill';
 import { AppShell } from '../components/app-shell';
-import {
-  CoverageBanner,
-  DisclosureNotice,
-  Fingerprint,
-  PendingChangesNote,
-  ProductCell,
-  QuantityCell,
-} from '../components/collective-ui';
+import { DisclosureNotice, Fingerprint } from '../components/collective-ui';
 import { Figure } from '../components/estimation-figure';
 import { ExportButtons } from '../components/export-buttons';
-import { Button, CampaignSelector, Collapsible, DataState, DataTable, Notice, PageHeader, Section, surfaceClass } from '../components/ui';
+import { Button, Card, Chip, DataState, DataTable, ICON, Icon, Notice, PageHeader, PrivacyChip, statusChipLabel, surfaceClass, Tabs } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
-import { collectiveError, fmtDateTime } from '../lib/collective-text';
-import { formatBaseValue, formatDecimalQuantity, formatRoundedEstimate } from '../lib/quantity';
+import { collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
+import { formatBaseValue, formatDecimalQuantity, formatQuantity, formatRoundedEstimate } from '../lib/quantity';
 import { prepareCallPath } from '../lib/joint-purchase-call-text';
 import { reportDisclosureMode } from '../lib/data-mode';
 import {
@@ -44,13 +38,13 @@ import {
   STOP_TEXT,
   VALIDITY_REASON_TEXT,
 } from '../lib/estimation-text';
-import { fmtCalendarDate, fmtPercent } from '../lib/format';
+import { fmtCalendarDate } from '../lib/format';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
 import { estimationService } from '../services/estimation.service';
 import type { Proposal, ProposalLine, ProposalSummary } from '../types/collective';
 import type { FailureCode, ResultDetail, Run, StopCode } from '../types/estimation';
-import type { EstimationLinkLine, EstimationLinkView, LinkDifference } from '../types/estimation-link';
+import type { EstimationLinkLine, EstimationLinkView } from '../types/estimation-link';
 
 const POLICY_PENDING_MESSAGE =
   'La política de divulgación no está aprobada: no se genera ni se guarda ninguna propuesta con cifras.';
@@ -103,13 +97,20 @@ interface Problem {
  * Panel de la defensa (2026-11-05): al elegir una campaña con borradores se
  * carga y muestra el último por el flujo de consulta (nunca se crea uno al
  * entrar, refrescar o cambiar de campaña); si se abre un borrador histórico se
- * respeta esa elección. El historial, la huella y la trazabilidad van en
- * detalles plegados.
+ * respeta esa elección.
+ *
+ * Rediseño v2 (láminas 06, 07, 08, 36 y 51): «Borrador de compra» con tres
+ * pestañas (Borrador actual · Borradores anteriores (N) · Cómo se calculó),
+ * franja de la referencia con sus estados (05 §12), tabla Llevar · Producto ·
+ * Necesidad declarada · Consumo estimado y barra «Preparar convocatoria →».
+ * U.3: `?borrador=<proposalId>` abre ese borrador si es de la campaña (sólo
+ * lectura: se busca en la lista ya pedida, nunca se crea ni se escribe nada).
+ * H-09: la diferencia porcentual no se muestra (E3-R7).
  */
 export function JointProposalPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { campaigns, selected, select, error: campaignsError, refresh: refreshCampaigns } = useSelectedCampaign();
+  const { campaigns, selected, error: campaignsError, refresh: refreshCampaigns } = useSelectedCampaign();
   const [history, setHistory] = useState<ProposalSummary[]>([]);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [link, setLink] = useState<LinkLoad | null>(null);
@@ -123,6 +124,12 @@ export function JointProposalPage() {
   const [busy, setBusy] = useState(false);
   /** Historial pedido y aún sin respuesta: sólo entonces se dice «Cargando…». */
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [tab, setTab] = useState<ProposalTab>('actual');
+  /** Aviso cuando `?borrador=` no es de la campaña elegida (se muestra el más reciente). */
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
+  /** U.3: el borrador pedido en la URL; se lee al cargar el historial de la campaña. */
+  const wantedDraft = useRef<string | null>(params.get('borrador'));
 
   // El contexto de lo que se muestra: identidad y campaña. Cada respuesta se aplica sólo si sigue siendo el mismo.
   const context = `${user?.id ?? ''}|${user?.tenantId ?? ''}|${user?.role ?? ''}|${selected ?? ''}`;
@@ -236,7 +243,13 @@ export function JointProposalPage() {
         if (contextRef.current !== at) return;
         setHistory(list);
         setLoadingHistory(false);
-        if (shownRef.current === null && list[0]) await open(list[0].proposal_ref, at);
+        const wanted = wantedDraft.current;
+        wantedDraft.current = null;
+        const target = wanted ? list.find((entry) => entry.proposal_ref === wanted) : undefined;
+        if (wanted && !target) {
+          setDraftNotice('El borrador pedido no es de esta campaña o ya no existe: se muestra el más reciente.');
+        }
+        if (shownRef.current === null && (target ?? list[0])) await open((target ?? list[0])!.proposal_ref, at);
       } catch (err) {
         if (contextRef.current !== at) return;
         setHistory([]);
@@ -260,6 +273,7 @@ export function JointProposalPage() {
       setSelection(null);
       setSelectionFeedback(null);
       setProblem(null);
+      setTab('actual');
       return loadHistory(selected, at);
     });
   }, [selected, context, loadHistory]);
@@ -292,6 +306,9 @@ export function JointProposalPage() {
     try {
       const created = await collectiveService.generateProposal(selected);
       show(created, at);
+      setTab('actual');
+      setDraftNotice(null);
+      setDraftParam(null);
       const list = await collectiveService.proposals(selected);
       if (contextRef.current === at) setHistory(list);
     } catch (err) {
@@ -393,83 +410,218 @@ export function JointProposalPage() {
     }
   };
 
+  /** Pone o quita `?borrador=` sin crear una entrada nueva del historial del navegador. */
+  const setDraftParam = (proposalRef: string | null) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (proposalRef) next.set('borrador', proposalRef);
+        else next.delete('borrador');
+        return next;
+      },
+      { replace: true },
+    );
+
+  /** «Ver» un borrador de la lista: sólo lectura; vuelve a la pestaña del borrador. El que ya se muestra no se vuelve a pedir. */
+  const openDraft = async (proposalRef: string) => {
+    setDraftNotice(null);
+    setTab('actual');
+    if (proposalRef === shownRef.current) return;
+    setDraftParam(proposalRef === history[0]?.proposal_ref ? null : proposalRef);
+    await open(proposalRef, context);
+  };
+
+  /** Cambiar de campaña quita `?borrador=` (era de otra campaña). */
+  const chooseCampaign = (id: string) => {
+    wantedDraft.current = null;
+    setDraftNotice(null);
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('campaign', id);
+      next.delete('borrador');
+      return next;
+    });
+  };
+
   const prepareCall = () => {
     if (!proposal || selection?.status !== 'ready' || selection.saved.length === 0) return;
     navigate(prepareCallPath(proposal.campaign.campaign_ref, proposal.proposal_ref, selection.saved));
   };
 
   const retry = selected ? () => void loadHistory(selected, context) : undefined;
+  const latestRef = history[0]?.proposal_ref ?? null;
+  const shownIsLatest = proposal !== null && proposal.proposal_ref === latestRef;
+  const shownCampaign = campaigns.find((campaign) => campaign.id === selected) ?? null;
+  const view = link?.status === 'ready' ? link.view : null;
+  const tabs: { value: ProposalTab; label: ReactNode }[] = [
+    { value: 'actual', label: shownIsLatest || history.length === 0 ? 'Borrador actual' : 'Borrador anterior' },
+    {
+      value: 'anteriores',
+      label: (
+        <>
+          <span className="sm:hidden">Anteriores</span>
+          <span className="hidden sm:inline">Borradores anteriores</span> ({history.length})
+        </>
+      ),
+    },
+    { value: 'calculo', label: 'Cómo se calculó' },
+  ];
   return (
     <AppShell title="Necesidades y propuestas" section="Colectivo">
-      <div className="space-y-4">
+      <div className="space-y-5">
         <PageHeader
-          title="Necesidades y propuestas"
-          subtitle={
-            <>
-              Borrador basado en las <strong>necesidades declaradas</strong> publicadas. Requiere revisión: no resta stock,
-              no es una necesidad neta y <strong>no ejecuta ninguna compra</strong>.
-            </>
+          eyebrow={
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span>Necesidades y propuestas</span>
+              <CampaignPill campaigns={campaigns} selected={selected} onSelect={chooseCampaign} />
+            </span>
           }
-          campaign={<CampaignSelector campaigns={campaigns} selected={selected} onSelect={select} />}
-          actions={
-            <Button onClick={() => void generate()} disabled={!selected || busy}>
-              {busy ? 'Trabajando…' : 'Generar borrador'}
-            </Button>
-          }
+          title="Borrador de compra"
+          subtitle={proposal ? <GeneratedLine proposal={proposal} /> : 'Borrador basado en las necesidades declaradas publicadas. No ejecuta ninguna compra.'}
+          testId="proposal-header"
         />
-        {campaignsError && (
-          <DataState state="error" description={campaignsError} onRetry={() => void refreshCampaigns()} testId="campaigns-list-error" />
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {proposal && <ExportButtons kind="proposal" reference={proposal.proposal_ref} shortLabel />}
+          <Button variant={proposal ? 'secondary' : 'primary'} onClick={() => void generate()} disabled={!selected || busy} busy={busy}>
+            {busy ? 'Trabajando…' : proposal ? 'Generar borrador nuevo' : 'Generar borrador'}
+          </Button>
+        </div>
+        {campaignsError && <DataState state="error" description={campaignsError} onRetry={() => void refreshCampaigns()} testId="campaigns-list-error" />}
         {problem && (
-          <Section>
+          <Card>
             <DataState
-              compact
               state={problem.kind}
               title={problem.kind === 'error' ? 'No fue posible completar la consulta' : undefined}
               description={problem.message}
               onRetry={problem.retry ? retry : undefined}
               testId="proposal-problem"
             />
-          </Section>
+          </Card>
         )}
-        {proposal ? (
-          <ProposalDetail
-            proposal={proposal}
-            link={link}
-            linkFeedback={linkFeedback}
-            acting={acting}
-            onAct={(intent) => void actOnLink(intent)}
-            onRetryLink={() => void loadLink(proposal.proposal_ref, context)}
-            selection={selection}
-            selectionFeedback={selectionFeedback}
-            saving={saving}
-            onToggle={toggleProduct}
-            onSave={() => void saveSelection()}
-            onRetrySelection={() => void loadSelection(proposal.proposal_ref, context)}
-            onPrepareCall={prepareCall}
-          />
+        {draftNotice && (
+          <Notice kind="info" compact>
+            {draftNotice}
+          </Notice>
+        )}
+        {proposal || history.length > 0 ? (
+          <>
+            <Tabs label="Borrador de compra" idBase="borrador" tabs={tabs} value={tab} onChange={setTab} testId="proposal-tabs" />
+            {/*
+              Los tres paneles quedan montados y los inactivos se ocultan (`hidden`): así el detalle de la
+              ejecución ya pedido, la selección marcada y la consulta periódica no se repiten al cambiar de pestaña.
+            */}
+            <ProposalTabPanel value="actual" active={tab === 'actual'}>
+              {proposal ? (
+                <ProposalDetail
+                  proposal={proposal}
+                  latest={shownIsLatest}
+                  onShowLatest={latestRef && !shownIsLatest ? () => void openDraft(latestRef) : undefined}
+                  link={link}
+                  linkFeedback={linkFeedback}
+                  acting={acting}
+                  onAct={(intent) => void actOnLink(intent)}
+                  onRetryLink={() => void loadLink(proposal.proposal_ref, context)}
+                  selection={selection}
+                  selectionFeedback={selectionFeedback}
+                  saving={saving}
+                  onToggle={toggleProduct}
+                  onSave={() => void saveSelection()}
+                  onRetrySelection={() => void loadSelection(proposal.proposal_ref, context)}
+                  onPrepareCall={prepareCall}
+                />
+              ) : (
+                <Card>
+                  <DataState state={busy || loadingHistory ? 'loading' : 'empty'} title={busy || loadingHistory ? 'Cargando el borrador…' : 'Elija un borrador'} description={busy || loadingHistory ? undefined : 'Abra uno en «Borradores anteriores».'} />
+                </Card>
+              )}
+            </ProposalTabPanel>
+            <ProposalTabPanel value="anteriores" active={tab === 'anteriores'}>
+              <HistoryList history={history} current={proposal} onOpen={(id) => void openDraft(id)} busy={busy} />
+            </ProposalTabPanel>
+            <ProposalTabPanel value="calculo" active={tab === 'calculo'}>
+              {proposal ? (
+                <HowCalculated proposal={proposal} link={link} view={view} campaignName={shownCampaign?.name ?? proposal.campaign.name} onRetry={() => void loadLink(proposal.proposal_ref, context)} />
+              ) : (
+                <Card>
+                  <DataState state="empty" title="Sin borrador abierto" description="Abra un borrador para ver cómo se calculó su consumo estimado." />
+                </Card>
+              )}
+            </ProposalTabPanel>
+          </>
         ) : loadingHistory ? (
-          <Section>
-            <DataState state="loading" compact title="Cargando…" />
-          </Section>
+          <Card>
+            <DataState state="loading" title="Cargando…" description="Cargando los borradores de la campaña…" skeletonRows={3} />
+          </Card>
         ) : (
           selected &&
-          !busy &&
-          !problem &&
-          history.length === 0 && (
-            <Section>
+          !problem && (
+            <Card>
               <DataState
                 state="empty"
                 title="Todavía no hay borradores para esta campaña"
                 description="Genere el primero con «Generar borrador». Sin borrador no hay cifras que revisar: eso no significa cero."
               />
-            </Section>
+            </Card>
           )
         )}
-        <HistorySection history={history} current={proposal} onOpen={(id) => void open(id, context)} busy={busy} />
       </div>
     </AppShell>
   );
+}
+
+type ProposalTab = 'actual' | 'anteriores' | 'calculo';
+
+/** Panel de pestaña que sigue montado aunque no esté activo (oculto con `hidden`). Mismos ids que `Tabs`. */
+function ProposalTabPanel({ value, active, children }: { value: ProposalTab; active: boolean; children: ReactNode }) {
+  return (
+    <div
+      role="tabpanel"
+      id={`borrador-panel-${value}`}
+      aria-labelledby={`borrador-tab-${value}`}
+      hidden={!active}
+      tabIndex={0}
+      className="focus-visible:outline-2 focus-visible:outline-offset-4"
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * «Generado el … por … · al generarlo, N de M agricultores tenían cifras
+ * publicadas»: la cobertura guardada al generar el borrador, que no es la
+ * actual. Un borrador anterior a F10-SEC-02 contaba también filas sin cifra
+ * (`basis = ALL_CONTRIBUTORS`) y se rotula así; no se reescribe.
+ */
+function GeneratedLine({ proposal }: { proposal: Proposal }) {
+  const coverage = proposal.coverage;
+  return (
+    <span>
+      Generado el {fmtDateTime(proposal.generated_at)} por {proposal.generated_by.name}
+      {coverage && (
+        <span data-testid="coverage">
+          {' '}
+          · al generarlo ({fmtDateTime(proposal.generated_at)}),{' '}
+          {coverage.basis === 'ALL_CONTRIBUTORS' ? (
+            <>
+              {fmtCount(coverage.members_with_contribution)} de {fmtCount(coverage.linked_members)} agricultores vinculados habían aportado datos en esa
+              fecha (regla anterior a F10-SEC-02: contaba también filas sin cifra)
+            </>
+          ) : (
+            <>
+              {fmtCount(coverage.members_with_contribution)} de {fmtCount(coverage.linked_members)} agricultores vinculados con cifras publicadas en esa
+              fecha
+            </>
+          )}
+          . No es la cobertura actual.
+        </span>
+      )}
+    </span>
+  );
+}
+
+function fmtCount(value: number): string {
+  return new Intl.NumberFormat('es-BO').format(value);
 }
 
 /** Los productos del borrador en el orden de sus líneas, sin repetir. */
@@ -486,6 +638,8 @@ function linkLineOf(link: LinkLoad | null, line: ProposalLine): EstimationLinkLi
 
 interface DetailProps {
   proposal: Proposal;
+  latest: boolean;
+  onShowLatest?: () => void;
   link: LinkLoad | null;
   linkFeedback: Feedback | null;
   acting: LinkIntent | null;
@@ -506,103 +660,150 @@ function ProposalDetail(props: DetailProps) {
   const messages = view ? comparisonMessages(view) : { shared: null, perLine: new Map<number, string>() };
   const chosen = selection?.status === 'ready' ? new Set(selection.chosen) : null;
   return (
-    <section className="space-y-4" aria-label="Detalle del borrador">
+    <section className="space-y-5" aria-label="Detalle del borrador">
+      {/* Encabezado para lectores de pantalla: la vista ya tiene el título visible «Borrador de compra». */}
+      <h2 className="sr-only">Borrador · {proposal.campaign.name}</h2>
       <DisclosureNotice mode={proposal.disclosure.mode} />
-      <Section
-        title={`Borrador · ${proposal.campaign.name}`}
-        note={`Generado el ${fmtDateTime(proposal.generated_at)} por ${proposal.generated_by.name}. No crea compras, lotes, movimientos, deudas ni pagos.`}
-        actions={<ExportButtons kind="proposal" reference={proposal.proposal_ref} />}
-      >
-        {proposal.coverage && (
-          <div className="px-5 pt-4">
-            <CoverageBanner coverage={proposal.coverage} campaignName={proposal.campaign.name} asOf={proposal.generated_at} />
-          </div>
-        )}
-        {proposal.lines.length > 0 && <LinesSummary lines={proposal.lines} />}
-        {proposal.lines.length > 0 && (
-          <LinkBanner link={link} feedback={props.linkFeedback} acting={props.acting} onAct={props.onAct} onRetry={props.onRetryLink} />
-        )}
-        {messages.shared && (
-          <p className="px-5 pt-2 text-xs text-slate-700" data-testid="comparison-note">
-            {messages.shared}
-          </p>
-        )}
-        {proposal.lines.length === 0 ? (
+      {!props.latest && (
+        <Notice kind="info" compact action={props.onShowLatest && <Button variant="secondary" size="sm" onClick={props.onShowLatest}>Ver el actual</Button>}>
+          Está viendo un borrador anterior, generado el {fmtDateTime(proposal.generated_at)}. Muestra las cifras de ese momento.
+        </Notice>
+      )}
+      {proposal.lines.length > 0 && (
+        <LinkBanner link={link} feedback={props.linkFeedback} acting={props.acting} onAct={props.onAct} onRetry={props.onRetryLink} />
+      )}
+      {proposal.lines.length === 0 ? (
+        <Card>
           <DataState state="empty" title="Sin necesidades declaradas publicadas" description="Ausencia de declaración = desconocido, no cero." />
-        ) : (
-          <div className="mt-3">
-            {/* En un teléfono (< sm) cada línea se apila: producto, necesidad y consumo estimado, sin desplazamiento lateral. */}
+        </Card>
+      ) : (
+        <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <div className="space-y-1 px-5 pt-4 sm:px-8">
+            <LinesSummary lines={proposal.lines} />
+            {messages.shared && (
+              <p className="text-sm text-ink-muted" data-testid="comparison-note">
+                {messages.shared}
+              </p>
+            )}
+          </div>
+          {/* En un teléfono (< sm) cada línea se apila: casilla, producto, necesidad y consumo estimado, sin desplazamiento lateral. */}
+          <div className="mt-2 [&_.ui-table-scroll]:rounded-none [&_.ui-table-scroll]:border-0 [&_.ui-table-scroll]:shadow-none">
             <DataTable caption="Líneas del borrador">
               <thead>
                 <tr className="max-sm:hidden">
+                  <th className="w-16 pl-5 sm:pl-8">Llevar</th>
                   <th>Producto</th>
-                  <th>Necesidad declarada</th>
-                  <th className="border-l border-slate-200" data-testid="reference-header">
+                  <th className="ui-num">Necesidad declarada</th>
+                  <th className="ui-num pr-5 sm:pr-8" data-testid="reference-header">
                     Consumo estimado
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {proposal.lines.map((line) => (
-                  <tr key={line.position} className="max-sm:block max-sm:border-b max-sm:border-slate-200 max-sm:py-2" data-testid={`line-${line.product_name}-${line.base_unit}`}>
-                    <td className="max-sm:block max-sm:border-0 max-sm:py-1.5 [overflow-wrap:anywhere] sm:min-w-48">
-                      <ProductCell name={line.product_name} unit={line.presentation_unit} status={line.status} />
-                      <label className="mt-2 flex min-h-8 cursor-pointer items-center gap-2 text-xs font-medium text-slate-700">
+                {proposal.lines.map((line) => {
+                  const marked = chosen?.has(line.product_ref) ?? false;
+                  return (
+                    <tr
+                      key={line.position}
+                      className={`max-sm:grid max-sm:grid-cols-[2.75rem_1fr] max-sm:gap-x-2 max-sm:border-b max-sm:border-line max-sm:px-4 max-sm:py-4 ${marked ? 'bg-lime-soft/40' : ''}`}
+                      data-testid={`line-${line.product_name}-${line.base_unit}`}
+                    >
+                      <td className="align-middle max-sm:row-span-3 max-sm:border-0 max-sm:p-0 max-sm:pt-0.5 sm:pl-5 md:pl-8">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-emerald-700"
-                          checked={chosen?.has(line.product_ref) ?? false}
+                          className="h-6 w-6 cursor-pointer rounded accent-ink"
+                          checked={marked}
                           disabled={!chosen || saving}
                           onChange={() => onToggle(line.product_ref)}
                           aria-label={`Llevar a convocatoria: ${line.product_name} (${line.presentation_unit})`}
                           data-testid="select-product"
                         />
-                        Llevar a convocatoria
-                      </label>
-                    </td>
-                    <td className="max-sm:block max-sm:border-0 max-sm:py-1.5 sm:min-w-44" data-testid="need">
-                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Necesidad declarada</span>
-                      <QuantityCell
-                        status={line.status}
-                        base={line.quantity_base}
-                        serverPresentation={line.quantity_presentation}
-                        unit={line.base_unit}
-                        asOf={line.data_as_of}
-                        size="lg"
-                      />
-                      {line.status === 'DISCLOSED' && line.pending_changes && <PendingChangesNote />}
-                      <span className="mt-1 block text-[11px] text-slate-600" data-testid="contributors">
-                        {line.status === 'DISCLOSED' && line.contributors !== null
-                          ? `${line.contributors} ${line.contributors === 1 ? 'aportante' : 'aportantes'}`
-                          : 'Aportantes no revelados'}
-                      </span>
-                    </td>
-                    <td className="border-l border-slate-200 bg-slate-50/60 text-xs text-slate-600 sm:min-w-60 max-sm:mt-1 max-sm:block max-sm:rounded-md max-sm:border-l-0 max-sm:px-3 max-sm:py-2">
-                      <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:hidden">Consumo estimado</span>
-                      <div data-testid="reference">
-                        <EstimateCell line={line} link={link} message={messages.perLine.get(line.position) ?? null} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="max-sm:border-0 max-sm:p-0 [overflow-wrap:anywhere] sm:min-w-48">
+                        <p className="text-base font-semibold text-ink">
+                          {line.product_name} <span className="sr-only">({line.presentation_unit})</span>
+                        </p>
+                        <ProductNote line={line} />
+                      </td>
+                      <td className="align-middle max-sm:border-0 max-sm:p-0 max-sm:pt-3 sm:min-w-44 sm:text-right" data-testid="need">
+                        <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Necesidad declarada</span>
+                        <NeedCell line={line} />
+                      </td>
+                      <td className="align-middle max-sm:border-0 max-sm:p-0 max-sm:pt-3 sm:min-w-56 sm:pr-5 sm:text-right md:pr-8">
+                        <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Consumo estimado</span>
+                        <div data-testid="reference">
+                          <EstimateCell line={line} link={link} message={messages.perLine.get(line.position) ?? null} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </DataTable>
           </div>
-        )}
-        {proposal.lines.length > 0 && (
-          <SelectionBar
-            selection={selection}
-            feedback={props.selectionFeedback}
-            saving={saving}
-            onSave={props.onSave}
-            onRetry={props.onRetrySelection}
-            onPrepareCall={props.onPrepareCall}
-          />
-        )}
-        {view && (view.run || view.history.length > 0) && <CalculationDetails key={`${view.proposal_ref}|${view.run?.run_ref ?? ''}`} view={view} proposal={proposal} />}
-        <ReferenceNote proposal={proposal} view={view} />
-      </Section>
+          <ReferenceNote proposal={proposal} view={view} />
+        </div>
+      )}
+      {proposal.lines.length > 0 && (
+        <SelectionBar
+          selection={selection}
+          feedback={props.selectionFeedback}
+          saving={saving}
+          onSave={props.onSave}
+          onRetry={props.onRetrySelection}
+          onPrepareCall={props.onPrepareCall}
+        />
+      )}
+      <p className="text-sm text-ink-muted">
+        Borrador basado en las necesidades declaradas publicadas. Requiere revisión: no resta stock, no es una necesidad neta y no ejecuta
+        ninguna compra. Huella del borrador: <Fingerprint value={proposal.inputs_fingerprint} />. Misma huella = mismas entradas autorizadas y mismas líneas. Cada
+        borrador queda guardado tal como se generó; ninguno se modifica. No crea compras, lotes, movimientos, deudas ni pagos.
+      </p>
     </section>
+  );
+}
+
+/** Bajo el nombre: el aviso de cifra anterior (lámina 06). El motivo de una fila sin cifra va en su necesidad. */
+function ProductNote({ line }: { line: ProposalLine }) {
+  if (line.status === 'DISCLOSED') {
+    return line.pending_changes ? (
+      <p className="mt-0.5 text-sm text-ink-muted">
+        Cifra anterior: hay cambios sin publicar<span className="sr-only">. Hay cambios recibidos que aún no alcanzan el umbral: se muestra la cifra anterior.</span>
+      </p>
+    ) : null;
+  }
+  return null;
+}
+
+/** Necesidad declarada: la cifra publicada o el motivo, nunca un número para una fila sin cifra. */
+function NeedCell({ line }: { line: ProposalLine }) {
+  const disclosed = line.status === 'DISCLOSED';
+  const text = disclosed ? formatQuantity(line.quantity_base, line.base_unit, line.quantity_presentation) : null;
+  return (
+    <div className="space-y-1">
+      {disclosed ? (
+        text === null ? (
+          <span className="text-sm font-semibold text-danger-ink">Dato no válido recibido del servidor; no se muestra.</span>
+        ) : (
+          <span className="block font-display text-2xl font-extrabold leading-tight tracking-tight text-ink tabular-nums">{text}</span>
+        )
+      ) : line.status === 'SUPPRESSED_UNDER_THRESHOLD' ? (
+        <PrivacyChip />
+      ) : (
+        <Chip tone="hidden" icon={ICON.lock}>
+          {statusChipLabel(line.status)}
+        </Chip>
+      )}
+      {!disclosed && (
+        <span className="block text-sm leading-snug text-ink-muted">
+          {line.status === 'SUPPRESSED_UNDER_THRESHOLD' ? 'Menos aportantes que el umbral de privacidad.' : statusReason(line.status)}
+        </span>
+      )}
+      {disclosed && <span className="block text-xs text-ink-muted">datos hasta {fmtDateTime(line.data_as_of)}</span>}
+      <span className="block text-sm text-ink-muted" data-testid="contributors">
+        {disclosed && line.contributors !== null ? `${line.contributors} ${line.contributors === 1 ? 'aportante' : 'aportantes'}` : 'Aportantes no revelados'}
+      </span>
+    </div>
   );
 }
 
@@ -614,8 +815,8 @@ function LinesSummary({ lines }: { lines: ProposalLine[] }) {
   const shown = lines.filter((line) => line.status === 'DISCLOSED').length;
   const hidden = lines.length - shown;
   return (
-    <p className="px-5 pt-3 text-sm text-slate-700" data-testid="lines-summary">
-      <span className="font-semibold tabular-nums">
+    <p className="text-sm text-ink-muted" data-testid="lines-summary">
+      <span className="font-semibold tabular-nums text-ink">
         {lines.length} {lines.length === 1 ? 'producto' : 'productos'}
       </span>{' '}
       en el borrador: <span className="tabular-nums">{shown}</span> con cifra publicada
@@ -625,12 +826,19 @@ function LinesSummary({ lines }: { lines: ProposalLine[] }) {
           y <span className="tabular-nums">{hidden}</span> sin cifra (el motivo está en su fila)
         </>
       )}
-      . Cada cifra es la aceptada por el servidor hasta la fecha que indica su fila.
+      . Marque lo que irá a la convocatoria.
     </p>
   );
 }
 
-/** Franja sobre la tabla: el estado de la referencia fijada y una sola acción. */
+/** Tono de la franja según el estado de la referencia (lámina 05 §12). */
+function bannerTone(view: EstimationLinkView): string {
+  if (view.state === 'LINKED') return view.update.available ? 'bg-warn-bg text-warn-ink' : 'bg-lime-soft text-lime-ink';
+  if (view.state === 'UNAVAILABLE') return 'bg-danger-bg text-danger-ink';
+  return 'bg-sunken text-ink';
+}
+
+/** Franja sobre la tabla: el estado de la referencia fijada y una sola acción (lámina 05 §12). */
 function LinkBanner({
   link,
   feedback,
@@ -644,11 +852,12 @@ function LinkBanner({
   onAct: (intent: LinkIntent) => void;
   onRetry: () => void;
 }) {
-  const box = 'mx-5 mt-3 rounded-card border border-slate-200 bg-slate-50 px-4 py-3';
+  const box = 'rounded-card px-5 py-4 sm:px-7';
   if (!link || link.status === 'loading') {
     return (
-      <div className={box} data-testid="link-banner">
-        <p className="text-sm text-slate-600" data-testid="link-state">
+      <div className={`${box} bg-sunken`} data-testid="link-banner">
+        <p className="flex items-center gap-3 text-base text-ink" data-testid="link-state">
+          <Icon d={ICON.info} className="h-5 w-5 shrink-0" />
           Cargando la referencia de consumo estimado…
         </p>
       </div>
@@ -656,10 +865,11 @@ function LinkBanner({
   }
   if (link.status === 'error') {
     return (
-      <div className={box} data-testid="link-banner">
+      <div className={`${box} bg-danger-bg text-danger-ink`} data-testid="link-banner">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-red-700" role="alert" data-testid="link-state">
-            {link.message} El borrador no cambia.
+          <p className="flex min-w-0 flex-1 items-start gap-3 text-base" role="alert" data-testid="link-state">
+            <Icon d={ICON.warn} className="mt-0.5 h-5 w-5 shrink-0" />
+            <span>{link.message} El borrador no cambia.</span>
           </p>
           <Button variant="secondary" size="sm" onClick={onRetry}>
             Reintentar
@@ -674,6 +884,7 @@ function LinkBanner({
   const run = view.run;
   let title: string;
   let detail: string;
+  let icon: string = ICON.info;
   switch (view.state) {
     case 'NONE':
       title = 'Sin referencia de consumo estimado';
@@ -686,64 +897,79 @@ function LinkBanner({
       detail = `${view.link?.job_status ? `${JOB_STATUS_TEXT[view.link.job_status]}. ` : ''}La vista consulta el estado cada pocos segundos, sin calcular nada más. El borrador y la selección siguen disponibles.`;
       break;
     case 'LINKED':
-      title = 'Referencia fijada';
-      detail = run
-        ? `Ejecución del ${fmtDateTime(run.generated_at)} · ${run.method} ${run.method_version} · temporada ${run.season.key} · campaña ${run.target.name}. Sólo cambia si usted la actualiza.`
-        : 'Sólo cambia si usted la actualiza.';
+      icon = view.update.available ? ICON.warn : ICON.check;
+      title = view.update.available ? 'Consumo estimado desactualizado' : 'Consumo estimado fijado';
+      detail = [
+        view.link ? `el ${fmtDateTime(view.link.created_at)}` : null,
+        run ? `temporada ${run.season.key.toLowerCase()}` : null,
+        run ? `ejecución del ${fmtDateTime(run.generated_at)}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+        .concat(view.update.available ? '. Sus datos cambiaron: no se reemplaza sola.' : '. Solo cambia si usted lo actualiza.');
       break;
     case 'UNAVAILABLE':
-      title = 'El cálculo de la referencia no se completó';
+      icon = ICON.warn;
+      title = 'El cálculo no se completó';
       detail = unavailableText(view);
       break;
     case 'RESTRICTED':
+      icon = ICON.lock;
       title = 'Referencia restringida';
       detail =
-        'La política de divulgación no está aprobada: se conserva el vínculo (ejecución, fecha y método) pero no se muestra ninguna cifra.';
+        'La política de divulgación no está aprobada: se conserva el vínculo (ejecución, fecha y método) pero no se muestra ninguna cifra ni recuento.';
       break;
   }
+  const actionLabel = (intent: LinkIntent) => (view.state === 'UNAVAILABLE' && intent === 'UPDATE' ? 'Reintentar' : intent === 'INITIAL' ? 'Obtener' : 'Actualizar');
   return (
-    <div className={box} data-testid="link-banner" data-state={view.state}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-900" data-testid="link-state">
-            {title}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-700" data-testid="link-detail">
-            {detail}
-            {view.update.available && view.update.reason && ` ${UPDATE_REASON_TEXT[view.update.reason]}`}
+    <div className={`${box} ${bannerTone(view)}`} data-testid="link-banner" data-state={view.state}>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex min-w-0 flex-1 basis-72 items-start gap-3">
+          <Icon d={icon} className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="min-w-0 text-base leading-snug">
+            <strong className="font-semibold" data-testid="link-state">
+              {title}
+            </strong>{' '}
+            <span data-testid="link-detail">
+              {detail}
+              {view.update.available && view.update.reason && ` ${UPDATE_REASON_TEXT[view.update.reason]}`}
+            </span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {primary === 'CALCULATING' && (
             <Button variant="secondary" size="sm" disabled>
               Calculando…
             </Button>
           )}
-          {primary === 'INITIAL' && (
-            <Button variant="secondary" size="sm" disabled={busy} aria-busy={acting === 'INITIAL'} onClick={() => onAct('INITIAL')}>
-              Obtener referencia
-            </Button>
-          )}
-          {primary === 'UPDATE' && (
-            <Button variant="secondary" size="sm" disabled={busy} aria-busy={acting === 'UPDATE'} onClick={() => onAct('UPDATE')}>
-              Actualizar referencia
+          {(primary === 'INITIAL' || primary === 'UPDATE') && (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              busy={acting === primary}
+              aria-label={primary === 'INITIAL' ? 'Obtener referencia' : 'Actualizar referencia'}
+              onClick={() => onAct(primary)}
+            >
+              {actionLabel(primary)}
             </Button>
           )}
           {view.link && (
             <button
               type="button"
-              className="min-h-8 px-1 text-xs font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900 disabled:text-slate-400"
+              className="min-h-11 px-1 text-sm font-semibold underline underline-offset-2 disabled:opacity-60"
               disabled={busy}
               aria-busy={acting === 'CLEAR'}
+              aria-label="Quitar referencia"
               onClick={() => onAct('CLEAR')}
             >
-              Quitar referencia
+              Quitar
             </button>
           )}
         </div>
       </div>
       {feedback && (
-        <div className="mt-2" role="status" data-testid="link-feedback">
+        <div className="mt-3" role="status" data-testid="link-feedback">
           <Notice kind={feedback.kind} compact>
             {feedback.message}
           </Notice>
@@ -769,32 +995,21 @@ function unavailableText(view: EstimationLinkView): string {
   return 'El cálculo no produjo cifras. Puede volver a pedirlo con «Actualizar referencia».';
 }
 
-/** El consumo estimado de una línea según su estado; la diferencia sólo si el servidor la declara comparable. */
 /**
- * E3 §5: la diferencia porcentual que calculó el servidor (4 decimales), redondeada sólo para presentarla con el
- * formateador compartido del rediseño (sin decimales). No definida si la estimación es cero.
+ * El consumo estimado de una línea según su estado. Si el servidor declara
+ * comparables las cifras, se escribe su observación tal cual; la Web **no**
+ * muestra porcentaje aunque el servidor lo calcule (E3-R7, H-09).
  */
-function percentText(difference: LinkDifference): string {
-  if (difference.percent_undefined === 'ESTIMATE_ZERO' || difference.difference_percent === null) {
-    return 'Porcentaje no definido: la estimación es cero.';
-  }
-  const value = Number(difference.difference_percent);
-  const shown = fmtPercent(Math.abs(value), 100);
-  if (shown === null) return '';
-  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
-  return `Diferencia: ${sign}${shown} respecto de la estimación.`;
-}
-
 function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkLoad | null; message: string | null }) {
-  if (!link || link.status === 'loading') return <span className="text-slate-500">Cargando…</span>;
-  if (link.status === 'error') return <span className="text-slate-500">No disponible</span>;
+  if (!link || link.status === 'loading') return <span className="text-ink-muted">Cargando…</span>;
+  if (link.status === 'error') return <span className="text-ink-muted">No disponible</span>;
   const ref = linkLineOf(link, line);
-  if (!ref) return <span className="text-slate-500">—</span>;
+  if (!ref) return <span className="text-ink-muted">—</span>;
   const e = ref.estimation;
   const short = (label: string, why?: string | null) => (
-    <span className="text-slate-700" data-testid="estimate-state">
+    <span className="text-base text-ink-muted" data-testid="estimate-state">
       {label}
-      {why && <span className="block text-[11px] text-slate-600">{why}</span>}
+      {why && <span className="block text-sm">{why}</span>}
     </span>
   );
   switch (e.state) {
@@ -811,9 +1026,7 @@ function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkL
     case 'RESTRICTED':
       return short(
         'Restringida',
-        e.validity_reason === 'SOURCES_WITHDRAWN'
-          ? VALIDITY_REASON_TEXT.SOURCES_WITHDRAWN
-          : 'La política de divulgación no está aprobada: no se muestra la cifra.',
+        e.validity_reason === 'SOURCES_WITHDRAWN' ? VALIDITY_REASON_TEXT.SOURCES_WITHDRAWN : 'La política de divulgación no está aprobada: no se muestra la cifra.',
       );
     case 'AVAILABLE':
     case 'OUTDATED':
@@ -826,43 +1039,41 @@ function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkL
   return (
     <div className="space-y-1">
       {needHidden && (
-        <p className="text-[11px] font-semibold text-slate-700" data-testid="reference-hidden-need">
-          La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se
-          suma a la propuesta.
+        <p className="text-sm text-ink-muted" data-testid="reference-hidden-need">
+          La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se suma a la propuesta.
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span
-          className="font-semibold tabular-nums text-slate-900"
-          title={`Cifra exacta: ${formatDecimalQuantity(e.estimate_base, ref.base_unit) ?? ''} (${formatBaseValue(e.estimate_base, ref.base_unit) ?? ''})`}
-          data-testid="estimate-figure"
-        >
-          {formatRoundedEstimate(e.estimate_base, ref.base_unit) ?? 'Cifra no válida'}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
+        {e.state === 'OUTDATED' && <Chip tone="attention">Desactualizada</Chip>}
+        <span className="text-xl font-bold tabular-nums text-ink">
+          <span
+            title={`Cifra exacta: ${formatDecimalQuantity(e.estimate_base, ref.base_unit) ?? ''} (${formatBaseValue(e.estimate_base, ref.base_unit) ?? ''})`}
+            data-testid="estimate-figure"
+          >
+            {formatRoundedEstimate(e.estimate_base, ref.base_unit) ?? 'Cifra no válida'}
+          </span>
         </span>
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
-            e.state === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-amber-50 text-amber-800 ring-amber-600/20'
-          }`}
-          data-testid="estimate-state"
-        >
-          {e.state === 'AVAILABLE' ? 'Vigente' : 'Desactualizada'}
-        </span>
+        {e.state === 'AVAILABLE' && (
+          <span className="sr-only" data-testid="estimate-state">
+            Vigente
+          </span>
+        )}
       </div>
       {ref.scope.estimate && (
-        <p className="text-[11px] text-slate-600" data-testid="estimate-scope">
+        <p className="text-sm text-ink-muted" data-testid="estimate-scope">
           {estimateScopeText(ref.scope.estimate)}
         </p>
       )}
       {e.state === 'OUTDATED' && e.validity_reason && (
-        <p className="text-[11px] text-slate-600">{VALIDITY_REASON_TEXT[e.validity_reason]} No se compara con la necesidad.</p>
+        <p className="text-sm text-ink-muted">{VALIDITY_REASON_TEXT[e.validity_reason]} No se compara con la necesidad.</p>
       )}
       {comparison.comparable && comparison.difference && (
-        <p className="text-[11px] font-medium text-slate-800" data-testid="reference-difference">
-          {comparison.difference.observation} {percentText(comparison.difference)} Sólo informativo: no cambia el borrador.
+        <p className="text-sm font-medium text-ink" data-testid="reference-difference">
+          {comparison.difference.observation} Sólo informativo: no cambia el borrador.
         </p>
       )}
       {!comparison.comparable && message && (
-        <p className="text-[11px] text-slate-600" data-testid="comparison-message">
+        <p className="text-sm text-ink-muted" data-testid="comparison-message">
           {message}
         </p>
       )}
@@ -870,7 +1081,12 @@ function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkL
   );
 }
 
-/** «Llevar a convocatoria»: guardar la selección y preparar la convocatoria con los productos guardados. */
+/**
+ * Barra inferior (láminas 06 y 36): cuántos productos se eligieron, «Guardar
+ * selección» si hay cambios y «Preparar convocatoria →» con la selección
+ * **guardada** (E3-R6). Es pegajosa sólo mientras se recorre la tabla: al
+ * final ocupa su sitio y no tapa la última fila.
+ */
 function SelectionBar({
   selection,
   feedback,
@@ -886,21 +1102,21 @@ function SelectionBar({
   onRetry: () => void;
   onPrepareCall: () => void;
 }) {
-  const box = 'border-t border-slate-100 px-5 py-3';
+  const box = 'ui-on-ink sticky bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-10 rounded-card bg-ink px-5 py-4 text-white shadow-raised sm:px-7 lg:bottom-4';
   if (!selection || selection.status === 'loading') {
     return (
       <div className={box} data-testid="selection-bar">
-        <p className="text-xs text-slate-600">Cargando la selección de productos…</p>
+        <p className="text-sm text-on-ink-muted">Cargando la selección de productos…</p>
       </div>
     );
   }
   if (selection.status === 'error') {
     return (
       <div className={`${box} flex flex-wrap items-center justify-between gap-3`} data-testid="selection-bar">
-        <p className="text-xs text-red-700" role="alert">
+        <p className="text-sm text-white" role="alert">
           {selection.message}
         </p>
-        <Button variant="secondary" size="sm" onClick={onRetry}>
+        <Button variant="on-dark" size="sm" onClick={onRetry}>
           Reintentar
         </Button>
       </div>
@@ -908,26 +1124,33 @@ function SelectionBar({
   }
   const dirty = !sameSelection(selection.chosen, selection.saved);
   const count = selection.saved.length;
+  const chosenCount = selection.chosen.length;
   return (
     <div className={box} data-testid="selection-bar">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="min-w-0 flex-1 text-xs text-slate-700" data-testid="selection-summary">
-          {selection.chosen.length} {selection.chosen.length === 1 ? 'producto marcado' : 'productos marcados'} para llevar a una
-          convocatoria{dirty ? ' (cambios sin guardar)' : ''}. Elegir no inscribe a nadie, no crea participaciones ni asigna
-          cantidades; la estimación no cambia esta selección.
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <p className="min-w-0 flex-1 basis-60 text-base" data-testid="selection-summary">
+          <span className="font-display text-xl font-extrabold text-lime tabular-nums">{chosenCount}</span>{' '}
+          {chosenCount === 1 ? 'producto elegido' : 'productos elegidos'} para la convocatoria{dirty ? ' (cambios sin guardar)' : ''}.
+          <span className="block text-sm text-on-ink-muted">Elegir no inscribe a nadie ni asigna cantidades; la estimación no cambia esta selección.</span>
         </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" disabled={!dirty || saving} onClick={onSave}>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="on-dark" disabled={!dirty || saving} busy={saving} onClick={onSave}>
             {saving ? 'Guardando…' : 'Guardar selección'}
           </Button>
-          <Button variant="secondary" size="sm" disabled={dirty || count === 0 || saving} onClick={onPrepareCall}>
-            Preparar convocatoria ({count} {count === 1 ? 'producto' : 'productos'})
+          <Button
+            variant="accent"
+            disabled={dirty || count === 0 || saving}
+            onClick={onPrepareCall}
+            aria-label={`Preparar convocatoria (${count} ${count === 1 ? 'producto' : 'productos'})`}
+            iconEnd={<Icon d={ICON.arrowRight} className="h-5 w-5" />}
+          >
+            Preparar convocatoria
           </Button>
         </div>
       </div>
-      {dirty && <p className="mt-1 text-[11px] text-slate-600">Guarde la selección para preparar la convocatoria con ella.</p>}
+      {dirty && <p className="mt-2 text-sm text-on-ink-muted">Guarde la selección para preparar la convocatoria con ella.</p>}
       {feedback && (
-        <div className="mt-2" role="status" data-testid="selection-feedback">
+        <div className="mt-3" role="status" data-testid="selection-feedback">
           <Notice kind={feedback.kind} compact>
             {feedback.message}
           </Notice>
@@ -937,10 +1160,283 @@ function SelectionBar({
   );
 }
 
+function ReferenceNote({ proposal, view }: { proposal: Proposal; view: EstimationLinkView | null }) {
+  return (
+    <div className="space-y-1 border-t border-line px-5 py-4 text-sm leading-relaxed text-ink-muted sm:px-8" data-testid="reference-note">
+      <p>
+        El consumo estimado es la referencia fijada en este borrador: no se suma a la necesidad declarada, no es la cantidad solicitada ni la
+        confirmada en una convocatoria y no cambia las líneas ni la huella del borrador. Sólo se actualiza a pedido. La diferencia con la
+        necesidad sólo se escribe si el servidor confirma que ambas cifras son comparables.{' '}
+        <Link className="font-semibold text-link underline underline-offset-2" to={estimationPath(proposal)}>
+          Detalle en «Estimación del consumo»
+        </Link>
+        .
+      </p>
+      {view && (
+        <p data-testid="reference-evaluated">
+          Vigencia evaluada el {fmtDateTime(view.evaluated_at)}
+          {view.run ? ` · Temporada ${view.run.season.key}` : ''} · «Descargar Excel» consulta de nuevo el borrador y esta referencia fijada al
+          exportar, con su versión, fecha y estado; no usa otra estimación en su lugar.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function estimationPath(proposal: Proposal): string {
+  return `${COLLECTIVE_PATHS.history}?vista=estimacion&campaign=${encodeURIComponent(proposal.campaign.campaign_ref)}`;
+}
+
+/**
+ * Pestaña «Borradores anteriores» (lámina 07): cada borrador con su fecha,
+ * autor, número de productos y huella; «Actual» es el último generado. «Ver»
+ * lo muestra (sólo lectura). Ninguno se modifica.
+ */
+function HistoryList({
+  history,
+  current,
+  onOpen,
+  busy,
+}: {
+  history: ProposalSummary[];
+  current: Proposal | null;
+  onOpen: (id: string) => void;
+  busy: boolean;
+}) {
+  return (
+    <section aria-label="Historial de borradores" className="space-y-4">
+      {history.length === 0 ? (
+        <Card>
+          <DataState state="empty" title="Todavía no hay borradores para esta campaña" description="Sin borradores no hay cifras que revisar: eso no significa cero." />
+        </Card>
+      ) : (
+        <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          {history.map((entry, index) => {
+            const shown = entry.proposal_ref === current?.proposal_ref;
+            return (
+              <li key={entry.proposal_ref} className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4 sm:px-8 ${shown ? 'bg-lime-soft/30' : ''}`}>
+                <div className="min-w-0 flex-1 basis-64">
+                  <p className="text-lg font-bold text-ink tabular-nums">{fmtDateTime(entry.generated_at)}</p>
+                  <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
+                    Generado por <span>{entry.generated_by.name}</span> · {productsText(entry.line_count)} · huella <Fingerprint value={entry.inputs_fingerprint} />
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {index === 0 ? (
+                    <Chip tone="lime" dot size="md">
+                      Actual
+                    </Chip>
+                  ) : (
+                    <Chip tone="neutral" size="md">
+                      Anterior
+                    </Chip>
+                  )}
+                  {shown && <span className="text-sm font-semibold text-ink">Se muestra</span>}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="underline underline-offset-2"
+                    onClick={() => onOpen(entry.proposal_ref)}
+                    disabled={busy && !shown}
+                  >
+                    Ver
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="text-sm text-ink-muted">
+        Un borrador anterior no cambia: muestra las cifras del momento en que se generó. Si una de sus cifras ya no se publica, tampoco se muestra
+        aquí.
+      </p>
+    </section>
+  );
+}
+
+function productsText(count: number): string {
+  if (count === 0) return 'sin productos';
+  return `${fmtCount(count)} ${count === 1 ? 'producto' : 'productos'}`;
+}
+
+/** Recuento de líneas sin estimación, por su estado (nunca todo como «falta de datos», MATRIZ 08). */
+const NO_ESTIMATE_TEXT: Record<string, [string, string]> = {
+  INSUFFICIENT_DATA: ['con datos insuficientes', 'con datos insuficientes'],
+  RESTRICTED: ['restringido', 'restringidos'],
+  NO_RESULT: ['sin resultado', 'sin resultado'],
+  ERROR: ['con error de cálculo', 'con error de cálculo'],
+  NONE: ['sin referencia', 'sin referencia'],
+  CALCULATING: ['calculándose', 'calculándose'],
+};
+
+/**
+ * Pestaña «Cómo se calculó» (láminas 08 y 51). Todo sale de la referencia
+ * fijada (`GET …/estimation-link`): la ejecución, el vínculo y el alcance de
+ * cada línea. Los rangos «entre … y …» son el mínimo y el máximo de los
+ * `scope` de las líneas, sin cifras nuevas. Método, parámetros, fuentes e
+ * historial siguen en el detalle técnico.
+ */
+function HowCalculated({
+  proposal,
+  link,
+  view,
+  campaignName,
+  onRetry,
+}: {
+  proposal: Proposal;
+  link: LinkLoad | null;
+  view: EstimationLinkView | null;
+  campaignName: string;
+  onRetry: () => void;
+}) {
+  if (!link || link.status === 'loading') {
+    return (
+      <Card>
+        <DataState state="loading" title="Cargando la referencia…" />
+      </Card>
+    );
+  }
+  if (link.status === 'error' || !view) {
+    return (
+      <Card>
+        <DataState state="error" description="No se pudo cargar la referencia de consumo estimado de este borrador. El motivo está en la pestaña «Borrador»." onRetry={onRetry} />
+      </Card>
+    );
+  }
+  const run = view.run;
+  const scopes = view.lines.map((line) => line.scope.estimate).filter((scope): scope is NonNullable<typeof scope> => scope !== null);
+  const range = (values: number[]) => {
+    if (values.length === 0) return null;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return min === max ? `${fmtCount(min)}` : `Entre ${fmtCount(min)} y ${fmtCount(max)}`;
+  };
+  const campaignsRange = range(scopes.map((scope) => scope.span_campaigns));
+  const contributorsRange = scopes.length === 0 ? null : range([...scopes.map((scope) => scope.contributors_min), ...scopes.map((scope) => scope.contributors_max)]);
+  const counts = new Map<string, number>();
+  for (const line of view.lines) {
+    if (line.estimation.state === 'AVAILABLE' || line.estimation.state === 'OUTDATED') continue;
+    counts.set(line.estimation.state, (counts.get(line.estimation.state) ?? 0) + 1);
+  }
+  const missing = [...counts.entries()].map(([state, count]) => {
+    const [one, many] = NO_ESTIMATE_TEXT[state] ?? ['sin cifra', 'sin cifra'];
+    return `${fmtCount(count)} ${count === 1 ? `producto ${one}` : `productos ${many}`}`;
+  });
+  const linkState =
+    view.state === 'LINKED'
+      ? view.update.available
+        ? 'Desactualizada'
+        : 'Vigente'
+      : view.state === 'CALCULATING'
+        ? 'Calculando'
+        : view.state === 'RESTRICTED'
+          ? 'Restringida'
+          : view.state === 'UNAVAILABLE'
+            ? 'No completada'
+            : 'Sin referencia';
+  const season = run ? seasonName(run.season.key) : null;
+  return (
+    <div className="grid gap-5 lg:grid-cols-3 lg:items-start" data-testid="how-calculated">
+      <section className="ui-on-ink rounded-card bg-ink px-6 py-6 text-white sm:px-8" aria-labelledby="pocas-palabras">
+        <h2 id="pocas-palabras" className="text-2xl font-bold text-white">
+          En pocas palabras
+        </h2>
+        {run ? (
+          <p className="mt-3 text-lg leading-relaxed text-on-ink">
+            El consumo estimado sale del consumo publicado en las campañas anteriores de la misma temporada ({season}), dando más peso a las más
+            recientes.
+          </p>
+        ) : (
+          <p className="mt-3 text-lg leading-relaxed text-on-ink">Este borrador todavía no tiene una referencia de consumo estimado fijada.</p>
+        )}
+        <p className="mt-3 text-base leading-relaxed text-on-ink-muted">
+          Es una referencia para comparar. No se suma a la necesidad declarada ni decide cuánto comprar.
+        </p>
+      </section>
+      <section className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-8" aria-labelledby="con-que-datos">
+        <h2 id="con-que-datos" className="text-2xl font-bold text-ink">
+          Con qué datos
+        </h2>
+        {run ? (
+          <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 text-base" data-testid="calc-data">
+            <dt className="text-ink-muted">Calculado</dt>
+            <dd className="font-semibold text-ink">{fmtDateTime(run.generated_at)}</dd>
+            <dt className="text-ink-muted">Temporada</dt>
+            <dd className="font-semibold text-ink">{season}</dd>
+            <dt className="text-ink-muted">Para la campaña</dt>
+            <dd className="font-semibold text-ink [overflow-wrap:anywhere]">{run.target.name ?? campaignName}</dd>
+            <dt className="text-ink-muted">Campañas usadas</dt>
+            <dd className="font-semibold text-ink">{campaignsRange ? `${campaignsRange}, según el producto` : 'No disponible'}</dd>
+            <dt className="text-ink-muted">Aportantes por campaña</dt>
+            <dd className="font-semibold text-ink">{contributorsRange ? `${contributorsRange}, según el producto` : 'No disponible'}</dd>
+            <dt className="text-ink-muted">Sin estimación</dt>
+            <dd className="font-semibold text-ink">{missing.length > 0 ? missing.join(' · ') : 'Ninguno'}</dd>
+          </dl>
+        ) : (
+          <p className="mt-4 text-base text-ink-muted">Sin una ejecución fijada no hay datos del cálculo.</p>
+        )}
+        <p className="mt-4 text-sm text-ink-muted">El alcance de cada producto está en su fila del borrador.</p>
+      </section>
+      <section className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-8" aria-labelledby="referencia-borrador">
+        <h2 id="referencia-borrador" className="text-2xl font-bold text-ink">
+          Referencia del borrador
+        </h2>
+        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 text-base">
+          <dt className="text-ink-muted">Fijada</dt>
+          <dd className="font-semibold text-ink">{view.link ? fmtDateTime(view.link.created_at) : 'Sin fijar'}</dd>
+          {view.link && (
+            <>
+              <dt className="text-ink-muted">Por</dt>
+              <dd className="font-semibold text-ink [overflow-wrap:anywhere]">{view.link.created_by.name}</dd>
+            </>
+          )}
+          <dt className="text-ink-muted">Estado</dt>
+          <dd className="font-semibold text-ink">{linkState}</dd>
+        </dl>
+        <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+          Solo cambia si alguien pulsa «Actualizar». Si sus datos de origen cambian, se marca «Desactualizada» y no se reemplaza sola.
+        </p>
+      </section>
+      <section className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-8 lg:col-span-3" aria-labelledby="detalle-tecnico">
+        <h2 id="detalle-tecnico" className="text-2xl font-bold text-ink">
+          Detalle técnico
+        </h2>
+        {run && (
+          <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 text-base sm:max-w-2xl">
+            <dt className="text-ink-muted">Método</dt>
+            <dd className="font-semibold text-ink">{run.method === 'SES_NAIVE' ? 'Suavizado exponencial simple' : run.method}</dd>
+            <dt className="text-ink-muted">Se compara con</dt>
+            <dd className="font-semibold text-ink">El último consumo publicado (línea base naive)</dd>
+            <dt className="text-ink-muted">Versión del cálculo</dt>
+            <dd className="font-semibold text-ink">{run.method_version}</dd>
+          </dl>
+        )}
+        {(run || view.history.length > 0) && (
+          <div className="mt-4">
+            <CalculationDetails key={`${view.proposal_ref}|${run?.run_ref ?? ''}`} view={view} proposal={proposal} />
+          </div>
+        )}
+        <p className="mt-4">
+          <Link className="font-semibold text-link underline underline-offset-2" to={estimationPath(proposal)}>
+            Ver la estimación completa
+          </Link>
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/** «INVIERNO» → «Invierno» (la clave de la temporada; su definición completa va en el detalle técnico). */
+function seasonName(key: string): string {
+  const lower = key.toLocaleLowerCase('es');
+  return lower.charAt(0).toLocaleUpperCase('es') + lower.slice(1);
+}
+
 type RunDetailLoad = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; run: Run };
 
 /**
- * «Ver cálculo» (plegado): método, parámetros, temporada y período, política,
+ * Detalle técnico plegado: método, parámetros, temporada y período, política,
  * línea base naive y cobertura del tramo por producto, fuentes e historial de
  * vínculos. El detalle de la ejecución se pide sólo al desplegar.
  */
@@ -976,32 +1472,32 @@ function CalculationDetails({ view, proposal }: { view: EstimationLinkView; prop
   };
 
   return (
-    <details className={`${surfaceClass} group mx-5 mb-3 overflow-hidden`} data-testid="calculation" onToggle={onToggle}>
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
-        Ver cálculo
-        <span className="text-xs font-medium text-slate-600 group-open:hidden">Mostrar</span>
-        <span className="hidden text-xs font-medium text-slate-600 group-open:inline">Ocultar</span>
+    <details className={`${surfaceClass} group overflow-hidden`} data-testid="calculation" onToggle={onToggle}>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-base font-semibold text-ink hover:bg-canvas [&::-webkit-details-marker]:hidden">
+        Parámetros, fuentes e historial
+        <span className="text-sm font-semibold text-link group-open:hidden">Ver</span>
+        <span className="hidden text-sm font-semibold text-ink-muted group-open:inline">Ocultar</span>
       </summary>
-      <div className="space-y-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-700">
+      <div className="space-y-3 border-t border-line px-5 py-4 text-sm text-ink-muted">
         {run ? (
           <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[auto_1fr]" data-testid="calculation-run">
-            <dt className="text-slate-500">Método y versión</dt>
+            <dt className="text-ink-muted">Método y versión</dt>
             <dd>
               SES frente a la línea base naive ({run.method}) · versión {run.method_version}
             </dd>
-            <dt className="text-slate-500">Temporada</dt>
+            <dt className="text-ink-muted">Temporada</dt>
             <dd>
               {run.season.key} · {run.season.definition}
             </dd>
-            <dt className="text-slate-500">Campaña objetivo (período)</dt>
+            <dt className="text-ink-muted">Campaña objetivo (período)</dt>
             <dd>
               {run.target.name} · {fmtCalendarDate(run.target.start_date) ?? '—'} a {fmtCalendarDate(run.target.end_date) ?? 'sin fecha de cierre'}
             </dd>
-            <dt className="text-slate-500">Política aplicada</dt>
+            <dt className="text-ink-muted">Política aplicada</dt>
             <dd>
               {run.disclosure.policy} · {run.disclosure.mode} · umbral {run.disclosure.threshold}
             </dd>
-            <dt className="text-slate-500">Ejecución</dt>
+            <dt className="text-ink-muted">Ejecución</dt>
             <dd>
               <code title={run.run_ref}>{run.run_ref.slice(0, 8)}</code> del {fmtDateTime(run.generated_at)}
               {run.outcome === 'FAILED' && ' · fallida'}
@@ -1021,7 +1517,7 @@ function RunDetailBody({ detail, proposal, onRetry }: { detail: RunDetailLoad | 
   if (!detail || detail.status === 'loading') return <p data-testid="calculation-detail">Cargando el detalle de la ejecución…</p>;
   if (detail.status === 'error') {
     return (
-      <p className="text-red-700" data-testid="calculation-detail">
+      <p className="text-danger-ink" data-testid="calculation-detail">
         {detail.message}{' '}
         <button type="button" className="font-semibold underline" onClick={onRetry}>
           Reintentar
@@ -1037,7 +1533,7 @@ function RunDetailBody({ detail, proposal, onRetry }: { detail: RunDetailLoad | 
   return (
     <div className="space-y-3" data-testid="calculation-detail">
       <div>
-        <p className="font-semibold text-slate-800">Parámetros</p>
+        <p className="font-semibold text-ink">Parámetros</p>
         <ul className="mt-0.5 space-y-0.5" data-testid="calculation-parameters">
           {Object.entries(run.parameters).map(([key, value]) => (
             <li key={key}>
@@ -1050,7 +1546,7 @@ function RunDetailBody({ detail, proposal, onRetry }: { detail: RunDetailLoad | 
         const span = result.points.filter((point) => point.in_span);
         return (
           <div key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`calculation-${result.product.name}`}>
-            <p className="font-semibold text-slate-800">
+            <p className="font-semibold text-ink">
               {result.product.name} ({result.presentation_unit}) · {RESULT_STATUS_TEXT[result.status]}
             </p>
             <p>
@@ -1096,7 +1592,7 @@ function LinkHistory({ view }: { view: EstimationLinkView }) {
   const entries = [...view.history].sort((a, b) => b.sequence - a.sequence);
   return (
     <div>
-      <p className="font-semibold text-slate-800">Historial de la referencia</p>
+      <p className="font-semibold text-ink">Historial de la referencia</p>
       <ol className="mt-0.5 space-y-0.5" data-testid="link-history">
         {entries.map((entry) => (
           <li key={entry.link_ref}>
@@ -1113,106 +1609,5 @@ function LinkHistory({ view }: { view: EstimationLinkView }) {
         ))}
       </ol>
     </div>
-  );
-}
-
-function ReferenceNote({ proposal, view }: { proposal: Proposal; view: EstimationLinkView | null }) {
-  return (
-    <div className="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-600" data-testid="reference-note">
-      <p>
-        «Consumo estimado»: la referencia fijada en este borrador; no se suma a la necesidad declarada, no es la cantidad
-        solicitada ni la confirmada en una convocatoria y no cambia las líneas ni la huella del borrador. Sólo se actualiza
-        a pedido. La diferencia con la necesidad la decide el servidor y sólo se escribe si ambas cifras son comparables.{' '}
-        <Link className="font-semibold text-emerald-700 underline" to={`${COLLECTIVE_PATHS.history}?vista=estimacion&campaign=${encodeURIComponent(proposal.campaign.campaign_ref)}`}>
-          Detalle en «Estimación del consumo»
-        </Link>
-        .
-      </p>
-      {view && (
-        <p className="mt-1" data-testid="reference-evaluated">
-          Vigencia evaluada el {fmtDateTime(view.evaluated_at)}
-          {view.run ? ` · Temporada ${view.run.season.key}` : ''} · «Descargar Excel» consulta de nuevo el borrador y esta
-          referencia fijada al exportar, con su versión, fecha y estado; no usa otra estimación en su lugar.
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
- * Sombra en el borde por el que una tabla sigue (sin JavaScript): los degradados blancos se desplazan con el
- * contenido (`local`) y tapan la sombra fija (`scroll`) sólo cuando se llega a ese borde. Sin desplazamiento no se ve.
- */
-const SCROLL_HINT = '[&_.ui-table-scroll]:[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
-
-function linesText(count: number): string {
-  if (count === 0) return 'sin líneas';
-  return `${new Intl.NumberFormat('es-BO').format(count)} ${count === 1 ? 'línea' : 'líneas'}`;
-}
-
-/** Historial, huella y trazabilidad del borrador mostrado y de los anteriores, plegados. */
-function HistorySection({
-  history,
-  current,
-  onOpen,
-  busy,
-}: {
-  history: ProposalSummary[];
-  current: Proposal | null;
-  onOpen: (id: string) => void;
-  busy: boolean;
-}) {
-  return (
-    <Collapsible title={`Historial y trazabilidad (${history.length} ${history.length === 1 ? 'borrador' : 'borradores'})`} label="Historial de borradores">
-      {current && (
-        <p className="px-5 py-3 text-xs text-slate-600">
-          Borrador mostrado: huella <Fingerprint value={current.inputs_fingerprint} />. Misma huella = mismas entradas
-          autorizadas y mismas líneas. Cada borrador queda guardado tal como se generó; ninguno se modifica.
-        </p>
-      )}
-      {history.length === 0 ? (
-        <DataState state="empty" compact title="Todavía no hay borradores para esta campaña" description="" />
-      ) : (
-        <div className={SCROLL_HINT}><DataTable caption="Borradores de la campaña" minWidth={640}>
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-[2] shadow-[inset_-1px_0_0_#e2e8f0]">Generado el</th>
-              <th>Por</th>
-              <th>Huella</th>
-              <th className="ui-num">Líneas</th>
-              <th className="ui-num">
-                <span className="sr-only">Acción</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((entry) => {
-              const shown = entry.proposal_ref === current?.proposal_ref;
-              return (
-                <tr key={entry.proposal_ref} className={shown ? 'bg-emerald-50' : ''}>
-                  <td className={`sticky left-0 z-[1] whitespace-nowrap font-medium text-slate-800 shadow-[inset_-1px_0_0_#e2e8f0] ${shown ? 'bg-emerald-50' : 'bg-white'}`}>{fmtDateTime(entry.generated_at)}</td>
-                  <td className="min-w-40 text-slate-700">{entry.generated_by.name}</td>
-                  <td className="text-xs text-slate-600">
-                    <Fingerprint value={entry.inputs_fingerprint} />
-                  </td>
-                  <td className="ui-num text-xs text-slate-600">{linesText(entry.line_count)}</td>
-                  <td className="ui-num">
-                    <button
-                      type="button"
-                      className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline disabled:text-slate-400"
-                      onClick={() => onOpen(entry.proposal_ref)}
-                      disabled={busy || shown}
-                      title={shown ? 'Es el borrador mostrado' : undefined}
-                    >
-                      Ver
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </DataTable></div>
-      )}
-    </Collapsible>
   );
 }

@@ -60,8 +60,9 @@ describe('Histórico y estimaciones (contenedor)', () => {
   it('abre «Histórico sellado» por defecto y no pide la estimación', async () => {
     render('');
     // El h1 lo pone PageHeader (AppShell también lo pone hasta la fase 2 de A); cada vista va como h2.
-    expect((await screen.findAllByRole('heading', { level: 1, name: 'Histórico y estimaciones' })).length).toBeGreaterThan(0);
-    expect(screen.getByRole('heading', { level: 2, name: 'Histórico sellado' })).toBeTruthy();
+    // Rediseño v2 (láminas 25 y 26): cada vista lleva su propio título de nivel 1; el contenedor no repite otro.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Histórico sellado' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Histórico y estimaciones' })).toBeNull();
     expect(await screen.findByTestId('trend-chart')).toBeTruthy();
     const group = screen.getByRole('group', { name: 'Vista' });
     expect(within(group).getByRole('button', { name: 'Histórico sellado' }).getAttribute('aria-pressed')).toBe('true');

@@ -52,15 +52,18 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
         expect(row.textContent).toMatch(/aportantes no revelados/);
       }
     }
-    const needs = screen.getByRole('region', { name: 'Necesidades declaradas por producto' });
+    // Rediseño v2 (lámina 03): la sección se llama «Necesidades declaradas».
+    const needs = screen.getByRole('region', { name: 'Necesidades declaradas' });
     const liters = within(needs).getByRole('list', { name: 'En litros' });
     const kilos = within(needs).getByRole('list', { name: 'En kilogramos' });
     expect(liters.textContent).not.toMatch(/\d\s?KG\b/);
     expect(kilos.textContent).not.toMatch(/\d\s?L\b/);
     // Cifras exactas, grandes y pequeñas, escritas (no sólo una barra).
-    expect(within(liters).getByText('123.456.789,012 L')).toBeTruthy();
-    expect(within(kilos).getByText('0,025 KG')).toBeTruthy();
-    expect(within(liters).getByText('0 L')).toBeTruthy();
+    // Rediseño v2: número y unidad en dos tamaños; se leen los elementos [data-figure].
+    const figures = (list: HTMLElement) => [...list.querySelectorAll('[data-figure]')].map((el) => el.textContent);
+    expect(figures(liters)).toContain('123.456.789,012 L');
+    expect(figures(kilos)).toContain('0,025 KG');
+    expect(figures(liters)).toContain('0 L');
     // break-ui: un cero divulgado se escribe «0 L» sin barra (ni pista vacía); una cifra positiva sí lleva barra.
     expect(screen.getByTestId('cell-DECLARED_NEED-Adherente agrícola no iónico-ML').querySelector('[aria-hidden="true"]')).toBeNull();
     expect(screen.getByTestId(`cell-DECLARED_NEED-${fixtures.LONG_PRODUCT}-ML`).querySelector('[aria-hidden="true"]')).not.toBeNull();
@@ -77,18 +80,22 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
   it('worst: «Cifra más reciente» es el máximo de data_as_of entre las cifras publicadas', async () => {
     show(fixtures.worst);
     const latest = await screen.findByTestId('latest-figure');
-    expect(latest.textContent).toContain(`Cifra más reciente: datos hasta ${fmtDateTime('2026-11-09T22:47:00.000Z')}`);
+    // Rediseño v2: indicador de la cabecera (rótulo y fecha, lámina 03).
+    expect(latest.textContent).toBe(`Cifra más reciente${fmtDateTime('2026-11-09T22:47:00.000Z')}`);
   });
 
   it('worst: acciones pendientes sólo con datos (cambios sin publicar y revisar borrador); 3 ocultas no dicen cuánto', async () => {
     show(fixtures.worst);
     const actions = await screen.findByTestId('pending-actions');
-    expect(within(actions).getByTestId('action-pending-changes').textContent).toMatch(/2 filas tienen cambios recibidos/);
+    // Rediseño v2 (lámina 03): «2 cifras muestran el valor anterior: hay cambios recibidos sin publicar».
+    expect(within(actions).getByTestId('action-pending-changes').textContent).toMatch(/2 cifras muestran el valor anterior: hay cambios recibidos/);
     expect(within(actions).getByTestId('action-review')).toBeTruthy();
     expect(within(actions).queryByTestId('action-closed-unsealed')).toBeNull();
     expect(within(actions).queryByTestId('action-no-active')).toBeNull();
-    expect(screen.getByTestId('needs-counts').textContent).toMatch(/5 productos con cifra publicada/);
-    expect(screen.getByTestId('needs-counts').textContent).toMatch(/1 oculto por privacidad · 2 sin cifra publicada/);
+    // Rediseño v2: los recuentos pasan a los indicadores de la cabecera (lámina 03).
+    expect(screen.getByTestId('needs-published').textContent).toMatch(/Necesidades publicadas5 productos/);
+    expect(screen.getByTestId('needs-hidden').textContent).toMatch(/Ocultas por privacidad1 producto$/);
+    expect(screen.getByTestId('needs-other').textContent).toMatch(/Sin cifra publicada2 productos/);
   });
 
   it('una sola lectura del resumen por visita, también bajo StrictMode', async () => {
@@ -103,13 +110,16 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
   it('sin campaña activa: lo dice como acción pendiente y enlaza a Campañas', async () => {
     show(fixtures.worst, { active: null });
     const action = await screen.findByTestId('action-no-active');
-    expect(within(action).getByRole('link', { name: 'Ir a Campañas' }).getAttribute('href')).toBe('/campaigns');
+    // Rediseño v2: el ítem entero de «Para atender» es el enlace.
+    expect(action.closest('a')!.textContent).toMatch(/Ir a Campañas/);
+    expect(action.closest('a')!.getAttribute('href')).toBe('/campaigns');
   });
 
   it('campaña cerrada sin sellar: acción con enlace al sellado; cobertura 0 de 0 sin porcentaje', async () => {
     show(fixtures.worstClosedUnsealed);
     const action = await screen.findByTestId('action-closed-unsealed');
-    expect(within(action).getByRole('link', { name: 'Ir al sellado' }).getAttribute('href')).toBe('#sellado');
+    // Rediseño v2: el ítem de «Para atender» es un botón que lleva al panel de sellado (#sellado).
+    expect(action.closest('button')!.textContent).toMatch(/Ir al sellado/);
     const coverage = screen.getByTestId('coverage');
     expect(coverage.textContent).toMatch(/0 de 0 agricultores vinculados con cifras publicadas/);
     expect(coverage.textContent).not.toMatch(/%/);
@@ -135,24 +145,26 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
     show(fixtures.empty);
     expect((await screen.findAllByText(/Eso no significa cero/)).length).toBe(2);
     expect(screen.queryByTestId('latest-figure')).toBeNull();
-    expect(screen.getByTestId('needs-counts').textContent).toMatch(/Sin necesidades publicadas/);
-    expect(screen.getByTestId('needs-counts').textContent).not.toMatch(/\b0\b/);
+    // Rediseño v2: el indicador de la cabecera dice «Ninguna todavía», nunca «0».
+    expect(screen.getByTestId('needs-published').textContent).toMatch(/Ninguna todavía/);
+    expect(screen.getByTestId('needs-published').textContent).not.toMatch(/\b0\b/);
     expect(screen.queryByTestId('action-pending-changes')).toBeNull();
   });
 
   it('one: singulares correctos («1 producto», «1 aportante», «1 de 1 agricultor vinculado»)', async () => {
     show(fixtures.one);
     const row = await screen.findByTestId('cell-DECLARED_NEED-Glifosato 480 SL-ML');
-    expect(row.textContent).toMatch(/1 aportante(?!s)/);
-    expect(screen.getByTestId('needs-counts').textContent).toMatch(/1 producto con cifra publicada/);
+    expect(row.textContent).toMatch(/1 agricultor(?!es)/);
+    expect(screen.getByTestId('needs-published').textContent).toMatch(/1 producto$/);
     expect(screen.getByTestId('coverage').textContent).toMatch(/1 de 1 agricultor vinculado con cifras publicadas \(100/);
   });
 
   it('política pendiente: sin cifras, sin cobertura y sin indicador de necesidades', async () => {
     show(fixtures.worstPolicyPending);
-    expect(await screen.findByText(/Política de divulgación pendiente/)).toBeTruthy();
+    // Rediseño v2 (lámina 05 §5): «Las cifras todavía no se pueden mostrar».
+    expect(await screen.findByText(/Las cifras todavía no se pueden mostrar/)).toBeTruthy();
     expect(screen.queryByTestId('coverage')).toBeNull();
-    expect(screen.queryByTestId('needs-counts')).toBeNull();
+    expect(screen.queryByTestId('hero-stats')).toBeNull();
     expect(screen.queryByTestId('latest-figure')).toBeNull();
   });
 });

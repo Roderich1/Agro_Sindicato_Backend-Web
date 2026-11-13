@@ -9,6 +9,12 @@ import { line, proposalWith } from '../test/fixtures';
 import { CAMPAIGN, renderAt } from '../test/render';
 import { JointProposalPage } from './joint-proposal.page';
 
+/** Rediseño v2 (lámina 07): la lista de borradores está en la pestaña «Borradores anteriores»; «Ver» vuelve al borrador. */
+async function verBorradores(): Promise<HTMLButtonElement[]> {
+  fireEvent.click(await screen.findByRole('tab', { name: /anteriores/i }));
+  return (await screen.findAllByRole('button', { name: 'Ver' })) as HTMLButtonElement[];
+}
+
 vi.mock('../services/collective.service', () => ({
   collectiveService: {
     proposals: vi.fn(),
@@ -73,7 +79,8 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     const coverage = await screen.findByTestId('coverage');
-    expect(coverage.textContent).toContain(`Cobertura al generar el borrador (${fmtDateTime(DRAFT.generated_at)})`);
+    // Rediseño v2 (lámina 06): la cobertura va en la línea «Generado el … · al generarlo (fecha), …».
+    expect(coverage.textContent).toContain(`al generarlo (${fmtDateTime(DRAFT.generated_at)})`);
     expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas en esa fecha/);
     expect(coverage.textContent).toMatch(/No es la cobertura actual/);
   });
@@ -110,7 +117,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
       }),
     );
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
+    fireEvent.click((await verBorradores())[0]!);
     const detail = await screen.findByLabelText('Detalle del borrador');
     expect(detail.textContent).toMatch(/no se muestran cifras/);
     expect(detail.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
@@ -131,7 +138,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
       ),
     );
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
+    fireEvent.click((await verBorradores())[0]!);
     const urea = await screen.findByTestId('line-Urea-G');
     expect(urea.textContent).toMatch(/Sustituido/);
     expect(urea.textContent).toMatch(/cifra más reciente/);
@@ -154,11 +161,14 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(collectiveService.proposal).toHaveBeenCalledWith('p-ultimo');
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { level: 2, name: /^Borrador · / })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Generar borrador' })).toBeTruthy();
+    // Rediseño v2 (lámina 06): con un borrador abierto el botón dice «Generar borrador nuevo».
+    expect(screen.getByRole('button', { name: 'Generar borrador nuevo' })).toBeTruthy();
     // El borrador mostrado no se vuelve a abrir; el histórico sí, y esa elección se respeta.
-    const buttons = screen.getAllByRole('button', { name: 'Ver' }) as HTMLButtonElement[];
-    expect(buttons[0]!.disabled).toBe(true);
-    fireEvent.click(buttons[1]!);
+    const buttons = await verBorradores();
+    // Rediseño v2: «Ver» del borrador mostrado sólo vuelve a su pestaña; no lo pide otra vez.
+    fireEvent.click(buttons[0]!);
+    expect(collectiveService.proposal).toHaveBeenCalledTimes(1);
+    fireEvent.click((await verBorradores())[1]!);
     await screen.findByText('1 KG');
     expect(screen.queryByText('25 KG')).toBeNull();
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
