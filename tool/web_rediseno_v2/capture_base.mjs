@@ -2,7 +2,8 @@
  * Copia de `_wt/WEB-DESIGN-INPUT/tool/web_design/capture.mjs` (rama docs/web-redesign-input 36931b4)
  * adaptada por la sesión BASE del rediseño v2 (2026-11-13): añade el ancho de portátil (1280), el
  * paso `viewport` (fija el ancho para interactuar en teléfono), `sizes` en `shot` y el paso `key`
- * (teclado, para capturar el foco visible) y `measure` (desplazamiento horizontal). Lo demás es igual.
+ * (teclado, para capturar el foco visible), `measure` (desplazamiento horizontal) y los anchos
+ * `zoom200` (720×450 a 2x, zoom al 200 %) y `tableta` (820). Lo demás es igual.
  *
  * Capturas de la Web REAL (entorno AISLADO → API 3350, datos sintéticos) para el material de
  * rediseño. Edge sin interfaz. Contraseñas de un solo uso fijadas en la base aislada y nunca
@@ -45,7 +46,10 @@ const DESKTOP = { width: 1440, height: 900 };
 const LAPTOP = { width: 1280, height: 800 };
 // Sólo el ancho: cambiar isMobile/hasTouch obliga a Puppeteer a recargar la página (y a renovar la sesión).
 const MOBILE = { width: 390, height: 844, deviceScaleFactor: 2 };
-const VIEWPORTS = { escritorio: DESKTOP, portatil: LAPTOP, movil: MOBILE };
+// Zoom al 200 % de una ventana de 1440×900: 720×450 px CSS con deviceScaleFactor 2. Tableta: 820×1180.
+const ZOOM200 = { width: 720, height: 450, deviceScaleFactor: 2 };
+const TABLET = { width: 820, height: 1180 };
+const VIEWPORTS = { escritorio: DESKTOP, portatil: LAPTOP, movil: MOBILE, zoom200: ZOOM200, tableta: TABLET };
 const plan = (await import(pathToFileURL(resolve(planFile)).href)).default;
 const indexFile = join(outDir, '_capturas.json');
 const index = existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')) : [];

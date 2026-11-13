@@ -153,5 +153,126 @@
   "desc": "Menú «Más» del Administrador, con Usuarios",
   "estado": "",
   "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/01-ingresar__zoom200.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Ingresar con zoom al 200 % (720×450 a 2x)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "tableta/01-ingresar__tableta.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Ingresar en tableta (820)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "correcciones/03-resumen-sin-franja__escritorio.png",
+   "correcciones/03-resumen-sin-franja__portatil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Escritorio sin franja superior: «Datos sintéticos» en la cabecera de la vista y conexión en la tarjeta de usuario",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "correcciones/25-historico-chip-unico__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico",
+  "rol": "directiva",
+  "desc": "Cabecera con vista anidada: un solo «Datos sintéticos»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "correcciones/barra-plegada-conexion__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico",
+  "rol": "directiva",
+  "desc": "Barra plegada: conexión sólo para lectores de pantalla si hay red",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/03-resumen__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Armazón con el Resumen con zoom al 200 %: horizontal de poco alto, sin barra inferior y con «Menú»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/03-resumen-pantalla__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Primera pantalla con zoom al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/43-menu-mas__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» con zoom al 200 %, abierto desde «Menú»: ventana visible, arriba",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "tableta/03-resumen-pantalla__tableta.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Armazón con el Resumen en tableta (820)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "tableta/43-menu-mas__tableta.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» en tableta (820)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/43-menu-mas-tareas__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» con zoom al 200 %: tareas de la barra inferior repetidas en horizontal",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/43-menu-mas-final__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» con zoom al 200 %: panel desplazado hasta «Cerrar sesión»",
+  "estado": "",
+  "simulado": false
  }
 ]

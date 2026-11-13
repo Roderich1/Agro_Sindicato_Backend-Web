@@ -43,4 +43,4 @@ Copiada de la nota 8 y de las filas 28–29 de `_wt/RDM-MOB/assets/licenses/READ
 
 Si una cara no carga, se usan las fuentes del sistema. La OFL acompaña a los archivos en `licenses/` y se publica junto a ellos.
 
-El service worker (`vite.config.ts`, `globPatterns`) no precachea `.ttf`. Por eso, sin conexión, la copia de la estimación puede verse con las fuentes del sistema. No se cambió `vite.config.ts` porque no forma parte del alcance de BASE.
+El service worker (`vite.config.ts`, `globPatterns`) precachea las `.ttf` desde el 2026-11-13, para que la copia de la estimación sin conexión conserve las tipografías. Son archivos estáticos; ninguna respuesta de la API pasa por el service worker.
