@@ -55,3 +55,9 @@ El resto de los estados ya existían en la base aislada (convocatorias sintétic
 - Los nombres de las convocatorias, personas y productos son datos sintéticos del entorno aislado; difieren de los de las láminas donde la base no tiene el mismo estado.
 - `_capturas.json` acumula las pasadas: la segunda pasada se repitió tres veces (ajuste del foco inicial de los diálogos) y conserva una entrada de `foco/20-foco-cabecera`, cuyo archivo se retiró porque el foco quedaba fuera de la pantalla; la sustituyen las dos capturas de `foco/11-*`.
 - La primera pasada se repitió entera porque se editó código mientras corría (recargas de Vite): sólo se conservan las capturas de la pasada limpia.
+
+## Ronda de adopción de la base (`0945dd1`), 2026-11-13
+
+- **Código capturado:** `e649d94` (lista con `PageHeader attachToHeader` + `primaryAction` y `CampaignPill`; formulario y sustitución con `Dialog fullScreenOnPhone`; participantes con `DataTable` y `rowTestId`; `QuantityFigure`).
+- **Comando:** `WEB_URL=http://127.0.0.1:5182 node tool/web_rediseno_v2/capture_base.mjs tool/web_rediseno_v2/plan_b_adopcion.mjs docs/evidence/rediseno-web-v2/b` (Vite con `VITE_API_PROXY_TARGET=http://127.0.0.1:3350`).
+- **Salida:** 10 capturas en `adopcion/` (09, 15.1, 11 y 15.6 a 1440; 37, 45, 38 y 49 a 390), sin avisos; 3 medidas «sin desplazamiento horizontal». `37-compras-conjuntas-pantalla` se repitió como primera captura tras navegar: la de página completa deja la página desplazada y la barra fija tapaba la píldora de campaña (efecto de la captura, no del diseño). La inspección confirma un solo `<h1>` («Compras conjuntas»).
