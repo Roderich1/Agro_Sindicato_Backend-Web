@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal } from '../components/app-shell';
-import { Button, DataState, inputClass, labelClass, Notice, SegmentedControl } from '../components/ui';
+import { Button, DataState, Dialog, ICON, Icon, labelClass, Notice, SearchInput, SegmentedControl, Select, TextInput } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
 import {
   callError,
   callErrorCode,
+  CREATE_AS_DRAFT_NOTE,
+  DEADLINE_HELP,
   fromLocalInput,
   handOverText,
   referenceText,
@@ -28,7 +29,7 @@ type Source = 'catalog' | 'proposal';
 
 const SOURCES: { value: Source; label: string }[] = [
   { value: 'catalog', label: 'Del catálogo' },
-  { value: 'proposal', label: 'Tomar productos de un borrador de propuesta' },
+  { value: 'proposal', label: 'De un borrador de compra' },
 ];
 
 const MAX_NAME = 120;
@@ -211,11 +212,42 @@ export function JointPurchaseCallForm({
   };
 
   const handOver = handOverText(responsibleName);
+  const dirty =
+    !confirmingHandOver &&
+    (name !== (call?.name ?? '') ||
+      deadline !== toLocalInput(call?.deadline_at) ||
+      responsibleId !== (call?.responsible.user_ref ?? '') ||
+      (!call && !prepared && (catalogRefs.size > 0 || positions.size > 0)));
   return (
-    <Modal
-      title={confirmingHandOver ? 'Antes de guardar: dejará de administrar este borrador' : editing ? 'Editar borrador de convocatoria' : 'Nueva convocatoria'}
+    <Dialog
+      title={confirmingHandOver ? 'Antes de guardar: dejará de administrar este borrador' : editing ? 'Editar la convocatoria' : 'Nueva convocatoria'}
       onClose={confirmingHandOver ? () => setConfirmingHandOver(false) : onClose}
+      dirty={dirty}
+      busy={busy}
       size="lg"
+      hideCloseButton
+      testId="call-form"
+      footer={
+        confirmingHandOver ? (
+          <>
+            <Button variant="secondary" onClick={() => setConfirmingHandOver(false)} disabled={busy}>
+              Volver
+            </Button>
+            <Button onClick={() => void submit(true)} busy={busy}>
+              Confirmar
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={onClose} disabled={busy}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void submit()} busy={busy}>
+              {editing ? 'Guardar cambios' : 'Crear borrador'}
+            </Button>
+          </>
+        )
+      }
     >
       {confirmingHandOver && (
         <div className="space-y-4" data-testid="handover-warning">
@@ -228,101 +260,73 @@ export function JointPurchaseCallForm({
             </ul>
             <p className="mt-2">{handOver.closing}</p>
           </Notice>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="secondary" onClick={() => setConfirmingHandOver(false)} disabled={busy}>
-              Volver
-            </Button>
-            <Button onClick={() => void submit(true)} disabled={busy}>
-              {busy ? 'Guardando…' : 'Confirmar'}
-            </Button>
-          </div>
         </div>
       )}
       {/* El formulario sigue montado (sin perder lo escrito) mientras el aviso pide confirmación. */}
-      <div className="space-y-4" hidden={confirmingHandOver}>
-        <p className="text-sm text-slate-700">
-          Campaña: <span className="font-semibold">{campaignName}</span>
+      <div className="space-y-5" hidden={confirmingHandOver}>
+        <p className="text-base text-ink-muted">
+          Campaña: <strong className="font-semibold text-ink">{campaignName}</strong>
         </p>
         {serverError && <Notice kind="error">{serverError}</Notice>}
         {prepared && (
           <Notice kind="info" compact>
             <span data-testid="prepared-notice">
-              Preparada desde un borrador de propuesta. Complete el nombre, la fecha límite y el responsable, revise los productos y
+              Preparada desde un borrador de compra. Complete el nombre, la fecha límite y el responsable, revise los productos y
               confirme con «Crear borrador». No se crea nada ni se inscribe a nadie hasta entonces.
             </span>
           </Notice>
         )}
 
-        <div>
-          <label className={labelClass} htmlFor="call-name">
-            Nombre
-          </label>
-          <input
-            id="call-name"
-            className={inputClass}
-            value={name}
-            maxLength={MAX_NAME}
-            autoComplete="off"
-            onChange={(event) => setName(event.target.value)}
-            aria-invalid={errors.name ? true : undefined}
-            aria-describedby={errors.name ? 'call-name-error' : undefined}
-          />
-          <FieldError id="call-name-error" text={errors.name} />
-        </div>
+        <TextInput
+          id="call-name"
+          label="Nombre"
+          placeholder="Por ejemplo: Herbicidas de invierno"
+          value={name}
+          maxLength={MAX_NAME}
+          autoComplete="off"
+          onChange={(event) => setName(event.target.value)}
+          error={errors.name}
+        />
 
-        <div>
-          <label className={labelClass} htmlFor="call-deadline">
-            Fecha y hora límite
-          </label>
-          <input
-            id="call-deadline"
-            type="datetime-local"
-            className={inputClass}
-            value={deadline}
-            onChange={(event) => setDeadline(event.target.value)}
-            aria-invalid={errors.deadline ? true : undefined}
-            aria-describedby="call-deadline-note"
-          />
-          <p id="call-deadline-note" className="mt-1 text-xs text-slate-600">
-            Hora del servidor del sindicato: el plazo se cumple según su reloj, no según el de este equipo.
-          </p>
-          <FieldError id="call-deadline-error" text={errors.deadline} />
-        </div>
+        <TextInput
+          id="call-deadline"
+          label="Fecha y hora límite"
+          type="datetime-local"
+          value={deadline}
+          onChange={(event) => setDeadline(event.target.value)}
+          help={DEADLINE_HELP}
+          error={errors.deadline}
+        />
 
-        <div>
-          <label className={labelClass} htmlFor="call-responsible">
-            Responsable
-          </label>
-          {responsiblesError ? (
+        {responsiblesError ? (
+          <div>
+            <p className={labelClass}>Responsable</p>
             <DataState compact state="error" description={responsiblesError} onRetry={() => void loadResponsibles()} />
-          ) : (
-            <select
-              id="call-responsible"
-              className={inputClass}
-              value={responsibleId}
-              disabled={!responsibles}
-              onChange={(event) => setResponsibleId(event.target.value)}
-              aria-invalid={errors.responsible ? true : undefined}
-              aria-describedby="call-responsible-note"
-            >
-              <option value="">{responsibles ? 'Seleccione…' : 'Cargando…'}</option>
-              {(responsibles ?? []).map((user) => (
-                <option key={user.user_ref} value={user.user_ref}>
-                  {user.name}
-                  {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
-                </option>
-              ))}
-            </select>
-          )}
-          <p id="call-responsible-note" className="mt-1 text-xs text-slate-600" data-testid="responsible-notice">
-            {RESPONSIBLE_NOTICE}
-          </p>
-          <FieldError id="call-responsible-error" text={errors.responsible} />
-        </div>
+          </div>
+        ) : (
+          <Select
+            id="call-responsible"
+            label="Responsable"
+            value={responsibleId}
+            disabled={!responsibles}
+            onChange={(event) => setResponsibleId(event.target.value)}
+            error={errors.responsible}
+            help={<span data-testid="responsible-notice">{RESPONSIBLE_NOTICE}</span>}
+          >
+            <option value="">{responsibles ? 'Seleccione…' : 'Cargando…'}</option>
+            {(responsibles ?? []).map((user) => (
+              <option key={user.user_ref} value={user.user_ref}>
+                {user.name}
+                {user.user_ref === me ? ' (usted)' : ''}
+                {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
+              </option>
+            ))}
+          </Select>
+        )}
 
-        <fieldset className="space-y-3">
+        <fieldset className="min-w-0 space-y-3" aria-describedby={errors.products ? 'call-products-error' : undefined}>
           <legend className={labelClass}>Productos</legend>
-          <SegmentedControl label="Origen de los productos" options={SOURCES} value={source} onChange={setSource} testId="call-product-source" />
+          <SegmentedControl label="Origen de los productos" hideLabel options={SOURCES} value={source} onChange={setSource} testId="call-product-source" />
           {source === 'catalog' ? (
             <CatalogPicker selected={catalogRefs} onChange={setCatalogRefs} />
           ) : (
@@ -345,35 +349,37 @@ export function JointPurchaseCallForm({
             <Notice kind="warn" compact>
               <span data-testid="prepared-ignored">
                 {ignored === 1
-                  ? '1 producto indicado no es una línea de este borrador de propuesta y no se preseleccionó.'
-                  : `${ignored} productos indicados no son líneas de este borrador de propuesta y no se preseleccionaron.`}
+                  ? '1 producto indicado no es una línea de este borrador de compra y no se preseleccionó.'
+                  : `${ignored} productos indicados no son líneas de este borrador de compra y no se preseleccionaron.`}
               </span>
             </Notice>
           )}
           <FieldError id="call-products-error" text={errors.products} />
         </fieldset>
-
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button onClick={() => void submit()} disabled={busy}>
-            {busy ? 'Guardando…' : editing ? 'Guardar borrador' : 'Crear borrador'}
-          </Button>
-        </div>
+        {!editing && <p className="text-sm text-ink-muted">{CREATE_AS_DRAFT_NOTE}</p>}
       </div>
-    </Modal>
+    </Dialog>
   );
 }
 
 function FieldError({ id, text }: { id: string; text?: string }) {
   if (!text) return null;
   return (
-    <p id={id} className="mt-1 text-xs font-semibold text-red-700" role="alert">
-      {text}
+    <p id={id} className="flex items-start gap-1.5 text-xs font-semibold leading-relaxed text-danger-ink" role="alert">
+      <Icon d={ICON.alert} className="mt-px h-4 w-4" />
+      <span>{text}</span>
     </p>
   );
 }
+
+/** «Herbicida DEMO · L» / «Urea DEMO · kg» (láminas 15.1 y 45). */
+function unitShort(unit: 'L' | 'KG' | string): string {
+  return unit === 'KG' ? 'kg' : unit;
+}
+
+const LIST_BOX = 'max-h-72 divide-y divide-line overflow-y-auto rounded-[18px] border border-line bg-surface px-4';
+const CHECK_ROW = 'flex min-h-12 cursor-pointer items-center gap-3 py-2.5 text-base text-ink';
+const CHECK_BOX = 'h-5 w-5 shrink-0 cursor-pointer rounded-[5px] accent-ink';
 
 function toggle<T>(set: Set<T>, value: T): Set<T> {
   const next = new Set(set);
@@ -431,49 +437,33 @@ function CatalogPicker({ selected, onChange }: { selected: Set<string>; onChange
   if (error) return <DataState compact state="error" description={error} onRetry={() => void load()} />;
   if (!catalog) return <DataState compact state="loading" />;
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-slate-600">
-        Sólo productos activos del catálogo del sindicato, en L o KG, que no sean denominaciones asociadas a otro producto.
-      </p>
+    <div className="space-y-3">
       {aliasesFailed && (
         <Notice kind="warn" compact>
           No se pudo comprobar qué productos son denominaciones asociadas; el servidor lo valida al guardar.
         </Notice>
       )}
-      <label className="sr-only" htmlFor="call-catalog-search">
-        Buscar producto
-      </label>
-      <input
-        id="call-catalog-search"
-        type="search"
-        autoComplete="off"
-        className={inputClass}
-        placeholder="Buscar producto"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
+      {eligible.length > 6 && <SearchInput label="Buscar producto" placeholder="Buscar producto" value={query} onChange={setQuery} autoComplete="off" />}
       {eligible.length === 0 ? (
         <DataState compact state="empty" title="Sin productos disponibles" description="El catálogo no tiene productos activos en L o KG." />
       ) : (
-        <ul className="max-h-64 space-y-1 overflow-y-auto" aria-label="Productos del catálogo">
+        <ul className={LIST_BOX} aria-label="Productos del catálogo">
           {shown.map((entry) => (
             <li key={entry.product_ref}>
-              <label className="flex items-center gap-2 rounded-control px-2 py-1.5 text-sm hover:bg-slate-50">
-                <input
-                  type="checkbox"
-                  className="shrink-0"
-                  checked={selected.has(entry.product_ref)}
-                  onChange={() => onChange(toggle(selected, entry.product_ref))}
-                />
+              <label className={CHECK_ROW}>
+                <input type="checkbox" className={CHECK_BOX} checked={selected.has(entry.product_ref)} onChange={() => onChange(toggle(selected, entry.product_ref))} />
                 <span className="min-w-0 [overflow-wrap:anywhere]">
-                  {entry.product_name} <span className="text-xs text-slate-500">({presentationUnit(entry.base_unit!)})</span>
+                  {entry.product_name} · {unitShort(presentationUnit(entry.base_unit!))}
                 </span>
               </label>
             </li>
           ))}
         </ul>
       )}
-      <p className="text-xs text-slate-600">{selected.size === 1 ? '1 producto elegido.' : `${selected.size} productos elegidos.`}</p>
+      <p className="text-xs text-ink-muted">
+        {selected.size === 1 ? '1 producto elegido' : `${selected.size} productos elegidos`}. Sólo productos activos del catálogo, en L o kg, que no sean
+        nombres equivalentes de otro producto.
+      </p>
     </div>
   );
 }
@@ -509,7 +499,7 @@ function ProposalPicker({
       setDrafts(Array.isArray(list) ? list : []);
       setDraftsError(null);
     } catch (err) {
-      setDraftsError(collectiveError(err, 'No fue posible cargar los borradores de propuesta.'));
+      setDraftsError(collectiveError(err, 'No fue posible cargar los borradores de compra.'));
     }
   }, [campaignId]);
 
@@ -522,7 +512,7 @@ function ProposalPicker({
         onProposal(shown);
         setLinesError(null);
       } catch (err) {
-        setLinesError(collectiveError(err, 'No fue posible abrir el borrador de propuesta.'));
+        setLinesError(collectiveError(err, 'No fue posible abrir el borrador de compra.'));
       }
     },
     [onProposal],
@@ -543,25 +533,22 @@ function ProposalPicker({
       <DataState
         compact
         state="empty"
-        title="Sin borradores de propuesta"
-        description="Esta campaña no tiene borradores de propuesta. Genere uno en «Necesidades y propuestas» o elija productos del catálogo."
+        title="Sin borradores de compra"
+        description="Esta campaña no tiene borradores de compra. Genere uno en «Borrador de compra» o elija productos del catálogo."
       />
     );
   return (
-    <div className="space-y-2">
-      <label className={labelClass} htmlFor="call-proposal">
-        Borrador de propuesta
-      </label>
-      <select id="call-proposal" className={inputClass} value={proposalId} onChange={(event) => onProposalId(event.target.value)}>
+    <div className="space-y-3">
+      <Select id="call-proposal" label="Borrador de compra" value={proposalId} onChange={(event) => onProposalId(event.target.value)}>
         <option value="">Seleccione…</option>
         {drafts.map((draft) => (
           <option key={draft.proposal_ref} value={draft.proposal_ref}>
             Generado el {fmtDateTime(draft.generated_at)} · {draft.line_count} {draft.line_count === 1 ? 'línea' : 'líneas'}
           </option>
         ))}
-      </select>
-      <p className="text-xs text-slate-600" data-testid="proposal-reference-note">
-        La cifra de cada línea es la divulgada en el borrador, sólo como referencia: no es una cantidad comprometida.
+      </Select>
+      <p className="text-xs text-ink-muted" data-testid="proposal-reference-note">
+        La cifra de cada línea es la necesidad declarada en el borrador, sólo como referencia: no es una cantidad comprometida.
       </p>
       {linesError ? (
         <DataState compact state="error" description={linesError} onRetry={() => void loadProposal(proposalId)} />
@@ -571,19 +558,14 @@ function ProposalPicker({
         proposal.lines.length === 0 ? (
           <DataState compact state="empty" title="Sin líneas" description="El borrador elegido no tiene líneas." />
         ) : (
-          <ul className="max-h-64 space-y-1 overflow-y-auto" aria-label="Líneas del borrador de propuesta">
+          <ul className={LIST_BOX} aria-label="Líneas del borrador de compra">
             {proposal.lines.map((line) => (
               <li key={line.position} data-testid={`proposal-line-${line.position}`}>
-                <label className="flex items-start gap-2 rounded-control px-2 py-1.5 text-sm hover:bg-slate-50">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 shrink-0"
-                    checked={selected.has(line.position)}
-                    onChange={() => onChange(toggle(selected, line.position))}
-                  />
+                <label className={`${CHECK_ROW} items-start`}>
+                  <input type="checkbox" className={`${CHECK_BOX} mt-0.5`} checked={selected.has(line.position)} onChange={() => onChange(toggle(selected, line.position))} />
                   <span className="min-w-0 [overflow-wrap:anywhere]">
-                    {line.product_name} <span className="text-xs text-slate-500">({line.presentation_unit})</span>
-                    <span className="block text-xs text-slate-600">{referenceText(line, line.base_unit)}</span>
+                    {line.product_name} · {unitShort(line.presentation_unit)}
+                    <span className="block text-xs text-ink-muted">{referenceText(line, line.base_unit)}</span>
                   </span>
                 </label>
               </li>

@@ -218,7 +218,9 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
       `/colectivo/compras-conjuntas/c-1?campaign=${CAMPAIGN.id}`,
     );
     expect(within(row).getByText('Abierta')).toBeTruthy();
-    expect(within(row).getByText(CAMPAIGN.name)).toBeTruthy();
+    // Rediseño v2 (lámina 09): la campaña ya no se repite en cada tarjeta; es la elegida en el selector de la cabecera.
+    expect((screen.getByLabelText('Campaña') as HTMLSelectElement).value).toBe(CAMPAIGN.id);
+    expect(screen.getByRole('option', { name: new RegExp(CAMPAIGN.name) })).toBeTruthy();
     expect(within(row).getByText('Responsable sintética')).toBeTruthy();
     expect(within(row).getByText('4')).toBeTruthy();
     expect(within(screen.getByTestId('call-row-c-2')).getByText('Borrador')).toBeTruthy();
@@ -239,13 +241,20 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     expect(jointPurchaseCallsService.list).toHaveBeenCalledTimes(2);
   });
 
-  it('filtra por estado en el servidor y, sin resultados, ofrece quitar el filtro', async () => {
+  // Rediseño v2 (B.1): los filtros y sus contadores se calculan en el navegador sobre la lista de la campaña (una sola llamada).
+  it('filtra por estado con contadores y, sin resultados, ofrece quitar el filtro', async () => {
     render();
     await screen.findByTestId('call-row-c-1');
-    vi.mocked(jointPurchaseCallsService.list).mockResolvedValue([]);
-    fireEvent.click(within(screen.getByTestId('call-status-filter')).getByRole('button', { name: 'Cancelada' }));
+    const filters = screen.getByTestId('call-status-filter');
+    expect(within(filters).getByRole('button', { name: 'Todas 2' })).toBeTruthy();
+    expect(within(filters).getByRole('button', { name: 'Abiertas 1' })).toBeTruthy();
+    fireEvent.click(within(filters).getByRole('button', { name: 'Canceladas 0' }));
     expect((await screen.findByTestId('calls-no-match')).textContent).toMatch(/«Cancelada»/);
-    expect(jointPurchaseCallsService.list).toHaveBeenLastCalledWith({ campaignId: CAMPAIGN.id, status: 'CANCELLED' });
+    expect(screen.queryByTestId('call-row-c-1')).toBeNull();
+    expect(jointPurchaseCallsService.list).toHaveBeenCalledTimes(1);
+    expect(jointPurchaseCallsService.list).toHaveBeenLastCalledWith({ campaignId: CAMPAIGN.id, status: null });
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    expect(await screen.findByTestId('call-row-c-1')).toBeTruthy();
   });
 
   it('nuevo borrador: valida los campos, avisa qué podrá ver el responsable, crea con productos del catálogo y navega por el call_id de la respuesta', async () => {
@@ -254,7 +263,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
     expect(within(dialog()).getByTestId('responsible-notice').textContent).toBe(RESPONSIBLE_NOTICE);
-    expect(within(dialog()).getByText(/Hora del servidor del sindicato/)).toBeTruthy();
+    expect(within(dialog()).getByText(/El plazo se cumple con el reloj del servidor/)).toBeTruthy();
 
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
     expect(within(dialog()).getByText('Escriba el nombre de la convocatoria.')).toBeTruthy();
@@ -276,7 +285,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     // Catálogo: sin inactivos, sin unidades que no sean L/KG y sin denominaciones asociadas.
     const list = await within(dialog()).findByRole('list', { name: 'Productos del catálogo' });
     const names = within(list).getAllByRole('checkbox').map((box) => box.closest('label')!.textContent);
-    expect(names).toEqual(['Glifosato 48 SL (L)', 'Urea (KG)']);
+    expect(names).toEqual(['Glifosato 48 SL · L', 'Urea · kg']);
     fireEvent.click(within(list).getByRole('checkbox', { name: /Urea/ }));
 
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
@@ -301,15 +310,15 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     render();
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Tomar productos de un borrador de propuesta' }));
-    const select = await within(dialog()).findByLabelText('Borrador de propuesta');
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'De un borrador de compra' }));
+    const select = await within(dialog()).findByLabelText('Borrador de compra');
     fireEvent.change(select, { target: { value: 'pr-1' } });
     expect(collectiveService.proposals).toHaveBeenCalledWith(CAMPAIGN.id);
 
     const disclosed = await within(dialog()).findByTestId('proposal-line-0');
-    expect(disclosed.textContent).toMatch(/Referencia del borrador: 120 L \(divulgada\)/);
+    expect(disclosed.textContent).toMatch(/Necesidad declarada en el borrador: 120 L/);
     const suppressed = within(dialog()).getByTestId('proposal-line-1');
-    expect(suppressed.textContent).toMatch(/Sin cifra divulgada/);
+    expect(suppressed.textContent).toMatch(/Sin cifra publicada en el borrador/);
     for (const node of [disclosed, suppressed]) expect(node.textContent).not.toMatch(/comprometid|comprad|pedid/i);
     expect(within(dialog()).getByTestId('proposal-reference-note').textContent).toMatch(/sólo como referencia/);
 
@@ -352,7 +361,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
     fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: 'Fungicidas' } });
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Usuario sintético · Directiva' })).toBeTruthy());
+    await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Usuario sintético (usted) · Directiva' })).toBeTruthy());
     fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: responsible } });
     fireEvent.click(await within(dialog()).findByRole('checkbox', { name: /Urea/ }));
   }
@@ -443,13 +452,13 @@ describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de prop
     const form = await screen.findByRole('dialog', { name: 'Nueva convocatoria' });
     expect(within(form).getByText(CAMPAIGN.name)).toBeTruthy();
     expect(within(form).getByTestId('prepared-notice').textContent).toMatch(/No se crea nada ni se inscribe a nadie/);
-    expect(within(form).getByRole('button', { name: 'Tomar productos de un borrador de propuesta' }).getAttribute('aria-pressed')).toBe('true');
-    expect(((await within(form).findByLabelText('Borrador de propuesta')) as HTMLSelectElement).value).toBe('pr-1');
+    expect(within(form).getByRole('button', { name: 'De un borrador de compra' }).getAttribute('aria-pressed')).toBe('true');
+    expect(((await within(form).findByLabelText('Borrador de compra')) as HTMLSelectElement).value).toBe('pr-1');
     await waitFor(() => expect((within(within(form).getByTestId('proposal-line-0')).getByRole('checkbox') as HTMLInputElement).checked).toBe(true));
     // Urea (p-3) es línea del borrador pero no se pidió: queda sin elegir.
     expect((within(within(form).getByTestId('proposal-line-1')).getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
     expect(within(form).getByTestId('prepared-ignored').textContent).toBe(
-      '2 productos indicados no son líneas de este borrador de propuesta y no se preseleccionaron.',
+      '2 productos indicados no son líneas de este borrador de compra y no se preseleccionaron.',
     );
     expect(collectiveService.proposal).toHaveBeenCalledWith('pr-1');
     expect(collectiveService.proposals).toHaveBeenCalledWith(CAMPAIGN.id);
