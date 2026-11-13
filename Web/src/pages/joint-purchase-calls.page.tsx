@@ -149,7 +149,7 @@ export function JointPurchaseCallsPage() {
 
   return (
     <AppShell title="Compras conjuntas" section="Colectivo">
-      <div className="space-y-6 pb-4">
+      <div className="flex flex-col gap-6 pb-4">
         <header className="ui-hero-attach bg-ink px-5 pb-6 pt-5 text-white max-lg:[--color-focus:var(--color-lime)] sm:px-8 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:text-ink" data-testid="calls-header">
           {campaigns.length > 0 && <CampaignPill campaigns={campaigns} selected={selected} onSelect={select} />}
           <div className="mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
@@ -373,7 +373,7 @@ function OpenCallCard({ call, mine, to }: { call: JointPurchaseCallSummary; mine
 function DraftRow({ call, mine, to }: { call: JointPurchaseCallSummary; mine: boolean; to: string }) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-4 sm:px-6" data-testid={`call-row-${call.call_id}`}>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-64">
         <p className="font-semibold text-ink [overflow-wrap:anywhere]">{call.name}</p>
         <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
           Responsable: <span>{call.responsible.name}</span>
@@ -397,8 +397,8 @@ function FinishedRow({ call, to }: { call: JointPurchaseCallSummary; to: string 
       ? `Cancelada el ${fmtDay(call.cancelled_at)} · sin consolidado`
       : `Cerrada el ${fmtDay(call.closed_at)} · ${call.participant_count === 1 ? '1 participante' : `${call.participant_count} participantes`}`;
   return (
-    <li className="relative flex items-center justify-between gap-4 px-5 py-4 hover:bg-canvas sm:px-6" data-testid={`call-row-${call.call_id}`}>
-      <div className="min-w-0 flex-1">
+    <li className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4 hover:bg-canvas sm:px-6" data-testid={`call-row-${call.call_id}`}>
+      <div className="min-w-0 flex-1 basis-64">
         <Link
           to={to}
           className="font-semibold text-ink [overflow-wrap:anywhere] after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -409,7 +409,7 @@ function FinishedRow({ call, to }: { call: JointPurchaseCallSummary; to: string 
           {when} · Responsable: <span>{call.responsible.name}</span>
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <StatusChip status={CALL_STATUS_CHIP[call.status] ?? call.status} />
         <Icon d={ICON.chevronRight} className="h-5 w-5 text-ink-muted" />
       </div>

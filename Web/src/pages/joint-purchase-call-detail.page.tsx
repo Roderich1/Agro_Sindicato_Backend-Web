@@ -117,7 +117,7 @@ export function JointPurchaseCallDetailPage() {
   const { id = '' } = useParams();
   const { user } = useAuth();
   const context = `${user?.id ?? ''}|${user?.tenantId ?? ''}|${user?.role ?? ''}|${id}`;
-  return <CallDetail key={context} id={id} userId={user?.id ?? null} />;
+  return <CallDetail key={context} id={id} userId={user?.id ?? null} userName={user?.name ?? ''} />;
 }
 
 /**
@@ -129,7 +129,7 @@ export function JointPurchaseCallDetailPage() {
  * página los nombres y las cantidades. Nada de esto se guarda en el navegador.
  * Tras cada acción se recargan el detalle y los colaboradores (U.6).
  */
-function CallDetail({ id, userId }: { id: string; userId: string | null }) {
+function CallDetail({ id, userId, userName }: { id: string; userId: string | null; userName: string }) {
   const location = useLocation();
   const [params] = useSearchParams();
   const [call, setCall] = useState<JointPurchaseCallDetail | null>(null);
@@ -387,7 +387,7 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
 
   return (
     <AppShell title={call.name} section="Colectivo">
-      <div className="space-y-5 pb-4">
+      <div className="flex flex-col gap-5 pb-4">
         <CallHero
           title={call.name}
           backTo={backTo}
@@ -488,6 +488,7 @@ function CallDetail({ id, userId }: { id: string; userId: string | null }) {
               problem={collaboratorsProblem}
               userId={userId}
               revokedGrants={revokedGrants}
+              userName={userName}
               onRetry={() => void loadCollaborators()}
               onGrant={() => setDialog({ kind: 'grant' })}
               onRevoke={(user, grant) => setDialog({ kind: 'revoke', user, grant, self: user.user_ref === userId })}
@@ -739,14 +740,14 @@ function CallFootnote({ call, canManage, responsibleIneligible }: { call: JointP
   const origin = callOriginText(call.origin);
   const lastChange = call.responsible_changes?.at(-1);
   const active = call.status === 'DRAFT' || call.status === 'OPEN';
-  const row = 'flex flex-wrap gap-x-1.5';
+  const row = '[&>dd]:ml-1 [&>dd]:inline [&>dt]:inline';
   return (
     <div className="space-y-2 px-1 text-sm leading-relaxed text-ink-muted">
       <dl className="space-y-1.5" data-testid="call-facts">
         {origin && (
           <div className={row}>
             <dt className="font-semibold text-ink">Origen:</dt>
-            <dd className="min-w-0 [overflow-wrap:anywhere]" data-testid="call-origin">
+            <dd className="[overflow-wrap:anywhere]" data-testid="call-origin">
               {origin}
               {call.origin && call.origin_differs_from_current && (
                 <span className="block" data-testid="call-origin-edited">
@@ -759,13 +760,13 @@ function CallFootnote({ call, canManage, responsibleIneligible }: { call: JointP
         {Array.isArray(call.my_grants) && (
           <div className={row}>
             <dt className="font-semibold text-ink">Sus permisos:</dt>
-            <dd className="min-w-0">{grantsText(call.my_grants, call.is_responsible)}</dd>
+            <dd>{grantsText(call.my_grants, call.is_responsible)}</dd>
           </div>
         )}
         {lastChange && (
           <div className={row}>
             <dt className="font-semibold text-ink">Sustitución:</dt>
-            <dd className="min-w-0 [overflow-wrap:anywhere]" data-testid="responsible-change">
+            <dd className="[overflow-wrap:anywhere]" data-testid="responsible-change">
               {`${lastChange.next.name} sustituyó a ${lastChange.previous.name} el ${fmtWhen(lastChange.at, 'always')}, por decisión de ${lastChange.actor.name}. Motivo: ${lastChange.reason}`}
             </dd>
           </div>
@@ -1012,7 +1013,11 @@ function ClosingPanel({
               />
             )}
             <p className="border-t border-line pt-3 text-sm text-ink-muted">
-              <span data-testid="closing-label">{closing.label}</span>. <span data-testid="not-a-purchase">{NOT_A_PURCHASE_TEXT}</span>
+              {/* El rótulo del servidor repite el título de la tarjeta: queda para lectores de pantalla. */}
+              <span className="sr-only">
+                <span data-testid="closing-label">{closing.label}</span>.{' '}
+              </span>
+              <span data-testid="not-a-purchase">{NOT_A_PURCHASE_TEXT}</span>
             </p>
           </>
         )}
@@ -1066,6 +1071,7 @@ function CollaboratorsSection({
   problem,
   userId,
   revokedGrants,
+  userName,
   onRetry,
   onGrant,
   onRevoke,
@@ -1076,6 +1082,7 @@ function CollaboratorsSection({
   problem: string | null;
   userId: string | null;
   revokedGrants: RevokedGrant[];
+  userName: string;
   onRetry: () => void;
   onGrant: () => void;
   onRevoke: (user: JointPurchaseCallUserRef, grant: JointPurchaseCallGrant) => void;
@@ -1213,9 +1220,9 @@ function CollaboratorsSection({
             <ul className={people.length > 0 ? 'divide-y divide-line border-t border-line' : 'divide-y divide-line'} aria-label="Sus permisos retirados">
               {revokedGrants.map((entry) => (
                 <li key={entry.grant} className="flex gap-3 py-4" data-testid={`my-revoked-${entry.grant}`}>
-                  <Avatar name={people.find((person) => person.user_ref === userId)?.name ?? entry.actor.name} tone="soft" />
+                  <Avatar name={userName || 'Usted'} tone="soft" />
                   <div className="min-w-0 flex-1 space-y-1.5">
-                    <p className="font-semibold text-ink">Usted</p>
+                    <p className="font-semibold text-ink [overflow-wrap:anywhere]">{userName ? `${userName} (usted)` : 'Usted'}</p>
                     <Chip size="md">{GRANT_LABEL[entry.grant]}</Chip>
                     <p className="text-xs text-ink-muted">{entry.self ? `Renunció el ${fmtWhen(entry.at)}` : `Retirado por ${entry.actor.name} el ${fmtWhen(entry.at)}`}</p>
                   </div>

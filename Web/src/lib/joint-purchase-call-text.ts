@@ -8,7 +8,7 @@ import type {
   JointPurchaseCallTotalVisibility,
   JointPurchaseParticipationStatus,
 } from '../types/joint-purchase-calls';
-import { collectiveError, fmtDateTime } from './collective-text';
+import { collectiveError } from './collective-text';
 import { COLLECTIVE_PATHS } from './navigation';
 import { formatQuantity, type BaseUnit } from './quantity';
 
@@ -299,8 +299,8 @@ const ERROR_TEXT: Record<string, string> = {
   CALL_NOT_FOUND: 'La convocatoria no existe o no pertenece a su organización.',
   CAMPAIGN_NOT_FOUND: 'La campaña no existe o no pertenece a su organización.',
   CAMPAIGN_NOT_ELIGIBLE: 'La campaña no admite convocatorias: debe estar planificada o abierta.',
-  PROPOSAL_NOT_FOUND: 'El borrador de propuesta no existe o no pertenece a su organización.',
-  PROPOSAL_CAMPAIGN_MISMATCH: 'El borrador de propuesta es de otra campaña: elija uno de esta campaña.',
+  PROPOSAL_NOT_FOUND: 'El borrador de compra no existe o no pertenece a su organización.',
+  PROPOSAL_CAMPAIGN_MISMATCH: 'El borrador de compra es de otra campaña: elija uno de esta campaña.',
   PRODUCT_NOT_FOUND: 'Uno de los productos ya no existe en el catálogo del sindicato.',
   PRODUCT_INACTIVE: 'Uno de los productos está inactivo: quítelo o elija uno activo.',
   PRODUCT_UNIT_UNSUPPORTED: 'Sólo se admiten productos medidos en L o KG.',
@@ -353,7 +353,7 @@ const ERROR_TEXT: Record<string, string> = {
   PRODUCT_IS_ALIAS: 'Uno de los productos es una denominación asociada a otro producto: elija el producto principal.',
   PRODUCT_UNIT_INVALID: 'Sólo se admiten productos medidos en L o KG.',
   PRODUCT_NOT_ELIGIBLE: 'Uno de los productos no se puede usar: debe ser activo, principal (no asociado) y en L o KG.',
-  PROPOSAL_LINE_NOT_FOUND: 'Una de las líneas elegidas ya no está en el borrador de propuesta.',
+  PROPOSAL_LINE_NOT_FOUND: 'Una de las líneas elegidas ya no está en el borrador de compra.',
   NAME_REQUIRED: 'Escriba el nombre de la convocatoria (hasta 120 caracteres).',
 };
 
@@ -403,8 +403,8 @@ export function callOriginText(origin: JointPurchaseCallOrigin | null | undefine
   if (origin === null) return 'Origen no registrado (convocatoria anterior).';
   if (origin.kind === 'CATALOG') return 'Creada eligiendo productos del catálogo.';
   const draft = origin.proposal_generated_at
-    ? `Creada desde el borrador de propuesta del ${fmtDateTime(origin.proposal_generated_at)}`
-    : 'Creada desde un borrador de propuesta';
+    ? `Creada desde el borrador de compra del ${fmtWhen(origin.proposal_generated_at, 'always')}`
+    : 'Creada desde un borrador de compra';
   if (origin.selection_revision === null) return `${draft}.`;
   return origin.selection_matched
     ? `${draft} (selección guardada n.º ${origin.selection_revision}).`

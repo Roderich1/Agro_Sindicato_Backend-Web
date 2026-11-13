@@ -2,9 +2,9 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { AxiosError, AxiosHeaders } from 'axios';
 import { Link } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fmtDateTime } from '../lib/collective-text';
 import {
   CLOSE_IMPLICATION,
+  fmtWhen,
   MANAGE_LOST_TEXT,
   MANAGE_ONLY_TEXT,
   NOT_A_PURCHASE_TEXT,
@@ -577,13 +577,14 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
         { position: 1, product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', proposal_position: 1 },
       ],
     };
-    const draftDate = fmtDateTime(ORIGIN.proposal_generated_at);
+    // Rediseño v2: fecha con hora de 24 h, como en el resto del detalle; «borrador de compra» es el nombre del menú.
+    const draftDate = fmtWhen(ORIGIN.proposal_generated_at, 'always');
     const originText = async () => (await screen.findByTestId('call-origin')).textContent;
 
     it('desde el borrador con la selección guardada: fecha del borrador y n.º de la selección', async () => {
       vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...DRAFT, origin: ORIGIN, origin_differs_from_current: false });
       render();
-      expect(await originText()).toBe(`Creada desde el borrador de propuesta del ${draftDate} (selección guardada n.º 2).`);
+      expect(await originText()).toBe(`Creada desde el borrador de compra del ${draftDate} (selección guardada n.º 2).`);
       expect(within(screen.getByTestId('call-facts')).getByText('Origen:')).toBeTruthy();
       expect(screen.queryByTestId('call-origin-edited')).toBeNull();
       // Ni la huella ni el identificador del borrador se muestran.
@@ -598,7 +599,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
       });
       render();
       expect(await originText()).toBe(
-        `Creada desde el borrador de propuesta del ${draftDate}, con productos distintos de la selección guardada (n.º 2).`,
+        `Creada desde el borrador de compra del ${draftDate}, con productos distintos de la selección guardada (n.º 2).`,
       );
     });
 
@@ -609,7 +610,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
         origin_differs_from_current: false,
       });
       render();
-      expect(await originText()).toBe(`Creada desde el borrador de propuesta del ${draftDate}.`);
+      expect(await originText()).toBe(`Creada desde el borrador de compra del ${draftDate}.`);
     });
 
     it('desde el catálogo', async () => {

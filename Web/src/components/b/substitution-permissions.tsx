@@ -414,7 +414,7 @@ export function SubstitutionPermissionsStrip({ userId }: { userId: string | null
   return (
     <section className="rounded-card bg-sunken px-5 py-4 sm:px-7" data-testid="substitution-strip" aria-label={`Permiso «${SUBSTITUTION_PERMISSION_LABEL}»`}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
+        <div className="flex min-w-0 flex-1 basis-64 items-start gap-3">
           <Icon d={ICON.users} className="mt-0.5 h-6 w-6 text-ink" />
           <div className="min-w-0">
             <p className="font-semibold text-ink">Permiso «{SUBSTITUTION_PERMISSION_LABEL}»</p>

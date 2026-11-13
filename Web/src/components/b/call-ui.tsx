@@ -267,6 +267,9 @@ export function AccessRules({ threshold }: { threshold: number }) {
   );
 }
 
+/** Eventos cuyo detalle repite el título («Borrador creado.», «Convocatoria abierta…»). */
+const QUIET_DETAIL = new Set<JointPurchaseCallEvent['kind']>(['CREATED', 'OPENED', 'CLOSED']);
+
 interface ActivityItem {
   key: string;
   title: string;
@@ -293,18 +296,24 @@ function activityItems(history: JointPurchaseCallEvent[], changes: JointPurchase
     ) {
       previous.count += 1;
       previous.item.title = `Permisos concedidos (${previous.count})`;
-      previous.item.detail = [previous.item.detail, event.detail].filter(Boolean).join(' ');
+      // Se recorre del más reciente al más antiguo: el detalle anterior va delante.
+      previous.item.detail = [event.detail, previous.item.detail].filter(Boolean).join(' ');
       return;
     }
     let title = CALL_EVENT_LABEL[event.kind] ?? event.kind;
     if (event.kind === 'CLOSED' && event.actor === null) title = AUTO_CLOSED_EVENT_LABEL;
     let meta = `${fmtWhen(event.at)} · ${actor}`;
+    // El detalle del servidor sólo se muestra cuando añade algo al título (a quién, qué cambió, por qué).
+    let detail = QUIET_DETAIL.has(event.kind) ? null : event.detail;
     if (event.kind === 'RESPONSIBLE_REPLACED') {
-      // P-A: el motivo de la sustitución viene en `responsible_changes`.
+      // P-A: el motivo de la sustitución viene en `responsible_changes`; con él, quién sustituyó a quién.
       const change = changes.find((entry) => entry.at === event.at) ?? null;
-      if (change) meta = `${meta} · «${change.reason}»`;
+      if (change) {
+        meta = `${meta} · «${change.reason}»`;
+        detail = `${change.previous.name} → ${change.next.name}`;
+      }
     }
-    const item: ActivityItem = { key: `${event.at}-${index}`, title, meta, detail: event.detail };
+    const item: ActivityItem = { key: `${event.at}-${index}`, title, meta, detail };
     items.push(item);
     previous = { event, item, count: 1 };
   });

@@ -44,7 +44,8 @@ export function CallHero({
             <Icon d={ICON.arrowRight} className="h-5 w-5 rotate-180" />
             <span className="sr-only sm:not-sr-only">Compras conjuntas</span>
           </Link>
-          <span className="text-sm text-on-ink-muted">{eyebrow}</span>
+          {/* En teléfono (lámina 38) sólo la flecha y los chips: las migas se ocultan para no empujarlos a otra línea. */}
+          <span className="hidden text-sm text-on-ink-muted sm:block">{eyebrow}</span>
         </div>
       }
       corner={<div className="flex flex-wrap items-center justify-end gap-2">{chips}</div>}
@@ -72,13 +73,13 @@ export function CallHero({
   );
 }
 
-/** «Cancelar convocatoria…» en la cabecera oscura: texto rosado, sin relleno (láminas 10, 11 y 38). */
+/** «Cancelar convocatoria…» en la cabecera oscura: texto salmón (9,6:1 sobre la tinta), sin relleno (láminas 10, 11 y 38). */
 export function HeroDangerButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="ui-press inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-danger-bg hover:bg-ink-raised focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="ui-press inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[#ffb4a9] hover:bg-ink-raised focus-visible:outline-2 focus-visible:outline-offset-2"
     >
       {children}
     </button>
