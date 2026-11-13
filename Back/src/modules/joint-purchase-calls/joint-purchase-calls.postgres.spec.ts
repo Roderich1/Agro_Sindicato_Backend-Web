@@ -147,8 +147,6 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   /** N7: the phone that reads contract 2 (§10.6) says so; without the header the answer keeps the contract 1 shape. */
   const get2 = (session: TestSession, path: string): Promise<Res> =>
     http().get(path).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", "2");
-  const put2 = (session: TestSession, path: string, body: object): Promise<Res> =>
-    http().put(path).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", "2").send(body);
 
   async function createDraft(
     products: string[],
@@ -199,26 +197,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   const withdraw = (session: TestSession, callId: string, sequence: number, operationId = randomUUID()) =>
     post(session, `${ME}/${callId}/participation/withdraw`, { operation_id: operationId, sequence });
 
-  /**
-   * §10.6 (P-C): a consent decision of its own, with its own order, from the
-   * phone that reads contract 2 (the only one that knows this route; P-A
-   * shapes the answer by contract too).
-   */
-  const decide = (
-    session: TestSession,
-    callId: string,
-    scope: "COLLABORATORS" | "RESPONSIBLE_ONLY",
-    sequence: number,
-    operationId = randomUUID(),
-    version = "CONV-3",
-    decidedAt = "2026-11-12T10:00:00.000Z",
-  ) =>
-    http().post(`${ME}/${callId}/participation/consent`).set("Authorization", auth(session)).set("X-Joint-Purchase-Contract", "2").send({
-      operation_id: operationId,
-      sequence,
-      scope,
-      consent: { version, decided_at: decidedAt },
-    });
+  // E4: the contract 2 helpers of P-C (`put2`, `decide`) were replaced by `confirmAs`/`decideAs` below.
 
   // ------------------------------------------------------------------ E4 helpers
 
