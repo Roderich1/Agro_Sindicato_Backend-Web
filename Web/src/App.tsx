@@ -7,6 +7,7 @@ import { PrivateRoute } from './components/private-route';
 import { RedirectWithQuery } from './components/redirect-with-query';
 import { AuthProvider } from './contexts/auth.context';
 import { CampaignProvider } from './contexts/campaign.context';
+import { IdentificationPendingProvider } from './contexts/identification-pending-provider';
 import { useAuth } from './hooks/use-auth';
 import { COLLECTIVE_PATHS, ESTIMATION_COPY_PATH, homePathFor, WEB_NOT_FOR_FARMERS_PATH } from './lib/navigation';
 import { CampaignsPage } from './pages/campaigns.page';
@@ -216,9 +217,12 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <CampaignProvider>
-          <Suspense fallback={null}>
-            <AppRoutes />
-          </Suspense>
+          {/* Insignia «Por identificar» del menú (H-02): una consulta por sesión institucional y otra por aviso. */}
+          <IdentificationPendingProvider>
+            <Suspense fallback={null}>
+              <AppRoutes />
+            </Suspense>
+          </IdentificationPendingProvider>
         </CampaignProvider>
       </AuthProvider>
     </BrowserRouter>
