@@ -211,12 +211,13 @@ Tarjeta blanca de sección. Con `title`, `Section` dibuja un `<h2>` de 20–24 p
 
 ```ts
 interface PageHeaderProps { title: string; subtitle?: ReactNode; campaign?: ReactNode; actions?: ReactNode;
-  headingLevel?: 1 | 2; eyebrow?: ReactNode; testId?: string }
+  headingLevel?: 1 | 2; eyebrow?: ReactNode; showSynthetic?: boolean; testId?: string }
 ```
 
 Cabecera **clara** de una vista, con el título grande en Bricolage (lámina 21, «Catálogo»).
 
 - `eyebrow`: migas encima del título.
+- «Datos sintéticos»: arriba a la derecha, sola, cuando el servidor declara `PROVISIONAL_SYNTHETIC`. Por defecto sólo con `headingLevel` 1; una vista anidada (`headingLevel={2}`) no la repite. `showSynthetic` cambia el comportamiento por defecto.
 - Debajo, la campaña a la izquierda y la acción a la derecha. En pantallas estrechas se apilan.
 
 ### `HeroPanel`: cabecera oscura (láminas 03 y 35)
@@ -229,6 +230,7 @@ interface HeroPanelProps {
   select?: { label: string; value: string; options: { value: string; label: string }[]; onChange(v: string): void; id?: string };
   chips?: ReactNode;             // StatusChip, <Chip tone="on-dark">Campaña activa</Chip>…
   corner?: ReactNode;            // arriba a la derecha
+  showSynthetic?: boolean;       // «Datos sintéticos»; por defecto, con headingLevel 1
   actions?: ReactNode;           // IconButton/Button variant="on-dark"
   primaryAction?: ReactNode;     // Button variant="accent"
   figure?: { label: ReactNode; value: ReactNode; caption?: ReactNode };  // cifra grande en lima
@@ -241,7 +243,7 @@ interface HeroPanelProps {
 
 - **Selector:** con `select`, el título es un `<select>` nativo grande con chevron lima. El `<h1>` queda para lectores de pantalla, y `title` del selector lleva el nombre completo.
 - **Cifras:** `figure.value` y `stats[].value` llegan formateados. Un valor oculto se pasa como `<PrivacyChip />` o como el texto del estado, **nunca como 0**.
-- **«Datos sintéticos»:** la etiqueta ya la muestra el armazón cuando el servidor la declara. No la repita en `corner`.
+- **«Datos sintéticos»:** la cabecera la muestra sola, arriba a la derecha, cuando el servidor la declara (ver `SyntheticDataChip`). No la repita en `corner`.
 
 ```tsx
 <HeroPanel
@@ -287,7 +289,7 @@ const Tag = Chip;
 |---|---|
 | «Abierta» | `StatusChip status="ABIERTA"` (punto y lima suave) |
 | «Campaña activa» | `<Chip tone="on-dark">`, sobre el hero |
-| «Datos sintéticos» | `<Chip tone="attention">`; lo pone el armazón |
+| «Datos sintéticos» | `SyntheticDataChip`; lo ponen solos `PageHeader` y `HeroPanel` |
 | «Cifra anterior · hay cambios sin publicar» | `<Chip tone="attention">` |
 | «Oculta por privacidad» | `<PrivacyChip />` (`label="Oculta"` en teléfono) |
 | Chips punteados de 05 §13 («Oculto por umbral», «Restringido para su acceso», «No disponible mientras esté abierta», «Total no disponible para su acceso actual») | `<Chip tone="hidden" icon={ICON.lock}>texto del estado</Chip>`. El texto lo decide la vista según `totals.visibility` |
@@ -300,6 +302,14 @@ Firma de v1: `{ status, threshold?, testId? }`.
 - Los estados positivos llevan punto. `SUPPRESSED_UNDER_THRESHOLD` lleva candado y borde discontinuo.
 - El motivo de divulgación va en `title`. Como no se puede depender del ratón, la vista debe dar el motivo también en texto cuando importe; para eso está `DataState state="restricted"`.
 - `statusChipLabel(status)` e `isKnownStatus(status)` siguen exportándose.
+
+### `SyntheticDataChip`
+
+```ts
+function SyntheticDataChip(): JSX.Element | null;
+```
+
+«Datos sintéticos» (H-03). Lee `useDisclosureMode()` (`lib/data-mode`), que las vistas alimentan con `reportDisclosureMode(disclosure.mode)` al recibir una respuesta colectiva. Sólo se dibuja con `PROVISIONAL_SYNTHETIC`, con `data-testid="synthetic-badge"`; nunca se deduce. Ya lo incluyen `PageHeader` y `HeroPanel`: una vista sólo lo usa si tiene otra cabecera propia.
 
 ### `FilterChips`
 
@@ -575,7 +585,7 @@ interface AppShellProps { title: string; section: string; actions?: ReactNode; c
 - La sección «SINDICATO»: Campañas, Usuarios (sólo ADMINISTRADOR) y Bitácora.
 - Abajo, la tarjeta de usuario con «Cerrar sesión».
 - El botón «<» la pliega a 88 px (sólo iconos). La preferencia se guarda en `localStorage` como comodidad.
-- Encima del contenido, una franja clara con la sección, «Datos sintéticos» (si el servidor la declara), la campaña activa y la conexión.
+- Sin franja superior (corrección del 2026-11-13). La conexión («En línea» / «Sin conexión», `navigator.onLine`, dato que ya existía) va en la tarjeta de usuario. «Datos sintéticos» lo muestran `PageHeader` y `HeroPanel`, y la campaña activa la muestra cada vista.
 
 **Teléfono y tableta (< 1024 px):** barra superior oscura y barra inferior con Resumen, Borrador, Compras, Catálogo y **Más** (lámina 43).
 

@@ -55,6 +55,7 @@ export { ProgressBar, type ProgressBarProps } from './progress-bar';
 export { Section, SectionHeader, type SectionHeaderProps, type SectionProps } from './section';
 export { SegmentedControl, type SegmentedControlProps } from './segmented-control';
 export { StatusChip, type StatusChipProps } from './status-chip';
+export { SyntheticDataChip } from './synthetic-chip';
 export { isKnownStatus, statusChipLabel } from './status-text';
 export { Stepper, type StepperProps, type StepperStep } from './stepper';
 export { TabPanel, Tabs, type TabItem, type TabPanelProps, type TabsProps } from './tabs';

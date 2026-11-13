@@ -183,34 +183,37 @@ describe('AppShell: cabecera', () => {
     expect(screen.getByTestId('shell-section').textContent).toBe('Estimación sin conexión');
   });
 
-  it('el nombre del sindicato (de la sesión) se muestra completo bajo la marca (sin truncar) y la campaña activa en la cabecera', () => {
+  it('el nombre del sindicato (de la sesión) se muestra completo bajo la marca, sin truncar', () => {
     renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
     const tenant = screen.getAllByText('Sindicato sintético')[0]!;
     expect(tenant.className).toMatch(/whitespace-normal/);
     expect(tenant.className).not.toMatch(/truncate|nowrap/);
-    expect(screen.getByTitle('Campaña activa del sindicato').textContent).toMatch(/Activa.*Campaña sintética/);
   });
 
-  it('la campaña activa no desborda la cabecera: una línea recortada con el nombre completo en title', () => {
+  it('sin franja superior en escritorio: el armazón no repite la campaña activa ni «Datos sintéticos» (los muestra la cabecera de cada vista)', () => {
     renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
-    const name = screen.getByTestId('active-campaign-name');
-    expect(name.getAttribute('title')).toBe('Campaña sintética');
-    expect(name.className).toMatch(/truncate/);
-    expect(name.className).toMatch(/min-w-0/);
-  });
-
-  it('la conexión se dice con texto', () => {
-    renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
-    expect(screen.getByTestId('connection').textContent).toMatch(/En línea|Sin conexión/);
-  });
-
-  it('«Datos sintéticos» sólo cuando una respuesta del servidor declara el modo provisional', () => {
-    renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
-    expect(screen.queryByTestId('synthetic-badge')).toBeNull();
     act(() => reportDisclosureMode('PROVISIONAL_SYNTHETIC'));
-    expect(screen.getByTestId('synthetic-badge').textContent).toBe('Datos sintéticos');
-    act(() => reportDisclosureMode('POLICY_PENDING'));
+    expect(screen.queryByTitle('Campaña activa del sindicato')).toBeNull();
+    expect(screen.queryByText('Campaña sintética')).toBeNull();
     expect(screen.queryByTestId('synthetic-badge')).toBeNull();
+    // La barra superior sólo existe por debajo de 1024 px.
+    expect(screen.getByTestId('shell-section').closest('header')!.className).toContain('lg:hidden');
+  });
+
+  it('la conexión se dice con texto en la tarjeta de usuario; en teléfono, sólo cuando falta', () => {
+    renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+    const connection = screen.getByTestId('connection');
+    expect(connection.textContent).toMatch(/En línea|Sin conexión/);
+    expect(connection.closest('aside')).not.toBeNull();
+    expect(Boolean(screen.queryByTestId('connection-mobile'))).toBe(!navigator.onLine);
+  });
+
+  it('sin conexión: «Sin conexión» en la tarjeta de usuario y en la barra del teléfono', () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    renderAt(shell(), { role: 'DIRECTIVA', path: COLLECTIVE_PATHS.summary });
+    expect(screen.getByTestId('connection').textContent).toBe('Sin conexión');
+    expect(screen.getByTestId('connection-mobile').textContent).toBe('Sin conexión');
+    online.mockRestore();
   });
 
   it('la tarjeta de usuario muestra nombre y rol, y «Cerrar sesión» tiene nombre', () => {

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/use-auth';
-import { useCampaign } from '../hooks/use-campaign';
 import { useIdentificationPending } from '../contexts/identification-pending';
-import { useDisclosureMode } from '../lib/data-mode';
 import {
   activeSubItem,
   IDENTIFICATION_PENDING_KEY,
@@ -16,7 +14,7 @@ import {
   subItemPath,
   type NavItemDef,
 } from '../lib/navigation';
-import { Avatar, Chip, Dialog, ICON, Icon, IconButton, StatusChip, initialsOf } from './ui';
+import { Avatar, Dialog, ICON, Icon, IconButton, StatusChip, initialsOf } from './ui';
 
 /* ══════════════════════════════════════════
    CONSTANTES
@@ -217,7 +215,24 @@ function SidebarNav({ rail, counts }: { rail: boolean; counts?: NavCounts }) {
   );
 }
 
-function Sidebar({ rail, onToggleRail, counts }: { rail: boolean; onToggleRail: () => void; counts?: NavCounts }) {
+/**
+ * Conexión del navegador (`navigator.onLine`), dato que el armazón ya mostraba
+ * antes del rediseño v2: siempre con texto. En la barra plegada, «En línea» queda
+ * para lectores de pantalla y «Sin conexión» sigue visible.
+ */
+function ConnectionStatus({ isOnline, rail = false }: { isOnline: boolean; rail?: boolean }) {
+  return (
+    <p
+      className={`flex items-center gap-1.5 text-xs font-medium ${isOnline ? 'text-on-ink-muted' : 'font-semibold text-danger-bg'} ${rail ? 'justify-center text-center' : ''}`}
+      data-testid="connection"
+    >
+      <span className={`h-2 w-2 shrink-0 rounded-full ${isOnline ? 'bg-lime' : 'bg-danger'}`} aria-hidden="true" />
+      <span className={rail && isOnline ? 'sr-only' : ''}>{isOnline ? 'En línea' : 'Sin conexión'}</span>
+    </p>
+  );
+}
+
+function Sidebar({ rail, onToggleRail, counts, isOnline }: { rail: boolean; onToggleRail: () => void; counts?: NavCounts; isOnline: boolean }) {
   const { user, logout } = useAuth();
   return (
     <aside
@@ -257,7 +272,13 @@ function Sidebar({ rail, onToggleRail, counts }: { rail: boolean; onToggleRail: 
           <div className={rail ? 'sr-only' : 'min-w-0 flex-1'}>
             <p className="break-words text-sm font-semibold leading-snug text-white">{user.name}</p>
             <p className="text-xs text-on-ink-muted">{ROLE_LABELS[user.role] ?? user.role}</p>
+            {!rail && (
+              <div className="mt-1">
+                <ConnectionStatus isOnline={isOnline} />
+              </div>
+            )}
           </div>
+          {rail && <ConnectionStatus isOnline={isOnline} rail />}
           <IconButton label="Cerrar sesión" icon={ICON.logout} variant="on-dark" size="sm" className="border-0" onClick={() => void logout()} />
         </div>
       )}
@@ -417,75 +438,42 @@ function MoreMenu({ onClose, onNavigate, id }: { onClose: () => void; onNavigate
    ══════════════════════════════════════════ */
 
 /**
- * Barra superior. No lleva el `h1` (lo pone cada vista). En teléfono y tableta
- * es oscura (lámina 35): marca, «Datos sintéticos» cuando el servidor la
- * declara y la conexión cuando falta; en escritorio, una franja clara con la
- * sección, la etiqueta, la campaña activa y la conexión. Siempre con texto.
+ * Barra superior del teléfono y la tableta (< 1024 px, lámina 35): marca y, sólo
+ * cuando falta, la conexión. No lleva el `h1` (lo pone cada vista) ni «Datos
+ * sintéticos» (lo muestran `HeroPanel` y `PageHeader`). En escritorio no hay
+ * barra superior: la sección queda para lectores de pantalla.
  */
 function Header({
   section,
-  actions,
   isOnline,
   onMenuClick,
   menuOpen,
   menuId,
 }: {
   section: string;
-  actions?: ReactNode;
   isOnline: boolean;
   onMenuClick: () => void;
   menuOpen: boolean;
   menuId: string;
 }) {
-  const { activeCampaign, isLoading } = useCampaign();
-  const disclosureMode = useDisclosureMode();
-
   return (
-    <header className="ui-shell-header ui-safe-top ui-on-ink sticky top-0 z-20 bg-ink text-white lg:static lg:bg-transparent lg:text-ink lg:[--color-focus:var(--color-ink)]">
-      <div className="ui-shell-bar ui-gutter flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 lg:min-h-12 lg:pt-5">
+    <header className="ui-shell-header ui-safe-top ui-on-ink sticky top-0 z-20 bg-ink text-white lg:hidden">
+      <div className="ui-shell-bar ui-gutter flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="lg:hidden">
-            <BrandMark size="sm" />
-          </span>
-          <span className="font-display text-lg font-extrabold leading-tight lg:hidden">Agrocuentas</span>
-          {/* Sólo la sección del menú: el título visible es el h1 de cada vista. */}
-          <p className="sr-only text-sm font-semibold text-ink-muted lg:not-sr-only" data-testid="shell-section">
+          <BrandMark size="sm" />
+          <span className="font-display text-lg font-extrabold leading-tight">Agrocuentas</span>
+          {/* Sección del menú, para lectores de pantalla: el título visible es el h1 de cada vista. */}
+          <p className="sr-only" data-testid="shell-section">
             {section}
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          {disclosureMode === 'PROVISIONAL_SYNTHETIC' && (
-            <span title="El servidor declara datos sintéticos (modo provisional de la política de divulgación)." data-testid="synthetic-badge" className="inline-flex">
-              <Chip tone="attention">Datos sintéticos</Chip>
+          {!isOnline && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-danger-bg px-2.5 py-0.5 text-sm font-semibold text-danger-ink" data-testid="connection-mobile">
+              <span className="h-2 w-2 rounded-full bg-danger" aria-hidden="true" />
+              Sin conexión
             </span>
           )}
-          <Link
-            to="/campaigns"
-            title="Campaña activa del sindicato"
-            className="hidden min-w-0 max-w-[min(22rem,100%)] items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-on-ink hover:bg-ink-raised focus-visible:outline-2 sm:inline-flex lg:text-ink lg:hover:bg-sunken"
-          >
-            {isLoading ? (
-              'Campaña…'
-            ) : activeCampaign ? (
-              <>
-                <span className="shrink-0 font-semibold text-lime lg:text-link">Activa</span>
-                {/* Una línea: con zoom o nombre largo se recorta y el nombre completo queda en `title`. */}
-                <span className="min-w-0 truncate font-semibold" title={activeCampaign.name} data-testid="active-campaign-name">
-                  {activeCampaign.name}
-                </span>
-              </>
-            ) : (
-              <span className="font-semibold text-warn-bg lg:text-caution">Sin campaña activa</span>
-            )}
-          </Link>
-          <span
-            className={`items-center gap-1.5 text-sm font-medium ${isOnline ? 'hidden text-on-ink-muted sm:inline-flex lg:text-ink-muted' : 'inline-flex rounded-full bg-danger-bg px-2.5 py-0.5 text-danger-ink'}`}
-            data-testid="connection"
-          >
-            <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-lime lg:bg-link' : 'bg-danger'}`} aria-hidden="true" />
-            {isOnline ? 'En línea' : 'Sin conexión'}
-          </span>
-          {actions}
           {/* Teléfono en horizontal: la barra inferior se oculta y este botón abre «Más» con todas las tareas. */}
           <button
             type="button"
@@ -493,7 +481,7 @@ function Header({
             aria-expanded={menuOpen}
             aria-haspopup="dialog"
             aria-controls={menuOpen ? menuId : undefined}
-            className="ui-header-menu ui-press min-h-10 items-center gap-1.5 rounded-full border border-on-ink-muted px-3 text-sm font-semibold text-white focus-visible:outline-2 lg:hidden"
+            className="ui-header-menu ui-press min-h-10 items-center gap-1.5 rounded-full border border-on-ink-muted px-3 text-sm font-semibold text-white focus-visible:outline-2"
           >
             <Icon d={ICON.menu} className="h-4 w-4" />
             Menú
@@ -564,7 +552,7 @@ export interface AppShellProps {
   title: string;
   /** Sección de la barra superior fuera del menú por tareas; dentro, se deriva de la ruta. */
   section: string;
-  /** Controles propios de la vista en la barra superior (poco usado). */
+  /** Controles propios de la vista, encima del contenido y a la derecha (ninguna vista lo usa hoy). */
   actions?: ReactNode;
   children: ReactNode;
   /**
@@ -656,12 +644,13 @@ export function AppShell({ title, section, actions, children, navCounts }: AppSh
       <a href="#contenido" className="skip-link">
         Saltar al contenido
       </a>
-      <Sidebar rail={rail} onToggleRail={toggleRail} counts={counts} />
+      <Sidebar rail={rail} onToggleRail={toggleRail} counts={counts} isOnline={isOnline} />
       {menuOpen && <MoreMenu id={menuId} onClose={closeMenu} onNavigate={leaveMenu} />}
 
       <div className="ui-content" data-rail={rail}>
-        <Header section={sectionLabelFor(location.pathname, section)} actions={actions} isOnline={isOnline} onMenuClick={toggleMenu} menuOpen={menuOpen} menuId={menuId} />
-        <main id="contenido" tabIndex={-1} className="ui-gutter ui-main mx-auto max-w-[1400px] pt-5 focus:outline-none lg:pt-4">
+        <Header section={sectionLabelFor(location.pathname, section)} isOnline={isOnline} onMenuClick={toggleMenu} menuOpen={menuOpen} menuId={menuId} />
+        <main id="contenido" tabIndex={-1} className="ui-gutter ui-main mx-auto max-w-[1400px] pt-5 focus:outline-none lg:pt-8">
+          {actions && <div className="mb-4 flex flex-wrap justify-end gap-2">{actions}</div>}
           {children}
         </main>
       </div>

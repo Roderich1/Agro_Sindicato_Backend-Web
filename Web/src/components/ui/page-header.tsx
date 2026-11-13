@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SyntheticDataChip } from './synthetic-chip';
 
 export interface PageHeaderProps {
   title: string;
@@ -11,6 +12,12 @@ export interface PageHeaderProps {
   headingLevel?: 1 | 2;
   /** Línea pequeña sobre el título (migas: «Catálogo · Productos»). */
   eyebrow?: ReactNode;
+  /**
+   * Muestra «Datos sintéticos» arriba a la derecha cuando el servidor lo declara.
+   * Por defecto, sólo en la cabecera principal (`headingLevel` 1): una vista
+   * anidada con `headingLevel={2}` no lo repite.
+   */
+  showSynthetic?: boolean;
   testId?: string;
 }
 
@@ -20,14 +27,18 @@ export interface PageHeaderProps {
  * derecha. En pantallas estrechas se apilan sin truncar. Para la cabecera
  * oscura con cifra grande (Resumen), use `HeroPanel`.
  */
-export function PageHeader({ title, subtitle, campaign, actions, headingLevel = 1, eyebrow, testId }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, campaign, actions, headingLevel = 1, eyebrow, showSynthetic, testId }: PageHeaderProps) {
   const Heading = headingLevel === 1 ? 'h1' : 'h2';
+  const synthetic = showSynthetic ?? headingLevel === 1;
   return (
     <header className="flex flex-col gap-4" data-testid={testId}>
-      <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-sm font-medium text-ink-muted">{eyebrow}</div>}
-        <Heading className="break-words text-3xl font-extrabold leading-[1.1] text-ink sm:text-4xl">{title}</Heading>
-        {subtitle && <div className="mt-2 max-w-3xl text-base leading-relaxed text-ink-muted">{subtitle}</div>}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1">
+          {eyebrow && <div className="mb-1 text-sm font-medium text-ink-muted">{eyebrow}</div>}
+          <Heading className="break-words text-3xl font-extrabold leading-[1.1] text-ink sm:text-4xl">{title}</Heading>
+          {subtitle && <div className="mt-2 max-w-3xl text-base leading-relaxed text-ink-muted">{subtitle}</div>}
+        </div>
+        {synthetic && <SyntheticDataChip />}
       </div>
       {(campaign || actions) && (
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">

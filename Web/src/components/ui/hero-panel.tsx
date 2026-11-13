@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ICON } from './icon-paths';
 import { Icon } from './icons';
+import { SyntheticDataChip } from './synthetic-chip';
 
 export interface HeroSelectProps {
   /** Nombre accesible del selector («Campaña»). */
@@ -28,8 +29,10 @@ export interface HeroPanelProps {
   select?: HeroSelectProps;
   /** Chips de estado junto al título (`StatusChip`, `Chip tone="on-dark"` «Campaña activa»…). */
   chips?: ReactNode;
-  /** Arriba a la derecha (una etiqueta corta). El armazón ya muestra «Datos sintéticos»: no lo repita aquí. */
+  /** Arriba a la derecha (una etiqueta corta). «Datos sintéticos» ya lo pone la cabecera: no lo repita aquí. */
   corner?: ReactNode;
+  /** Muestra «Datos sintéticos» arriba a la derecha cuando el servidor lo declara (por defecto, con `headingLevel` 1). */
+  showSynthetic?: boolean;
   /** Acciones secundarias a la derecha (`IconButton variant="on-dark"`, `Button variant="on-dark"`). */
   actions?: ReactNode;
   /** Acción principal bajo el título (`Button variant="accent"`). */
@@ -55,8 +58,9 @@ export interface HeroPanelProps {
  * en lima con indicadores. No calcula nada: todo llega formateado por la vista.
  * El foco dentro de la cabecera es lima (`ui-on-ink`).
  */
-export function HeroPanel({ title, headingLevel = 1, breadcrumb, select, chips, corner, actions, primaryAction, figure, stats, children, attachToHeader = false, testId }: HeroPanelProps) {
+export function HeroPanel({ title, headingLevel = 1, breadcrumb, select, chips, corner, showSynthetic, actions, primaryAction, figure, stats, children, attachToHeader = false, testId }: HeroPanelProps) {
   const Heading = headingLevel === 1 ? 'h1' : 'h2';
+  const synthetic = showSynthetic ?? headingLevel === 1;
   const selectId = select?.id ?? 'hero-select';
   return (
     <section
@@ -64,12 +68,16 @@ export function HeroPanel({ title, headingLevel = 1, breadcrumb, select, chips, 
       aria-label={title}
       data-testid={testId}
     >
-      {(breadcrumb || corner) && (
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          {breadcrumb ? <div className="min-w-0 text-sm text-on-ink-muted">{breadcrumb}</div> : <span />}
-          {corner}
-        </div>
-      )}
+      {/* Migas a la izquierda; «Datos sintéticos» (si el servidor lo declara) y `corner` a la derecha (lámina 03). */}
+      <div className="flex flex-wrap items-start justify-between gap-2 empty:hidden">
+        {breadcrumb ? <div className="min-w-0 text-sm text-on-ink-muted">{breadcrumb}</div> : null}
+        {(synthetic || corner) && (
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {synthetic && <SyntheticDataChip />}
+            {corner}
+          </div>
+        )}
+      </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           {select ? (
