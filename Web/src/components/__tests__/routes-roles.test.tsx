@@ -111,7 +111,8 @@ describe('la Web no tiene cola offline de negocio', () => {
   });
 
   it('el service worker sólo cachea el app-shell, nunca respuestas del API', () => {
-    expect(viteConfig).toMatch(/globPatterns: \['\*\*\/\*\.\{js,css,html,svg,png,ico\}'\]/);
+    // Rediseño v2 (2026-11-13): se añaden las tipografías (.ttf), que son archivos estáticos del app-shell.
+    expect(viteConfig).toMatch(/globPatterns: \['\*\*\/\*\.\{js,css,html,svg,png,ico,ttf\}'\]/);
     expect(viteConfig).not.toMatch(/runtimeCaching/);
     expect(viteConfig).not.toMatch(/agricultores\./);
   });
