@@ -1,5 +1,7 @@
 # Contraste de los contratos E2 y E3 con las decisiones del autor (2026-11-12)
 
+> **Nota de sustitución (2026-11-13).** N3 (protección tras una revocación) y N4 (umbral de 3 personas) quedan retiradas por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.2 y §6.1 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-11-12 (UTC) |

@@ -1,5 +1,7 @@
 # F07-POL-01 — Política mínima de divulgación de agregados (PROPUESTA)
 
+> **Nota de sustitución (2026-11-13).** Con la enmienda de F06 §5 del 2026-11-13, esta política (`F07-POL-01`, k = 3 y regla de combinaciones) pasa a ser la política **anterior**. Sigue rigiendo lo sellado con ella y, hasta la activación explícita, lo no sellado. La nueva, `F07-POL-02` (sin umbral de agricultores), está en [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5 y en la §12 de este documento (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+
 - **Estado: PROPUESTA para datos sintéticos.** El 2026-10-16 se adoptaron decisiones técnicas por delegación de Roderich Rendón (§7). No es una aprobación institucional, ni de la Directiva, ni del tutor.
 - **La divulgación de datos reales NO está aprobada.** Mientras no lo esté, el Backend responde `POLICY_PENDING`, sin celdas, en todos los canales.
 - **Revisada bajo F10-SEC-02 (#45) el 2026-10-16** (§8). Esa revisión no completa #45: faltan los endpoints heredados (ADR-003).
@@ -211,3 +213,14 @@ Registrada por la sesión B. Detalle en [`F07_SEALED_HISTORY_CONTRACT.md`](F07_S
   - el número real de vinculados, no confirmado.
   
   La comparación reproducible de k = 3 y k = 5 está en BE #161 (`docs/evidence/F07_POL_01_COMPARACION_K.md`), **pendiente de integrar**. k = 3 sigue provisional y sólo para ensayos sintéticos.
+
+## 12. Nota del 2026-11-13: `F07-POL-02`, totales sin umbral de agricultores
+
+Por la enmienda de F06 §5 (decisión del autor del 2026-11-13) hay una política nueva, `F07-POL-02`, definida en [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.1.
+
+- **Se retiran** R1 (supresión por debajo de k) y la regla de combinaciones (§9; criterio del orquestador revisable por el autor). Con ellas desaparece `pending_changes` por diferencias.
+- **Se conservan** R2 (cero explícito frente a ausencia), R4 (bajas que sacan la aportación y retiran la cifra anterior), R5 (no hay totales por encima de la celda), R7 (desbordamiento), R8 (todos los canales salen de la misma decisión) y R9 (cobertura).
+- **`SUPPRESSED_UNDER_THRESHOLD`** sólo queda como estado histórico de lo decidido con `F07-POL-01`.
+- **Activación:** explícita y trazada, por configuración (`COLLECTIVE_DISCLOSURE_POLICY`). Mientras no se active, rige esta política, `F07-POL-01`.
+- **Riesgo aceptado:** la diferencia entre una cifra retirada y la siguiente puede revelar lo retirado a quien guardó la anterior.
+- Esta nota no aprueba la divulgación de datos reales (#107).

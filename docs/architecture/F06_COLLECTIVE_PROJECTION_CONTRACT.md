@@ -79,6 +79,8 @@ La autorización aplicable debe comprobarse en cada operación y lectura; revoca
 
 ## 5. Privacidad y consumidores
 
+> **Nota de sustitución (2026-11-13).** El párrafo sobre la «política aprobada que evalúe grupos pequeños, comparación entre consultas…» queda enmendado por la «Enmienda 2026-11-13 (decisión del autor)» al final de este documento y por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+
 Los aportes son **datos vinculables protegidos**, aun sin nombres: Central requiere atribución interna mínima para reemplazar correctamente un aporte. Un total pequeño tampoco es automáticamente anónimo.
 
 Central F06 #21 puede consolidar únicamente por campaña/producto/unidad dentro del tenant autorizado. La salida Web permitida por finalidad es `consumed_total_base` o `declared_need_total_base` con sus referencias y unidad; son resultados **derivados en Central**, no campos nuevos de entrada Mobile. No exponer Member/Account/clientId, cantidades por agricultor, nombre/familia, finca, movimientos, costos ni filtros por persona/dispositivo. El listado de agricultores vinculados de URS-WEB-01 se resuelve desde IAM con autorización propia; no autoriza unirlo a cantidades individuales.
@@ -306,3 +308,26 @@ No hay `F01_CONSISTENCY_FINDING` material en las decisiones adoptadas: stock es 
 ## Anexo (2026-11-12): exportación CSV retirada
 
 Por decisión del autor del 2026-11-12, **Excel es la única exportación para el usuario**. Se retiraron las rutas `GET /api/v1/collective/campaigns/{campaignId}/summary.csv`, `GET /api/v1/collective/trends.csv` y `GET /api/v1/collective/proposals/{proposalId}/csv` (Back `eeaf327`) y los botones «Exportar CSV» de la Web (`7acf0a1`). Lo que este documento dice de esos CSV describe la versión anterior; la política de divulgación se sigue aplicando igual en el JSON y en los libros Excel, que se arman con las mismas respuestas del servidor. Equivalencias columna a columna: `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`. El Excel del borrador usa la referencia de estimación **fijada** (contrato E2 §11.9; sustituye a E3-R10 y a N8).
+
+## Enmienda 2026-11-13 (decisión del autor): divulgación sin umbral de agricultores
+
+- **Origen:** decisión del autor del 2026-11-13 (D-00 de [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §0), comunicada por el orquestador. Retirar la regla de combinaciones es criterio del orquestador derivado del encargo, revisable por el autor (D-04).
+- **Qué cambia en §5:**
+  - publicar valores numéricos ya **no** exige un número mínimo de agricultores por cifra ni la regla de combinaciones de F07 §9;
+  - una cifra autorizada puede mostrarse con 1 o 2 aportantes.
+- **Qué se conserva:**
+  - **la autorización de publicación:** con `POLICY_PENDING`, ninguna cifra en ningún canal; `provisional-synthetic` sólo fuera de producción; la divulgación de datos reales sigue sin aprobar (#107);
+  - **la retirada de datos:** una cancelación, una disputa o un Member o cuenta inactivos sacan la aportación y retiran la cifra anterior; `WITHDRAWN_AFTER_SEAL` tras el sellado;
+  - **el aislamiento** entre sindicatos y la autorización revalidada en cada lectura (otro tenant → 404; agricultor → 403);
+  - **que cero no es lo mismo que sin datos;**
+  - la whitelist de §2, no sumar unidades distintas y los metadatos agregados mínimos de la cobertura.
+- **Trazabilidad:** cada divulgación, sellado, borrador de propuesta y ejecución de estimación registra la política con que se decidió (`F07-POL-01` o `F07-POL-02`).
+- **Transición:**
+  - lo sellado se queda con la política anterior, sin reapertura;
+  - lo no sellado pasa a `F07-POL-02` sólo tras una activación explícita por configuración, registrada (`CollectiveDisclosurePolicyActivation`);
+  - no se recupera automáticamente ninguna cifra que nunca se autorizó.
+- **Riesgo que se acepta:**
+  - con pocos aportantes, un total sin nombres puede revelar la cantidad de una persona a quien sepa quién aportó;
+  - no se presenta como anonimato: se habla de «totales sin nombres» o «datos agregados»;
+  - la frase de §5 «Un total pequeño tampoco es automáticamente anónimo» sigue vigente.
+- **Detalle normativo:** [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5. El texto anterior de §5 se conserva arriba como historia.

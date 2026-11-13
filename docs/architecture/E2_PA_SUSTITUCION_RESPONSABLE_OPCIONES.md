@@ -1,5 +1,7 @@
 # P-A — Sustitución explícita de la persona responsable: opciones y decisión
 
+> **Nota de sustitución (2026-11-13).** El permiso «Sustituir responsable» (A1) y la autorización de la sucesora por cada agricultor (C1) se retiran de los flujos activos. La sustitución (B1) la hace la Administración habilitada sin permiso adicional, con sus mismas validaciones. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §6.3 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-11-12 (UTC) |
