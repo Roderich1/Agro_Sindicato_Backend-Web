@@ -55,7 +55,7 @@ const unitTitle = (unit: string) => {
   const word = unitWord(unit);
   return word.charAt(0).toUpperCase() + word.slice(1);
 };
-const SHORT = new Intl.DateTimeFormat('es-BO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const SHORT = new Intl.DateTimeFormat('es-BO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const fmtShort = (value: string) => SHORT.format(new Date(value));
 
 /**
@@ -139,7 +139,9 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
     window.requestAnimationFrame(() => {
       const node = panelRef.current;
       if (!node) return;
-      node.scrollIntoView?.({ block: 'start' });
+      // En escritorio el panel ya está a la vista, al lado de la lista: sólo se mueve el foco.
+      const wide = window.matchMedia?.('(min-width: 1024px)').matches ?? false;
+      if (!wide) node.scrollIntoView?.({ block: 'start' });
       node.focus({ preventScroll: true });
     });
   };
@@ -169,7 +171,7 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
   const selected = pending.find((request) => request.id === selectedId) ?? pending[0] ?? null;
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <ViewHeader
         headingLevel={headingLevel}
         title="Por identificar"
@@ -505,7 +507,7 @@ function RequestPanel({ request, onDone }: { request: IdentificationRequest; onD
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0 flex-1">
           <Overline as="p">El agricultor lo llamó</Overline>
           <h2 className="mt-1 font-display text-3xl font-extrabold leading-tight text-ink [overflow-wrap:anywhere] sm:text-4xl">«{request.local_name}»</h2>
@@ -577,7 +579,7 @@ function RequestPanel({ request, onDone }: { request: IdentificationRequest; onD
 function PhotoFrame({ request, onOpen }: { request: IdentificationRequest; onOpen: () => void }) {
   const stored = request.photo.state === 'STORED';
   return (
-    <div className="ui-dashed flex min-h-40 w-full shrink-0 flex-col items-center justify-center gap-3 rounded-card bg-canvas px-5 py-5 text-center sm:w-64">
+    <div className="ui-dashed flex min-h-40 w-full shrink-0 flex-col items-center justify-center gap-3 rounded-card bg-canvas px-5 py-5 text-center xl:w-56">
       <Icon d={CAMERA_PATH} className="h-7 w-7 text-ink-muted" />
       {stored ? (
         <>
@@ -708,7 +710,7 @@ function LinkPanel({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <fieldset>
         <legend className="mb-1.5 text-sm font-semibold text-ink">Parecidos en el catálogo</legend>
         <p className="mb-2 text-sm text-ink-muted" data-testid="candidates-disclaimer">
@@ -858,7 +860,7 @@ function CreatePanel({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <TextInput
         id={`identification-new-name-${request.id}`}
         label="Nombre del producto colectivo"
@@ -934,7 +936,7 @@ function DeferPanel({ request, onError, onDone }: ActionProps) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <ReasonConfirmSubmit
         id={`identification-defer-note-${request.id}`}
         label="Nota"
@@ -997,7 +999,7 @@ function CorrectionPanel({ request, onCancel, onDone }: { request: Identificatio
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <h2 className="font-display text-2xl font-bold text-ink">Corregir la identificación</h2>
       <Facts
         rows={[

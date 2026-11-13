@@ -29,7 +29,7 @@ import type { AdminUser } from '../types/users';
 type CategoryFilter = 'ALL' | AuditCategory;
 
 const MAX_ROWS = 300;
-const TIME = new Intl.DateTimeFormat('es-BO', { hour: '2-digit', minute: '2-digit' });
+const TIME = new Intl.DateTimeFormat('es-BO', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const DAY = new Intl.DateTimeFormat('es-BO', { day: 'numeric', month: 'short', year: 'numeric' });
 const pad = (n: number) => String(n).padStart(2, '0');
 const dayKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -151,7 +151,7 @@ export function AuditLogsPage() {
 
   return (
     <AppShell title="Bitácora" section="Sindicato">
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         <ViewHeader
           title="Bitácora"
           eyebrow="Lo que se hizo en la Web"
@@ -202,11 +202,15 @@ export function AuditLogsPage() {
               <label htmlFor="audit-from" className="text-sm text-ink-muted">
                 Desde
               </label>
-              <input id="audit-from" className={`${inputClass} w-auto rounded-full bg-surface`} type="date" value={filters.from} max={filters.to || undefined} onChange={(event) => setFilter('from', event.target.value)} />
+              <span className="w-44">
+                <input id="audit-from" className={`${inputClass} rounded-full bg-surface`} type="date" value={filters.from} max={filters.to || undefined} onChange={(event) => setFilter('from', event.target.value)} />
+              </span>
               <label htmlFor="audit-to" className="text-sm text-ink-muted">
                 hasta
               </label>
-              <input id="audit-to" className={`${inputClass} w-auto rounded-full bg-surface`} type="date" value={filters.to} min={filters.from || undefined} onChange={(event) => setFilter('to', event.target.value)} />
+              <span className="w-44">
+                <input id="audit-to" className={`${inputClass} rounded-full bg-surface`} type="date" value={filters.to} min={filters.from || undefined} onChange={(event) => setFilter('to', event.target.value)} />
+              </span>
             </div>
           </div>
         </div>

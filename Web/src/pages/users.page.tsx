@@ -43,6 +43,7 @@ const NUMBER = new Intl.NumberFormat('es-BO');
 const ROLE_TONE: Record<UserRole, TagTone> = { ADMINISTRADOR: 'dark', DIRECTIVA: 'positive', AGRICULTOR: 'neutral' };
 const ROLE_TAB: Record<UserRole, string> = { DIRECTIVA: 'Directiva', ADMINISTRADOR: 'Administración', AGRICULTOR: 'Agricultores' };
 const MIN_PASSWORD = 8;
+const ROLE_ORDER: Record<UserRole, number> = { ADMINISTRADOR: 0, DIRECTIVA: 1, AGRICULTOR: 2 };
 
 function extractError(err: unknown, fallback: string): string {
   const offline = offlineMessage(err);
@@ -110,13 +111,22 @@ export function UsersPage() {
 
   const wanted = normalizeName(search);
   const byRole = users.filter((u) => role === 'ALL' || u.role === role);
-  const shown = byRole.filter((u) => !wanted || normalizeName(u.name).includes(wanted) || u.email.toLowerCase().includes(search.trim().toLowerCase()));
+  const shown = byRole
+    .filter((u) => !wanted || normalizeName(u.name).includes(wanted) || u.email.toLowerCase().includes(search.trim().toLowerCase()))
+    // Presentación: usted primero, después las activas, por rol (Administración, Directiva, Agricultores) y por nombre.
+    .sort(
+      (a, b) =>
+        Number(b.id === currentUser?.id) - Number(a.id === currentUser?.id) ||
+        Number(b.isActive) - Number(a.isActive) ||
+        ROLE_ORDER[a.role] - ROLE_ORDER[b.role] ||
+        a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
+    );
   const activeCount = users.filter((u) => u.isActive).length;
   const filtered = role !== 'ALL' || wanted.length > 0;
 
   return (
     <AppShell title="Usuarios" section="Sindicato">
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         <ViewHeader
           title="Usuarios"
           eyebrow={currentUser?.tenant?.name ? `${currentUser.tenant.name} · solo Administración` : 'Solo Administración'}
@@ -129,34 +139,34 @@ export function UsersPage() {
         />
         {message && <Notice kind="ok">{message}</Notice>}
 
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <FilterChips
+            label="Filtrar por rol"
+            testId="role-filter"
+            value={role}
+            onChange={setRole}
+            options={[
+              { value: 'ALL', label: 'Todos', count: isLoading || loadError ? undefined : NUMBER.format(users.length) },
+              ...(['DIRECTIVA', 'ADMINISTRADOR', 'AGRICULTOR'] as UserRole[]).map((value) => ({
+                value,
+                label: ROLE_TAB[value],
+                count: isLoading || loadError ? undefined : NUMBER.format(users.filter((u) => u.role === value).length),
+              })),
+            ]}
+          />
+          <SearchInput
+            id="user-search"
+            label="Buscar usuario"
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar por nombre o correo"
+            autoComplete="off"
+            fieldClassName="w-full lg:w-72"
+          />
+        </div>
+
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <section className="min-w-0 space-y-3" aria-label="Cuentas del sindicato">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <FilterChips
-                label="Filtrar por rol"
-                testId="role-filter"
-                value={role}
-                onChange={setRole}
-                options={[
-                  { value: 'ALL', label: 'Todos', count: isLoading || loadError ? undefined : NUMBER.format(users.length) },
-                  ...(['DIRECTIVA', 'ADMINISTRADOR', 'AGRICULTOR'] as UserRole[]).map((value) => ({
-                    value,
-                    label: ROLE_TAB[value],
-                    count: isLoading || loadError ? undefined : NUMBER.format(users.filter((u) => u.role === value).length),
-                  })),
-                ]}
-              />
-              <SearchInput
-                id="user-search"
-                label="Buscar usuario"
-                value={search}
-                onChange={setSearch}
-                placeholder="Buscar por nombre o correo"
-                autoComplete="off"
-                fieldClassName="w-full lg:w-72"
-              />
-            </div>
-
             {isLoading ? (
               <div className={surfaceClass}>
                 <DataState state="loading" title="Cargando usuarios…" skeletonRows={4} />
@@ -249,25 +259,25 @@ function UserRow({
   onDeactivate: () => void;
 }) {
   return (
-    <li className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 sm:px-6" data-testid={`user-${user.email}`}>
+    <li className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 sm:px-6 lg:flex-nowrap" data-testid={`user-${user.email}`}>
       <Avatar name={user.name} tone={user.isActive ? 'ink' : 'soft'} />
-      <div className="min-w-0 flex-1 basis-48">
+      <div className="min-w-0 flex-1 basis-48 lg:basis-0">
         <p className="font-semibold text-ink [overflow-wrap:anywhere]">
           {user.name}
           {isSelf && <span className="font-normal text-ink-muted"> (usted)</span>}
         </p>
         <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
           {user.email}
-          {user.role === 'AGRICULTOR' && ' · usa la aplicación móvil'}
+          {user.role === 'AGRICULTOR' && <span className="lg:hidden"> · usa la aplicación móvil</span>}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 lg:w-48 lg:shrink-0 lg:justify-end">
         <Chip tone={ROLE_TONE[user.role]}>{ROLE_LABELS[user.role]}</Chip>
         <span className={`w-16 text-sm font-semibold ${user.isActive ? 'text-link' : 'text-ink-muted'}`} data-testid="user-status">
           {user.isActive ? 'Activa' : 'Inactiva'}
         </span>
       </div>
-      <div className="ml-auto flex flex-wrap gap-1">
+      <div className="ml-auto flex flex-wrap gap-1 lg:w-[16.5rem] lg:shrink-0 lg:justify-end">
         <RowLink onClick={onEdit} aria-label={`Editar a ${user.name}`}>
           Editar
         </RowLink>

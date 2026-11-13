@@ -112,7 +112,7 @@ export function ProductsView({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <ViewHeader headingLevel={headingLevel} title={title} eyebrow={user?.tenant?.name} action={{ label: 'Nuevo producto', onClick: openCreate }} />
       {nav}
       {message && <Notice kind="ok">{message}</Notice>}

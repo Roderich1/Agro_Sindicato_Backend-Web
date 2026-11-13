@@ -131,7 +131,7 @@ export function CampaignDetailPage() {
     const waiting = listLoading || (!listError && rechecked !== id);
     return (
       <AppShell title="Campaña" section="Sindicato">
-        <div className="space-y-5">
+        <div className="flex flex-col gap-5">
           <HeroPanel attachToHeader title="Detalle de campaña" breadcrumb={backLink} />
           <div className={surfaceClass}>
             {waiting ? (
@@ -152,7 +152,7 @@ export function CampaignDetailPage() {
 
   return (
     <AppShell title={campaign.name} section="Sindicato">
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         <HeroPanel
           attachToHeader
           title={campaign.name}

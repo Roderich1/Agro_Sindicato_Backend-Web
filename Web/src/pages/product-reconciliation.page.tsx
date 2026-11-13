@@ -98,7 +98,7 @@ export function ProductReconciliationView({ headingLevel = 1, title = 'Nombres e
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <ViewHeader
         headingLevel={headingLevel}
         title={title}
@@ -149,11 +149,11 @@ export function ProductReconciliationView({ headingLevel = 1, title = 'Nombres e
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {entry && (
-                            <Button variant="on-dark" size="sm" onClick={() => setDialog({ kind: 'associate', product: entry, current: row })} aria-label={`Corregir la unión de «${row.product_name}»`}>
+                            <Button variant="on-dark" onClick={() => setDialog({ kind: 'associate', product: entry, current: row })} aria-label={`Corregir la unión de «${row.product_name}»`}>
                               Corregir…
                             </Button>
                           )}
-                          <Button variant="on-dark" size="sm" onClick={() => setDialog({ kind: 'close', association: row })} aria-label={`Separar «${row.product_name}»`}>
+                          <Button variant="on-dark" onClick={() => setDialog({ kind: 'close', association: row })} aria-label={`Separar «${row.product_name}»`}>
                             Separar…
                           </Button>
                         </div>
@@ -372,7 +372,7 @@ function AssociateDialog({
         )
       }
     >
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         {correcting && (
           <Facts
             rows={[

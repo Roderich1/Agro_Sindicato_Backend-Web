@@ -165,7 +165,7 @@ export function CampaignsPage() {
 
   return (
     <AppShell title="Campañas" section="Sindicato">
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         <ViewHeader
           title="Campañas"
           eyebrow={user?.tenant?.name}
@@ -294,7 +294,7 @@ function ActiveCampaignCard({ campaign, sealedVersion, onChanged }: { campaign: 
           </div>
           <p className="mt-3 font-display text-3xl font-extrabold leading-tight text-white [overflow-wrap:anywhere] sm:text-4xl">{campaign.name}</p>
         </div>
-        <dl className="flex flex-wrap gap-x-10 gap-y-3">
+        <dl className="grid grid-cols-2 gap-x-10 gap-y-3 sm:grid-cols-3 xl:shrink-0">
           <div>
             <dt className="text-sm text-on-ink-muted">Empezó</dt>
             <dd className="font-display text-xl font-bold tabular-nums text-white">{fmtCampaignDay(campaign.startDate) ?? '—'}</dd>
@@ -389,6 +389,7 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
 
   const terminal = campaign.status === 'CERRADA' || campaign.status === 'CANCELADA';
   const variant = onDark ? 'on-dark' : 'secondary';
+  const size = onDark ? 'md' : 'sm';
   const done = async (text: string) => {
     setEditing(false);
     setClosing(false);
@@ -423,17 +424,17 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
   return (
     <>
       {!terminal && (
-        <Button variant={variant} size="sm" onClick={() => setEditing(true)}>
+        <Button variant={variant} size={size} onClick={() => setEditing(true)}>
           Editar
         </Button>
       )}
       {!campaign.isActive && !terminal && (
-        <Button variant={onDark ? 'accent' : 'primary'} size="sm" onClick={() => void open()} busy={busy}>
+        <Button variant={onDark ? 'accent' : 'primary'} size={size} onClick={() => void open()} busy={busy}>
           Abrir campaña
         </Button>
       )}
       {campaign.isActive && (
-        <Button variant={variant} size="sm" onClick={() => setClosing(true)}>
+        <Button variant={variant} size={size} onClick={() => setClosing(true)}>
           Cerrar campaña…
         </Button>
       )}
