@@ -84,6 +84,7 @@ export function PageHeader({
       {primaryAction.label}
     </Button>
   );
+  const inlineAction = !!action && !campaign && !actions;
   return (
     <header
       className={
@@ -102,16 +103,30 @@ export function PageHeader({
           <Heading className={`break-words text-3xl font-extrabold leading-[1.1] sm:text-4xl ${dark ? 'text-white lg:text-ink' : 'text-ink'}`}>{title}</Heading>
           {subtitle && <div className={`mt-2 max-w-3xl text-base leading-relaxed ${dark ? 'text-on-ink-muted lg:text-ink-muted' : 'text-ink-muted'}`}>{subtitle}</div>}
         </div>
-        {synthetic && <SyntheticDataChip />}
+        {inlineAction ? (
+          // Sólo la acción principal (láminas 21, 28 y 31): en escritorio, a la altura del título;
+          // en teléfono, debajo y a todo el ancho. Un solo botón en el DOM.
+          <div className="flex w-full flex-wrap items-center justify-end gap-3 lg:w-auto">
+            {synthetic && <SyntheticDataChip />}
+            {action}
+          </div>
+        ) : (
+          // En teléfono el chip va en su propia línea, encima del título, para no estrecharlo.
+          synthetic && (
+            <div className="order-first basis-full lg:order-none lg:basis-auto">
+              <SyntheticDataChip />
+            </div>
+          )
+        )}
       </div>
-      {(campaign || actions || action) && (
+      {(campaign || actions || (action && !inlineAction)) && (
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
           {campaign && <div className="min-w-0 flex-1 basis-64">{campaign}</div>}
           {/* En estrecho, las acciones (p. ej. el SegmentedControl «Vista») se alinean a la izquierda, con su etiqueta en el margen (H4). */}
-          {(actions || action) && (
+          {(actions || (action && !inlineAction)) && (
             <div className={`flex flex-wrap items-center gap-2 sm:ml-auto ${dark ? 'w-full lg:w-auto' : ''}`}>
               {actions}
-              {action}
+              {!inlineAction && action}
             </div>
           )}
         </div>

@@ -1,0 +1,13 @@
+[
+ {
+  "files": [
+   "cabecera/28-campanas-accion__escritorio.png",
+   "cabecera/28-campanas-accion__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Campañas: «Nueva campaña» a la altura del título",
+  "estado": "",
+  "simulado": false
+ }
+]

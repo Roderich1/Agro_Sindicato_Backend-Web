@@ -54,7 +54,7 @@ export function Tabs<T extends string>({ label, tabs, value, onChange, idBase, v
       <div
         role="tablist"
         aria-label={label}
-        className={pill ? 'inline-flex min-w-max gap-1 rounded-full border border-line bg-surface p-1' : 'flex min-w-max gap-1 border-b border-line'}
+        className={pill ? 'inline-flex flex-wrap gap-1 rounded-3xl border border-line bg-surface p-1 lg:min-w-max lg:flex-nowrap lg:rounded-full' : 'flex min-w-max gap-1 border-b border-line'}
         onKeyDown={onKeyDown}
       >
         {tabs.map((tab) => {
