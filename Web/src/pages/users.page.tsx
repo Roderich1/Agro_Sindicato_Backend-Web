@@ -128,6 +128,7 @@ export function UsersPage() {
     <AppShell title="Usuarios" section="Sindicato">
       <div className="flex flex-col gap-5">
         <PageHeader
+          showSynthetic={false}
           attachToHeader
           eyebrowPhoneOnly
           title="Usuarios"

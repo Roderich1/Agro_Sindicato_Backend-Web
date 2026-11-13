@@ -173,6 +173,7 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
+        showSynthetic={false}
           attachToHeader
           eyebrowPhoneOnly
         headingLevel={headingLevel}
