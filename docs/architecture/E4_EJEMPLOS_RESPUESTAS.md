@@ -284,7 +284,7 @@ HTTP 403:
 { "errorCode": "PARTICIPANTS_FORBIDDEN" }
 ```
 
-Una Administración que deja de estar habilitada (Member, cuenta, rol o tenant) o pasa a Directiva recibe este mismo 403 desde la petición siguiente.
+Una Administración que pasa a Directiva recibe este mismo 403 desde la petición siguiente. Si deja de estar habilitada por su Member, su cuenta o su tenant, el contexto de autenticación común la rechaza antes, con `401` en todas las rutas institucionales (precisión de la implementación, E4 §11).
 
 ### 2.7 `GET /joint-purchase-calls/{id}/closing` — Administración
 
@@ -667,6 +667,7 @@ No se escribe ninguna decisión ni cambia el alcance.
 - Sobre una participación con alcance `ADMINISTRATION` o `TOTALS_ONLY`: `409 {"errorCode":"APP_UPDATE_REQUIRED"}` antes de decidir.
 - Ampliar o autorizar: `409 {"errorCode":"CONSENT_VERSION_RETIRED"}`.
 - Un 2xx a un contrato 1–3 nunca lleva `ADMINISTRATION` ni `TOTALS_ONLY`.
+- Un contrato 1–3 que confirma por primera vez con `CONV-4` recibe `409 {"errorCode":"APP_UPDATE_REQUIRED"}`; una decisión `ADMINISTRATION` o `TOTALS_ONLY` declarada con un contrato 1–3 recibe `400 {"errorCode":"PAYLOAD_INVALID"}`. `APP_UPDATE_REQUIRED` no queda en el diario: la misma operación se decide cuando llega con el contrato 4 (E4 §11).
 
 ---
 

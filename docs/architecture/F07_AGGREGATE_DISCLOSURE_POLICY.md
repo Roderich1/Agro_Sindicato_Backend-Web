@@ -224,3 +224,5 @@ Por la enmienda de F06 §5 (decisión del autor del 2026-11-13) hay una polític
 - **Activación:** explícita y trazada, por configuración (`COLLECTIVE_DISCLOSURE_POLICY`). Mientras no se active, rige esta política, `F07-POL-01`.
 - **Riesgo aceptado:** la diferencia entre una cifra retirada y la siguiente puede revelar lo retirado a quien guardó la anterior.
 - Esta nota no aprueba la divulgación de datos reales (#107).
+
+> **Nota de implementación (2026-11-13).** `F07-POL-02` está implementada en el Backend (rama `feat/acceso-rol-sin-k-a`, sin fusionar): `decideCellsWithoutThreshold` en `disclosure-policy.ts`, seleccionada sólo con `COLLECTIVE_DISCLOSURE_POLICY=F07-POL-02` y trazada en `CollectiveDisclosurePolicyActivation`. Sin la variable rige esta política, `F07-POL-01`, sin cambios: las suites que la prueban corren sin la variable y se conservan como su evidencia. Cada divulgación, sellado, borrador y ejecución F12 nuevos graban su política; lo sellado con `F07-POL-01` se sirve con su umbral sellado (3). Esta nota no aprueba la divulgación de datos reales (#107).
