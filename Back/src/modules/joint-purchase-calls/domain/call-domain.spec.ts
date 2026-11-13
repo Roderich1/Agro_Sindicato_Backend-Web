@@ -2,19 +2,25 @@ import { CallHttpError } from "./call-error";
 import { canTransition, closingCutoff, isEditable, isFinal, notOpenReason } from "./call-state";
 import { computeClosing } from "./closing";
 import {
+  CONSENT_HELP,
   CONSENT_TEXT,
   CONSENT_V1_TEXT,
   CONSENT_V1_VERSION,
   CONSENT_V2_TEXT,
   CONSENT_V2_VERSION,
+  CONSENT_V3_TEXT,
+  CONSENT_V3_VERSION,
+  CONSENT_V4_HELP,
+  CONSENT_V4_TEXT,
   CONSENT_VERSION,
-  decisionVersionAccepted,
+  coversDetail,
+  coversTotals,
   initialScopeOf,
   isAcceptedConsent,
-  scopeCoversCollaborators,
+  isNewScope,
 } from "./consent";
 import { normalizeConfirm, normalizeConsentDecision, normalizeWithdraw, parseQuantity } from "./participation-input";
-import { CallViewer, CallVisibility, productTotalView } from "./visibility";
+import { CallVisibility } from "./visibility";
 import { closeIntervalFrom } from "../application/joint-purchase-config";
 
 const OP = "3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
@@ -80,28 +86,43 @@ describe("E2 consent (E2-D9, E2-P3 §10.2, P-C §10.6)", () => {
     expect(initialScopeOf("CONV-2")).toBe("COLLABORATORS");
   });
 
-  it("publishes CONV-3 (N5): responsible, and only if the farmer authorizes it, the Directiva/Administración she authorizes; purpose; no debt", () => {
-    expect(CONSENT_VERSION).toBe("CONV-3");
-    expect(CONSENT_TEXT).toBe(
+  // Rewritten for E4 (declared): CONV-3 is no longer the current version; it
+  // is kept with its exact text as an earlier one, still accepted.
+  it("keeps CONV-3 (N5) with its exact text as an earlier version: a first confirmation with it gives RESPONSIBLE_ONLY", () => {
+    expect(CONSENT_V3_VERSION).toBe("CONV-3");
+    expect(CONSENT_V3_TEXT).toBe(
       "La persona responsable de esta compra conjunta podrá ver tu nombre y las cantidades que solicitas. Si tú lo autorizas, también podrán verlos las personas de la Directiva o la Administración que ella autorice para esta convocatoria. Los datos se usan para coordinar la compra y la entrega. Esta confirmación no genera una deuda.",
     );
-    // Accepting it gives only the responsible: widening is a decision of its own.
+    expect(isAcceptedConsent("CONV-3")).toBe(true);
     expect(initialScopeOf("CONV-3")).toBe("RESPONSIBLE_ONLY");
-    for (const other of ["CONV-0", "CONV-4", "conv-3", "", undefined, null, 3]) expect(isAcceptedConsent(other)).toBe(false);
   });
 
-  it("widening cites the current text; a reduction is respected with any known text", () => {
-    expect(decisionVersionAccepted("COLLABORATORS", "CONV-3")).toBe(true);
-    expect(decisionVersionAccepted("COLLABORATORS", "CONV-2")).toBe(false);
-    expect(decisionVersionAccepted("COLLABORATORS", "CONV-1")).toBe(false);
-    for (const version of ["CONV-1", "CONV-2", "CONV-3"]) expect(decisionVersionAccepted("RESPONSIBLE_ONLY", version)).toBe(true);
-    expect(decisionVersionAccepted("RESPONSIBLE_ONLY", "CONV-9")).toBe(false);
+  it("E4 §4.1: publishes CONV-4 with its exact text and help; a first confirmation with it gives ADMINISTRATION", () => {
+    expect(CONSENT_VERSION).toBe("CONV-4");
+    expect(CONSENT_TEXT).toBe(CONSENT_V4_TEXT);
+    expect(CONSENT_HELP).toBe(CONSENT_V4_HELP);
+    expect(CONSENT_V4_TEXT).toBe(
+      "Las personas de Administración habilitadas de su sindicato podrán ver su nombre y las cantidades que solicita para coordinar esta compra conjunta y su entrega. La Directiva podrá consultar los totales por producto, sin el detalle identificado de su participación. Los totales pueden mostrarse aunque participe una sola persona. Esta participación no genera una deuda.",
+    );
+    expect(CONSENT_V4_HELP).toBe("Aunque el total no muestre nombres, con pocas participaciones podría deducirse cuánto solicitó una persona.");
+    expect(initialScopeOf("CONV-4")).toBe("ADMINISTRATION");
+    expect(isAcceptedConsent("CONV-4")).toBe(true);
+    for (const other of ["CONV-0", "CONV-5", "conv-4", "", undefined, null, 4]) expect(isAcceptedConsent(other)).toBe(false);
   });
 
-  it("only the COLLABORATORS scope reaches collaborators", () => {
-    expect(scopeCoversCollaborators("COLLABORATORS")).toBe(true);
-    expect(scopeCoversCollaborators("RESPONSIBLE_ONLY")).toBe(false);
-    expect(scopeCoversCollaborators("CONV-2")).toBe(false);
+  // Rewritten for E4 (declared): `decisionVersionAccepted` and
+  // `scopeCoversCollaborators` were replaced by `coversDetail`/`coversTotals`.
+  it("E4 §4.2: only ADMINISTRATION covers the identified detail; ADMINISTRATION and TOTALS_ONLY cover the totals", () => {
+    expect(["RESPONSIBLE_ONLY", "COLLABORATORS", "ADMINISTRATION", "TOTALS_ONLY", "CONV-4", ""].map(coversDetail)).toEqual([
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+    ]);
+    expect(["RESPONSIBLE_ONLY", "COLLABORATORS", "ADMINISTRATION", "TOTALS_ONLY", ""].map(coversTotals)).toEqual([false, false, true, true, false]);
+    expect(["RESPONSIBLE_ONLY", "COLLABORATORS", "ADMINISTRATION", "TOTALS_ONLY"].map(isNewScope)).toEqual([false, false, true, true]);
   });
 });
 
@@ -120,6 +141,30 @@ describe("E2 consent decision input (P-C §10.6)", () => {
     expect(() => normalizeConsentDecision({ ...base, scope: "EVERYONE" })).toThrow();
     expect(() => normalizeConsentDecision({ ...base, consent: undefined as never })).toThrow();
     expect(() => normalizeConsentDecision({ ...base, consent: { version: "CONV-3", decided_at: "ayer" } })).toThrow();
+  });
+
+  it("E4 §4.2: accepts ADMINISTRATION and TOTALS_ONLY with their own fingerprints; ADMINISTRATION never names a responsible (400)", () => {
+    const admin = normalizeConsentDecision({ ...base, scope: "ADMINISTRATION", consent: { version: "CONV-4", decided_at: "2026-11-13T10:00:00Z" } });
+    const totals = normalizeConsentDecision({ ...base, scope: "TOTALS_ONLY", consent: { version: "CONV-4", decided_at: "2026-11-13T10:00:00Z" } });
+    expect(admin.scope).toBe("ADMINISTRATION");
+    expect(totals.scope).toBe("TOTALS_ONLY");
+    expect(admin.fingerprint).not.toBe(totals.fingerprint);
+    expect(
+      codeOf(() =>
+        normalizeConsentDecision({ ...base, scope: "ADMINISTRATION", consent: { version: "CONV-4", decided_at: "2026-11-13T10:00:00Z" }, authorize_responsible: false }),
+      ),
+    ).toBe("400 PAYLOAD_INVALID");
+    expect(
+      codeOf(() =>
+        normalizeConsentDecision({
+          ...base,
+          scope: "ADMINISTRATION",
+          consent: { version: "CONV-4", decided_at: "2026-11-13T10:00:00Z" },
+          responsible_version: 1,
+          authorize_responsible: true,
+        }),
+      ),
+    ).toBe("400 PAYLOAD_INVALID");
   });
 });
 
@@ -265,71 +310,71 @@ describe("E2 closing computation (E2-D13)", () => {
   });
 });
 
-describe("E2 visibility (E2-D7)", () => {
-  it("withholds a product total under k persons for anyone without the permission", () => {
-    expect(productTotalView(1500n, 2, false)).toEqual({
-      participant_count: 2,
-      total_quantity_base: null,
-      visibility: "UNDER_THRESHOLD",
-    });
-    expect(productTotalView(1500n, 3, false)).toEqual({
-      participant_count: 3,
-      total_quantity_base: "1500",
-      visibility: "VISIBLE",
-    });
+// Rewritten for E4 (declared): the E2-D7/E2-P1 threshold view
+// (`productTotalView`) and the E2-P3 viewers (RESPONSIBLE/COLLABORATOR/NONE)
+// were retired. The full matrix of rule T is in visibility-matrix.spec.ts.
+describe("E4 §2 and §5.2: one decision by role for detail, participants and closing", () => {
+  const admin = new CallVisibility(true);
+  const directiva = new CallVisibility(false);
+  const p = (consentScope: string) => ({ consentScope, productIds: ["p"] });
+
+  it("identified participants: only an eligible Administración, only ADMINISTRATION participations", () => {
+    expect(["ADMINISTRATION", "TOTALS_ONLY", "RESPONSIBLE_ONLY", "COLLABORATORS"].map((scope) => admin.canSeeParticipation(p(scope)))).toEqual([
+      true,
+      false,
+      false,
+      false,
+    ]);
+    expect(["ADMINISTRATION", "TOTALS_ONLY", "RESPONSIBLE_ONLY", "COLLABORATORS"].map((scope) => directiva.canSeeParticipation(p(scope)))).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
   });
 
-  it("E2-P1: live totals of an OPEN call are withheld from anyone without the permission, even at or above k", () => {
-    for (const persons of [1, 3, 10]) {
-      expect(productTotalView(1500n, persons, false, 3, true)).toEqual({
-        participant_count: persons,
+  it("pending consent is a count of the participations not covering ADMINISTRATION, the same for both roles", () => {
+    const all = [p("ADMINISTRATION"), p("TOTALS_ONLY"), p("RESPONSIBLE_ONLY"), p("COLLABORATORS")];
+    expect(admin.pendingConsentCount(all)).toBe(3);
+    expect(directiva.pendingConsentCount(all)).toBe(3);
+  });
+
+  it("rule T: one ADMINISTRATION or TOTALS_ONLY person is VISIBLE live and closed; an earlier consent makes it PENDING_CONSENT live", () => {
+    for (const viewer of [admin, directiva]) {
+      expect(viewer.productTotal(700n, 1, [p("ADMINISTRATION")], "LIVE")).toEqual({
+        participant_count: 1,
+        total_quantity_base: "700",
+        visibility: "VISIBLE",
+        totals_basis: "ROLE_CONSENT",
+      });
+      expect(viewer.productTotal(700n, 1, [p("TOTALS_ONLY")], "CLOSING").totals_basis).toBe("ROLE_CONSENT");
+      expect(viewer.productTotal(900n, 2, [p("ADMINISTRATION"), p("RESPONSIBLE_ONLY")], "LIVE")).toEqual({
+        participant_count: 2,
         total_quantity_base: null,
-        visibility: "RESPONSIBLE_ONLY",
+        visibility: "PENDING_CONSENT",
+        totals_basis: null,
       });
     }
-    expect(productTotalView(1500n, 1, true, 3, true)).toEqual({ participant_count: 1, total_quantity_base: "1500", visibility: "VISIBLE" });
   });
 
-  it("shows every total to the holder of the permission", () => {
-    expect(productTotalView(700n, 1, true)).toEqual({ participant_count: 1, total_quantity_base: "700", visibility: "VISIBLE" });
-  });
-});
-
-describe("E2-P3 visibility (§10.3): one decision for detail, participants and closing", () => {
-  const visibility = (kind: CallViewer["kind"], formerParticipantsHolder = false) =>
-    new CallVisibility({ kind, formerParticipantsHolder }, scopeCoversCollaborators);
-  const v1 = { consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true, productIds: ["p"] };
-  const v2 = { consentScope: "COLLABORATORS", authorizedForResponsible: true, productIds: ["p"] };
-
-  it("identified participants: all for the responsible, COLLABORATORS ones for a collaborator, none otherwise", () => {
-    expect([visibility("RESPONSIBLE").canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true }), visibility("RESPONSIBLE").canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: true })]).toEqual([true, true]);
-    expect([visibility("COLLABORATOR").canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true }), visibility("COLLABORATOR").canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: true })]).toEqual([false, true]);
-    expect([visibility("NONE").canSeeParticipation({ consentScope: "RESPONSIBLE_ONLY", authorizedForResponsible: true }), visibility("NONE", true).canSeeParticipation({ consentScope: "COLLABORATORS", authorizedForResponsible: true })]).toEqual([false, false]);
-    expect(visibility("COLLABORATOR").hiddenCount([v1, v2, v1])).toBe(2);
-    expect(visibility("RESPONSIBLE").hiddenCount([v1, v2])).toBe(0);
-  });
-
-  it("totals of an open call: the responsible always; a collaborator only without hidden participations; nobody else", () => {
-    expect(visibility("RESPONSIBLE").productTotal(900n, 2, [v1, v2], "LIVE")).toEqual({ participant_count: 2, total_quantity_base: "900", visibility: "VISIBLE" });
-    expect(visibility("COLLABORATOR").productTotal(900n, 2, [v2, v2], "LIVE")).toEqual({ participant_count: 2, total_quantity_base: "900", visibility: "VISIBLE" });
-    expect(visibility("COLLABORATOR").productTotal(900n, 2, [v1, v2], "LIVE")).toEqual({ participant_count: 2, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" });
-    expect(visibility("NONE").productTotal(900n, 5, [v2, v2, v2, v2, v2], "LIVE")).toEqual({ participant_count: 5, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" });
-  });
-
-  it("closing: a collaborator gets no total with a hidden participation (subtracting would reveal it); others get the threshold", () => {
-    const three = [v1, v2, v2];
-    expect(visibility("COLLABORATOR").productTotal(900n, 3, three, "CLOSING").visibility).toBe("RESPONSIBLE_ONLY");
-    expect(visibility("COLLABORATOR").productTotal(900n, 2, [v2, v2], "CLOSING").visibility).toBe("VISIBLE");
-    expect(visibility("NONE").productTotal(900n, 3, three, "CLOSING")).toEqual({ participant_count: 3, total_quantity_base: "900", visibility: "VISIBLE" });
-    expect(visibility("NONE").productTotal(900n, 2, [v2, v2], "CLOSING").visibility).toBe("UNDER_THRESHOLD");
-    expect(visibility("RESPONSIBLE").productTotal(900n, 1, [v1], "CLOSING").visibility).toBe("VISIBLE");
-  });
-
-  it("after a revocation, a former collaborator never gets the total of a product with a participation hidden from them", () => {
-    const three = [v1, v2, v2];
-    expect(visibility("NONE", true).productTotal(900n, 3, three, "CLOSING")).toEqual({ participant_count: 3, total_quantity_base: null, visibility: "RESPONSIBLE_ONLY" });
-    // Without hidden participations the threshold applies as to anyone else.
-    expect(visibility("NONE", true).productTotal(900n, 3, [v2, v2, v2], "CLOSING").visibility).toBe("VISIBLE");
+  it("rule T in a closing: 3 or more with an earlier consent → PREVIOUS_POLICY_K3 for whoever sees nobody by name, PENDING_CONSENT for an Administración who sees some", () => {
+    const mixed = [p("RESPONSIBLE_ONLY"), p("COLLABORATORS"), p("ADMINISTRATION")];
+    expect(directiva.productTotal(900n, 3, mixed, "CLOSING")).toEqual({
+      participant_count: 3,
+      total_quantity_base: "900",
+      visibility: "VISIBLE",
+      totals_basis: "PREVIOUS_POLICY_K3",
+    });
+    expect(admin.productTotal(900n, 3, mixed, "CLOSING").visibility).toBe("PENDING_CONSENT");
+    // Without anyone visible by name the Administración gets the earlier rule too.
+    expect(admin.productTotal(900n, 3, [p("RESPONSIBLE_ONLY"), p("RESPONSIBLE_ONLY"), p("TOTALS_ONLY")], "CLOSING").totals_basis).toBe(
+      "PREVIOUS_POLICY_K3",
+    );
+    // Two earlier persons at the closing: PENDING_CONSENT for both.
+    expect(directiva.productTotal(900n, 2, [p("RESPONSIBLE_ONLY"), p("RESPONSIBLE_ONLY")], "CLOSING").visibility).toBe("PENDING_CONSENT");
+    expect(admin.productTotal(900n, 2, [p("RESPONSIBLE_ONLY"), p("RESPONSIBLE_ONLY")], "CLOSING").visibility).toBe("PENDING_CONSENT");
+    // The earlier rule never applies live.
+    expect(directiva.productTotal(900n, 5, Array.from({ length: 5 }, () => p("RESPONSIBLE_ONLY")), "LIVE").visibility).toBe("PENDING_CONSENT");
   });
 });
 
