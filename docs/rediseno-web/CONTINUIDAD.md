@@ -60,3 +60,7 @@ Todos están terminados e integrados.
 - Ni Backend, ni contratos, ni permisos se cambian para parecerse a una lámina.
 - Oculto no es cero, y la Web no calcula lo que el servidor no autoriza.
 - Commits con la identidad configurada y sin trailers.
+
+## E4 (2026-11-13): acceso por rol y sin umbral
+
+La Web del rediseño v2 se adaptó al contrato E4 en la rama `feat/acceso-rol-sin-k-b` (`8d33f17`, `c9dba19`): contrato institucional 2, detalle identificado sólo para la Administración, sin gestión de permisos de visualización ni del permiso «Sustituir responsable» (su historia queda plegada y de sólo lectura), totales con la regla T y vistas colectivas y Excel con la «Política aplicada». Evidencia: `docs/evidence/E4_ACCESO_ROL_WEB_2026-11-13.md`.
