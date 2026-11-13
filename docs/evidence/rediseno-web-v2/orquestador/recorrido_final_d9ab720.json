@@ -1,0 +1,1442 @@
+[
+ {
+  "role": "directiva",
+  "asked": "/colectivo/resumen",
+  "width": 1440,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/resumen",
+  "width": 390,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/cobertura",
+  "width": 1440,
+  "path": "/colectivo/cobertura",
+  "h1": [
+   "Cobertura"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 1
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/cobertura",
+  "width": 390,
+  "path": "/colectivo/cobertura",
+  "h1": [
+   "Cobertura"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/propuestas",
+  "width": 1440,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/propuestas",
+  "width": 390,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/compras-conjuntas",
+  "width": 1440,
+  "path": "/colectivo/compras-conjuntas",
+  "h1": [
+   "Compras conjuntas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 4
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/compras-conjuntas",
+  "width": 390,
+  "path": "/colectivo/compras-conjuntas",
+  "h1": [
+   "Compras conjuntas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "width": 1440,
+  "path": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "h1": [
+   "Convocatoria de demostración para el rediseño: herbicidas y fungicidas de la campaña de invierno (sintética)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 4
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "width": 390,
+  "path": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "h1": [
+   "Convocatoria de demostración para el rediseño: herbicidas y fungicidas de la campaña de invierno (sintética)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/catalogo?vista=productos",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/catalogo?vista=productos",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/catalogo?vista=equivalencias",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=equivalencias",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 4
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/catalogo?vista=equivalencias",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=equivalencias",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/catalogo?vista=identificacion",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=identificacion",
+  "h1": [
+   "Por identificar"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/catalogo?vista=identificacion",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=identificacion",
+  "h1": [
+   "Por identificar"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/historico?vista=tendencias",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/historico?vista=tendencias",
+  "width": 390,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/historico?vista=estimacion",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 10
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/historico?vista=estimacion",
+  "width": 390,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/campaigns",
+  "width": 1440,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/campaigns",
+  "width": 390,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/campaigns/<id>",
+  "width": 1440,
+  "path": "/campaigns/<id>",
+  "h1": [
+   "Invierno 2026 (DEMO)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 3
+ },
+ {
+  "role": "directiva",
+  "asked": "/campaigns/<id>",
+  "width": 390,
+  "path": "/campaigns/<id>",
+  "h1": [
+   "Invierno 2026 (DEMO)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/audit-logs",
+  "width": 1440,
+  "path": "/audit-logs",
+  "h1": [
+   "Bitácora"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 6
+ },
+ {
+  "role": "directiva",
+  "asked": "/audit-logs",
+  "width": 390,
+  "path": "/audit-logs",
+  "h1": [
+   "Bitácora"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/users",
+  "width": 1440,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/users",
+  "width": 390,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/calendar",
+  "width": 1440,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/calendar",
+  "width": 390,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/dashboard",
+  "width": 1440,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/dashboard",
+  "width": 390,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/directiva",
+  "width": 1440,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "directiva",
+  "asked": "/directiva",
+  "width": 390,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/tendencias",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/tendencias",
+  "width": 390,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/estimacion",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 10
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/estimacion",
+  "width": 390,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 10
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/productos",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/colectivo/productos",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/estimacion/copia-sin-conexion",
+  "width": 1440,
+  "path": "/estimacion/copia-sin-conexion",
+  "h1": [
+   "Estimación guardada"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/estimacion/copia-sin-conexion",
+  "width": 390,
+  "path": "/estimacion/copia-sin-conexion",
+  "h1": [
+   "Estimación guardada"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "directiva",
+  "asked": "/ruta-que-no-existe",
+  "width": 1440,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "directiva",
+  "asked": "/ruta-que-no-existe",
+  "width": 390,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/resumen",
+  "width": 1440,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/resumen",
+  "width": 390,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/cobertura",
+  "width": 1440,
+  "path": "/colectivo/cobertura",
+  "h1": [
+   "Cobertura"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 1
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/cobertura",
+  "width": 390,
+  "path": "/colectivo/cobertura",
+  "h1": [
+   "Cobertura"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/propuestas",
+  "width": 1440,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/propuestas",
+  "width": 390,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/compras-conjuntas",
+  "width": 1440,
+  "path": "/colectivo/compras-conjuntas",
+  "h1": [
+   "Compras conjuntas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 4
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/compras-conjuntas",
+  "width": 390,
+  "path": "/colectivo/compras-conjuntas",
+  "h1": [
+   "Compras conjuntas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "width": 1440,
+  "path": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "h1": [
+   "Convocatoria de demostración para el rediseño: herbicidas y fungicidas de la campaña de invierno (sintética)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 4
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "width": 390,
+  "path": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "h1": [
+   "Convocatoria de demostración para el rediseño: herbicidas y fungicidas de la campaña de invierno (sintética)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/catalogo?vista=productos",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/catalogo?vista=productos",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/catalogo?vista=equivalencias",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=equivalencias",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 4
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/catalogo?vista=equivalencias",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=equivalencias",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/catalogo?vista=identificacion",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=identificacion",
+  "h1": [
+   "Por identificar"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/catalogo?vista=identificacion",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=identificacion",
+  "h1": [
+   "Por identificar"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/historico?vista=tendencias",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/historico?vista=tendencias",
+  "width": 390,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/historico?vista=estimacion",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 10
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/historico?vista=estimacion",
+  "width": 390,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/campaigns",
+  "width": 1440,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/campaigns",
+  "width": 390,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/campaigns/<id>",
+  "width": 1440,
+  "path": "/campaigns/<id>",
+  "h1": [
+   "Invierno 2026 (DEMO)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 3
+ },
+ {
+  "role": "admin",
+  "asked": "/campaigns/<id>",
+  "width": 390,
+  "path": "/campaigns/<id>",
+  "h1": [
+   "Invierno 2026 (DEMO)"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/audit-logs",
+  "width": 1440,
+  "path": "/audit-logs",
+  "h1": [
+   "Bitácora"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 6
+ },
+ {
+  "role": "admin",
+  "asked": "/audit-logs",
+  "width": 390,
+  "path": "/audit-logs",
+  "h1": [
+   "Bitácora"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/users",
+  "width": 1440,
+  "path": "/users",
+  "h1": [
+   "Usuarios"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 4
+ },
+ {
+  "role": "admin",
+  "asked": "/users",
+  "width": 390,
+  "path": "/users",
+  "h1": [
+   "Usuarios"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/calendar",
+  "width": 1440,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/calendar",
+  "width": 390,
+  "path": "/campaigns",
+  "h1": [
+   "Campañas"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/dashboard",
+  "width": 1440,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/dashboard",
+  "width": 390,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/directiva",
+  "width": 1440,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "admin",
+  "asked": "/directiva",
+  "width": 390,
+  "path": "/colectivo/propuestas",
+  "h1": [
+   "Borrador de compra"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 8
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/tendencias",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/tendencias",
+  "width": 390,
+  "path": "/colectivo/historico?vista=tendencias",
+  "h1": [
+   "Histórico sellado"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/estimacion",
+  "width": 1440,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 10
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/estimacion",
+  "width": 390,
+  "path": "/colectivo/historico?vista=estimacion",
+  "h1": [
+   "Estimación del consumo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 10
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/productos",
+  "width": 1440,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/colectivo/productos",
+  "width": 390,
+  "path": "/colectivo/catalogo?vista=productos",
+  "h1": [
+   "Catálogo"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/estimacion/copia-sin-conexion",
+  "width": 1440,
+  "path": "/estimacion/copia-sin-conexion",
+  "h1": [
+   "Estimación guardada"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/estimacion/copia-sin-conexion",
+  "width": 390,
+  "path": "/estimacion/copia-sin-conexion",
+  "h1": [
+   "Estimación guardada"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "admin",
+  "asked": "/ruta-que-no-existe",
+  "width": 1440,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "admin",
+  "asked": "/ruta-que-no-existe",
+  "width": 390,
+  "path": "/colectivo/resumen",
+  "h1": [
+   "Resumen de la campaña"
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 2
+ },
+ {
+  "role": "agricultor",
+  "asked": "/colectivo/resumen",
+  "width": 1440,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "agricultor",
+  "asked": "/colectivo/resumen",
+  "width": 390,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "agricultor",
+  "asked": "/campaigns",
+  "width": 1440,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "agricultor",
+  "asked": "/campaigns",
+  "width": 390,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "agricultor",
+  "asked": "/users",
+  "width": 1440,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "agricultor",
+  "asked": "/users",
+  "width": 390,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "agricultor",
+  "asked": "/calendar",
+  "width": 1440,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ },
+ {
+  "role": "agricultor",
+  "asked": "/calendar",
+  "width": 390,
+  "path": "/sin-acceso-web",
+  "h1": [
+   "Esta cuenta utiliza la aplicación móvil."
+  ],
+  "overflow": 0,
+  "login": false,
+  "errors": [],
+  "writes": [],
+  "failed": [],
+  "calls": 0
+ }
+]

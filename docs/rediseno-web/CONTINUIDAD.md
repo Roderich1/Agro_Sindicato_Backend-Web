@@ -40,10 +40,11 @@ Todos están terminados e integrados.
   - Con StrictMode, un efecto que consuma un parámetro de la URL lo pierde en la segunda ejecución (V-1).
 
 ## Estado
-- **Código verificado:** `1b7fbb4`.
-  - Comprobaciones: `tsc`, `eslint` (0 errores), `build`, `vitest` 706/706.
+- **Código verificado:** `d9ab720`.
+  - Comprobaciones: `tsc`, `eslint` (0 errores), `build`, `vitest` 708/708.
   - Recorrido 96/96.
-  - V-1…V-5 y D6 corregidos.
+  - V-1…V-5, D5, D6 y D12 corregidos.
+  - Los estados sin datos están capturados como simulados.
 - **Pendiente del autor:**
   - la aceptación;
   - las decisiones H-10, H-11 y H-08;

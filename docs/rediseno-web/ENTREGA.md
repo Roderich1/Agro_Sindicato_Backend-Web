@@ -7,7 +7,7 @@
 ## 1. Rama y composición
 - **Rama de integración:** `feat/web-rediseno-v2`, en el worktree `_wt/WEB2-INT`.
   - Es local: sin push, sin PR, sin fusión a main y sin despliegue.
-  - **Código probado: `1b7fbb4`.** Los commits posteriores sólo añaden documentación y evidencia.
+  - **Código probado: `d9ab720`** (último cambio de código: `1e295a9`). Los commits posteriores sólo añaden documentación y evidencia.
 - **Base:** `e8a440f`, es decir, `chore/web-solo-institucional` `cff4fbd` más la documentación `1f529b7`. Contiene:
   - la Web limpia, sin vistas del agricultor, sin `directiva.page` y sin Calendario;
   - las etapas 1–3, P-A y Excel;
@@ -21,6 +21,7 @@
   | C | `ed048cd`, `dae88df` |
   | B | `284174a`, `d6485b9` |
   | A | `e02972f`, `06283da`, `1b7fbb4` |
+| Correcciones menores de C (D5, D12) | `d9ab720` |
   | Uniones y correcciones del orquestador | `016b0d3`, `5c6f867`, `690cbfa` |
   | Verificación | `1483b78` |
 
@@ -53,15 +54,15 @@ Las 51 láminas están implementadas. Las que no tienen captura con la API real 
 
 Capturas por área: `docs/evidence/rediseno-web-v2/{base,a,b,c,verificacion,orquestador}/`, cada carpeta con su README.
 
-## 5. Pruebas sobre el código final `1b7fbb4`
+## 5. Pruebas sobre el código final `d9ab720`
 
 | Comprobación | Resultado |
 |---|---|
 | `npx tsc -b` | sin errores |
 | `npx eslint .` | 0 errores; 7 avisos, los mismos de la base |
 | `npx vite build` | correcto; el service worker precachea las 5 fuentes |
-| `npx vitest run --no-file-parallelism` | **69 archivos, 706/706** (la base tenía 589) |
-| Recorrido del orquestador, `recorrido_o.mjs` con la API real | Directiva, Administración y Agricultor, 22 rutas, a 1440 y 390 px: **96 comprobaciones sin observaciones**. Sin errores de consola, llamadas fallidas, escrituras al cargar ni desplazamiento horizontal. Las redirecciones antiguas funcionan y el agricultor sólo ve el aviso (`orquestador/recorrido_final_1b7fbb4.json`) |
+| `npx vitest run --no-file-parallelism` | **69 archivos, 708/708** (la base tenía 589) |
+| Recorrido del orquestador, `recorrido_o.mjs` con la API real | Directiva, Administración y Agricultor, 22 rutas, a 1440 y 390 px: **96 comprobaciones sin observaciones**. Sin errores de consola, llamadas fallidas, escrituras al cargar ni desplazamiento horizontal. Las redirecciones antiguas funcionan y el agricultor sólo ve el aviso (`orquestador/recorrido_final_d9ab720.json`) |
 | Verificación con escritura, API real, sobre `06283da` | Está en `verificacion/README.md`: |
 | | • **Acceso por rol:** el agricultor ve sólo el aviso, sin llamadas de datos. |
 | | • **Excel:** 4 archivos XLSX válidos y ninguna opción CSV. |
@@ -120,17 +121,16 @@ Todas están documentadas con detalle en los README de evidencia de cada sesión
    - **H-10:** no se destaca el máximo del Histórico y se añade la cobertura de cada campaña.
    - **H-11:** «Responsable no habilitada» sólo en el detalle.
    - **H-08:** registrar más acciones en la Bitácora exige cambiar el Backend, fuera de este encargo.
-2. **Estados sin captura con la API real, por falta de datos;** cubiertos por pruebas:
-   - Resumen 05 §2–§5, §10, §11 y §12;
-   - el sellado 30.3;
-   - productos inactivos;
-   - la campaña cerrada sin sellar;
-   - U.8 (sin campaña activa);
-   - la foto real (33.5), que no se captura por ser privada.
+2. **Estados sin datos en la API real:** capturados con respuestas **simuladas**, con «SIMULADO» en el nombre y fixtures de las propias pruebas, sin campos inventados (`verificacion/simulados/`):
+   - Resumen 05 §2–§5, §10, §11 y §12 (seis estados de la referencia);
+   - el diálogo de sellado 30.3, sin ningún envío;
+   - U.8;
+   - productos inactivos.
+
+   Siguen sin imagen sólo 05 §6 («sin conexión», cubierto por pruebas) y la foto real (33.5), que es privada.
 3. **Mejoras menores anotadas en `comparativas/README.md`:**
-   - D5: recuentos de las pestañas del catálogo en teléfono;
+   - D5 (recuentos de las pestañas del catálogo) y D12 («Se muestran N de M»): **corregidos** en `1e295a9`;
    - D10: la responsable empieza en «Seleccione…»; elegirse a sí misma sigue siendo explícito;
-   - D12: «Se muestran N de M» sólo con filtro;
    - el anillo de foco en el segundo subcampo de `datetime-local`, que es nativo del navegador.
 4. **Ni teléfono físico ni lector de pantalla real.**
 5. **Sin fusión a main ni despliegue:** necesitan su autorización.
