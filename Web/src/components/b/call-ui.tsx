@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import {
-  accessRules,
+  ACCESS_RULES,
   AUTO_CLOSED_EVENT_LABEL,
   CALL_EVENT_LABEL,
   fmtWhen,
   PARTICIPATION_STATUS_LABEL,
+  PENDING_CONSENT_TOTAL_TEXT,
   quantityText,
   SYSTEM_ACTOR,
   totalState,
@@ -64,25 +65,23 @@ export function LockLine({ children, icon = 'lock', testId }: { children: ReactN
 }
 
 /**
- * Total de un producto (05 §13): la cifra sólo con `VISIBLE`; si no, el chip
- * punteado con el texto del estado y, si ayuda, su motivo. Nunca 0.
- * `hidden`: el `RESPONSIBLE_ONLY` se debe a participaciones ocultas para quien
- * consulta (§10.3), no a la regla de la convocatoria abierta (E2-P1).
+ * Total de un producto (05 §13 con la regla T de E4 §5.2): la cifra sólo con
+ * `VISIBLE`, con cualquier número de personas; con `PREVIOUS_POLICY_K3`, una
+ * línea dice que es la regla anterior. Con `PENDING_CONSENT`, el chip punteado
+ * «Pendiente de autorización» y su motivo, nunca un 0. El total no depende de
+ * quién consulta en vivo; el servidor decide en cada consulta.
  */
 export function CallTotal({
   total,
   baseUnit,
-  threshold,
-  hidden = false,
   open = false,
 }: {
   total: JointPurchaseCallProductTotal;
   baseUnit: BaseUnit;
-  threshold: number;
-  hidden?: boolean;
   /** Convocatoria abierta: sin personas todavía se dice «Sin pedidos todavía». */
   open?: boolean;
 }) {
+  const state = totalState(total);
   if (total.visibility === 'VISIBLE' && total.total_quantity_base !== null) {
     if (open && total.participant_count === 0)
       return (
@@ -90,13 +89,21 @@ export function CallTotal({
           Sin pedidos todavía
         </Chip>
       );
-    return <QuantityFigure text={quantityText(total.total_quantity_base, baseUnit)} className="sm:text-4xl" />;
+    const figure = <QuantityFigure text={quantityText(total.total_quantity_base, baseUnit)} className="sm:text-4xl" />;
+    if (!state.note) return figure;
+    return (
+      <span className="inline-flex max-w-full flex-col items-end gap-1 text-right">
+        {figure}
+        <span className="text-xs text-ink-muted" data-testid="total-basis-note">
+          {state.note}
+        </span>
+      </span>
+    );
   }
-  const state = totalState(total.visibility, threshold, hidden);
   return (
     <span className="inline-flex max-w-full flex-col items-end gap-1 text-right">
       <Chip tone="hidden" icon={ICON.lock} size="md">
-        <span data-testid="hidden-total">{state.label}</span>
+        <span data-testid="hidden-total">{state.label ?? PENDING_CONSENT_TOTAL_TEXT}</span>
       </Chip>
       {state.note && <span className="text-xs text-ink-muted">{state.note}</span>}
     </span>
@@ -167,8 +174,8 @@ export interface ParticipantEntry {
 type ParticipantRow = { participant: ParticipantEntry; line: JointPurchaseParticipantLine | null };
 
 /**
- * Nombres y cantidades por persona (láminas 11, 12 y 38): sólo con el permiso
- * del servidor. Una fila por producto pedido (el nombre se repite, como en la
+ * Nombres y cantidades por persona (láminas 11, 12 y 38): sólo para la
+ * Administración, con lo que envía el servidor (E4 §2). Una fila por producto pedido (el nombre se repite, como en la
  * lámina 12); en teléfono, `DataTable` apila cada fila con sus encabezados.
  * Nada de correo ni otros datos: sólo lo que envía `/participants` o `/closing`.
  */
@@ -204,8 +211,8 @@ export function ParticipantsTable({ caption, participants, productName }: { capt
   );
 }
 
-/** «Cómo funciona el acceso» (láminas 10–20): texto fijo y plegable, sin animación. */
-export function AccessRules({ threshold }: { threshold: number }) {
+/** «Cómo funciona el acceso» (láminas 10–20, E4 §2): texto fijo y plegable, sin animación. */
+export function AccessRules() {
   return (
     <details className="group border-t border-line pt-1" data-testid="access-rules">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-2 text-base font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
@@ -214,7 +221,7 @@ export function AccessRules({ threshold }: { threshold: number }) {
         <Icon d={ICON.chevronUp} className="hidden h-5 w-5 group-open:block" />
       </summary>
       <ul className="list-disc space-y-2 pb-2 pl-5 text-sm leading-relaxed text-ink">
-        {accessRules(threshold).map((rule) => (
+        {ACCESS_RULES.map((rule) => (
           <li key={rule.term}>
             <strong>{rule.term}</strong>: {rule.text}
           </li>

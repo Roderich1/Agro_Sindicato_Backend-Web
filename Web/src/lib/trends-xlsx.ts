@@ -28,6 +28,7 @@ import {
   yesNoCell,
   zoneLabel,
 } from './xlsx-common';
+import { policyText } from './collective-text';
 import { buildXlsx, type XlsxCell, type XlsxSheet } from './xlsx-writer';
 import type { CollectiveTrends, ProjectionType, TrendCampaign } from '../types/collective';
 import type { BuiltXlsx } from './collective-summary-xlsx';
@@ -50,7 +51,9 @@ export function trendsXlsxFileName(type: ProjectionType): string {
 }
 
 function campaignLine(campaign: TrendCampaign): string {
-  const seal = campaign.seal ? `versión ${campaign.seal.version} sellada` : 'sin sellar (no aporta cifras)';
+  const seal = campaign.seal
+    ? `versión ${campaign.seal.version} sellada con ${policyText(campaign.seal.policy, campaign.seal.threshold)}`
+    : 'sin sellar (no aporta cifras)';
   const coverage = campaign.coverage ? `, ${campaign.coverage.members_with_contribution} de ${campaign.coverage.linked_members} con cifras publicadas` : '';
   return `${campaign.name}: ${campaignStatusText(campaign.status)}, ${seal}${coverage}`;
 }
@@ -75,9 +78,8 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
       ...trends.campaigns.map((campaign) => ({ label: campaign.seal ? 'Campaña sellada' : 'Campaña sin sellar', value: text(campaignLine(campaign), 'wrap') })),
       { label: 'Productos con serie', value: text(pending ? 'Sin cifras: política pendiente.' : String(trends.series.length)) },
       ...(pending ? [{ label: 'Cifras', value: text('La política de divulgación no está aprobada: no se exporta ninguna cifra.', 'warn') }] : []),
-      ...(trends.disclosure.threshold !== null
-        ? [{ label: 'Umbral de privacidad', value: text(`${trends.disclosure.threshold} agricultores como mínimo por cifra publicada`) }]
-        : []),
+      // E4 §3.4: «Política aplicada» en lugar de «Umbral de privacidad»; cada campaña sellada conserva la suya.
+      { label: 'Política aplicada', value: text(`Cada campaña sellada, la suya (columna «Política al sellar» de «Campañas»). Configurada ahora: ${policyText(trends.disclosure.policy, trends.disclosure.threshold)}.`, 'wrap') },
       { label: 'Aviso del servidor', value: text(trends.notice, 'wrap') },
       { label: `Exportado el (${zone})`, value: dateCell(exportedAt.toISOString(), offset) },
     ],
@@ -105,7 +107,7 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
               presentation: point.total_presentation,
               baseUnit: line.base_unit,
               presentationUnit: line.presentation_unit,
-              threshold: trends.disclosure.threshold,
+              threshold: campaign.seal?.threshold ?? null,
             }).cell;
           }),
         ];
@@ -136,6 +138,7 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
     'Referencia de la versión sellada',
   ];
   const sealOf = new Map(trends.campaigns.map((campaign) => [campaign.campaign_ref, campaign.seal?.seal_ref ?? null]));
+  const thresholdOf = new Map(trends.campaigns.map((campaign) => [campaign.campaign_ref, campaign.seal?.threshold ?? null]));
   const detailRows: XlsxCell[][] = pending
     ? []
     : trends.series.flatMap((line) =>
@@ -147,7 +150,7 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
             baseUnit: line.base_unit,
             presentationUnit: line.presentation_unit,
             pending: point.pending_changes,
-            threshold: trends.disclosure.threshold,
+            threshold: thresholdOf.get(point.campaign_ref) ?? null,
           });
           const disclosed = point.status === 'DISCLOSED';
           return [
@@ -188,13 +191,14 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
       'Inicio (día de calendario)',
       'Versión sellada',
       `Sellada el (${zone})`,
+      'Política al sellar',
       'Agricultores vinculados',
       'Con cifras publicadas',
       'Filas sin cifra',
       'Referencia de la campaña',
       'Referencia de la versión sellada',
     ],
-    widths: [30, 16, 20, 12, 20, 14, 14, 12, 38, 38],
+    widths: [30, 16, 20, 12, 20, 34, 14, 14, 12, 38, 38],
     rows: trends.campaigns.map((campaign): XlsxCell[] => [
       text(campaign.name, 'strong'),
       text(campaignStatusText(campaign.status)),
@@ -202,6 +206,7 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
       /^\d{4}-\d{2}-\d{2}/.test(campaign.start_date) ? text(campaign.start_date.slice(0, 10)) : null,
       campaign.seal ? integerCell(campaign.seal.version) : text('Sin sellar', 'warn'),
       campaign.seal ? dateCell(campaign.seal.sealed_at, offset) : null,
+      campaign.seal ? text(policyText(campaign.seal.policy, campaign.seal.threshold), 'wrap') : null,
       campaign.coverage ? integerCell(campaign.coverage.linked_members) : null,
       campaign.coverage ? integerCell(campaign.coverage.members_with_contribution) : null,
       yesNoCell(campaign.coverage?.suppressed_cells),

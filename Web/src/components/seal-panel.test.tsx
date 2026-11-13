@@ -38,7 +38,10 @@ describe('Panel de sellado', () => {
     expect(panel.textContent).toMatch(/se sellará ese valor anterior/);
     expect(panel.textContent).toMatch(/filas no tienen cifra/);
     expect(panel.textContent).toMatch(/no puede asegurar que todos los teléfonos publicaron todo/);
-    expect(panel.textContent).toMatch(/no habilita cifras reales, no da permisos nuevos de lectura y no hace anónimos/);
+    // E4: sin «anónimo»; se dice «datos agregados, sin nombres» y que la versión guarda su política.
+    expect(panel.textContent).toMatch(/no habilita cifras reales y no da permisos nuevos de lectura\. Las cifras son datos agregados, sin nombres/);
+    expect(panel.textContent).toMatch(/guarda la política con que se decidieron/);
+    expect(panel.textContent).not.toMatch(/anónim|bajo el umbral/i);
     expect(collectiveService.seal).not.toHaveBeenCalled();
   });
 

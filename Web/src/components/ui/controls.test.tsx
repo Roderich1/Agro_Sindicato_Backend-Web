@@ -83,7 +83,8 @@ describe('Chips', () => {
     );
     expect(screen.getByTestId('c').textContent).toBe('Datos sintéticos');
     const privacy = screen.getByTestId('p');
-    expect(privacy.textContent).toBe('Oculta por privacidad');
+    // E4 §5.1: texto por defecto con la política que produce el estado (antes «Oculta por privacidad»).
+    expect(privacy.textContent).toBe('Sin cifra (F07-POL-01)');
     expect(privacy.className).toContain('ui-dashed');
     expect(container.querySelectorAll('svg[aria-hidden="true"]').length).toBe(1);
   });

@@ -160,7 +160,8 @@ describe('exportador Compra conjunta (.xlsx)', () => {
     const r2 = rowOf(need, 'Herbicida sintético');
     expect(need.cells.get(`B${r2}`)).toMatchObject({ type: 'n', value: '11.5' });
     expect(numFmtOf(need.cells.get(`B${r2}`)!.style)).toBe('#,##0.0');
-    expect(need.cells.get(`E${r2}`)!.value).toContain('cambios recibidos que aún no alcanzan el umbral');
+    // E4: el aviso de cifra anterior ya no habla de «umbral».
+    expect(need.cells.get(`E${r2}`)!.value).toContain('cambios recibidos que todavía no se publican');
 
     const r3 = rowOf(need, 'Adherente sintético');
     expect(need.cells.get(`B${r3}`)).toMatchObject({ type: 'n', value: '0.025' });
@@ -175,8 +176,9 @@ describe('exportador Compra conjunta (.xlsx)', () => {
     expect(need.cells.has(`B${r}`)).toBe(false);
     expect(need.cells.has(`F${r}`)).toBe(false);
     expect(need.cells.has(`G${r}`)).toBe(false);
-    expect(need.cells.get(`D${r}`)!.value).toBe('Oculto por privacidad');
-    expect(need.cells.get(`E${r}`)!.value).toContain('la cifra no se publica para no revelar aportes individuales');
+    // E4 §5.1: el borrador anterior conserva la línea sin cifra, rotulada con la política que la produjo (sin «privacidad»).
+    expect(need.cells.get(`D${r}`)!.value).toBe('Sin cifra (F07-POL-01)');
+    expect(need.cells.get(`E${r}`)!.value).toContain('Sin cifra según la política F07-POL-01 (mínimo de 3 aportantes)');
     // Un cero publicado sí es un cero.
     const zero = rowOf(need, 'Cero sintético');
     expect(need.cells.get(`B${zero}`)).toMatchObject({ type: 'n', value: '0' });

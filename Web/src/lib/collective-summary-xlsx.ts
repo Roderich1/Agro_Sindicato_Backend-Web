@@ -28,6 +28,7 @@ import {
   yesNoCell,
   zoneLabel,
 } from './xlsx-common';
+import { policyText, SMALL_GROUP_NOTE } from './collective-text';
 import { buildXlsx, type XlsxCell } from './xlsx-writer';
 import type { CollectiveSummary, SummaryCell } from '../types/collective';
 
@@ -44,9 +45,12 @@ export interface BuiltXlsx {
 
 function counts(cells: SummaryCell[]): string {
   const published = cells.filter((cell) => cell.status === 'DISCLOSED').length;
-  const privacy = cells.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
-  const other = cells.length - published - privacy;
-  return `${published} con cifra publicada · ${privacy} ${privacy === 1 ? 'oculto' : 'ocultos'} por privacidad · ${other} sin cifra publicada`;
+  const previous = cells.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
+  const other = cells.length - published - previous;
+  // E4 §5.1: el estado de la política F07-POL-01 sólo se cuenta si aparece (lo sellado o decidido con ella).
+  return previous > 0
+    ? `${published} con cifra publicada · ${previous} sin cifra por la política F07-POL-01 · ${other} sin cifra publicada`
+    : `${published} con cifra publicada · ${other} sin cifra publicada`;
 }
 
 function rowsOf(cells: SummaryCell[], threshold: number | null, offset: number): XlsxCell[][] {
@@ -105,7 +109,7 @@ export function buildSummaryXlsx(input: SummaryXlsxInput): BuiltXlsx {
   const cover = coverSheet({
     name: 'Resumen',
     title: `Resumen colectivo · ${summary.campaign.name}`,
-    subtitle: 'Cifras publicadas por el servidor según la política de divulgación F07-POL-01. Necesidad declarada y consumo publicado son datos distintos: no se restan ni se comparan.',
+    subtitle: `Cifras publicadas por el servidor según la política de divulgación ${summary.disclosure.policy}. Son datos agregados, sin nombres. Necesidad declarada y consumo publicado son datos distintos: no se restan ni se comparan.`,
     fields: [
       { label: 'Campaña', value: text(summary.campaign.name, 'strong') },
       { label: 'Referencia de la campaña', value: refCell(summary.campaign.campaign_ref) },
@@ -121,7 +125,9 @@ export function buildSummaryXlsx(input: SummaryXlsxInput): BuiltXlsx {
       { label: 'Necesidad declarada', value: text(pending ? 'Sin cifras: política pendiente.' : `${needs.length} productos: ${counts(needs)}.`, 'wrap') },
       { label: 'Consumo publicado', value: text(pending ? 'Sin cifras: política pendiente.' : consumption.length === 0 ? 'Sin consumo publicado en esta campaña. No significa cero.' : `${consumption.length} productos: ${counts(consumption)}.`, 'wrap') },
       ...(pending ? [{ label: 'Cifras', value: text('La política de divulgación no está aprobada: no se exporta ninguna cifra.', 'warn') }] : []),
-      ...(summary.disclosure.threshold !== null ? [{ label: 'Umbral de privacidad', value: text(`${summary.disclosure.threshold} agricultores como mínimo por cifra publicada`) }] : []),
+      // E4 §5.1: «Política aplicada» en lugar de «Umbral de privacidad»; en una campaña sellada, la del sellado.
+      { label: summary.seal ? 'Política aplicada al sellar' : 'Política aplicada', value: text(policyText(summary.disclosure.policy, summary.disclosure.threshold), 'wrap') },
+      ...(summary.disclosure.policy === 'F07-POL-02' ? [{ label: 'Totales con pocas personas', value: text(SMALL_GROUP_NOTE, 'wrap') }] : []),
       { label: `Exportado el (${zone})`, value: dateCell(exportedAt.toISOString(), offset) },
     ],
     howToRead: [

@@ -2,13 +2,13 @@ import axios from 'axios';
 import { useCallback, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
-import { DisclosureNotice, Fingerprint } from '../components/collective-ui';
+import { DisclosureNotice, Fingerprint, PolicyLine } from '../components/collective-ui';
 import { Figure } from '../components/estimation-figure';
 import { ExportButtons } from '../components/export-buttons';
 import { Button, CampaignPill, Card, Chip, DataState, DataTable, ICON, Icon, Notice, PageHeader, PrivacyChip, statusChipLabel, surfaceClass, Tabs } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
-import { collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
+import { collectiveError, fmtDateTime, PENDING_CHANGES_TEXT, policyText, statusReason } from '../lib/collective-text';
 import { formatBaseValue, formatDecimalQuantity, formatQuantity, formatRoundedEstimate } from '../lib/quantity';
 import { prepareCallPath } from '../lib/joint-purchase-call-text';
 import { reportDisclosureMode } from '../lib/data-mode';
@@ -687,6 +687,8 @@ function ProposalDetail(props: DetailProps) {
         <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
           <div className="space-y-1 px-5 pt-4 sm:px-8">
             <LinesSummary lines={proposal.lines} />
+            {/* E4 §4.4: el borrador conserva la política con que se generó. */}
+            {proposal.disclosure.mode === 'PROVISIONAL_SYNTHETIC' && <PolicyLine policy={proposal.disclosure.policy} threshold={null} testId="proposal-policy" />}
             {messages.shared && (
               <p className="text-sm text-ink-muted" data-testid="comparison-note">
                 {messages.shared}
@@ -775,7 +777,7 @@ function ProductNote({ line }: { line: ProposalLine }) {
   if (line.status === 'DISCLOSED') {
     return line.pending_changes ? (
       <p className="mt-0.5 text-sm text-ink-muted">
-        Cifra anterior: hay cambios sin publicar<span className="sr-only">. Hay cambios recibidos que aún no alcanzan el umbral: se muestra la cifra anterior.</span>
+        Cifra anterior: hay cambios sin publicar<span className="sr-only">. {PENDING_CHANGES_TEXT}</span>
       </p>
     ) : null;
   }
@@ -803,7 +805,7 @@ function NeedCell({ line }: { line: ProposalLine }) {
       )}
       {!disclosed && (
         <span className="block text-sm leading-snug text-ink-muted">
-          {line.status === 'SUPPRESSED_UNDER_THRESHOLD' ? 'Menos aportantes que el umbral de privacidad.' : statusReason(line.status)}
+          {statusReason(line.status)}
         </span>
       )}
       {disclosed && <span className="block text-xs text-ink-muted">datos hasta {fmtDateTime(line.data_as_of)}</span>}
@@ -1503,7 +1505,7 @@ function CalculationDetails({ view, proposal }: { view: EstimationLinkView; prop
             </dd>
             <dt className="text-ink-muted">Política aplicada</dt>
             <dd>
-              {run.disclosure.policy} · {run.disclosure.mode} · umbral {run.disclosure.threshold}
+              {policyText(run.disclosure.policy, run.disclosure.threshold)} · {run.disclosure.mode}
             </dd>
             <dt className="text-ink-muted">Ejecución</dt>
             <dd>

@@ -113,14 +113,14 @@ export function SealPanel({
         <li>Datos aceptados hasta el {fmtDateTime(review.accepted_until)}.</li>
         {review.open_disputes && <li>Hay aportes en conflicto sin resolver: no cuentan en las cifras y no se incorporarán después.</li>}
         {review.pending_changes && <li>Hay cifras que muestran un valor anterior con cambios pendientes: se sellará ese valor anterior.</li>}
-        {review.cells_without_figure && <li>Algunas filas no tienen cifra (bajo el umbral o en revisión) y quedarán así en la versión sellada.</li>}
+        {review.cells_without_figure && <li>Algunas filas no tienen cifra (por la política aplicada, en revisión o retiradas) y quedarán así en la versión sellada.</li>}
       </ul>
       <details className="group text-sm text-ink-muted">
         <summary className="cursor-pointer font-semibold text-link underline underline-offset-2">Qué significa sellar</summary>
         <ul className="mt-2 list-disc space-y-1 pl-5 leading-relaxed">
           <li>
             Sellar fija una versión identificable de estos resultados para consultas históricas. No reabre ni cambia la campaña, no
-            habilita cifras reales, no da permisos nuevos de lectura y no hace anónimos los datos. Después de sellar no hay corrección
+            habilita cifras reales y no da permisos nuevos de lectura. Las cifras son datos agregados, sin nombres, y la versión guarda la política con que se decidieron. Después de sellar no hay corrección
             ni nueva versión en este sistema.
           </li>
           <li>

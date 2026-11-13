@@ -29,7 +29,7 @@ export type XlsxStyle =
   | 'subtitle'
   /** Estado favorable («Publicado», «Vigente»). */
   | 'ok'
-  /** Estado que pide atención («Oculto por privacidad», «Datos insuficientes»). */
+  /** Estado que pide atención («Sin cifra (F07-POL-01)», «Datos insuficientes»). */
   | 'warn'
   /** El mismo aviso que `warn`, pero alineado a la izquierda y con ajuste de línea (textos largos de portada). */
   | 'warnText'

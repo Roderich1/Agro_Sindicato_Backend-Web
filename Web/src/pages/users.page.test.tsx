@@ -17,7 +17,7 @@ vi.mock('../services/users.service', () => ({
   deactivateUser: vi.fn(),
 }));
 vi.mock('../services/joint-purchase-calls.service', () => ({
-  jointPurchaseCallsService: { substitutionPermissions: vi.fn(), eligibleResponsibles: vi.fn(), grantSubstitution: vi.fn(), revokeSubstitution: vi.fn() },
+  jointPurchaseCallsService: { substitutionPermissionsHistory: vi.fn(), eligibleResponsibles: vi.fn() },
 }));
 
 /** Usuarios (láminas 31, 33.1–33.3, 34.6 y 44). Datos sintéticos; `u-1` es la sesión (ver `test/render`). */
@@ -52,7 +52,14 @@ describe('Usuarios (Administración)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(listUsers).mockResolvedValue(USERS);
-    vi.mocked(jointPurchaseCallsService.substitutionPermissions).mockResolvedValue({ contractVersion: 1, can_grant: true, holds_permission: false, holders: [], history: [] });
+    vi.mocked(jointPurchaseCallsService.substitutionPermissionsHistory).mockResolvedValue({
+      contractVersion: 2,
+      retired_at: '2026-11-13T18:00:00.000Z',
+      notice: 'Ya no se usa: sustituye la Administración habilitada',
+      can_grant: false,
+      holders: [],
+      history: [],
+    });
   });
 
   it('lista las cuentas con «(usted)», rol y estado; recuentos por rol y búsqueda en el navegador', async () => {
@@ -71,9 +78,20 @@ describe('Usuarios (Administración)', () => {
     expect(screen.getByTestId('users-shown').textContent).toBe('Se muestran 2 de 4.');
     fireEvent.change(screen.getByLabelText('Buscar usuario'), { target: { value: 'INACTIVA' } });
     expect(screen.getAllByRole('listitem').filter((li) => li.dataset.testid?.startsWith('user-'))).toHaveLength(1);
-    // El permiso «Sustituir responsable» va en la misma vista (U.4).
-    await waitFor(() => expect(jointPurchaseCallsService.substitutionPermissions).toHaveBeenCalled());
-    expect(screen.getByTestId('substitution-permissions')).toBeTruthy();
+    // Reescrito por E4 §3.2: en lugar del panel de gestión del permiso «Sustituir responsable» (U.4), su historia
+    // plegada y de sólo lectura; no se pide al servidor hasta desplegarla y no tiene controles.
+    const history = screen.getByTestId('substitution-history');
+    expect(history.tagName).toBe('DETAILS');
+    expect((history as HTMLDetailsElement).open).toBe(false);
+    expect(screen.queryByTestId('substitution-permissions')).toBeNull();
+    expect(screen.queryByTestId('substitution-grant-button')).toBeNull();
+    expect(within(history).queryAllByRole('button')).toHaveLength(0);
+    expect(jointPurchaseCallsService.substitutionPermissionsHistory).not.toHaveBeenCalled();
+    (history as HTMLDetailsElement).open = true;
+    fireEvent(history, new Event('toggle'));
+    await waitFor(() => expect(jointPurchaseCallsService.substitutionPermissionsHistory).toHaveBeenCalledTimes(1));
+    expect(await within(history).findByTestId('substitution-holders-empty')).toBeTruthy();
+    expect(within(history).queryAllByRole('button')).toHaveLength(0);
   });
 
   it('nadie se desactiva a sí mismo ni se quita el rol de administrador', async () => {

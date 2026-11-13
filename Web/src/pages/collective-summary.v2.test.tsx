@@ -55,7 +55,8 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
     expect(within(hero).getByRole('button', { name: 'Actualizar' })).toBeTruthy();
     expect(within(hero).getByRole('button', { name: 'Descargar Excel' })).toBeTruthy();
     expect(screen.getByTestId('needs-published').textContent).toBe('Necesidades publicadas2 productos');
-    expect(screen.getByTestId('needs-hidden').textContent).toBe('Ocultas por privacidad1 producto');
+    // E4 §5.1: el indicador nombra la política (antes «Ocultas por privacidad»).
+    expect(screen.getByTestId('needs-hidden').textContent).toBe('Sin cifra (F07-POL-01)1 producto');
     expect(screen.getByTestId('needs-other').textContent).toBe('Sin cifra publicada1 producto');
     expect(collectiveService.seal).not.toHaveBeenCalled();
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
@@ -87,7 +88,8 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
     vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith(CELLS));
     show();
     await screen.findByTestId('cell-DECLARED_NEED-Urea-G');
-    fireEvent.click(screen.getByRole('button', { name: 'Ocultas' }));
+    // E4: el filtro de filas sin cifra se llama «Sin cifra» (antes «Ocultas»); filtra lo mismo.
+    fireEvent.click(screen.getByRole('button', { name: 'Sin cifra' }));
     expect(screen.queryByTestId('cell-DECLARED_NEED-Urea-G')).toBeNull();
     expect(screen.getByTestId('cell-DECLARED_NEED-Belator-ML')).toBeTruthy();
     expect(screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML')).toBeTruthy();

@@ -143,6 +143,8 @@ const SEALED: SealRef = {
   sealed_at: '2025-05-20T16:30:00.000Z',
   accepted_until: '2025-05-20T16:30:00.000Z',
   sealed_by: { user_ref: 'u-long', name: LONG_AUTHOR, role: 'DIRECTIVA' },
+  policy: 'F07-POL-01',
+  threshold: 3,
 };
 
 /**

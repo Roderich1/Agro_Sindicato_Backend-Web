@@ -1,10 +1,9 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  RESPONSIBLE_ONLY_HIDDEN_TEXT,
-  RESPONSIBLE_ONLY_OPEN_TEXT,
-  RESTRICTED_TOTAL_TEXT,
-  UNDER_THRESHOLD_TEXT,
+  PENDING_CONSENT_TOTAL_NOTE,
+  PENDING_CONSENT_TOTAL_TEXT,
+  PREVIOUS_POLICY_TOTAL_NOTE,
 } from '../../lib/joint-purchase-call-text';
 import type { JointPurchaseCallEvent, JointPurchaseCallProductTotal } from '../../types/joint-purchase-calls';
 import { ActivityTimeline, CallTotal } from './call-ui';
@@ -14,31 +13,47 @@ afterEach(cleanup);
 const total = (over: Partial<JointPurchaseCallProductTotal>): JointPurchaseCallProductTotal => ({
   participant_count: 3,
   total_quantity_base: null,
-  visibility: 'RESPONSIBLE_ONLY',
+  visibility: 'PENDING_CONSENT',
+  totals_basis: null,
   ...over,
 });
 
-describe('05 §13: estado del total de un producto en una convocatoria', () => {
-  it('VISIBLE: la cifra con su unidad', () => {
-    render(<CallTotal total={total({ visibility: 'VISIBLE', total_quantity_base: '23000' })} baseUnit="ML" threshold={3} />);
+/*
+ * E4 §5.2 (regla T). Reescritas por la decisión del autor del 2026-11-13 (sin
+ * umbral de personas): los estados UNDER_THRESHOLD, RESPONSIBLE_ONLY y
+ * RESTRICTED ya no existen; los sustituyen PENDING_CONSENT y la base del total
+ * (ROLE_CONSENT o PREVIOUS_POLICY_K3). Se conservan «nunca un 0 en lugar de un
+ * total pendiente» y «Sin pedidos todavía».
+ */
+describe('05 §13 con E4 §5.2: estado del total de un producto en una convocatoria', () => {
+  it('VISIBLE con ROLE_CONSENT: la cifra con su unidad, sin notas', () => {
+    render(<CallTotal total={total({ visibility: 'VISIBLE', total_quantity_base: '23000', totals_basis: 'ROLE_CONSENT' })} baseUnit="ML" />);
     expect(document.body.textContent).toBe('23 L');
     expect(screen.queryByTestId('hidden-total')).toBeNull();
+    expect(screen.queryByTestId('total-basis-note')).toBeNull();
   });
 
-  it.each([
-    ['UNDER_THRESHOLD', false, false, UNDER_THRESHOLD_TEXT, 'Lo pidieron menos de 3 personas'],
-    ['RESTRICTED', false, false, RESTRICTED_TOTAL_TEXT, 'Faltan autorizaciones de agricultores'],
-    ['RESPONSIBLE_ONLY', false, true, RESPONSIBLE_ONLY_OPEN_TEXT, null],
-    ['RESPONSIBLE_ONLY', true, true, RESPONSIBLE_ONLY_HIDDEN_TEXT, null],
-  ] as const)('%s (oculto por quien consulta: %s): chip punteado con su texto y nunca un 0', (visibility, hidden, open, label, note) => {
-    render(<CallTotal total={total({ visibility })} baseUnit="G" threshold={3} hidden={hidden} open={open} />);
-    expect(screen.getByTestId('hidden-total').textContent).toBe(label);
-    if (note) expect(document.body.textContent).toContain(note);
+  it.each([1, 2])('VISIBLE con ROLE_CONSENT y %i persona(s): el total se muestra (sin umbral)', (count) => {
+    render(<CallTotal total={total({ participant_count: count, visibility: 'VISIBLE', total_quantity_base: '5000', totals_basis: 'ROLE_CONSENT' })} baseUnit="G" open />);
+    expect(document.body.textContent).toBe('5 KG');
+    expect(document.body.textContent).not.toMatch(/umbral|menos de/i);
+  });
+
+  it('VISIBLE con PREVIOUS_POLICY_K3: la cifra y la nota de la regla anterior', () => {
+    render(<CallTotal total={total({ participant_count: 4, visibility: 'VISIBLE', total_quantity_base: '96000', totals_basis: 'PREVIOUS_POLICY_K3' })} baseUnit="ML" />);
+    expect(document.body.textContent).toContain('96 L');
+    expect(screen.getByTestId('total-basis-note').textContent).toBe(PREVIOUS_POLICY_TOTAL_NOTE);
+  });
+
+  it.each([true, false])('PENDING_CONSENT (abierta: %s): chip punteado «Pendiente de autorización» con su motivo y nunca un 0', (open) => {
+    render(<CallTotal total={total({ participant_count: 2 })} baseUnit="G" open={open} />);
+    expect(screen.getByTestId('hidden-total').textContent).toBe(PENDING_CONSENT_TOTAL_TEXT);
+    expect(document.body.textContent).toContain(PENDING_CONSENT_TOTAL_NOTE);
     expect(document.body.textContent).not.toMatch(/\b0\b/);
   });
 
-  it('abierta, con permiso y nadie pidió: «Sin pedidos todavía», no «0 L»', () => {
-    render(<CallTotal total={total({ visibility: 'VISIBLE', total_quantity_base: '0', participant_count: 0 })} baseUnit="ML" threshold={3} open />);
+  it('abierta y nadie pidió (VISIBLE con "0"): «Sin pedidos todavía», no «0 L»', () => {
+    render(<CallTotal total={total({ visibility: 'VISIBLE', total_quantity_base: '0', participant_count: 0, totals_basis: 'ROLE_CONSENT' })} baseUnit="ML" open />);
     expect(screen.getByTestId('no-requests').textContent).toBe('Sin pedidos todavía');
     expect(document.body.textContent).not.toMatch(/0 L/);
   });

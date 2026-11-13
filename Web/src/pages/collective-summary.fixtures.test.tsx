@@ -94,7 +94,8 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
     expect(within(actions).queryByTestId('action-no-active')).toBeNull();
     // Rediseño v2: los recuentos pasan a los indicadores de la cabecera (lámina 03).
     expect(screen.getByTestId('needs-published').textContent).toMatch(/Necesidades publicadas5 productos/);
-    expect(screen.getByTestId('needs-hidden').textContent).toMatch(/Ocultas por privacidad1 producto$/);
+    // E4 §5.1: el indicador nombra la política (antes «Ocultas por privacidad»).
+    expect(screen.getByTestId('needs-hidden').textContent).toMatch(/Sin cifra \(F07-POL-01\)1 producto$/);
     expect(screen.getByTestId('needs-other').textContent).toMatch(/Sin cifra publicada2 productos/);
   });
 

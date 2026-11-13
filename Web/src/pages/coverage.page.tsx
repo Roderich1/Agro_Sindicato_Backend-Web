@@ -160,7 +160,7 @@ function CoverageBody({ coverage, sealedAt, policyPending }: { coverage: Coverag
         <Card as="article" padding="lg">
           <h2 className="text-xl font-bold text-ink">Con cifras publicadas · {COUNT.format(within)}</h2>
           <p className="mt-3 text-base leading-relaxed text-ink-muted">
-            Están dentro de alguna cifra publicada (necesidad o consumo). Quien aportó solo a productos ocultos no se cuenta. Quien no figura
+            Están dentro de alguna cifra publicada (necesidad o consumo). Quien aportó solo a productos sin cifra publicada no se cuenta. Quien no figura
             es desconocido, no cero. Mide participación, no que los datos estén completos ni que sean suficientes.
           </p>
         </Card>
@@ -168,7 +168,7 @@ function CoverageBody({ coverage, sealedAt, policyPending }: { coverage: Coverag
           <h2 className="text-xl font-bold text-ink">Quién aportó</h2>
           <p className="mt-3 flex items-start gap-3 text-base leading-relaxed text-ink-muted">
             <Icon d={ICON.lock} className="mt-1 h-5 w-5 shrink-0 text-ink" />
-            <span>No se muestra, ni tampoco cuándo sincronizó cada persona: la Web sólo recibe el conteo agregado que permite la política de privacidad del sindicato.</span>
+            <span>No se muestra, ni tampoco cuándo sincronizó cada persona: la Web sólo recibe el conteo agregado que permite la política de divulgación del sindicato.</span>
           </p>
         </Card>
       </div>

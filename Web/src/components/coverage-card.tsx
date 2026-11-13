@@ -71,7 +71,7 @@ export function CoverageCard({
       <p className="mt-1 text-xs leading-relaxed text-slate-600">
         {linked === 0 && 'Hoy no hay agricultores vinculados activos: no se calcula porcentaje. '}
         {sealedAt && 'Fijada al sellar; no se recalcula. '}
-        {coverage.suppressed_cells && 'Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan. '}
+        {coverage.suppressed_cells && 'Hay filas sin cifra (por la política F07-POL-01, en revisión o retiradas) cuyos aportes no se cuentan. '}
         Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
       </p>
       {variant === 'full' && (

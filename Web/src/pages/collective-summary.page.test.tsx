@@ -82,10 +82,12 @@ describe('Resumen colectivo', () => {
     expect(figure(screen.getByTestId('cell-DECLARED_NEED-Cero-ML'))).toBe('0 L');
     const pending = screen.getByTestId('cell-DECLARED_NEED-Glifosato-ML');
     expect(figure(pending)).toBe('6 L');
-    expect(within(pending).getByText(/aún no alcanzan el umbral/)).toBeTruthy();
+    // E4: el aviso de cifra anterior ya no habla de «umbral».
+    expect(within(pending).getByText(/todavía no se publican: se muestra la cifra anterior/)).toBeTruthy();
 
     const suppressed = screen.getByTestId('cell-DECLARED_NEED-Belator-ML');
-    expect(within(suppressed).getByText(/Menos de 3 agricultores aportaron/)).toBeTruthy();
+    // E4 §5.1: el motivo nombra la política que produjo el estado (antes «Menos de 3 agricultores aportaron»).
+    expect(within(suppressed).getByText(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/)).toBeTruthy();
     expect(suppressed.textContent).not.toMatch(/7000|7 L|\b2\b/);
     expect(screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML').textContent).toMatch(/se retiró/);
     expect(screen.getByTestId('cell-DECLARED_NEED-Enorme-G').textContent).toMatch(/no se trunca/);
@@ -119,8 +121,9 @@ describe('Resumen colectivo', () => {
     expect(zero.querySelector('[data-figure]')!.textContent).toBe('0 L');
     expect(zero.querySelector('[data-tone="hidden"]')).toBeNull();
     const privacy = screen.getByTestId('cell-DECLARED_NEED-Belator-ML');
-    // Rediseño v2 (lámina 03): «Oculta por privacidad».
-    expect(within(privacy).getByText('Oculta por privacidad')).toBeTruthy();
+    // Rediseño v2 (lámina 03) con E4 §5.1: «Sin cifra (F07-POL-01)» en lugar de «Oculta por privacidad».
+    expect(within(privacy).getByText('Sin cifra (F07-POL-01)')).toBeTruthy();
+    expect(privacy.textContent).not.toMatch(/privacidad|anónim/i);
     expect(privacy.textContent).not.toMatch(/7000|7 L|\b2\b|0 L/);
     const revision = screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML');
     expect(within(revision).getByText('Sin cifra publicada')).toBeTruthy();

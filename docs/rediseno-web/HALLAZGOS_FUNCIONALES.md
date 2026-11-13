@@ -61,3 +61,13 @@ Decisiones opcionales, con una propuesta que no necesita decisión:
 - **H-13:** editar el correo.
 - **H-14:** zona horaria del sindicato.
 - **H-18:** cobertura en la lista de campañas.
+
+## Nota E4 (2026-11-13, sesión B de E4)
+
+El contrato E4 (`docs/architecture/E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md`) retira parte de lo que H-26 daba por implementado. En la Web (`8d33f17`):
+- láminas 15.5 y 34.2: conceder o retirar «Consultar participantes y cantidades» se retira; el diálogo sólo concede «Administrar la convocatoria»;
+- láminas 09, 31 y 44: la franja «Sustituir responsable» de la lista y el panel de gestión de Usuarios se retiran; en Usuarios queda la historia plegada y de sólo lectura;
+- láminas 14, 15.6 y 49: sustituye la Administración habilitada, sin permiso adicional; la Directiva ve a quién pedir la intervención;
+- láminas 11, 12, 16–19: el detalle identificado sólo para la Administración; los totales siguen la regla T y la «responsabilidad» ya no da acceso;
+- láminas 03, 05 y 35: «Oculta por privacidad» pasa a «Sin cifra (F07-POL-01)» y se muestra la política aplicada.
+El texto anterior de esta tabla se conserva como historia.

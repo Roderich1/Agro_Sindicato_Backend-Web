@@ -2,8 +2,19 @@ import type { BaseUnit } from '../lib/quantity';
 
 /** Contrato del resumen colectivo (Back `collective-summary.use-case.ts`). */
 export type DisclosureMode = 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC';
+/**
+ * E4 §5.1: política con que se decidió una cifra. `F07-POL-01` (mínimo de 3
+ * aportantes y regla de combinaciones) es la de lo sellado o generado antes y
+ * la que rige por defecto; `F07-POL-02` (sin umbral de agricultores) sólo tras
+ * su activación explícita en el servidor.
+ */
+export type DisclosurePolicy = 'F07-POL-01' | 'F07-POL-02';
 export type ProjectionType = 'CONSUMPTION_TOTAL' | 'DECLARED_NEED';
-/** WITHDRAWN_AFTER_SEAL sólo aparece en una versión sellada (F07, 2026-10-23). */
+/**
+ * WITHDRAWN_AFTER_SEAL sólo aparece en una versión sellada (F07, 2026-10-23).
+ * SUPPRESSED_UNDER_THRESHOLD sólo lo produce `F07-POL-01`: con `F07-POL-02` es
+ * un estado histórico de lo sellado o de los borradores anteriores (E4 §5.1).
+ */
 export type CellStatus =
   | 'DISCLOSED'
   | 'SUPPRESSED_UNDER_THRESHOLD'
@@ -26,6 +37,18 @@ export interface SealRef {
   sealed_at: string;
   accepted_until: string;
   sealed_by: { user_ref: string; name: string; role: 'DIRECTIVA' | 'ADMINISTRADOR' };
+  /** E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra). */
+  policy: DisclosurePolicy;
+  /** 3 con `F07-POL-01`; `null` con `F07-POL-02` (sin umbral). */
+  threshold: number | null;
+}
+
+/** Política de divulgación de una respuesta; en una campaña sellada, la del sellado. `threshold` es `null` con `F07-POL-02` y con `POLICY_PENDING`. */
+export interface Disclosure {
+  mode: DisclosureMode;
+  policy: DisclosurePolicy;
+  approved: false;
+  threshold: number | null;
 }
 
 export interface Coverage {
@@ -66,7 +89,7 @@ export interface CollectiveSummary {
   contractVersion: 1;
   campaign: CampaignRef;
   seal: SealRef | null;
-  disclosure: { mode: DisclosureMode; policy: 'F07-POL-01'; approved: false; threshold: number | null };
+  disclosure: Disclosure;
   coverage: Coverage | null;
   cells: SummaryCell[];
 }
@@ -102,7 +125,8 @@ export interface Proposal {
   generated_by: UserRef;
   /** null cuando alguna cifra del borrador ya no se publica. */
   inputs_fingerprint: string | null;
-  disclosure: { mode: DisclosureMode; policy: 'F07-POL-01'; approved: false };
+  /** E4 §4.4: política con la que se generó el borrador (los anteriores a E4, `F07-POL-01`). */
+  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: false };
   coverage: Coverage | null;
   lines: ProposalLine[];
   notice: string;
@@ -171,7 +195,8 @@ export interface TrendSeries {
 
 export interface CollectiveTrends {
   contractVersion: 1;
-  disclosure: { mode: DisclosureMode; policy: 'F07-POL-01'; approved: false; threshold: number | null };
+  /** La política configurada; cada campaña sellada lleva la suya en `campaigns[].seal`. */
+  disclosure: Disclosure;
   projection_type: ProjectionType | null;
   campaigns: TrendCampaign[];
   series: TrendSeries[];

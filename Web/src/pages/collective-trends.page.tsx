@@ -5,7 +5,7 @@ import { DisclosureNotice, PendingChangesNote, ProductCell, QuantityCell } from 
 import { ExportButtons } from '../components/export-buttons';
 import { Link } from 'react-router-dom';
 import { Card, Collapsible, DataState, dataStateKindForError, ICON, Icon, PageHeader, SectionHeader, SegmentedControl, type DataStateKind } from '../components/ui';
-import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
+import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime, policyText, statusReason } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
 import { CAMPAIGNS_PATH } from '../lib/navigation';
 import { formatQuantity, isBaseQuantity } from '../lib/quantity';
@@ -52,7 +52,7 @@ const COUNT = new Intl.NumberFormat('es-BO');
 /**
  * F07 (2026-10-23, F07_SEALED_HISTORY_CONTRACT §8): historial entre versiones
  * selladas. Cada cifra viene del servidor, celda por celda: aquí no se suma,
- * resta, promedia ni interpola, y un hueco (cifra oculta, retirada, sin dato o
+ * resta, promedia ni interpola, y un hueco (sin cifra, retirada, sin dato o
  * campaña sin sellar) nunca se dibuja como cero.
  *
  * Panel de la defensa (2026-11-05): el gráfico antes de la tabla; dos opciones
@@ -177,7 +177,7 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
   const unsealed = trends.campaigns.filter((campaign) => campaign.seal === null);
   return (
     <div className="space-y-4">
-      <DisclosureNotice mode={trends.disclosure.mode} threshold={trends.disclosure.threshold} />
+      <DisclosureNotice mode={trends.disclosure.mode} />
       {trends.disclosure.mode === 'PROVISIONAL_SYNTHETIC' &&
         (selected === null ? (
           <Card>
@@ -233,7 +233,8 @@ function HowToRead({ unsealed }: { unsealed: TrendCampaign[] }) {
             {unsealed.length === 1 ? '' : 'n'}.
           </li>
         )}
-        <li>Un hueco es «sin dato» u «oculto», nunca cero.</li>
+        <li>Un hueco es «sin dato» o «sin cifra», nunca cero.</li>
+        <li>Cada campaña conserva la política con que se selló; las cifras de campañas con políticas distintas no se suman ni se restan.</li>
         <li>La cobertura cambia entre campañas: un cambio de cobertura no prueba un cambio de consumo de cada agricultor.</li>
       </ul>
       <p className="mt-4">
@@ -262,6 +263,7 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
                 <th className={`px-3 py-2.5 sm:px-5 ${STICKY_HEAD}`}>Campaña</th>
                 <th className="px-3 py-2.5 sm:px-5">Estado</th>
                 <th className="px-3 py-2.5 sm:px-5">Versión sellada</th>
+                <th className="px-3 py-2.5 sm:px-5">Política al sellar</th>
                 <th className="px-3 py-2.5 sm:px-5">Cobertura al sellar</th>
               </tr>
             </thead>
@@ -272,6 +274,9 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
                   <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5">{CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}</td>
                   <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5">
                     {campaign.seal ? `Versión ${campaign.seal.version}, sellada el ${fmtDateTime(campaign.seal.sealed_at)}` : 'Sin sellar: no aporta cifras'}
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5" data-testid={`campaign-policy-${campaign.name}`}>
+                    {campaign.seal ? policyText(campaign.seal.policy, campaign.seal.threshold) : '—'}
                   </td>
                   <td className="px-3 py-2.5 text-xs tabular-nums text-slate-700 sm:px-5">
                     {campaign.coverage ? `${campaign.coverage.members_with_contribution} de ${campaign.coverage.linked_members} con cifras publicadas` : '—'}
@@ -288,6 +293,8 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
 
 function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campaigns: TrendCampaign[]; threshold: number | null }) {
   const nameOf = new Map(campaigns.map((campaign) => [campaign.campaign_ref, campaign.name]));
+  // E4 §3.4: el motivo de una celda sellada usa el umbral con que se selló su campaña.
+  const thresholdOf = new Map(campaigns.map((campaign) => [campaign.campaign_ref, campaign.seal?.threshold ?? null]));
   const title = `${line.product_name} (${line.presentation_unit})`;
   return (
     <section
@@ -309,7 +316,7 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
             {line.points.map((point) => (
               <tr key={point.campaign_ref} data-testid={`point-${nameOf.get(point.campaign_ref)}`}>
                 <td className={`w-32 min-w-32 px-3 py-3 [overflow-wrap:anywhere] sm:w-auto sm:min-w-40 sm:px-5 ${STICKY_CELL}`}>
-                  <ProductCell name={nameOf.get(point.campaign_ref) ?? ''} unit="" status={point.status} threshold={threshold} />
+                  <ProductCell name={nameOf.get(point.campaign_ref) ?? ''} unit="" status={point.status} threshold={thresholdOf.get(point.campaign_ref) ?? threshold} />
                 </td>
                 <td className="px-3 py-3 sm:px-5">
                   <QuantityCell
@@ -317,7 +324,7 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
                     base={point.total_base}
                     serverPresentation={point.total_presentation}
                     unit={line.base_unit}
-                    threshold={threshold}
+                    threshold={thresholdOf.get(point.campaign_ref) ?? threshold}
                     asOf={point.data_as_of}
                   />
                   {point.status === 'DISCLOSED' && point.pending_changes && <PendingChangesNote />}
@@ -334,7 +341,7 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
 
 /** Rótulo breve de un hueco, con su estado (F07 §8): ninguno es cero. */
 const GAP_TEXT: Record<Exclude<TrendPoint['status'], 'DISCLOSED'>, string> = {
-  SUPPRESSED_UNDER_THRESHOLD: 'oculto',
+  SUPPRESSED_UNDER_THRESHOLD: 'sin cifra (F07-POL-01)',
   SUPPRESSED_REVISION: 'en revisión',
   OVERFLOW: 'fuera de rango',
   WITHDRAWN_AFTER_SEAL: 'retirado',
@@ -365,7 +372,7 @@ function columnsOf(line: TrendSeries, campaigns: TrendCampaign[], threshold: num
     const label = point && point.status === 'DISCLOSED' ? formatQuantity(point.total_base, line.base_unit, point.total_presentation) : null;
     const status = point?.status ?? 'NO_DATA';
     const gap = status === 'DISCLOSED' ? 'cifra no válida' : GAP_TEXT[status];
-    const reason = status === 'DISCLOSED' ? 'El dato recibido no es válido; no se muestra.' : (statusReason(status, threshold) ?? '');
+    const reason = status === 'DISCLOSED' ? 'El dato recibido no es válido; no se muestra.' : (statusReason(status, campaign.seal?.threshold ?? threshold) ?? '');
     return { campaign, point, value, label, gap, reason };
   });
 }

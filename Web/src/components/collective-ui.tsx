@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useCampaign } from '../hooks/use-campaign';
-import { CAMPAIGN_STATUS_TEXT, fmtDateTime, statusReason } from '../lib/collective-text';
+import { CAMPAIGN_STATUS_TEXT, fmtDateTime, PENDING_CHANGES_TEXT, policyText, SMALL_GROUP_NOTE, statusReason } from '../lib/collective-text';
 import { formatQuantity, isBaseQuantity, type BaseUnit } from '../lib/quantity';
 import type { Campaign } from '../types/campaigns';
 import type { AnyStatus, Coverage, SealRef } from '../types/collective';
@@ -10,7 +10,7 @@ import { inputClass, isKnownStatus, KpiTile, labelClass, Notice, StatusChip } fr
 /** Conteos (cobertura) con separador de miles es-BO: «1.234 de 2.000». */
 const COUNT = new Intl.NumberFormat('es-BO');
 
-/* Estados de una celda o línea (F07-POL-01). Ninguno inventa ni deduce cifras. */
+/* Estados de una celda o línea (F07-POL-01 y F07-POL-02, E4 §5.1). Ninguno inventa ni deduce cifras. */
 
 /**
  * Unificado en `StatusChip` (components/ui): texto del estado y motivo en
@@ -94,7 +94,7 @@ export function Fingerprint({ value }: { value: string | null }) {
 export function PendingChangesNote() {
   return (
     <span className="mt-1 inline-block rounded-full bg-warn-bg px-2.5 py-0.5 text-xs font-semibold text-warn-ink">
-      Hay cambios recibidos que aún no alcanzan el umbral: se muestra la cifra anterior.
+      {PENDING_CHANGES_TEXT}
     </span>
   );
 }
@@ -149,7 +149,7 @@ export function CoverageBanner({
             'Borrador guardado con la regla anterior a F10-SEC-02: el conteo incluye a quienes aportaron a filas sin cifra. '}
           {asOf && 'No es la cobertura actual: la de hoy está en el resumen. '}
           {sealedAt && 'Fijada al sellar; no se recalcula. '}
-          {coverage.suppressed_cells && 'Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan. '}
+          {coverage.suppressed_cells && 'Hay filas sin cifra (por la política F07-POL-01, en revisión o retiradas) cuyos aportes no se cuentan. '}
           Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
         </p>
       </div>
@@ -174,6 +174,9 @@ export function SealBanner({ seal }: { seal: SealRef }) {
         {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) · datos aceptados hasta{' '}
         {fmtDateTime(seal.accepted_until)} · ref. <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>
       </p>
+      <p className="mt-0.5 text-sm text-ink" data-testid="seal-policy">
+        Política aplicada al sellar: {policyText(seal.policy, seal.threshold)}. Lo sellado no cambia aunque después rija otra política.
+      </p>
       <p className="mt-0.5 text-xs text-ink-muted">
         Cada cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor no
         puede asegurar que todos los teléfonos publicaron todo. Las correcciones privadas posteriores no cambian esta
@@ -187,17 +190,30 @@ export function SealBanner({ seal }: { seal: SealRef }) {
  * Aviso de política pendiente: se conserva porque bloquea las cifras. El modo
  * sintético no lleva banner: el armazón muestra la etiqueta «Datos sintéticos».
  */
-export function DisclosureNotice({ mode, threshold }: { mode: 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC'; threshold?: number | null }) {
+export function DisclosureNotice({ mode }: { mode: 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC' }) {
   if (mode === 'POLICY_PENDING') {
     return (
       <Notice kind="info">
-        <strong>Política de divulgación pendiente (F07-POL-01).</strong> Mientras no se apruebe, el servidor no publica
+        <strong>Política de divulgación pendiente de aprobación.</strong> Mientras no se apruebe, el servidor no publica
         cifras colectivas. Esta pantalla no calcula ni estima totales.
       </Notice>
     );
   }
-  void threshold;
   return null;
+}
+
+/**
+ * E4 §5.1: la política con que el servidor decidió las cifras de esta vista.
+ * Con `F07-POL-02` añade el riesgo aceptado de los totales sin umbral; sin
+ * «anónimo».
+ */
+export function PolicyLine({ policy, threshold, testId = 'policy-line' }: { policy: string; threshold: number | null; testId?: string }) {
+  return (
+    <p className="text-sm leading-relaxed text-ink-muted" data-testid={testId}>
+      <span className="font-semibold text-ink">Política aplicada:</span> {policyText(policy, threshold)}.
+      {policy === 'F07-POL-02' && ` ${SMALL_GROUP_NOTE}`}
+    </p>
+  );
 }
 
 export function CampaignPicker({
@@ -322,7 +338,7 @@ export interface BarRow {
 
 /**
  * Barras horizontales por producto, una escala por unidad (L y KG nunca se
- * comparan entre sí). Una cifra oculta no dibuja barra ni cero: muestra el
+ * comparan entre sí). Una cifra sin publicar no dibuja barra ni cero: muestra el
  * motivo. Un cero divulgado se escribe «0 L» sin barra. Un solo color: no hay
  * series que distinguir.
  */

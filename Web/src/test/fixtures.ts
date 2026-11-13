@@ -83,6 +83,8 @@ export const SEAL: SealRef = {
   sealed_at: '2026-10-23T15:00:00.000Z',
   accepted_until: '2026-10-23T15:00:00.000Z',
   sealed_by: { user_ref: 'u-2', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
+  policy: 'F07-POL-01',
+  threshold: 3,
 };
 
 /** Estado del sellado; por defecto, sellable con una revisión sin avisos. */

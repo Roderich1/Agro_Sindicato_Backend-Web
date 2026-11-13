@@ -10,7 +10,7 @@
  * - No se recalcula nada ni se suman filas: cada una conserva su unidad.
  * - Los textos van como texto en línea: nada se evalúa como fórmula.
  */
-import { CAMPAIGN_STATUS_TEXT, statusReason } from './collective-text';
+import { CAMPAIGN_STATUS_TEXT, PENDING_CHANGES_TEXT, statusReason } from './collective-text';
 import { presentationUnit, toPresentation } from './quantity';
 import { buildXlsx, columnName, fitsExcelPrecision, type XlsxCell, type XlsxSheet, type XlsxStyle } from './xlsx-writer';
 import type { AnyStatus, Coverage, SealRef } from '../types/collective';
@@ -21,12 +21,13 @@ export const BRAND = 'AGROCUENTAS · PANEL DE LA DIRECTIVA';
 export const BOLIVIA_OFFSET = -240;
 
 export const INVALID_FIGURE_TEXT = 'Dato no válido recibido del servidor; no se exporta.';
-export const PENDING_CHANGES_TEXT = 'Hay cambios recibidos que aún no alcanzan el umbral: se muestra la cifra anterior.';
+/** Mismo texto que la pantalla (E4: sin «umbral»; con F07-POL-02 no ocurre). */
+export { PENDING_CHANGES_TEXT };
 
 /** Mismos rótulos que el distintivo de estado de la pantalla (`collective-ui.tsx`). */
 export const STATUS_LABEL: Record<AnyStatus, string> = {
   DISCLOSED: 'Publicado',
-  SUPPRESSED_UNDER_THRESHOLD: 'Oculto por privacidad',
+  SUPPRESSED_UNDER_THRESHOLD: 'Sin cifra (F07-POL-01)',
   SUPPRESSED_REVISION: 'Sin cifra publicada',
   OVERFLOW: 'Fuera de rango',
   WITHDRAWN: 'Retirado',
@@ -174,7 +175,7 @@ export function coverSheet(input: {
     [],
     [text('Cómo leer este libro', 'label'), text(input.howToRead.join(' '), 'wrap')],
     [text('Leyenda', 'label'), text('Publicado', 'ok')],
-    [null, text('Oculto por privacidad · Sin cifra publicada · Datos insuficientes: la celda numérica queda vacía y la explicación dice por qué.', 'warnText')],
+    [null, text('Sin cifra (F07-POL-01) · Sin cifra publicada · Datos insuficientes: la celda numérica queda vacía y la explicación dice por qué.', 'warnText')],
   ];
   return {
     name: input.name,

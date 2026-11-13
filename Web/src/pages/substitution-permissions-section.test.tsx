@@ -1,89 +1,95 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SUBSTITUTION_HISTORY_NOTE } from '../lib/joint-purchase-call-text';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import { renderAt } from '../test/render';
-import type { SubstitutionPermissions } from '../types/joint-purchase-calls';
+import type { SubstitutionPermissionsHistory } from '../types/joint-purchase-calls';
 import { SubstitutionPermissionsSection } from './substitution-permissions-section';
 
 vi.mock('../services/joint-purchase-calls.service', () => ({
-  jointPurchaseCallsService: {
-    eligibleResponsibles: vi.fn(),
-    substitutionPermissions: vi.fn(),
-    grantSubstitution: vi.fn(),
-    revokeSubstitution: vi.fn(),
-  },
+  jointPurchaseCallsService: { substitutionPermissionsHistory: vi.fn() },
 }));
 
-const ADMIN_VIEW: SubstitutionPermissions = {
-  contractVersion: 1,
-  can_grant: true,
-  holds_permission: false,
+/** E4_EJEMPLOS_RESPUESTAS.md §2.10: `GET /joint-purchase-substitution-permissions`, sólo lectura. Datos sintéticos. */
+const HISTORY: SubstitutionPermissionsHistory = {
+  contractVersion: 2,
+  retired_at: '2026-11-13T18:00:00.000Z',
+  notice: 'Ya no se usa: sustituye la Administración habilitada',
+  can_grant: false,
   holders: [
     {
-      user_ref: 'u-3',
-      name: 'Directiva sintética',
+      user_ref: 'u-dir-2',
+      name: 'Directiva sintética D2',
       role: 'DIRECTIVA',
-      eligible: false,
-      granted_at: '2026-11-12T10:00:00.000Z',
-      granted_by: { user_ref: 'u-1', name: 'Administradora sintética' },
-      reason: 'Coordinar entregas',
+      granted_at: '2026-11-12T19:00:00.000Z',
+      granted_by: { user_ref: 'u-adm-1', name: 'Administración sintética A1' },
+      reason: 'Cobertura sintética de vacaciones',
     },
   ],
   history: [
     {
-      at: '2026-11-12T10:00:00.000Z',
+      at: '2026-11-12T19:00:00.000Z',
       action: 'GRANTED',
-      user: { user_ref: 'u-3', name: 'Directiva sintética' },
-      actor: { user_ref: 'u-1', name: 'Administradora sintética' },
-      reason: 'Coordinar entregas',
+      user: { user_ref: 'u-dir-2', name: 'Directiva sintética D2' },
+      actor: { user_ref: 'u-adm-1', name: 'Administración sintética A1' },
+      reason: 'Cobertura sintética de vacaciones',
     },
   ],
 };
 
-// Las confirmaciones destructivas son `alertdialog` (ConfirmDialog de BASE, tono `danger`).
-const dialog = () => screen.queryByRole('dialog') ?? screen.getByRole('alertdialog');
+const open = (panel: HTMLElement) => {
+  (panel as HTMLDetailsElement).open = true;
+  fireEvent(panel, new Event('toggle'));
+};
 
-describe('Permiso «Sustituir responsable» (P-A A1)', () => {
+/*
+ * Reescritas por E4 §3.2 (decisión del autor del 2026-11-13): el permiso del
+ * sindicato «Sustituir responsable» ya no se concede, retira ni renuncia (el
+ * servidor responde 409 SUBSTITUTION_PERMISSION_RETIRED). Las pruebas
+ * anteriores de conceder con motivo y de renunciar comprobaban esas acciones;
+ * ahora se comprueba que su historia es de sólo lectura, plegada y sin
+ * controles para nadie, tampoco para la Administración.
+ */
+describe('Permiso «Sustituir responsable»: historia de sólo lectura (E4 §3.2)', () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it('una Administrador lo concede a otra persona concreta, nunca a sí misma, con motivo y confirmación', async () => {
-    vi.mocked(jointPurchaseCallsService.substitutionPermissions).mockResolvedValue(ADMIN_VIEW);
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([
-      { user_ref: 'u-1', name: 'Administradora sintética', role: 'ADMINISTRADOR' },
-      { user_ref: 'u-3', name: 'Directiva sintética', role: 'DIRECTIVA' },
-      { user_ref: 'u-4', name: 'Tesorera sintética', role: 'DIRECTIVA' },
-    ]);
-    vi.mocked(jointPurchaseCallsService.grantSubstitution).mockResolvedValue({
-      ...ADMIN_VIEW,
-      holders: [...ADMIN_VIEW.holders, { ...ADMIN_VIEW.holders[0]!, user_ref: 'u-4', name: 'Tesorera sintética', eligible: true, reason: 'Suplente' }],
-    });
-    renderAt(<SubstitutionPermissionsSection userId="u-1" />, { role: 'ADMINISTRADOR' });
-    expect((await screen.findByTestId('substitution-holder-u-3')).textContent).toMatch(/No habilitada: el permiso no se ejerce/);
-    expect(screen.getByTestId('substitution-history').textContent).toMatch(/Motivo: Coordinar entregas/);
-    fireEvent.click(screen.getByTestId('substitution-grant-button'));
-    const select = (await within(dialog()).findByLabelText('Persona')) as HTMLSelectElement;
-    // Ni ella misma ni quien ya lo tiene.
-    await waitFor(() => expect([...select.options].map((option) => option.value)).toEqual(['', 'u-4']));
-    const submit = () => within(dialog()).getByRole('button', { name: 'Conceder el permiso' }) as HTMLButtonElement;
-    fireEvent.change(select, { target: { value: 'u-4' } });
-    fireEvent.click(within(dialog()).getByRole('checkbox'));
-    expect(submit().disabled).toBe(true);
-    fireEvent.change(within(dialog()).getByLabelText('Motivo'), { target: { value: 'Suplente' } });
-    fireEvent.click(submit());
-    await waitFor(() => expect(jointPurchaseCallsService.grantSubstitution).toHaveBeenCalledWith('u-4', 'Suplente'));
-    expect(await screen.findByTestId('substitution-holder-u-4')).toBeTruthy();
+  it.each(['ADMINISTRADOR', 'DIRECTIVA'])('%s: plegada; al desplegar, quién lo tenía, quién lo concedió, motivo e historial, sin ningún botón', async (role) => {
+    vi.mocked(jointPurchaseCallsService.substitutionPermissionsHistory).mockResolvedValue(HISTORY);
+    renderAt(<SubstitutionPermissionsSection />, { role });
+    const panel = screen.getByTestId('substitution-history');
+    expect(panel.tagName).toBe('DETAILS');
+    expect((panel as HTMLDetailsElement).open).toBe(false);
+    // Plegada: no se pide nada hasta desplegarla.
+    expect(jointPurchaseCallsService.substitutionPermissionsHistory).not.toHaveBeenCalled();
+    expect(within(panel).getByText(/Historial del permiso «Sustituir responsable» \(ya no se usa\)/)).toBeTruthy();
+    open(panel);
+    const holder = await within(panel).findByTestId('substitution-holder-u-dir-2');
+    expect(holder.textContent).toMatch(/Directiva sintética D2.*Directiva.*Concedido el .* por Administración sintética A1.*Motivo: Cobertura sintética de vacaciones/);
+    expect(within(panel).getByTestId('substitution-retired-notice').textContent).toMatch(/^Ya no se usa: sustituye la Administración habilitada\. Retirado el /);
+    expect(within(panel).getByText(SUBSTITUTION_HISTORY_NOTE)).toBeTruthy();
+    expect(within(panel).getAllByTestId('substitution-history-event')[0]!.textContent).toMatch(/Concedido · Directiva sintética D2 · por Administración sintética A1/);
+    expect(within(panel).queryAllByRole('button')).toHaveLength(0);
+    expect(within(panel).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(panel.textContent).not.toMatch(/Conceder el permiso|Retirar el permiso|Renunciar/);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(jointPurchaseCallsService.substitutionPermissionsHistory).toHaveBeenCalledTimes(1);
   });
 
-  it('quien no puede concederlo sólo lo consulta; quien lo tiene puede renunciar', async () => {
-    vi.mocked(jointPurchaseCallsService.substitutionPermissions).mockResolvedValue({ ...ADMIN_VIEW, can_grant: false, holds_permission: true });
-    vi.mocked(jointPurchaseCallsService.revokeSubstitution).mockResolvedValue({ ...ADMIN_VIEW, can_grant: false, holders: [] });
-    renderAt(<SubstitutionPermissionsSection userId="u-3" />, { role: 'DIRECTIVA' });
-    await screen.findByTestId('substitution-holder-u-3');
-    expect(screen.queryByTestId('substitution-grant-button')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Renunciar al permiso' }));
-    fireEvent.click(within(dialog()).getByRole('checkbox'));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Renunciar' }));
-    await waitFor(() => expect(jointPurchaseCallsService.revokeSubstitution).toHaveBeenCalledWith('u-3', null));
-    expect(await screen.findByTestId('substitution-holders-empty')).toBeTruthy();
+  it('sin personas ni historial: lo dice, sin inventar datos', async () => {
+    vi.mocked(jointPurchaseCallsService.substitutionPermissionsHistory).mockResolvedValue({ ...HISTORY, holders: [], history: [] });
+    renderAt(<SubstitutionPermissionsSection />, { role: 'ADMINISTRADOR' });
+    const panel = screen.getByTestId('substitution-history');
+    open(panel);
+    expect(await within(panel).findByTestId('substitution-holders-empty')).toBeTruthy();
+    expect(within(panel).getByText('Nadie concedió ni retiró este permiso.')).toBeTruthy();
+  });
+
+  it('si falla la carga: error con reintento', async () => {
+    vi.mocked(jointPurchaseCallsService.substitutionPermissionsHistory).mockRejectedValueOnce(new Error('red')).mockResolvedValue(HISTORY);
+    renderAt(<SubstitutionPermissionsSection />, { role: 'ADMINISTRADOR' });
+    const panel = screen.getByTestId('substitution-history');
+    open(panel);
+    fireEvent.click(await within(panel).findByRole('button', { name: /Reintentar|Volver a intentar/ }));
+    await waitFor(() => expect(within(panel).getByTestId('substitution-holder-u-dir-2')).toBeTruthy());
   });
 });

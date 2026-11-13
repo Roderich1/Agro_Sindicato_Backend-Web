@@ -149,7 +149,8 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     fireEvent.click((await verBorradores())[0]!);
     await screen.findByText('12 L');
     // La necesidad no se rellena con la estimación ni con un cero.
-    expect(need('Amina').textContent).toMatch(/umbral/);
+    // E4 §5.1: la línea del borrador anterior sigue sin cifra, rotulada con su política (antes el texto del umbral).
+    expect(need('Amina').textContent).toMatch(/Sin cifra según la política F07-POL-01/);
     expect(need('Amina').textContent).not.toMatch(/\d[\d.,]* L\b/);
     expect(need('Amina').textContent).not.toMatch(/\b0\b/);
     const hidden = cell('Amina');

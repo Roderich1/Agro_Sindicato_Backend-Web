@@ -1,6 +1,6 @@
 /* Textos y tonos de StatusChip, separados del componente. */
 
-/** `hidden`: oculto por privacidad (candado y borde discontinuo; no es cero). */
+/** `hidden`: sin cifra (candado y borde discontinuo; no es cero). */
 export type ChipTone = 'positive' | 'neutral' | 'attention' | 'critical' | 'hidden';
 
 /**
@@ -11,7 +11,8 @@ export type ChipTone = 'positive' | 'neutral' | 'attention' | 'critical' | 'hidd
 export const STATUS_CHIP: Record<string, { label: string; tone: ChipTone }> = {
   // Divulgación (AnyStatus)
   DISCLOSED: { label: 'Publicado', tone: 'positive' },
-  SUPPRESSED_UNDER_THRESHOLD: { label: 'Oculto por privacidad', tone: 'hidden' },
+  // E4 §5.1: estado histórico de F07-POL-01; se rotula con su política, no como «oculto por privacidad».
+  SUPPRESSED_UNDER_THRESHOLD: { label: 'Sin cifra (F07-POL-01)', tone: 'hidden' },
   SUPPRESSED_REVISION: { label: 'Sin cifra publicada', tone: 'attention' },
   OVERFLOW: { label: 'Fuera de rango', tone: 'critical' },
   WITHDRAWN: { label: 'Retirado', tone: 'attention' },

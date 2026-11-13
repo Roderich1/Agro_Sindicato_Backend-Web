@@ -95,7 +95,7 @@ function CoverageBlock({ coverage, sealedAt, link, bar, testId }: { coverage: Co
       <p className="mt-3 max-w-2xl text-xs leading-relaxed text-on-ink-muted">
         {linked === 0 && 'Hoy no hay agricultores vinculados activos: no se calcula porcentaje. '}
         {sealedAt && 'Fijada al sellar; no se recalcula. '}
-        {coverage.suppressed_cells && 'Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan. '}
+        {coverage.suppressed_cells && 'Hay filas sin cifra (por la política F07-POL-01, en revisión o retiradas) cuyos aportes no se cuentan. '}
         Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
       </p>
     </div>

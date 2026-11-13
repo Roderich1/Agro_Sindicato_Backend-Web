@@ -18,14 +18,14 @@ const TONE: Record<ChipTone, TagTone> = {
 export interface StatusChipProps {
   /** Estado de divulgación (AnyStatus), de campaña (CampaignStatus) o cualquier otro texto ya usado por la Web. */
   status: AnyStatus | CampaignStatus | string;
-  /** Umbral de la política, para el motivo de SUPPRESSED_UNDER_THRESHOLD. */
+  /** Umbral de F07-POL-01, para el motivo de SUPPRESSED_UNDER_THRESHOLD (null: el de la política, 3). */
   threshold?: number | null;
   testId?: string;
 }
 
 /**
  * Estado de la API como texto en español. Los positivos llevan un punto (como
- * «Abierta» en las láminas); «Oculto por privacidad», candado y borde
+ * «Abierta» en las láminas); «Sin cifra (F07-POL-01)», candado y borde
  * discontinuo. El motivo de divulgación va además en `title`.
  */
 export function StatusChip({ status, threshold, testId }: StatusChipProps) {
