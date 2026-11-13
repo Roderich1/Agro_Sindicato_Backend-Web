@@ -63,7 +63,7 @@ describe('Campañas de la sesión en caché (CampaignProvider)', () => {
     await screen.findByTestId(`campaign-row-${fixtures.LONG_CAMPAIGN_NAME}`);
     // Rediseño v2 (lámina 03): «Necesidades y propuestas» se llama «Borrador de compra» en el menú.
     clickMenu('Borrador de compra');
-    await screen.findByRole('heading', { level: 1, name: /Necesidades/ });
+    await screen.findByRole('heading', { level: 1, name: /Borrador de compra/ });
     // Rediseño v2: el grupo «Histórico» (antes «Histórico y estimaciones»).
     clickMenu('Histórico');
     await screen.findByRole('heading', { level: 1, name: /Histórico/ });
