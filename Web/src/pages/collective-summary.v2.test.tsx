@@ -139,7 +139,7 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
     const { unmount } = show();
     const steps = await screen.findByTestId('version-steps');
     expect(within(steps).getByText('Abierta').closest('li')!.getAttribute('aria-current')).toBe('step');
-    expect(await screen.findByText('Sellar: disponible al cerrar.')).toBeTruthy();
+    expect(await screen.findByText('Sellar: disponible al cerrar; todavía no se puede sellar.')).toBeTruthy();
     unmount();
     vi.mocked(collectiveService.summary).mockResolvedValueOnce({ ...summaryWith(CELLS), seal: SEAL });
     show();

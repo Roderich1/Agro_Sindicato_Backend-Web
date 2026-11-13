@@ -80,7 +80,7 @@ export function SealPanel({
   if (!state.can_seal || !state.review) {
     return (
       <section className="text-sm text-ink-muted" aria-label="Sellado de la versión colectiva" data-testid="seal-panel">
-        <p className="font-semibold text-ink">{state.blocked_by.includes('CAMPAIGN_NOT_CLOSED') ? 'Sellar: disponible al cerrar.' : 'Sellar: todavía no disponible.'}</p>
+        <p className="font-semibold text-ink">{state.blocked_by.includes('CAMPAIGN_NOT_CLOSED') ? 'Sellar: disponible al cerrar; todavía no se puede sellar.' : 'Sellar: todavía no se puede sellar.'}</p>
         {state.blocked_by.length > 0 && (
           <ul className="mt-1 list-disc space-y-0.5 pl-5">
             {state.blocked_by.map((block) => (
