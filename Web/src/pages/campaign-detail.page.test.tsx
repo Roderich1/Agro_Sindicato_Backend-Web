@@ -91,6 +91,12 @@ describe('Detalle de campaña', () => {
     );
   });
 
+  it('H-03: el detalle sí muestra «Datos sintéticos» (una vez, arriba) porque lee el resumen colectivo', async () => {
+    show(fixtures.worst);
+    await screen.findByTestId('coverage');
+    expect(within(screen.getByTestId('general')).getAllByTestId('synthetic-badge')).toHaveLength(1);
+  });
+
   it('cerrada sin sellar: cobertura 0 de 0 sin porcentaje, «Sin sellar» y panel de sellado sin sellar nada', async () => {
     show(fixtures.worstClosedUnsealed);
     const coverage = await screen.findByTestId('coverage');

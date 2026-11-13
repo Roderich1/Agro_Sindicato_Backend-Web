@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { reportDisclosureMode } from '../lib/data-mode';
 import { auditLogsService } from '../services/audit-logs.service';
 import { campaignsService } from '../services/campaigns.service';
 import { listUsers } from '../services/users.service';
@@ -127,6 +128,18 @@ describe('Bitácora', () => {
     expect(within(dialog).getByTestId('audit-technical').tagName).toBe('DETAILS');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('H-03 (V-2): «Datos sintéticos» no aparece en la Bitácora aunque el modo provisional esté activo', async () => {
+    reportDisclosureMode('PROVISIONAL_SYNTHETIC');
+    try {
+      render();
+      await screen.findByTestId('audit-a');
+      expect(screen.queryByTestId('synthetic-badge')).toBeNull();
+      expect(screen.queryByText('Datos sintéticos')).toBeNull();
+    } finally {
+      reportDisclosureMode(null);
+    }
   });
 
   it('sin conexión: estado propio con «Reintentar»', async () => {

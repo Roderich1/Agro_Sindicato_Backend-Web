@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminRoute } from '../components/admin-route';
+import { reportDisclosureMode } from '../lib/data-mode';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import { createUser, deactivateUser, listUsers, resetUserPassword, updateUser } from '../services/users.service';
 import { renderAt } from '../test/render';
@@ -163,6 +164,18 @@ describe('Usuarios (Administración)', () => {
     expect(screen.queryByTestId('user-u-1@example.test')).toBeNull();
     fireEvent.click(within(error).getByRole('button', { name: 'Reintentar' }));
     await screen.findByTestId('user-u-1@example.test');
+  });
+
+  it('H-03 (V-2): «Datos sintéticos» no aparece en Usuarios aunque el modo provisional esté activo', async () => {
+    reportDisclosureMode('PROVISIONAL_SYNTHETIC');
+    try {
+      render();
+      await screen.findByTestId('user-u-1@example.test');
+      expect(screen.queryByTestId('synthetic-badge')).toBeNull();
+      expect(screen.queryByText('Datos sintéticos')).toBeNull();
+    } finally {
+      reportDisclosureMode(null);
+    }
   });
 
   it('la Directiva no entra en Usuarios ni se piden las cuentas (AdminRoute)', () => {

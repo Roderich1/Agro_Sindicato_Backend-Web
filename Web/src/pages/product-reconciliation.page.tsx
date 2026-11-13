@@ -113,6 +113,7 @@ export function ProductReconciliationView({ headingLevel = 1, title = 'Nombres e
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
+        showSynthetic={false}
           attachToHeader
           eyebrowPhoneOnly
         headingLevel={headingLevel}

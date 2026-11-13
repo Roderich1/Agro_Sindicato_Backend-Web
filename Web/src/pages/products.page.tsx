@@ -124,6 +124,7 @@ export function ProductsView({
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
+        showSynthetic={false}
           attachToHeader
           eyebrowPhoneOnly headingLevel={headingLevel} title={title} eyebrow={user?.tenant?.name} primaryAction={{ label: 'Nuevo producto', onClick: openCreate }} />
       {nav}

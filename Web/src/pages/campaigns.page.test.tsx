@@ -53,7 +53,12 @@ describe('Campañas', () => {
     expect(row('Campaña de verano 2026')).not.toBe(row('Campaña de Verano 2026'));
     const activeRows = fixtures.worst.filter((campaign) => within(row(campaign.name)).queryByText('Campaña activa'));
     expect(activeRows.map((campaign) => campaign.id)).toEqual([CAMPAIGN_IDS.worstActive]);
-    expect(screen.getByTestId('campaign-counts').textContent).toMatch(/hay 3 campañas abiertas/);
+    // El recuento describe la lista de abajo: la activa está en la tarjeta y no se cuenta allí (D6, lámina 28).
+    const counts = screen.getByTestId('campaign-counts').textContent!;
+    const listed = fixtures.worst.filter((campaign) => campaign.id !== CAMPAIGN_IDS.worstActive);
+    expect(counts).toMatch(/^2 abiertas · /);
+    expect(counts).toMatch(/en total hay 3 campañas abiertas, contando la de arriba/);
+    expect(screen.getAllByRole('listitem').filter((li) => li.dataset.testid?.startsWith('campaign-row-'))).toHaveLength(listed.length);
 
     // Datos distintos (rediseño v2: tarjeta activa y filas en lugar de columnas): «Cerrada el …» sólo con closedAt.
     expect(within(screen.getByTestId('active-campaign')).getByText('Fin estimado')).toBeTruthy();
@@ -159,10 +164,19 @@ describe('Campañas', () => {
     expect(screen.queryByText('Sin coincidencias')).toBeNull();
   });
 
-  it('one: una campaña, singular en el conteo', async () => {
+  it('D6 (lámina 28): con la activa arriba y las demás cerradas, el recuento dice sólo las cerradas de la lista', async () => {
+    const active = fixtures.one[0]!;
+    const closed = [1, 2].map((n) => ({ ...active, id: `c0000009-0000-4000-8000-00000000000${n}`, name: `Cerrada sintética ${n}`, status: 'CERRADA' as const, isActive: false, closedAt: '2026-10-01T12:00:00.000Z' }));
+    show([active, ...closed]);
+    await screen.findByTestId('campaign-row-Cerrada sintética 1');
+    expect(screen.getByTestId('campaign-counts').textContent).toBe('2 cerradas');
+    expect(screen.getAllByRole('listitem').filter((li) => li.dataset.testid?.startsWith('campaign-row-'))).toHaveLength(2);
+  });
+
+  it('one: la única campaña es la activa; la lista de abajo no la cuenta', async () => {
     show(fixtures.one);
     await screen.findByTestId('campaign-row-Campaña única 2026');
-    expect(screen.getByTestId('campaign-counts').textContent).toMatch(/^1 abierta$/);
+    expect(screen.getByTestId('campaign-counts').textContent).toBe('Ninguna otra campaña');
     expect(within(row('Campaña única 2026')).getByTestId('estimated-end').textContent).toBe('Sin fecha estimada');
   });
 
