@@ -18,9 +18,18 @@ describe("sealed cell visibility (contract §5.2)", () => {
     expect(sealedCellStatus({ ...disclosed, contributors: null }, 3)).toBe("SUPPRESSED_UNDER_THRESHOLD");
   });
 
+  it("E4 §5.3: a seal of F07-POL-02 (threshold null) withholds nothing for its count; withdrawals still apply", () => {
+    expect(sealedCellStatus({ ...disclosed, contributors: 1 }, null)).toBe("DISCLOSED");
+    expect(sealedCellStatus({ ...disclosed, contributors: 2 }, null)).toBe("DISCLOSED");
+    expect(sealedCellStatus({ ...disclosed, contributors: 1, visibilityWithdrawnAt: new Date() }, null)).toBe("WITHDRAWN_AFTER_SEAL");
+    // A seal of F07-POL-01 is served with its own threshold (3), unchanged.
+    expect(sealedCellStatus({ ...disclosed, contributors: 2 }, 3)).toBe("SUPPRESSED_UNDER_THRESHOLD");
+  });
+
   it("never brings back a cell hidden at seal time, whatever the threshold", () => {
     for (const status of ["SUPPRESSED_UNDER_THRESHOLD", "SUPPRESSED_REVISION", "OVERFLOW"] as const) {
       expect(sealedCellStatus({ status, contributors: null, visibilityWithdrawnAt: null }, 1)).toBe(status);
+      expect(sealedCellStatus({ status, contributors: null, visibilityWithdrawnAt: null }, null)).toBe(status);
     }
   });
 });
@@ -29,6 +38,7 @@ describe("review fingerprint (contract §3.5)", () => {
   const inputs: ReviewInputs = {
     campaign_ref: "camp",
     mode: "PROVISIONAL_SYNTHETIC",
+    policy: "F07-POL-01",
     threshold: 3,
     coverage: { linked_members: 5, members_with_contribution: 3, suppressed_cells: true },
     open_disputes: false,
@@ -54,6 +64,8 @@ describe("review fingerprint (contract §3.5)", () => {
       { ...inputs, open_disputes: true },
       { ...inputs, pending_changes: true },
       { ...inputs, threshold: 5 },
+      // E4 §3.4: review_ref v2 covers the policy.
+      { ...inputs, policy: "F07-POL-02", threshold: null },
     ];
     for (const variant of changed) expect(reviewFingerprint(variant)).not.toBe(base);
   });

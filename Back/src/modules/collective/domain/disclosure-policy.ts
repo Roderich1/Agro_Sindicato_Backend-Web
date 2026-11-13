@@ -25,8 +25,12 @@ export interface PriorRelease {
 }
 
 export type CellDecision =
-  /** Publish a new figure computed from the current contributions. */
-  | { kind: "RELEASE" }
+  /**
+   * Publish a new figure computed from the current contributions.
+   * `withdrawPrior` (F07-POL-02 only): a contribution of the latest figure
+   * left, so that figure is marked withdrawn before the new one (R4).
+   */
+  | { kind: "RELEASE"; withdrawPrior?: boolean }
   /**
    * Keep showing the latest figure; `pendingChanges` unless the current values
    * provably equal it (changed, or not provable because an amount is unknown).
@@ -295,4 +299,52 @@ function currentFigure(cell: Cell): DisclosedFigure {
   return {
     columns: new Map(cell.contributions.map((c) => [amountColumn(c.contributionId, c.quantityBase), c.memberId])),
   };
+}
+
+/**
+ * E4 §5.1: `F07-POL-02`, the policy without a farmer threshold (F06 §5
+ * amended on 2026-11-13, D-00). Selected only by `COLLECTIVE_DISCLOSURE_POLICY`
+ * (`F07-POL-01`, above, stays the default and the policy of what was sealed
+ * or generated before).
+ *
+ * - R1 (primary suppression) is retired: a cell with 1 contributor or more is
+ *   published. An explicit zero counts as a contributor; a Member without a
+ *   contribution is unknown, not zero (R2, unchanged).
+ * - R3/§9 (differences and combinations) is retired (D-04): with k = 1 it
+ *   protects no group and would only keep old figures with pending changes.
+ *   Declared risk: the difference between a figure a reader kept and a newer
+ *   one reveals what changed (E4 §9.10).
+ * - The latest figure is shown again (`SHOW_PRIOR`, never with pending
+ *   changes) only when the state is exactly the one it was computed from;
+ *   any change publishes a new figure.
+ * - R4 (removals: cancellation, dispute, inactive Member or account,
+ *   regrouping) is kept: a contribution that no longer counts leaves the
+ *   calculation and the earlier figure is marked withdrawn; the new figure
+ *   is published with the remaining contributions (a cell left without any
+ *   is withdrawn by the caller as SUPPRESSED_REVISION).
+ * - R7: a total above int64 is never truncated (OVERFLOW).
+ */
+export function decideCellWithoutThreshold(cell: Cell, history: readonly PriorRelease[]): CellDecision {
+  const latest = history[0] ?? null;
+  const latestShown = latest !== null && latest.withdrawnAt === null;
+  if (cell.overflow) return { kind: "OVERFLOW", withdrawPrior: latestShown };
+  if (latest === null) return { kind: "RELEASE" };
+  const now = currentAmounts(cell);
+  const latestAmounts = releasedAmounts(latest);
+  if (latestShown && unchanged(compare(now, latestAmounts))) return { kind: "SHOW_PRIOR", pendingChanges: false };
+  const removed = [...latestAmounts.keys()].some((member) => !now.has(member));
+  return { kind: "RELEASE", withdrawPrior: latestShown && removed };
+}
+
+/** E4 §5.1: every cell of one summary read under `F07-POL-02` (no cross-cell rule to apply). */
+export function decideCellsWithoutThreshold(
+  cells: readonly Cell[],
+  histories: ReadonlyMap<string, readonly PriorRelease[]>,
+): Map<string, CellDecision> {
+  const decisions = new Map<string, CellDecision>();
+  for (const cell of cells) {
+    const id = cellId(cell);
+    decisions.set(id, decideCellWithoutThreshold(cell, histories.get(id) ?? []));
+  }
+  return decisions;
 }

@@ -1,17 +1,12 @@
 import { createHash } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { Prisma, UserRole } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CallHttpError, InstitutionalActor } from "../domain/call-error";
 import { SERVER_ID } from "../domain/participation-input";
-import {
-  eligibleMemberWhere,
-  holdsSubstitution,
-  isEligibleAdministrator,
-  responsibleIsEligible,
-} from "./call-access";
-import { ACCESS_PARTICIPANTS, CALL_TRANSACTION_OPTIONS, ENTITY_NAME, lockCallRow, Tx } from "./call-store";
-import { CallDetailView, GRANT_LABEL } from "./call-views";
+import { eligibleMemberWhere, isEligibleAdministrator, responsibleIsEligible } from "./call-access";
+import { ACCESS_MANAGE, CALL_TRANSACTION_OPTIONS, ENTITY_NAME, lockCallRow, permissionsRetiredAt, Tx } from "./call-store";
+import { CallDetailViewV2, GRANT_LABEL, SubstitutionPermissionsHistoryView, SUBSTITUTION_PERMISSION_RETIRED_NOTICE } from "./call-views";
 import { Clock, JOINT_PURCHASE_CLOCK } from "./clock";
 import { InstitutionalCallsUseCase, REASON_MAX, requireConfirmed, truncate } from "./institutional-calls.use-case";
 
@@ -31,30 +26,8 @@ export interface SubstitutionGrantCommand {
   confirmed?: unknown;
 }
 
-export interface SubstitutionPermissionsView {
-  contractVersion: 1;
-  /** Only an eligible ADMINISTRADOR grants and revokes (A1). */
-  can_grant: boolean;
-  /** This user holds the permission and is eligible now. */
-  holds_permission: boolean;
-  holders: {
-    user_ref: string;
-    name: string;
-    role: UserRole | null;
-    /** The holder is an active DIRECTIVA/ADMINISTRADOR now; otherwise the permission is not exercised. */
-    eligible: boolean;
-    granted_at: string;
-    granted_by: { user_ref: string; name: string };
-    reason: string;
-  }[];
-  history: {
-    at: string;
-    action: "GRANTED" | "REVOKED";
-    user: { user_ref: string; name: string };
-    actor: { user_ref: string; name: string };
-    reason: string | null;
-  }[];
-}
+/** E4 §3.2: the read-only history of the retired permission. */
+export type SubstitutionPermissionsView = SubstitutionPermissionsHistoryView;
 
 const INVALID = () => new CallHttpError(400, "PAYLOAD_INVALID");
 
@@ -75,31 +48,30 @@ function parseUserRef(raw: unknown): string {
 }
 
 /**
- * P-A (decisión del autor del 2026-11-12: A1 + B1 + C1), contrato E2 §12.
+ * P-A (decisión del autor del 2026-11-12, B1), contrato E2 §12, con E4 §6.3
+ * (2026-11-13).
  *
- * A1: an eligible ADMINISTRADOR grants and revokes «Sustituir responsable»
- * to concrete, eligible persons of the Directiva or the Administración of
- * the same tenant (never to themselves, never to a whole role), with a
- * reason. The permission only allows substituting responsibles under B1: it
- * gives no access to participants, no administration of calls and no power
- * to grant anything. If nobody else is eligible, there is no automatic
- * exception (documented in §12).
+ * E4: the tenant permission «Sustituir responsable» (A1) is retired: granting
+ * or revoking it is 409 SUBSTITUTION_PERMISSION_RETIRED and writes nothing;
+ * its rows and events stay as read-only history and give no power.
  *
- * B1: only a holder who is still eligible substitutes a responsible who is
- * NO LONGER eligible, in DRAFT, OPEN or CLOSED calls (not CANCELLED), with a
- * reason (1–280) and confirmation. Every condition is checked again under
- * the call's lock. The client names the responsible version it saw: a
- * concurrent substitution makes the second one fail (409
- * RESPONSIBLE_CHANGED), never overwrite silently; the same `request_id`
- * answers the same without a second change (409 REQUEST_ID_REUSED with
- * another body). The substitution does not reopen the call, change its
- * deadline, participations, quantities or closing, nor create purchases,
- * payments, debts or stock.
+ * Substitution: an ELIGIBLE ADMINISTRADOR of the tenant (by role, without any
+ * permission; checked again under the call's lock) substitutes a responsible
+ * who is NO LONGER eligible, in DRAFT, OPEN or CLOSED calls (not CANCELLED),
+ * with a reason (1–280) and confirmation. A DIRECTIVA gets 403
+ * SUBSTITUTION_FORBIDDEN, also with a permission granted before. Every P-A
+ * safeguard is kept: the successor is another eligible DIRECTIVA or
+ * ADMINISTRADOR, never the actor (no self-substitution) nor the current one;
+ * `expected_responsible_version` (409 RESPONSIBLE_CHANGED on a concurrent
+ * substitution); the same `request_id` answers the same (409
+ * REQUEST_ID_REUSED with another body); the change, its event, the AuditLog
+ * entry and the trigger that only lets the responsible change. It does not
+ * reopen the call nor change its deadline, participations, quantities or
+ * closing, nor create purchases, payments, debts or stock.
  *
- * C1 and delegations: the new responsible version leaves every farmer's
- * earlier authorization behind (their data stay restricted for her until
- * each farmer authorizes her), and every delegation of the earlier
- * responsible is suspended (not deleted) until the successor reviews it.
+ * E4 changes: no PARTICIPANTS row is removed nor created (the detail does not
+ * depend on the responsible), only MANAGE delegations are suspended until the
+ * successor reviews them, and no new authorization is asked of the farmers.
  */
 @Injectable()
 export class ResponsibleSubstitutionUseCase {
@@ -111,84 +83,26 @@ export class ResponsibleSubstitutionUseCase {
     @Inject(JOINT_PURCHASE_CLOCK) private readonly clock: Clock,
   ) {}
 
-  // ------------------------------------------------------------- A1: permission
+  // ------------------------------------------------- A1: retired permission (E4 §3.2)
 
-  /** Any DIRECTIVA/ADMINISTRADOR of the tenant reads who holds it and its history (no farmer data). */
+  /** Any DIRECTIVA/ADMINISTRADOR of the tenant reads the history (no farmer data). */
   async permissions(actor: InstitutionalActor): Promise<SubstitutionPermissionsView> {
     return this.renderPermissions(this.prisma, actor);
   }
 
-  async grantPermission(actor: InstitutionalActor, command: SubstitutionGrantCommand): Promise<SubstitutionPermissionsView> {
-    const userRef = parseUserRef(command.user_ref);
-    requireConfirmed(command.confirmed);
-    const reason = parseReason(command.reason, true)!;
-    await this.prisma.$transaction(async (tx) => {
-      await lockSubstitutionGrants(tx, actor.tenantId);
-      if (!(await isEligibleAdministrator(tx, actor.tenantId, actor.userId))) throw new CallHttpError(403, "SUBSTITUTION_FORBIDDEN");
-      if (userRef === actor.userId) throw new CallHttpError(422, "GRANTEE_NOT_ELIGIBLE");
-      const grantee = await tx.member.findFirst({
-        where: { ...eligibleMemberWhere(actor.tenantId), userId: userRef },
-        select: { user: { select: { id: true, name: true } } },
-      });
-      if (!grantee) throw new CallHttpError(422, "GRANTEE_NOT_ELIGIBLE");
-      const existing = await tx.jointPurchaseSubstitutionGrant.findUnique({
-        where: { tenantId_userId: { tenantId: actor.tenantId, userId: userRef } },
-        select: { userId: true },
-      });
-      if (existing) return;
-      const now = this.clock.now();
-      await tx.jointPurchaseSubstitutionGrant.create({
-        data: { tenantId: actor.tenantId, userId: userRef, grantedByUserId: actor.userId, grantedAt: now, reason },
-      });
-      await tx.jointPurchaseSubstitutionGrantEvent.create({
-        data: { tenantId: actor.tenantId, userId: userRef, action: "GRANTED", actorUserId: actor.userId, at: now, reason },
-      });
-      await this.auditPermission(tx, actor, userRef, `Permiso «Sustituir responsable» concedido a ${grantee.user.name}.`, {
-        action: "GRANTED",
-        holderUserRef: userRef,
-        reason,
-      });
-    }, CALL_TRANSACTION_OPTIONS);
-    this.logger.log(`[JOINT PURCHASE SUBSTITUTION PERMISSION GRANTED] tenant=${actor.tenantId} actor=${actor.userId}`);
-    return this.permissions(actor);
+  /** E4 §3.2: retired. Writes nothing. */
+  async grantPermission(_actor: InstitutionalActor, _command: SubstitutionGrantCommand): Promise<never> {
+    throw new CallHttpError(409, "SUBSTITUTION_PERMISSION_RETIRED");
   }
 
-  /** An eligible ADMINISTRADOR revokes it; a holder may renounce their own (m1, by analogy). Idempotent. */
-  async revokePermission(actor: InstitutionalActor, command: { user_ref?: unknown; reason?: unknown }): Promise<SubstitutionPermissionsView> {
-    const userRef = parseUserRef(command.user_ref);
-    const reason = parseReason(command.reason, false);
-    await this.prisma.$transaction(async (tx) => {
-      await lockSubstitutionGrants(tx, actor.tenantId);
-      const renouncing = userRef === actor.userId;
-      if (!renouncing && !(await isEligibleAdministrator(tx, actor.tenantId, actor.userId))) {
-        throw new CallHttpError(403, "SUBSTITUTION_FORBIDDEN");
-      }
-      const existing = await tx.jointPurchaseSubstitutionGrant.findUnique({
-        where: { tenantId_userId: { tenantId: actor.tenantId, userId: userRef } },
-        select: { user: { select: { name: true } } },
-      });
-      if (!existing) return;
-      const now = this.clock.now();
-      await tx.jointPurchaseSubstitutionGrant.delete({ where: { tenantId_userId: { tenantId: actor.tenantId, userId: userRef } } });
-      await tx.jointPurchaseSubstitutionGrantEvent.create({
-        data: { tenantId: actor.tenantId, userId: userRef, action: "REVOKED", actorUserId: actor.userId, at: now, reason },
-      });
-      await this.auditPermission(
-        tx,
-        actor,
-        userRef,
-        renouncing
-          ? `Renuncia al permiso «Sustituir responsable».`
-          : `Permiso «Sustituir responsable» retirado a ${existing.user.name}.`,
-        { action: "REVOKED", holderUserRef: userRef, renounced: renouncing, reason },
-      );
-    }, CALL_TRANSACTION_OPTIONS);
-    return this.permissions(actor);
+  /** E4 §3.2: retired. The rows are never deleted (CLAUDE.md rule 6); writes nothing. */
+  async revokePermission(_actor: InstitutionalActor, _command: { user_ref?: unknown; reason?: unknown }): Promise<never> {
+    throw new CallHttpError(409, "SUBSTITUTION_PERMISSION_RETIRED");
   }
 
   // --------------------------------------------------------- B1: substitution
 
-  async substitute(actor: InstitutionalActor, id: string, command: SubstituteCommand): Promise<CallDetailView> {
+  async substitute(actor: InstitutionalActor, id: string, command: SubstituteCommand): Promise<CallDetailViewV2> {
     if (!SERVER_ID.test(id)) throw new CallHttpError(404, "CALL_NOT_FOUND");
     const requestId = command.request_id;
     if (typeof requestId !== "string" || !SERVER_ID.test(requestId)) throw INVALID();
@@ -225,7 +139,8 @@ export class ResponsibleSubstitutionUseCase {
         if (replay.requestHash !== requestHash) throw new CallHttpError(409, "REQUEST_ID_REUSED");
         return;
       }
-      if (!(await holdsSubstitution(tx, actor.tenantId, actor.userId))) throw new CallHttpError(403, "SUBSTITUTION_FORBIDDEN");
+      // E4 §6.3: by role, read inside the transaction; no permission involved.
+      if (!(await isEligibleAdministrator(tx, actor.tenantId, actor.userId))) throw new CallHttpError(403, "SUBSTITUTION_FORBIDDEN");
       if (call.status === "CANCELLED") throw new CallHttpError(409, "INVALID_TRANSITION", { status: call.status });
       if (expected !== call.responsibleVersion) {
         throw new CallHttpError(409, "RESPONSIBLE_CHANGED", { responsible_version: call.responsibleVersion });
@@ -234,7 +149,7 @@ export class ResponsibleSubstitutionUseCase {
         throw new CallHttpError(409, "RESPONSIBLE_STILL_ELIGIBLE");
       }
       // The successor: another eligible DIRECTIVA/ADMINISTRADOR of the tenant, never the
-      // actor (the permission does not let anyone name themselves, §12) nor the current one.
+      // actor (nobody names themselves, §12) nor the current one.
       if (successorRef === actor.userId || successorRef === call.responsibleUserId) {
         throw new CallHttpError(422, "SUCCESSOR_NOT_ELIGIBLE");
       }
@@ -246,10 +161,11 @@ export class ResponsibleSubstitutionUseCase {
 
       const now = this.clock.now();
       const version = call.responsibleVersion + 1;
-      // Delegations in force under the version that ends: suspended until the successor reviews them.
+      // MANAGE delegations in force under the version that ends: suspended until the successor reviews them.
       const delegations = await tx.jointPurchaseCallAccess.findMany({
         where: {
           callId: id,
+          grant: ACCESS_MANAGE,
           grantedByUserId: { not: null },
           responsibleVersion: call.responsibleVersion,
           userId: { not: successorRef },
@@ -277,16 +193,7 @@ export class ResponsibleSubstitutionUseCase {
         where: { id },
         data: { responsibleUserId: successorRef, responsibleVersion: version },
       });
-      // The former responsible's own permission ends with her responsibility; the
-      // successor gets hers in an open or closed call (in a draft it comes at opening).
-      await tx.jointPurchaseCallAccess.deleteMany({
-        where: { callId: id, userId: call.responsibleUserId, grantedByUserId: null },
-      });
-      if (call.status === "OPEN" || call.status === "CLOSED") {
-        await tx.jointPurchaseCallAccess.create({
-          data: { callId: id, userId: successorRef, grant: ACCESS_PARTICIPANTS, grantedAt: now, responsibleVersion: version },
-        });
-      }
+      // E4 §6.3: no PARTICIPANTS row is removed nor created (stored ones are history).
       for (const delegation of delegations) {
         await tx.jointPurchaseCallAccessEvent.create({
           data: { callId: id, userId: delegation.userId, grant: delegation.grant, action: "SUSPENDED", actorUserId: actor.userId, at: now },
@@ -336,7 +243,7 @@ export class ResponsibleSubstitutionUseCase {
 
   private async renderPermissions(db: Tx | PrismaService, actor: InstitutionalActor): Promise<SubstitutionPermissionsView> {
     const user = { select: { id: true, name: true, members: { where: { tenantId: actor.tenantId }, select: { role: true } } } } as const;
-    const [rows, events, canGrant, holds] = await Promise.all([
+    const [rows, events, retiredAt] = await Promise.all([
       db.jointPurchaseSubstitutionGrant.findMany({
         where: { tenantId: actor.tenantId },
         orderBy: [{ grantedAt: "asc" }, { userId: "asc" }],
@@ -347,19 +254,17 @@ export class ResponsibleSubstitutionUseCase {
         orderBy: [{ at: "asc" }, { id: "asc" }],
         include: { user: { select: { id: true, name: true } }, actor: { select: { id: true, name: true } } },
       }),
-      isEligibleAdministrator(db, actor.tenantId, actor.userId),
-      holdsSubstitution(db, actor.tenantId, actor.userId),
+      permissionsRetiredAt(db),
     ]);
-    const eligible = await Promise.all(rows.map((row) => responsibleIsEligible(db, actor.tenantId, row.userId)));
     return {
-      contractVersion: 1,
-      can_grant: canGrant,
-      holds_permission: holds,
-      holders: rows.map((row, index) => ({
+      contractVersion: 2,
+      retired_at: retiredAt.toISOString(),
+      notice: SUBSTITUTION_PERMISSION_RETIRED_NOTICE,
+      can_grant: false,
+      holders: rows.map((row) => ({
         user_ref: row.user.id,
         name: row.user.name,
         role: row.user.members[0]?.role ?? null,
-        eligible: eligible[index],
         granted_at: row.grantedAt.toISOString(),
         granted_by: { user_ref: row.grantedBy.id, name: row.grantedBy.name },
         reason: row.reason,
@@ -373,26 +278,4 @@ export class ResponsibleSubstitutionUseCase {
       })),
     };
   }
-
-  private async auditPermission(tx: Tx, actor: InstitutionalActor, holderRef: string, summary: string, metadata: Prisma.InputJsonValue) {
-    await tx.auditLog.create({
-      data: {
-        tenantId: actor.tenantId,
-        campaignId: null,
-        actorUserId: actor.userId,
-        ownerUserId: null,
-        action: "OTRO",
-        entityName: SUBSTITUTION_ENTITY,
-        entityId: holderRef,
-        summary,
-        metadata,
-      },
-    });
-  }
-}
-
-/** Grants and revocations of «Sustituir responsable» of one tenant are serialised. */
-async function lockSubstitutionGrants(tx: Tx, tenantId: string): Promise<void> {
-  const key = `joint-purchase-substitution:${tenantId}`;
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
 }

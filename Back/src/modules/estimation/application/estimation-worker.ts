@@ -4,7 +4,6 @@ import { randomUUID } from "node:crypto";
 import { clearInterval, setInterval } from "node:timers";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CollectiveConfig } from "../../collective/application/collective-config";
-import { PROVISIONAL_THRESHOLD } from "../../collective/domain/disclosure-policy";
 import { baseUnitForCentralUnit } from "../../sync-v1/domain/units";
 import { byCodeUnits, ResultContent, runContentHash } from "../domain/run-content";
 import { SpanAssessment } from "../domain/series";
@@ -40,7 +39,6 @@ export type CarryOutcome =
   | { jobId: string; status: "NOT_EXECUTED"; stopCode: StopCode; attempt: number }
   | { jobId: string; status: "LOST"; attempt: number };
 
-const POLICY = "F07-POL-01";
 const ELIGIBLE = ["PLANIFICADA", "ABIERTA"];
 
 /**
@@ -353,7 +351,9 @@ export class EstimationWorker implements OnApplicationBootstrap, OnModuleDestroy
         AND NOT EXISTS (SELECT 1 FROM "EstimationRun" n WHERE n."previousRunId" = r."id")`;
     const runId = randomUUID();
     const generatedAt = new Date(Math.max(Date.now(), previous?.generatedAt.getTime() ?? 0));
-    const disclosure = { disclosureMode: this.collective.mode, policy: POLICY, threshold: PROVISIONAL_THRESHOLD };
+    // E4 §4.4: the policy in force when the run is made, and its threshold
+    // (3 with F07-POL-01, NULL with F07-POL-02). Earlier runs keep theirs.
+    const disclosure = { disclosureMode: this.collective.mode, policy: this.collective.policy, threshold: this.collective.threshold };
     const contentHash = runContentHash(
       {
         run_ref: runId,

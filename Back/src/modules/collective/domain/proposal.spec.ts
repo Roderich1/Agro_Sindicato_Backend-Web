@@ -34,3 +34,19 @@ describe("joint purchase proposal fingerprint", () => {
     expect(proposalFingerprint(leaked)).toBe(proposalFingerprint(inputs));
   });
 });
+
+describe("E4 §4.4: fingerprint v2 of new drafts includes the policy", () => {
+  const inputs: ProposalInputs = {
+    campaign_ref: "camp",
+    coverage: { linked_members: 5, members_with_contribution: 1 },
+    cells: [{ product_ref: "a", base_unit: "ML", status: "DISCLOSED", total_base: "10", pending_changes: false }],
+  };
+
+  it("differs between the policies and from the earlier v1 fingerprint", () => {
+    const v1 = proposalFingerprint(inputs);
+    const pol01 = proposalFingerprint({ ...inputs, policy: "F07-POL-01" });
+    const pol02 = proposalFingerprint({ ...inputs, policy: "F07-POL-02" });
+    expect(new Set([v1, pol01, pol02]).size).toBe(3);
+    expect(proposalFingerprint({ ...inputs, policy: "F07-POL-02" })).toBe(pol02);
+  });
+});

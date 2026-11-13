@@ -51,8 +51,9 @@ const MANAGE_OR_FALLBACK =
 /**
  * E2 §4.1: joint purchase calls of the Directiva of the effective tenant; its
  * ADMINISTRADOR holds the Directiva functions (RU-18/RU-19). AGRICULTOR is
- * refused (403). Another tenant's call is 404. The identified participants
- * need the specific permission of E2-D6, which no role grants.
+ * refused (403). Another tenant's call is 404. E4 §2: the identified
+ * participants are consulted only by an eligible ADMINISTRADOR, for the
+ * participations whose consent covers `ADMINISTRATION`.
  */
 @ApiTags("joint purchase calls")
 @ApiBearerAuth()
@@ -187,12 +188,12 @@ export class InstitutionalCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "Participantes identificados vigentes: sólo con PARTICIPANTS (E2-D6); un colaborador ve sólo los de CONV-2 y el número de los demás (§10.3); provisional mientras OPEN",
+      "E4 §3.1: participantes identificados vigentes, sólo para una ADMINISTRADOR habilitada y sólo los de alcance ADMINISTRATION; los demás como conteo (pending_consent_count); provisional mientras OPEN",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiResponse({ status: 200, schema: participantsSchema })
   @error(401, "Sin credencial vigente.")
-  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o PARTICIPANTS_FORBIDDEN: sin el permiso específico.")
+  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o PARTICIPANTS_FORBIDDEN: no es una ADMINISTRADOR habilitada (también la Directiva responsable).")
   @error(404, "CALL_NOT_FOUND.")
   participants(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") id: string) {
     return this.calls.participants(actorOf(user), id);
@@ -200,7 +201,7 @@ export class InstitutionalCallsController {
 
   @Get(":id/closing")
   @Header("Cache-Control", "no-store")
-  @ApiOperation({ summary: "Consolidado al cierre (cantidades solicitadas): totales y detalle por persona según §10.3" })
+  @ApiOperation({ summary: "Consolidado al cierre (cantidades solicitadas): totales según la regla T (E4 §5.2) y detalle por persona sólo para una ADMINISTRADOR habilitada (alcance ADMINISTRATION)" })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiResponse({ status: 200, schema: closingSchema })
   @error(401, "Sin credencial vigente.")
@@ -214,7 +215,7 @@ export class InstitutionalCallsController {
   @Get(":id/collaborators")
   @Header("Cache-Control", "no-store")
   @ApiOperation({
-    summary: "Colaboradores vigentes y su historial de concesiones y revocaciones (§10.2); sin datos de agricultores",
+    summary: "Colaboradores MANAGE vigentes, permisos de visualización retirados (sólo historia) y el historial de concesiones y revocaciones; sin datos de agricultores",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiResponse({ status: 200, schema: collaboratorsSchema })
@@ -230,7 +231,7 @@ export class InstitutionalCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "Conceder PARTICIPANTS o MANAGE a otro usuario institucional activo del tenant (sólo el responsable; DRAFT, OPEN o CLOSED); idempotente",
+      "Conceder MANAGE a otro usuario institucional activo del tenant (sólo el responsable; DRAFT, OPEN o CLOSED); idempotente. PARTICIPANTS: 409 GRANT_RETIRED (E4)",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiResponse({ status: 200, schema: collaboratorsSchema })
@@ -238,7 +239,7 @@ export class InstitutionalCallsController {
   @error(401, "Sin credencial vigente.")
   @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o COLLABORATORS_FORBIDDEN: no es el responsable.")
   @error(404, "CALL_NOT_FOUND.")
-  @error(409, "INVALID_TRANSITION (con status): convocatoria cancelada.")
+  @error(409, "GRANT_RETIRED (grant PARTICIPANTS, sin escribir nada) o INVALID_TRANSITION (con status): convocatoria cancelada.")
   @error(422, "CONFIRMATION_REQUIRED o COLLABORATOR_NOT_ELIGIBLE (sin distinguir el motivo).")
   grant(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") id: string, @Body() dto: GrantCollaboratorDto) {
     return this.calls.grant(actorOf(user), id, dto);
@@ -249,7 +250,7 @@ export class InstitutionalCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "Revocar un permiso (el responsable) o renunciar al propio (el colaborador), en cualquier estado; idempotente; rige desde la petición siguiente",
+      "Revocar un MANAGE (el responsable) o renunciar al propio (el colaborador), en cualquier estado; idempotente; rige desde la petición siguiente. PARTICIPANTS: 409 GRANT_RETIRED (la fila se conserva como historia)",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiResponse({ status: 200, schema: collaboratorsSchema })
@@ -257,6 +258,7 @@ export class InstitutionalCallsController {
   @error(401, "Sin credencial vigente.")
   @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o COLLABORATORS_FORBIDDEN.")
   @error(404, "CALL_NOT_FOUND.")
+  @error(409, "GRANT_RETIRED: grant PARTICIPANTS.")
   @error(422, "COLLABORATOR_NOT_ELIGIBLE: los permisos del responsable no se revocan.")
   revoke(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") id: string, @Body() dto: RevokeCollaboratorDto) {
     return this.calls.revoke(actorOf(user), id, dto);
@@ -275,7 +277,7 @@ export class InstitutionalCallsController {
   @error(401, "Sin credencial vigente.")
   @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o COLLABORATORS_FORBIDDEN: no es la responsable habilitada.")
   @error(404, "CALL_NOT_FOUND.")
-  @error(409, "DELEGATION_NOT_PENDING (no hay esa delegación pendiente de revisión) o INVALID_TRANSITION (confirmar en una cancelada).")
+  @error(409, "GRANT_RETIRED (grant PARTICIPANTS), DELEGATION_NOT_PENDING (no hay esa delegación pendiente de revisión) o INVALID_TRANSITION (confirmar en una cancelada).")
   @error(422, "COLLABORATOR_NOT_ELIGIBLE: la persona ya no está habilitada (sólo se puede retirar).")
   review(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") id: string, @Body() dto: ReviewDelegationDto) {
     return this.calls.reviewDelegation(actorOf(user), id, dto);
@@ -286,13 +288,13 @@ export class InstitutionalCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "P-A B1 (§12): sustituir a una responsable que ya no está habilitada, con el permiso «Sustituir responsable», motivo y confirmación; en DRAFT, OPEN o CLOSED (no reabre ni cambia nada más); idempotente por request_id",
+      "E4 §6.3 (P-A B1): una ADMINISTRADOR habilitada, sin permiso adicional, sustituye a una responsable que ya no está habilitada, con motivo y confirmación; en DRAFT, OPEN o CLOSED (no reabre ni cambia nada más); idempotente por request_id",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiResponse({ status: 200, schema: callDetailSchema })
   @error(400, "PAYLOAD_INVALID: request_id, expected_responsible_version o new_responsible_ref inválidos.")
   @error(401, "Sin credencial vigente.")
-  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o SUBSTITUTION_FORBIDDEN: sin el permiso o sin estar habilitada.")
+  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o SUBSTITUTION_FORBIDDEN: no es una ADMINISTRADOR habilitada (una Directiva, aunque tuviera un permiso concedido antes).")
   @error(404, "CALL_NOT_FOUND.")
   @error(
     409,

@@ -449,7 +449,9 @@
                         "version",
                         "sealed_at",
                         "accepted_until",
-                        "sealed_by"
+                        "sealed_by",
+                        "policy",
+                        "threshold"
                       ],
                       "properties": {
                         "seal_ref": {
@@ -462,6 +464,19 @@
                             1
                           ],
                           "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
                         },
                         "sealed_at": {
                           "type": "string",
@@ -508,6 +523,7 @@
                         "approved",
                         "threshold"
                       ],
+                      "description": "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
                       "properties": {
                         "mode": {
                           "type": "string",
@@ -519,8 +535,10 @@
                         "policy": {
                           "type": "string",
                           "enum": [
-                            "F07-POL-01"
-                          ]
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
                         },
                         "approved": {
                           "type": "boolean",
@@ -530,7 +548,8 @@
                         },
                         "threshold": {
                           "type": "integer",
-                          "nullable": true
+                          "nullable": true,
+                          "description": "3 con F07-POL-01; null con F07-POL-02 (sin umbral) y con POLICY_PENDING"
                         }
                       }
                     },
@@ -614,7 +633,7 @@
                               "OVERFLOW",
                               "WITHDRAWN_AFTER_SEAL"
                             ],
-                            "description": "WITHDRAWN_AFTER_SEAL: sólo en una versión sellada; el aportante retiró su aporte después del sellado"
+                            "description": "WITHDRAWN_AFTER_SEAL: sólo en una versión sellada; el aportante retiró su aporte después del sellado. SUPPRESSED_UNDER_THRESHOLD: estado histórico de F07-POL-01 (lo sellado con esa política); F07-POL-02 nunca lo produce"
                           },
                           "total_base": {
                             "type": "string",
@@ -644,7 +663,7 @@
                           },
                           "pending_changes": {
                             "type": "boolean",
-                            "description": "Hay cambios que aún no alcanzan el umbral"
+                            "description": "La cifra mostrada es la anterior y hay cambios que todavía no se publican (F07-POL-01); con F07-POL-02 sólo es false"
                           }
                         }
                       }
@@ -764,7 +783,9 @@
                         "version",
                         "sealed_at",
                         "accepted_until",
-                        "sealed_by"
+                        "sealed_by",
+                        "policy",
+                        "threshold"
                       ],
                       "properties": {
                         "seal_ref": {
@@ -777,6 +798,19 @@
                             1
                           ],
                           "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
                         },
                         "sealed_at": {
                           "type": "string",
@@ -858,8 +892,10 @@
                         "policy": {
                           "type": "string",
                           "enum": [
-                            "F07-POL-01"
-                          ]
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
                         },
                         "approved": {
                           "type": "boolean",
@@ -949,7 +985,8 @@
                               "WITHDRAWN",
                               "SUPERSEDED",
                               "POLICY_PENDING"
-                            ]
+                            ],
+                            "description": "SUPPRESSED_UNDER_THRESHOLD: sólo en borradores generados con F07-POL-01 (disclosure.policy); se conserva sin cifra"
                           },
                           "quantity_base": {
                             "type": "string",
@@ -1196,7 +1233,9 @@
                         "version",
                         "sealed_at",
                         "accepted_until",
-                        "sealed_by"
+                        "sealed_by",
+                        "policy",
+                        "threshold"
                       ],
                       "properties": {
                         "seal_ref": {
@@ -1209,6 +1248,19 @@
                             1
                           ],
                           "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
                         },
                         "sealed_at": {
                           "type": "string",
@@ -1290,8 +1342,10 @@
                         "policy": {
                           "type": "string",
                           "enum": [
-                            "F07-POL-01"
-                          ]
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
                         },
                         "approved": {
                           "type": "boolean",
@@ -1381,7 +1435,8 @@
                               "WITHDRAWN",
                               "SUPERSEDED",
                               "POLICY_PENDING"
-                            ]
+                            ],
+                            "description": "SUPPRESSED_UNDER_THRESHOLD: sólo en borradores generados con F07-POL-01 (disclosure.policy); se conserva sin cifra"
                           },
                           "quantity_base": {
                             "type": "string",
@@ -1515,7 +1570,9 @@
                         "version",
                         "sealed_at",
                         "accepted_until",
-                        "sealed_by"
+                        "sealed_by",
+                        "policy",
+                        "threshold"
                       ],
                       "properties": {
                         "seal_ref": {
@@ -1528,6 +1585,19 @@
                             1
                           ],
                           "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
                         },
                         "sealed_at": {
                           "type": "string",
@@ -1744,7 +1814,9 @@
                         "version",
                         "sealed_at",
                         "accepted_until",
-                        "sealed_by"
+                        "sealed_by",
+                        "policy",
+                        "threshold"
                       ],
                       "properties": {
                         "seal_ref": {
@@ -1757,6 +1829,19 @@
                             1
                           ],
                           "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
                         },
                         "sealed_at": {
                           "type": "string",
@@ -1953,6 +2038,7 @@
                         "approved",
                         "threshold"
                       ],
+                      "description": "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
                       "properties": {
                         "mode": {
                           "type": "string",
@@ -1964,8 +2050,10 @@
                         "policy": {
                           "type": "string",
                           "enum": [
-                            "F07-POL-01"
-                          ]
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
                         },
                         "approved": {
                           "type": "boolean",
@@ -1975,7 +2063,8 @@
                         },
                         "threshold": {
                           "type": "integer",
-                          "nullable": true
+                          "nullable": true,
+                          "description": "3 con F07-POL-01; null con F07-POL-02 (sin umbral) y con POLICY_PENDING"
                         }
                       }
                     },
@@ -2024,7 +2113,9 @@
                               "version",
                               "sealed_at",
                               "accepted_until",
-                              "sealed_by"
+                              "sealed_by",
+                              "policy",
+                              "threshold"
                             ],
                             "properties": {
                               "seal_ref": {
@@ -2037,6 +2128,19 @@
                                   1
                                 ],
                                 "description": "Este bloque no crea versiones posteriores"
+                              },
+                              "policy": {
+                                "type": "string",
+                                "enum": [
+                                  "F07-POL-01",
+                                  "F07-POL-02"
+                                ],
+                                "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
                               },
                               "sealed_at": {
                                 "type": "string",
@@ -2168,7 +2272,7 @@
                                     "NO_DATA",
                                     "NOT_SEALED"
                                   ],
-                                  "description": "NO_DATA: la versión sellada no tiene esa celda (desconocido, no cero). NOT_SEALED: sin versión sellada"
+                                  "description": "NO_DATA: la versión sellada no tiene esa celda (desconocido, no cero). NOT_SEALED: sin versión sellada. SUPPRESSED_UNDER_THRESHOLD: sólo en campañas selladas con F07-POL-01 (campaigns[].seal.policy)"
                                 },
                                 "total_base": {
                                   "type": "string",
@@ -14091,8 +14195,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-3",
-            "description": "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
+            "example": "CONV-4",
+            "description": "Versión del texto mostrado: CONV-4 (vigente, da ADMINISTRATION), o CONV-3, CONV-2 y CONV-1 (operaciones de apps anteriores, con el alcance de su texto); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
           },
           "accepted_at": {
             "type": "string",
@@ -14191,8 +14295,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-3",
-            "description": "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir"
+            "example": "CONV-4",
+            "description": "Texto mostrado: CONV-4 para ADMINISTRATION; cualquiera conocido para TOTALS_ONLY o RESPONSIBLE_ONLY"
           },
           "decided_at": {
             "type": "string",
@@ -14222,10 +14326,12 @@
           "scope": {
             "type": "string",
             "enum": [
+              "ADMINISTRATION",
+              "TOTALS_ONLY",
               "RESPONSIBLE_ONLY",
               "COLLABORATORS"
             ],
-            "description": "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable"
+            "description": "E4 §4.2: ADMINISTRATION (CONV-4: la Administración habilitada ve el detalle), TOTALS_ONLY (retira esa autorización; sólo totales), RESPONSIBLE_ONLY (reducción anterior). COLLABORATORS: 409 CONSENT_VERSION_RETIRED. Los contratos 1–3 sólo envían los dos anteriores"
           },
           "consent": {
             "$ref": "#/components/schemas/ConsentDecisionTextDto"
@@ -14237,7 +14343,7 @@
           },
           "authorize_responsible": {
             "type": "boolean",
-            "description": "P-A C1 (contrato 3): true = autoriza a la persona responsable de responsible_version (acción explícita, separada de las cantidades); exige CONV-3 y esa versión vigente"
+            "description": "P-A C1 (contrato 3), retirado por E4: true → 409 CONSENT_VERSION_RETIRED. Con ADMINISTRATION no se admite (400)"
           }
         },
         "required": [
@@ -14380,7 +14486,7 @@
               "PARTICIPANTS",
               "MANAGE"
             ],
-            "description": "PARTICIPANTS: consultar participantes y cantidades; MANAGE: administrar la convocatoria"
+            "description": "MANAGE: administrar la convocatoria. PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           },
           "confirmed": {
             "type": "boolean",
@@ -14404,7 +14510,8 @@
             "enum": [
               "PARTICIPANTS",
               "MANAGE"
-            ]
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           }
         },
         "required": [
@@ -14423,7 +14530,8 @@
             "enum": [
               "PARTICIPANTS",
               "MANAGE"
-            ]
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           },
           "decision": {
             "type": "string",

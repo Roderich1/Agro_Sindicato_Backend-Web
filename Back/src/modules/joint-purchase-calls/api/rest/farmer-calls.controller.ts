@@ -2,9 +2,9 @@ import { Body, Controller, Get, Header, HttpCode, HttpStatus, Param, Post, Put, 
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Public } from "@/modules/iam/api/rest/decorators/public.decorator";
 import { SyncV1AuthGuard, SyncV1Request } from "@/modules/sync-v1/api/rest/sync-v1-auth.guard";
-import { FarmerParticipationUseCase } from "../../application/farmer-participation.use-case";
+import { FarmerContract, FarmerParticipationUseCase } from "../../application/farmer-participation.use-case";
 import { CallErrorExtra, CallHttpError, FarmerContext } from "../../domain/call-error";
-import { toContract2FarmerBody, toLegacyFarmerBody } from "../../application/call-views";
+import { toContract2FarmerBody, toContract4FarmerBody, toLegacyFarmerBody } from "../../application/call-views";
 import { ConfirmParticipationDto, ConsentDecisionDto, FarmerHistoryQueryDto, WithdrawParticipationDto } from "./calls.dto";
 import { CallsExceptionFilter } from "./calls-exception.filter";
 import { acceptedSchema, callErrorSchema, farmerHistorySchema, farmerListSchema } from "./calls-openapi.schemas";
@@ -17,21 +17,27 @@ function farmerOf(request: SyncV1Request): FarmerContext {
 }
 
 /**
- * N7 (2026-11-12): the phone says which contract it reads. `3` = P-A (§12:
- * `responsible.version`, `responsible_authorization`); `2` = §10.6
- * (`CONV-3`, `consent_scope`, `history`). Without the header (the versions
- * published before, which validate the answer strictly) the answer keeps the
- * contract 1 shape; an unknown value is read as 1 too, never as a newer one.
+ * N7 (2026-11-12) and E4 §7: the phone says which contract it reads. `4` =
+ * E4 (CONV-4, `ADMINISTRATION`/`TOTALS_ONLY`); `3` = P-A; `2` = §10.6; no
+ * header (or an unknown value) = 1, never a newer one.
+ *
+ * E4 §7.1: READS get the shape of contract 4 whatever the header: serving an
+ * earlier text (CONV-1/CONV-3) would say that the responsible sees the data,
+ * which is no longer true; those apps show «Actualice la aplicación».
+ * WRITES are decided knowing the contract (409 APP_UPDATE_REQUIRED on a
+ * participation with a scope it does not know) and answered in the shape of
+ * that contract, so an app never retries forever on a 2xx it cannot read.
  */
 export const CONTRACT_HEADER = "x-joint-purchase-contract";
 
-function contractOf(request: SyncV1Request): 1 | 2 | 3 {
+export function contractOf(request: SyncV1Request): FarmerContract {
   const raw = request.headers[CONTRACT_HEADER];
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return value === "3" ? 3 : value === "2" ? 2 : 1;
+  return value === "4" ? 4 : value === "3" ? 3 : value === "2" ? 2 : 1;
 }
 
-function shapeFor(contract: 1 | 2 | 3, body: unknown): unknown {
+function shapeFor(contract: FarmerContract, body: unknown): unknown {
+  if (contract === 4) return toContract4FarmerBody(body);
   if (contract === 3) return body;
   return contract === 2 ? toContract2FarmerBody(body) : toLegacyFarmerBody(body);
 }
@@ -60,14 +66,15 @@ export class FarmerCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "Convocatorias OPEN del tenant y las CLOSED/CANCELLED recientes (180 días) en las que participó, con la participación propia y el número de anteriores (history.older_count)",
+      "Convocatorias OPEN del tenant y las CLOSED/CANCELLED recientes (180 días) en las que participó, con la participación propia y el número de anteriores (history.older_count). E4: forma del contrato 4 para todos los contratos",
   })
   @ApiResponse({ status: 200, schema: farmerListSchema })
   @error(401, "Credencial ausente, inválida o expirada.")
   @error(403, "Sesión, Member, registro de cliente o rol no permitido.")
   @error(429, "Límite de solicitudes.")
   async list(@Req() request: SyncV1Request) {
-    return forContract(request, await this.farmer.list(farmerOf(request)));
+    // E4 §7.1: the shape of contract 4 for every contract.
+    return this.farmer.list(farmerOf(request));
   }
 
   @Get("history")
@@ -82,7 +89,8 @@ export class FarmerCallsController {
   @error(403, "Sesión, Member, registro de cliente o rol no permitido.")
   @error(429, "Límite de solicitudes.")
   async history(@Req() request: SyncV1Request, @Query() query: FarmerHistoryQueryDto) {
-    return forContract(request, await this.farmer.history(farmerOf(request), { before: query.before, limit: query.limit }));
+    // E4 §7.1: the shape of contract 4 for every contract.
+    return this.farmer.history(farmerOf(request), { before: query.before, limit: query.limit });
   }
 
   @Put(":id/participation")
@@ -99,12 +107,12 @@ export class FarmerCallsController {
   @error(404, "CALL_NOT_FOUND: inexistente o de otro tenant.")
   @error(
     409,
-    "CALL_NOT_OPEN (reason DEADLINE_PASSED|CLOSED|CANCELLED|DRAFT), STALE_SEQUENCE (participation vigente), OPERATION_ID_REUSED o CONSENT_REQUIRED.",
+    "CALL_NOT_OPEN (reason DEADLINE_PASSED|CLOSED|CANCELLED|DRAFT), STALE_SEQUENCE (participation vigente), OPERATION_ID_REUSED, CONSENT_REQUIRED o APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance ADMINISTRATION/TOTALS_ONLY, o con CONV-4).",
   )
   @error(422, "PRODUCT_NOT_IN_CALL o QUANTITY_INVALID.")
   @error(429, "Límite de solicitudes.")
   async confirm(@Req() request: SyncV1Request, @Param("id") id: string, @Body() body: ConfirmParticipationDto) {
-    return forContract(request, await legacyErrors(request, () => this.farmer.confirm(farmerOf(request), id, body)));
+    return forContract(request, await legacyErrors(request, () => this.farmer.confirm(farmerOf(request), id, body, contractOf(request))));
   }
 
   @Post(":id/participation/withdraw")
@@ -118,10 +126,10 @@ export class FarmerCallsController {
   @error(401, "Credencial ausente, inválida o expirada.")
   @error(403, "Contexto no permitido.")
   @error(404, "CALL_NOT_FOUND.")
-  @error(409, "CALL_NOT_OPEN, STALE_SEQUENCE u OPERATION_ID_REUSED.")
+  @error(409, "CALL_NOT_OPEN, STALE_SEQUENCE, OPERATION_ID_REUSED o APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance nuevo).")
   @error(429, "Límite de solicitudes.")
   async withdraw(@Req() request: SyncV1Request, @Param("id") id: string, @Body() body: WithdrawParticipationDto) {
-    return forContract(request, await legacyErrors(request, () => this.farmer.withdraw(farmerOf(request), id, body)));
+    return forContract(request, await legacyErrors(request, () => this.farmer.withdraw(farmerOf(request), id, body, contractOf(request))));
   }
 
   @Post(":id/participation/consent")
@@ -129,7 +137,7 @@ export class FarmerCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "§10.6 (P-C): ampliar (COLLABORATORS) o reducir (RESPONSIBLE_ONLY) quién ve el nombre y las cantidades, como decisión propia con orden propio; no cambia cantidades",
+      "E4 §4.2: autorizar a la Administración (ADMINISTRATION, CONV-4), retirar esa autorización (TOTALS_ONLY) o la reducción anterior (RESPONSIBLE_ONLY), como decisión propia con orden propio; no cambia cantidades. Ampliar a COLLABORATORS o autorizar a una responsable: 409 CONSENT_VERSION_RETIRED",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiBody({ type: ConsentDecisionDto })
@@ -140,15 +148,15 @@ export class FarmerCallsController {
   @error(404, "CALL_NOT_FOUND.")
   @error(
     409,
-    "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ampliar o autorizar exige el texto vigente), WIDENING_NOT_ALLOWED (ampliar o autorizar en una CANCELLED), RESPONSIBLE_CHANGED (la responsable mostrada ya no es la vigente; con responsible_version), AUTHORIZATION_REQUIRED (ampliar sin haber autorizado a la responsable vigente), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
+    "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ADMINISTRATION exige CONV-4; versión desconocida), WIDENING_NOT_ALLOWED (ADMINISTRATION o TOTALS_ONLY en una CANCELLED), CONSENT_VERSION_RETIRED (ampliar a COLLABORATORS o autorizar a una responsable; definitivo), APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance nuevo), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
   )
   @error(429, "Límite de solicitudes.")
   async consent(@Req() request: SyncV1Request, @Param("id") id: string, @Body() body: ConsentDecisionDto) {
-    return forContract(request, await legacyErrors(request, () => this.farmer.decideConsent(farmerOf(request), id, body)));
+    return forContract(request, await legacyErrors(request, () => this.farmer.decideConsent(farmerOf(request), id, body, contractOf(request))));
   }
 }
 
-/** Contracts 1 and 2: an error body that carries the participation gets their shape too. */
+/** An error body that carries the participation (STALE_SEQUENCE) gets the shape of the contract too. */
 async function legacyErrors<T>(request: SyncV1Request, run: () => Promise<T>): Promise<T> {
   try {
     return await run();

@@ -3,7 +3,7 @@ import type { CampaignStatus, Prisma, SyncV1BaseUnit } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { cellId } from "../domain/consolidation";
 import { ProposalCellStatus, proposalFingerprint } from "../domain/proposal";
-import { CollectiveConfig, DisclosureMode } from "./collective-config";
+import { CollectiveConfig, DisclosureMode, DisclosurePolicy, storedPolicy } from "./collective-config";
 import {
   CollectiveSummary,
   CollectiveSummaryUseCase,
@@ -52,7 +52,8 @@ export interface ProposalView {
   generated_by: { user_ref: string; name: string };
   /** Null whenever a figure of the draft is not served (it would cover it). */
   inputs_fingerprint: string | null;
-  disclosure: { mode: DisclosureMode; policy: "F07-POL-01"; approved: false };
+  /** E4 §4.4: the policy the draft was generated with (F07-POL-01 for drafts before E4). */
+  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: false };
   /**
    * Stored at generation. `basis` (F10-SEC-02): PUBLISHED_FIGURES counts the
    * Members inside a published figure; ALL_CONTRIBUTORS is the earlier rule of
@@ -190,8 +191,13 @@ export class JointPurchaseProposalUseCase {
         status: cell.status === "WITHDRAWN_AFTER_SEAL" ? ("SUPPRESSED_REVISION" as const) : cell.status,
       }));
     const coverage = summary.coverage!;
+    // E4 §4.4: the draft records the policy its figures were decided with
+    // (that of the summary: the configured one, or the sealed one); its
+    // fingerprint includes it (v2).
+    const policy = summary.disclosure.policy;
     const fingerprint = proposalFingerprint({
       campaign_ref: summary.campaign.campaign_ref,
+      policy,
       coverage,
       cells,
     });
@@ -203,6 +209,7 @@ export class JointPurchaseProposalUseCase {
         linkedMembers: coverage.linked_members,
         membersWithContribution: coverage.members_with_contribution,
         coverageBasis: "PUBLISHED_FIGURES",
+        disclosurePolicy: policy,
         generatedByUserId: actorUserId,
         lines: {
           create: cells.map((cell, position) => ({
@@ -258,7 +265,7 @@ export class JointPurchaseProposalUseCase {
       generated_by: { user_ref: row.generatedBy.id, name: row.generatedBy.name },
       // The fingerprint covers the figures: hidden whenever one is not served.
       inputs_fingerprint: fingerprintVisible(row.lines, current) ? row.inputsFingerprint : null,
-      disclosure: { mode: authorized ? "PROVISIONAL_SYNTHETIC" : "POLICY_PENDING", policy: "F07-POL-01", approved: false },
+      disclosure: { mode: authorized ? "PROVISIONAL_SYNTHETIC" : "POLICY_PENDING", policy: storedPolicy(row.disclosurePolicy), approved: false },
       coverage: authorized
         ? {
             linked_members: row.linkedMembers,

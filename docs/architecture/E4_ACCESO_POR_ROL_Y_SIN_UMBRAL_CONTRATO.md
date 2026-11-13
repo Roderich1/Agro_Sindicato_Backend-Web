@@ -411,3 +411,21 @@ Back y Web cambian juntos (`contractVersion: 2` institucional). No hay clientes 
 ## 10. Trazabilidad de requisitos
 
 Sólo los IDs del Cap. III / SRS-AGRO-001 que ya citan los contratos fuente: RF-24 y RNF-05 (F07, `F07_…:7`), RU-18/RU-19 (ADR-003). Los IDs de RF/RN propios de compras conjuntas y consentimiento debe confirmarlos Roderich antes del acta. No se inventan aquí.
+
+---
+
+## 11. Implementación del Backend (sesión A, 2026-11-13)
+
+Rama `feat/acceso-rol-sin-k-a`. Hito A0 (forma de las respuestas, `CONV-4` y códigos): `01bcfe2`. Ejemplos JSON: [`E4_EJEMPLOS_RESPUESTAS.md`](E4_EJEMPLOS_RESPUESTAS.md). Evidencia: `docs/evidence/E4_ACCESO_ROL_BACKEND_2026-11-13.md`. Este apartado sólo añade texto; no cambia ninguna decisión de §0.
+
+Precisiones de la implementación (para revisar con el orquestador; ninguna amplía un acceso):
+
+1. **Deshabilitación → 401, no 403.** Un Member, una cuenta o un tenant inactivos los rechaza el contexto de autenticación común (`CurrentAuthContextResolver`, fuera de E4) con `401` en todas las rutas institucionales. Un cambio de rol (Administración → Directiva) sí llega a la ruta y recibe `403 PARTICIPANTS_FORBIDDEN`. En los dos casos el acceso se corta desde la petición siguiente y el token no se revoca. §6.4 y §8.3 hablan de `403`; no se tocó el módulo IAM.
+2. **Borrador.** Un producto sin ninguna participación (siempre en `DRAFT`) sale `VISIBLE` con `total_quantity_base: "0"` y `ROLE_CONSENT`: ninguna participación deja de cubrir los totales y el cero es real.
+3. **Permisos de visualización guardados.** Las filas `PARTICIPANTS` se sirven en un arreglo propio, `retired_grants`, y los eventos de `history` llevan `retired` y `notice`. La fecha del aviso es la de la migración de E4 en ese entorno (`_prisma_migrations.finished_at`).
+4. **Permiso «Sustituir responsable».** El `GET` pasa a `contractVersion: 2` y retira `holds_permission` y `holders[].eligible`. Sólo `retired_at`, `notice` y `can_grant: false` son nuevos.
+5. **Contratos 1–3.** Además de §7.2: un `CONFIRM` con `CONV-4` de un contrato 1–3 recibe `409 APP_UPDATE_REQUIRED` (esas apps no conocen ese texto), y una decisión `ADMINISTRATION` o `TOTALS_ONLY` declarada con un contrato 1–3 recibe `400 PAYLOAD_INVALID`. `APP_UPDATE_REQUIRED` no se registra en el diario: la misma operación se decide cuando la app se actualiza.
+6. **`responsible_authorization`.** Sólo sale en las respuestas de escritura del contrato 3, que lo exige; se calcula como antes y no da acceso a nadie. Las lecturas (forma 4) no lo llevan.
+7. **Activación sin la tabla.** Si la base no tiene la migración de E4 y la política es la de por defecto, el arranque sigue y lo advierte en el log; con `COLLECTIVE_DISCLOSURE_POLICY` explícita, el arranque falla. Volver al valor por defecto después de `F07-POL-02` también inserta una fila.
+8. **Defensa en profundidad.** El disparador de `JointPurchaseCallAccess` rechaza insertar `PARTICIPANTS` y también **borrar** una fila `PARTICIPANTS` guardada (historia).
+9. **Borradores.** Un borrador nuevo graba la política de la decisión del resumen (la configurada, o la sellada si la campaña está sellada) y su huella pasa a `v: 2` con la política. La huella de un borrador anterior no se recalcula.

@@ -43,6 +43,10 @@ export const envSchema = z.object({
   COLLECTIVE_DISCLOSURE_MODE: optionalText(
     z.enum(["disabled", "provisional-synthetic"]),
   ),
+  // E4 §5.1 (D-03): disclosure policy of the collective figures. F07-POL-01
+  // (k = 3 and the rule of combinations) by default; F07-POL-02 (no farmer
+  // threshold) only when set explicitly. Any other value stops the start.
+  COLLECTIVE_DISCLOSURE_POLICY: optionalText(z.enum(["F07-POL-01", "F07-POL-02"])),
   // F07 manual seal of a campaign's collective version. Off by default: it is
   // enabled only with a Mobile build that handles CAMPAIGN_SEALED as a
   // terminal failure (F07_SEALED_HISTORY_CONTRACT §3.2). Reading sealed

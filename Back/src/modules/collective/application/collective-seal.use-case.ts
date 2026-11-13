@@ -131,7 +131,8 @@ export class CollectiveSealUseCase {
             sealedByRole: actor.role,
             disclosureMode: decided.summary.disclosure.mode,
             policy: decided.summary.disclosure.policy,
-            threshold: decided.summary.disclosure.threshold!,
+            // E4 §4.4: NULL with F07-POL-02 (CHECK policy ⇔ threshold).
+            threshold: decided.summary.disclosure.threshold,
             linkedMembers: review.coverage.linked_members,
             membersWithContribution: review.coverage.members_with_contribution,
             suppressedCells: review.coverage.suppressed_cells,
@@ -215,6 +216,7 @@ export class CollectiveSealUseCase {
       review_ref: reviewFingerprint({
         campaign_ref: summary.campaign.campaign_ref,
         mode: summary.disclosure.mode,
+        policy: summary.disclosure.policy,
         threshold: summary.disclosure.threshold,
         coverage,
         open_disputes: openDisputes,

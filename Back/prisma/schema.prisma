@@ -1096,6 +1096,9 @@ model CollectiveRelease {
   dataAsOf           DateTime?
   releasedAt         DateTime             @default(now())
   withdrawnAt        DateTime?
+  /// E4 §4.4: política con que se decidió. NULL = anterior a E4 (F07-POL-01,
+  /// siempre con 3 o más aportantes); sin relleno.
+  policy             String?              @db.VarChar(16)
 
   tenant           Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   campaign         AgriculturalCampaign        @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1189,6 +1192,9 @@ model JointPurchaseProposal {
   // before the change (contributors of every cell, suppressed ones included);
   // PUBLISHED_FIGURES = Members inside a published figure. Never rewritten.
   coverageBasis           String?                     @db.VarChar(24)
+  // E4 §4.4: disclosure policy the draft was generated with. NULL = drafts
+  // generated before E4 (F07-POL-01). Never rewritten.
+  disclosurePolicy        String?                     @db.VarChar(16)
   generatedAt             DateTime                    @default(now())
   generatedByUserId       String
 
@@ -1254,7 +1260,9 @@ model CollectiveSeal {
   sealedByRole            UserRole
   disclosureMode          String   @db.VarChar(32)
   policy                  String   @db.VarChar(16)
-  threshold               Int
+  /// E4 §4.4: 3 con F07-POL-01; NULL con F07-POL-02 (sin umbral). CHECK
+  /// política ⇔ umbral en la migración.
+  threshold               Int?
   linkedMembers           Int
   membersWithContribution Int
   suppressedCells         Boolean
@@ -1535,7 +1543,8 @@ model EstimationRun {
   horizon                Int
   disclosureMode         String               @db.VarChar(32)
   policy                 String               @db.VarChar(16)
-  threshold              Int
+  /// E4 §4.4: 3 con F07-POL-01; NULL con F07-POL-02. CHECK política ⇔ umbral.
+  threshold              Int?
   outcome                EstimationRunOutcome
   failureCode            String?              @db.VarChar(48)
   previousRunId          String?              @db.Uuid
@@ -1803,10 +1812,11 @@ model JointPurchaseCallProduct {
 }
 
 /// E2-D6 y E2-P3 (§10.2): permisos por convocatoria, `PARTICIPANTS` o
-/// `MANAGE`. El sistema crea `PARTICIPANTS` para el responsable al abrir
-/// (`grantedByUserId` nulo); los de colaboradores los concede el responsable.
-/// Ningún rol los concede por sí solo. Revocar borra la fila; la traza queda
-/// en JointPurchaseCallAccessEvent.
+/// `MANAGE`. E4 (2026-11-13): las filas `PARTICIPANTS` son historia y no dan
+/// acceso (el detalle lo consulta la Administración habilitada por rol); la
+/// base rechaza insertar o borrar una (disparador). `MANAGE` sigue como antes:
+/// sólo la responsable lo concede; revocar borra la fila y la traza queda en
+/// JointPurchaseCallAccessEvent.
 model JointPurchaseCallAccess {
   callId             String   @db.Uuid
   userId             String
@@ -1885,9 +1895,15 @@ model JointPurchaseParticipation {
 }
 
 /// §10.6 (P-C): quién puede ver el nombre y las cantidades del agricultor.
+/// E4 §4.2 (2026-11-13): ADMINISTRATION (CONV-4: la Administración habilitada
+/// ve el detalle) y TOTALS_ONLY (retiró esa autorización; cubre sólo los
+/// totales). Los dos anteriores se conservan como se aceptaron y ya no dan
+/// acceso al detalle a nadie.
 enum JointPurchaseConsentScope {
   RESPONSIBLE_ONLY
   COLLABORATORS
+  ADMINISTRATION
+  TOTALS_ONLY
 }
 
 /// §10.6 (P-C): registro sólo de inserción de cada decisión sobre el
@@ -2123,6 +2139,8 @@ model JointPurchaseCallOriginProduct {
 /// mismo sindicato, nunca a sí misma ni a un rol entero. Revocar borra la fila;
 /// la traza queda en JointPurchaseSubstitutionGrantEvent. Sólo permite
 /// sustituir responsables (B1): no da acceso a participantes ni administración.
+/// E4 §3.2 (2026-11-13): historia, no da ningún poder; sustituye la
+/// Administración habilitada. Las filas se conservan sin borrar.
 model JointPurchaseSubstitutionGrant {
   tenantId        String
   userId          String
@@ -2180,4 +2198,17 @@ model JointPurchaseResponsibleChange {
 
   @@unique([callId, version])
   @@unique([callId, requestId])
+}
+
+/// E4 §5.1 (D-03): cada vez que la política colectiva configurada
+/// (`COLLECTIVE_DISCLOSURE_POLICY`) difiere de la última registrada, el
+/// arranque inserta una fila. Sólo de inserción (disparador); vacía al migrar.
+model CollectiveDisclosurePolicyActivation {
+  id             String   @id @default(uuid()) @db.Uuid
+  policy         String   @db.VarChar(16)
+  previousPolicy String?  @db.VarChar(16)
+  activatedAt    DateTime
+  source         String   @db.VarChar(16)
+
+  @@index([activatedAt])
 }
