@@ -274,5 +274,45 @@
   "desc": "«Más» con zoom al 200 %: panel desplazado hasta «Cerrar sesión»",
   "estado": "",
   "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/campanas-cabecera-pegada__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Cabecera pegada a la barra en Campañas (390), dentro de space-y",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/detalle-campana-heroe-pegado__movil.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "HeroPanel attachToHeader en el detalle de campaña (390)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/stepper-version-cifras__escritorio.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "Stepper «Versión de las cifras» con la línea completa (escritorio)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/barra-lateral-desplazada__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Barra lateral fija con la página desplazada 1500 px (ventana visible)",
+  "estado": "",
+  "simulado": false
  }
 ]
