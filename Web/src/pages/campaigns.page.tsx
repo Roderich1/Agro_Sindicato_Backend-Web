@@ -285,7 +285,7 @@ function SealChip({ version }: { version: number | null }) {
 function ActiveCampaignCard({ campaign, sealedVersion, onChanged }: { campaign: Campaign; sealedVersion: number | null; onChanged: (text: string) => Promise<void> }) {
   return (
     <div className="ui-on-ink rounded-hero bg-ink px-5 py-6 text-white sm:px-8" data-testid="active-campaign">
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between" data-testid={`campaign-row-${campaign.name}`}>
+      <div className="flex flex-col gap-5" data-testid={`campaign-row-${campaign.name}`}>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <StatusChip status={campaign.status} />
@@ -294,7 +294,8 @@ function ActiveCampaignCard({ campaign, sealedVersion, onChanged }: { campaign: 
           </div>
           <p className="mt-3 font-display text-3xl font-extrabold leading-tight text-white [overflow-wrap:anywhere] sm:text-4xl">{campaign.name}</p>
         </div>
-        <dl className="grid grid-cols-2 gap-x-10 gap-y-3 sm:grid-cols-3 xl:shrink-0">
+        <div className="flex flex-wrap items-end justify-between gap-5 border-t border-ink-line pt-5">
+        <dl className="grid grid-cols-2 gap-x-10 gap-y-3 sm:grid-cols-3">
           <div>
             <dt className="text-sm text-on-ink-muted">Empezó</dt>
             <dd className="font-display text-xl font-bold tabular-nums text-white">{fmtCampaignDay(campaign.startDate) ?? '—'}</dd>
@@ -318,6 +319,7 @@ function ActiveCampaignCard({ campaign, sealedVersion, onChanged }: { campaign: 
           <Link to={campaignDetailPath(campaign.id)} className={buttonClassFor('accent')} aria-label={`Ver detalle de ${campaign.name}`}>
             Ver detalle
           </Link>
+        </div>
         </div>
       </div>
     </div>
