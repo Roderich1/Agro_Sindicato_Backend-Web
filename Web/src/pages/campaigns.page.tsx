@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { Overline } from '../components/c/bits';
@@ -147,21 +147,19 @@ export function CampaignsPage() {
     await (filtered ? Promise.all([session.refresh(), find()]) : session.refresh());
   };
 
-  const counts = useMemo(
-    () =>
-      COUNT_TEXT.map(([value, one, many]) => {
-        const n = campaigns.filter((campaign) => campaign.status === value).length;
-        return n > 0 ? `${n} ${n === 1 ? one : many}` : null;
-      })
-        .filter(Boolean)
-        .join(' · '),
-    [campaigns],
-  );
   const openCount = campaigns.filter((campaign) => campaign.status === 'ABIERTA').length;
   // La tarjeta de arriba usa la fila más reciente de la lista si está; si no, la de la sesión.
   const active = activeCampaign ? (session.campaigns.find((row) => row.id === activeCampaign.id) ?? activeCampaign) : null;
   const others = campaigns.filter((campaign) => campaign.id !== active?.id);
   const onlyActiveMatches = filtered && others.length === 0 && campaigns.length > 0;
+  // El recuento describe la lista de abajo: la campaña activa está en la tarjeta de arriba y no se cuenta aquí.
+  const counts = COUNT_TEXT.map(([value, one, many]) => {
+    const n = others.filter((campaign) => campaign.status === value).length;
+    return n > 0 ? `${n} ${n === 1 ? one : many}` : null;
+  })
+    .filter(Boolean)
+    .join(' · ');
+  const activeInList = campaigns.some((campaign) => campaign.id === active?.id);
 
   return (
     <AppShell title="Campañas" section="Sindicato">
@@ -194,8 +192,8 @@ export function CampaignsPage() {
             <div className="min-w-0">
               <Overline id="list-title">{active && !filtered ? 'Otras campañas' : 'Campañas'}</Overline>
               <p className="mt-0.5 text-sm text-ink-muted" data-testid="campaign-counts">
-                {isLoading || error ? ' ' : campaigns.length === 0 ? 'Sin campañas en la lista' : counts}
-                {!isLoading && openCount > 1 && ` · hay ${openCount} campañas abiertas; «Campaña activa» es sólo la que el servidor marca como activa`}
+                {isLoading || error ? ' ' : others.length === 0 ? (campaigns.length === 0 ? 'Sin campañas en la lista' : 'Ninguna otra campaña') : counts}
+                {!isLoading && !error && openCount > 1 && ` · en total hay ${openCount} campañas abiertas${activeInList ? ', contando la de arriba' : ''}; «Campaña activa» es sólo la que el servidor marca como activa`}
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
