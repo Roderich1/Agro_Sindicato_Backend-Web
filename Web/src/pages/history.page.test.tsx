@@ -126,7 +126,9 @@ describe('Histórico y estimaciones (contenedor)', () => {
     serveEstimation(estimationFx.worst);
     render(`?vista=estimacion&campaign=${CAMPAIGN.id}`);
     const long = await screen.findByTestId('result-Herbicida sistémico de amplio espectro para barbecho químico 480 g/L');
-    expect(within(long).getByTestId('estimate').textContent).toMatch(/^123\.456\.789,012123456 L/);
+    // E3-R8 (lámina 26): la cifra grande va redondeada a la décima y la exacta, con sus seis decimales, escrita debajo.
+    expect(within(long).getByTestId('estimate').textContent).toMatch(/^≈ 123\.456\.789 L/);
+    expect(within(long).getByTestId('estimate-exact').textContent).toMatch(/Cifra exacta: 123\.456\.789,012123456 L/);
     expect(within(long).getByTestId('naive').textContent).toMatch(/^0 L/);
     const withdrawn = screen.getByTestId('result-Fungicida protectante a base de mancozeb 80 % WP (polvo mojable)');
     expect(within(withdrawn).getByTestId('estimate').textContent).toBe('Cifra retirada');

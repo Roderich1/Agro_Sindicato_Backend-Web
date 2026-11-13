@@ -161,7 +161,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     serve(resultsWith([result('Herbicida')]), [run('run-1', [detail('Herbicida')])]);
     renderAt(<EstimationPage />, { path: PATH });
     const row = await screen.findByTestId('result-Herbicida');
-    expect(within(row).getByTestId('estimate').textContent).toBe('111 L111.000 mL');
+    expect(within(row).getByTestId('estimate').textContent).toBe('111 LCifra exacta: 111 L (111.000 mL)'); // E3-R8: redondeada al presentar, la exacta escrita debajo
     expect(within(row).getByTestId('naive').textContent).toBe('116 L116.000 mL');
     await waitFor(() => expect(within(row).getByTestId('alpha').textContent).toBe('0,50'));
     expect(within(row).getByTestId('observed-span').textContent).toBe('4: C1 a C4');
@@ -235,7 +235,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect(within(withdrawn).getByTestId('naive').textContent).toBe('Cifra retirada');
     expect(within(withdrawn).getByTestId('validity').textContent).toMatch(/Desactualizado.*ya no se divulga/);
     const urea = screen.getByTestId('result-Urea');
-    expect(within(urea).getByTestId('estimate').textContent).toBe('2,5005 KG2.500,5 g');
+    expect(within(urea).getByTestId('estimate').textContent).toBe('≈ 2,5 KGCifra exacta: 2,5005 KG (2.500,5 g)'); // E3-R8: redondeada a la décima, la exacta escrita debajo
     expect(within(urea).getByTestId('validity').textContent).toMatch(/Sustituido/);
     expect(within(screen.getByTestId('result-Insecticida')).getByTestId('validity').textContent).toMatch(/No utilizable.*falló/);
   });
@@ -308,7 +308,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     const row = await screen.findByTestId('result-Herbicida');
     await waitFor(() => expect(within(row).getByTestId('alpha').textContent).toBe('0,50'));
     // Hasta la siguiente consulta, el cliente no sabe del cambio: la cifra sigue a la vista.
-    expect(within(row).getByTestId('estimate').textContent).toBe('111 L111.000 mL');
+    expect(within(row).getByTestId('estimate').textContent).toBe('111 LCifra exacta: 111 L (111.000 mL)'); // E3-R8: redondeada al presentar, la exacta escrita debajo
     vi.mocked(estimationService.run).mockRejectedValue(httpError(status, message));
     fireEvent.click(screen.getByRole('button', { name: 'Ver detalle' }));
     expect(await screen.findByTestId(`error-${kind}`)).toBeTruthy();
