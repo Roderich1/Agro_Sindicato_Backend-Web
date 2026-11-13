@@ -720,5 +720,189 @@
   "desc": "Nueva responsable a 390 (Sucesora PA)",
   "estado": "",
   "simulado": false
+ },
+ {
+  "files": [
+   "simulados/05-s2_sin_campanas__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen · 05 §2 sin campañas (respuestas simuladas)",
+  "estado": "05 §2 sin campañas",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-u8_sin_activa__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Resumen · U.8 sin campaña activa (respuestas simuladas)",
+  "estado": "U.8 sin campaña activa",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/u8-campanas-destino__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "U.8: destino de «Ir a Campañas» (lista simulada sin activa)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-s3_sin_cifras__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Resumen · 05 §3 sin cifras (respuestas simuladas)",
+  "estado": "05 §3 sin cifras",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-s4_todo_oculto__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Resumen · 05 §4 todo oculto (respuestas simuladas)",
+  "estado": "05 §4 todo oculto",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-s5_politica_pendiente__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Resumen · 05 §5 política pendiente (respuestas simuladas)",
+  "estado": "05 §5 política pendiente",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-s10_cerrada_sin_sellar__SIMULADO__escritorio.png",
+   "simulados/05-s10_cerrada_sin_sellar__SIMULADO__movil.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Resumen · 05 §10 cerrada sin sellar, lista para sellar (respuestas simuladas)",
+  "estado": "05 §10 cerrada sin sellar, lista para sellar",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/30-3-sellar-dialogo__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "30.3 Sellar esta versión (revisión simulada), sin enviar",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-s11_sellada__SIMULADO__escritorio.png",
+   "simulados/05-s11_sellada__SIMULADO__movil.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Resumen · 05 §11 sellada (respuestas simuladas)",
+  "estado": "05 §11 sellada",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-12-referencia-NONE__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador · referencia NONE (respuestas simuladas)",
+  "estado": "NONE",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-12-referencia-CALCULATING__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador · referencia CALCULATING (respuestas simuladas)",
+  "estado": "CALCULATING",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-12-referencia-LINKED__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador · referencia LINKED (respuestas simuladas)",
+  "estado": "LINKED",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-12-referencia-LINKED_DESACTUALIZADA__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador · referencia LINKED_DESACTUALIZADA (respuestas simuladas)",
+  "estado": "LINKED_DESACTUALIZADA",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-12-referencia-RESTRICTED__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador · referencia RESTRICTED (respuestas simuladas)",
+  "estado": "RESTRICTED",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-12-referencia-UNAVAILABLE__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador · referencia UNAVAILABLE (respuestas simuladas)",
+  "estado": "UNAVAILABLE",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/21-productos-inactivos__SIMULADO__escritorio.png",
+   "simulados/21-productos-inactivos__SIMULADO__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=productos",
+  "rol": "directiva",
+  "desc": "Productos: «Ver productos inactivos» con un producto (lista simulada)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/05-u8_sin_activa__SIMULADO__escritorio.png",
+   "simulados/05-u8_sin_activa__SIMULADO__movil.png"
+  ],
+  "ruta": "/colectivo/resumen?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Resumen sin campaña activa: «Para atender» con «Ir a Campañas» (respuestas simuladas)",
+  "estado": "",
+  "simulado": true
+ },
+ {
+  "files": [
+   "simulados/u8-campanas-destino__SIMULADO__escritorio.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "U.8: destino de «Ir a Campañas» (lista simulada, sin activa)",
+  "estado": "",
+  "simulado": true
  }
 ]

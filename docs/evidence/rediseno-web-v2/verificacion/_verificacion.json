@@ -6786,5 +6786,854 @@
    }
   ],
   "finished": "2026-11-13T12:00:55.904Z"
+ },
+ {
+  "plan": "plan_v_simulados.mjs",
+  "started": "2026-11-13T15:22:58.488Z",
+  "web": "http://127.0.0.1:5177",
+  "entries": [
+   {
+    "kind": "api",
+    "role": "directiva",
+    "label": "inicio de sesión (real)",
+    "calls": [
+     "POST /api/v1/auth/refresh → 401",
+     "POST /api/v1/auth/refresh → 401",
+     "POST /api/v1/auth/login → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §2 sin campañas",
+    "value": {
+     "path": "/colectivo/resumen",
+     "h1": "Resumen de la campaña",
+     "estados": [
+      "no-campaigns",
+      "action-no-active"
+     ],
+     "texto": "Sindicato DEMO · datos sintéticos · Resumen de la campaña Resumen de la campaña Todavía no hay campañas Cree o abra una campaña para ver su resumen. Ir a Campañas Para atender Sin campaña activa: los agricultores no pueden registrar hasta que se abra una. Ir a Campañas 5 productos por identificar"
+    }
+   },
+   {
+    "kind": "medida",
+    "role": "directiva",
+    "label": "05 §2 sin campañas",
+    "value": {
+     "path": "/colectivo/resumen",
+     "doc": 1440,
+     "win": 1440,
+     "desborda": false
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-s2_sin_campanas",
+    "files": [
+     "simulados/05-s2_sin_campanas__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "marca",
+    "role": "directiva",
+    "label": "Ir a Campañas"
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "U.8 (sin campañas) → destino",
+    "value": {
+     "path": "/campaigns",
+     "h1": "Campañas",
+     "estados": [],
+     "texto": "Campañas Nueva campaña CAMPAÑA ACTIVA No hay campaña activa. Los agricultores no pueden registrar en una campaña hasta que la Directiva abra una. CAMPAÑAS Sin campañas en la lista Buscar campaña Estado Todas Planificada Abierta Cerrada Cancelada Actualizar Todavía no hay campañas Cree la primera con «Nueva campaña». Cerrar una campaña no la sella, y una campaña cerrada no se puede reabrir."
+    }
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "U.8 sin campaña activa",
+    "value": {
+     "path": "/colectivo/resumen?campaign=c0000002-0000-4000-8000-000000000004",
+     "estados": []
+    }
+   },
+   {
+    "kind": "medida",
+    "role": "directiva",
+    "label": "U.8 sin campaña activa",
+    "value": {
+     "path": "/colectivo/resumen?campaign=<id>",
+     "doc": 1440,
+     "win": 1440,
+     "desborda": false
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-u8_sin_activa",
+    "files": [
+     "simulados/05-u8_sin_activa__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "U.8 «Para atender» sin campaña activa",
+    "value": null
+   },
+   {
+    "kind": "aviso",
+    "role": "directiva",
+    "label": "{\"clickSel\":\"[data-testid=\\\"action-no-active\\\"]\"}",
+    "error": "Error: failed to find element matching selector \"[data-testid=\"action-no-active\"]\""
+   },
+   {
+    "kind": "aviso",
+    "role": "directiva",
+    "label": "{\"waitPath\":\"^/campaigns\"}",
+    "error": "Waiting failed: 30000ms exceeded"
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "U.8 «Ir a Campañas» → destino",
+    "value": {
+     "path": "/colectivo/resumen?campaign=c0000002-0000-4000-8000-000000000004",
+     "h1": "Resumen de la campaña",
+     "estados": [
+      "coverage",
+      "coverage-value",
+      "action-no-active",
+      "seal-banner",
+      "version-steps",
+      "version-steps-line"
+     ],
+     "texto": "Sindicato DEMO · datos sintéticos · Resumen de la campaña Datos sintéticos Resumen de la campaña Campaña Campaña de Verano 2026 Campaña de verano 2026 Q1 Campaña de invierno 2025 Campaña de verano 2025 Campaña piloto de quinua orgánica 2024 (cancelada por falta de semilla certificada) Cerrada Descargar Excel Revisar borrador Cobertura al sellar (20 may de 2025, 12:30 p. m.) Ver cobertura 1 de 1 agricultor vinculado con cifras publicadas (100%) Fijada al sellar; no se recalcula. Hay filas sin cif"
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/u8-campanas-destino",
+    "files": [
+     "simulados/u8-campanas-destino__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §3 sin cifras",
+    "value": {
+     "path": "/colectivo/resumen?campaign=c0000003-0000-4000-8000-000000000001",
+     "h1": "Resumen de la campaña",
+     "estados": [
+      "coverage",
+      "coverage-value",
+      "needs-empty",
+      "version-tile",
+      "version-steps",
+      "version-steps-line",
+      "seal-panel"
+     ],
+     "texto": "Sindicato DEMO · datos sintéticos · Resumen de la campaña Datos sintéticos Resumen de la campaña Campaña Campaña única 2026 Abierta Campaña activa Descargar Excel Revisar borrador Cobertura Ver cobertura 0 de 7 agricultores vinculados con cifras publicadas (0%) Ausencia de aporte = desconocido, no cero. No es el total del sindicato. Necesidades publicadas Ninguna todavía Para atender Revisar el borrador de compra 5 productos por identificar Necesidades declaradas Lo que cada agricultor dijo que "
+    }
+   },
+   {
+    "kind": "medida",
+    "role": "directiva",
+    "label": "05 §3 sin cifras",
+    "value": {
+     "path": "/colectivo/resumen?campaign=<id>",
+     "doc": 1440,
+     "win": 1440,
+     "desborda": false
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-s3_sin_cifras",
+    "files": [
+     "simulados/05-s3_sin_cifras__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §4 todo oculto",
+    "value": {
+     "path": "/colectivo/resumen?campaign=c0000002-0000-4000-8000-000000000001",
+     "h1": "Resumen de la campaña",
+     "estados": [
+      "coverage",
+      "coverage-value",
+      "all-hidden",
+      "version-tile",
+      "version-steps",
+      "version-steps-line",
+      "seal-panel"
+     ],
+     "texto": "Sindicato DEMO · datos sintéticos · Resumen de la campaña Datos sintéticos Resumen de la campaña Campaña Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, cebada y papa de segunda siembra con riego por gravedad (zonas Punata, Cliza y Tolata, ciclo largo) Campaña de Verano 2026 Campaña de verano 2026 Q1 Campaña de invierno 2025 Campaña de verano 2025 Campaña piloto de quinua orgánica 2024 (cancelada por falta de semilla certificada) Abierta Campaña activa Descargar Excel Revisar borrado"
+    }
+   },
+   {
+    "kind": "medida",
+    "role": "directiva",
+    "label": "05 §4 todo oculto",
+    "value": {
+     "path": "/colectivo/resumen?campaign=<id>",
+     "doc": 1440,
+     "win": 1440,
+     "desborda": false
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-s4_todo_oculto",
+    "files": [
+     "simulados/05-s4_todo_oculto__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §5 política pendiente",
+    "value": {
+     "path": "/colectivo/resumen?campaign=c0000002-0000-4000-8000-000000000001",
+     "h1": "Resumen de la campaña",
+     "estados": [
+      "policy-pending",
+      "version-tile",
+      "version-steps",
+      "version-steps-line",
+      "seal-panel"
+     ],
+     "texto": "Sindicato DEMO · datos sintéticos · Resumen de la campaña Resumen de la campaña Campaña Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, cebada y papa de segunda siembra con riego por gravedad (zonas Punata, Cliza y Tolata, ciclo largo) Campaña de Verano 2026 Campaña de verano 2026 Q1 Campaña de invierno 2025 Campaña de verano 2025 Campaña piloto de quinua orgánica 2024 (cancelada por falta de semilla certificada) Abierta Campaña activa Descargar Excel Revisar borrador Para atender Re"
+    }
+   },
+   {
+    "kind": "medida",
+    "role": "directiva",
+    "label": "05 §5 política pendiente",
+    "value": {
+     "path": "/colectivo/resumen?campaign=<id>",
+     "doc": 1440,
+     "win": 1440,
+     "desborda": false
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-s5_politica_pendiente",
+    "files": [
+     "simulados/05-s5_politica_pendiente__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §10 cerrada sin sellar, lista para sellar",
+    "value": {
+     "path": "/colectivo/resumen?campaign=c0000002-0000-4000-8000-000000000005",
+     "h1": "Resumen de la campaña",
+     "estados": [
+      "coverage",
+      "coverage-value",
+      "action-closed-unsealed",
+      "all-hidden",
+      "version-tile",
+      "version-steps",
+      "version-steps-line",
+      "seal-panel",
+      "seal-review"
+     ],
+     "texto": "Sindicato DEMO · datos sintéticos · Resumen de la campaña Datos sintéticos Resumen de la campaña Campaña Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, cebada y papa de segunda siembra con riego por gravedad (zonas Punata, Cliza y Tolata, ciclo largo) Campaña de Verano 2026 Campaña de verano 2026 Q1 Campaña de invierno 2025 Campaña de verano 2025 Campaña piloto de quinua orgánica 2024 (cancelada por falta de semilla certificada) Cerrada Descargar Excel Revisar borrador Cobertura Ver"
+    }
+   },
+   {
+    "kind": "medida",
+    "role": "directiva",
+    "label": "05 §10 cerrada sin sellar, lista para sellar",
+    "value": {
+     "path": "/colectivo/resumen?campaign=<id>",
+     "doc": 1440,
+     "win": 1440,
+     "desborda": false
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-s10_cerrada_sin_sellar",
+    "files": [
+     "simulados/05-s10_cerrada_sin_sellar__SIMULADO__escritorio.png",
+     "simulados/05-s10_cerrada_sin_sellar__SIMULADO__movil.png"
+    ]
+   },
+   {
+    "kind": "api",
+    "role": "directiva",
+    "label": "Resumen simulado hasta §10",
+    "calls": [
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/trends → 200",
+     "GET /api/v1/collective/trends → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200"
+    ]
+   },
+   {
+    "kind": "marca",
+    "role": "directiva",
+    "label": "Sellar esta versión…"
+   },
+   {
+    "kind": "foco",
+    "role": "directiva",
+    "label": "30.3 foco al abrir",
+    "value": {
+     "tag": "input",
+     "text": "c_r_5_",
+     "inDialog": true,
+     "isOpener": false,
+     "focusVisible": true,
+     "ring": {
+      "outline": "solid 2px rgb(15, 42, 29)",
+      "boxShadow": "none"
+     },
+     "dialogs": 1
+    }
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "30.3 diálogo «Sellar esta versión»",
+    "value": {
+     "titulo": "Sellar esta versión",
+     "texto": "Sellar esta versión Se sellará la versión revisada de «Campaña de invierno 2025», con datos aceptados hasta 3 nov de 2025, 6:41 p. m.. 0 de 0 agricultores vinculados con cifras publicadas. Hay productos sin cifra. Si algo cambió desde la revisión, el servidor no sellará nada y le pedirá revisar de nuevo. Revisé la cobertura y los avisos, y entiendo que la versión sellada no se corrige ni se reabre. Cancelar Sellar",
+     "botones": [
+      "Cancelar",
+      "Sellar [desactivado]"
+     ]
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/30-3-sellar-dialogo",
+    "files": [
+     "simulados/30-3-sellar-dialogo__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "foco",
+    "role": "directiva",
+    "label": "30.3 foco tras Esc",
+    "value": {
+     "tag": "button",
+     "text": "Sellar esta versión…",
+     "inDialog": false,
+     "isOpener": true,
+     "focusVisible": true,
+     "ring": {
+      "outline": "solid 2px rgb(15, 42, 29)",
+      "boxShadow": "none"
+     },
+     "dialogs": 0
+    }
+   },
+   {
+    "kind": "api",
+    "role": "directiva",
+    "label": "30.3 abrir y cancelar (no debe haber POST …/seal)",
+    "calls": []
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §11 sellada",
+    "value": {
+     "path": "/colectivo/resumen?campaign=c0000002-0000-4000-8000-000000000004",
+     "h1": "Resumen de la campaña",
+     "estados": [
+      "coverage",
+      "coverage-value",
+      "seal-banner",
+      "version-steps",
+      "version-steps-line"
+     ],
+     "texto": "Sindicato DEMO · datos sintéticos · Resumen de la campaña Datos sintéticos Resumen de la campaña Campaña Campaña de invierno 2026 — Valle Alto de Cochabamba: trigo, cebada y papa de segunda siembra con riego por gravedad (zonas Punata, Cliza y Tolata, ciclo largo) Campaña de Verano 2026 Campaña de verano 2026 Q1 Campaña de invierno 2025 Campaña de verano 2025 Campaña piloto de quinua orgánica 2024 (cancelada por falta de semilla certificada) Cerrada Descargar Excel Revisar borrador Cobertura al "
+    }
+   },
+   {
+    "kind": "medida",
+    "role": "directiva",
+    "label": "05 §11 sellada",
+    "value": {
+     "path": "/colectivo/resumen?campaign=<id>",
+     "doc": 1440,
+     "win": 1440,
+     "desborda": false
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-s11_sellada",
+    "files": [
+     "simulados/05-s11_sellada__SIMULADO__escritorio.png",
+     "simulados/05-s11_sellada__SIMULADO__movil.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §12 referencia NONE",
+    "value": {
+     "franja": "Borrador · Campaña invierno 2026 Sin referencia de consumo estimado Obtenga una referencia para ver el consumo estimado junto a la necesidad declarada: se fija una ejecución ya calculada si es compatible; si no, se pide un cálculo. Obtener 4 productos en el borrador: 3 con cifra publicada y 1 sin ci",
+     "botones": [
+      "Obtener referencia"
+     ]
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-12-referencia-NONE",
+    "files": [
+     "simulados/05-12-referencia-NONE__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §12 referencia CALCULATING",
+    "value": {
+     "franja": "Borrador · Campaña invierno 2026 Calculando la referencia… En cola. La vista consulta el estado cada pocos segundos, sin calcular nada más. El borrador y la selección siguen disponibles. Calculando… Quitar 4 productos en el borrador: 3 con cifra publicada y 1 sin cifra (el motivo está en su fila). M",
+     "botones": [
+      "Quitar referencia"
+     ]
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-12-referencia-CALCULATING",
+    "files": [
+     "simulados/05-12-referencia-CALCULATING__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §12 referencia LINKED",
+    "value": {
+     "franja": "Borrador · Campaña invierno 2026 Consumo estimado fijado el 16 oct de 2026, 8:05 a. m. · temporada invierno · ejecución del 15 oct de 2026, 6:00 a. m.. Solo cambia si usted lo actualiza. Quitar 4 productos en el borrador: 3 con cifra publicada y 1 sin cifra (el motivo está en su fila). Marque lo que",
+     "botones": [
+      "Quitar referencia"
+     ]
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-12-referencia-LINKED",
+    "files": [
+     "simulados/05-12-referencia-LINKED__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §12 referencia LINKED_DESACTUALIZADA",
+    "value": {
+     "franja": "Borrador · Campaña invierno 2026 Consumo estimado desactualizado el 16 oct de 2026, 8:05 a. m. · temporada invierno · ejecución del 15 oct de 2026, 6:00 a. m.. Sus datos cambiaron: no se reemplaza sola. Hay una ejecución calculada posterior a la fijada. Actualizar Quitar 4 productos en el borrador: ",
+     "botones": [
+      "Actualizar referencia",
+      "Quitar referencia"
+     ]
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-12-referencia-LINKED_DESACTUALIZADA",
+    "files": [
+     "simulados/05-12-referencia-LINKED_DESACTUALIZADA__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §12 referencia RESTRICTED",
+    "value": {
+     "franja": "Borrador · Campaña invierno 2026 Referencia restringida La política de divulgación no está aprobada: se conserva el vínculo (ejecución, fecha y método) pero no se muestra ninguna cifra ni recuento. Quitar 4 productos en el borrador: 3 con cifra publicada y 1 sin cifra (el motivo está en su fila). Ma",
+     "botones": [
+      "Quitar referencia"
+     ]
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-12-referencia-RESTRICTED",
+    "files": [
+     "simulados/05-12-referencia-RESTRICTED__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "05 §12 referencia UNAVAILABLE",
+    "value": {
+     "franja": "Borrador · Campaña invierno 2026 El cálculo no se completó La campaña dejó de estar planificada o abierta, o perdió su clasificación, antes de calcular. No se calculó nada. El cálculo pedido no se ejecutó. Reintentar Quitar 4 productos en el borrador: 3 con cifra publicada y 1 sin cifra (el motivo e",
+     "botones": [
+      "Actualizar referencia",
+      "Quitar referencia"
+     ]
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-12-referencia-UNAVAILABLE",
+    "files": [
+     "simulados/05-12-referencia-UNAVAILABLE__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "api",
+    "role": "directiva",
+    "label": "§12 (sólo GET esperados)",
+    "calls": [
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001 → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200 SIMULADO",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/estimation-link → 200",
+     "GET /api/v1/collective/proposals/prop-demo-0000-4000-8000-000000000001/selection → 200"
+    ]
+   },
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "21 productos inactivos",
+    "value": "Ocultar productos inactivos (1) Un producto inactivo no se borra: sus cifras, equivalencias e historial se conservan. Es una lista de sólo lectura: el sistema no ofrece reactivar un producto ni guarda un historial de cambios del catálogo (sólo la fecha de la última modificación). L Unidad: litros Retirado sintético modificado el 31 oct de 2026, 8:00 p. m. Inactivo"
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/21-productos-inactivos",
+    "files": [
+     "simulados/21-productos-inactivos__SIMULADO__escritorio.png",
+     "simulados/21-productos-inactivos__SIMULADO__movil.png"
+    ]
+   },
+   {
+    "kind": "api",
+    "role": "directiva",
+    "label": "productos (sólo GET)",
+    "calls": [
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/campaigns/active → 304",
+     "GET /api/v1/campaigns → 304",
+     "GET /api/v1/inventory/products → 200 SIMULADO",
+     "GET /api/v1/inventory/products → 200 SIMULADO",
+     "GET /api/v1/inventory/products → 200",
+     "GET /api/v1/inventory/products → 200"
+    ]
+   }
+  ],
+  "finished": "2026-11-13T15:25:34.123Z"
+ },
+ {
+  "plan": "plan_v_simulados_u8.mjs",
+  "started": "2026-11-13T15:26:34.002Z",
+  "web": "http://127.0.0.1:5177",
+  "entries": [
+   {
+    "kind": "assert",
+    "role": "directiva",
+    "label": "U.8 «Para atender» sin campaña activa",
+    "value": {
+     "texto": "Sin campaña activa: los agricultores no pueden registrar hasta que se abra una. Ir a Campañas",
+     "href": "/campaigns"
+    }
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/05-u8_sin_activa",
+    "files": [
+     "simulados/05-u8_sin_activa__SIMULADO__escritorio.png",
+     "simulados/05-u8_sin_activa__SIMULADO__movil.png"
+    ]
+   },
+   {
+    "kind": "aviso",
+    "role": "directiva",
+    "label": "{\"assert\":\"U.8 destino\",\"js\":\"() => ({ path: location.pathname, h1: document.querySelector('h1')?.textContent?.trim(), activa: document.quer",
+    "error": "Invalid regular expression: missing /"
+   },
+   {
+    "kind": "captura",
+    "role": "directiva",
+    "label": "simulados/u8-campanas-destino",
+    "files": [
+     "simulados/u8-campanas-destino__SIMULADO__escritorio.png"
+    ]
+   },
+   {
+    "kind": "api",
+    "role": "directiva",
+    "label": "U.8",
+    "calls": [
+     "POST /api/v1/auth/refresh → 401",
+     "POST /api/v1/auth/refresh → 401",
+     "POST /api/v1/auth/login → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "GET /api/v1/collective/campaigns/<id>/seal → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "POST /api/v1/auth/refresh → 200",
+     "GET /api/v1/campaigns/active → 200 SIMULADO",
+     "GET /api/v1/campaigns → 200 SIMULADO",
+     "GET /api/v1/campaigns/active → 200",
+     "GET /api/v1/campaigns → 200",
+     "GET /api/v1/catalog/identification-requests?status=PENDING → 200",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200 SIMULADO",
+     "GET /api/v1/collective/campaigns/<id>/summary → 200",
+     "GET /api/v1/collective/trends → 200",
+     "GET /api/v1/collective/trends → 200"
+    ]
+   }
+  ],
+  "finished": "2026-11-13T15:26:52.270Z"
  }
 ]
