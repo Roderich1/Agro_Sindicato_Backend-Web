@@ -15,6 +15,11 @@ export interface TabsProps<T extends string> {
   onChange: (value: T) => void;
   /** Prefijo de ids: une cada pestaña con su `TabPanel` (mismo `idBase`). */
   idBase: string;
+  /**
+   * `underline` (por defecto): subrayado de tinta. `pill`: píldora blanca con la
+   * pestaña activa en tinta (láminas 06, 07, 08, 36 y 51). Mismo ARIA y teclado.
+   */
+  variant?: 'underline' | 'pill';
   testId?: string;
 }
 
@@ -28,7 +33,8 @@ const panelId = (base: string, value: string) => `${base}-panel-${value}`;
  * Para elegir una vista de la URL (`?vista=`) basta con `SegmentedControl`;
  * use Tabs cuando haya paneles en la misma página.
  */
-export function Tabs<T extends string>({ label, tabs, value, onChange, idBase, testId }: TabsProps<T>) {
+export function Tabs<T extends string>({ label, tabs, value, onChange, idBase, variant = 'underline', testId }: TabsProps<T>) {
+  const pill = variant === 'pill';
   const refs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = tabs.findIndex((tab) => tab.value === value);
@@ -44,8 +50,13 @@ export function Tabs<T extends string>({ label, tabs, value, onChange, idBase, t
     refs.current.get(target.value)?.focus();
   };
   return (
-    <div className="-mx-1 overflow-x-auto px-1" data-testid={testId}>
-      <div role="tablist" aria-label={label} className="flex min-w-max gap-1 border-b border-line" onKeyDown={onKeyDown}>
+    <div className="-mx-1 max-w-full overflow-x-auto px-1 py-1" data-testid={testId} data-variant={variant}>
+      <div
+        role="tablist"
+        aria-label={label}
+        className={pill ? 'inline-flex min-w-max gap-1 rounded-full border border-line bg-surface p-1' : 'flex min-w-max gap-1 border-b border-line'}
+        onKeyDown={onKeyDown}
+      >
         {tabs.map((tab) => {
           const active = tab.value === value;
           return (
@@ -62,14 +73,22 @@ export function Tabs<T extends string>({ label, tabs, value, onChange, idBase, t
               aria-controls={panelId(idBase, tab.value)}
               tabIndex={active ? 0 : -1}
               onClick={() => onChange(tab.value)}
-              className={`-mb-px inline-flex min-h-11 items-center gap-2 border-b-[3px] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 ${
-                active ? 'border-ink font-bold text-ink' : 'border-transparent font-medium text-ink-muted hover:text-ink'
-              }`}
+              className={
+                pill
+                  ? `inline-flex min-h-11 items-center gap-2 rounded-full px-5 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 sm:text-base ${
+                      active ? 'bg-ink font-bold text-white' : 'font-medium text-ink hover:bg-sunken'
+                    }`
+                  : `-mb-px inline-flex min-h-11 items-center gap-2 border-b-[3px] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 ${
+                      active ? 'border-ink font-bold text-ink' : 'border-transparent font-medium text-ink-muted hover:text-ink'
+                    }`
+              }
             >
               {tab.label}
               {tab.count !== undefined && tab.count !== null && ' '}
               {tab.count !== undefined && tab.count !== null && (
-                <span className="rounded-full bg-warn-bg px-2 py-px text-xs font-bold tabular-nums text-warn-ink">{tab.count}</span>
+                <span className={pill ? 'tabular-nums' : 'rounded-full bg-warn-bg px-2 py-px text-xs font-bold tabular-nums text-warn-ink'}>
+                  {pill ? <>({tab.count})</> : tab.count}
+                </span>
               )}
             </button>
           );
