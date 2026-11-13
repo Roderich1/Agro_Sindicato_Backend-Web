@@ -14,6 +14,12 @@ import type { Proposal, ProposalSummary } from '../types/collective';
 import type { EstimationLinkView } from '../types/estimation-link';
 import { JointProposalPage } from './joint-proposal.page';
 
+/** Rediseño v2 (lámina 07): la lista de borradores está en la pestaña «Borradores anteriores»; «Ver» vuelve al borrador. */
+async function verBorradores(): Promise<HTMLButtonElement[]> {
+  fireEvent.click(await screen.findByRole('tab', { name: /anteriores/i }));
+  return (await screen.findAllByRole('button', { name: 'Ver' })) as HTMLButtonElement[];
+}
+
 vi.mock('../services/collective.service', () => ({
   collectiveService: {
     proposals: vi.fn(),
@@ -82,16 +88,18 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     ]);
     vi.mocked(collectiveService.estimationLink).mockResolvedValue(view);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await screen.findByText('295 L');
     // Rótulo de E3 §8 (antes «Estimación del consumo (referencia)», F12 §7.1).
     expect(screen.getByTestId('reference-header').textContent).toBe('Consumo estimado');
     expect(cell('Glifosato').textContent).toMatch(/295 L/);
     expect(cell('Glifosato').textContent).toMatch(/Vigente/);
     // Antes «anterior al borrador» (run_relation de F12-EST-08): ahora la ejecución fijada, en la franja.
-    expect(screen.getByTestId('link-state').textContent).toBe('Referencia fijada');
-    expect(screen.getByTestId('link-detail').textContent).toContain(`Ejecución del ${fmtDateTime(view.run!.generated_at)}`);
-    expect(screen.getByTestId('link-detail').textContent).toMatch(/temporada INVIERNO/);
+    // Rediseño v2 (lámina 06): «Consumo estimado fijado»; la temporada en minúsculas.
+    expect(screen.getByTestId('link-state').textContent).toBe('Consumo estimado fijado');
+    // Rediseño v2: «… · ejecución del …» dentro de la frase de la franja.
+    expect(screen.getByTestId('link-detail').textContent).toContain(`ejecución del ${fmtDateTime(view.run!.generated_at)}`);
+    expect(screen.getByTestId('link-detail').textContent).toMatch(/temporada invierno/);
     expect(need('Glifosato').textContent).toMatch(/310 L/);
     expect(need('Glifosato').textContent).not.toMatch(/295/);
     // Datos insuficientes: el motivo, nunca un cero.
@@ -122,7 +130,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
       ]),
     );
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await screen.findByText('295 L');
     // Antes «Desactualizado» + «posterior al borrador»: ahora «Desactualizada» con su motivo y sin diferencia.
     expect(cell('Glifosato').textContent).toMatch(/Desactualizada/);
@@ -138,7 +146,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     vi.mocked(collectiveService.proposal).mockResolvedValue(DRAFT);
     vi.mocked(collectiveService.estimationLink).mockResolvedValue(linkViewFor(DRAFT, [available('295000.000000'), { state: 'NO_RESULT' }, available('12000.000000')]));
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await screen.findByText('12 L');
     // La necesidad no se rellena con la estimación ni con un cero.
     expect(need('Amina').textContent).toMatch(/umbral/);
@@ -159,7 +167,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
       linkViewFor(DRAFT, [], { state: 'RESTRICTED', prepare_blocker: 'POLICY_PENDING' }),
     );
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toMatch(/política de divulgación no está aprobada/));
     expect(cell('Glifosato').textContent).toMatch(/Restringida/);
     expect(cell('Glifosato').textContent).not.toMatch(/\d[\d.,]* L\b/);
@@ -175,7 +183,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     error.response = { status: 500, data: {}, statusText: '', headers: {}, config: { headers: new AxiosHeaders() } };
     vi.mocked(collectiveService.estimationLink).mockRejectedValue(error);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toBe('No disponible'));
     expect(need('Glifosato').textContent).toMatch(/310 L/);
     expect(screen.getByRole('alert').textContent).toMatch(/El borrador no cambia/);
@@ -197,7 +205,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     vi.mocked(collectiveService.proposal).mockImplementation(async (id) => (id === DRAFT.proposal_ref ? DRAFT : otherDraft));
     vi.mocked(collectiveService.estimationLink).mockImplementation((id) => (id === DRAFT.proposal_ref ? late.promise : new Promise(() => undefined)));
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toBe('Cargando…'));
     fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: OTHER.id } });
     // El último borrador de la otra campaña se abre solo (defensa, 2026-11-05).
@@ -212,7 +220,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     const late = deferred<Proposal>();
     vi.mocked(collectiveService.proposal).mockReturnValue(late.promise);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: OTHER.id } });
     await screen.findByText('Todavía no hay borradores para esta campaña');
     await act(async () => late.resolve(DRAFT));
@@ -228,10 +236,9 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
       id === DRAFT.proposal_ref ? slow.promise : Promise.resolve(linkViewFor(LATER, [available('280000.000000')])),
     );
     renderAt(<JointProposalPage />, { path: PATH });
-    const [first, second] = await screen.findAllByRole('button', { name: 'Ver' });
-    fireEvent.click(first!);
+    fireEvent.click((await verBorradores())[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toBe('Cargando…'));
-    fireEvent.click(second!);
+    fireEvent.click((await verBorradores())[1]!);
     await screen.findByText('280 L');
     await act(async () => slow.resolve(linkViewFor(DRAFT, [available('999000.000000')])));
     expect(cell('Glifosato').textContent).toMatch(/280 L/);
@@ -254,7 +261,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
       </AuthContext.Provider>
     );
     const view = render(tree(userWith('DIRECTIVA')));
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver' }))[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await vi.waitFor(() => expect(cell('Glifosato').textContent).toBe('Cargando…'));
     // La identidad nueva no tiene borradores: nada se abre solo y la referencia diferida de la anterior se descarta.
     vi.mocked(collectiveService.proposals).mockResolvedValue([]);

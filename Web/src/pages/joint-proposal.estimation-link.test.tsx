@@ -86,6 +86,12 @@ const cell = (name: string, unit: 'ML' | 'G' = 'ML') => within(screen.getByTestI
 const box = (name: string, unit: 'ML' | 'G' = 'ML') => within(screen.getByTestId(`line-${name}-${unit}`)).getByTestId('select-product') as HTMLInputElement;
 const button = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
 
+/** Rediseño v2 (lámina 07): la lista de borradores está en la pestaña «Borradores anteriores»; «Ver» vuelve al borrador. */
+async function verBorradores(): Promise<HTMLButtonElement[]> {
+  fireEvent.click(await screen.findByRole('tab', { name: /anteriores/i }));
+  return (await screen.findAllByRole('button', { name: 'Ver' })) as HTMLButtonElement[];
+}
+
 function Probe() {
   const location = useLocation();
   return <p data-testid="probe">{location.pathname + location.search}</p>;
@@ -133,7 +139,8 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     expect(calls[1]![1].request_id).toMatch(UUID);
     expect(calls[1]![1].request_id).not.toBe(calls[0]![1].request_id);
     expect(screen.getByTestId('link-feedback').textContent).toMatch(/Referencia recuperada/);
-    expect(screen.getByTestId('link-state').textContent).toBe('Referencia fijada');
+    // Rediseño v2 (lámina 06): «Consumo estimado fijado».
+    expect(screen.getByTestId('link-state').textContent).toBe('Consumo estimado fijado');
     // Fijada y al día: ninguna acción principal; sólo la secundaria.
     expect(screen.queryByRole('button', { name: 'Obtener referencia' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Actualizar referencia' })).toBeNull();
@@ -160,7 +167,7 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     expect(vi.mocked(collectiveService.estimationLink).mock.calls.length).toBe(reads + 1);
     await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS));
     await screen.findByText('295 L');
-    expect(screen.getByTestId('link-state').textContent).toBe('Referencia fijada');
+    expect(screen.getByTestId('link-state').textContent).toBe('Consumo estimado fijado');
     // El aviso «consulta su estado…» no queda colgado: pasa a decir que terminó.
     expect(screen.getByTestId('link-feedback').textContent).not.toMatch(/Cálculo solicitado/);
     expect(screen.getByTestId('link-feedback').textContent).toMatch(/Cálculo terminado/);
@@ -253,7 +260,8 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     );
     renderAt(<JointProposalPage />, { path: PATH });
     await screen.findByRole('button', { name: 'Actualizar referencia' });
-    expect(screen.getByTestId('link-state').textContent).toBe('El cálculo de la referencia no se completó');
+    // Rediseño v2 (lámina 05 §12): «El cálculo no se completó».
+    expect(screen.getByTestId('link-state').textContent).toBe('El cálculo no se completó');
     expect(screen.getByTestId('link-detail').textContent).toContain(STOP_TEXT.TARGET_CAMPAIGN_NOT_ELIGIBLE);
     expect(screen.getByTestId('link-detail').textContent).toMatch(/El cálculo pedido no se ejecutó/);
     expect(cell('Glifosato').textContent).toMatch(/^Error: sin cifra/);
@@ -408,7 +416,8 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     await screen.findByText('295 L');
     expect(box('Glifosato').checked).toBe(true);
     expect(box('Urea', 'G').checked).toBe(false);
-    expect(screen.getByTestId('selection-summary').textContent).toMatch(/1 producto marcado .*\(cambios sin guardar\)/);
+    // Rediseño v2 (lámina 06): «1 producto elegido para la convocatoria».
+    expect(screen.getByTestId('selection-summary').textContent).toMatch(/1 producto elegido .*\(cambios sin guardar\)/);
     expect(collectiveService.saveProposalSelection).not.toHaveBeenCalled();
     expect(collectiveService.proposalSelection).toHaveBeenCalledTimes(1);
   });
@@ -455,13 +464,13 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     const draftReads = () => vi.mocked(collectiveService.estimationLink).mock.calls.filter(([id]) => id === DRAFT.proposal_ref).length;
     await waitFor(() => expect(draftReads()).toBe(2));
     // Abre el otro borrador: el sondeo del anterior se detiene.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Ver' })[1]!);
+    fireEvent.click((await verBorradores())[1]!);
     await screen.findByRole('button', { name: 'Obtener referencia' });
     const reads = draftReads();
     await act(() => vi.advanceTimersByTimeAsync(LINK_POLL_MS * 4));
     expect(draftReads()).toBe(reads);
     // Vuelve al primero (sigue calculando) y sale de la pantalla: tampoco se consulta.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Ver' })[0]!);
+    fireEvent.click((await verBorradores())[0]!);
     await screen.findByRole('button', { name: 'Calculando…' });
     view.unmount();
     const atExit = vi.mocked(collectiveService.estimationLink).mock.calls.length;
