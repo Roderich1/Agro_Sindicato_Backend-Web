@@ -1,4 +1,4 @@
-import { fmtDateTime, statusReason } from '../lib/collective-text';
+import { fmtDateTime, PENDING_CHANGES_TEXT, statusReason } from '../lib/collective-text';
 import { formatQuantity, isBaseQuantity } from '../lib/quantity';
 import type { CellStatus, SummaryCell } from '../types/collective';
 import { Chip, ICON, PrivacyChip, QuantityFigure, statusChipLabel } from './ui';
@@ -19,8 +19,9 @@ const COUNT = new Intl.NumberFormat('es-BO');
  * - Una cifra publicada se escribe exacta y grande; con `bars`, una barra en la
  *   escala de su unidad, sólo si es mayor que cero («0 L» va sin barra).
  * - Una fila sin cifra muestra el chip punteado con el texto de su estado
- *   (H-06: «Oculta por privacidad» sólo para el umbral), su motivo y
- *   «aportantes no revelados»: sin número, barra ni cero.
+ *   (H-06; con E4 §5.1, «Sin cifra (F07-POL-01)» para el estado de esa
+ *   política), su motivo y «aportantes no revelados»: sin número, barra ni cero.
+ *   Con `F07-POL-02` una celda con 1 o 2 aportantes se publica como cualquier otra.
  * - Sin `bars` (consumo publicado, columna lateral) es una lista compacta.
  */
 export function NeedsBars({ cells, threshold, bars = true }: { cells: SummaryCell[]; threshold: number | null; bars?: boolean }) {
@@ -49,14 +50,14 @@ function sortByName(cells: SummaryCell[]): SummaryCell[] {
   return [...cells].sort((a, b) => a.product_name.localeCompare(b.product_name, 'es', { sensitivity: 'base' }));
 }
 
-/** «4 con cifra · 3 ocultas · 1 sin cifra»: recuento de filas por estado, nunca una cantidad. */
+/** «4 con cifra · 3 sin cifra por F07-POL-01 · 1 sin cifra publicada»: recuento de filas por estado, nunca una cantidad. */
 function groupCounts(cells: SummaryCell[]): string {
   const published = cells.filter((cell) => cell.status === 'DISCLOSED').length;
-  const privacy = cells.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
-  const other = cells.length - published - privacy;
+  const previous = cells.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
+  const other = cells.length - published - previous;
   const parts: string[] = [];
   if (published > 0) parts.push(`${COUNT.format(published)} con cifra`);
-  if (privacy > 0) parts.push(`${COUNT.format(privacy)} ${privacy === 1 ? 'oculta' : 'ocultas'}`);
+  if (previous > 0) parts.push(`${COUNT.format(previous)} sin cifra por F07-POL-01`);
   if (other > 0) parts.push(`${COUNT.format(other)} sin cifra publicada`);
   return parts.join(' · ');
 }
@@ -81,21 +82,14 @@ function UnitGroup({ unit, cells, threshold }: { unit: Unit; cells: SummaryCell[
   );
 }
 
-/**
- * Motivo de una fila sin cifra, en una línea. El umbral ya se explica al pie de
- * la sección: aquí basta «Menos de N agricultores aportaron» (H-24, sin conteo
- * exacto). Los demás estados llevan su motivo completo (`statusReason`).
- */
+/** Motivo de una fila sin cifra, en una línea, con su política cuando es la anterior (H-24, sin conteo exacto). */
 function hiddenReason(status: CellStatus, threshold: number | null): string {
-  if (status === 'SUPPRESSED_UNDER_THRESHOLD') {
-    return `${threshold ? `Menos de ${threshold} agricultores aportaron` : 'Aportaron menos agricultores que el umbral'} · aportantes no revelados.`;
-  }
   return `${statusReason(status, threshold) ?? 'Sin cifra publicada.'} (aportantes no revelados)`;
 }
 
 /** Chip punteado con el texto propio del estado (H-06). */
 export function HiddenChip({ status, short = false }: { status: CellStatus; short?: boolean }) {
-  if (status === 'SUPPRESSED_UNDER_THRESHOLD') return <PrivacyChip label={short ? 'Oculta' : 'Oculta por privacidad'} />;
+  if (status === 'SUPPRESSED_UNDER_THRESHOLD') return <PrivacyChip label={short ? 'Sin cifra' : statusChipLabel(status)} title={statusReason(status) ?? undefined} />;
   return (
     <Chip tone="hidden" icon={ICON.lock}>
       {statusChipLabel(status)}
@@ -151,7 +145,7 @@ export function PendingChip() {
   return (
     <span className="mt-2 inline-block rounded-full bg-warn-bg px-3 py-0.5 text-sm font-semibold text-warn-ink" data-testid="pending-chip">
       Cifra anterior · hay cambios sin publicar
-      <span className="sr-only">: hay cambios recibidos que aún no alcanzan el umbral; se muestra la cifra publicada antes.</span>
+      <span className="sr-only">. {PENDING_CHANGES_TEXT}</span>
     </span>
   );
 }
@@ -169,9 +163,7 @@ function CompactRow({ cell, threshold }: { cell: SummaryCell; threshold: number 
             datos hasta {fmtDateTime(cell.data_as_of)}
           </p>
         ) : (
-          <p className="text-sm leading-snug text-ink-muted">
-            {cell.status === 'SUPPRESSED_UNDER_THRESHOLD' ? (threshold ? `Menos de ${threshold} agricultores: ` : 'Menos agricultores que el umbral: ') : `${statusReason(cell.status, threshold) ?? ''} `}aportantes no revelados.
-          </p>
+          <p className="text-sm leading-snug text-ink-muted">{hiddenReason(cell.status, threshold)}</p>
         )}
         {disclosed && cell.pending_changes && <PendingChip />}
       </div>

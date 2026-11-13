@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { HeroCoverage, type HeroStatItem } from '../components/a/coverage-figure';
 import { AppShell } from '../components/app-shell';
 import { ExportButtons } from '../components/export-buttons';
+import { PolicyLine } from '../components/collective-ui';
 import { NeedsBars } from '../components/needs-bars';
 import { SealPanel } from '../components/seal-panel';
 import {
@@ -27,18 +28,19 @@ import { useIdentificationPending } from '../contexts/identification-pending';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaign } from '../hooks/use-campaign';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
-import { collectiveError, fmtDateTime } from '../lib/collective-text';
+import { collectiveError, fmtDateTime, policyText } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
 import { CAMPAIGNS_PATH, COLLECTIVE_PATHS } from '../lib/navigation';
 import { collectiveService } from '../services/collective.service';
-import type { CollectiveSummary, SealRef, SummaryCell } from '../types/collective';
+import type { CollectiveSummary, DisclosurePolicy, SealRef, SummaryCell } from '../types/collective';
 
 const COUNT = new Intl.NumberFormat('es-BO');
 
 /**
  * F07-WEB-02 (#24): resumen de la campaña por producto canónico. Sólo presenta
- * lo que decidió el servidor (F07-POL-01): no suma, no resta y no deduce cifras
- * ocultas. F07 (2026-10-23): versión sellada y panel de sellado.
+ * lo que decidió el servidor con la política que indica la respuesta
+ * (`F07-POL-01` o `F07-POL-02`, E4 §5.1): no suma, no resta y no deduce cifras
+ * sin publicar. F07 (2026-10-23): versión sellada y panel de sellado.
  *
  * Rediseño v2 (láminas 03, 05 §1–11 y 35):
  * - cabecera oscura con el selector de campaña, sus chips, «Actualizar»,
@@ -196,7 +198,7 @@ export function CollectiveSummaryPage() {
                     />
                   </Card>
                 ) : (
-                  <NeedsSection needs={needs} threshold={summary.disclosure.threshold} />
+                  <NeedsSection needs={needs} policy={summary.disclosure.policy} threshold={summary.disclosure.threshold} />
                 )}
               </div>
             )}
@@ -235,8 +237,8 @@ function plural(count: number, one: string, many: string): string {
  */
 function heroStats(needs: SummaryCell[], cells: SummaryCell[]): HeroStatItem[] {
   const published = needs.filter((cell) => cell.status === 'DISCLOSED').length;
-  const privacy = needs.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
-  const other = needs.length - published - privacy;
+  const previous = needs.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
+  const other = needs.length - published - previous;
   const stats: HeroStatItem[] = [
     {
       key: 'published',
@@ -245,7 +247,7 @@ function heroStats(needs: SummaryCell[], cells: SummaryCell[]): HeroStatItem[] {
       testId: 'needs-published',
     },
   ];
-  if (privacy > 0) stats.push({ key: 'privacy', label: 'Ocultas por privacidad', value: plural(privacy, 'producto', 'productos'), testId: 'needs-hidden' });
+  if (previous > 0) stats.push({ key: 'previous', label: 'Sin cifra (F07-POL-01)', value: plural(previous, 'producto', 'productos'), testId: 'needs-hidden' });
   if (other > 0) stats.push({ key: 'other', label: 'Sin cifra publicada', value: plural(other, 'producto', 'productos'), testId: 'needs-other' });
   const latest = latestDataAsOf(cells);
   if (latest) stats.push({ key: 'latest', label: 'Cifra más reciente', value: fmtDateTime(latest), testId: 'latest-figure' });
@@ -297,11 +299,11 @@ const FILTERS: { value: NeedsFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
   { value: 'L', label: 'Litros' },
   { value: 'KG', label: 'Kilogramos' },
-  { value: 'hidden', label: 'Ocultas' },
+  { value: 'hidden', label: 'Sin cifra' },
 ];
 
 /** «Necesidades declaradas»: buscador y filtros en el navegador sobre la respuesta ya recibida. */
-function NeedsSection({ needs, threshold }: { needs: SummaryCell[]; threshold: number | null }) {
+function NeedsSection({ needs, policy, threshold }: { needs: SummaryCell[]; policy: DisclosurePolicy; threshold: number | null }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<NeedsFilter>('all');
   const term = query.trim().toLocaleLowerCase('es');
@@ -342,7 +344,11 @@ function NeedsSection({ needs, threshold }: { needs: SummaryCell[]; threshold: n
                 state="restricted"
                 compact
                 title="Hay productos, pero ninguna cifra se puede mostrar"
-                description={`${threshold ? `Cada cifra necesita al menos ${threshold} agricultores.` : 'Cada cifra necesita el mínimo de agricultores de la política.'} Hay ${plural(needs.length, 'producto declarado que aún no llega', 'productos declarados que aún no llegan')}.`}
+                description={
+                  policy === 'F07-POL-01'
+                    ? `Con la política F07-POL-01 cada cifra necesita al menos ${threshold ?? 3} agricultores. Hay ${plural(needs.length, 'producto declarado que aún no llega', 'productos declarados que aún no llegan')}.`
+                    : `Hay ${plural(needs.length, 'producto declarado', 'productos declarados')} sin cifra publicada: en revisión, retirada o fuera de rango. Cada fila dice su motivo.`
+                }
               />
             </div>
           )}
@@ -360,15 +366,18 @@ function NeedsSection({ needs, threshold }: { needs: SummaryCell[]; threshold: n
               <NeedsBars cells={visible} threshold={threshold} />
             )}
           </div>
-          <p className="mt-4 flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
+          <p className="mt-4 flex items-start gap-2 text-sm leading-relaxed text-ink-muted" data-testid="needs-footnote">
             <Icon d={ICON.info} className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              {threshold
-                ? `Una cifra se oculta cuando aportaron menos de ${threshold} agricultores.`
-                : 'Una cifra se oculta cuando aportaron menos agricultores que el umbral de la política.'}{' '}
-              Oculta no es cero. Las barras comparan solo productos de la misma unidad.
+              {policy === 'F07-POL-01'
+                ? `Con la política F07-POL-01 una cifra no se publica cuando aportaron menos de ${threshold ?? 3} agricultores.`
+                : 'Las cifras se publican aunque aporte una sola persona.'}{' '}
+              Sin cifra no es cero. Las barras comparan solo productos de la misma unidad.
             </span>
           </p>
+          <div className="mt-2">
+            <PolicyLine policy={policy} threshold={threshold} />
+          </div>
         </>
       )}
     </section>
@@ -437,8 +446,11 @@ function VersionCard({ seal, status, sealPanel }: { seal: SealRef | null; status
             {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}). Datos aceptados hasta {fmtDateTime(seal.accepted_until)} · ref.{' '}
             <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>.
           </p>
+          <p className="text-sm leading-relaxed text-ink" data-testid="seal-policy">
+            Política aplicada al sellar: {policyText(seal.policy, seal.threshold)}.
+          </p>
           <p className="text-sm leading-relaxed text-ink-muted">
-            Ya no cambian. Si un agricultor retira su aporte, esa cifra deja de mostrarse. Cada cifra indica su propia fecha; el servidor no
+            Ya no cambian, aunque después rija otra política. Si un agricultor retira su aporte, esa cifra deja de mostrarse. Cada cifra indica su propia fecha; el servidor no
             puede asegurar que todos los teléfonos publicaron todo.
           </p>
         </div>

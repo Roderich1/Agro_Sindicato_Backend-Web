@@ -40,8 +40,11 @@ describe('Resumen colectivo (.xlsx)', () => {
     expect(cover.cells.get('A2')!.value).toBe('Resumen colectivo · Campaña sintética');
     expect(colorsOf(cover.cells.get('A2')!.style)).toMatchObject({ font: '047857', bold: true });
     expect(cover.text).toContain('3 de 4 agricultores vinculados con cifras publicadas');
-    expect(cover.text).toContain('5 productos: 3 con cifra publicada · 1 oculto por privacidad · 1 sin cifra publicada.');
-    expect(cover.text).toContain('3 agricultores como mínimo por cifra publicada');
+    // E4 §5.1: el estado de F07-POL-01 se cuenta con su política y la portada dice «Política aplicada» (antes «Umbral de privacidad»).
+    expect(cover.text).toContain('5 productos: 3 con cifra publicada · 1 sin cifra por la política F07-POL-01 · 1 sin cifra publicada.');
+    expect(cover.text).toContain('Política aplicada');
+    expect(cover.text).toContain('F07-POL-01 (mínimo de 3 aportantes por cifra)');
+    expect(cover.text).not.toMatch(/privacidad|Umbral|anónim/i);
     // Ningún total: ni 250 + 25,5 ni necesidad + consumo.
     expect(cover.text + sheets.get('Necesidad declarada')!.text).not.toMatch(/275[.,]5|366|Total/);
     expect(cover.xml.getElementsByTagName('mergeCell')).toHaveLength(3);
@@ -79,16 +82,18 @@ describe('Resumen colectivo (.xlsx)', () => {
     expect(need.cells.get(`B${urea}`)).toMatchObject({ type: 'n', value: '25.5' });
     expect(numFmtOf(need.cells.get(`B${urea}`)!.style)).toBe('#,##0.0');
     expect(need.cells.get(`C${urea}`)!.value).toBe('KG');
-    expect(need.cells.get(`E${urea}`)!.value).toContain('aún no alcanzan el umbral');
+    // E4: el aviso de cifra anterior ya no habla de «umbral».
+    expect(need.cells.get(`E${urea}`)!.value).toContain('todavía no se publican: se muestra la cifra anterior');
 
     expect(need.cells.get(`B${rowOf(need, 'Cero')}`)).toMatchObject({ type: 'n', value: '0' });
 
     const hidden = rowOf(need, 'Insecticida');
     expect(need.cells.has(`B${hidden}`)).toBe(false);
     expect(need.cells.has(`F${hidden}`)).toBe(false);
-    expect(need.cells.get(`D${hidden}`)!.value).toBe('Oculto por privacidad');
+    expect(need.cells.get(`D${hidden}`)!.value).toBe('Sin cifra (F07-POL-01)');
     expect(colorsOf(need.cells.get(`D${hidden}`)!.style)).toMatchObject({ fill: 'FEF3C7', font: '92400E' });
-    expect(need.cells.get(`E${hidden}`)!.value).toContain('Menos de 3 agricultores aportaron');
+    // E4 §5.1: el motivo nombra la política que produjo el estado (antes «Menos de 3 agricultores aportaron»).
+    expect(need.cells.get(`E${hidden}`)!.value).toContain('Sin cifra según la política F07-POL-01 (mínimo de 3 aportantes)');
     expect(need.text).not.toMatch(/7000|\b7\b/);
     expect(need.cells.get(`D${rowOf(need, 'Mancozeb')}`)!.value).toBe('Sin cifra publicada');
 
@@ -104,8 +109,8 @@ describe('Resumen colectivo (.xlsx)', () => {
     ]);
     const { sheets, numFmtOf } = readXlsx(buildSummaryXlsx({ summary: { ...sealed, seal: SEAL }, exportedAt: EXPORTED_AT }).bytes);
     const cover = sheets.get('Resumen')!;
-    // campaign_ref, campaign, threshold, coverage, seal_ref, seal_version, sealed_at.
-    for (const value of [sealed.campaign.campaign_ref, sealed.campaign.name, SEAL.seal_ref, 'Versión 1, sellada por', '3 de 4 agricultores', '3 agricultores como mínimo']) {
+    // campaign_ref, campaign, threshold (E4: «Política aplicada al sellar» con su umbral), coverage, seal_ref, seal_version, sealed_at.
+    for (const value of [sealed.campaign.campaign_ref, sealed.campaign.name, SEAL.seal_ref, 'Versión 1, sellada por', '3 de 4 agricultores', 'Política aplicada al sellar', 'mínimo de 3 aportantes']) {
       expect(cover.text, value).toContain(value);
     }
     const need = sheets.get('Necesidad declarada')!;
@@ -176,7 +181,8 @@ describe('Tendencias (.xlsx)', () => {
     expect(sheetNames).toEqual(['Tendencias', 'Por campaña', 'Detalle', 'Campañas']);
     const cover = sheets.get('Tendencias')!;
     expect(cover.cells.get('A2')!.value).toBe('Tendencias · Consumo publicado');
-    expect(cover.text).toContain('Campaña 2024: Cerrada, versión 1 sellada, 4 de 7 con cifras publicadas');
+    // E4 §3.4: cada campaña sellada lleva la política con que se selló.
+    expect(cover.text).toContain('Campaña 2024: Cerrada, versión 1 sellada con F07-POL-01 (mínimo de 3 aportantes por cifra), 4 de 7 con cifras publicadas');
     expect(cover.text).toContain('Campaña 2026: Abierta, sin sellar (no aporta cifras)');
 
     const matrix = sheets.get('Por campaña')!;
@@ -193,7 +199,7 @@ describe('Tendencias (.xlsx)', () => {
 
     const detail = sheets.get('Detalle')!;
     const rows = [...detail.cells.entries()].filter(([ref]) => /^E\d+$/.test(ref) && Number(ref.slice(1)) > HEADER_ROW).map(([, c]) => c.value);
-    expect(rows).toEqual(['Publicado', 'Retirado tras sellar', 'Sin sellar', 'Oculto por privacidad', 'Publicado', 'Sin sellar']);
+    expect(rows).toEqual(['Publicado', 'Retirado tras sellar', 'Sin sellar', 'Sin cifra (F07-POL-01)', 'Publicado', 'Sin sellar']);
     expect(detail.text).toContain('retiró su aporte después del sellado');
     expect(detail.text).toContain('no tiene una versión sellada');
     expect(detail.text).not.toMatch(/Total|Promedio/);
@@ -202,9 +208,10 @@ describe('Tendencias (.xlsx)', () => {
   it('cada columna del antiguo CSV de tendencias está en el libro (portada, «Detalle» o «Campañas»)', () => {
     const trends = trendsWith([herbicida]);
     const { sheets, numFmtOf } = readXlsx(buildTrendsXlsx({ trends, type: 'CONSUMPTION_TOTAL', exportedAt: EXPORTED_AT }).bytes);
-    // threshold, projection_type y notice en la portada.
+    // threshold (E4: «Política aplicada», la configurada y la de cada campaña), projection_type y notice en la portada.
     const cover = sheets.get('Tendencias')!;
-    expect(cover.text).toContain(`${trends.disclosure.threshold} agricultores como mínimo por cifra publicada`);
+    expect(cover.text).toContain(`Configurada ahora: F07-POL-01 (mínimo de ${trends.disclosure.threshold} aportantes por cifra).`);
+    expect(cover.text).not.toMatch(/Umbral de privacidad/);
     expect(cover.text).toContain('Consumo publicado');
     expect(cover.text).toContain(trends.notice);
 
@@ -224,28 +231,31 @@ describe('Tendencias (.xlsx)', () => {
     expect(detail.cells.get(`L${first}`)!.value).toBe(sealOf2024);
 
     const campaigns = sheets.get('Campañas')!;
-    expect(Array.from({ length: 10 }, (_, i) => campaigns.cells.get(`${String.fromCharCode(65 + i)}${HEADER_ROW}`)!.value)).toEqual([
+    // E4 §3.4: columna nueva «Política al sellar» tras «Sellada el»; las siguientes se desplazan una letra.
+    expect(Array.from({ length: 11 }, (_, i) => campaigns.cells.get(`${String.fromCharCode(65 + i)}${HEADER_ROW}`)!.value)).toEqual([
       'Campaña',
       'Estado',
       'Inicio (día de calendario)',
       'Versión sellada',
       'Sellada el (hora de Bolivia, UTC−4)',
+      'Política al sellar',
       'Agricultores vinculados',
       'Con cifras publicadas',
       'Filas sin cifra',
       'Referencia de la campaña',
       'Referencia de la versión sellada',
     ]);
-    expect(campaigns.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${HEADER_ROW}:J${HEADER_ROW + trends.campaigns.length}`);
+    expect(campaigns.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe(`A${HEADER_ROW}:K${HEADER_ROW + trends.campaigns.length}`);
     const c2024 = rowOf(campaigns, 'Campaña 2024');
     const source = trends.campaigns.find((c) => c.campaign_ref === 'c-2024')!;
     expect(campaigns.cells.get(`C${c2024}`)!.value).toBe(source.start_date.slice(0, 10));
     expect(campaigns.cells.get(`D${c2024}`)).toMatchObject({ type: 'n', value: String(source.seal!.version) });
     expect(numFmtOf(campaigns.cells.get(`E${c2024}`)!.style)).toBe('yyyy-mm-dd hh:mm');
-    expect(campaigns.cells.get(`F${c2024}`)).toMatchObject({ type: 'n', value: String(source.coverage!.linked_members) });
-    expect(campaigns.cells.get(`G${c2024}`)).toMatchObject({ type: 'n', value: String(source.coverage!.members_with_contribution) });
-    expect(campaigns.cells.get(`I${c2024}`)!.value).toBe('c-2024');
-    expect(campaigns.cells.get(`J${c2024}`)!.value).toBe(sealOf2024);
+    expect(campaigns.cells.get(`F${c2024}`)!.value).toBe('F07-POL-01 (mínimo de 3 aportantes por cifra)');
+    expect(campaigns.cells.get(`G${c2024}`)).toMatchObject({ type: 'n', value: String(source.coverage!.linked_members) });
+    expect(campaigns.cells.get(`H${c2024}`)).toMatchObject({ type: 'n', value: String(source.coverage!.members_with_contribution) });
+    expect(campaigns.cells.get(`J${c2024}`)!.value).toBe('c-2024');
+    expect(campaigns.cells.get(`K${c2024}`)!.value).toBe(sealOf2024);
     const open = rowOf(campaigns, 'Campaña 2026');
     expect(campaigns.cells.get(`D${open}`)!.value).toBe('Sin sellar');
     expect(campaigns.cells.has(`E${open}`)).toBe(false);

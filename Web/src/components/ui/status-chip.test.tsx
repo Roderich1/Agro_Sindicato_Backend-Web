@@ -9,7 +9,8 @@ afterEach(cleanup);
 
 const DISCLOSURE: { status: AnyStatus; label: string }[] = [
   { status: 'DISCLOSED', label: 'Publicado' },
-  { status: 'SUPPRESSED_UNDER_THRESHOLD', label: 'Oculto por privacidad' },
+  // E4 §5.1: rotulado con su política (antes «Oculto por privacidad»).
+  { status: 'SUPPRESSED_UNDER_THRESHOLD', label: 'Sin cifra (F07-POL-01)' },
   { status: 'SUPPRESSED_REVISION', label: 'Sin cifra publicada' },
   { status: 'OVERFLOW', label: 'Fuera de rango' },
   { status: 'WITHDRAWN', label: 'Retirado' },
@@ -35,9 +36,13 @@ describe('StatusChip: estados de divulgación', () => {
     }
   });
 
-  it('el motivo bajo umbral usa el umbral recibido, sin conteos exactos', () => {
+  // Reescrita por E4 §5.1: el motivo nombra la política F07-POL-01 con el umbral recibido (antes «Menos de 5 agricultores…
+  // para no revelar aportes individuales»). Se conserva que usa el umbral recibido y no da conteos exactos.
+  it('el motivo bajo umbral usa el umbral recibido, con su política y sin conteos exactos', () => {
     render(<StatusChip status="SUPPRESSED_UNDER_THRESHOLD" threshold={5} testId="chip" />);
-    expect(screen.getByTestId('chip').getAttribute('title')).toContain('Menos de 5 agricultores');
+    const title = screen.getByTestId('chip').getAttribute('title') ?? '';
+    expect(title).toBe('Sin cifra según la política F07-POL-01 (mínimo de 5 aportantes).');
+    expect(title).not.toMatch(/privacidad|anónim/i);
   });
 });
 

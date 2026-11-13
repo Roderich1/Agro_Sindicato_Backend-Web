@@ -15,6 +15,8 @@ function seal(index: number, sealedAt: string): SealRef {
     sealed_at: sealedAt,
     accepted_until: sealedAt,
     sealed_by: { user_ref: 'u-adm', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
+    policy: 'F07-POL-01',
+    threshold: 3,
   };
 }
 

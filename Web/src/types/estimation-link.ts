@@ -72,7 +72,8 @@ export interface EstimationLinkRun {
   season: SeasonRef;
   /** Campaña objetivo con su período (`start_date`, `end_date`). */
   target: CampaignRef;
-  disclosure: { mode: string; policy: string; threshold: number };
+  /** E4 §4.4: `threshold` es 3 en las ejecuciones con F07-POL-01 y `null` en las de F07-POL-02 (sin umbral). */
+  disclosure: { mode: string; policy: string; threshold: number | null };
 }
 
 export interface LinkDifference {

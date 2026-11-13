@@ -356,7 +356,8 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     const run = within(details).getByTestId('calculation-run').textContent!;
     expect(run).toMatch(/INVIERNO · Siembra de invierno \(sintética\)/);
     expect(run).toMatch(/Campaña objetivo \(período\)/);
-    expect(run).toMatch(/F07-POL-01 · PROVISIONAL_SYNTHETIC · umbral 3/);
+    // E4 §4.4: la política se muestra con su umbral en palabras (antes «F07-POL-01 · … · umbral 3»).
+    expect(run).toMatch(/F07-POL-01 \(mínimo de 3 aportantes por cifra\) · PROVISIONAL_SYNTHETIC/);
     expect(within(details).getByTestId('calculation-parameters').textContent).toMatch(/min_span: 3/);
     expect(detail.textContent).toMatch(/Línea base naive: 300 L/);
     expect(detail.textContent).toMatch(/α 0,50/);

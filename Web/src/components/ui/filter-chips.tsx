@@ -17,7 +17,7 @@ export interface FilterChipsProps<T extends string> {
 }
 
 /**
- * Filtros de una lista (Todos / Litros / Kilogramos / Ocultas, lámina 03): uno
+ * Filtros de una lista (Todos / Litros / Kilogramos / Sin cifra, lámina 03): uno
  * elegido a la vez, botones con `aria-pressed`, el elegido en tinta. Se parten
  * en líneas en pantallas estrechas (lámina 35). Cambiar de filtro no se anima.
  */

@@ -109,7 +109,8 @@ describe('Histórico y estimaciones (contenedor)', () => {
     expect(within(chart).getAllByTestId('trend-gap').map((gap) => gap.querySelector('tspan')!.textContent)).toEqual([
       'sin dato',
       'retirado',
-      'oculto',
+      // E4 §5.1: el hueco de F07-POL-01 se rotula con su política (antes «oculto»).
+      'sin cifra (F07-POL-01)',
       'en revisión',
     ]);
     expect(chart.textContent).toMatch(/123\.456\.789,012 L/);

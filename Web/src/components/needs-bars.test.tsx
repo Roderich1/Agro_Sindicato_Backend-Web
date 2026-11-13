@@ -42,7 +42,9 @@ describe('NeedsBars (variante «Analítica comparativa»)', () => {
     expect(figure.parentElement!.className).toMatch(/flex-wrap/);
     // Rediseño v2 (lámina 03): «aportantes» pasa a «agricultores».
     expect(long.textContent).toMatch(/47 agricultores · datos hasta/);
-    expect(long.textContent).toMatch(/aún no alcanzan el umbral/);
+    // E4: el aviso de cifra anterior ya no habla de «umbral» (con F07-POL-02 no ocurre).
+    expect(long.textContent).toMatch(/todavía no se publican: se muestra la cifra anterior/);
+    expect(long.textContent).not.toMatch(/umbral/);
   });
 
   it('cero publicado «0 L» sin barra; restringidas con motivo, sin barra, número ni cero', () => {
@@ -59,7 +61,10 @@ describe('NeedsBars (variante «Analítica comparativa»)', () => {
       expect(element.textContent).not.toMatch(/\d[\d.,]*\s?(L|KG)\b/);
       expect(element.textContent).toMatch(/aportantes no revelados/);
     }
-    expect(row(byName('Fungicida protectante Mancozeb 80 % WP en bolsa de 25 kg')).textContent).toMatch(/Menos de 3 agricultores/);
+    // E4 §5.1: el motivo nombra la política que produjo el estado (antes «Menos de 3 agricultores»), sin «privacidad».
+    const previous = row(byName('Fungicida protectante Mancozeb 80 % WP en bolsa de 25 kg')).textContent;
+    expect(previous).toMatch(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/);
+    expect(previous).not.toMatch(/privacidad|anónim/i);
   });
 
   it('sin barras (consumo): cifras exactas sin pista de barra; singular «1 aportante»', () => {

@@ -11,7 +11,8 @@ afterEach(cleanup);
 describe('StatusBadge colectivo (delegado en StatusChip)', () => {
   it('mismo texto y motivo en title', () => {
     render(<StatusBadge status="SUPPRESSED_UNDER_THRESHOLD" threshold={3} />);
-    const chip = screen.getByText('Oculto por privacidad');
+    // E4 §5.1: el estado de F07-POL-01 se rotula con su política (antes «Oculto por privacidad»).
+    const chip = screen.getByText('Sin cifra (F07-POL-01)');
     expect(chip.getAttribute('title')).toBe(statusReason('SUPPRESSED_UNDER_THRESHOLD', 3));
   });
 

@@ -38,6 +38,7 @@ import {
   PREPARE_BLOCKER_TEXT,
   UPDATE_REASON_TEXT,
 } from './estimation-link-text';
+import { policyText } from './collective-text';
 import { FAILURE_TEXT, JOB_STATUS_TEXT, REASON_TEXT, RESULT_STATUS_TEXT, STOP_TEXT, VALIDITY_REASON_TEXT, VALIDITY_TEXT } from './estimation-text';
 import { decimalToPresentation, presentationUnit } from './quantity';
 import {
@@ -353,6 +354,8 @@ export function buildJointPurchaseXlsx(input: JointPurchaseXlsxInput): JointPurc
             ]
           : []),
         { label: 'Cobertura', value: text(coverageText(proposal.coverage, 'draft'), 'wrap') },
+        // E4 §4.4: el borrador conserva la política con que se generó.
+        { label: 'Política aplicada', value: text(policyText(proposal.disclosure.policy), 'wrap') },
         ...(proposal.disclosure.mode === 'POLICY_PENDING'
           ? [{ label: 'Cifras', value: text('La política de divulgación no está aprobada: no se exporta ninguna cifra.', 'warn') }]
           : []),

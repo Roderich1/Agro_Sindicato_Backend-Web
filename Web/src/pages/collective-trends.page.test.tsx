@@ -76,13 +76,15 @@ describe('Tendencias entre campañas', () => {
     expect(within(ureaChart).getAllByTestId('trend-point')).toHaveLength(2);
     expect([...ureaChart.querySelectorAll('title')].map((t) => t.textContent)).toEqual(['Campaña 2024: 25 KG', 'Campaña 2025: 30 KG']);
     const ur = screen.getByTestId('series-DECLARED_NEED-Urea-G');
-    expect(within(ur).getByTestId('point-Campaña 2024').textContent).toMatch(/aún no alcanzan el umbral/);
+    // E4: el aviso de cifra anterior ya no habla de «umbral».
+    expect(within(ur).getByTestId('point-Campaña 2024').textContent).toMatch(/todavía no se publican: se muestra la cifra anterior/);
 
     fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-gli|ML' } });
     expect(within(screen.getByTestId('trend-chart')).queryAllByTestId('trend-point')).toHaveLength(0);
     const gli = screen.getByTestId('series-DECLARED_NEED-Glifosato-ML');
     expect(within(gli).getByTestId('point-Campaña 2025').textContent).toMatch(/No significa cero/);
-    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/Menos de 3 agricultores/);
+    // E4 §3.4/§5.1: lo sellado con F07-POL-01 conserva su estado, rotulado con esa política (antes «Menos de 3 agricultores»).
+    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/);
 
     // Sin totales entre campañas, productos ni unidades.
     expect(document.body.textContent).not.toMatch(/55 KG|36 L|Total general|Promedio/);

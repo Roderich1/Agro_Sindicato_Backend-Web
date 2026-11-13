@@ -60,9 +60,12 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(collectiveService.generateProposal).toHaveBeenCalledWith(CAMPAIGN.id);
     expect(within(urea).getByText('25 KG')).toBeTruthy();
     expect(within(screen.getByTestId('line-Mancozeb-G')).getByText('11,5 KG')).toBeTruthy();
-    expect(screen.getByTestId('line-Mancozeb-G').textContent).toMatch(/aún no alcanzan el umbral/);
+    // E4: el aviso de cifra anterior ya no habla de «umbral»; la línea sin cifra del borrador anterior se rotula con
+    // la política F07-POL-01 que la produjo (antes «Menos aportantes que el umbral de privacidad»).
+    expect(screen.getByTestId('line-Mancozeb-G').textContent).toMatch(/todavía no se publican: se muestra la cifra anterior/);
     const belator = screen.getByTestId('line-Belator-ML');
-    expect(belator.textContent).toMatch(/umbral/);
+    expect(belator.textContent).toMatch(/Sin cifra según la política F07-POL-01/);
+    expect(belator.textContent).not.toMatch(/privacidad/);
     expect(belator.textContent).not.toMatch(/\d+ L/);
     const withdrawn = screen.getByTestId('line-Glifosato-ML');
     expect(withdrawn.textContent).toMatch(/Genere un borrador nuevo/);

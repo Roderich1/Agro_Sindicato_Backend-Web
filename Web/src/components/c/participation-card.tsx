@@ -69,7 +69,7 @@ function Figures({ coverage, sealed }: { coverage: Coverage; sealed: boolean }) 
         <p className="mt-3 text-sm leading-relaxed text-ink-muted">
           {linked === 0 && 'Hoy no hay agricultores vinculados activos. '}
           {sealed && 'Fijada al sellar; no se recalcula. '}
-          {coverage.suppressed_cells && 'Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan.'}
+          {coverage.suppressed_cells && 'Hay filas sin cifra (por la política F07-POL-01, en revisión o retiradas) cuyos aportes no se cuentan.'}
         </p>
       )}
     </>
