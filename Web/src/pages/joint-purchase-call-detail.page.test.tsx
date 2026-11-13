@@ -25,6 +25,7 @@ import {
 } from '../lib/joint-purchase-call-text';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
+import { requestSessionRevalidation } from '../lib/axios';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import { CAMPAIGN, renderAt } from '../test/render';
 import type {
@@ -58,6 +59,10 @@ vi.mock('../services/joint-purchase-calls.service', () => ({
 }));
 vi.mock('../services/collective.service', () => ({
   collectiveService: { catalog: vi.fn(), associations: vi.fn(), proposals: vi.fn(), proposal: vi.fn() },
+}));
+vi.mock('../lib/axios', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/axios')>()),
+  requestSessionRevalidation: vi.fn(),
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn(), active: vi.fn() } }));
 
@@ -1283,6 +1288,23 @@ describe('Compras conjuntas: acceso por rol, «Administrar» y sustitución (E4 
     expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2);
     expectNoIdentifiedData();
     expect(screen.queryByTestId('participants-forbidden')).toBeNull();
+  });
+
+  it('cierre O5: si al recuperar el foco cambia can_view_participants de la misma convocatoria, revalida la sesión una vez', async () => {
+    render();
+    await participantsShown();
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2));
+    expect(requestSessionRevalidation).not.toHaveBeenCalled();
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN_ROLE_LOST);
+    await new Promise((resolve) => setTimeout(resolve, 2_100));
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await screen.findByTestId('participants-revoked');
+    expect(requestSessionRevalidation).toHaveBeenCalledTimes(1);
   });
 
   // Reescrita por E4: el permiso que cambia la lista de colaboradores es ahora «Administrar».

@@ -76,6 +76,7 @@ import {
   WHAT_NEXT_TEXT,
   WHY_VISIBLE_TEXT,
 } from '../lib/joint-purchase-call-text';
+import { requestSessionRevalidation } from '../lib/axios';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import type {
@@ -276,6 +277,17 @@ function CallDetail({ id, userId, userName }: { id: string; userId: string | nul
   useEffect(() => {
     if (collaboratorsTick > 0) void Promise.resolve().then(loadCollaborators);
   }, [collaboratorsTick, loadCollaborators]);
+
+  // Cierre O5 (decisión D): si para la misma convocatoria cambia `can_view_participants`, el acceso cambió en el
+  // servidor (p. ej. el rol, con un 200 de por medio y sin 403): la sesión se revalida con `/auth/me` para que la
+  // barra lateral y las guardas adopten el rol vigente. Sin temporizadores propios.
+  const lastViewRef = useRef<{ id: string; canView: boolean } | null>(null);
+  useEffect(() => {
+    if (!call) return;
+    const previous = lastViewRef.current;
+    if (previous && previous.id === call.call_id && previous.canView !== call.can_view_participants) requestSessionRevalidation();
+    lastViewRef.current = { id: call.call_id, canView: call.can_view_participants };
+  }, [call]);
 
   // E4 §6.4: con participantes a la vista, volver a comprobar el acceso al recuperar el foco y cada 60 s.
   const watching = Boolean(call?.can_view_participants && call.status !== 'DRAFT');

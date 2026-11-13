@@ -67,6 +67,15 @@ function requestRevalidation(): void {
     });
 }
 
+/**
+ * Cierre O5: una pantalla que detecta por sí misma un cambio de acceso con una consulta que
+ * respondió 200 (p. ej. `can_view_participants` cambió para la misma convocatoria al recuperar
+ * el foco, E4 §6.4) pide la misma revalidación que un 403. Deduplicada; no reintenta nada.
+ */
+export function requestSessionRevalidation(): void {
+  requestRevalidation();
+}
+
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
