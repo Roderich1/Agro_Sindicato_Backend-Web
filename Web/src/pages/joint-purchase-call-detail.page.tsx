@@ -408,7 +408,9 @@ function CallDetail({ id, userId, userName }: { id: string; userId: string | nul
             kind="warn"
             action={
               call.can_substitute_responsible === true ? (
-                <Button onClick={() => setDialog({ kind: 'substitute' })}>Sustituir responsable…</Button>
+                <Button onClick={() => setDialog({ kind: 'substitute' })} data-testid="substitute-open">
+                  Sustituir responsable…
+                </Button>
               ) : undefined
             }
           >
@@ -1341,6 +1343,8 @@ function SubstituteDialog({
   onChanged: (text: string) => void;
 }) {
   const [requestId] = useState(() => crypto.randomUUID());
+  // El foco empieza en el texto: primero se leen las consecuencias (en teléfono, la hoja no salta al campo).
+  const introRef = useRef<HTMLParagraphElement>(null);
   const [users, setUsers] = useState<EligibleResponsible[] | null>(null);
   const [usersError, setUsersError] = useState<string | null>(null);
   const [userRef, setUserRef] = useState('');
@@ -1401,6 +1405,7 @@ function SubstituteDialog({
       size="lg"
       hideCloseButton
       testId="substitute-dialog"
+      initialFocusRef={introRef}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
@@ -1413,7 +1418,8 @@ function SubstituteDialog({
       }
     >
       <div className="space-y-5 text-base leading-relaxed text-ink">
-        <p>
+        {/* Texto enfocable sólo por programa: sin anillo (el estilo global de :focus-visible no está en capa). */}
+        <p ref={introRef} tabIndex={-1} style={{ outline: 'none' }}>
           <strong className="[overflow-wrap:anywhere]">{call.responsible.name}</strong> <span className="text-ink-muted">ya no está habilitada.</span>
         </p>
         <ul className="list-disc space-y-1.5 pl-5" data-testid="substitute-implications">
@@ -1437,7 +1443,6 @@ function SubstituteDialog({
             id="substitute-user"
             label="Nueva persona responsable"
             value={userRef}
-            disabled={!users}
             onChange={(event) => {
               setUserRef(event.target.value);
               setConfirmed(false);
@@ -1574,7 +1579,6 @@ function GrantDialog({
             label="Persona"
             help="Otra persona de la Directiva o la Administración, distinta de usted y de la persona responsable."
             value={userRef}
-            disabled={!users}
             onChange={(event) => {
               setUserRef(event.target.value);
               setConfirmed(false);

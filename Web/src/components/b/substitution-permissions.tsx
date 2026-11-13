@@ -339,7 +339,6 @@ function GrantSubstitutionDialog({
             label="Persona"
             help="Una persona concreta, distinta de usted."
             value={userRef}
-            disabled={!users}
             onChange={(event) => {
               setUserRef(event.target.value);
               setConfirmed(false);
