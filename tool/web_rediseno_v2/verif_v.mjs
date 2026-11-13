@@ -15,6 +15,7 @@
  *   { focusInfo: 'etiqueta' }                   elemento enfocado, si está en un diálogo, si es el marcado y su anillo
  *   { tab: n, record: 'etiqueta' }              n pulsaciones de Tab registrando el foco de cada una
  *   { waitPath: 'regex' }                       espera a que la ruta cumpla la regex (30 s)
+ *   { simulate: [{ url, method?, status?, body? }, …] }  respuestas SIMULADAS (nombre con «SIMULADO», `simulado` en _capturas.json)
  * Escribe <carpeta>/_capturas.json (como capture_base) y <carpeta>/_verificacion.json (registro de pasos).
  * Entorno: WEB_URL, BROWSER_PATH, PUPPETEER_HOME, BE_DIR, DEMO_PG_ADMIN_URL (tool/etapa3/e3env.sh de ET2-BE).
  */
@@ -153,9 +154,15 @@ try {
     const page = await login(block.role);
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      if (simulation && new RegExp(simulation.url).test(req.url())) {
-        const s = simulation;
-        setTimeout(() => req.respond({ status: s.status ?? 500, contentType: 'application/json', body: JSON.stringify(s.body ?? { errorCode: 'INTERNAL_ERROR' }) }).catch(() => {}), s.delayMs ?? 0);
+      // `simulate` admite una regla o una lista de reglas { url (regex sobre la URL completa), method?, status?, body? };
+      // gana la primera que coincide. `body: null` responde `null` (p. ej. sin campaña activa). Lo simulado se registra.
+      const rules = simulation ? (Array.isArray(simulation) ? simulation : [simulation]) : [];
+      const s = rules.find((r) => new RegExp(r.url).test(req.url()) && (!r.method || r.method === req.method()));
+      if (s) {
+        const u = new URL(req.url());
+        page.apiCalls.push(`${req.method()} ${u.pathname.replace(ID, '<id>')}${u.search.replace(ID, '<id>')} → ${s.status ?? 200} SIMULADO`);
+        const body = 'body' in s ? s.body : { errorCode: 'INTERNAL_ERROR' };
+        setTimeout(() => req.respond({ status: s.status ?? ('body' in s ? 200 : 500), contentType: 'application/json', body: JSON.stringify(body) }).catch(() => {}), s.delayMs ?? 0);
       } else req.continue().catch(() => {});
     });
     for (const step of block.steps) {
