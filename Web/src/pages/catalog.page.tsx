@@ -42,6 +42,9 @@ export function CatalogPage() {
   const requested = params.get('vista');
   const view: View = isView(requested) ? requested : 'productos';
   const pending = useIdentificationPending();
+  // Recuentos de las pestañas (lámina 39) con lo que cada vista ya cargó; sin dato, sin número.
+  const [productCount, setProductCount] = useState<number | null>(null);
+  const [unionCount, setUnionCount] = useState<number | null>(null);
   const searchFor = (next: View) => {
     const query = new URLSearchParams(params);
     query.set('vista', next);
@@ -53,7 +56,18 @@ export function CatalogPage() {
       <ul className="flex flex-wrap gap-2">
         {VIEWS.map((option) => {
           const current = option.value === view;
-          const count = option.value === 'identificacion' && pending !== null && pending > 0 ? pending : null;
+          const tab =
+            option.value === 'productos'
+              ? productCount !== null
+                ? { visible: `${productCount}`, sr: productCount === 1 ? ' producto activo' : ' productos activos' }
+                : null
+              : option.value === 'equivalencias'
+                ? unionCount !== null
+                  ? { visible: unionCount === 1 ? '1 nombre unido' : `${unionCount} nombres unidos`, sr: '' }
+                  : null
+                : pending !== null && pending > 0
+                  ? { visible: `${pending}`, sr: ' pendientes' }
+                  : null;
           return (
             <li key={option.value}>
               <Link
@@ -64,11 +78,18 @@ export function CatalogPage() {
                 }`}
               >
                 {option.label}
-                {count !== null && (
+                {tab && (
                   <>
                     {' · '}
-                    <span className="tabular-nums">{count}</span>
-                    <span className="sr-only"> pendientes</span>
+                    <span className="tabular-nums" data-testid={`catalog-count-${option.value}`}>
+                      {tab.visible}
+                    </span>
+                    {tab.sr && (
+                      <>
+                        {' '}
+                        <span className="sr-only">{tab.sr.trim()}</span>
+                      </>
+                    )}
                   </>
                 )}
               </Link>
@@ -85,9 +106,9 @@ export function CatalogPage() {
     <AppShell title={TAB_TITLE[view]} section="Catálogo">
       <div ref={holderRef} style={holderStyle}>
       {view === 'productos' ? (
-        <ProductsView title="Catálogo" nav={nav} equivalencesTo={{ search: searchFor('equivalencias') }} />
+        <ProductsView title="Catálogo" nav={nav} equivalencesTo={{ search: searchFor('equivalencias') }} onActiveCount={setProductCount} />
       ) : view === 'equivalencias' ? (
-        <ProductReconciliationView title="Catálogo" nav={nav} />
+        <ProductReconciliationView title="Catálogo" nav={nav} onUnionCount={setUnionCount} />
       ) : (
         <ProductIdentificationView nav={nav} />
       )}

@@ -57,7 +57,8 @@ describe('Catálogo y equivalencias (contenedor)', () => {
     render(`?campaign=${CAMPAIGN.id}`);
     await screen.findByTestId(`product-${LONG}`);
     expect(identificationService.list).not.toHaveBeenCalled();
-    const views = within(viewNav()).getAllByRole('link').map((link) => link.textContent);
+    // Sin el recuento de cada pestaña (D5), que depende de lo que ya cargó cada vista.
+    const views = within(viewNav()).getAllByRole('link').map((link) => link.textContent!.replace(/ · .*$/, ''));
     expect(views).toEqual(['Productos', 'Nombres equivalentes', 'Por identificar']);
     fireEvent.click(within(viewNav()).getByRole('link', { name: 'Por identificar' }));
     expect(await screen.findByText('No hay productos por identificar.')).toBeTruthy();
@@ -78,6 +79,31 @@ describe('Catálogo y equivalencias (contenedor)', () => {
     render('?vista=identificacion');
     expect(await screen.findByText('No hay productos por identificar.')).toBeTruthy();
     expect(within(viewNav()).getByRole('link', { name: 'Por identificar' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('D5 (lámina 39): las pestañas llevan el recuento que ya cargó cada vista, sin llamadas nuevas ni ceros inventados', async () => {
+    render();
+    await screen.findByTestId(`product-${LONG}`);
+    // Productos: los activos de la lista ya cargada (peor caso: 38). Equivalencias todavía no cargó: sin número.
+    expect((await within(viewNav()).findByTestId('catalog-count-productos')).textContent).toBe('38');
+    expect(within(viewNav()).getByRole('link', { name: 'Productos · 38 productos activos' })).toBeTruthy();
+    expect(within(viewNav()).queryByTestId('catalog-count-equivalencias')).toBeNull();
+    expect(collectiveService.associations).not.toHaveBeenCalled();
+    fireEvent.click(within(viewNav()).getByRole('link', { name: /^Nombres equivalentes/ }));
+    await screen.findByTestId('current-GLIFOSATO 480');
+    const unions = fx.worst.associations.current.length;
+    expect((await within(viewNav()).findByTestId('catalog-count-equivalencias')).textContent).toBe(unions === 1 ? '1 nombre unido' : `${unions} nombres unidos`);
+    // El de Productos sigue siendo el último dato cargado.
+    expect(within(viewNav()).getByTestId('catalog-count-productos').textContent).toBe('38');
+    expect(productsService.list).toHaveBeenCalledTimes(1);
+    expect(collectiveService.associations).toHaveBeenCalledTimes(1);
+  });
+
+  it('D5: si la carga de productos falla, la pestaña va sin número', async () => {
+    vi.mocked(productsService.list).mockRejectedValue(new AxiosError('Network Error', 'ERR_NETWORK'));
+    render();
+    await screen.findByText(/Sin conexión con el servidor/);
+    expect(within(viewNav()).queryByTestId('catalog-count-productos')).toBeNull();
   });
 
   it('abre «Productos» por defecto, cambia con ?vista= conservando los demás parámetros y no escribe al abrir', async () => {
