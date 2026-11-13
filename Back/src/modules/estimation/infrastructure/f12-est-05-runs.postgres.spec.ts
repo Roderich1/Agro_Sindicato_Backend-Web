@@ -926,6 +926,32 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     demo["concurrency"] = { workers: 3, jobs: jobs.length, attempts: outcomes.map((o) => o.attempt), overlapped };
   });
 
+  it("E4 §4.4 / §8 test 11: with F07-POL-02 in force a new run records its policy and a NULL threshold; the earlier runs keep F07-POL-01 and 3", async () => {
+    const config = app.get(CollectiveConfig) as unknown as { policy: string };
+    const earlier = await prisma.estimationRun.findMany({ select: { id: true, policy: true, threshold: true } });
+    expect(earlier.length).toBeGreaterThan(0);
+    expect(earlier.every((run) => run.policy === "F07-POL-01" && run.threshold === 3)).toBe(true);
+    config.policy = "F07-POL-02";
+    try {
+      const job = await queue("T1");
+      expect(await worker.processNext()).toMatchObject({ jobId: job, status: "COMPLETED" });
+      const run = await runOf(job);
+      expect([run.policy, run.threshold]).toEqual(["F07-POL-02", null]);
+      expect(await storedHash(run.id)).toBe(run.contentHash);
+      const detail = await http().get(`/api/v1/estimation/runs/${run.id}`).set(auth(director));
+      shaped("Run", detail.body);
+      expect(detail.body.disclosure).toEqual({ mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-02", threshold: null });
+      // The earlier runs are untouched and still say how they were made.
+      const old = await http().get(`/api/v1/estimation/runs/${runs["T1a"]}`).set(auth(director));
+      expect(old.body.disclosure).toEqual({ mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", threshold: 3 });
+      expect(await prisma.estimationRun.findMany({ where: { id: { in: earlier.map((r) => r.id) } }, select: { id: true, policy: true, threshold: true } })).toEqual(
+        expect.arrayContaining(earlier),
+      );
+    } finally {
+      config.policy = "F07-POL-01";
+    }
+  });
+
   it("never updates nor deletes runs and results", async () => {
     const runId = runs["T1a"]!;
     await expect(prisma.estimationRun.update({ where: { id: runId }, data: { methodVersion: "otra" } })).rejects.toThrow(/inmutable/);
