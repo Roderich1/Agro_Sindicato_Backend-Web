@@ -1,12 +1,11 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CampaignPill } from '../components/a/campaign-pill';
 import { AppShell } from '../components/app-shell';
 import { DisclosureNotice, Fingerprint } from '../components/collective-ui';
 import { Figure } from '../components/estimation-figure';
 import { ExportButtons } from '../components/export-buttons';
-import { Button, Card, Chip, DataState, DataTable, ICON, Icon, Notice, PageHeader, PrivacyChip, statusChipLabel, surfaceClass, Tabs } from '../components/ui';
+import { Button, CampaignPill, Card, Chip, DataState, DataTable, ICON, Icon, Notice, PageHeader, PrivacyChip, statusChipLabel, surfaceClass, Tabs } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
@@ -453,16 +452,17 @@ export function JointProposalPage() {
   const shownIsLatest = proposal !== null && proposal.proposal_ref === latestRef;
   const shownCampaign = campaigns.find((campaign) => campaign.id === selected) ?? null;
   const view = link?.status === 'ready' ? link.view : null;
-  const tabs: { value: ProposalTab; label: ReactNode }[] = [
+  const tabs: { value: ProposalTab; label: ReactNode; count?: number }[] = [
     { value: 'actual', label: shownIsLatest || history.length === 0 ? 'Borrador actual' : 'Borrador anterior' },
     {
       value: 'anteriores',
       label: (
         <>
           <span className="sm:hidden">Anteriores</span>
-          <span className="hidden sm:inline">Borradores anteriores</span> ({history.length})
+          <span className="hidden sm:inline">Borradores anteriores</span>
         </>
       ),
+      count: history.length,
     },
     { value: 'calculo', label: 'Cómo se calculó' },
   ];
@@ -505,7 +505,7 @@ export function JointProposalPage() {
         )}
         {proposal || history.length > 0 ? (
           <>
-            <Tabs label="Borrador de compra" idBase="borrador" tabs={tabs} value={tab} onChange={setTab} testId="proposal-tabs" />
+            <Tabs label="Borrador de compra" idBase="borrador" variant="pill" tabs={tabs} value={tab} onChange={setTab} testId="proposal-tabs" />
             {/*
               Los tres paneles quedan montados y los inactivos se ocultan (`hidden`): así el detalle de la
               ejecución ya pedido, la selección marcada y la consulta periódica no se repiten al cambiar de pestaña.
@@ -1131,10 +1131,11 @@ function SelectionBar({
         <p className="min-w-0 flex-1 basis-60 text-base" data-testid="selection-summary">
           <span className="font-display text-xl font-extrabold text-lime tabular-nums">{chosenCount}</span>{' '}
           {chosenCount === 1 ? 'producto elegido' : 'productos elegidos'} para la convocatoria{dirty ? ' (cambios sin guardar)' : ''}.
-          <span className="block text-sm text-on-ink-muted">Elegir no inscribe a nadie ni asigna cantidades; la estimación no cambia esta selección.</span>
+          <span className="block text-xs text-on-ink-muted sm:text-sm">Elegir no inscribe a nadie ni asigna cantidades; la estimación no cambia esta selección.</span>
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="on-dark" disabled={!dirty || saving} busy={saving} onClick={onSave}>
+          {/* En teléfono, sin cambios que guardar, el botón desactivado no ocupa sitio (lámina 36). */}
+          <Button variant="on-dark" className={dirty || saving ? '' : 'max-sm:hidden'} disabled={!dirty || saving} busy={saving} onClick={onSave}>
             {saving ? 'Guardando…' : 'Guardar selección'}
           </Button>
           <Button

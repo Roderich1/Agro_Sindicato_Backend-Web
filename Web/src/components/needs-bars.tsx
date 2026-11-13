@@ -1,8 +1,7 @@
 import { fmtDateTime, statusReason } from '../lib/collective-text';
 import { formatQuantity, isBaseQuantity } from '../lib/quantity';
 import type { CellStatus, SummaryCell } from '../types/collective';
-import { QuantityFigure } from './a/quantity-figure';
-import { Chip, ICON, PrivacyChip, statusChipLabel } from './ui';
+import { Chip, ICON, PrivacyChip, QuantityFigure, statusChipLabel } from './ui';
 
 type Unit = 'L' | 'KG';
 

@@ -577,5 +577,105 @@
   "desc": "Copia sin conexión legible (lámina 27, estado 1), con la sesión abierta",
   "estado": "",
   "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/06-borrador-actual-pildora__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador actual con pestañas en píldora (lámina 06)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/07-anteriores-pildora__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borradores anteriores (4) en píldora (lámina 07)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/08-como-se-calculo-pildora__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó en píldora (lámina 08)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/36-borrador-pildora-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador en teléfono con pestañas en píldora (lámina 36)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/51-como-se-calculo-pildora-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó en teléfono (lámina 51)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/06-borrador-actual-pildora__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador actual con pestañas en píldora (lámina 06)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/07-anteriores-pildora__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borradores anteriores (4) en píldora (lámina 07)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/08-como-se-calculo-pildora__escritorio.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó en píldora (lámina 08)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/36-borrador-pildora-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Borrador en teléfono con pestañas en píldora (lámina 36)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "pestanas/51-como-se-calculo-pildora-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/propuestas",
+  "rol": "directiva",
+  "desc": "Cómo se calculó en teléfono (lámina 51)",
+  "estado": "",
+  "simulado": false
  }
 ]
