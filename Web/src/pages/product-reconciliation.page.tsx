@@ -62,7 +62,18 @@ export function ProductReconciliationPage() {
   );
 }
 
-export function ProductReconciliationView({ headingLevel = 1, title = 'Nombres equivalentes', nav }: { headingLevel?: 1 | 2; title?: string; nav?: ReactNode }) {
+export function ProductReconciliationView({
+  headingLevel = 1,
+  title = 'Nombres equivalentes',
+  nav,
+  onUnionCount,
+}: {
+  headingLevel?: 1 | 2;
+  title?: string;
+  nav?: ReactNode;
+  /** Uniones vigentes ya cargadas (`null` mientras carga o si falló): el recuento de la pestaña. */
+  onUnionCount?: (count: number | null) => void;
+}) {
   const { user } = useAuth();
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
   const [associations, setAssociations] = useState<AssociationList>({ current: [], history: [] });
@@ -87,6 +98,11 @@ export function ProductReconciliationView({ headingLevel = 1, title = 'Nombres e
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
+
+  const unionCount = loaded && !error ? associations.current.length : null;
+  useEffect(() => {
+    onUnionCount?.(unionCount);
+  }, [unionCount, onUnionCount]);
 
   const aliasOf = new Map(associations.current.map((row) => [row.product_ref, row]));
   const canonicalRefs = new Set(associations.current.map((row) => row.canonical_product_ref));

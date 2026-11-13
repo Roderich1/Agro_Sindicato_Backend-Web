@@ -60,6 +60,7 @@ export function ProductsView({
   title = 'Productos',
   nav,
   equivalencesTo = `${COLLECTIVE_PATHS.catalog}?vista=equivalencias`,
+  onActiveCount,
 }: {
   headingLevel?: 1 | 2;
   /** «Catálogo» dentro del contenedor; «Productos» en la ruta antigua. */
@@ -67,6 +68,8 @@ export function ProductsView({
   /** Pestañas de las vistas del catálogo (teléfono), bajo la cabecera. */
   nav?: ReactNode;
   equivalencesTo?: To;
+  /** Productos activos de la lista cargada (`null` mientras carga o si falló): el recuento de la pestaña. */
+  onActiveCount?: (count: number | null) => void;
 }) {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -102,6 +105,10 @@ export function ProductsView({
   const openCreate = useCallback(() => setCreating(true), []);
 
   const active = products.filter((product) => product.isActive);
+  const activeCount = loading || error ? null : active.length;
+  useEffect(() => {
+    onActiveCount?.(activeCount);
+  }, [activeCount, onActiveCount]);
   const inactive = products.filter((product) => !product.isActive);
   const shownActive = active.filter((product) => matchesProduct(product, query));
   const shownInactive = inactive.filter((product) => matchesProduct(product, query));

@@ -122,7 +122,6 @@ export function UsersPage() {
         a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
     );
   const activeCount = users.filter((u) => u.isActive).length;
-  const filtered = role !== 'ALL' || wanted.length > 0;
 
   return (
     <AppShell title="Usuarios" section="Sindicato">
@@ -207,11 +206,10 @@ export function UsersPage() {
                     />
                   ))}
                 </ul>
-                {filtered && (
-                  <p className="text-sm text-ink-muted" data-testid="users-shown">
-                    Se muestran {NUMBER.format(shown.length)} de {NUMBER.format(users.length)}.
-                  </p>
-                )}
+                {/* Lámina 31: siempre con datos; sin paginación, N = M cuando no hay filtro. */}
+                <p className="text-sm text-ink-muted" data-testid="users-shown">
+                  Se muestran {NUMBER.format(shown.length)} de {NUMBER.format(users.length)}.
+                </p>
               </>
             )}
           </section>

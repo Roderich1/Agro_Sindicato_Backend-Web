@@ -60,6 +60,8 @@ describe('Usuarios (Administración)', () => {
     await screen.findByTestId('user-u-1@example.test');
     expect(listUsers).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/3 cuentas activas de 4\./)).toBeTruthy();
+    // D12 (lámina 31): «Se muestran N de M» también sin filtro; sin paginación, N = M.
+    expect(screen.getByTestId('users-shown').textContent).toBe('Se muestran 4 de 4.');
     expect(row('u-1').textContent).toContain('Administración sintética (usted)');
     expect(within(row('u-3')).getByTestId('user-status').textContent).toBe('Inactiva');
     const filter = screen.getByRole('group', { name: 'Filtrar por rol' });
