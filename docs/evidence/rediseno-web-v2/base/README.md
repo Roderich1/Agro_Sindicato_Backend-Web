@@ -65,7 +65,6 @@ La suite completa no se volvió a ejecutar (la ejecuta el orquestador al integra
 | 1 | `2df7ecb` | `plan_base.mjs` | Todas las capturas salvo Ingresar |
 | 2 | `2df7ecb` + campos de Ingresar a 16 px (después en `7b3e03b`) | `plan_base_medidas.mjs` | Medidas de desplazamiento horizontal a 390 px |
 | 3 | Igual que la pasada 2 | `plan_base_ingresar.mjs` | `acceso/01-ingresar__*` definitivas |
-
 | 4 | `79ed788` | `plan_base_correcciones.mjs` | `correcciones/*`, `zoom200/01-ingresar`, `zoom200/03-resumen*`, `tableta/*` y medidas a 720 y 820 px |
 | 5 | `79ed788` | `plan_base_zoom_menu.mjs` | `zoom200/43-menu-mas*`: ventana visible, sin página completa |
 
