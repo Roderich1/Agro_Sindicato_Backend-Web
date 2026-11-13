@@ -1,8 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { CampaignStatus, SyncV1BaseUnit, SyncV1ProjectionType } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
-import { PROVISIONAL_THRESHOLD } from "../domain/disclosure-policy";
-import { CollectiveConfig, DisclosureMode } from "./collective-config";
+import { CollectiveConfig, DisclosureMode, DisclosurePolicy } from "./collective-config";
 import {
   CellStatus,
   CollectiveSummary,
@@ -52,7 +51,8 @@ export interface TrendSeries {
 
 export interface CollectiveTrends {
   contractVersion: 1;
-  disclosure: { mode: DisclosureMode; policy: "F07-POL-01"; approved: false; threshold: number | null };
+  /** E4 §3.4: the configured policy; each campaign's sealed policy is in `campaigns[].seal`. */
+  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: false; threshold: number | null };
   projection_type: SyncV1ProjectionType | null;
   campaigns: TrendCampaign[];
   series: TrendSeries[];
@@ -150,8 +150,8 @@ export class CollectiveTrendsUseCase {
     return {
       contractVersion: 1,
       disclosure: authorized
-        ? { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: PROVISIONAL_THRESHOLD }
-        : { mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null },
+        ? { mode: "PROVISIONAL_SYNTHETIC", policy: this.config.policy, approved: false, threshold: this.config.threshold }
+        : { mode: "POLICY_PENDING", policy: this.config.policy, approved: false, threshold: null },
       projection_type: projectionType,
       campaigns: campaigns.map((campaign) => {
         const seal = sealOf.get(campaign.id);

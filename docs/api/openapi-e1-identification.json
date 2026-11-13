@@ -6392,8 +6392,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-3",
-            "description": "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
+            "example": "CONV-4",
+            "description": "Versión del texto mostrado: CONV-4 (vigente, da ADMINISTRATION), o CONV-3, CONV-2 y CONV-1 (operaciones de apps anteriores, con el alcance de su texto); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
           },
           "accepted_at": {
             "type": "string",
@@ -6492,8 +6492,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-3",
-            "description": "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir"
+            "example": "CONV-4",
+            "description": "Texto mostrado: CONV-4 para ADMINISTRATION; cualquiera conocido para TOTALS_ONLY o RESPONSIBLE_ONLY"
           },
           "decided_at": {
             "type": "string",
@@ -6523,10 +6523,12 @@
           "scope": {
             "type": "string",
             "enum": [
+              "ADMINISTRATION",
+              "TOTALS_ONLY",
               "RESPONSIBLE_ONLY",
               "COLLABORATORS"
             ],
-            "description": "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable"
+            "description": "E4 §4.2: ADMINISTRATION (CONV-4: la Administración habilitada ve el detalle), TOTALS_ONLY (retira esa autorización; sólo totales), RESPONSIBLE_ONLY (reducción anterior). COLLABORATORS: 409 CONSENT_VERSION_RETIRED. Los contratos 1–3 sólo envían los dos anteriores"
           },
           "consent": {
             "$ref": "#/components/schemas/ConsentDecisionTextDto"
@@ -6538,7 +6540,7 @@
           },
           "authorize_responsible": {
             "type": "boolean",
-            "description": "P-A C1 (contrato 3): true = autoriza a la persona responsable de responsible_version (acción explícita, separada de las cantidades); exige CONV-3 y esa versión vigente"
+            "description": "P-A C1 (contrato 3), retirado por E4: true → 409 CONSENT_VERSION_RETIRED. Con ADMINISTRATION no se admite (400)"
           }
         },
         "required": [
@@ -6681,7 +6683,7 @@
               "PARTICIPANTS",
               "MANAGE"
             ],
-            "description": "PARTICIPANTS: consultar participantes y cantidades; MANAGE: administrar la convocatoria"
+            "description": "MANAGE: administrar la convocatoria. PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           },
           "confirmed": {
             "type": "boolean",
@@ -6705,7 +6707,8 @@
             "enum": [
               "PARTICIPANTS",
               "MANAGE"
-            ]
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           }
         },
         "required": [
@@ -6724,7 +6727,8 @@
             "enum": [
               "PARTICIPANTS",
               "MANAGE"
-            ]
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           },
           "decision": {
             "type": "string",

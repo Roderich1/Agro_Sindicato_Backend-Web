@@ -716,7 +716,7 @@
             "bearer": []
           }
         ],
-        "summary": "Convocatorias OPEN del tenant y las CLOSED/CANCELLED recientes (180 días) en las que participó, con la participación propia y el número de anteriores (history.older_count)",
+        "summary": "Convocatorias OPEN del tenant y las CLOSED/CANCELLED recientes (180 días) en las que participó, con la participación propia y el número de anteriores (history.older_count). E4: forma del contrato 4 para todos los contratos",
         "tags": [
           "joint purchase calls"
         ]
@@ -2152,7 +2152,7 @@
             }
           },
           "409": {
-            "description": "CALL_NOT_OPEN (reason DEADLINE_PASSED|CLOSED|CANCELLED|DRAFT), STALE_SEQUENCE (participation vigente), OPERATION_ID_REUSED o CONSENT_REQUIRED.",
+            "description": "CALL_NOT_OPEN (reason DEADLINE_PASSED|CLOSED|CANCELLED|DRAFT), STALE_SEQUENCE (participation vigente), OPERATION_ID_REUSED, CONSENT_REQUIRED o APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance ADMINISTRATION/TOTALS_ONLY, o con CONV-4).",
             "content": {
               "application/json": {
                 "schema": {
@@ -3058,7 +3058,7 @@
             }
           },
           "409": {
-            "description": "CALL_NOT_OPEN, STALE_SEQUENCE u OPERATION_ID_REUSED.",
+            "description": "CALL_NOT_OPEN, STALE_SEQUENCE, OPERATION_ID_REUSED o APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance nuevo).",
             "content": {
               "application/json": {
                 "schema": {
@@ -3865,7 +3865,7 @@
             }
           },
           "409": {
-            "description": "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ampliar o autorizar exige el texto vigente), WIDENING_NOT_ALLOWED (ampliar o autorizar en una CANCELLED), RESPONSIBLE_CHANGED (la responsable mostrada ya no es la vigente; con responsible_version), AUTHORIZATION_REQUIRED (ampliar sin haber autorizado a la responsable vigente), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
+            "description": "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ADMINISTRATION exige CONV-4; versión desconocida), WIDENING_NOT_ALLOWED (ADMINISTRATION o TOTALS_ONLY en una CANCELLED), CONSENT_VERSION_RETIRED (ampliar a COLLABORATORS o autorizar a una responsable; definitivo), APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance nuevo), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4068,7 +4068,7 @@
             "bearer": []
           }
         ],
-        "summary": "§10.6 (P-C): ampliar (COLLABORATORS) o reducir (RESPONSIBLE_ONLY) quién ve el nombre y las cantidades, como decisión propia con orden propio; no cambia cantidades",
+        "summary": "E4 §4.2: autorizar a la Administración (ADMINISTRATION, CONV-4), retirar esa autorización (TOTALS_ONLY) o la reducción anterior (RESPONSIBLE_ONLY), como decisión propia con orden propio; no cambia cantidades. Ampliar a COLLABORATORS o autorizar a una responsable: 409 CONSENT_VERSION_RETIRED",
         "tags": [
           "joint purchase calls"
         ]
@@ -11699,7 +11699,7 @@
             }
           },
           "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o PARTICIPANTS_FORBIDDEN: sin el permiso específico.",
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o PARTICIPANTS_FORBIDDEN: no es una ADMINISTRADOR habilitada (también la Directiva responsable).",
             "content": {
               "application/json": {
                 "schema": {
@@ -11902,7 +11902,7 @@
             "bearer": []
           }
         ],
-        "summary": "Participantes identificados vigentes: sólo con PARTICIPANTS (E2-D6); un colaborador ve sólo los de CONV-2 y el número de los demás (§10.3); provisional mientras OPEN",
+        "summary": "E4 §3.1: participantes identificados vigentes, sólo para una ADMINISTRADOR habilitada y sólo los de alcance ADMINISTRATION; los demás como conteo (pending_consent_count); provisional mientras OPEN",
         "tags": [
           "joint purchase calls"
         ]
@@ -12552,7 +12552,7 @@
             "bearer": []
           }
         ],
-        "summary": "Consolidado al cierre (cantidades solicitadas): totales y detalle por persona según §10.3",
+        "summary": "Consolidado al cierre (cantidades solicitadas): totales según la regla T (E4 §5.2) y detalle por persona sólo para una ADMINISTRADOR habilitada (alcance ADMINISTRATION)",
         "tags": [
           "joint purchase calls"
         ]
@@ -13197,7 +13197,7 @@
             "bearer": []
           }
         ],
-        "summary": "Colaboradores vigentes y su historial de concesiones y revocaciones (§10.2); sin datos de agricultores",
+        "summary": "Colaboradores MANAGE vigentes, permisos de visualización retirados (sólo historia) y el historial de concesiones y revocaciones; sin datos de agricultores",
         "tags": [
           "joint purchase calls"
         ]
@@ -13944,7 +13944,7 @@
             }
           },
           "409": {
-            "description": "INVALID_TRANSITION (con status): convocatoria cancelada.",
+            "description": "GRANT_RETIRED (grant PARTICIPANTS, sin escribir nada) o INVALID_TRANSITION (con status): convocatoria cancelada.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14147,7 +14147,7 @@
             "bearer": []
           }
         ],
-        "summary": "Conceder PARTICIPANTS o MANAGE a otro usuario institucional activo del tenant (sólo el responsable; DRAFT, OPEN o CLOSED); idempotente",
+        "summary": "Conceder MANAGE a otro usuario institucional activo del tenant (sólo el responsable; DRAFT, OPEN o CLOSED); idempotente. PARTICIPANTS: 409 GRANT_RETIRED (E4)",
         "tags": [
           "joint purchase calls"
         ]
@@ -14895,6 +14895,105 @@
               }
             }
           },
+          "409": {
+            "description": "GRANT_RETIRED: grant PARTICIPANTS.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "SUBSTITUTION_FORBIDDEN",
+                        "GRANTEE_NOT_ELIGIBLE",
+                        "RESPONSIBLE_STILL_ELIGIBLE",
+                        "SUCCESSOR_NOT_ELIGIBLE",
+                        "RESPONSIBLE_CHANGED",
+                        "REQUEST_ID_REUSED",
+                        "AUTHORIZATION_REQUIRED",
+                        "DELEGATION_NOT_PENDING",
+                        "GRANT_RETIRED",
+                        "SUBSTITUTION_PERMISSION_RETIRED",
+                        "CONSENT_VERSION_RETIRED",
+                        "APP_UPDATE_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    },
+                    "responsible_version": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Sólo con RESPONSIBLE_CHANGED: la versión vigente de la responsabilidad"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
           "422": {
             "description": "COLLABORATOR_NOT_ELIGIBLE: los permisos del responsable no se revocan.",
             "content": {
@@ -15000,7 +15099,7 @@
             "bearer": []
           }
         ],
-        "summary": "Revocar un permiso (el responsable) o renunciar al propio (el colaborador), en cualquier estado; idempotente; rige desde la petición siguiente",
+        "summary": "Revocar un MANAGE (el responsable) o renunciar al propio (el colaborador), en cualquier estado; idempotente; rige desde la petición siguiente. PARTICIPANTS: 409 GRANT_RETIRED (la fila se conserva como historia)",
         "tags": [
           "joint purchase calls"
         ]
@@ -15749,7 +15848,7 @@
             }
           },
           "409": {
-            "description": "DELEGATION_NOT_PENDING (no hay esa delegación pendiente de revisión) o INVALID_TRANSITION (confirmar en una cancelada).",
+            "description": "GRANT_RETIRED (grant PARTICIPANTS), DELEGATION_NOT_PENDING (no hay esa delegación pendiente de revisión) o INVALID_TRANSITION (confirmar en una cancelada).",
             "content": {
               "application/json": {
                 "schema": {
@@ -16854,7 +16953,7 @@
             }
           },
           "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o SUBSTITUTION_FORBIDDEN: sin el permiso o sin estar habilitada.",
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o SUBSTITUTION_FORBIDDEN: no es una ADMINISTRADOR habilitada (una Directiva, aunque tuviera un permiso concedido antes).",
             "content": {
               "application/json": {
                 "schema": {
@@ -17255,7 +17354,7 @@
             "bearer": []
           }
         ],
-        "summary": "P-A B1 (§12): sustituir a una responsable que ya no está habilitada, con el permiso «Sustituir responsable», motivo y confirmación; en DRAFT, OPEN o CLOSED (no reabre ni cambia nada más); idempotente por request_id",
+        "summary": "E4 §6.3 (P-A B1): una ADMINISTRADOR habilitada, sin permiso adicional, sustituye a una responsable que ya no está habilitada, con motivo y confirmación; en DRAFT, OPEN o CLOSED (no reabre ni cambia nada más); idempotente por request_id",
         "tags": [
           "joint purchase calls"
         ]
@@ -18760,8 +18859,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-3",
-            "description": "Versión del texto mostrado: CONV-3 (vigente), CONV-2 o CONV-1 (teléfonos sin actualizar); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
+            "example": "CONV-4",
+            "description": "Versión del texto mostrado: CONV-4 (vigente, da ADMINISTRATION), o CONV-3, CONV-2 y CONV-1 (operaciones de apps anteriores, con el alcance de su texto); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
           },
           "accepted_at": {
             "type": "string",
@@ -18860,8 +18959,8 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "CONV-3",
-            "description": "Texto mostrado: CONV-3 para ampliar; cualquiera conocido para reducir"
+            "example": "CONV-4",
+            "description": "Texto mostrado: CONV-4 para ADMINISTRATION; cualquiera conocido para TOTALS_ONLY o RESPONSIBLE_ONLY"
           },
           "decided_at": {
             "type": "string",
@@ -18891,10 +18990,12 @@
           "scope": {
             "type": "string",
             "enum": [
+              "ADMINISTRATION",
+              "TOTALS_ONLY",
               "RESPONSIBLE_ONLY",
               "COLLABORATORS"
             ],
-            "description": "COLLABORATORS amplía; RESPONSIBLE_ONLY reduce a sólo la persona responsable"
+            "description": "E4 §4.2: ADMINISTRATION (CONV-4: la Administración habilitada ve el detalle), TOTALS_ONLY (retira esa autorización; sólo totales), RESPONSIBLE_ONLY (reducción anterior). COLLABORATORS: 409 CONSENT_VERSION_RETIRED. Los contratos 1–3 sólo envían los dos anteriores"
           },
           "consent": {
             "$ref": "#/components/schemas/ConsentDecisionTextDto"
@@ -18906,7 +19007,7 @@
           },
           "authorize_responsible": {
             "type": "boolean",
-            "description": "P-A C1 (contrato 3): true = autoriza a la persona responsable de responsible_version (acción explícita, separada de las cantidades); exige CONV-3 y esa versión vigente"
+            "description": "P-A C1 (contrato 3), retirado por E4: true → 409 CONSENT_VERSION_RETIRED. Con ADMINISTRATION no se admite (400)"
           }
         },
         "required": [
@@ -19049,7 +19150,7 @@
               "PARTICIPANTS",
               "MANAGE"
             ],
-            "description": "PARTICIPANTS: consultar participantes y cantidades; MANAGE: administrar la convocatoria"
+            "description": "MANAGE: administrar la convocatoria. PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           },
           "confirmed": {
             "type": "boolean",
@@ -19073,7 +19174,8 @@
             "enum": [
               "PARTICIPANTS",
               "MANAGE"
-            ]
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           }
         },
         "required": [
@@ -19092,7 +19194,8 @@
             "enum": [
               "PARTICIPANTS",
               "MANAGE"
-            ]
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
           },
           "decision": {
             "type": "string",

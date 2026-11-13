@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-/** Line state as decided by the collective summary (F07-POL-01). */
+/**
+ * Line state as decided by the collective summary. `SUPPRESSED_UNDER_THRESHOLD`
+ * is only produced by F07-POL-01: under F07-POL-02 (E4 §5.1) it is a
+ * historical state of drafts generated with the earlier policy.
+ */
 export type ProposalCellStatus =
   | "DISCLOSED"
   | "SUPPRESSED_UNDER_THRESHOLD"
@@ -19,6 +23,11 @@ export interface ProposalInputCell {
 
 export interface ProposalInputs {
   campaign_ref: string;
+  /**
+   * E4 §4.4: the policy the draft is generated with. Absent for the earlier
+   * fingerprint (v1, F07-POL-01 drafts); present, the fingerprint is v2.
+   */
+  policy?: string;
   coverage: { linked_members: number; members_with_contribution: number };
   cells: readonly ProposalInputCell[];
 }
@@ -41,7 +50,7 @@ export function proposalFingerprint(inputs: ProposalInputs): string {
     ])
     .sort((a, b) => `${a[0]}|${a[1]}`.localeCompare(`${b[0]}|${b[1]}`));
   const canonical = JSON.stringify({
-    v: 1,
+    ...(inputs.policy === undefined ? { v: 1 } : { v: 2, policy: inputs.policy }),
     basis: "DECLARED_NEED",
     campaign_ref: inputs.campaign_ref,
     coverage: [inputs.coverage.linked_members, inputs.coverage.members_with_contribution],

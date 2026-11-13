@@ -35,6 +35,8 @@ export interface SyntheticSourceOptions {
    * an IDENTIFIED N cannot exceed `contributors`.
    */
   coverage?: { status: "IDENTIFIED"; membersInPublishedFigures: number } | { status: "POPULATION_MISMATCH" };
+  /** E4 §4.4: the policy of the seals (F07-POL-01 with threshold 3 by default; F07-POL-02 with threshold NULL). */
+  policy?: "F07-POL-01" | "F07-POL-02";
 }
 
 export interface SyntheticSource {
@@ -64,13 +66,18 @@ export async function sealedConsumptionCampaigns(db: PrismaClient, options: Synt
       data: {
         tenantId: options.tenantId, campaignId, canonicalProductId: options.canonicalProductId, projectionType: "CONSUMPTION_TOTAL",
         baseUnit: options.baseUnit, totalBase: quantityBase, contributorCount: contributors,
+        ...(options.policy ? { policy: options.policy } : {}),
       },
     });
     const coverage = options.coverage;
     const seal = await db.collectiveSeal.create({
       data: {
         tenantId: options.tenantId, campaignId, sealedAt: new Date(), sealedByUserId: options.sealedByUserId, sealedByRole: "DIRECTIVA",
-        disclosureMode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", threshold: 3, linkedMembers, membersWithContribution: 3,
+        disclosureMode: "PROVISIONAL_SYNTHETIC",
+        policy: options.policy ?? "F07-POL-01",
+        threshold: options.policy === "F07-POL-02" ? null : 3,
+        linkedMembers,
+        membersWithContribution: 3,
         suppressedCells: false, openDisputes: false, reviewRef: "b".repeat(64),
         entries: {
           create: [{ projectionType: "CONSUMPTION_TOTAL", canonicalProductId: options.canonicalProductId, baseUnit: options.baseUnit, status: "DISCLOSED", releaseId: release.id }],

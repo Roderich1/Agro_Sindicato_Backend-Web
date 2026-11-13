@@ -2,7 +2,6 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CollectiveConfig } from "../../collective/application/collective-config";
-import { PROVISIONAL_THRESHOLD } from "../../collective/domain/disclosure-policy";
 import { AuthenticatedPrincipal } from "../../iam/application/types/authenticated-principal.type";
 import { byCodeUnits } from "../domain/run-content";
 import { deriveValidity, figuresWithheld, ValidityFacts } from "../domain/validity";
@@ -45,8 +44,9 @@ interface ChainRun {
  * - The policy in force applies when reading: POLICY_PENDING gives 409 and no
  *   figure (3.12.3.4).
  * - Every verified point is checked again against its sealed entry: if it is
- *   no longer DISCLOSED and visible, or the current threshold would hide it,
- *   it is delivered HIDDEN, and a result that used it loses its figures
+ *   no longer DISCLOSED and visible, it is delivered HIDDEN (E4 §3.4: no
+ *   count of contributors is required any more; a sealed DISCLOSED entry of
+ *   F07-POL-01 already had 3 or more), and a result that used it loses its figures
  *   (SOURCES_WITHDRAWN), so the estimate never reveals what the direct
  *   reading hides (3.12.6.3).
  * - The permission is the caller's at this request (RolesGuard and the
@@ -410,7 +410,7 @@ class Reading {
     };
   }
 
-  /** The sealed entry of a verified point is still DISCLOSED, visible and above the threshold in force. */
+  /** The sealed entry of a verified point is still DISCLOSED and visible (E4 §3.4: without a count of contributors). */
   private async stillDisclosed(point: StoredPoint, result: StoredResult): Promise<boolean> {
     if (!point.sourceSealId || !point.sourceReleaseId) return false;
     const entry = await this.prisma.collectiveSealEntry.findUnique({
@@ -422,7 +422,7 @@ class Reading {
           baseUnit: result.baseUnit,
         },
       },
-      select: { status: true, releaseId: true, visibilityWithdrawnAt: true, release: { select: { withdrawnAt: true, contributorCount: true } } },
+      select: { status: true, releaseId: true, visibilityWithdrawnAt: true, release: { select: { withdrawnAt: true } } },
     });
     return (
       !!entry &&
@@ -430,8 +430,7 @@ class Reading {
       entry.visibilityWithdrawnAt === null &&
       entry.releaseId === point.sourceReleaseId &&
       !!entry.release &&
-      entry.release.withdrawnAt === null &&
-      entry.release.contributorCount >= PROVISIONAL_THRESHOLD
+      entry.release.withdrawnAt === null
     );
   }
 
