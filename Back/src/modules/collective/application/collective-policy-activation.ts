@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { CollectiveConfig, DisclosurePolicy } from "./collective-config";
 
@@ -32,8 +33,22 @@ export class CollectivePolicyActivation implements OnApplicationBootstrap {
     private readonly config: CollectiveConfig,
   ) {}
 
+  /**
+   * Without the E4 migration (a base migrated before it) the table does not
+   * exist. With the default policy nothing changed, so the start goes on and
+   * says so; with `COLLECTIVE_DISCLOSURE_POLICY` set the start is refused: a
+   * policy is never applied without its trace.
+   */
   async onApplicationBootstrap(): Promise<void> {
-    await this.activate();
+    try {
+      await this.activate();
+    } catch (error) {
+      const missing = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021";
+      if (!missing || this.config.policyExplicit) throw error;
+      this.logger.warn(
+        `[COLLECTIVE DISCLOSURE POLICY] policy=${this.config.policy} (default) not traced: CollectiveDisclosurePolicyActivation is missing (E4 migration not applied)`,
+      );
+    }
   }
 
   async activate(at: Date = new Date()): Promise<PolicyActivationResult> {

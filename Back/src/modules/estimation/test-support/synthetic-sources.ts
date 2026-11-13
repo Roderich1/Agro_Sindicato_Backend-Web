@@ -68,6 +68,8 @@ export async function sealedConsumptionCampaigns(db: PrismaClient, options: Synt
         baseUnit: options.baseUnit, totalBase: quantityBase, contributorCount: contributors,
         ...(options.policy ? { policy: options.policy } : {}),
       },
+      // Only the id is read back: some suites use a base migrated before E4 (no CollectiveRelease.policy).
+      select: { id: true },
     });
     const coverage = options.coverage;
     const seal = await db.collectiveSeal.create({

@@ -887,13 +887,16 @@ describePostgres("F07 seal migration from the previous base", () => {
           baseUnit: "ML", totalBase: 4200n, contributorCount: 3,
           items: { create: [{ contributionId: contribution.id, sequence: 1, quantityBase: 4200n }] },
         },
+        // E4: only the id is read back; this base predates the E4 column CollectiveRelease.policy.
+        select: { id: true },
       });
       const dump = async () =>
         JSON.stringify(
           {
             campaigns: await db.agriculturalCampaign.findMany({ orderBy: { id: "asc" } }),
             contributions: await db.syncV1Contribution.findMany({ orderBy: { id: "asc" } }),
-            releases: await db.collectiveRelease.findMany({ orderBy: { id: "asc" }, include: { items: true } }),
+            // E4: CollectiveRelease.policy is omitted (this base predates it; the dump compares the same columns).
+            releases: await db.collectiveRelease.findMany({ orderBy: { id: "asc" }, include: { items: true }, omit: { policy: true } }),
           },
           (_k, v) => (typeof v === "bigint" ? v.toString() : v),
         );
