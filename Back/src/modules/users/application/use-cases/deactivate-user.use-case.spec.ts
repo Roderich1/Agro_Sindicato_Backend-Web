@@ -42,9 +42,23 @@ describe('DeactivateUserUseCase', () => {
       id: userId,
       isActive: false,
     });
-    expect(repo.updateWithMember).toHaveBeenCalledWith(userId, tenantId, {
-      isActive: false,
-    });
+    expect(repo.updateWithMember).toHaveBeenCalledWith(
+      userId,
+      tenantId,
+      { isActive: false },
+      {
+        actorUserId: 'admin-1',
+        entries: [
+          {
+            action: 'INACTIVAR',
+            event: 'USER_DEACTIVATED',
+            summary: 'Cuenta de «Juan Perez» desactivada.',
+            before: { isActive: true },
+            after: { isActive: false },
+          },
+        ],
+      },
+    );
   });
 
   it('preserves the self-deactivation guard', async () => {

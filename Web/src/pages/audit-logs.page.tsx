@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../components/app-shell';
-import { AUDIT_CATEGORIES, auditCategory, auditNote, auditScope, CATEGORY_ICON, type AuditCategory } from '../components/c/audit-text';
+import { AUDIT_CATEGORIES, auditCategory, auditEventLabel, auditNote, auditScope, CATEGORY_ICON, type AuditCategory } from '../components/c/audit-text';
 import { Facts, Overline, RowLink } from '../components/c/bits';
 import {
   Button,
@@ -61,7 +61,9 @@ function JsonBlock({ value }: { value: AuditJsonValue }) {
  *   campaña o el ámbito). «Detalle» abre «Qué pasó» con la nota
  *   (`metadata.reason`) y, plegados, los datos técnicos.
  * - H-08: no se inventan filas para acciones que el servidor no registra
- *   (generar un borrador, unir nombres, cambios del catálogo o de usuarios).
+ *   (p. ej., generar un borrador). Desde D-01 el servidor registra los cambios
+ *   de cuentas, de nombres equivalentes y del catálogo; «Tipo» da el texto de
+ *   su código (`metadata.event`).
  */
 export function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -285,6 +287,7 @@ export function AuditLogsPage() {
             <Facts
               rows={[
                 ['Acción', selected.summary ?? 'Acción registrada'],
+                ...(auditEventLabel(selected) ? ([['Tipo', auditEventLabel(selected)]] as [string, string][]) : []),
                 ['Cuándo', fmtDateTime(selected.createdAt)],
                 ['Quién', actorOf(selected) ?? 'Sistema'],
                 ['Dónde', auditScope(selected, campaignOf(selected)) ?? '—'],

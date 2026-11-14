@@ -276,7 +276,7 @@ describe("E1 institutional identification use case", () => {
       prisma.products.push(product);
       return product;
     });
-    institutional = new InstitutionalIdentificationUseCase(prisma as any, { create: catalogCreate } as any, null);
+    institutional = new InstitutionalIdentificationUseCase(prisma as any, { createWithin: catalogCreate } as any, null);
     farmer = new FarmerIdentificationUseCase(prisma as any, null);
     await farmer.upsert(FARMER, uuid4(), body());
     requestId = prisma.requests[0].id;

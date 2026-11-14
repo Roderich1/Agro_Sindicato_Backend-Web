@@ -10,6 +10,7 @@ import {
   UserAdminRepositoryPort,
 } from '../../domain/ports/user-admin.repository.port';
 import { toUserResponse, UserResponse } from '../mappers/user.mapper';
+import { userUpdateEntries } from '../user-audit';
 
 @Injectable()
 export class DeactivateUserUseCase {
@@ -36,9 +37,12 @@ export class DeactivateUserUseCase {
       throw new BadRequestException('El usuario ya esta desactivado.');
     }
 
-    const updated = await this.repo.updateWithMember(id, tenantId, {
-      isActive: false,
-    });
+    const updated = await this.repo.updateWithMember(
+      id,
+      tenantId,
+      { isActive: false },
+      { actorUserId: currentUserId, entries: userUpdateEntries(target, { isActive: false }) },
+    );
     return toUserResponse(updated);
   }
 }

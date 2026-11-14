@@ -62,7 +62,7 @@ export class InventoryController {
   @ApiOperation({ summary: 'Registrar un producto agroquimico' })
   async createProduct(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateProductDto) {
     this.logger.log(`[INVENTORY PRODUCT_CREATE] userId=${user.sub} tenantId=${user.tenantId} name=${dto.name}`);
-    return this.productCatalogUseCase.create(user.tenantId, dto);
+    return this.productCatalogUseCase.create(user.tenantId, user.sub, dto);
   }
 
   @Patch('products/:id')
@@ -75,7 +75,7 @@ export class InventoryController {
     @Body() dto: UpdateProductDto,
   ) {
     this.logger.log(`[INVENTORY PRODUCT_UPDATE] userId=${user.sub} tenantId=${user.tenantId} productId=${id}`);
-    return this.productCatalogUseCase.update(user.tenantId, id, dto);
+    return this.productCatalogUseCase.update(user.tenantId, user.sub, id, dto);
   }
 
   @Post('products/:id/deactivate')
@@ -88,7 +88,7 @@ export class InventoryController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     this.logger.log(`[INVENTORY PRODUCT_DEACTIVATE] userId=${user.sub} tenantId=${user.tenantId} productId=${id}`);
-    return this.productCatalogUseCase.deactivate(user.tenantId, id);
+    return this.productCatalogUseCase.deactivate(user.tenantId, user.sub, id);
   }
 
   @Post('initial-stock')
