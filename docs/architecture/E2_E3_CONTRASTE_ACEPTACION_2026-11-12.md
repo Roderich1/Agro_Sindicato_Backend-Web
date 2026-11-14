@@ -1,6 +1,6 @@
 # Contraste de los contratos E2 y E3 con las decisiones del autor (2026-11-12)
 
-> **Nota de sustitución (2026-11-13).** N3 (protección tras una revocación) y N4 (umbral de 3 personas) quedan retiradas por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.2 y §6.1 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** N3 (protección tras una revocación) y N4 (umbral de 3 personas) quedan retiradas por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.2 y §6.1 (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 | Campo | Valor |
 |---|---|
@@ -38,6 +38,8 @@
 | D3 | «El agricultor puede conocer quiénes, por función, tendrán acceso»: el texto `CONV-2` lo dice antes de aceptar, pero después el detalle no decía quién ve los datos según el consentimiento aceptado | **Corregido** (Mobile `01b2576`): el detalle lo dice según la versión aceptada (CONV-1: sólo la persona responsable; CONV-2: responsable y personas de la Directiva o la Administración que ella autorice) |
 
 ## 3. Reglas añadidas en los contratos que **no** quedan aprobadas por estar escritas
+
+> **Nota del 2026-11-13 (revisión OE1–OE4).** Esta sección ya no está pendiente: el autor decidió sus reglas el 2026-11-12 (§6 de este documento). Lo que rige es el contrato E2, §11 («Decisiones del autor del 2026-11-12 sobre las reglas añadidas»), que prevalece sobre esta lista. No hay que volver a preguntarlas. N3 y N4 se retiraron después con E4 (nota de sustitución al inicio de este documento).
 
 Están implementadas (son la opción conservadora que el código aplica hoy), pero no derivan de una decisión tuya. Quedan **pendientes de tu visto bueno**; ninguna amplía accesos.
 

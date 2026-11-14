@@ -2,7 +2,8 @@
 
 | Campo | Valor |
 |---|---|
-| Fecha | 2026-11-11 (redacción); estado **Propuesto**, pendiente de la aceptación de Roderich |
+| Fecha | 2026-11-11 (redacción) |
+| Estado | **Aceptado por el autor el 2026-11-13** en E1-D4 a E1-D14 y en el §10 (retención), con las precisiones del §11. E1-D1, E1-D2 y E1-D3 (técnicas) y las demás reglas no listadas conservan el estado que tenían (§11.3). Es una decisión del autor del proyecto, **no** una aprobación institucional. *(Antes: «Propuesto», pendiente de la aceptación de Roderich.)* |
 | Alcance | Etapa 1 de las mejoras funcionales acordadas: productos e identificación, con fotografía opcional de la etiqueta |
 | Bases | Back/Web: `feat/web-rediseno-integracion` `11bffd7` → rama `feat/etapa1-identificacion-productos` (`_wt/ET1-BE`). Mobile: `feat/f09-voz-formulario-unico` `73a927b` → rama `feat/etapa1-productos-identificacion-foto` (`_wt/ET1-MOB`) |
 | Contratos que **no cambian** | `F05_SYNC_V1_PUSH_ACK_CONTRACT.md`, `F06_COLLECTIVE_PROJECTION_CONTRACT.md` y su matriz de campos, `F07_AGGREGATE_DISCLOSURE_POLICY.md`, `F08_BACKUP_THREAT_MODEL.md` |
@@ -35,7 +36,7 @@
 | E1-D2 | La identificación es un canal **aparte de Sync v1**: rutas nuevas bajo `/api/v1/catalog/identification-requests`, con la misma autenticación de agricultor que Sync v1 (`SyncV1AuthGuard`: Member AGRICULTOR, sesión v2 y registro de cliente vigentes). | El envelope F05/F06 es una whitelist cerrada; nombre, ingrediente y fotos son `DENY` en la matriz F06. No se modifica ningún contrato vigente. |
 | E1-D3 | Idempotencia por `request_id` UUID v4 generado por el teléfono, una solicitud por producto local, única por `(tenant, member, request_id)`. Reenviar devuelve el estado vigente. | «Evitar duplicados ante reenvíos»; mismo principio que `operationId` de Sync v1. |
 | E1-D4 | Al vincular, el servidor **no** escribe `product_bindings` ni nada en el teléfono: el agricultor ve «Identificado como “X”» y confirma el vínculo con el flujo existente (`bindProduct`). | Conserva la regla del store (ningún vínculo sin elección confirmada) y «no inscribe automáticamente». Las compras, aplicaciones e inventario local nunca se reescriben: el vínculo vive en `product_bindings`. |
-| E1-D5 | La Directiva **no ve la identidad del agricultor** que reportó el producto (ni nombre, ni Member, ni dispositivo). Ve nombre reportado, ingrediente, unidad, fechas, foto y su propio historial de decisiones. | F06 §5 / F07 §1 prohíben unir Member con datos colectivos; identificar un producto no lo requiere. **Decisión abierta para Roderich** (E1-P1): si la coordinación exige saber quién reportó, hace falta una regla de privacidad explícita. |
+| E1-D5 | La Directiva **no ve la identidad del agricultor** que reportó el producto (ni nombre, ni Member, ni dispositivo). Ve nombre reportado, ingrediente, unidad, fechas, foto y su propio historial de decisiones. | F06 §5 / F07 §1 prohíben unir Member con datos colectivos; identificar un producto no lo requiere. **Decisión abierta para Roderich** (E1-P1): si la coordinación exige saber quién reportó, hace falta una regla de privacidad explícita. *(Precisión del autor, 2026-11-13: es identidad **no expuesta** a la Directiva, no anonimato absoluto; §11.2.)* |
 | E1-D6 | Roles autorizados para decidir: `DIRECTIVA` y `ADMINISTRADOR` del mismo tenant (como `product-associations`, RU-18/RU-19, ADR-003). Sin permiso nuevo en esta etapa. | El sistema no tiene permisos más finos que los roles; crearlos corresponde a la etapa 2 (participantes de convocatoria). |
 | E1-D7 | Candidatos: sólo productos **de la misma dimensión** (L↔ML, KG↔G), con similitud calculada por el servidor sobre nombre normalizado (sin acentos, minúsculas, sin puntuación): Jaccard de palabras, Dice de bigramas y contención; también coincidencia exacta de ingrediente activo. Se devuelven como `ALTA`/`MEDIA`/`BAJA` y la Web los muestra como sugerencia. El servidor **nunca** vincula por similitud. | «La similitud del nombre solo puede sugerir candidatos.» |
 | E1-D8 | Foto: binario en el almacenamiento privado F08 (misma interfaz `BackupStorage`, raíz o prefijo propios), clave UUID del servidor, acceso sólo por ruta autorizada con `Cache-Control: private, no-store`; **ninguna URL pública ni permanente**. En PostgreSQL sólo metadatos (clave, SHA-256, tipo, tamaño, dimensiones). Ni logs ni eventos llevan la imagen ni base64. | Reglas B del encargo; F08 ya resolvió el mismo problema. |
@@ -272,7 +273,7 @@ Vista nueva en `/colectivo/catalogo?vista=identificacion` («Por identificar»),
 
 Criterios dados por Roderich en su mensaje del 2026-11-11 (tarde); la aplicación de cada criterio la redactó Claude y queda para su revisión.
 
-- **E1-P1 — resuelta.** Criterio: «La identificación de productos no necesita revelar quién los reportó a la Directiva. La identidad de participantes de convocatorias será un mecanismo distinto, con autorización específica.» Se mantiene E1-D5: ninguna vista institucional, evento ni bitácora de la identificación lleva identidad del agricultor. La identidad en convocatorias se rige por el contrato E2 (permiso específico del responsable).
+- **E1-P1 — resuelta.** Criterio: «La identificación de productos no necesita revelar quién los reportó a la Directiva. La identidad de participantes de convocatorias será un mecanismo distinto, con autorización específica.» Se mantiene E1-D5: ninguna vista institucional, evento ni bitácora de la identificación lleva identidad del agricultor. La identidad en convocatorias se rige por el contrato E2 (permiso específico del responsable). *(Nota del 2026-11-13: desde E4, la participación identificada en una convocatoria la ve sólo la Administración habilitada con el consentimiento `CONV-4` de cada agricultor; es un mecanismo distinto de esta solicitud y no se confunden, §11.2.)*
 - **E1-P2 — resuelta.** Criterio: «Los límites técnicos de imagen pueden definirse razonadamente y documentarse.» Límites: el teléfono guarda JPEG de lado mayor ≤ 1600 px, calidad 82, sin metadatos; el servidor acepta ≤ 2 MiB, 64–4096 px por lado, ≤ 16,7 MP, una sola imagen, sin EXIF/XMP/IPTC, sin bytes tras el final, decodificación completa en ≤ 5 s y como mucho 2 a la vez. Una etiqueta de 1000×1400 px ocupó 150–160 KB en el recorrido del emulador: queda margen holgado.
 - **E1-P3 — resuelta.** Criterio: «Corregir un vínculo no debe reescribir registros privados ni alterar silenciosamente cifras cerradas.» Así funciona: corregir (`link` sobre una solicitud ya identificada, evento `RELINKED`) sólo cambia la identificación del servidor; no crea ni cierra asociaciones canónicas, no toca contribuciones, divulgaciones ni sellados (F07), y el teléfono no cambia su vínculo hasta que el agricultor lo confirma con el flujo existente, que además rechaza revincular con un aporte vivo. No hay «deshacer a pendiente» en esta etapa.
 - **E1-P4 — resuelta.** Criterio: «No conservar versiones retiradas de fotos indefinidamente por defecto; define su acceso y ciclo de eliminación, incluyendo fallos y archivos huérfanos.» Aplicado en §10: borrado en el acto al reemplazar o retirar; huérfanos y restos de subida borrados por el barrido tras 24 h; foto de una solicitud identificada borrada a los 90 días (configurable); acceso sólo institucional, privado y sin caché, 404 tras el retiro. Pendiente operativo: activar el barrido (`PRODUCT_PHOTO_SWEEP_INTERVAL_MS`) donde se despliegue.
@@ -305,7 +306,7 @@ Precisiones fijadas al implementar; completan el §4 sin cambiar las reglas de l
 
 ## 10. Ciclo de vida de las fotos (2026-11-11)
 
-Responde a E1-P4 con una propuesta implementada, pendiente de la aceptación de Roderich. Las fotos viven sólo en el almacenamiento privado (E1-D8); PostgreSQL guarda los metadatos.
+Responde a E1-P4 con una propuesta implementada. *(Aceptada por el autor el 2026-11-13, con las precisiones del §11.2: antes decía «pendiente de la aceptación de Roderich».)* Las fotos viven sólo en el almacenamiento privado (E1-D8); PostgreSQL guarda los metadatos.
 
 | Tema | Regla |
 |---|---|
@@ -321,3 +322,50 @@ Responde a E1-P4 con una propuesta implementada, pendiente de la aceptación de 
 | Acceso | Sin cambios: sólo `GET /{id}/photo` institucional del mismo tenant mientras la foto está `STORED`; 404 `PHOTO_NOT_FOUND` tras retirar, tras vencer la retención o para otro tenant; tras un reemplazo, el objeto anterior ya no existe en el almacenamiento. Nunca una URL pública ni permanente. El agricultor ve `photo.state = "REMOVED"` tras la retención, como tras un retiro. |
 | Caché | La descarga de la foto responde `Cache-Control: private, no-store`; el resto de la API, `no-store`. La Web obtiene la imagen como `blob` y revoca la URL de objeto al cerrar el visor; ningún `<img src>` apunta a la API. |
 | Variables de entorno | `PRODUCT_PHOTO_SWEEP_INTERVAL_MS` (vacía = sin barrido periódico) y `PRODUCT_PHOTO_RETENTION_DAYS_AFTER_LINK` (1 a 3650; vacía = 90), además de las de almacenamiento del §9. Un valor inválido detiene el arranque (validación de `env.schema.ts`). |
+
+## 11. Decisiones del autor del 2026-11-13 (revisión OE1–OE4)
+
+Registradas el 2026-11-13. Son decisiones del autor del proyecto, **no** una aprobación institucional (de la Directiva, del sindicato ni del tutor). Las precisiones son textuales.
+
+### 11.1 Qué queda aceptado
+
+| Regla | Estado |
+|---|---|
+| E1-D4 (el servidor no escribe vínculos en el teléfono) | Aceptada por el autor el 2026-11-13 |
+| E1-D5 (identidad del agricultor no expuesta a la Directiva) | Aceptada, con la precisión del §11.2 |
+| E1-D6 y E1-D7 (roles que deciden; sugerencias de la misma dimensión) | Aceptadas, con la precisión del §11.2 |
+| E1-D8, E1-D9 y E1-D10 (foto privada, validación, sin metadatos) | Aceptadas, con la precisión del §11.2 |
+| E1-D11 (consentimiento `FOTO-1` separado) | Aceptada |
+| E1-D12 (envío en dos pasos; la foto no bloquea la solicitud) | Aceptada |
+| E1-D13 y E1-D14 (Bitácora; sin efecto en cifras publicadas ni selladas) | Aceptadas, con la precisión del §11.2 |
+| §10 (ciclo de vida y retención de las fotos) | Aceptado, con la precisión del §11.2 |
+
+### 11.2 Precisiones del autor (textuales)
+
+- **E1-D5:** «la Directiva no ve la identidad de quien solicitó identificar el producto. Describe esto como identidad no expuesta a la Directiva, no como anonimato absoluto. No confundas esta solicitud con la participación identificada en una convocatoria de compra conjunta.»
+  - *Alcance.* La identidad no se expone en ninguna respuesta institucional, evento ni bitácora. No es anonimato absoluto: el servidor guarda el Member para servir al agricultor sus propias solicitudes, y el nombre que escribe el agricultor o el contenido de la foto podrían, por sí mismos, dar pistas de quién reportó.
+  - La participación identificada en una convocatoria es otro mecanismo (E4: Administración habilitada con `CONV-4`).
+- **E1-D6 y E1-D7:** «Directiva y Administración resuelven la identificación según sus permisos. Las sugerencias deben ser compatibles en dimensión y unidades; no vinculan automáticamente. Se conserva la confirmación del agricultor para aplicar el vínculo en su teléfono.»
+- **E1-D8 a E1-D10, E1-D13 y E1-D14:** «la foto permanece privada, sin URL pública, con validación y eliminación de metadatos de ubicación. Las decisiones quedan registradas en Bitácora y no modifican por sí mismas cifras publicadas ni selladas.»
+  - *Cómo se cumple la eliminación de metadatos.* El teléfono vuelve a codificar la foto sin EXIF (E1-D10). El servidor **rechaza** (422) una imagen con EXIF, XMP o IPTC en lugar de reescribirla (§9): la ubicación nunca se almacena.
+- **Retención (§10):** «la foto de una solicitud vinculada se elimina 90 días después de la última decisión de vínculo. Una solicitud pendiente no pierde su foto automáticamente por antigüedad, pero el agricultor puede retirarla o reemplazarla; en esos casos se elimina la anterior. No se conservan versiones anteriores de la foto.»
+- **Añadido por el autor:** «eliminar la foto no elimina la solicitud, su resolución ni el registro de auditoría».
+  - Vale para el retiro por el agricultor, el reemplazo y la retención vencida. Sólo cambian las columnas de la foto y se añade un evento `PHOTO_REMOVED`. La solicitud, su estado y su resolución siguen. Los eventos no se pueden modificar ni borrar (disparador). El `AuditLog` de las decisiones no se toca.
+
+### 11.3 Lo que no cambia de estado
+
+- **E1-D1, E1-D2 y E1-D3** (entidad propia, canal aparte de Sync v1, idempotencia por `request_id`): decisiones técnicas de la redacción, implementadas. El autor no las aceptó expresamente el 2026-11-13; siguen como estaban.
+- **§8 (E1-P1 a E1-P4):** resueltas con los criterios del autor del 2026-11-11; la aplicación de cada criterio la redactó Claude. E1-P4 queda cubierta por la aceptación del §10.
+- **§3 a §7 y §9** (modelo de datos, API, Mobile, Web, verificación prevista y resoluciones de la implementación): sin cambio de estado, salvo en lo que concretan las reglas aceptadas.
+
+### 11.4 Verificación contra el código (2026-11-13)
+
+Base: Backend `main` `200fe60` y Mobile `main` `34e9926`. Pruebas ejecutadas el 2026-11-13:
+- Backend, unitarias: 59/59 (6 suites).
+- Backend, PostgreSQL: 17/17.
+- Mobile, E1: 51/51.
+
+Las reglas del §11.2 coinciden con el código. Huecos de prueba (no son discrepancias de código):
+- Ninguna prueba comprueba de forma explícita que identificar un producto no cambie cifras publicadas ni selladas. Lo sostiene el código: el módulo no lee ni escribe tablas colectivas.
+- Tras la retención vencida, la prueba comprueba que la solicitud sigue `LINKED`. No comprueba la resolución completa (producto y tipo) ni que el `AuditLog` siga intacto.
+- No hay prueba de que corregir el vínculo renueve el plazo de retención. El código lo hace: `resolve` escribe `resolvedAt` en cada vínculo.

@@ -1,6 +1,6 @@
 # E2 — Convocatorias de compra conjunta y participación identificada (contrato de la etapa 2)
 
-> **Nota de sustitución (2026-11-13).** Los permisos de visualización (E2-D6, `PARTICIPANTS`, colaboradores), el umbral de totales (E2-D7, E2-P1, N4), la protección tras una revocación (N3), el permiso «Sustituir responsable» y la autorización por responsable (P-A A1 y C1) quedan sustituidos por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md). Las secciones §9, §10, §11 y §12 llevan su propia nota (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** Los permisos de visualización (E2-D6, `PARTICIPANTS`, colaboradores), el umbral de totales (E2-D7, E2-P1, N4), la protección tras una revocación (N3), el permiso «Sustituir responsable» y la autorización por responsable (P-A A1 y C1) quedan sustituidos por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md). Las secciones §9, §10, §11 y §12 llevan su propia nota (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 | Campo | Valor |
 |---|---|
@@ -271,7 +271,7 @@ Fecha límite controlada en el recorrido: la convocatoria de prueba se crea con 
 
 ## 9. Resoluciones de la implementación (Back, 2026-11-11)
 
-> **Nota de sustitución (2026-11-13).** E2-R11 y «E2-P1 aplicado» (umbral de 3 personas, `UNDER_THRESHOLD`, `RESPONSIBLE_ONLY`) quedan sustituidos por la regla T de [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.2. El acceso a `/participants` ya no depende de `JointPurchaseCallAccess` sino del rol Administración y del consentimiento (E4 §2, §3.1) (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** E2-R11 y «E2-P1 aplicado» (umbral de 3 personas, `UNDER_THRESHOLD`, `RESPONSIBLE_ONLY`) quedan sustituidos por la regla T de [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.2. El acceso a `/participants` ya no depende de `JointPurchaseCallAccess` sino del rol Administración y del consentimiento (E4 §2, §3.1) (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 Ambigüedades del contrato resueltas al implementar el Backend (`Back/src/modules/joint-purchase-calls/`, migración `20261111201928_e2_joint_purchase_calls`). Pendientes de la aceptación de Roderich junto con el resto del contrato.
 
@@ -299,7 +299,7 @@ Ambigüedades del contrato resueltas al implementar el Backend (`Back/src/module
 
 ## 10. Decisiones del autor aplicadas (2026-11-11, segunda sesión)
 
-> **Nota de sustitución (2026-11-13).** De §10.2 y §10.3 se retiran de los flujos activos: conceder, retirar y revisar `PARTICIPANTS`, el consentimiento por colaboradores y la tabla «Quién ve qué». Se conservan `MANAGE` y su historia. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §2 (matriz por rol), §3.1, §4 (consentimiento `CONV-4`) y §5.2 (regla T). §10.1 (historial) no cambia (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** De §10.2 y §10.3 se retiran de los flujos activos: conceder, retirar y revisar `PARTICIPANTS`, el consentimiento por colaboradores y la tabla «Quién ve qué». Se conservan `MANAGE` y su historia. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §2 (matriz por rol), §3.1, §4 (consentimiento `CONV-4`) y §5.2 (regla T). §10.1 (historial) no cambia (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 Ramas: Back/Web `feat/etapa3-estimacion-borrador` (desde `feat/etapa2-convocatorias` `01bcdeb`) y Mobile `feat/etapa2-historial-colaboradores` (desde `feat/etapa2-convocatorias` `6bac5a3`). Migración aditiva `e2_historial_colaboradores`.
 
@@ -399,7 +399,7 @@ Back `0db2d0f` (migración `20261111230000_e2_historial_colaboradores`; `applica
 
 ## 11. Decisiones del autor del 2026-11-12 sobre las reglas añadidas (N1–N8, m1–m11, P-B, P-C)
 
-> **Nota de sustitución (2026-11-13).** §11.1: se añaden los alcances `ADMINISTRATION` y `TOTALS_ONLY` y `COLLABORATORS` ya no se puede obtener (E4 §4.2). §11.3 (N7): contrato del teléfono 4 y compatibilidad de E4 §7. §11.5 (m6): sólo para `MANAGE`. §11.6 (N3) y §11.7 (N4, k = 3): retiradas por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.2 y §6.1. N1, N6/P-B, N8 y las reglas menores no cambian, salvo m1, m4 y m5 en lo que toca a `PARTICIPANTS` (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** §11.1: se añaden los alcances `ADMINISTRATION` y `TOTALS_ONLY` y `COLLABORATORS` ya no se puede obtener (E4 §4.2). §11.3 (N7): contrato del teléfono 4 y compatibilidad de E4 §7. §11.5 (m6): sólo para `MANAGE`. §11.6 (N3) y §11.7 (N4, k = 3): retiradas por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.2 y §6.1. N1, N6/P-B, N8 y las reglas menores no cambian, salvo m1, m4 y m5 en lo que toca a `PARTICIPANTS` (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 Fuente: encargo del autor del 2026-11-12 («Apruebo las decisiones siguientes con el alcance indicado»). Esta sección **prevalece** sobre las anteriores donde difieran. Implementado en Back `1ff5ccf`, Mobile `9cb6d7b` y Web `7acf0a1`/`bcd8b62` (rama local, sin push).
 
@@ -489,7 +489,7 @@ Excel es la única exportación (las rutas CSV del servidor se retiraron, Back `
 
 ## 12. P-A — Sustitución de la persona responsable (decisión del autor del 2026-11-12: A1 + B1 + C1)
 
-> **Nota de sustitución (2026-11-13).** §12.1 (permiso «Sustituir responsable»): su gestión activa se retira y la historia se conserva. §12.2: sustituye la Administración habilitada sin permiso adicional, con las mismas validaciones (sucesora, motivo, confirmación, concurrencia, doble envío, autosustitución prohibida, sin canceladas). §12.3: sólo delegaciones `MANAGE`. §12.4 (C1): deja de decidir el acceso. §12.5 y §12.8: contrato 4 y compatibilidad. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §3.2, §6.3 y §7 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** §12.1 (permiso «Sustituir responsable»): su gestión activa se retira y la historia se conserva. §12.2: sustituye la Administración habilitada sin permiso adicional, con las mismas validaciones (sucesora, motivo, confirmación, concurrencia, doble envío, autosustitución prohibida, sin canceladas). §12.3: sólo delegaciones `MANAGE`. §12.4 (C1): deja de decidir el acceso. §12.5 y §12.8: contrato 4 y compatibilidad. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §3.2, §6.3 y §7 (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 Fuente: encargo del autor del 2026-11-12 («Continúa con P-A. Elijo A1 + B1 + C1, con las precisiones siguientes»). Esta sección **prevalece** sobre §11.5 en lo que añade. Implementado en Back `49ed870`, Web `3fab972` (+ `d5dc9cc`) y Mobile `4a3f1ad` (+ `2cc7e39`), ramas locales sin push. Migración aditiva `20261112180000_e2_pa_responsible_substitution`; esquema SQLite v19.
 

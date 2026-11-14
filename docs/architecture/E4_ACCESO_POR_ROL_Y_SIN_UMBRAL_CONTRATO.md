@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-11-13 (redacción) |
-| Estado | **Contrato con las decisiones del §0 aplicadas. Pendiente de implementación.** No hay código, pruebas ni evidencia de este contrato todavía. Las decisiones marcadas como «criterio del orquestador» puede revisarlas el autor. |
+| Estado | **Contrato con las decisiones del §0 aplicadas. Pendiente de implementación.** No hay código, pruebas ni evidencia de este contrato todavía. *(Nota del 2026-11-13, revisión OE1–OE4: ese era el estado de la redacción; la implementación y su evidencia se describen en §11 y en `docs/evidence/E4/README.md`.)* Todas las decisiones del §0 son ya **decisiones del autor del 2026-11-13**: D-01, D-04, D-06, D-07 y D-08, antes «criterio del orquestador», las confirmó el autor el 2026-11-13 con las precisiones del §0.1. No es una aprobación institucional. |
 | Encargo | Encargo del autor del 2026-11-13: simplificar los permisos de compras conjuntas y retirar el umbral K = 3 en Backend, Web y Mobile, conservando datos, trazabilidad y autorizaciones históricas. |
 | Bases leídas | Backend y Web: este repositorio, rama `feat/acceso-rol-sin-k`, `07c1c02`. Mobile: repositorio `AppMovilAgroquimico`, rama `feat/acceso-rol-sin-k-mob`, `507efc8`. |
 | Contratos a los que **sustituye** en lo que dice aquí | E2 (§9 E2-D6/E2-D7 y E2-P1, §10.2, §10.3, §11.1, §11.3, §11.5–§11.7, §12), `E2_PA_SUSTITUCION_RESPONSABLE_OPCIONES.md`, F07-POL-01 (umbral y regla de combinaciones), F07 sellado (§5.2), F12 (comprobación de vigencia, `:679`), E3-R15 (texto) y F06 §5 (por la enmienda del 2026-11-13). Cada uno lleva una nota de sustitución que remite a este documento; su texto anterior se conserva como historia. |
@@ -14,14 +14,36 @@
 | ID | Decisión | Autoría |
 |---|---|---|
 | D-00 | **Se enmienda F06 §5:** sin umbral de agricultores. Se conservan la autorización de publicación (`POLICY_PENDING` frente a `provisional-synthetic`), la retirada de datos, el aislamiento entre sindicatos y la distinción entre cero y sin datos. Enmienda en `F06_COLLECTIVE_PROJECTION_CONTRACT.md`, «Enmienda 2026-11-13 (decisión del autor)». | Decisión del autor del 2026-11-13 |
-| D-01 | La responsable que es Administración **no** conserva el acceso que le daban los consentimientos anteriores: la responsabilidad ya no da acceso a datos individuales (§2, §6.1). | Criterio del orquestador derivado del encargo, revisable por el autor |
+| D-01 | La responsable que es Administración **no** conserva el acceso que le daban los consentimientos anteriores: la responsabilidad ya no da acceso a datos individuales (§2, §6.1). Ser responsable no concede acceso individual por sí solo. | Decisión del autor del 2026-11-13 (§0.1; antes, criterio del orquestador) |
 | D-02 | **Regla T** para los totales de las convocatorias (§5.2). | Decisión del autor del 2026-11-13 |
 | D-03 | Lo sellado se queda con la política anterior (`F07-POL-01`). Lo no sellado pasa a `F07-POL-02` **sólo** tras una activación explícita por configuración, trazada (§5.3). | Decisión del autor del 2026-11-13 |
-| D-04 | Se retira la regla de combinaciones (F07 §9), como parte de la enmienda de F06. La retirada de datos se conserva (§5.1). | Criterio del orquestador derivado del encargo, revisable por el autor |
+| D-04 | Se retira la regla de combinaciones (F07 §9), como parte de la enmienda de F06: los totales se actualizan sin ella. Esto **no garantiza anonimato**: las diferencias entre consultas pueden permitir inferir aportes individuales. Se conservan las autorizaciones, la retirada de datos y el aislamiento entre sindicatos (§5.1). | Decisión del autor del 2026-11-13 (§0.1; antes, criterio del orquestador) |
 | D-05 | Alcance `TOTALS_ONLY`: el agricultor retira la autorización nueva sin retirar su participación (§4.2). | Decisión del autor del 2026-11-13 |
-| D-06 | Apps anteriores: las lecturas reciben la forma 4; las escrituras se aceptan con la forma de su contrato mientras la participación tenga un alcance anterior; `409 CONSENT_VERSION_RETIRED` y `409 APP_UPDATE_REQUIRED` en los casos de §7.2. | Criterio del orquestador derivado del encargo, revisable por el autor |
-| D-07 | No se crea exportación de convocatorias (no existe ninguna, §1.4). | Criterio del orquestador derivado del encargo, revisable por el autor |
-| D-08 | No se añade ningún texto en Mobile sobre totales colectivos, porque Mobile no tiene textos de K (§1.3). | Criterio del orquestador derivado del encargo, revisable por el autor |
+| D-06 | Apps anteriores: se conservan **únicamente** las operaciones compatibles. Las lecturas reciben la forma 4; las escrituras se aceptan con la forma de su contrato mientras la participación tenga un alcance anterior; `409 CONSENT_VERSION_RETIRED` y `409 APP_UPDATE_REQUIRED` en los casos de §7.2. La compatibilidad exige que la app anterior **interprete** la respuesta, no sólo que reciba HTTP 200. Ninguna versión antigua amplía autorizaciones ni presenta una decisión rechazada como aplicada (§7.4). | Decisión del autor del 2026-11-13 (§0.1; antes, criterio del orquestador) |
+| D-07 | No se crea exportación de convocatorias (no existe ninguna, §1.4). El detalle identificado (nombres y cantidades) queda sólo en pantalla para Administración, según la autorización vigente. Los Excel existentes acordados se mantienen. | Decisión del autor del 2026-11-13 (§0.1; antes, criterio del orquestador) |
+| D-08 | No se añade ningún texto en Mobile sobre totales colectivos ajenos, que Mobile no muestra (§1.3). Se conserva la consulta de la participación propia: sus cantidades, su estado de envío y quién puede verla. | Decisión del autor del 2026-11-13 (§0.1; antes, criterio del orquestador) |
+
+### 0.1 Precisiones del autor (2026-11-13, revisión OE1–OE4)
+
+Textuales. Son decisiones del autor del proyecto, registradas en la revisión del 2026-11-13; **no** son una aprobación institucional (de la Directiva, del sindicato ni del tutor).
+
+| ID | Precisión del autor |
+|---|---|
+| D-01 | «Ser responsable no concede acceso individual por sí solo.» |
+| D-04 | «Acepto que los totales se actualicen sin la regla de combinaciones. Documenta que esto no garantiza anonimato y que las diferencias entre consultas pueden permitir inferir aportes individuales. Conserva autorizaciones, retiro de datos y aislamiento entre sindicatos.» |
+| D-06 | «Conserva únicamente las operaciones compatibles de las apps anteriores. Verifica que realmente puedan interpretar las respuestas; no declares compatibilidad sólo por devolver HTTP 200. Ninguna versión antigua debe ampliar autorizaciones ni presentar una decisión rechazada como aplicada.» |
+| D-07 | «El detalle identificado de convocatorias queda sólo en pantalla para Administración, según autorización vigente. No se añade exportación de nombres y cantidades. Los Excel existentes acordados se mantienen.» |
+| D-08 | «No se añade texto sobre totales colectivos ajenos que Mobile no muestra. Se conserva la consulta de la participación propia, sus cantidades, estado de envío y quién puede verla.» |
+
+**Lo que D-04 no garantiza.** Sin la regla de combinaciones y sin umbral, los totales «sin nombres» **no son anónimos**. Quien compare consultas puede inferir aportes individuales, por ejemplo:
+- un total antes y después de que una persona confirme, modifique o se retire;
+- el total provisional frente al consolidado al cierre;
+- una cifra retirada (si alguien la guardó) frente a la siguiente (§9, caso 10);
+- un total con una o dos personas, a quien sepa quién participó (§6.5).
+
+Lo que sí se conserva: la autorización de publicación (`POLICY_PENDING` en producción), el consentimiento de cada participación, la retirada de datos y el aislamiento entre sindicatos.
+
+Verificación de D-06 contra el código de `main` `200fe60` y de las apps anteriores: §7.4.
 
 Convenciones:
 - `BE:` = la raíz de este repositorio y `MOB:` = la raíz del repositorio Mobile (`AppMovilAgroquimico`). Las citas `archivo:línea` describen el estado **anterior a este contrato**, en las bases indicadas.
@@ -299,6 +321,7 @@ No reabre, no cambia plazo, cantidades ni consolidado, y no crea compras, deudas
 - La lista, el detalle, el historial (`JointPurchaseCallEvent` no lleva datos de agricultores, `schema.prisma:1953-1967`), `AuditLog` (E2-R17, `E2_…:292`) y los avisos no llevan nombres ni cantidades por persona.
 - `pending_consent_count` y `participant_count` son conteos. No se sirven `accepted_at` por persona, ni `participation_ref`, ni nada que permita unir una cantidad con una persona.
 - Riesgo aceptado y declarado en el texto de ayuda: con 1–2 participantes, un total sin nombres puede revelar una cantidad a quien sepa quién participó.
+- «Sin fugas de identidad» se refiere a lo que llevan las respuestas, **no** a anonimato: por D-04, las diferencias entre consultas (en vivo, al cierre, antes y después de una retirada) pueden permitir inferir aportes individuales (§0.1).
 
 ---
 
@@ -330,9 +353,33 @@ El emisor de la app actual reintenta para siempre si una respuesta 2xx no respet
 
 Ninguna decisión antigua se acepta como la nueva, ninguna ampliación antigua habilita a la Directiva y nada pendiente se borra en el teléfono.
 
+*Precisión de redacción (2026-11-13, revisión OE1–OE4).* La primera fila dice «con `contractVersion` 1–3»: el Backend de `200fe60` **no** envía `contractVersion` en las respuestas de escritura de los contratos 1–3 (`call-views.ts:547-549` y `:562-568`; el contrato 3 recibe el cuerpo sin esa clave). Es compatible porque las tres apps anteriores tratan esa clave como opcional. Lo que cuenta es que la forma sea la de su contrato y que su analizador la acepte (§7.4).
+
 ### 7.3 Contrato institucional y Web
 
 Back y Web cambian juntos (`contractVersion: 2` institucional). No hay clientes institucionales fuera de la Web.
+
+### 7.4 Verificación de D-06 (2026-11-13, revisión OE1–OE4)
+
+Comprobado leyendo el código de las apps anteriores (`MOB` `6bac5a3`, `9cb6d7b`/`e1f6e25` y `4a3f1ad`/`507efc8`) y el Backend de `main` `200fe60`, y ejecutando la suite PostgreSQL de convocatorias (39/39). **No** se declara compatible ningún caso sólo por devolver HTTP 200: cuenta lo que hace el analizador de cada app.
+
+| Respuesta | Contrato 1 | Contratos 2 y 3 |
+|---|---|---|
+| Lectura con la forma 4 | Falla controlada: rechaza la respuesta entera y muestra «No se pudo leer la lista del sindicato…» (no dice «Actualice») | Falla controlada: «Actualice la aplicación…», sin guardar nada parcial |
+| 2xx de escritura (forma de su contrato) | Su analizador acepta las claves exactas | Ídem; el alcance sólo puede ser `RESPONSIBLE_ONLY` o `COLLABORATORS` |
+| `409 CONSENT_VERSION_RETIRED` | No aplica (no decide alcances) | Rechazo definitivo: «El sindicato no aplicó su última decisión…»; rige lo aplicado |
+| `409 APP_UPDATE_REQUIRED` | Rechazo definitivo: «Rechazada: el sindicato no la aceptó» | Rechazo definitivo, con el código entre paréntesis |
+| `409 STALE_SEQUENCE` | Adopta la participación vigente; «Sin efecto…» | Ídem |
+
+- **Ampliar autorizaciones:** imposible desde los contratos 1–3. `COLLABORATORS` y `authorize_responsible` → `409 CONSENT_VERSION_RETIRED`; `ADMINISTRATION`/`TOTALS_ONLY` → `400`; `CONV-4` en la primera confirmación → `409 APP_UPDATE_REQUIRED`. Un `CONFIRM` con `CONV-2` crea `COLLABORATORS`, que no da el detalle a nadie. Conceder `PARTICIPANTS` → `409 GRANT_RETIRED`, y la base lo rechaza.
+- **Decisión rechazada presentada como aplicada:** no. Un 409 definitivo deja la operación `REJECTED` sin tocar la participación guardada; «Quién ve sus datos» se calcula con el alcance **aplicado**.
+- **Límites declarados** (ninguno amplía un acceso):
+  - ninguna app anterior dice «Actualice la aplicación» ante `APP_UPDATE_REQUIRED` en una escritura;
+  - sus textos de «quién ve» describen la regla anterior (la responsable y quienes ella autorice), que con E4 sobrestima quién ve;
+  - con dos teléfonos, la app anterior puede mostrar un alcance antiguo;
+  - las apps anteriores no tienen pruebas con la forma 4 ni con estos dos códigos: la verificación es por lectura del código;
+  - el Backend no prueba la forma de `STALE_SEQUENCE` con las cabeceras 2 y 3, ni las claves del 2xx de retiro (contratos 1–3) y de decisión (contratos 2 y 3).
+- **Defecto del Backend, anterior a E4:** `PARTICIPATION_REQUIRED` queda registrado en el diario (`farmer-participation.use-case.ts:465`, vía `reject` → `record`, `:293-294`). Un reintento de la misma decisión, ya con la participación creada, recibe siempre ese 409: los contratos 2 y 3 la reintentan sin fin y el contrato 4 la deja `REJECTED`. Contradice E2 §11.1 (sobre §10.6: «el teléfono la conserva pendiente y la reintenta»). Pendiente de decisión del autor; no se corrigió en esta revisión.
 
 ---
 
