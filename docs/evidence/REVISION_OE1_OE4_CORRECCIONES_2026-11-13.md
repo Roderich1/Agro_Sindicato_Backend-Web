@@ -56,7 +56,9 @@ Encargo del autor del 2026-11-14 (texto literal en la revisión OE1–OE4, `DECI
   - `rdm_a_personas_pago_test.dart:116`: corregida en #194.
   - `operation_mode_onboarding_test` «recién activado sin titular…»: falló dos veces con la concurrencia por defecto en local (sesión S4) y pasa sola y con `--concurrency=4`. La misma prueba ya registraba un fallo así en la CI. No se confirmó sobre `main`.
 
-### Candidata de evaluación OE5 (sólo emulador, por decisión del autor del 2026-11-14)
+### Candidata de evaluación OE5 (preparada en emulador)
+
+**Corrección del 2026-11-14:** en la versión anterior de este apartado se leía «sólo emulador, por decisión del autor». El autor indicó usar sólo el emulador **para la preparación**, después de que MIUI rechazara la instalación por USB en el teléfono. No decidió evaluar sólo en emulador. El dispositivo de las sesiones se documenta con sus registros reales. La candidata se congeló el 14-11 y el entorno se preparó con el conjunto del protocolo único: ver `OE5_PREPARACION_DSUX_2026-11-14.md`.
 
 | Campo | Valor |
 |---|---|
@@ -68,10 +70,10 @@ Encargo del autor del 2026-11-14 (texto literal en la revisión OE1–OE4, `DECI
 | Modelos | Vosk small-es 0.42, Whisper base q5_1 y Whisper small q5_1; 16/16 SHA-256 del manifiesto verificados; `libagro_whisper.so` x86_64 |
 | Backend compatible | API de evaluación aislada desde `main` `94fa285` (código `81c4611`), base `acc_api`, sindicato sintético «OE5» (cuentas D1, D2, A1, A2, F1–F3; campaña abierta; dos productos), `F07-POL-02` |
 | Instalación | `emulator-5560` (AVD `Cierre_Pixel8`, Android 16 x86_64): `Success`. **Activación** con la cuenta sintética F1 por el túnel: correcta (la app pasa a «Titular de los datos»); el titular y el modo quedan sin elegir para la evaluación |
-| Variante arm64 | `agrocuentas-oe5-f105e99-arm64-profile-con-origen.apk` (SHA-256 `869b6750a7f2386a5a4f7c92b80139ccf8b7b735bb91bd61e1b451ee3b41ce7c`): compilada y **no instalada**. MIUI exige aceptar la instalación en el teléfono y el autor decidió usar sólo el emulador |
+| Variante arm64 | `agrocuentas-oe5-f105e99-arm64-profile-con-origen.apk` (SHA-256 `869b6750a7f2386a5a4f7c92b80139ccf8b7b735bb91bd61e1b451ee3b41ce7c`): compilada y **no instalada en ningún teléfono**. MIUI rechazó la instalación por USB (`INSTALL_FAILED_USER_RESTRICTED`); la preparación siguió en el emulador por indicación del autor, que no es una decisión sobre dónde se evalúa |
 
 **Condiciones de uso:**
 - El origen del túnel va compilado en la APK, así que el equipo debe seguir encendido con la API 3400 y el túnel abiertos durante la ventana de evaluación.
-- Si el túnel se reinicia, hay que recompilar con `_artefactos/oe5/oe5_env.sh build`, reinstalar con `install -r` (conserva los datos) y **registrar el cambio y su efecto**.
+- Si el túnel se reinicia, hace falta una candidata nueva (otro SHA-256), que debe registrarse antes de usarla. Desde la congelación, `oe5_env.sh build` se niega a recompilar sin un motivo, y el motivo queda anotado.
 - No se actualiza la candidata durante una sesión de evaluación.
 - Guardar evidencia de dictado no equivale a evaluar la precisión del reconocimiento (OE5).
