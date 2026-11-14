@@ -251,6 +251,15 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   const decide4 = (session: TestSession, callId: string, scope: string, sequence: number, operationId = randomUUID(), version = "CONV-4") =>
     decideAs("4", session, callId, { scope, sequence, version }, operationId);
 
+  /** E2 §11.1: the farmer's consent decisions on a call, in order: [source, scope, version, sequence, operation]. */
+  const decisionsOf = async (callId: string, memberId: string) =>
+    (
+      await prisma.jointPurchaseConsentDecision.findMany({ where: { callId, memberId }, orderBy: [{ sequence: "asc" }, { receivedAt: "asc" }] })
+    ).map((d) => [d.source, d.scope, d.consentVersion, d.sequence, d.operationId]);
+  /** E2 §11.1: the journaled outcomes of one operation_id. */
+  const journalOf = async (operationId: string) =>
+    (await prisma.jointPurchaseParticipationOperation.findMany({ where: { operationId } })).map((row) => row.outcome);
+
   const withdrawAs = (contract: "2" | "3" | "4" | null, session: TestSession, callId: string, sequence: number, operationId = randomUUID()) => {
     let req = http().post(`${ME}/${callId}/participation/withdraw`).set("Authorization", auth(session));
     if (contract) req = req.set("X-Joint-Purchase-Contract", contract);
@@ -1141,6 +1150,160 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     // Rewritten for E4 §4.2 (declared): the decisions are now ADMINISTRATION, TOTALS_ONLY and the earlier reduction;
     // widening to COLLABORATORS is retired. The P-C properties (own order, idempotency, quantities never change the
     // consent, insert-only register) are kept and checked again.
+    it("E2 §11.1 (cierre 2026-11-13): PARTICIPATION_REQUIRED is not journaled; retrying the same operation after the first confirmation applies it", async () => {
+      const p1 = await newProduct();
+      const id = await openCall([p1], { deadlineInMs: 4 * HOUR });
+      const operationId = randomUUID();
+      // Decided before the participation exists: 409, and nothing is stored for that operation.
+      const early = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
+      expect(early.status).toBe(409);
+      expect(early.body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
+      expect(await prisma.jointPurchaseParticipationOperation.count({ where: { operationId } })).toBe(0);
+      // First confirmation, then the phone retries the very same decision (same operation_id and body).
+      expect((await confirm4(farmerA, id, [[p1, "100"]], 1)).status).toBe(200);
+      const retried = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
+      expect(retried.status).toBe(200);
+      expect(retried.body.participation.consent_scope).toMatchObject({ scope: "TOTALS_ONLY", sequence: 1 });
+      // A second retry gets the stored answer (idempotent), not the earlier 409.
+      const again = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
+      expect(again.status).toBe(200);
+      expect(again.body).toEqual(retried.body);
+      // No duplicates: one decision of that operation (besides the first confirmation's) and one journal row.
+      expect(await decisionsOf(id, f.members.farmerA)).toEqual([
+        ["INITIAL", "ADMINISTRATION", "CONV-4", 0, null],
+        ["DECISION", "TOTALS_ONLY", "CONV-4", 1, operationId],
+      ]);
+      expect(await journalOf(operationId)).toEqual(["ACCEPTED"]);
+      const journalRows = await prisma.jointPurchaseParticipationOperation.count({ where: { callId: id } });
+      expect((await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId)).body).toEqual(retried.body);
+      expect(await prisma.jointPurchaseParticipationOperation.count({ where: { callId: id } })).toBe(journalRows);
+      expect(await prisma.jointPurchaseConsentDecision.count({ where: { callId: id } })).toBe(2);
+    });
+
+    // E2 §11.1 (cierre 2026-11-14): a decision sent before the participation, once retried, keeps its own order.
+    it("E2 §11.1: the retried decision never overrides a later one nor the first confirmation; it gets STALE_SEQUENCE and writes no decision", async () => {
+      const p1 = await newProduct();
+      const id = await openCall([p1], { deadlineInMs: 4 * HOUR });
+      const names = async () => ((await get(admin, `${INST}/${id}/participants`)).body.participants as any[]).map((x) => x.name);
+      // X: the phone asks ADMINISTRATION (seq 1) before its first confirmation is accepted.
+      const opX = randomUUID();
+      expect((await decide4(farmerA, id, "ADMINISTRATION", 1, opX)).body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
+      // The first confirmation is made with the earlier text: RESPONSIBLE_ONLY, decision order 0.
+      expect((await confirm4(farmerA, id, [[p1, "100"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      // Y: a later decision (seq 2, TOTALS_ONLY) reaches the server first and is accepted.
+      const opY = randomUUID();
+      const y = await decide4(farmerA, id, "TOTALS_ONLY", 2, opY, "CONV-1");
+      expect(y.status).toBe(200);
+      // The retry of X (seq 1 < 2) is late: 409 STALE_SEQUENCE with the participation in force (Y), never reverting it.
+      const late = await decide4(farmerA, id, "ADMINISTRATION", 1, opX);
+      expect(late.status).toBe(409);
+      expect(late.body).toEqual({ errorCode: "STALE_SEQUENCE", participation: y.body.participation });
+      expect(late.body.participation.consent_scope).toMatchObject({ scope: "TOTALS_ONLY", version: "CONV-1", sequence: 2 });
+      const stored = await prisma.jointPurchaseParticipation.findFirstOrThrow({ where: { callId: id, memberId: f.members.farmerA } });
+      expect([stored.consentScope, stored.consentScopeVersion, stored.consentScopeSequence]).toEqual(["TOTALS_ONLY", "CONV-1", 2]);
+      expect(await names()).toEqual([]);
+      // Retried again: the same STALE answer, no row added; X never reaches the register.
+      expect((await decide4(farmerA, id, "ADMINISTRATION", 1, opX)).body).toEqual(late.body);
+      expect(await journalOf(opX)).toEqual(["STALE_SEQUENCE"]);
+      expect(await decisionsOf(id, f.members.farmerA)).toEqual([
+        ["INITIAL", "RESPONSIBLE_ONLY", "CONV-3", 0, null],
+        ["DECISION", "TOTALS_ONLY", "CONV-1", 2, opY],
+      ]);
+
+      // A sequence not above the first confirmation's decision (order 0) never reaches the decision:
+      // the envelope requires sequence >= 1 (400, not journaled), before and after the confirmation.
+      const opZero = randomUUID();
+      const zero = () => decideAs("4", farmerA2, id, { scope: "ADMINISTRATION", sequence: 0 }, opZero);
+      const before = await zero();
+      expect([before.status, before.body]).toEqual([400, { errorCode: "PAYLOAD_INVALID" }]);
+      expect((await confirm4(farmerA2, id, [[p1, "50"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      for (let round = 0; round < 2; round++) {
+        const res = await zero();
+        expect([res.status, res.body]).toEqual([400, { errorCode: "PAYLOAD_INVALID" }]);
+      }
+      expect(await journalOf(opZero)).toEqual([]);
+      expect(await decisionsOf(id, f.members.farmerA2)).toEqual([["INITIAL", "RESPONSIBLE_ONLY", "CONV-3", 0, null]]);
+    });
+
+    it("E2 §11.1: the retried decision never widens: COLLABORATORS, authorizing a responsible, ADMINISTRATION without CONV-4 and the new scopes from contracts 2-3 stay refused", async () => {
+      const p1 = await newProduct();
+      const id = await openCall([p1], { deadlineInMs: 4 * HOUR });
+      const opCollaborators = randomUUID();
+      const opAuthorize = randomUUID();
+      const opConv3 = randomUUID();
+      const collaborators = () => decide4(farmerA, id, "COLLABORATORS", 1, opCollaborators, "CONV-3");
+      const authorize = () =>
+        decideAs("4", farmerA, id, { scope: "RESPONSIBLE_ONLY", sequence: 1, version: "CONV-3", responsible_version: 1, authorize_responsible: true }, opAuthorize);
+      // ADMINISTRATION needs CONV-4 (already covered by «E4 §4.2 (test 8)»); here also after the initial 409.
+      const conv3Admin = () => decide4(farmerA, id, "ADMINISTRATION", 1, opConv3, "CONV-3");
+      const oldContract = (
+        [["2", "ADMINISTRATION"], ["2", "TOTALS_ONLY"], ["3", "ADMINISTRATION"], ["3", "TOTALS_ONLY"]] as const
+      ).map(([contract, scope]) => {
+        const op = randomUUID();
+        return { op, send: () => decideAs(contract, farmerA, id, { scope, sequence: 1 }, op) };
+      });
+      const ops = [opCollaborators, opAuthorize, opConv3, ...oldContract.map((x) => x.op)];
+
+      // Before the participation: the widenings get PARTICIPATION_REQUIRED; contracts 2-3 never send the new scopes (400).
+      for (const send of [collaborators, authorize, conv3Admin]) expect((await send()).body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
+      for (const x of oldContract) {
+        const res = await x.send();
+        expect([res.status, res.body]).toEqual([400, { errorCode: "PAYLOAD_INVALID" }]);
+      }
+      expect(await prisma.jointPurchaseParticipationOperation.count({ where: { operationId: { in: ops } } })).toBe(0);
+
+      // The first confirmation, with the earlier text: RESPONSIBLE_ONLY (CONV-3 keeps its own record of the responsible, §4.3).
+      expect((await confirm4(farmerA, id, [[p1, "100"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      const participation = () => prisma.jointPurchaseParticipation.findFirstOrThrow({ where: { callId: id, memberId: f.members.farmerA } });
+      const confirmed = await participation();
+
+      // Retried (twice each): the definitive answer, journaled once, and no decision.
+      for (let round = 0; round < 2; round++) {
+        expect((await collaborators()).body).toEqual({ errorCode: "CONSENT_VERSION_RETIRED" });
+        expect((await authorize()).body).toEqual({ errorCode: "CONSENT_VERSION_RETIRED" });
+        expect((await conv3Admin()).body).toEqual({ errorCode: "CONSENT_REQUIRED" });
+        for (const x of oldContract) {
+          const res = await x.send();
+          expect([res.status, res.body]).toEqual([400, { errorCode: "PAYLOAD_INVALID" }]);
+        }
+      }
+      expect(await journalOf(opCollaborators)).toEqual(["CONSENT_VERSION_RETIRED"]);
+      expect(await journalOf(opAuthorize)).toEqual(["CONSENT_VERSION_RETIRED"]);
+      expect(await journalOf(opConv3)).toEqual(["CONSENT_REQUIRED"]);
+      for (const x of oldContract) expect(await journalOf(x.op)).toEqual([]);
+      expect(await decisionsOf(id, f.members.farmerA)).toEqual([["INITIAL", "RESPONSIBLE_ONLY", "CONV-3", 0, null]]);
+      expect(await participation()).toEqual(confirmed);
+      expect([confirmed.consentScope, confirmed.consentScopeSequence]).toEqual(["RESPONSIBLE_ONLY", 0]);
+      expect((await get(admin, `${INST}/${id}/participants`)).body.participants).toEqual([]);
+    });
+
+    it("E2 §11.1: when the call is cancelled in between, the retried ADMINISTRATION or TOTALS_ONLY gets today's WIDENING_NOT_ALLOWED and is not applied", async () => {
+      const p1 = await newProduct();
+      const id = await openCall([p1]);
+      const opAdmin = randomUUID();
+      const opTotals = randomUUID();
+      expect((await decide4(farmerA, id, "ADMINISTRATION", 1, opAdmin)).body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
+      expect((await decide4(farmerA, id, "TOTALS_ONLY", 1, opTotals)).body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
+      expect((await confirm4(farmerA, id, [[p1, "100"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      expect((await post(director2, `${INST}/${id}/cancel`, { confirmed: true, reason: "Motivo sintético" })).status).toBe(200);
+      // The answer a fresh operation gets today on a cancelled call…
+      const today = await decide4(farmerA, id, "ADMINISTRATION", 1);
+      expect([today.status, today.body]).toEqual([409, { errorCode: "WIDENING_NOT_ALLOWED", status: "CANCELLED" }]);
+      // …is the one the retried operations get, twice, journaled once each.
+      for (let round = 0; round < 2; round++) {
+        for (const [scope, op] of [["ADMINISTRATION", opAdmin], ["TOTALS_ONLY", opTotals]] as const) {
+          const retried = await decide4(farmerA, id, scope, 1, op);
+          expect([retried.status, retried.body]).toEqual([today.status, today.body]);
+        }
+      }
+      expect(await journalOf(opAdmin)).toEqual(["WIDENING_NOT_ALLOWED"]);
+      expect(await journalOf(opTotals)).toEqual(["WIDENING_NOT_ALLOWED"]);
+      // Not applied: only the first confirmation's decision, the scope unchanged.
+      expect(await decisionsOf(id, f.members.farmerA)).toEqual([["INITIAL", "RESPONSIBLE_ONLY", "CONV-3", 0, null]]);
+      const stored = await prisma.jointPurchaseParticipation.findFirstOrThrow({ where: { callId: id, memberId: f.members.farmerA } });
+      expect([stored.consentScope, stored.consentScopeSequence]).toEqual(["RESPONSIBLE_ONLY", 0]);
+    });
+
     it("E4 §4.2 (test 8): CONV-4 gives ADMINISTRATION; TOTALS_ONLY and reductions in their own order; widening and authorizing retired; quantities and decisions never cross", async () => {
       const p1 = await newProduct();
       const id = await openCall([p1], { deadlineInMs: 4 * HOUR });
