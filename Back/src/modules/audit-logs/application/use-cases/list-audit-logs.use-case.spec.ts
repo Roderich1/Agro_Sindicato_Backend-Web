@@ -58,4 +58,16 @@ describe('ListAuditLogsUseCase', () => {
       include: expect.any(Object),
     });
   });
+
+  // RNF-05, F10-SEC-02: people are named, never identified by e-mail, for every role.
+  it.each([UserRole.AGRICULTOR, UserRole.DIRECTIVA, UserRole.ADMINISTRADOR])('never selects e-mails of actor or owner (%s)', async (role) => {
+    const { prisma, useCase } = createUseCase({});
+
+    await useCase.execute(tenantId, userId, role);
+
+    const { include } = (prisma.auditLog.findMany as jest.Mock).mock.calls[0][0];
+    expect(include.actor).toEqual({ select: { id: true, name: true, role: true } });
+    expect(include.owner).toEqual({ select: { id: true, name: true } });
+    expect(JSON.stringify(include)).not.toContain('email');
+  });
 });

@@ -23,7 +23,7 @@ function log(id: string, createdAt: string, overrides: Partial<AuditLog>): Audit
     ownerUserId: null,
     owner: null,
     actorUserId: 'u-2',
-    actor: { id: 'u-2', name: 'Directiva sintética', email: 'd@example.test' },
+    actor: { id: 'u-2', name: 'Directiva sintética', role: 'DIRECTIVA' },
     action: 'OTRO',
     entityName: 'JointPurchaseCall',
     entityId: `e-${id}`,

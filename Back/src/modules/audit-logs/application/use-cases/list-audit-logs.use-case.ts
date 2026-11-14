@@ -14,8 +14,10 @@ export class ListAuditLogsUseCase {
       take: 300,
       include: {
         campaign: { select: { id: true, name: true, status: true } },
-        actor: { select: { id: true, name: true, email: true, role: true } },
-        owner: { select: { id: true, name: true, email: true } },
+        // RNF-05, F10-SEC-02: the Bitácora names people; it never carries an
+        // e-mail, for any role (no screen uses it).
+        actor: { select: { id: true, name: true, role: true } },
+        owner: { select: { id: true, name: true } },
       },
     });
 
