@@ -1,8 +1,16 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { AuditAction, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import { CreateProductDto, ListProductsQueryDto, UpdateProductDto } from '../dto/product-catalog.dto';
+
+/** Bitácora codes of the institutional catalogue changes (RF-25, D-01), in `metadata.event`. */
+export type ProductAuditEvent = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_DEACTIVATED';
+
+const AUDIT_ENTITY = 'Product';
+
+type ProductView = ReturnType<ProductCatalogUseCase['map']>;
+type Tx = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class ProductCatalogUseCase {
@@ -27,14 +35,28 @@ export class ProductCatalogUseCase {
   }
 
   /**
-   * `client` lets a caller create the product inside its own transaction
-   * (E1 create-product: the product and its link are one unit of work).
+   * Catalogue creation by the Directiva or the Administración: the product and
+   * its Bitácora entry are one transaction (RF-25, D-01).
    */
-  async create(
-    tenantId: string,
-    dto: CreateProductDto,
-    client: Prisma.TransactionClient | PrismaService = this.prisma,
-  ) {
+  async create(tenantId: string, actorUserId: string, dto: CreateProductDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const product = await this.createWithin(tenantId, dto, tx);
+      await this.audit(tx, tenantId, actorUserId, product.id, {
+        action: AuditAction.CREAR,
+        event: 'PRODUCT_CREATED',
+        summary: `Producto «${product.name}» creado en el catálogo.`,
+        after: auditFields(product),
+      });
+      return product;
+    });
+  }
+
+  /**
+   * Creates the product inside the caller's transaction, without an entry of
+   * its own: E1 create-product (the product and its link are one unit of work)
+   * writes its own Bitácora entry for the whole operation.
+   */
+  async createWithin(tenantId: string, dto: CreateProductDto, client: Tx) {
     const existing = await client.product.findUnique({
       where: { tenantId_name: { tenantId, name: dto.name.trim() } },
     });
@@ -67,12 +89,16 @@ export class ProductCatalogUseCase {
     return this.map(product);
   }
 
-  async update(tenantId: string, productId: string, dto: UpdateProductDto) {
-    const product = await this.prisma.product.findFirst({ where: { id: productId, tenantId } });
+  async update(tenantId: string, actorUserId: string, productId: string, dto: UpdateProductDto) {
+    return this.prisma.$transaction((tx) => this.updateWithin(tx, tenantId, actorUserId, productId, dto));
+  }
+
+  private async updateWithin(tx: Tx, tenantId: string, actorUserId: string, productId: string, dto: UpdateProductDto) {
+    const product = await tx.product.findFirst({ where: { id: productId, tenantId } });
     if (!product) throw new NotFoundException('El producto no existe en este sindicato.');
 
     if (dto.name && dto.name.trim() !== product.name) {
-      const duplicated = await this.prisma.product.findUnique({
+      const duplicated = await tx.product.findUnique({
         where: { tenantId_name: { tenantId, name: dto.name.trim() } },
       });
       if (duplicated) throw new ConflictException('Ya existe un producto con ese nombre.');
@@ -81,11 +107,11 @@ export class ProductCatalogUseCase {
     if (dto.qrCodeValue !== undefined) {
       const qrCodeValue = this.optionalText(dto.qrCodeValue);
       if (qrCodeValue && qrCodeValue !== product.qrCodeValue) {
-        await this.ensureQrCodeAvailable(tenantId, qrCodeValue, product.id);
+        await this.ensureQrCodeAvailable(tenantId, qrCodeValue, product.id, tx);
       }
     }
 
-    const updated = await this.prisma.product.update({
+    const updated = await tx.product.update({
       where: { id: productId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -111,26 +137,85 @@ export class ProductCatalogUseCase {
       },
     });
 
+    const before = auditFields(this.map(product));
+    const after = auditFields(this.map(updated));
+    const changed = Object.keys(after).filter((key) => before[key] !== after[key]);
+    // Saving the same values changes nothing and leaves no entry.
+    if (changed.length > 0) {
+      await this.audit(tx, tenantId, actorUserId, updated.id, {
+        action: AuditAction.ACTUALIZAR,
+        event: 'PRODUCT_UPDATED',
+        summary:
+          product.name === updated.name
+            ? `Producto «${updated.name}» actualizado en el catálogo.`
+            : `Producto «${product.name}» actualizado en el catálogo (ahora «${updated.name}»).`,
+        before: Object.fromEntries(changed.map((key) => [key, before[key]])),
+        after: Object.fromEntries(changed.map((key) => [key, after[key]])),
+      });
+    }
+
     return this.map(updated);
   }
 
-  async deactivate(tenantId: string, productId: string) {
-    const product = await this.prisma.product.findFirst({ where: { id: productId, tenantId } });
-    if (!product) throw new NotFoundException('El producto no existe en este sindicato.');
+  async deactivate(tenantId: string, actorUserId: string, productId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.findFirst({ where: { id: productId, tenantId } });
+      if (!product) throw new NotFoundException('El producto no existe en este sindicato.');
 
-    const updated = await this.prisma.product.update({
-      where: { id: productId },
-      data: { isActive: false },
+      const updated = await tx.product.update({
+        where: { id: productId },
+        data: { isActive: false },
+      });
+      // An already inactive product is not deactivated again: no entry.
+      if (product.isActive) {
+        await this.audit(tx, tenantId, actorUserId, updated.id, {
+          action: AuditAction.INACTIVAR,
+          event: 'PRODUCT_DEACTIVATED',
+          summary: `Producto «${updated.name}» inactivado en el catálogo.`,
+          before: { isActive: true },
+          after: { isActive: false },
+        });
+      }
+
+      return this.map(updated);
     });
+  }
 
-    return this.map(updated);
+  /** Institutional Bitácora entry (`ownerUserId: null`), in the change's transaction. */
+  private async audit(
+    tx: Tx,
+    tenantId: string,
+    actorUserId: string,
+    productId: string,
+    entry: {
+      action: AuditAction;
+      event: ProductAuditEvent;
+      summary: string;
+      before?: Prisma.InputJsonObject;
+      after: Prisma.InputJsonObject;
+    },
+  ) {
+    await tx.auditLog.create({
+      data: {
+        tenantId,
+        actorUserId,
+        ownerUserId: null,
+        action: entry.action,
+        entityName: AUDIT_ENTITY,
+        entityId: productId,
+        summary: entry.summary,
+        ...(entry.before ? { before: entry.before } : {}),
+        after: entry.after,
+        metadata: { event: entry.event },
+      },
+    });
   }
 
   private async ensureQrCodeAvailable(
     tenantId: string,
     qrCodeValue: string,
     currentProductId?: string,
-    client: Prisma.TransactionClient | PrismaService = this.prisma,
+    client: Tx = this.prisma,
   ) {
     const duplicated = await client.product.findFirst({
       where: {
@@ -199,4 +284,10 @@ export class ProductCatalogUseCase {
       updatedAt: product.updatedAt.toISOString(),
     };
   }
+}
+
+/** The catalogue fields an entry compares: no identifiers or timestamps. */
+function auditFields(view: ProductView): Record<string, string | number | boolean | null> {
+  const { id: _id, tenantId: _tenantId, createdAt: _createdAt, updatedAt: _updatedAt, ...fields } = view;
+  return fields;
 }

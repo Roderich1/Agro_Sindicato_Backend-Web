@@ -12,6 +12,7 @@ import {
   UserAdminRepositoryPort,
 } from '../../domain/ports/user-admin.repository.port';
 import { toUserResponse, UserResponse } from '../mappers/user.mapper';
+import { userCreatedEntry } from '../user-audit';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -22,7 +23,7 @@ export class CreateUserUseCase {
     private readonly repo: UserAdminRepositoryPort,
   ) {}
 
-  async execute(tenantId: string, dto: CreateUserDto): Promise<UserResponse> {
+  async execute(tenantId: string, actorUserId: string, dto: CreateUserDto): Promise<UserResponse> {
     if (dto.role === UserRole.ADMINISTRADOR && dto.allowAdministrator !== true) {
       throw new ForbiddenException(
         'Para crear un usuario ADMINISTRADOR debe confirmarse explicitamente con allowAdministrator=true.',
@@ -36,13 +37,19 @@ export class CreateUserUseCase {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
-    const created = await this.repo.createWithMember({
-      tenantId,
-      name: dto.name,
-      email: dto.email,
-      passwordHash,
-      role: dto.role,
-    });
+    const created = await this.repo.createWithMember(
+      {
+        tenantId,
+        name: dto.name,
+        email: dto.email,
+        passwordHash,
+        role: dto.role,
+      },
+      {
+        actorUserId,
+        entries: [userCreatedEntry({ name: dto.name, role: dto.role, isActive: true })],
+      },
+    );
 
     return toUserResponse(created);
   }

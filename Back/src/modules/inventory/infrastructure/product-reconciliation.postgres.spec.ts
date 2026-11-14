@@ -12,6 +12,7 @@ import {
   Fixture,
   seedFixture,
   TestSession,
+  unusablePasswordHash,
 } from "../../sync-v1/test-support/sync-v1-test-app";
 
 /**
@@ -133,6 +134,56 @@ describePostgres("F07-REC-01 product reconciliation on PostgreSQL", () => {
     // Unknown fields are rejected, not ignored.
     const extra: Res = await associate(director, { productId: powder, canonicalProductId: liquid, reason: "x", confirmed: true, tenantId: f.tenantB });
     expect(extra.status).toBe(400);
+  });
+
+  it("RF-25 (D-01): associating, correcting and undoing leave Bitácora entries only the tenant sees", async () => {
+    const first = await product("Bitácora destino 1");
+    const second = await product("Bitácora destino 2");
+    const alias = await product("Bitácora alias");
+    expect((await associate(director, { productId: alias, canonicalProductId: first, reason: "misma fórmula", confirmed: true })).status).toBe(200);
+    expect((await associate(admin, { productId: alias, canonicalProductId: second, reason: "se asoció mal", confirmed: true })).status).toBe(200);
+    const undo: Res = await http()
+      .post(`${ASSOCIATIONS}/${alias}/close`)
+      .set("Authorization", `Bearer ${director.token}`)
+      .send({ reason: "no era el mismo", confirmed: true });
+    expect(undo.status).toBe(200);
+
+    const entries = await prisma.auditLog.findMany({
+      where: { entityName: "ProductCanonicalAssociation", metadata: { path: ["productRef"], equals: alias } },
+      orderBy: { createdAt: "asc" },
+    });
+    const users = await prisma.member.findMany({ where: { id: { in: [director.memberId, admin.memberId] } }, select: { id: true, userId: true } });
+    const userOf = (memberId: string) => users.find((row) => row.id === memberId)!.userId;
+    expect(entries.map((row) => [row.action, (row.metadata as any).event, row.actorUserId, row.tenantId, row.ownerUserId])).toEqual([
+      ["CREAR", "PRODUCT_ALIAS_ASSOCIATED", userOf(director.memberId), f.tenantA, null],
+      ["ACTUALIZAR", "PRODUCT_ALIAS_CORRECTED", userOf(admin.memberId), f.tenantA, null],
+      ["INACTIVAR", "PRODUCT_ALIAS_UNDONE", userOf(director.memberId), f.tenantA, null],
+    ]);
+    const history = await prisma.productCanonicalAssociation.findMany({ where: { productId: alias }, orderBy: { validFrom: "asc" } });
+    expect(entries.map((row) => row.entityId)).toEqual([history[0]!.id, history[1]!.id, history[1]!.id]);
+    expect(entries[1]!.summary).toBe("Unión del nombre «Bitácora alias» corregida: ahora con «Bitácora destino 2» (antes con «Bitácora destino 1»).");
+
+    const own: Res = await http().get("/api/v1/audit-logs?entityName=ProductCanonicalAssociation").set("Authorization", `Bearer ${director.token}`);
+    expect(own.status).toBe(200);
+    expect(own.body.filter((row: any) => row.metadata?.productRef === alias)).toHaveLength(3);
+
+    // Another sindicato's Directiva sees none of them.
+    const userB = await prisma.user.create({
+      data: {
+        tenantId: f.tenantB,
+        name: "Directiva sintética B",
+        email: `director-b-${randomUUID()}@example.test`,
+        passwordHash: unusablePasswordHash(),
+        role: "DIRECTIVA",
+        members: { create: { tenantId: f.tenantB, role: "DIRECTIVA" } },
+      },
+      include: { members: true },
+    });
+    const directorB = await createSession(prisma, jwt, userB.members[0]!.id);
+    const other: Res = await http().get("/api/v1/audit-logs").set("Authorization", `Bearer ${directorB.token}`);
+    expect(other.status).toBe(200);
+    expect(JSON.stringify(other.body)).not.toContain(alias);
+    expect(other.body.some((row: any) => row.entityName === "ProductCanonicalAssociation")).toBe(false);
   });
 
   it("concurrent corrections leave exactly one current association", async () => {

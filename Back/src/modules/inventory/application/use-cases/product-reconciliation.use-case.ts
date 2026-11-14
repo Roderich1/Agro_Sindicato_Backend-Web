@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { AuditAction, Prisma } from "@prisma/client";
 import { baseUnitForCentralUnit } from "@/modules/sync-v1/domain/units";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 
@@ -38,6 +38,11 @@ export interface AssociationView {
   closed_by_name: string | null;
   close_reason: string | null;
 }
+
+/** Bitácora codes of the association changes (RF-25, D-01), in `metadata.event`. */
+export type ProductAliasAuditEvent = "PRODUCT_ALIAS_ASSOCIATED" | "PRODUCT_ALIAS_CORRECTED" | "PRODUCT_ALIAS_UNDONE";
+
+const AUDIT_ENTITY = "ProductCanonicalAssociation";
 
 /** A catalogue denomination: name and unit only, no stock or other legacy data. */
 export interface CatalogEntryView {
@@ -104,7 +109,7 @@ export class ProductReconciliationUseCase {
     return this.serialised(tenantId, async (tx) => {
       const products = await tx.product.findMany({
         where: { tenantId, id: { in: [command.productId, command.canonicalProductId] } },
-        select: { id: true, unit: true },
+        select: { id: true, name: true, unit: true },
       });
       const product = products.find((row) => row.id === command.productId);
       const canonical = products.find((row) => row.id === command.canonicalProductId);
@@ -136,11 +141,17 @@ export class ProductReconciliationUseCase {
         return { changed: false, association: current.id };
       }
       const now = new Date();
+      let previousCanonicalName: string | null = null;
       if (current) {
         await tx.productCanonicalAssociation.update({
           where: { id: current.id },
           data: { validTo: now, closedByUserId: actorUserId, closeReason: reason },
         });
+        const previous = await tx.product.findFirst({
+          where: { tenantId, id: current.canonicalProductId },
+          select: { name: true },
+        });
+        previousCanonicalName = previous?.name ?? null;
       }
       const created = await tx.productCanonicalAssociation.create({
         data: {
@@ -152,6 +163,29 @@ export class ProductReconciliationUseCase {
           reason,
         },
       });
+      const after = { canonicalProductRef: canonical.id, associationRef: created.id };
+      if (current) {
+        await this.audit(tx, tenantId, actorUserId, created.id, {
+          action: AuditAction.ACTUALIZAR,
+          event: "PRODUCT_ALIAS_CORRECTED",
+          summary: previousCanonicalName
+            ? `Unión del nombre «${product.name}» corregida: ahora con «${canonical.name}» (antes con «${previousCanonicalName}»).`
+            : `Unión del nombre «${product.name}» corregida: ahora con «${canonical.name}».`,
+          before: { canonicalProductRef: current.canonicalProductId, associationRef: current.id },
+          after,
+          productRef: product.id,
+          reason,
+        });
+      } else {
+        await this.audit(tx, tenantId, actorUserId, created.id, {
+          action: AuditAction.CREAR,
+          event: "PRODUCT_ALIAS_ASSOCIATED",
+          summary: `Nombre «${product.name}» unido con «${canonical.name}».`,
+          after,
+          productRef: product.id,
+          reason,
+        });
+      }
       this.logger.log(
         `[PRODUCT ASSOCIATION] tenant=${tenantId} actor=${actorUserId} product=${command.productId} canonical=${command.canonicalProductId} replaced=${current?.id ?? "-"}`,
       );
@@ -165,16 +199,61 @@ export class ProductReconciliationUseCase {
     return this.serialised(tenantId, async (tx) => {
       const current = await tx.productCanonicalAssociation.findFirst({
         where: { tenantId, productId: command.productId, validTo: null },
+        include: { product: { select: { name: true } }, canonicalProduct: { select: { name: true } } },
       });
       if (!current) throw new NotFoundException("ASSOCIATION_NOT_FOUND");
       await tx.productCanonicalAssociation.update({
         where: { id: current.id },
         data: { validTo: new Date(), closedByUserId: actorUserId, closeReason: reason },
       });
+      await this.audit(tx, tenantId, actorUserId, current.id, {
+        action: AuditAction.INACTIVAR,
+        event: "PRODUCT_ALIAS_UNDONE",
+        summary: `Unión del nombre «${current.product.name}» con «${current.canonicalProduct.name}» deshecha.`,
+        before: { canonicalProductRef: current.canonicalProductId, associationRef: current.id },
+        after: { canonicalProductRef: null, associationRef: null },
+        productRef: current.productId,
+        reason,
+      });
       this.logger.log(
         `[PRODUCT ASSOCIATION CLOSE] tenant=${tenantId} actor=${actorUserId} product=${command.productId} association=${current.id}`,
       );
       return { changed: true, association: current.id };
+    });
+  }
+
+  /**
+   * RF-25 (D-01): institutional Bitácora entry (`ownerUserId: null`) in the
+   * transaction of the change, with its actor, code, product and reason.
+   */
+  private async audit(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    actorUserId: string,
+    associationId: string,
+    entry: {
+      action: AuditAction;
+      event: ProductAliasAuditEvent;
+      summary: string;
+      before?: Prisma.InputJsonObject;
+      after: Prisma.InputJsonObject;
+      productRef: string;
+      reason: string;
+    },
+  ) {
+    await tx.auditLog.create({
+      data: {
+        tenantId,
+        actorUserId,
+        ownerUserId: null,
+        action: entry.action,
+        entityName: AUDIT_ENTITY,
+        entityId: associationId,
+        summary: entry.summary,
+        ...(entry.before ? { before: entry.before } : {}),
+        after: entry.after,
+        metadata: { event: entry.event, productRef: entry.productRef, reason: entry.reason },
+      },
     });
   }
 

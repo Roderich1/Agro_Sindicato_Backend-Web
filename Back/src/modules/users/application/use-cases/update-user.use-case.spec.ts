@@ -45,11 +45,63 @@ describe('UpdateUserUseCase', () => {
       }),
     ).resolves.toMatchObject({ role: UserRole.DIRECTIVA, isActive: false });
 
-    expect(repo.updateWithMember).toHaveBeenCalledWith(userId, tenantId, {
-      name: undefined,
+    expect(repo.updateWithMember).toHaveBeenCalledWith(
+      userId,
+      tenantId,
+      { name: undefined, role: UserRole.DIRECTIVA, isActive: false },
+      {
+        actorUserId: 'admin-1',
+        entries: [
+          {
+            action: 'ACTUALIZAR',
+            event: 'USER_ROLE_CHANGED',
+            summary: 'Rol de la cuenta de «Juan Perez» cambiado de Agricultor a Directiva.',
+            before: { role: UserRole.AGRICULTOR },
+            after: { role: UserRole.DIRECTIVA },
+          },
+          {
+            action: 'INACTIVAR',
+            event: 'USER_DEACTIVATED',
+            summary: 'Cuenta de «Juan Perez» desactivada.',
+            before: { isActive: true },
+            after: { isActive: false },
+          },
+        ],
+      },
+    );
+  });
+
+  it('records a rename and a reactivation, and nothing for a value that does not change', async () => {
+    const repo = repository();
+    repo.findByIdInTenant.mockResolvedValue(user(UserRole.DIRECTIVA, false));
+    repo.updateWithMember.mockResolvedValue({ ...user(UserRole.DIRECTIVA, true), name: 'Juan P. Perez' });
+    const useCase = new UpdateUserUseCase(repo);
+
+    await useCase.execute(tenantId, 'admin-1', userId, {
+      name: 'Juan P. Perez',
       role: UserRole.DIRECTIVA,
-      isActive: false,
+      isActive: true,
     });
+
+    const audit = repo.updateWithMember.mock.calls[0]![3];
+    expect(audit.actorUserId).toBe('admin-1');
+    expect(audit.entries).toEqual([
+      {
+        action: 'ACTUALIZAR',
+        event: 'USER_UPDATED',
+        summary: 'Nombre de la cuenta «Juan Perez» cambiado a «Juan P. Perez».',
+        before: { name: 'Juan Perez' },
+        after: { name: 'Juan P. Perez' },
+      },
+      {
+        action: 'ACTUALIZAR',
+        event: 'USER_REACTIVATED',
+        summary: 'Cuenta de «Juan P. Perez» reactivada.',
+        before: { isActive: false },
+        after: { isActive: true },
+      },
+    ]);
+    expect(JSON.stringify(audit)).not.toContain('juan@example.test');
   });
 
   it('does not mutate a target that is absent from the authenticated tenant', async () => {
