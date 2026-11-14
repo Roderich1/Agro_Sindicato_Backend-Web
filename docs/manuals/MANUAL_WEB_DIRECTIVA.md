@@ -2,10 +2,11 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | Manual de la composición final de cierre. **No hay despliegue institucional** ni datos reales |
+| Estado | **Manual actual** de la Directiva (composición final de cierre). **No hay despliegue institucional** ni datos reales |
 | Fecha de redacción | 2026-11-13 |
 | Versión descrita | Backend/Web `main` `200fe60` (código `0946d9f`). Contrato institucional v2 |
-| Cómo se obtuvieron los textos | Los textos entre comillas («…») se copiaron de `Web/src` en `0946d9f` |
+| Revisión | 2026-11-14: textos, menú, guardas por rol y reglas comprobados contra Backend/Web `af449ba` (`main` `f64a4bb`), que añade a la Bitácora las cuentas, los roles, los nombres equivalentes y el catálogo (apartado 9) |
+| Cómo se obtuvieron los textos | Los textos entre comillas («…») se copiaron de `Web/src` en `0946d9f` y se volvieron a buscar en `Web/src` de `af449ba` |
 | Sustituye a | La Parte II de [`F11_MANUAL_USUARIO.md`](F11_MANUAL_USUARIO.md) (histórico) |
 | Manuales relacionados | [Administración](MANUAL_WEB_ADMINISTRACION.md) (todo lo de este manual, más el detalle autorizado, la sustitución y los usuarios) · [Agricultor](MANUAL_AGRICULTOR.md) · [Técnico](MANUAL_TECNICO_INSTALACION.md) · [Índice](README.md) |
 
@@ -21,7 +22,7 @@
 
 «Teléfono» en las capturas significa un navegador a 390 px de ancho; no se probó en un teléfono físico ni con un lector de pantalla. Ninguna captura tiene datos reales. La aceptación visual del autor del rediseño Web **no está registrada**.
 
-**Política aplicada en todo el recorrido:** `F07-POL-02` («totales sin nombres, sin mínimo de aportantes»), activada por configuración en el entorno sintético. En un entorno real su activación es una **decisión institucional** pendiente (manual técnico).
+**Política aplicada en todo el recorrido:** `F07-POL-02` («totales sin nombres, sin mínimo de aportantes»). La adoptó el autor del proyecto el 2026-11-13 (contrato E4); no es una aprobación institucional. En el recorrido se activó por configuración, sólo con datos sintéticos. **Su activación institucional está pendiente**: en producción el servidor queda en `POLICY_PENDING` y no publica ninguna cifra colectiva, y la Web muestra «El sindicato no aprobó aún la política de publicación.» (manual técnico, apartado 3).
 
 ---
 
@@ -56,6 +57,8 @@ La tarjeta del usuario muestra su nombre, el rol («Directiva») y «En línea»
 Si el sindicato no aprobó la política: «El sindicato no aprobó aún la política de publicación. Cuando se apruebe, aquí aparecerán las necesidades y el consumo.» La insignia «Datos sintéticos» aparece cuando el servidor está en modo sintético.
 
 **Lo que no se muestra:** nombres de agricultores, quién aportó ni cuándo sincronizó cada persona.
+
+**Totales sin nombres no es anonimato.** Sin mínimo de aportantes ni regla de combinaciones, comparar consultas sucesivas (antes y después de que alguien aporte o se retire) o un total con una o dos personas puede permitir deducir el aporte de alguien (decisión D-04 del autor, contrato E4).
 
 ![Resumen de la Directiva](../evidence/CIERRE/plan_colectivo/web/D1_resumen__escritorio.png)
 
@@ -124,7 +127,8 @@ Al vencer el plazo, la convocatoria se cierra sola («Convocatoria cerrada al ve
 - «Pedido hasta ahora», con el «Total provisional solicitado» por producto; al cerrar, «Consolidado al cierre».
 - En «Quién pidió»: «El detalle identificado sólo lo consulta la Administración, con la autorización de cada agricultor.» y «Participan N personas; sus nombres y cantidades no se muestran.»
 - Un total puede figurar «Pendiente de autorización» hasta que todas las participaciones de ese producto lo permitan; los consolidados anteriores pueden decir «Visible por la regla anterior: lo pidieron 3 o más personas».
-- **La Directiva nunca ve nombres ni cantidades individuales**, ni en pantalla, ni por la API, ni en el Excel.
+- **La Directiva nunca ve nombres ni cantidades individuales**, ni en pantalla ni por la API. El detalle identificado lo ve sólo la Administración, en pantalla, de quienes autorizaron con CONV-4 (alcance `ADMINISTRATION`); quien retiró la autorización (alcance `TOTALS_ONLY`) sólo cuenta en los totales. Una decisión del agricultor no rige hasta que el servidor la recibe (manual de la Administración, apartado 2).
+- **No hay exportación de convocatorias** (decisión D-07 del autor): ni Excel ni otro archivo con nombres, cantidades o totales de una convocatoria. Los Excel acordados son los del apartado 10.
 
 ### 5.4 Conceder «Administrar la convocatoria»
 
@@ -152,6 +156,11 @@ Si la cuenta de la responsable se deshabilita: «Nadie puede administrarla. … 
   - «¿Qué es este producto?»: «Ya está en el catálogo» («Confirmar identificación»), «Es un producto nuevo» («Crear e identificar») o «Falta información» («Dejar pendiente», con una nota que el agricultor verá).
   - El «Motivo» es obligatorio y queda en la bitácora. No se muestra quién lo reportó.
   - «Corregir identificación…»: «Las cifras ya selladas no se modifican.»
+
+**Identidad, foto y retención** (contrato E1, aceptado por el autor el 2026-11-13):
+- **Identidad no expuesta a la Directiva:** ni la pantalla, ni la API, ni la bitácora dicen quién pidió identificar el producto (tampoco a la Administración). No es anonimato absoluto: el nombre escrito por el agricultor o lo que muestre la foto pueden dar pistas. No se confunde con la participación en una convocatoria, que se rige por CONV-4.
+- **Retención:** el servidor borra la foto de una solicitud identificada 90 días después de la última decisión de vínculo (valor por defecto, configurable). Una solicitud pendiente no pierde su foto por antigüedad. El agricultor puede quitarla o reemplazarla desde su teléfono; no se guardan versiones anteriores.
+- **Borrar la foto no borra la solicitud**, ni su resolución, ni el registro de la bitácora. La Web muestra entonces «La foto fue retirada.»
 
 ![Productos](../evidence/rediseno-web-v2/c/catalogo/21-productos__escritorio.png) ![Por identificar](../evidence/rediseno-web-v2/verificacion/identificacion/23-antes-de-confirmar__escritorio.png)
 
@@ -191,15 +200,19 @@ Si la cuenta de la responsable se deshabilita: «Nadie puede administrarla. … 
 
 ## 9. Bitácora
 
-**«Bitácora»** («Lo que se hizo en la Web, de lo más reciente a lo más antiguo.»): filtros «Tipo de acción» («Convocatorias», «Permisos», «Catálogo», «Campañas», «Borradores», «Otras») y «Más filtros» (campaña, persona, fechas). «Detalle» abre «Qué pasó». Muestra como máximo las últimas 300 acciones.
+**«Bitácora»** («Lo que se hizo en la Web, de lo más reciente a lo más antiguo.»): filtros «Tipo de acción» («Convocatorias», «Permisos», «Catálogo», «Campañas», «Borradores», «Cuentas», «Otras») y «Más filtros» (campaña, persona, fechas). «Detalle» abre «Qué pasó», con el «Tipo» cuando el servidor lo registra. Muestra como máximo las últimas 300 acciones. La ven la Directiva y la Administración.
 
-**Límite:** la bitácora no registra todas las acciones que la Web confirma (hallazgo H-08); en particular, los cambios de cuentas y roles no tienen registro localizado.
+**Qué registra desde `af449ba`** (además de convocatorias, permisos, campañas, sellado, la selección de productos de un borrador e identificación de productos):
+- **«Cuentas»:** «Cuenta creada», «Nombre de la cuenta cambiado», «Cambio de rol», «Cuenta desactivada», «Cuenta reactivada» y «Contraseña restablecida», con el nombre de la cuenta y el valor anterior y nuevo. Nunca la contraseña ni el correo.
+- **«Catálogo»:** «Nombres unidos», «Unión de nombres corregida», «Unión de nombres deshecha», «Producto creado», «Producto editado» y «Producto inactivado».
+
+**Límite (H-08, reducido):** siguen sin registro generar un borrador de compra, fijar o quitar su referencia de consumo estimado y las acciones del módulo de acceso (`iam`), según la matriz de cierre (fila 30).
 
 ![Bitácora](../evidence/rediseno-web-v2/c/bitacora/32-bitacora__escritorio.png)
 
-*Captura `32-bitacora__escritorio.png`. 2026-11-13; rediseño Web v2, sesión C, anterior al cierre; datos sintéticos.*
+*Captura `32-bitacora__escritorio.png`. 2026-11-13; rediseño Web v2, sesión C, **anterior** a `af449ba`: no muestra el filtro «Cuentas» ni el «Tipo»; datos sintéticos.*
 
-*Verificación:* Web real (anterior); Pruebas.
+*Verificación:* Web real (anterior); Pruebas. Las entradas de cuentas y catálogo: pruebas del Backend con PostgreSQL y de la Web en `af449ba` (`docs/evidence/REVISION_OE1_OE4_CORRECCIONES_2026-11-13.md`); no se recorrieron en un navegador.
 
 ---
 
@@ -227,9 +240,9 @@ El servidor decide cada acceso. Si su rol cambia mientras tiene la Web abierta, 
 ## 12. Límites
 
 - Sin despliegue institucional, sin datos reales y sin aceptación visual registrada.
-- Activar `F07-POL-02` en un entorno real es una decisión institucional pendiente.
+- `F07-POL-02` está adoptada por el autor, pero su activación institucional está pendiente; en producción, `POLICY_PENDING` (sin cifras colectivas).
 - Seguimiento de sincronización por agricultor: no disponible.
-- Bitácora incompleta (H-08).
+- Bitácora todavía incompleta (H-08): generar borradores, referencia de estimación y acceso (`iam`).
 - Sellado con la política nueva: sin recorrido con la API real.
 
 ## 13. Capturas usadas

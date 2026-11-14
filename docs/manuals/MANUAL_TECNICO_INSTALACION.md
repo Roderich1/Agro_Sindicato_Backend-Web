@@ -2,9 +2,10 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | Manual técnico de la composición final de cierre. **No existe ningún despliegue institucional** y **ninguna APK está lista para distribuir** |
+| Estado | **Manual técnico actual** (composición final de cierre). **No existe ningún despliegue institucional** y **ninguna APK está lista para distribuir**: la release sale sin firmar y la candidata de evaluación OE5 es una compilación de prueba firmada con la clave de depuración |
 | Fecha de redacción | 2026-11-13 |
 | Versión descrita | Backend/Web `main` `200fe60` (código `0946d9f`; `Back/` idéntico desde `744930d`). Mobile `main` `34e9926` (código `aeeb4f0`), esquema SQLite 20, contrato del agricultor 4 |
+| Revisión | 2026-11-14: comprobado de nuevo contra Backend/Web `main` `a8b6504` (código de la Web y de la Bitácora en `af449ba`; `a8b6504` añade la corrección de `PARTICIPATION_REQUIRED`, sin migración) y Mobile `main` `65e1004` (cuyo `lib/` sólo difiere de `34e9926` en la evidencia de voz; desde `e9c3b30` sólo cambia una prueba). Sigue habiendo 24 migraciones y el esquema SQLite 20 |
 | Cómo se comprobó | Nombres de variables, comandos y rutas leídos en esos commits (`Back/src/config/env.schema.ts`, `Back/.env.example`, `Back/Dockerfile`, `docker-compose.yml`, `Web/nginx.conf`, `Web/vite.config.ts`, Mobile `android/app/build.gradle.kts`, `lib/services/auth/api_endpoint_config.dart`, `tool/voice_local/`). Resultados de las pruebas: `docs/cierre/RESUMEN_CIERRE_2026-11-13.md` y `docs/evidence/CIERRE/README.md` |
 | Sustituye a | [`F11_MANUAL_TECNICO.md`](F11_MANUAL_TECNICO.md), que se conserva como documento histórico y como referencia detallada de los respaldos del servidor (su apartado 5 sigue vigente: el código de `Back/src/modules/backups` no cambió desde `075a511`) |
 | Manuales relacionados | [Agricultor](MANUAL_AGRICULTOR.md) · [Directiva](MANUAL_WEB_DIRECTIVA.md) · [Administración](MANUAL_WEB_ADMINISTRACION.md) · [Índice](README.md) |
@@ -28,7 +29,7 @@
 | App móvil | Flutter 3.47.2, JDK 17; `applicationId` `com.comunidad.agro.agroquimicos`; `pubspec` 1.0.0+1 | Mobile CI, `android/app/build.gradle.kts` |
 | Voz local | Vosk + whisper.cpp (modelos base y small), fuera de Git | Mobile `tool/voice_local/` |
 
-**Versiones compatibles:** la app de `aeeb4f0` necesita la API de `0946d9f` (contrato del agricultor 4, cabecera `X-Joint-Purchase-Contract: 4`). La API acepta los contratos 1–3 para lectura y responde `APP_UPDATE_REQUIRED` / `409` a las escrituras retiradas. **Hay que desplegar la API antes que la app.**
+**Versiones compatibles:** la app de `aeeb4f0` (y la de `65e1004`) necesita la API de `0946d9f` o posterior (`af449ba`, `a8b6504`) (contrato del agricultor 4, cabecera `X-Joint-Purchase-Contract: 4`). La API acepta los contratos 1–3 para lectura y responde `APP_UPDATE_REQUIRED` / `409` a las escrituras retiradas. **Hay que desplegar la API antes que la app.**
 
 ---
 
@@ -45,7 +46,7 @@ npm run build                        # nest build
 npm run start:prod                   # node dist/main.js
 ```
 
-[Probado] `npm run build` y la suite completa con PostgreSQL sobre `744930d`: 86 suites, 1015 pruebas pasan, 13 omitidas, 0 fallan; `npm run openapi:check` pasa en `7afd574` (en Windows hace falta la regla `eol=lf` de `.gitattributes`).
+[Probado] `npm run build` y la suite completa con PostgreSQL sobre `744930d`: 86 suites, 1015 pruebas pasan, 13 omitidas, 0 fallan; `npm run openapi:check` pasa en `7afd574` (en Windows hace falta la regla `eol=lf` de `.gitattributes`). Sobre `191fbe2` (fusionado como `af449ba`): 1032 pasan, 13 omitidas, 0 fallan; Web 744/744 (`docs/evidence/REVISION_OE1_OE4_CORRECCIONES_2026-11-13.md`).
 
 ### 2.2 Variables de entorno
 
@@ -94,7 +95,7 @@ DATABASE_URL=… npx prisma migrate deploy
 
 **Activación trazada.** El primer arranque con `COLLECTIVE_DISCLOSURE_POLICY` explícita inserta una fila en `CollectiveDisclosurePolicyActivation`; cada cambio posterior (también la vuelta a la anterior) inserta otra. La tabla es sólo de inserción. **Lo sellado con `F07-POL-01` no se recalcula**: cada versión sellada conserva su «Política aplicada al sellar».
 
-**Es una decisión institucional.** Activar `F07-POL-02` en un entorno real lo decide el sindicato (GOV-02, BE #185), no el operador. Mientras no exista esa decisión, la configuración del recorrido de cierre (`COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`, `COLLECTIVE_DISCLOSURE_POLICY=F07-POL-02`) sólo vale para datos sintéticos.
+**Adoptada por el autor, activación institucional pendiente.** El autor del proyecto adoptó `F07-POL-02` el 2026-11-13 (contrato E4, D-00 y D-03); no es una aprobación institucional. Activarla en un entorno real lo decide el sindicato (GOV-02, BE #185), no el operador. Sin la regla de combinaciones, los totales sin nombres **no garantizan anonimato** (D-04). Mientras no exista esa decisión, la configuración del recorrido de cierre (`COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`, `COLLECTIVE_DISCLOSURE_POLICY=F07-POL-02`) sólo vale para datos sintéticos.
 
 **Hallazgo para el operador (lectura del código de `0946d9f`):** con `NODE_ENV=production`, la API ignora `provisional-synthetic` y queda en `POLICY_PENDING`, es decir, **no publica ninguna cifra colectiva** cualquiera que sea `COLLECTIVE_DISCLOSURE_POLICY` (`Back/src/modules/collective/application/collective-config.ts`). No hay ningún valor que represente una política aprobada. Publicar cifras en producción exige, además de la decisión institucional, un cambio de código o de configuración que hoy no existe. La Web lo muestra así: «El sindicato no aprobó aún la política de publicación.»
 
@@ -152,8 +153,13 @@ bash tool/voice_local/build_voice_apk.sh arm64 <carpeta>   # APK de voz para tel
 - La APK con modelos pesa unos 340 MB.
 - Procedencia, licencias y hashes: Mobile `tool/voice_local/THIRD_PARTY.md`. Uso: `tool/voice_local/README.md`.
 - ADR-005 está aceptado **sólo provisionalmente para la demostración**; no hay evaluación con audio real ni precisión medida.
+- **Evidencia de dictado: sólo en la compilación de evaluación.** Con `--dart-define=AGRO_VOICE_EVIDENCE=true` (y `AGRO_APP_COMMIT=<sha>`) la app añade la pantalla de permiso «Evaluación de la voz» y, con permiso, guarda en el teléfono lo propuesto por la voz y lo confirmado o corregido, sin audio, fuera de Sync, de lo colectivo y del respaldo. Sin esa opción la ruta no existe y no se guarda nada (`lib/presentation/voice/voice_evidence_hook.dart`). La release y cualquier APK para usuarios se compilan **sin** ella.
 
-### 5.4 Estado de la APK de cierre
+### 5.4 Estado de las APK de cierre
+
+Ninguna de estas APK es una distribución. Todas están fuera de Git, en `_artefactos/cierre/` (con `SHA256SUMS`).
+
+**Release de `34e9926`** (la de la composición final):
 
 | Campo | Valor |
 |---|---|
@@ -164,7 +170,11 @@ bash tool/voice_local/build_voice_apk.sh arm64 <carpeta>   # APK de voz para tel
 | API | Ninguna compilada |
 | Voz | Sin modelos ni bibliotecas |
 
-**Esta APK no está lista para distribuir ni es instalable.** Las APK del recorrido en emulador (paquetes `.cierre`, `.acc`, `.ind`, perfil x64, clave de depuración, origen de un túnel ya cerrado) son sólo de revisión.
+**Release de `e9c3b30`** (Mobile `main` tras la corrección de la evidencia de voz, #193): `agrocuentas-release-e9c3b30-SIN-FIRMAR.apk`, 111 136 781 B, SHA-256 `8a55761f57f6cd26fde930e8eddb5a1aa63bc8dc127efbad3422375ce00fce13`; también **sin firmar**, sin API y sin modelos de voz. No se registró ninguna release de `65e1004` (sólo cambia una prueba respecto de `e9c3b30`).
+
+**Candidata de evaluación OE5** (`agrocuentas-oe5-e9c3b30-arm64-profile-referencia-sin-origen.apk`, 335 568 625 B, SHA-256 `7d4612f895e36ab5145b7918824976cc393d72c44d89847f566d3ddd5ebe0358`): compilación `profile` arm64-v8a de `e9c3b30`, paquete `.oe5` («AC OE5»), **firmada con la clave de depuración**, con `AGRO_VOICE_EVIDENCE=true` y los modelos de voz. **Es una compilación de prueba, no una distribución.** No lleva origen de API, así que no puede activarse: el día de la evaluación se recompila desde el mismo SHA con el origen vigente y se registra su SHA-256 (`docs/evidence/REVISION_OE1_OE4_CORRECCIONES_2026-11-13.md`).
+
+**Las release no están listas para distribuir ni son instalables.** Las APK del recorrido en emulador (paquetes `.cierre`, `.acc`, `.ind`, perfil x64, clave de depuración, origen de un túnel ya cerrado) son sólo de revisión.
 
 ### 5.5 Lo que falta para distribuir, por separado
 
@@ -248,7 +258,7 @@ El archivo de la raíz **no sirve para producción** tal como está:
 - Publicación de cifras colectivas en producción: sin mecanismo de política aprobada (apartado 3).
 - Copia de la base del Central: no existe.
 - Deshabilitar una cuenta da 401 (no 403).
-- La Web reconoce acciones que la bitácora no registra (H-08).
+- Bitácora: desde `af449ba` registra cuentas, roles, nombres equivalentes y catálogo; siguen sin registro generar un borrador, fijar o quitar su referencia de estimación y el módulo de acceso `iam` (H-08, reducido).
 - Una prueba de Backend dio una vez un tiempo de espera de 5 s al arrancar Nest en el runner de CI; pasó al relanzar sin cambios.
 - Ninguna prueba en teléfono físico de la composición final.
 

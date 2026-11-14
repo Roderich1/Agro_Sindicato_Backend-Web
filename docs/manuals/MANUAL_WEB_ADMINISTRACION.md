@@ -2,10 +2,11 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | Manual de la composición final de cierre. **No hay despliegue institucional** ni datos reales |
+| Estado | **Manual actual** de la Administración (composición final de cierre). **No hay despliegue institucional** ni datos reales |
 | Fecha de redacción | 2026-11-13 |
 | Versión descrita | Backend/Web `main` `200fe60` (código `0946d9f`) |
-| Cómo se obtuvieron los textos | Copiados de `Web/src` en `0946d9f` |
+| Revisión | 2026-11-14: textos, menú, guardas por rol y reglas comprobados contra Backend/Web `af449ba` (`main` `f64a4bb`), que registra en la Bitácora los cambios de cuentas y roles (apartados 4 y 5) |
+| Cómo se obtuvieron los textos | Copiados de `Web/src` en `0946d9f` y vueltos a buscar en `Web/src` de `af449ba` |
 | Relación con el manual de la Directiva | La Administración (rol «Administrador») ejerce **todas las funciones de la Directiva**: resumen, cobertura, borrador, convocatorias, catálogo, histórico, campañas, bitácora y Excel. Están en el [manual de la Directiva](MANUAL_WEB_DIRECTIVA.md) y no se repiten aquí. Este manual describe sólo lo que **añade** la Administración |
 | Manuales relacionados | [Agricultor](MANUAL_AGRICULTOR.md) · [Técnico](MANUAL_TECNICO_INSTALACION.md) · [Índice](README.md) |
 
@@ -17,12 +18,13 @@ Las marcas de *Verificación* son las del manual de la Directiva. Todo se recorr
 
 | Función | Directiva | Administración |
 |---|---|---|
-| Menú «Usuarios» | No | Sí |
-| Detalle individual de una convocatoria («Quién pidió» con nombres y cantidades) | Nunca | Sólo de quienes **autorizaron** ese acceso con CONV-4 desde su aplicación |
+| Menú «Usuarios» (ruta `/users`) | No: ni en el menú ni por la dirección (guarda de Administración) | Sí |
+| «Bitácora» | Sí | Sí (la misma) |
+| Detalle individual de una convocatoria («Quién pidió» con nombres y cantidades) | Nunca (la API responde 403) | Sólo de quienes **autorizaron** ese acceso con CONV-4 desde su aplicación (alcance `ADMINISTRATION`), y sólo en pantalla |
 | «Sustituir responsable…» | No | Sí, cuando la responsable ya no está habilitada; **nunca a sí misma** |
 | Etiqueta en la barra lateral | «Directiva» | «Administrador» |
 
-Ser responsable de una convocatoria **no** da acceso a nombres ni cantidades: el detalle depende del rol de Administración y de la autorización de cada agricultor.
+Ser responsable de una convocatoria **no** da acceso a nombres ni cantidades: el detalle depende del rol de Administración y de la autorización de cada agricultor. El menú sólo oculta; quien decide cada acceso es el servidor.
 
 ---
 
@@ -33,6 +35,10 @@ En el detalle de una convocatoria, «Quién pidió»:
 - tabla «Participantes de la convocatoria»: «Participante», «Producto», «Cantidad», «Estado» («Vigente» / «Retirada»), «Recibido»; al cerrar, «Detalle por participante al cierre»;
 - quien no autorizó (texto anterior o retirada) **no aparece**: «N participaciones sin la autorización vigente para que la Administración vea su nombre y cantidades: sus datos no se muestran.» y «Cada agricultor lo decide en su aplicación, en «Revisar quién puede ver mi participación».»;
 - un total puede quedar «Pendiente de autorización» («Falta la autorización nueva de algún agricultor»): la Administración ve por nombre a unos, y el total sólo se publica cuando todas las participaciones de ese producto lo permiten.
+
+**Alcances y acuse.** Cada participación tiene en el servidor un alcance: `ADMINISTRATION` (el agricultor aceptó CONV-4: la Administración ve su nombre y sus cantidades) o `TOTALS_ONLY` (retiró la autorización: sólo cuenta en los totales, sin nombre). Las participaciones con textos anteriores a CONV-4 no dan acceso a nadie hasta que el agricultor las revise. **Una decisión del agricultor no rige hasta que el servidor la recibe** (acuse): mientras esté pendiente de envío en su teléfono, la Web sigue mostrando lo que corresponde a la decisión anterior.
+
+**Sin exportación** (decisión D-07 del autor): el detalle identificado queda **sólo en pantalla**. No hay Excel ni otro archivo de convocatorias, con nombres o sin ellos.
 
 Si la cuenta deja de ser de la Administración mientras mira el detalle, la Web borra nombres y cantidades: «Ya no puede ver el detalle identificado de esta convocatoria: su cuenta ya no es de la Administración habilitada. …»
 
@@ -90,7 +96,7 @@ El antiguo permiso «Sustituir responsable» ya no existe: Usuarios conserva só
 
 *Verificación:* Web real (cierre) para la lista y para el cambio de rol y la desactivación (`plan_rol_cierre/`: `A2_rol_1_antes` … `A2_rol_4_deshabilitada`). Crear usuario y restablecer contraseña: API real (E4 creó la Directiva D3 con `POST /users`) y Pruebas; los diálogos no se capturaron en el cierre.
 
-**Límite:** los cambios de cuentas y roles **no** quedan registrados en la bitácora (matriz de cierre, fila 30; hallazgo H-08).
+**Bitácora:** desde `af449ba` cada alta, cambio de nombre o de rol, desactivación, reactivación y restablecimiento de contraseña queda en la «Bitácora», filtro «Cuentas» (apartado 5). La entrada nombra la cuenta y el valor anterior y nuevo; nunca la contraseña ni el correo.
 
 ---
 
@@ -98,18 +104,20 @@ El antiguo permiso «Sustituir responsable» ya no existe: Usuarios conserva só
 
 La Administración y la Directiva ven la misma «Bitácora» (manual de la Directiva, apartado 9). Para la Administración interesa en particular:
 - «Convocatorias» y «Permisos»: sustituciones con su motivo, permisos concedidos o retirados, aperturas, cierres y cancelaciones;
-- «Catálogo»: identificaciones y correcciones con su motivo.
+- «Catálogo»: identificaciones y correcciones con su motivo, uniones de nombres equivalentes y altas, ediciones e inactivaciones de productos;
+- «Cuentas»: «Cuenta creada», «Nombre de la cuenta cambiado», «Cambio de rol», «Cuenta desactivada», «Cuenta reactivada» y «Contraseña restablecida».
 
-No registra todo lo que la Web confirma (H-08), ni los cambios de usuarios.
+La Directiva también ve las entradas de «Cuentas» (sin correos). Siguen sin registro generar un borrador, fijar o quitar su referencia de estimación y las acciones del módulo de acceso (`iam`) (H-08, reducido).
 
-*Verificación:* Web real (anterior, rediseño Web v2); Pruebas.
+*Verificación:* Web real (anterior, rediseño Web v2); Pruebas. Las entradas de cuentas y catálogo: pruebas del Backend con PostgreSQL y de la Web en `af449ba` (`docs/evidence/REVISION_OE1_OE4_CORRECCIONES_2026-11-13.md`); no se recorrieron en un navegador.
 
 ---
 
 ## 6. Límites
 
 - Los mismos del manual de la Directiva.
-- Bitácora incompleta para acciones de cuentas y roles.
+- Bitácora todavía incompleta: generar borradores, referencia de estimación y acceso (`iam`).
+- El detalle identificado de las convocatorias no se exporta (D-07).
 - De Directiva a Administración, el menú se actualiza al renovar la sesión o recargar.
 - El Excel de la Administración no se descargó en el recorrido del cierre (sólo el de la Directiva).
 

@@ -2,10 +2,11 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | Manual de la composición final de cierre. **No es una distribución**: no hay APK firmada ni API desplegada (ver el [manual técnico](MANUAL_TECNICO_INSTALACION.md)) |
+| Estado | **Manual actual** del agricultor (composición final de cierre). **No es una distribución**: no hay API desplegada ni APK distribuible. La release de `main` sale **sin firmar** y la candidata de evaluación OE5 es una compilación de prueba firmada con la clave de depuración, no una distribución (ver el [manual técnico](MANUAL_TECNICO_INSTALACION.md)) |
 | Fecha de redacción | 2026-11-13 |
 | Versión descrita | Mobile `main` `34e9926` (código `aeeb4f0`), esquema SQLite 20, contrato del agricultor 4. API de Backend/Web `main` `200fe60` (código `0946d9f`) |
-| Cómo se obtuvieron los textos | Los textos entre comillas («…») se copiaron de `lib/` en `aeeb4f0`. Donde la app dice algo que no coincide con la navegación actual, se indica en el apartado 20 |
+| Revisión | 2026-11-14: textos, rutas y reglas comprobados contra el código de Mobile `65e1004` (su `lib/` sólo difiere del de `34e9926` en la evidencia de voz, apartado 12) y de Backend/Web `af449ba` |
+| Cómo se obtuvieron los textos | Los textos entre comillas («…») se copiaron de `lib/` en `aeeb4f0` y se volvieron a buscar en `lib/` de `65e1004`. Donde la app dice algo que no coincide con la navegación actual, se indica en el apartado 20 |
 | Sustituye a | [`F11_MANUAL_USUARIO.md`](F11_MANUAL_USUARIO.md) (borrador F11, versiones de octubre de 2026), que se conserva como documento histórico |
 | Manuales relacionados | [Directiva](MANUAL_WEB_DIRECTIVA.md) · [Administración](MANUAL_WEB_ADMINISTRACION.md) · [Técnico](MANUAL_TECNICO_INSTALACION.md) · [Índice](README.md) |
 
@@ -167,7 +168,7 @@ El aviso de revisión aparece **después de consultar las convocatorias** (Sindi
 
 La compra **se guarda sin conexión** y sigue ahí al cerrar y reabrir la app. **No se envía al sindicato:** sólo se comparten totales de necesidad y de consumo (apartado 13).
 
-**Sin campaña activa** el formulario se abre, pero al confirmar dice «No hay una campaña activa. Actívala en Más, Administrar datos.». Esa ruta ya no existe: active la campaña desde Inicio (toque la campaña) o en Ajustes y datos › «Campañas» (apartado 20).
+**Sin campaña activa** el formulario se abre, pero al confirmar avisa de que no hay una campaña activa. Active la campaña desde Inicio (toque la campaña) o en Ajustes y datos › «Campañas». En esta versión el aviso remite a una pantalla que no existe (apartado 20).
 
 ![Compra individual](../evidence/CIERRE/mobile/M5_10_compra_individual.png) ![Compra sin conexión](../evidence/CIERRE/mobile/M4_01_compra_sin_conexion.png)
 
@@ -205,7 +206,7 @@ La compra **se guarda sin conexión** y sigue ahí al cerrar y reabrir la app. *
 
 **Un plan es una previsión:** «Un plan no descuenta existencias ni registra una deuda. El producto sale del almacén cuando registre la aplicación.» Para aplicarlo, pulse «Aplicar este plan» (o «Aplicar» en Actividad); un plan se aplica una sola vez.
 
-**Escriba la dosis con coma decimal** («1,5»). Con punto («1.5») el plan no la lee y muestra «Necesita 0 L» (observación O1 del cierre).
+**Escriba la dosis con coma decimal** («1,5»). Con punto («1.5») el plan no la lee y la cantidad queda en 0 («Necesita 0 L» con varias personas; en modo individual la columna se llama «Cantidad prevista»). Observación O1 del cierre, vista con la app anterior `507efc8`. En `65e1004` sigue igual: la app usa el convenio boliviano (el punto separa miles), así que «1.5» no es un número válido y el plan lo cuenta como 0 sin avisar.
 
 ![Plan individual](../evidence/CIERRE/mobile/M5_12_plan_individual.png)
 
@@ -225,6 +226,8 @@ La compra **se guarda sin conexión** y sigue ahí al cerrar y reabrir la app. *
 - «Nivel mínimo»: «Vacío: sin aviso de existencia baja. 0: avisa sólo cuando se acaba.»
 - «Avisar antes del vencimiento» (días): «De 0 a 365 días. Vacío: 30 días (valor inicial).»
 - «Al guardar se pide el PIN del titular, una vez para los dos datos.»
+
+**Estimación del consumo** (Almacén › «Estimación del consumo», «Referencia; no cambia el inventario.»): con «Consultar con conexión» muestra la estimación que calcula el sindicato para la «Campaña objetivo», y «Descargar copia para consultar sin conexión» la guarda en el teléfono. «Es una referencia: no se suma a su necesidad declarada, no cambia su inventario y no crea compras.» Si el sindicato no tiene activada la publicación, dice «La política de divulgación todavía no permite consultar la estimación.» *Verificación:* Pruebas; no se recorrió en el emulador del cierre. Sin captura actual.
 
 ![Almacén con varias personas](../evidence/CIERRE/mobile/M2_03_almacen.png) ![Almacén individual](../evidence/CIERRE/mobile/M5_18_almacen_individual.png)
 
@@ -335,6 +338,8 @@ La voz **prepara** los datos en el mismo formulario de compra, aplicación o pla
 - Si la APK no trae los modelos de voz → «La voz no está disponible en este teléfono. Complete el formulario a mano.» (la APK de `main` no los trae; ver el manual técnico).
 - Con campos dictados sin revisar, el formulario no deja continuar: «Hay N campos dictados por revisar.»
 
+**Evidencia de dictado: sólo en la compilación de evaluación.** La app normal no guarda nada de lo dictado ni muestra ninguna pantalla de permiso. Sólo una compilación de evaluación (`AGRO_VOICE_EVIDENCE=true`, manual técnico) añade en la pantalla «Registrar por voz» (Ajustes y datos o «Registrar» › «Completar por voz», con varias personas) la entrada «Evaluación de la voz» («Permiso para guardar lo dictado»), con «Acepto», «Retirar el permiso» y «Borrar lo guardado». Sin ese permiso dice «Permiso: no dado. No se guarda nada.» Con él, se guarda en el teléfono el texto reconocido, lo que propuso la voz y lo que usted confirmó o corrigió; **nunca audio**. No se envía al sindicato ni va en los respaldos. Guardar esta evidencia no mide la precisión del reconocimiento: esa evaluación (OE5) no se ha hecho.
+
 ![Escuchando, varias personas](../evidence/CIERRE/mobile/M6_13_escuchando_varias.png) ![Escuchando, individual](../evidence/CIERRE/mobile/M6_18_escuchando_individual.png) ![Procesando](../evidence/CIERRE/mobile/M6_15_procesando_varias.png)
 
 *Capturas `M6_13_escuchando_varias.png`, `M6_18_escuchando_individual.png` y `M6_15_procesando_varias.png`. 2026-11-13; Mobile `aeeb4f0` con los modelos de voz empaquetados (APK `final-voz`, sólo de revisión); emulador `Cierre_Pixel8`; sin audio real. Otras del mismo recorrido: `M6_12_permiso_microfono.png`, `M6_14_cancelado_varias.png`, `M6_16_resultado_sin_cambios_varias.png`, `M6_02_voz_no_disponible_varias.png` (APK sin modelos).*
@@ -392,6 +397,8 @@ Toda decisión se guarda primero en el teléfono:
 - «Pendiente de envío: autorizar a la Administración a ver su nombre y sus cantidades. Hasta que el sindicato la reciba, **no está aplicada** y rige lo que se indica arriba.» con «Enviar ahora»;
 - al recibirla el sindicato: «Su última decisión sobre quién ve sus datos **está aplicada** en el sindicato.»
 
+En el sindicato, autorizar con CONV-4 deja su participación con el alcance `ADMINISTRATION` (la Administración ve su nombre y sus cantidades) y retirar la autorización, con `TOTALS_ONLY` (sólo cuenta en los totales). Ninguno de los dos cambia nada hasta el acuse: mientras la decisión esté pendiente de envío, rige la anterior.
+
 Con conexión y la sesión verificada, el envío es automático; si no, pulse «Enviar ahora». **Si la sesión caducó**, la app dice que no se envió y que sigue guardado («Lo pendiente no se envió y sigue guardado en el teléfono.») y ofrece «Volver a autenticar»; después vuelva a la convocatoria y pulse «Enviar ahora». Nada se muestra como aplicado antes del acuse.
 
 ![Aviso en Inicio](../evidence/CIERRE/mobile/M3_01_inicio_aviso.png) ![Quién ve sus datos](../evidence/CIERRE/mobile/M3_04_CC_quien_ve.png) ![CONV-4 marcado](../evidence/CIERRE/mobile/M3_06_conv4_marcada.png) ![Pendiente](../evidence/CIERRE/mobile/M3_07_pendiente_sin_conexion.png) ![Aplicada](../evidence/CIERRE/mobile/M3_08_aplicada.png)
@@ -412,9 +419,15 @@ Sirve para que el sindicato diga a qué producto de su catálogo equivale uno su
 4. Pulse «Pedir identificación» («Solicitud guardada en el teléfono. Se enviará al sindicato.»).
 5. Cuando el sindicato responde: «Identificado por el sindicato como “X” (unidad)». **El vínculo nunca es automático:** pulse «Vincular» y confirme. Hasta entonces su inventario y sus compras no cambian.
 
+**Quién ve qué.** El sindicato recibe el producto y, si usted la compartió, la foto, pero **no quién pidió la identificación**: la Directiva y la Administración no ven su nombre (identidad no expuesta, no anonimato absoluto: el nombre que usted escriba o lo que se vea en la foto podrían dar pistas). La app dice «Podrá verla la directiva.»; en la Web, la foto la pueden abrir la Directiva y la Administración. No confunda esta solicitud con su participación en una compra conjunta (apartado 14), que se rige por CONV-4.
+
+**Quitar o reemplazar la foto.** En la hoja «Foto de la etiqueta», «Quitar la foto» la borra del teléfono y, si ya la había compartido, «se pedirá al sindicato que la retire» (mientras tanto, «Retiro de la foto pendiente de envío»). También puede «Reemplazar la foto»; si la anterior ya se había enviado, la app avisa «El sindicato conserva la foto anterior; la actual está sólo en este teléfono.». El sindicato no guarda versiones anteriores: cuando recibe un reemplazo o un retiro, borra la foto anterior. **Quitar la foto no borra la solicitud, su resolución ni el registro de la Bitácora.**
+
+**Retención en el sindicato.** Cuando la solicitud queda identificada, el sindicato borra la foto 90 días después de la última decisión de vínculo (valor por defecto, configurable por el operador). Una solicitud pendiente no pierde la foto por antigüedad.
+
 Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay que volver a tomarlas.
 
-*Sin captura actual del lado móvil.* *Verificación:* Pruebas. El lado de la Web (identificar con la foto) se verificó con la API real el 2026-11-13 sobre la Web `06283da` (ver el manual de la Directiva).
+*Sin captura actual del lado móvil.* *Verificación:* Pruebas. La retención de 90 días y que la solicitud siga tras borrar la foto: código y pruebas del Backend (contrato E1, apartado 11, aceptado por el autor el 2026-11-13). El lado de la Web (identificar con la foto) se verificó con la API real el 2026-11-13 sobre la Web `06283da` (ver el manual de la Directiva).
 
 ---
 
@@ -440,7 +453,7 @@ Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay qu
 
 - «¿Restaurar esta copia?»: «TODOS los datos actuales se reemplazarán. Se guarda una copia de los datos actuales en este teléfono.»
 - En un teléfono nuevo hacen falta la **cuenta** (activar o «Recuperar acceso») y la **clave de recuperación** («Descifrar»). El PIN hay que crearlo de nuevo.
-- Los envíos al sindicato que traiga la copia quedan **pausados**: el diálogo dice que se liberan «en Sincronización», pero la pantalla actual es Sindicato › «Ver estado de los envíos» › «Liberar» (apartado 20).
+- Los envíos al sindicato que traiga la copia quedan **pausados** hasta que usted los libere en Sindicato › «Ver estado de los envíos» › «Liberar». En esta versión el texto de la restauración remite a una pantalla que no existe (apartado 20).
 - **Copias previas a restauraciones:** se conservan hasta dos, siete días. Si una restauración quedó sin resolver, su copia queda protegida y bloquea otra restauración hasta que usted pulse «Decidir» («Seguir con los actuales» o «Mis datos están bien»).
 
 *Sin captura actual:* las pantallas de respaldo no se capturaron con la composición final. *Verificación:* el código de respaldos del teléfono no cambió desde Mobile `774ae88` (2026-10-31), salvo su lugar en la navegación; Pruebas en `aeeb4f0`. La subida y la restauración cifradas se probaron en un teléfono (POCO X5 Pro) el 2026-10-24 con versiones anteriores, también desde Backblaze B2 con datos sintéticos (ver el manual histórico y `docs/evidence/F08_*`). No hay ningún servicio de respaldo en funcionamiento para usuarios reales.
@@ -455,7 +468,7 @@ Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay qu
   - a individual: «Solo el titular registrará compras, aplicaciones y pagos. Se ocultan las transferencias y la elección de persona en los formularios. Los registros de otras personas se conservan.»
   - a varias personas: «Se habilitan responsables y transferencias. Todo el historial sigue asociado al titular.»
 - Si no se puede pasar a individual: «Todavía no se puede pasar a modo individual» · «Primero resuelva estos pendientes. No se borra ni se reasigna nada.», con los motivos: «Falta el titular», personas que «tienen productos», «Hay planes abiertos en chacos de …» o personas que «tienen saldo». Cada motivo lleva a la pantalla donde se resuelve.
-- **Un envío pendiente al sindicato no bloquea ni se avisa** (hallazgo H1 del cierre; no se pierde nada: se envía al reconectar). Decisión pendiente del autor.
+- **En esta versión, un envío pendiente al sindicato no bloquea el cambio ni se avisa** (hallazgo H1 del cierre; no se pierde nada: se envía al reconectar). La rama `fix/textos-rutas-y-aviso-modo` (**pendiente de fusión**) añade un aviso al cambiar de modo cuando hay una decisión de convocatoria pendiente de envío; hasta que se fusione, este manual describe el comportamiento sin aviso.
 
 ![Modo disponible](../evidence/CIERRE/mobile/M5_07_modo_sin_pendientes.png) ![Modo individual activo](../evidence/CIERRE/mobile/M5_08_modo_individual_activo.png) ![Volver a varias personas](../evidence/CIERRE/mobile/M5_20_confirmar_varias.png)
 
@@ -471,6 +484,8 @@ Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay qu
 - La app anterior (esquema 19, contrato 3) sigue funcionando sin conexión, pero en convocatorias dice «Esta versión de la aplicación ya no puede leer las compras conjuntas del sindicato. Actualice la aplicación. Lo guardado en el teléfono, incluido lo pendiente de envío, se conserva.»
 - Tras actualizar, consulte las convocatorias (Sindicato › «Actualizar») para ver si alguna participación pide revisión (apartado 14.2).
 
+**Todavía no hay una APK distribuible** que instalar: este apartado describe cómo se comporta la actualización, comprobada en un emulador con APK de revisión.
+
 *Verificación:* Emulador (cierre): actualización de `507efc8` a `aeeb4f0` con `install -r`, cifras idénticas, 44 → 45 tablas (M2). Sin teléfono físico. La actualización exige que la APK nueva esté firmada con la misma clave que la instalada (manual técnico).
 
 ---
@@ -478,22 +493,26 @@ Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay qu
 ## 19. Límites conocidos
 
 - Sin prueba en teléfono físico de ninguna función de esta versión; sin audio real para la voz; sin sesiones con agricultores.
-- No hay API desplegada ni APK firmada: este manual describe la app tal como se probó con datos sintéticos. No se ha autorizado su uso con datos reales.
+- No hay API desplegada ni APK distribuible (la release sale sin firmar; la candidata OE5 es una compilación de prueba con la clave de depuración): este manual describe la app tal como se probó con datos sintéticos. No se ha autorizado su uso con datos reales.
 - La superficie de un chaco no se puede editar.
 - «Resumen de campaña» en modo individual incluye chacos de terceros, sin aviso.
-- El cambio de modo no avisa de envíos pendientes (H1).
+- El cambio de modo no avisa de envíos pendientes (H1; aviso en la rama `fix/textos-rutas-y-aviso-modo`, pendiente de fusión).
+- Cinco textos remiten a pantallas que no existen; cuatro tienen corrección pendiente de fusión (apartado 20).
 - El aviso de revisión de Inicio aparece tras consultar las convocatorias (O2).
 - La dosis del plan exige coma decimal (O1).
 - La sesión caducada: «Volver a autenticar» vuelve a Inicio y hay que regresar a la convocatoria.
 
-## 20. Textos de la app que no coinciden con la navegación actual
+## 20. Textos de la app que no coinciden con la navegación
 
-| Dónde | La app dice | Navegación real |
-|---|---|---|
-| Compra sin campaña activa | «No hay una campaña activa. Actívala en Más, Administrar datos.» | Inicio › campaña, o Ajustes y datos › «Campañas» |
-| Compra «Todavía no», varias personas | «Puede anotarlo después en Operaciones, Compras.» | Actividad › «Lista de compras» |
-| Restaurar desde la nube | «… hasta que usted los libere en Sincronización.» | Sindicato › «Ver estado de los envíos» › «Liberar» |
-| Actividad, modo individual | Franja «Proveedores y saldos» | La pantalla se titula «Proveedores» |
+**Estado de la corrección:** los cuatro primeros se corrigen en la rama `fix/textos-rutas-y-aviso-modo` (**pendiente de fusión**). Mientras no se fusione, la app de `main` muestra los textos de la columna «La app dice». Al fusionarla, basta con actualizar esta línea y la columna «Estado» (y las remisiones de los apartados 5, 16 y 19).
+
+| Dónde | La app dice (`main`, comprobado en `65e1004`) | Navegación real | Estado |
+|---|---|---|---|
+| Compra sin campaña activa | «No hay una campaña activa. Actívala en Más, Administrar datos.» | Inicio › campaña, o Ajustes y datos › «Campañas» | Pendiente de fusión |
+| Compra «Todavía no», varias personas | «Puede anotarlo después en Operaciones, Compras.» | Actividad › «Lista de compras» | Pendiente de fusión |
+| Restaurar desde la nube | «… hasta que usted los libere en Sincronización.» | Sindicato › «Ver estado de los envíos» › «Liberar» | Pendiente de fusión |
+| Actividad, modo individual | Franja «Proveedores y saldos» | La pantalla se titula «Proveedores» | Pendiente de fusión |
+| Almacén › «Estimación del consumo», sesión rechazada | «Hace falta verificar su acceso en línea (Sincronización) antes de consultar la estimación.» | Inicio o Ajustes y datos › «Acceso en línea» / «Cuenta y titular» › «Recuperar acceso» (apartado 2) | Detectado en esta revisión; **no** está en la lista de la rama anterior |
 
 ## 21. Capturas usadas
 
@@ -505,7 +524,7 @@ Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay qu
 | `b4_dialogo_avisos`, `b6_avisos_inventario` | Mobile `docs/evidence/rediseno-movil/2026-11-12/ronda2/B/despues/` | 2026-11-12 | Rediseño móvil, ronda 2 | Arnés de capturas de las pruebas |
 | `f08_reportes_excel` | Mobile `docs/evidence/rediseno-movil/2026-11-12/integracion/` | 2026-11-12 | Mobile `6b397c9` | Emulador |
 
-Todos los datos son sintéticos. **Sin captura actual:** activación con `aeeb4f0`, aplicación y plan con varias personas, Personas › Costos, reportes con la corrección del ámbito, identificación con foto (móvil) y respaldos.
+Todos los datos son sintéticos. **Sin captura actual:** activación con `aeeb4f0`, aplicación y plan con varias personas, Personas › Costos, reportes con la corrección del ámbito, estimación del consumo, identificación con foto (móvil), respaldos y la evidencia de dictado de la compilación de evaluación.
 
 ## 22. Trazabilidad
 
