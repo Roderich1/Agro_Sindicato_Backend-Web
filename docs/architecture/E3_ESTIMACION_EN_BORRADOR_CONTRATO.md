@@ -1,6 +1,6 @@
 # E3 — Estimación del consumo integrada en el borrador de propuesta (contrato de la etapa 3)
 
-> **Nota de sustitución (2026-11-13).** En E3-R15, «bajo el umbral vigente» deja de ser causa de que no haya cifra con `F07-POL-02`. Siguen siéndolo la retirada, la política pendiente y los datos insuficientes. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §3.4 y §5.3 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** En E3-R15, «bajo el umbral vigente» deja de ser causa de que no haya cifra con `F07-POL-02`. Siguen siéndolo la retirada, la política pendiente y los datos insuficientes. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §3.4 y §5.3 (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 | Campo | Valor |
 |---|---|

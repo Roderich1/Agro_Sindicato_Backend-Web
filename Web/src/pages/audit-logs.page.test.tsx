@@ -130,6 +130,75 @@ describe('Bitácora', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('D-01: cambios de cuentas, de nombres y del catálogo con su texto en español, nunca el código crudo', async () => {
+    vi.mocked(auditLogsService.list).mockResolvedValue([
+      log('u1', '2026-11-12T17:00:00.000Z', {
+        entityName: 'User',
+        campaignId: null,
+        campaign: null,
+        action: 'ACTUALIZAR',
+        summary: 'Rol de la cuenta de «Cuenta sintética» cambiado de Agricultor a Directiva.',
+        before: { role: 'AGRICULTOR' },
+        after: { role: 'DIRECTIVA' },
+        metadata: { event: 'USER_ROLE_CHANGED' },
+      }),
+      log('u2', '2026-11-12T16:59:00.000Z', {
+        entityName: 'User',
+        campaignId: null,
+        campaign: null,
+        summary: 'Contraseña de la cuenta de «Cuenta sintética» restablecida.',
+        metadata: { event: 'USER_PASSWORD_RESET' },
+      }),
+      log('p1', '2026-11-12T16:58:00.000Z', {
+        entityName: 'ProductCanonicalAssociation',
+        campaignId: null,
+        campaign: null,
+        action: 'CREAR',
+        summary: 'Nombre «Belator» unido con «Belator 20 SC».',
+        metadata: { event: 'PRODUCT_ALIAS_ASSOCIATED', productRef: 'p-1', reason: 'misma fórmula' },
+      }),
+      log('p2', '2026-11-12T16:57:00.000Z', {
+        entityName: 'Product',
+        campaignId: null,
+        campaign: null,
+        action: 'INACTIVAR',
+        summary: 'Producto «Herbicida sintético» inactivado en el catálogo.',
+        metadata: { event: 'PRODUCT_DEACTIVATED' },
+      }),
+      log('x1', '2026-11-12T16:56:00.000Z', { summary: 'Acción con un código desconocido.', metadata: { event: 'CODIGO_DESCONOCIDO' } }),
+    ]);
+    render();
+    await screen.findByTestId('audit-u1');
+    expect(screen.getByTestId('audit-u1').dataset.category).toBe('cuentas');
+    expect(screen.getByTestId('audit-p1').dataset.category).toBe('catalogo');
+    expect(screen.getByTestId('audit-p2').dataset.category).toBe('catalogo');
+    expect(screen.getByTestId('audit-u1').textContent).toContain('Directiva sintética · Cuentas');
+    const chips = screen.getByRole('group', { name: 'Tipo de acción' });
+    expect(within(chips).getAllByRole('button').map((b) => b.textContent)).toEqual(['Todas 5', 'Convocatorias 1', 'Catálogo 2', 'Cuentas 2']);
+    for (const li of screen.getAllByRole('listitem').filter((item) => item.dataset.testid?.startsWith('audit-'))) {
+      expect(li.textContent).not.toMatch(/USER_|PRODUCT_|CODIGO_/);
+    }
+
+    const expected: [string, string][] = [
+      ['audit-u1', 'TipoCambio de rol'],
+      ['audit-u2', 'TipoContraseña restablecida'],
+      ['audit-p1', 'TipoNombres unidos'],
+      ['audit-p2', 'TipoProducto inactivado'],
+    ];
+    for (const [row, text] of expected) {
+      fireEvent.click(within(screen.getByTestId(row)).getByRole('button', { name: /^Detalle/ }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.textContent).toContain(text);
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
+    }
+    fireEvent.click(within(screen.getByTestId('audit-p1')).getByRole('button', { name: /^Detalle/ }));
+    expect(screen.getByRole('dialog').textContent).toContain('Notamisma fórmula');
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }));
+    // Un código desconocido no añade «Tipo».
+    fireEvent.click(within(screen.getByTestId('audit-x1')).getByRole('button', { name: /^Detalle/ }));
+    expect(screen.getByRole('dialog').textContent).not.toContain('Tipo');
+  });
+
   it('H-03 (V-2): «Datos sintéticos» no aparece en la Bitácora aunque el modo provisional esté activo', async () => {
     reportDisclosureMode('PROVISIONAL_SYNTHETIC');
     try {

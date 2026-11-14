@@ -45,7 +45,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Crear un usuario en el tenant actual' })
   async create(@CurrentUser() user: AuthenticatedPrincipal, @Body() dto: CreateUserDto) {
     this.logger.log(`[USERS CREATE] by=${user.sub} tenantId=${user.tenantId} role=${dto.role} email=${dto.email}`);
-    return this.createUserUseCase.execute(user.tenantId, dto);
+    return this.createUserUseCase.execute(user.tenantId, user.sub, dto);
   }
 
   @Get()
@@ -92,7 +92,7 @@ export class UsersController {
     @Body() dto: ResetUserPasswordDto,
   ) {
     this.logger.log(`[USERS RESET_PASSWORD] by=${user.sub} tenantId=${user.tenantId} targetId=${id}`);
-    await this.resetUserPasswordUseCase.execute(user.tenantId, id, dto);
+    await this.resetUserPasswordUseCase.execute(user.tenantId, user.sub, id, dto);
   }
 
   @Patch(':id/deactivate')

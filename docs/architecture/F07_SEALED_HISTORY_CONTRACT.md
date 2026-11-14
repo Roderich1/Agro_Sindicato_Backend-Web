@@ -207,7 +207,7 @@ Generar un borrador nuevo de propuesta sobre una campaña sellada **sí** escrib
 
 ### 5.2 Visibilidad: la política vigente puede retirar, nunca añadir
 
-> **Nota de sustitución (2026-11-13).** El punto 2 («umbral vigente») deja de aplicarse con `F07-POL-02`, que no tiene umbral. Lo sellado se queda con `F07-POL-01` (sin reapertura ni versión 2), sus celdas `SUPPRESSED_UNDER_THRESHOLD` siguen sin cifra y cada respuesta dice con qué política se selló. Los puntos 1 y 3 y la retirada tras el sellado no cambian. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.3 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** El punto 2 («umbral vigente») deja de aplicarse con `F07-POL-02`, que no tiene umbral. Lo sellado se queda con `F07-POL-01` (sin reapertura ni versión 2), sus celdas `SUPPRESSED_UNDER_THRESHOLD` siguen sin cifra y cada respuesta dice con qué política se selló. Los puntos 1 y 3 y la retirada tras el sellado no cambian. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.3 (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 Una entrada sellada `DISCLOSED` se sirve con su cifra sólo si se cumple **todo** esto:
 1. el modo vigente autoriza cifras (`PROVISIONAL_SYNTHETIC`; en `POLICY_PENDING` ninguna cifra, en ningún canal);

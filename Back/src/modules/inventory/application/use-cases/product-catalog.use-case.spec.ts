@@ -39,8 +39,11 @@ describe('ProductCatalogUseCase', () => {
         update: jest.fn(),
         findMany: jest.fn(),
       },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
       ...prismaOverrides,
-    };
+    } as Record<string, any>;
+    // The mock is its own transaction client.
+    prisma.$transaction = jest.fn((body: (tx: unknown) => unknown) => body(prisma));
 
     return {
       prisma,
@@ -59,7 +62,7 @@ describe('ProductCatalogUseCase', () => {
     });
 
     await expect(
-      useCase.create(tenantId, {
+      useCase.create(tenantId, 'director-1', {
         name: ' Glifosato 48% ',
         commercialName: ' Glifosato Max ',
         activeIngredient: ' Glifosato ',
@@ -102,6 +105,36 @@ describe('ProductCatalogUseCase', () => {
         qrCodeValue: 'QR-GLIFOSATO-48',
       }),
     });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        tenantId,
+        actorUserId: 'director-1',
+        ownerUserId: null,
+        action: 'CREAR',
+        entityName: 'Product',
+        entityId: productId,
+        summary: 'Producto «Glifosato 48%» creado en el catálogo.',
+        after: expect.objectContaining({ name: 'Glifosato 48%', unit: 'L', isActive: true }),
+        metadata: { event: 'PRODUCT_CREATED' },
+      },
+    });
+    expect(prisma.auditLog.create.mock.calls[0][0].data.after).not.toHaveProperty('currentStock');
+  });
+
+  it('creates inside a caller transaction without an entry of its own (E1 writes its own)', async () => {
+    const { prisma, useCase } = createUseCase({
+      product: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue(product()),
+      },
+    });
+
+    await useCase.createWithin(tenantId, { name: 'Glifosato 48%', unit: 'L' }, prisma as never);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 
   it('updates technical product data', async () => {
@@ -125,7 +158,7 @@ describe('ProductCatalogUseCase', () => {
     });
 
     await expect(
-      useCase.update(tenantId, productId, {
+      useCase.update(tenantId, 'director-1', productId, {
         toxicologicalCategory: ' III - Ligeramente peligroso ',
         safetyDataSheetUrl: ' https://example.com/fds/nueva.pdf ',
         safetyDataSheetName: ' FDS Actualizada ',
@@ -149,11 +182,76 @@ describe('ProductCatalogUseCase', () => {
         safetyInstructions: 'Evitar contacto con piel.',
       }),
     });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        tenantId,
+        actorUserId: 'director-1',
+        ownerUserId: null,
+        action: 'ACTUALIZAR',
+        entityName: 'Product',
+        entityId: productId,
+        summary: 'Producto «Glifosato 48%» actualizado en el catálogo.',
+        before: {
+          toxicologicalCategory: null,
+          safetyDataSheetUrl: null,
+          safetyDataSheetName: null,
+          safetyInstructions: null,
+        },
+        after: {
+          toxicologicalCategory: 'III - Ligeramente peligroso',
+          safetyDataSheetUrl: 'https://example.com/fds/nueva.pdf',
+          safetyDataSheetName: 'FDS Actualizada',
+          safetyInstructions: 'Evitar contacto con piel.',
+        },
+        metadata: { event: 'PRODUCT_UPDATED' },
+      },
+    });
+  });
+
+  it('leaves no entry when an update saves the same values', async () => {
+    const { prisma, useCase } = createUseCase({
+      product: {
+        findFirst: jest.fn().mockResolvedValue(product()),
+        update: jest.fn().mockResolvedValue(product({ updatedAt: new Date('2026-02-01T00:00:00.000Z') })),
+      },
+    });
+
+    await useCase.update(tenantId, 'director-1', productId, { name: 'Glifosato 48%' });
+
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('records a deactivation once, with its actor', async () => {
+    const { prisma, useCase } = createUseCase({
+      product: {
+        findFirst: jest.fn().mockResolvedValueOnce(product()).mockResolvedValueOnce(product({ isActive: false })),
+        update: jest.fn().mockResolvedValue(product({ isActive: false })),
+      },
+    });
+
+    await expect(useCase.deactivate(tenantId, 'admin-1', productId)).resolves.toMatchObject({ isActive: false });
+    await useCase.deactivate(tenantId, 'admin-1', productId);
+
+    expect(prisma.auditLog.create).toHaveBeenCalledTimes(1);
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        tenantId,
+        actorUserId: 'admin-1',
+        ownerUserId: null,
+        action: 'INACTIVAR',
+        entityName: 'Product',
+        entityId: productId,
+        summary: 'Producto «Glifosato 48%» inactivado en el catálogo.',
+        before: { isActive: true },
+        after: { isActive: false },
+        metadata: { event: 'PRODUCT_DEACTIVATED' },
+      },
+    });
   });
 
   it('rejects duplicated QR inside the tenant', async () => {
     const duplicatedProduct = product({ id: 'other-product' });
-    const { useCase } = createUseCase({
+    const { prisma, useCase } = createUseCase({
       product: {
         findUnique: jest.fn().mockResolvedValue(null),
         findFirst: jest.fn().mockResolvedValue(duplicatedProduct),
@@ -162,11 +260,12 @@ describe('ProductCatalogUseCase', () => {
     });
 
     await expect(
-      useCase.create(tenantId, {
+      useCase.create(tenantId, 'director-1', {
         name: 'Paraquat',
         unit: 'L',
         qrCodeValue: 'QR-GLIFOSATO-48',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 });

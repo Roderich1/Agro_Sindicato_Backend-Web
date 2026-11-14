@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
 import {
   AdminUserView,
   CreateUserData,
   UpdateUserData,
   UserAdminRepositoryPort,
+  UserAuditTrail,
 } from '../../domain/ports/user-admin.repository.port';
 
 const SELECT_ADMIN_USER = {
@@ -18,6 +20,9 @@ const SELECT_ADMIN_USER = {
   createdAt: true,
   updatedAt: true,
 } as const;
+
+/** Entity name of the Bitácora entries for account changes (RF-02, RF-25). */
+export const USER_AUDIT_ENTITY = 'User';
 
 @Injectable()
 export class PrismaUserAdminRepository implements UserAdminRepositoryPort {
@@ -46,7 +51,7 @@ export class PrismaUserAdminRepository implements UserAdminRepositoryPort {
     });
   }
 
-  async createWithMember(data: CreateUserData): Promise<AdminUserView> {
+  async createWithMember(data: CreateUserData, audit: UserAuditTrail): Promise<AdminUserView> {
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -67,12 +72,18 @@ export class PrismaUserAdminRepository implements UserAdminRepositoryPort {
           isActive: user.isActive,
         },
       });
+      await this.writeAudit(tx, user.tenantId, user.id, audit);
 
       return user;
     });
   }
 
-  async updateWithMember(id: string, tenantId: string, data: UpdateUserData): Promise<AdminUserView> {
+  async updateWithMember(
+    id: string,
+    tenantId: string,
+    data: UpdateUserData,
+    audit: UserAuditTrail,
+  ): Promise<AdminUserView> {
     return this.prisma.$transaction(async (tx) => {
       const member = await tx.member.findUnique({
         where: { tenantId_userId: { tenantId, userId: id } },
@@ -111,18 +122,56 @@ export class PrismaUserAdminRepository implements UserAdminRepositoryPort {
       if (!user) {
         throw new Error('El usuario actualizado no pudo recuperarse en el tenant.');
       }
+      await this.writeAudit(tx, tenantId, id, audit);
 
       return user;
     });
   }
 
-  async updatePasswordHash(id: string, tenantId: string, passwordHash: string): Promise<void> {
-    const result = await this.prisma.user.updateMany({
-      where: { id, tenantId },
-      data: { passwordHash },
+  async updatePasswordHash(
+    id: string,
+    tenantId: string,
+    passwordHash: string,
+    audit: UserAuditTrail,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.updateMany({
+        where: { id, tenantId },
+        data: { passwordHash },
+      });
+      if (result.count !== 1) {
+        throw new Error('La actualización tenant-scoped no encontró exactamente un usuario.');
+      }
+      await this.writeAudit(tx, tenantId, id, audit);
     });
-    if (result.count !== 1) {
-      throw new Error('La actualización tenant-scoped no encontró exactamente un usuario.');
+  }
+
+  /**
+   * Institutional entries (`ownerUserId: null`) of the account's tenant, in the
+   * transaction of the change: no change without its entry, and no entry for a
+   * change that did not happen.
+   */
+  private async writeAudit(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    userId: string,
+    audit: UserAuditTrail,
+  ): Promise<void> {
+    for (const entry of audit.entries) {
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          actorUserId: audit.actorUserId,
+          ownerUserId: null,
+          action: entry.action,
+          entityName: USER_AUDIT_ENTITY,
+          entityId: userId,
+          summary: entry.summary,
+          ...(entry.before ? { before: entry.before } : {}),
+          ...(entry.after ? { after: entry.after } : {}),
+          metadata: { event: entry.event },
+        },
+      });
     }
   }
 }

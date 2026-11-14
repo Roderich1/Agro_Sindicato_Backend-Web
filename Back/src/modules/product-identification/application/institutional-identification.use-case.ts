@@ -241,7 +241,7 @@ export class InstitutionalIdentificationUseCase {
       if (taken) throw new IdentificationHttpError(409, "PRODUCT_NAME_TAKEN");
       let product: { id: string; name: string };
       try {
-        product = await this.catalog.create(
+        product = await this.catalog.createWithin(
           tenantId,
           { name, activeIngredient: activeIngredient ?? undefined, unit: request.unit },
           tx,

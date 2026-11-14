@@ -5,6 +5,7 @@ import {
   USER_ADMIN_REPOSITORY,
   UserAdminRepositoryPort,
 } from '../../domain/ports/user-admin.repository.port';
+import { userPasswordResetEntry } from '../user-audit';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -17,6 +18,7 @@ export class ResetUserPasswordUseCase {
 
   async execute(
     tenantId: string,
+    actorUserId: string,
     id: string,
     dto: ResetUserPasswordDto,
   ): Promise<void> {
@@ -26,6 +28,9 @@ export class ResetUserPasswordUseCase {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    await this.repo.updatePasswordHash(id, tenantId, passwordHash);
+    await this.repo.updatePasswordHash(id, tenantId, passwordHash, {
+      actorUserId,
+      entries: [userPasswordResetEntry(target)],
+    });
   }
 }

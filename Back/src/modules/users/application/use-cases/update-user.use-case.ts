@@ -12,6 +12,7 @@ import {
   UserAdminRepositoryPort,
 } from '../../domain/ports/user-admin.repository.port';
 import { toUserResponse, UserResponse } from '../mappers/user.mapper';
+import { userUpdateEntries } from '../user-audit';
 
 @Injectable()
 export class UpdateUserUseCase {
@@ -48,10 +49,10 @@ export class UpdateUserUseCase {
       throw new ForbiddenException('No puede desactivarse a si mismo.');
     }
 
-    const updated = await this.repo.updateWithMember(id, tenantId, {
-      name: dto.name,
-      role: dto.role,
-      isActive: dto.isActive,
+    const data = { name: dto.name, role: dto.role, isActive: dto.isActive };
+    const updated = await this.repo.updateWithMember(id, tenantId, data, {
+      actorUserId: currentUserId,
+      entries: userUpdateEntries(target, data),
     });
 
     return toUserResponse(updated);

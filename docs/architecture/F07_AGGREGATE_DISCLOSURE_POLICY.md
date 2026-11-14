@@ -1,6 +1,6 @@
 # F07-POL-01 — Política mínima de divulgación de agregados (PROPUESTA)
 
-> **Nota de sustitución (2026-11-13).** Con la enmienda de F06 §5 del 2026-11-13, esta política (`F07-POL-01`, k = 3 y regla de combinaciones) pasa a ser la política **anterior**. Sigue rigiendo lo sellado con ella y, hasta la activación explícita, lo no sellado. La nueva, `F07-POL-02` (sin umbral de agricultores), está en [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5 y en la §12 de este documento (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** Con la enmienda de F06 §5 del 2026-11-13, esta política (`F07-POL-01`, k = 3 y regla de combinaciones) pasa a ser la política **anterior**. Sigue rigiendo lo sellado con ella y, hasta la activación explícita, lo no sellado. La nueva, `F07-POL-02` (sin umbral de agricultores), está en [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5 y en la §12 de este documento (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 - **Estado: PROPUESTA para datos sintéticos.** El 2026-10-16 se adoptaron decisiones técnicas por delegación de Roderich Rendón (§7). No es una aprobación institucional, ni de la Directiva, ni del tutor.
 - **La divulgación de datos reales NO está aprobada.** Mientras no lo esté, el Backend responde `POLICY_PENDING`, sin celdas, en todos los canales.
@@ -218,11 +218,12 @@ Registrada por la sesión B. Detalle en [`F07_SEALED_HISTORY_CONTRACT.md`](F07_S
 
 Por la enmienda de F06 §5 (decisión del autor del 2026-11-13) hay una política nueva, `F07-POL-02`, definida en [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5.1.
 
-- **Se retiran** R1 (supresión por debajo de k) y la regla de combinaciones (§9; criterio del orquestador revisable por el autor). Con ellas desaparece `pending_changes` por diferencias.
+- **Se retiran** R1 (supresión por debajo de k) y la regla de combinaciones (§9; decisión del autor del 2026-11-13, D-04 de E4, antes criterio del orquestador). Con ellas desaparece `pending_changes` por diferencias.
 - **Se conservan** R2 (cero explícito frente a ausencia), R4 (bajas que sacan la aportación y retiran la cifra anterior), R5 (no hay totales por encima de la celda), R7 (desbordamiento), R8 (todos los canales salen de la misma decisión) y R9 (cobertura).
 - **`SUPPRESSED_UNDER_THRESHOLD`** sólo queda como estado histórico de lo decidido con `F07-POL-01`.
 - **Activación:** explícita y trazada, por configuración (`COLLECTIVE_DISCLOSURE_POLICY`). Mientras no se active, rige esta política, `F07-POL-01`.
 - **Riesgo aceptado:** la diferencia entre una cifra retirada y la siguiente puede revelar lo retirado a quien guardó la anterior.
+- **Sin garantía de anonimato (D-04):** con `F07-POL-02`, los totales se actualizan sin la regla de combinaciones. Eso **no garantiza anonimato**: las diferencias entre consultas pueden permitir inferir aportes individuales. Se conservan la autorización de publicación, la retirada de datos y el aislamiento entre sindicatos (E4 §0.1).
 - Esta nota no aprueba la divulgación de datos reales (#107).
 
 > **Nota de implementación (2026-11-13).** `F07-POL-02` está implementada en el Backend (rama `feat/acceso-rol-sin-k-a`, sin fusionar): `decideCellsWithoutThreshold` en `disclosure-policy.ts`, seleccionada sólo con `COLLECTIVE_DISCLOSURE_POLICY=F07-POL-02` y trazada en `CollectiveDisclosurePolicyActivation`. Sin la variable rige esta política, `F07-POL-01`, sin cambios: las suites que la prueban corren sin la variable y se conservan como su evidencia. Cada divulgación, sellado, borrador y ejecución F12 nuevos graban su política; lo sellado con `F07-POL-01` se sirve con su umbral sellado (3). Esta nota no aprueba la divulgación de datos reales (#107).
