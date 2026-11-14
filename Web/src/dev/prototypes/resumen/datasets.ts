@@ -174,7 +174,7 @@ function logsFor(campaign: Campaign, actorName: string, steps: Step[]): Activity
       campaign: { id: campaign.id, name: campaign.name, status: campaign.status },
       ownerUserId: null,
       actorUserId: 'u-directiva',
-      actor: { id: 'u-directiva', name: actorName, email: 'directiva@example.test', role: 'DIRECTIVA' },
+      actor: { id: 'u-directiva', name: actorName, role: 'DIRECTIVA' },
       action,
       entityName,
       entityId: entityName === 'AgriculturalCampaign' ? campaign.id : 'seal-0001',
