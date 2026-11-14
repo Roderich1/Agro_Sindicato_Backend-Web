@@ -79,7 +79,7 @@ La autorización aplicable debe comprobarse en cada operación y lectura; revoca
 
 ## 5. Privacidad y consumidores
 
-> **Nota de sustitución (2026-11-13).** El párrafo sobre la «política aprobada que evalúe grupos pequeños, comparación entre consultas…» queda enmendado por la «Enmienda 2026-11-13 (decisión del autor)» al final de este documento y por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+> **Nota de sustitución (2026-11-13).** El párrafo sobre la «política aprobada que evalúe grupos pequeños, comparación entre consultas…» queda enmendado por la «Enmienda 2026-11-13 (decisión del autor)» al final de este documento y por [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5 (decisiones del autor del 2026-11-13; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
 
 Los aportes son **datos vinculables protegidos**, aun sin nombres: Central requiere atribución interna mínima para reemplazar correctamente un aporte. Un total pequeño tampoco es automáticamente anónimo.
 
@@ -311,7 +311,7 @@ Por decisión del autor del 2026-11-12, **Excel es la única exportación para e
 
 ## Enmienda 2026-11-13 (decisión del autor): divulgación sin umbral de agricultores
 
-- **Origen:** decisión del autor del 2026-11-13 (D-00 de [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §0), comunicada por el orquestador. Retirar la regla de combinaciones es criterio del orquestador derivado del encargo, revisable por el autor (D-04).
+- **Origen:** decisión del autor del 2026-11-13 (D-00 de [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §0), comunicada por el orquestador. Retirar la regla de combinaciones es también decisión del autor del 2026-11-13 (D-04, confirmada en la revisión OE1–OE4; antes, criterio del orquestador). No es una aprobación institucional.
 - **Qué cambia en §5:**
   - publicar valores numéricos ya **no** exige un número mínimo de agricultores por cifra ni la regla de combinaciones de F07 §9;
   - una cifra autorizada puede mostrarse con 1 o 2 aportantes.
@@ -328,6 +328,7 @@ Por decisión del autor del 2026-11-12, **Excel es la única exportación para e
   - no se recupera automáticamente ninguna cifra que nunca se autorizó.
 - **Riesgo que se acepta:**
   - con pocos aportantes, un total sin nombres puede revelar la cantidad de una persona a quien sepa quién aportó;
+  - sin la regla de combinaciones, los totales se actualizan aunque eso **no garantice anonimato**: las diferencias entre consultas (cifras sucesivas, canales distintos, antes y después de una retirada) pueden permitir inferir aportes individuales (D-04, E4 §0.1);
   - no se presenta como anonimato: se habla de «totales sin nombres» o «datos agregados»;
   - la frase de §5 «Un total pequeño tampoco es automáticamente anónimo» sigue vigente.
 - **Detalle normativo:** [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §5. El texto anterior de §5 se conserva arriba como historia.
