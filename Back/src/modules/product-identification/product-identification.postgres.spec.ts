@@ -1,7 +1,7 @@
 import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, beforeAll } from "@jest/globals";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { request as httpRequest } from "node:http";
 import type { AddressInfo, Server } from "node:net";
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
@@ -17,7 +17,11 @@ import {
   Fixture,
   seedFixture,
   TestSession,
+  unusablePasswordHash,
 } from "@/modules/sync-v1/test-support/sync-v1-test-app";
+import { SyncV1Config } from "@/modules/sync-v1/application/sync-v1-config";
+import { FingerprintKeyring } from "@/modules/sync-v1/domain/fingerprint";
+import { CollectiveConfig } from "@/modules/collective/application/collective-config";
 import { ProductPhotoSweep, RETENTION_DETAIL } from "./application/product-photo-sweep";
 import { createE1App } from "./test-support/e1-test-app";
 import { corruptJpeg, jpeg, jpegWithExif, png } from "./test-support/images";
@@ -683,5 +687,362 @@ describePostgres("E1 product identification on PostgreSQL", () => {
       rmSync(join(photoDir, "objects", youngOrphan), { force: true });
       rmSync(join(photoDir, "objects", "nota-del-operador.txt"), { force: true });
     });
+  });
+
+  /**
+   * E1-D14, the author's addition in §11.2 and the retention of §10, checked
+   * explicitly (verification of 2026-11-13, §11.4: three test gaps, no code
+   * discrepancy). Only test code: the rules are the accepted ones.
+   */
+  describe("§11.2: what a decision and a photo removal leave untouched; correcting the link renews the retention", () => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const post = (session: TestSession, path: string, body: unknown): Promise<Res> =>
+      http().post(`${BASE}/${path}`).set("Authorization", auth(session)).send(body as object);
+    const json = (value: unknown) => JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
+    /** The only columns a removal, a replacement or the retention may change. */
+    const PHOTO_COLUMNS = [
+      "photoState",
+      "photoStorageKey",
+      "photoSha256",
+      "photoContentType",
+      "photoSizeBytes",
+      "photoWidth",
+      "photoHeight",
+      "photoStoredAt",
+      "photoRemovedAt",
+      "updatedAt",
+    ];
+    const request = (id: string) => prisma.productIdentificationRequest.findUniqueOrThrow({ where: { id } });
+    const withoutPhotoColumns = async (id: string) => {
+      const copy: Record<string, unknown> = { ...(await request(id)) };
+      for (const column of PHOTO_COLUMNS) delete copy[column];
+      return copy;
+    };
+
+    async function requestWithPhoto(session: TestSession, localName: string, seed: number) {
+      const clientId = randomUUID();
+      expect((await put(session, clientId, data({ local_name: localName }))).status).toBe(201);
+      expect((await putPhoto(session, clientId, await jpeg(640, 480, { seed }))).status).toBe(201);
+      return { clientId, sid: await serverId(clientId) };
+    }
+
+    describe("E1-D14: published and sealed figures", () => {
+      type CollectiveSwitches = { mode: string; sealingEnabled: boolean };
+      type SyncSwitches = { keyring: FingerprintKeyring | null; admissionOpen: boolean };
+      let restore: () => void = () => undefined;
+      const farmers: TestSession[] = [];
+      let sealedCampaign: string;
+      let openCampaign: string;
+      let figureProduct: string;
+      let correctedProduct: string;
+
+      beforeAll(async () => {
+        // As the F07 suite: provisional disclosure (synthetic data only) and
+        // sealing switched on for this block, and a Sync v1 fingerprint key so
+        // that the contributions are real publications. Restored afterwards.
+        const collective = app.get(CollectiveConfig) as unknown as CollectiveSwitches;
+        const sync = app.get(SyncV1Config) as unknown as SyncSwitches;
+        const saved = {
+          mode: collective.mode,
+          sealingEnabled: collective.sealingEnabled,
+          keyring: sync.keyring,
+          admissionOpen: sync.admissionOpen,
+        };
+        restore = () => {
+          collective.mode = saved.mode;
+          collective.sealingEnabled = saved.sealingEnabled;
+          sync.keyring = saved.keyring;
+          sync.admissionOpen = saved.admissionOpen;
+        };
+        collective.mode = "PROVISIONAL_SYNTHETIC";
+        collective.sealingEnabled = true;
+        sync.keyring = FingerprintKeyring.fromEnvironment({ key: randomBytes(32).toString("base64"), version: 1 });
+        sync.admissionOpen = true;
+
+        for (let i = 0; i < 3; i += 1) {
+          const memberId = randomUUID();
+          await prisma.user.create({
+            data: {
+              tenantId: f.tenantA,
+              name: "Agricultor sintético cifras",
+              email: `e1-figures-${memberId}@example.test`,
+              passwordHash: unusablePasswordHash(),
+              role: "AGRICULTOR",
+              members: { create: { id: memberId, tenantId: f.tenantA, role: "AGRICULTOR" } },
+            },
+          });
+          farmers.push(await createSession(prisma, jwt, memberId));
+        }
+        sealedCampaign = randomUUID();
+        openCampaign = randomUUID();
+        for (const [id, name] of [
+          [sealedCampaign, "Campaña sellada cifras"],
+          [openCampaign, "Campaña abierta cifras"],
+        ]) {
+          await prisma.agriculturalCampaign.create({
+            data: { id: id!, tenantId: f.tenantA, name: name!, status: "ABIERTA", isActive: true, startDate: new Date("2026-09-01T00:00:00.000Z") },
+          });
+        }
+        const suffix = randomUUID().slice(0, 6);
+        figureProduct = (await prisma.product.create({ data: { tenantId: f.tenantA, name: `Herbicida de las cifras ${suffix}`, unit: "L" } })).id;
+        correctedProduct = (await prisma.product.create({ data: { tenantId: f.tenantA, name: `Herbicida corregido ${suffix}`, unit: "L" } })).id;
+      }, 60000);
+
+      afterAll(() => restore());
+
+      async function publish(session: TestSession, campaignId: string, projectionType: string, productId: string, quantity: string) {
+        const res: Res = await http()
+          .post("/api/v1/sync/v1/push")
+          .set("Content-Type", "application/json")
+          .set("Authorization", auth(session))
+          .send(
+            JSON.stringify({
+              contractVersion: 1,
+              operationId: randomUUID(),
+              projectionType,
+              action: "PUBLISH",
+              causal: { predecessorOperationId: null, reconciliationReference: null },
+              payload: { campaign_ref: campaignId, product_ref: productId, base_unit: "ML", quantity_base: quantity },
+            }),
+          );
+        expect([res.status, res.body.outcome]).toEqual([200, "APPLIED"]);
+      }
+
+      /** What the Directiva is served: seal, cells and coverage of a campaign. */
+      async function served(campaignId: string) {
+        const res: Res = await http().get(`/api/v1/collective/campaigns/${campaignId}/summary`).set("Authorization", auth(director));
+        expect(res.status).toBe(200);
+        return { seal: res.body.seal, cells: res.body.cells, coverage: res.body.coverage };
+      }
+
+      /** Every row behind a published or sealed figure, complete. */
+      async function figures() {
+        const [contributions, journal, disputes, releases, items, seals, entries, coverage, associations, products] = await Promise.all([
+          prisma.syncV1Contribution.findMany({ orderBy: { id: "asc" } }),
+          prisma.syncV1OperationJournal.findMany({ orderBy: { id: "asc" } }),
+          prisma.syncV1Dispute.findMany({ orderBy: { id: "asc" } }),
+          prisma.collectiveRelease.findMany({ orderBy: { id: "asc" } }),
+          prisma.collectiveReleaseItem.findMany({ orderBy: [{ releaseId: "asc" }, { contributionId: "asc" }] }),
+          prisma.collectiveSeal.findMany({ orderBy: { id: "asc" } }),
+          prisma.collectiveSealEntry.findMany({
+            orderBy: [{ sealId: "asc" }, { projectionType: "asc" }, { canonicalProductId: "asc" }, { baseUnit: "asc" }],
+          }),
+          prisma.collectiveSealConsumptionCoverage.findMany({ orderBy: { sealId: "asc" } }),
+          prisma.productCanonicalAssociation.findMany({ orderBy: { id: "asc" } }),
+          prisma.product.findMany({ where: { id: { in: [figureProduct, correctedProduct] } }, orderBy: { id: "asc" } }),
+        ]);
+        return {
+          counts: { contributions: contributions.length, releases: releases.length, items: items.length, seals: seals.length, entries: entries.length },
+          text: json({ contributions, journal, disputes, releases, items, seals, entries, coverage, associations, products }),
+        };
+      }
+
+      it("defer, link, correct the link and create a product change no contribution, disclosure or seal", async () => {
+        const quantities = ["1000", "2000", "3000"];
+        for (const [i, session] of farmers.entries()) {
+          for (const campaignId of [sealedCampaign, openCampaign]) {
+            await publish(session, campaignId, "DECLARED_NEED", figureProduct, quantities[i]!);
+            await publish(session, campaignId, "CONSUMPTION_TOTAL", figureProduct, String(100 * (i + 1)));
+          }
+        }
+        // The open campaign publishes its figures (the summary writes the release).
+        const open = await served(openCampaign);
+        const disclosed = (open.cells as any[]).filter((cell) => cell.status === "DISCLOSED").map((c) => [c.projection_type, c.total_base]);
+        expect(disclosed.sort()).toEqual([
+          ["CONSUMPTION_TOTAL", "600"],
+          ["DECLARED_NEED", "6000"],
+        ]);
+        // The other campaign is closed and sealed.
+        await served(sealedCampaign);
+        expect((await http().post(`/api/v1/campaigns/${sealedCampaign}/close`).set("Authorization", auth(director)).send({})).status).toBe(200);
+        const state: Res = await http().get(`/api/v1/collective/campaigns/${sealedCampaign}/seal`).set("Authorization", auth(director));
+        expect(state.body.can_seal).toBe(true);
+        const sealed: Res = await http()
+          .post(`/api/v1/collective/campaigns/${sealedCampaign}/seal`)
+          .set("Authorization", auth(director))
+          .send({ confirmed: true, review_ref: state.body.review.review_ref });
+        expect([sealed.status, sealed.body.state, sealed.body.created]).toEqual([200, "SEALED", true]);
+
+        const servedBefore = json({ sealed: await served(sealedCampaign), open: await served(openCampaign) });
+        expect(servedBefore).toContain('"total_base":"6000"');
+        const before = await figures();
+        expect(before.counts.contributions).toBeGreaterThanOrEqual(12);
+        expect(before.counts.releases).toBeGreaterThanOrEqual(4);
+        expect(before.counts.items).toBeGreaterThanOrEqual(12);
+        expect(before.counts.seals).toBe(1);
+        expect(before.counts.entries).toBeGreaterThanOrEqual(2);
+        const auditsBefore = await prisma.auditLog.count();
+
+        // A contributor asks to identify a product; the Directiva and the
+        // Administrador decide every way the contract allows.
+        const asked = randomUUID();
+        expect((await put(farmers[0]!, asked, data({ local_name: "Herbicida de las cifras", active_ingredient: null }))).status).toBe(201);
+        const sid = await serverId(asked);
+        expect((await post(director, `${sid}/defer`, { note: "Falta la foto del envase", confirmed: true })).status).toBe(200);
+        const linked = await post(director, `${sid}/link`, { product_ref: figureProduct, reason: "misma etiqueta", confirmed: true });
+        expect([linked.status, linked.body.changed]).toEqual([200, true]);
+        const corrected = await post(admin, `${sid}/link`, { product_ref: correctedProduct, reason: "era otra concentración", confirmed: true });
+        expect([corrected.status, corrected.body.request.resolution.product_ref]).toEqual([200, correctedProduct]);
+        const other = randomUUID();
+        expect((await put(farmers[1]!, other, data({ local_name: "Adherente fuera del catálogo" }))).status).toBe(201);
+        const created = await post(director, `${await serverId(other)}/create-product`, {
+          name: `Adherente nuevo ${randomUUID().slice(0, 6)}`,
+          reason: "no existía",
+          confirmed: true,
+        });
+        expect([created.status, created.body.request.resolution.kind]).toEqual([201, "CREATED_PRODUCT"]);
+        // The decisions were recorded (E1-D13): 4 AuditLog entries, nothing else.
+        expect(await prisma.auditLog.count()).toBe(auditsBefore + 4);
+
+        expect((await figures()).text).toBe(before.text);
+        // The Directiva is served the same figures and seal, and serving them
+        // did not need to write a new disclosure.
+        expect(json({ sealed: await served(sealedCampaign), open: await served(openCampaign) })).toBe(servedBefore);
+        expect((await figures()).text).toBe(before.text);
+
+        // Control: the snapshot does see a real change in the figures.
+        await publish(farmerA, openCampaign, "DECLARED_NEED", figureProduct, "4000");
+        expect((await figures()).text).not.toBe(before.text);
+      }, 120000);
+    });
+
+    it("removing, uploading again, replacing and the retention keep the whole resolution, its AuditLog and the earlier events", async () => {
+      const { clientId, sid } = await requestWithPhoto(farmerA2, "Insecticida resuelto con foto", 41);
+      expect((await post(director, `${sid}/defer`, { note: "La foto está borrosa", confirmed: true })).status).toBe(200);
+      const link = await post(director, `${sid}/link`, { product_ref: f.products.liquidA, reason: "misma etiqueta", confirmed: true });
+      expect(link.status).toBe(200);
+
+      const directorUserId = (await prisma.member.findUniqueOrThrow({ where: { id: f.members.directorA } })).userId;
+      const resolution = await withoutPhotoColumns(sid);
+      expect(resolution).toMatchObject({
+        status: "LINKED",
+        resolution: "LINKED_EXISTING",
+        productId: f.products.liquidA,
+        resolvedByUserId: directorUserId,
+        resolutionReason: "misma etiqueta",
+        photoConsentVersion: "FOTO-1",
+      });
+      expect(resolution["resolvedAt"]).toBeInstanceOf(Date);
+      const resolvedAt = resolution["resolvedAt"] as Date;
+      const auditOf = () =>
+        prisma.auditLog.findMany({
+          where: { entityName: "ProductIdentificationRequest", entityId: sid },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        });
+      const eventsOf = () => prisma.productIdentificationEvent.findMany({ where: { requestId: sid } });
+      const audits = await auditOf();
+      expect(audits).toHaveLength(2);
+      expect(audits.every((a) => a.actorUserId === directorUserId)).toBe(true);
+      const auditTotal = await prisma.auditLog.count();
+      let events = await eventsOf();
+      expect(events.map((e) => e.kind).sort()).toEqual(["LINKED", "NOTE", "PHOTO_RECEIVED", "RECEIVED"]);
+
+      /** Only the photo columns changed, and exactly one event was added. */
+      async function expectKept(kind: string, detail: string | null = null) {
+        expect(await withoutPhotoColumns(sid)).toEqual(resolution);
+        expect(await auditOf()).toEqual(audits);
+        expect(await prisma.auditLog.count()).toBe(auditTotal);
+        const now = await eventsOf();
+        const earlier = new Set(events.map((e) => e.id));
+        for (const event of events) expect(now.find((e) => e.id === event.id)).toEqual(event);
+        const added = now.filter((e) => !earlier.has(e.id));
+        expect(added).toEqual([expect.objectContaining({ kind, actorUserId: null, productId: null, detail })]);
+        events = now;
+        const own: Res = await http().get(BASE).set("Authorization", auth(farmerA2));
+        expect(own.body.requests.find((r: any) => r.request_id === clientId).resolution).toMatchObject({
+          kind: "LINKED_EXISTING",
+          product_ref: f.products.liquidA,
+        });
+        const list: Res = await http().get(`${BASE}?status=ALL`).set("Authorization", auth(director));
+        expect(list.body.requests.find((r: any) => r.id === sid)).toMatchObject({
+          status: "LINKED",
+          resolution: { kind: "LINKED_EXISTING", product_ref: f.products.liquidA },
+        });
+      }
+
+      expect((await http().delete(`${BASE}/${clientId}/photo`).set("Authorization", auth(farmerA2))).status).toBe(204);
+      expect(await request(sid)).toMatchObject({ photoState: "REMOVED", photoStorageKey: null });
+      await expectKept("PHOTO_REMOVED");
+
+      expect((await putPhoto(farmerA2, clientId, await jpeg(640, 480, { seed: 42 }))).status).toBe(201);
+      expect(await request(sid)).toMatchObject({ photoState: "STORED" });
+      await expectKept("PHOTO_RECEIVED");
+
+      const replacedKey = (await request(sid)).photoStorageKey;
+      expect((await putPhoto(farmerA2, clientId, await png(800, 600))).status).toBe(201);
+      const stored = await request(sid);
+      expect(stored).toMatchObject({ photoState: "STORED", photoContentType: "image/png" });
+      expect(stored.photoStorageKey).not.toBe(replacedKey);
+      await expectKept("PHOTO_REPLACED");
+
+      // The retention: 91 days after the link decision.
+      await app.get(ProductPhotoSweep).run({ now: new Date(resolvedAt.getTime() + 91 * DAY_MS) });
+      expect(await request(sid)).toMatchObject({ photoState: "REMOVED", photoStorageKey: null });
+      expect(storedObjects()).not.toContain(stored.photoStorageKey);
+      await expectKept("PHOTO_REMOVED", RETENTION_DETAIL);
+    }, 60000);
+
+    it("correcting the link renews the start of the retention: 90 days from the last link decision", async () => {
+      const relinked = await requestWithPhoto(farmerA, "Fungicida con vínculo corregido", 51);
+      const control = await requestWithPhoto(farmerA, "Fungicida con vínculo sin corregir", 52);
+      // t0: both are linked 60 days ago (only Date is faked: the code under
+      // test writes resolvedAt = new Date()).
+      const t0 = new Date(Date.now() - 60 * DAY_MS);
+      jest.useFakeTimers({
+        now: t0,
+        doNotFake: [
+          "hrtime",
+          "nextTick",
+          "performance",
+          "queueMicrotask",
+          "requestAnimationFrame",
+          "cancelAnimationFrame",
+          "requestIdleCallback",
+          "cancelIdleCallback",
+          "setImmediate",
+          "clearImmediate",
+          "setInterval",
+          "clearInterval",
+          "setTimeout",
+          "clearTimeout",
+        ],
+      });
+      try {
+        for (const { sid } of [relinked, control]) {
+          const res = await post(director, `${sid}/link`, { product_ref: f.products.liquidA, reason: "misma etiqueta", confirmed: true });
+          expect(res.status).toBe(200);
+        }
+      } finally {
+        jest.useRealTimers();
+      }
+      expect((await request(relinked.sid)).resolvedAt).toEqual(t0);
+      expect((await request(control.sid)).resolvedAt).toEqual(t0);
+
+      // t1 (now): the Administrador corrects one of them.
+      const second = (await prisma.product.create({ data: { tenantId: f.tenantA, name: `Fungicida 250 ${randomUUID().slice(0, 6)}`, unit: "L" } })).id;
+      const corrected = await post(admin, `${relinked.sid}/link`, { product_ref: second, reason: "era la concentración 250", confirmed: true });
+      expect([corrected.status, corrected.body.changed]).toEqual([200, true]);
+      const afterCorrection = await request(relinked.sid);
+      const t1 = afterCorrection.resolvedAt!;
+      expect(t1.getTime() - t0.getTime()).toBeGreaterThanOrEqual(60 * DAY_MS);
+      const key = afterCorrection.photoStorageKey!;
+      const controlKey = (await request(control.sid)).photoStorageKey!;
+      const sweep = app.get(ProductPhotoSweep);
+
+      // t0 + 91 days: past the retention for the first link, 31 days after the correction.
+      await sweep.run({ now: new Date(t0.getTime() + 91 * DAY_MS) });
+      expect(await request(control.sid)).toMatchObject({ status: "LINKED", photoState: "REMOVED", photoStorageKey: null, resolvedAt: t0 });
+      expect(storedObjects()).not.toContain(controlKey);
+      expect(await request(relinked.sid)).toMatchObject({ status: "LINKED", productId: second, resolvedAt: t1, photoState: "STORED", photoStorageKey: key });
+      expect(storedObjects()).toContain(key);
+      expect((await http().get(`${BASE}/${relinked.sid}/photo`).set("Authorization", auth(director))).status).toBe(200);
+
+      // t1 + 91 days: past the retention for the correction too.
+      await sweep.run({ now: new Date(t1.getTime() + 91 * DAY_MS) });
+      expect(await request(relinked.sid)).toMatchObject({ status: "LINKED", productId: second, resolvedAt: t1, photoState: "REMOVED", photoStorageKey: null });
+      expect(storedObjects()).not.toContain(key);
+      const events = await prisma.productIdentificationEvent.findMany({ where: { requestId: relinked.sid } });
+      expect(events.filter((e) => e.kind === "PHOTO_REMOVED")).toEqual([expect.objectContaining({ actorUserId: null, detail: RETENTION_DETAIL })]);
+    }, 60000);
   });
 });
