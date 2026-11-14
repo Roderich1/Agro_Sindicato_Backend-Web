@@ -1,5 +1,7 @@
 # Manual de usuario de Agrocuentas: app móvil y Web de la Directiva (borrador F11)
 
+> **Documento histórico (nota del 2026-11-13).** Este borrador describe versiones de octubre de 2026 (Mobile `1d77c14` y partes posteriores) y ya no corresponde a la aplicación: la navegación, el CSV y las vistas Web del agricultor que menciona se retiraron o cambiaron. Para la composición final (Mobile `34e9926`, Backend/Web `200fe60`) use [MANUAL_AGRICULTOR.md](MANUAL_AGRICULTOR.md), [MANUAL_WEB_DIRECTIVA.md](MANUAL_WEB_DIRECTIVA.md) y [MANUAL_WEB_ADMINISTRACION.md](MANUAL_WEB_ADMINISTRACION.md). El contenido siguiente no se modificó.
+
 | Campo | Valor |
 |---|---|
 | Estado | **Borrador revisable de F11** (BE #53). No es un release. GATE-F11 no se evalúa con este documento |
