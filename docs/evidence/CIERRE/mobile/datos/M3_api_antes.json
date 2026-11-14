@@ -1,0 +1,63 @@
+{
+ "label": "antes_M3",
+ "at": "2026-11-14T00:06:03.717Z",
+ "checks": [
+  {
+   "call": "CC",
+   "code": "A1",
+   "participants_status": 200,
+   "participants": [
+    {
+     "name": "F2",
+     "scope": null,
+     "lines": [
+      "1500"
+     ]
+    }
+   ],
+   "error": null,
+   "detail_status": 200,
+   "can_view_participants": true,
+   "pending_consent_count": 1
+  },
+  {
+   "call": "CC",
+   "code": "D1",
+   "participants_status": 403,
+   "participants": null,
+   "error": "PARTICIPANTS_FORBIDDEN",
+   "detail_status": 200,
+   "can_view_participants": false,
+   "pending_consent_count": 1
+  },
+  {
+   "call": "CA",
+   "code": "A1",
+   "participants_status": 200,
+   "participants": [
+    {
+     "name": "F1",
+     "scope": null,
+     "lines": [
+      "1000",
+      "2000"
+     ]
+    }
+   ],
+   "error": null,
+   "detail_status": 200,
+   "can_view_participants": true,
+   "pending_consent_count": 1
+  },
+  {
+   "call": "CA",
+   "code": "D1",
+   "participants_status": 403,
+   "participants": null,
+   "error": "PARTICIPANTS_FORBIDDEN",
+   "detail_status": 200,
+   "can_view_participants": false,
+   "pending_consent_count": 1
+  }
+ ]
+}

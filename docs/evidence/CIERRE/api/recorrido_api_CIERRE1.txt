@@ -1,0 +1,393 @@
+API 3400 desde /c/Users/MSI/Documents/ProyectoDeGrado/ProyectoAgro/_wt/CIERRE-BE/Back (7afd574): health 200, PID 39032, 2026-11-13T18:59:52-04:00
+{
+  "seed": {
+    "label": "CIERRE1",
+    "tenant_ref": "31631776-195a-4275-86ef-6f2f863e8773",
+    "campaign_ref": "a89cb75c-ce7b-408f-ba47-3c247c78f312",
+    "accounts": {
+      "D1": {
+        "email": "e4-cierre1-d1@example.test",
+        "role": "DIRECTIVA"
+      },
+      "D2": {
+        "email": "e4-cierre1-d2@example.test",
+        "role": "DIRECTIVA"
+      },
+      "A1": {
+        "email": "e4-cierre1-a1@example.test",
+        "role": "ADMINISTRADOR"
+      },
+      "A2": {
+        "email": "e4-cierre1-a2@example.test",
+        "role": "ADMINISTRADOR"
+      },
+      "DB": {
+        "email": "e4-cierre1-db@example.test",
+        "role": "DIRECTIVA"
+      },
+      "F1": {
+        "email": "e4-cierre1-f1@example.test",
+        "role": "AGRICULTOR"
+      },
+      "F2": {
+        "email": "e4-cierre1-f2@example.test",
+        "role": "AGRICULTOR"
+      },
+      "F3": {
+        "email": "e4-cierre1-f3@example.test",
+        "role": "AGRICULTOR"
+      }
+    }
+  },
+  "call_ref": "5551c343-f3b2-4c3b-a015-b992cba45a03",
+  "walk": [
+    {
+      "step": "D1 crea el borrador",
+      "status": 201,
+      "extract": {
+        "contractVersion": 2,
+        "totals": [
+          [
+            "Herbicida",
+            0,
+            "0",
+            "VISIBLE",
+            "ROLE_CONSENT"
+          ],
+          [
+            "Fertilizante",
+            0,
+            "0",
+            "VISIBLE",
+            "ROLE_CONSENT"
+          ]
+        ]
+      }
+    },
+    {
+      "step": "D1 abre",
+      "status": 200,
+      "extract": {
+        "opened_detail": "Convocatoria abierta."
+      }
+    },
+    {
+      "step": "F1 confirma con CONV-4 (contrato 4)",
+      "status": 200,
+      "extract": {
+        "scope": "ADMINISTRATION",
+        "keys": [
+          "accepted_at",
+          "consent",
+          "consent_scope",
+          "last_operation_id",
+          "last_sequence",
+          "lines",
+          "status"
+        ]
+      }
+    },
+    {
+      "step": "F2 confirma con CONV-3 (contrato 3)",
+      "status": 200,
+      "extract": {
+        "scope": "RESPONSIBLE_ONLY",
+        "has_responsible_authorization": true
+      }
+    },
+    {
+      "step": "F3 confirma con CONV-1 (sin cabecera, contrato 1)",
+      "status": 200,
+      "extract": {
+        "keys": [
+          "accepted_at",
+          "consent",
+          "last_operation_id",
+          "last_sequence",
+          "lines",
+          "status"
+        ]
+      }
+    },
+    {
+      "step": "D1 lee el detalle",
+      "status": 200,
+      "extract": {
+        "can_view_participants": false,
+        "pending_consent_count": 2,
+        "totals": [
+          [
+            "Herbicida",
+            2,
+            null,
+            "PENDING_CONSENT",
+            null
+          ],
+          [
+            "Fertilizante",
+            2,
+            null,
+            "PENDING_CONSENT",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "step": "D1 pide participantes",
+      "status": 403,
+      "extract": {
+        "errorCode": "PARTICIPANTS_FORBIDDEN"
+      }
+    },
+    {
+      "step": "A1 lee el detalle",
+      "status": 200,
+      "extract": {
+        "can_view_participants": true,
+        "pending_consent_count": 2,
+        "totals": [
+          [
+            "Herbicida",
+            2,
+            null,
+            "PENDING_CONSENT",
+            null
+          ],
+          [
+            "Fertilizante",
+            2,
+            null,
+            "PENDING_CONSENT",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "step": "A1 pide participantes",
+      "status": 200,
+      "extract": {
+        "participants": [
+          "F1"
+        ],
+        "pending_consent_count": 2
+      }
+    },
+    {
+      "step": "F1 lee la lista con contrato 1 (sin cabecera)",
+      "status": 200,
+      "extract": {
+        "contractVersion": 4,
+        "consent_version": "CONV-4",
+        "has_help": true
+      }
+    },
+    {
+      "step": "F1 lee la lista con contrato 2",
+      "status": 200,
+      "extract": {
+        "contractVersion": 4,
+        "consent_version": "CONV-4",
+        "has_help": true
+      }
+    },
+    {
+      "step": "F1 lee la lista con contrato 3",
+      "status": 200,
+      "extract": {
+        "contractVersion": 4,
+        "consent_version": "CONV-4",
+        "has_help": true
+      }
+    },
+    {
+      "step": "F1 lee la lista con contrato 4",
+      "status": 200,
+      "extract": {
+        "contractVersion": 4,
+        "consent_version": "CONV-4",
+        "has_help": true
+      }
+    },
+    {
+      "step": "F2 amplía a colaboradores (contrato 2)",
+      "status": 409,
+      "extract": {
+        "errorCode": "CONSENT_VERSION_RETIRED"
+      }
+    },
+    {
+      "step": "F1 modifica desde una app de contrato 3 sobre ADMINISTRATION",
+      "status": 409,
+      "extract": {
+        "errorCode": "APP_UPDATE_REQUIRED"
+      }
+    },
+    {
+      "step": "D1 concede PARTICIPANTS",
+      "status": 409,
+      "extract": {
+        "errorCode": "GRANT_RETIRED"
+      }
+    },
+    {
+      "step": "A1 concede «Sustituir responsable»",
+      "status": 409,
+      "extract": {
+        "errorCode": "SUBSTITUTION_PERMISSION_RETIRED"
+      }
+    },
+    {
+      "step": "A1 lee la historia del permiso",
+      "status": 200,
+      "extract": {
+        "contractVersion": 2,
+        "can_grant": false,
+        "notice": "Ya no se usa: sustituye la Administración habilitada"
+      }
+    },
+    {
+      "step": "Directiva de otro sindicato lee el detalle",
+      "status": 404,
+      "extract": {
+        "errorCode": "CALL_NOT_FOUND"
+      }
+    },
+    {
+      "step": "Agricultor en una ruta institucional",
+      "status": 403,
+      "extract": {
+        "errorCode": "AUTH_CONTEXT_FORBIDDEN"
+      }
+    },
+    {
+      "step": "A2 pide participantes",
+      "status": 200
+    },
+    {
+      "step": "A2 pasa a Directiva: siguiente petición",
+      "status": 403,
+      "extract": {
+        "errorCode": "PARTICIPANTS_FORBIDDEN"
+      }
+    },
+    {
+      "step": "A2 vuelve a Administración",
+      "status": 200
+    },
+    {
+      "step": "A2 deshabilitada: siguiente petición",
+      "status": 401,
+      "extract": {
+        "errorCode": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "step": "D2 (Directiva) intenta sustituir",
+      "status": 403,
+      "extract": {
+        "errorCode": "SUBSTITUTION_FORBIDDEN"
+      }
+    },
+    {
+      "step": "A1 intenta nombrarse a sí misma",
+      "status": 422,
+      "extract": {
+        "errorCode": "SUCCESSOR_NOT_ELIGIBLE"
+      }
+    },
+    {
+      "step": "A1 sustituye a D1 por D2",
+      "status": 200,
+      "extract": {
+        "responsible": "D2",
+        "version": 2,
+        "suspended": 0
+      }
+    },
+    {
+      "step": "D2 (nueva responsable, Directiva) pide participantes",
+      "status": 403,
+      "extract": {
+        "errorCode": "PARTICIPANTS_FORBIDDEN"
+      }
+    },
+    {
+      "step": "A1 pide participantes tras la sustitución",
+      "status": 200,
+      "extract": {
+        "participants": [
+          "F1"
+        ]
+      }
+    },
+    {
+      "step": "F2 autoriza a la Administración (contrato 4)",
+      "status": 200,
+      "extract": {
+        "scope": "ADMINISTRATION",
+        "lines": [
+          "2000"
+        ]
+      }
+    },
+    {
+      "step": "A1 pide participantes",
+      "status": 200,
+      "extract": {
+        "participants": [
+          "F1",
+          "F2"
+        ],
+        "pending_consent_count": 1
+      }
+    },
+    {
+      "step": "D2 cierra",
+      "status": 200,
+      "extract": {
+        "participants": null,
+        "lines": [
+          [
+            2,
+            "3000",
+            "VISIBLE",
+            "ROLE_CONSENT"
+          ],
+          [
+            2,
+            null,
+            "PENDING_CONSENT",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "step": "A1 lee el cierre",
+      "status": 200,
+      "extract": {
+        "participants": [
+          "F1",
+          "F2"
+        ],
+        "lines": [
+          [
+            2,
+            "3000",
+            "VISIBLE",
+            "ROLE_CONSENT"
+          ],
+          [
+            2,
+            null,
+            "PENDING_CONSENT",
+            null
+          ]
+        ]
+      }
+    }
+  ]
+}
+walk exit 0  2026-11-13T18:59:53-04:00

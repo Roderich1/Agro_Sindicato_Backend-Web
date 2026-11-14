@@ -1,0 +1,42 @@
+[
+ {
+  "files": [
+   "web/D1_resumen__escritorio.png",
+   "web/D1_resumen__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "D1",
+  "desc": "Resumen (Directiva): Herbicida con 1 aportante y Fertilizante con 2, publicados con F07-POL-02",
+  "at": "2026-11-13T23:04:32.832Z"
+ },
+ {
+  "files": [
+   "web/D1_cobertura__escritorio.png",
+   "web/D1_cobertura__movil.png"
+  ],
+  "ruta": "/colectivo/cobertura",
+  "rol": "D1",
+  "desc": "Cobertura (Directiva) con F07-POL-02",
+  "at": "2026-11-13T23:04:43.293Z"
+ },
+ {
+  "files": [
+   "web/D1_historico__escritorio.png",
+   "web/D1_historico__movil.png"
+  ],
+  "ruta": "/colectivo/historico",
+  "rol": "D1",
+  "desc": "Histórico (Directiva): sin campañas selladas en este tenant",
+  "at": "2026-11-13T23:04:51.624Z"
+ },
+ {
+  "files": [
+   "web/A1_resumen__escritorio.png",
+   "web/A1_resumen__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "A1",
+  "desc": "Resumen (Administración): las mismas cifras de 1 y 2 aportantes",
+  "at": "2026-11-13T23:05:17.887Z"
+ }
+]

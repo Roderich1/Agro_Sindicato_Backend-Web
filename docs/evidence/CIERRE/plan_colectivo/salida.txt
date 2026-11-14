@@ -1,0 +1,13 @@
+captura web/D1_resumen__escritorio.png, web/D1_resumen__movil.png
+TEXTO D1 D1 resumen: espera [["Política aplicada",true],["F07-POL-02",true]] prohíbe [["umbral",false],["anónim",false],["Menos de d+ agricultores",false],["alcanzan el umbral",false],["F1 sintético",false],["F2 sintético",false]]
+DESCARGA D1: resumen_D1.xlsx
+captura web/D1_cobertura__escritorio.png, web/D1_cobertura__movil.png
+TEXTO D1 D1 cobertura: espera [["F07-POL-02|Política",true]] prohíbe [["umbral",false],["anónim",false],["Menos de d+ agricultores",false],["alcanzan el umbral",false],["F1 sintético",false],["F2 sintético",false]]
+captura web/D1_historico__escritorio.png, web/D1_historico__movil.png
+TEXTO D1 D1 historico: espera [] prohíbe [["umbral",false],["anónim",false],["Menos de d+ agricultores",false],["alcanzan el umbral",false],["F1 sintético",false],["F2 sintético",false]]
+API D1 D1 colectivo: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/trends?projection_type=CONSUMPTION_TOTAL","GET /api/v1/collective/trends?projection_type=CONSUMPTION_TOTAL"]
+CUERPOS D1 D1 colectivo: 9 respuestas JSON; hallazgos: ninguno
+captura web/A1_resumen__escritorio.png, web/A1_resumen__movil.png
+TEXTO A1 A1 resumen: espera [["Política aplicada",true],["F07-POL-02",true]] prohíbe [["umbral",false],["anónim",false],["Menos de d+ agricultores",false],["alcanzan el umbral",false],["F1 sintético",false],["F2 sintético",false]]
+DESCARGA A1: resumen_A1.xlsx
+API A1 A1 colectivo: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/collective/campaigns/<id>/summary"]

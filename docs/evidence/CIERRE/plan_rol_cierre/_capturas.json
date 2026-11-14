@@ -1,0 +1,38 @@
+[
+ {
+  "files": [
+   "web/A2_rol_1_antes__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "A2 (Administración) en CA: ve a F1 por nombre; la barra lateral tiene «Usuarios»",
+  "at": "2026-11-13T23:12:53.114Z"
+ },
+ {
+  "files": [
+   "web/A2_rol_2_directiva__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "A2 pasada a Directiva: tras el 403, la Web revalida /auth/me; barra sin «Usuarios» y sin nombres por persona",
+  "at": "2026-11-13T23:13:00.768Z"
+ },
+ {
+  "files": [
+   "web/A2_rol_3_admin_otra_vez__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>",
+  "rol": "A2",
+  "desc": "A2 vuelve a Administración: al recargar, la sesión renovada trae el rol vigente: barra con «Usuarios» y detalle autorizado (sin recargar, este sentido espera a la renovación del token: limitación declarada)",
+  "at": "2026-11-13T23:13:09.423Z"
+ },
+ {
+  "files": [
+   "web/A2_rol_4_deshabilitada__escritorio.png"
+  ],
+  "ruta": "/login",
+  "rol": "A2",
+  "desc": "A2 deshabilitada: 401 y la Web sale de la sesión",
+  "at": "2026-11-13T23:13:17.944Z"
+ }
+]

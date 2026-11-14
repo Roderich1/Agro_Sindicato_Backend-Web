@@ -1,0 +1,17 @@
+captura web/A2_rol_1_antes__escritorio.png
+TEXTO A2 A2 Administración (barra): espera [["Usuarios",true],["F1 sintético",true]] prohíbe []
+ADMIN A1 role A2 DIRECTIVA: HTTP 200
+captura web/A2_rol_2_directiva__escritorio.png
+TEXTO A2 A2 como Directiva (barra y datos): espera [] prohíbe [["Usuarios",false],["F1 sintético",false],["F2 sintético",false]]
+API A2 A2 tras pasar a Directiva: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/participants","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/auth/me","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators"]
+CUERPOS A2 A2 tras pasar a Directiva: 15 respuestas JSON; hallazgos: ["GET /api/v1/joint-purchase-calls/<id>/participants: contiene el nombre «F1»","GET /api/v1/joint-purchase-calls/<id>/participants: $.participants con 1 filas","GET /api/v1/joint-purchase-calls/<id>/participants: $.participants[0] une nombre y cantidad"]
+ADMIN A1 role A2 ADMINISTRADOR: HTTP 200
+captura web/A2_rol_3_admin_otra_vez__escritorio.png
+TEXTO A2 A2 de nuevo Administración: espera [["Usuarios",true],["F1 sintético",true]] prohíbe []
+API A2 A2 de vuelta: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/participants"]
+ADMIN A1 deactivate A2 : HTTP 200
+URL A2 deshabilitada: /login
+captura web/A2_rol_4_deshabilitada__escritorio.png
+TEXTO A2 A2 deshabilitada: espera [] prohíbe [["F1 sintético",false]]
+API A2 A2 deshabilitada: ["GET /api/v1/joint-purchase-calls/<id>","POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+ADMIN A1 activate A2 : HTTP 200

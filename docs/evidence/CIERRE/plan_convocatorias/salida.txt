@@ -1,0 +1,51 @@
+captura web/D1_lista__escritorio.png, web/D1_lista__movil.png
+TEXTO D1 D1 lista: espera [] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D1 D1 lista: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/joint-purchase-calls?campaignId=<id>","GET /api/v1/joint-purchase-calls?campaignId=<id>"]
+captura web/D1_CA__escritorio.png, web/D1_CA__movil.png
+TEXTO D1 D1 CA: espera [["Pendiente de autorización",true],["Total provisional|Pedido hasta ahora",true]] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D1 D1 CA: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators"]
+captura web/D1_CA_conceder__escritorio.png, web/D1_CA_conceder__movil.png
+TEXTO D1 D1 CA conceder: espera [] prohíbe [["Consultar participantes y cantidades",false]]
+captura web/D1_CB__escritorio.png, web/D1_CB__movil.png
+TEXTO D1 D1 CB: espera [["Visible por la regla anterior",true],["Pendiente de autorización",true]] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D1 D1 CB: ["GET /api/v1/joint-purchase-calls/eligible-responsibles","GET /api/v1/joint-purchase-calls/eligible-responsibles","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/closing"]
+captura web/D1_CC__escritorio.png, web/D1_CC__movil.png
+TEXTO D1 D1 CC: espera [["Administración",true]] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D1 D1 CC: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators"]
+captura web/D1_CD__escritorio.png, web/D1_CD__movil.png
+TEXTO D1 D1 CD: espera [] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D1 D1 CD: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/closing"]
+captura web/D1_CX__escritorio.png, web/D1_CX__movil.png
+TEXTO D1 D1 CX: espera [] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D1 D1 CX: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators"]
+CUERPOS D1 D1 todas las respuestas: 31 respuestas JSON; hallazgos: ninguno
+captura web/D2_CA__escritorio.png, web/D2_CA__movil.png
+TEXTO D2 D2 CA: espera [["Pendiente de autorización",true]] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D2 D2 CA: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators"]
+captura web/D2_CB__escritorio.png, web/D2_CB__movil.png
+TEXTO D2 D2 CB: espera [["Visible por la regla anterior",true]] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D2 D2 CB: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/closing"]
+CUERPOS D2 D2 todas las respuestas: 14 respuestas JSON; hallazgos: ninguno
+captura web/A1_CA__escritorio.png, web/A1_CA__movil.png
+TEXTO A1 A1 CA: espera [["F1 sintético",true],["Pendiente de autorización",true]] prohíbe [["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+TEXTO A1 A1 CA sin F2: espera [] prohíbe [["F2 sintético",false]]
+API A1 A1 CA: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/participants"]
+captura web/A1_CB__escritorio.png, web/A1_CB__movil.png
+TEXTO A1 A1 CB: espera [["F2 sintético",true]] prohíbe [["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+TEXTO A1 A1 CB sin F1/F3: espera [] prohíbe [["F1 sintético",true],["F3 sintético",false]]
+API A1 A1 CB: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/closing"]
+captura web/A1_CC__escritorio.png, web/A1_CC__movil.png
+TEXTO A1 A1 CC: espera [["Sustituir responsable",false]] prohíbe [["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API A1 A1 CC: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/participants"]
+AVISO A1 {"click":"^Sustituir responsable…$"}: sin elemento /^Sustituir responsable…$/ en body
+captura web/A1_CC_dialogo_sustituir__escritorio.png, web/A1_CC_dialogo_sustituir__movil.png
+SONDA opciones del selector: []
+captura web/A1_usuarios__escritorio.png, web/A1_usuarios__movil.png
+TEXTO A1 A1 usuarios: espera [["ya no se usa",true]] prohíbe [["Conceder «Sustituir",false]]
+API A1 A1 usuarios: ["GET /api/v1/users","GET /api/v1/users","GET /api/v1/joint-purchase-substitution-permissions"]
+captura web/A2_CM1__escritorio.png, web/A2_CM1__movil.png
+TEXTO A2 A2 CM1: espera [["F2 sintético",true]] prohíbe [["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API A2 A2 CM1: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/participants"]
+captura web/A2_CA__escritorio.png, web/A2_CA__movil.png
+TEXTO A2 A2 CA: espera [["F1 sintético",true]] prohíbe [["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API A2 A2 CA: ["GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/participants"]
