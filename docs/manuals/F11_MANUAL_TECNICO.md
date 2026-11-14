@@ -1,5 +1,7 @@
 # Manual técnico de Agrocuentas: despliegue, respaldo y recuperación (borrador F11)
 
+> **Documento histórico: no es un manual vigente** (nota del 2026-11-13; los manuales actuales se listan en [README.md](README.md)). Este borrador describe versiones de octubre y noviembre de 2026 anteriores al cierre. Para la composición final (Mobile `34e9926`, Backend/Web `200fe60`) use [MANUAL_TECNICO_INSTALACION.md](MANUAL_TECNICO_INSTALACION.md). Sus apartados 5 y 6 (respaldos) siguen siendo la referencia detallada, porque el código de respaldos no cambió; el resto puede estar desactualizado (por ejemplo, el CSV y las vistas Web del agricultor, retirados). El contenido siguiente no se modificó.
+
 | Campo | Valor |
 |---|---|
 | Estado | **Borrador revisable de F11** (BE #54). No es un release ni una guía de producción aprobada. GATE-F11 no se evalúa con este documento |
