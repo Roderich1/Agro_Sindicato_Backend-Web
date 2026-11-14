@@ -468,7 +468,7 @@ Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay qu
   - a individual: «Solo el titular registrará compras, aplicaciones y pagos. Se ocultan las transferencias y la elección de persona en los formularios. Los registros de otras personas se conservan.»
   - a varias personas: «Se habilitan responsables y transferencias. Todo el historial sigue asociado al titular.»
 - Si no se puede pasar a individual: «Todavía no se puede pasar a modo individual» · «Primero resuelva estos pendientes. No se borra ni se reasigna nada.», con los motivos: «Falta el titular», personas que «tienen productos», «Hay planes abiertos en chacos de …» o personas que «tienen saldo». Cada motivo lleva a la pantalla donde se resuelve.
-- **En esta versión, un envío pendiente al sindicato no bloquea el cambio ni se avisa** (hallazgo H1 del cierre; no se pierde nada: se envía al reconectar). La rama `fix/textos-rutas-y-aviso-modo` (**pendiente de fusión**) añade un aviso al cambiar de modo cuando hay una decisión de convocatoria pendiente de envío; hasta que se fusione, este manual describe el comportamiento sin aviso.
+- **Decisiones de compras conjuntas pendientes de envío** (desde Mobile `f105e99`, #195): un pendiente no bloquea el cambio. Si al confirmar hay operaciones de compras conjuntas por enviar, el diálogo de confirmación añade el aviso «Tiene N decisiones de compras conjuntas pendientes de envío. Cambiar de modo no las envía ni las cancela: seguirán pendientes hasta que el sindicato confirme que las recibió.» (en singular con una), y se puede «Confirmar» o «Cancelar». El cambio no toca la cola, las cantidades ni los consentimientos. *Verificación:* Pruebas (`operation_mode_aviso_compras_conjuntas_test.dart`); sin captura en emulador.
 
 ![Modo disponible](../evidence/CIERRE/mobile/M5_07_modo_sin_pendientes.png) ![Modo individual activo](../evidence/CIERRE/mobile/M5_08_modo_individual_activo.png) ![Volver a varias personas](../evidence/CIERRE/mobile/M5_20_confirmar_varias.png)
 
@@ -496,23 +496,22 @@ Las fotos de etiqueta **no se incluyen en los respaldos**: tras restaurar hay qu
 - No hay API desplegada ni APK distribuible (la release sale sin firmar; la candidata OE5 es una compilación de prueba con la clave de depuración): este manual describe la app tal como se probó con datos sintéticos. No se ha autorizado su uso con datos reales.
 - La superficie de un chaco no se puede editar.
 - «Resumen de campaña» en modo individual incluye chacos de terceros, sin aviso.
-- El cambio de modo no avisa de envíos pendientes (H1; aviso en la rama `fix/textos-rutas-y-aviso-modo`, pendiente de fusión).
-- Cinco textos remiten a pantallas que no existen; cuatro tienen corrección pendiente de fusión (apartado 20).
+- Cinco textos que remitían a pantallas inexistentes se corrigieron en Mobile `f105e99` (#195): ver el apartado 20.
 - El aviso de revisión de Inicio aparece tras consultar las convocatorias (O2).
 - La dosis del plan exige coma decimal (O1).
 - La sesión caducada: «Volver a autenticar» vuelve a Inicio y hay que regresar a la convocatoria.
 
 ## 20. Textos de la app que no coinciden con la navegación
 
-**Estado de la corrección:** los cuatro primeros se corrigen en la rama `fix/textos-rutas-y-aviso-modo` (**pendiente de fusión**). Mientras no se fusione, la app de `main` muestra los textos de la columna «La app dice». Al fusionarla, basta con actualizar esta línea y la columna «Estado» (y las remisiones de los apartados 5, 16 y 19).
+**Estado de la corrección:** los cinco están corregidos en Mobile `main` `f105e99` (PR #195, 2026-11-14), con el recorrido comprobado en los dos modos (`test/txt_rutas_textos_test.dart`). La tabla conserva el texto anterior como referencia.
 
-| Dónde | La app dice (`main`, comprobado en `65e1004`) | Navegación real | Estado |
+| Dónde | Decía (hasta `65e1004`) | Navegación real | Estado |
 |---|---|---|---|
-| Compra sin campaña activa | «No hay una campaña activa. Actívala en Más, Administrar datos.» | Inicio › campaña, o Ajustes y datos › «Campañas» | Pendiente de fusión |
-| Compra «Todavía no», varias personas | «Puede anotarlo después en Operaciones, Compras.» | Actividad › «Lista de compras» | Pendiente de fusión |
-| Restaurar desde la nube | «… hasta que usted los libere en Sincronización.» | Sindicato › «Ver estado de los envíos» › «Liberar» | Pendiente de fusión |
-| Actividad, modo individual | Franja «Proveedores y saldos» | La pantalla se titula «Proveedores» | Pendiente de fusión |
-| Almacén › «Estimación del consumo», sesión rechazada | «Hace falta verificar su acceso en línea (Sincronización) antes de consultar la estimación.» | Inicio o Ajustes y datos › «Acceso en línea» / «Cuenta y titular» › «Recuperar acceso» (apartado 2) | Detectado en esta revisión; **no** está en la lista de la rama anterior |
+| Compra sin campaña activa | «No hay una campaña activa. Actívala en Más, Administrar datos.» | Inicio › campaña, o Ajustes y datos › «Campañas» | Corregido: «Actívela en Inicio › Ajustes y datos › Campañas.» |
+| Compra «Todavía no», varias personas | «Puede anotarlo después en Operaciones, Compras.» | Actividad › «Lista de compras» | Corregido: «Actividad › Compras › Lista de compras, con «Registrar pago al proveedor» en la compra.» |
+| Restaurar desde la nube | «… hasta que usted los libere en Sincronización.» | Sindicato › «Ver estado de los envíos» › «Liberar» | Corregido: «Sindicato › Ver estado de los envíos, con «Liberar».» |
+| Actividad, modo individual | Franja «Proveedores y saldos» | La pantalla se titula «Proveedores» | Corregido: la franja se titula «Proveedores» |
+| Almacén › «Estimación del consumo», sesión rechazada | «Hace falta verificar su acceso en línea (Sincronización) antes de consultar la estimación.» | Inicio › «Cuenta en línea» › «Verificar acceso en línea» (o «Volver a autenticar» si Inicio lo pide) | Corregido: «… en Inicio › Cuenta en línea, «Verificar acceso en línea» (si Inicio pide «Volver a autenticar», use ese botón).» |
 
 ## 21. Capturas usadas
 
