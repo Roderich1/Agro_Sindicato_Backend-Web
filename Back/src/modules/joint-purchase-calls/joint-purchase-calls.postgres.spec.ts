@@ -1141,6 +1141,26 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     // Rewritten for E4 §4.2 (declared): the decisions are now ADMINISTRATION, TOTALS_ONLY and the earlier reduction;
     // widening to COLLABORATORS is retired. The P-C properties (own order, idempotency, quantities never change the
     // consent, insert-only register) are kept and checked again.
+    it("E2 §11.1 (cierre 2026-11-13): PARTICIPATION_REQUIRED is not journaled; retrying the same operation after the first confirmation applies it", async () => {
+      const p1 = await newProduct();
+      const id = await openCall([p1], { deadlineInMs: 4 * HOUR });
+      const operationId = randomUUID();
+      // Decided before the participation exists: 409, and nothing is stored for that operation.
+      const early = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
+      expect(early.status).toBe(409);
+      expect(early.body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
+      expect(await prisma.jointPurchaseParticipationOperation.count({ where: { operationId } })).toBe(0);
+      // First confirmation, then the phone retries the very same decision (same operation_id and body).
+      expect((await confirm4(farmerA, id, [[p1, "100"]], 1)).status).toBe(200);
+      const retried = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
+      expect(retried.status).toBe(200);
+      expect(retried.body.participation.consent_scope).toMatchObject({ scope: "TOTALS_ONLY", sequence: 1 });
+      // A second retry gets the stored answer (idempotent), not the earlier 409.
+      const again = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
+      expect(again.status).toBe(200);
+      expect(again.body).toEqual(retried.body);
+    });
+
     it("E4 §4.2 (test 8): CONV-4 gives ADMINISTRATION; TOTALS_ONLY and reductions in their own order; widening and authorizing retired; quantities and decisions never cross", async () => {
       const p1 = await newProduct();
       const id = await openCall([p1], { deadlineInMs: 4 * HOUR });

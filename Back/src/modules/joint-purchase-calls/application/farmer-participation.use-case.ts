@@ -462,7 +462,11 @@ export class FarmerParticipationUseCase {
     const scope = operation.scope!;
     const consent = operation.consent!;
     const existing = await current();
-    if (!existing) return reject("PARTICIPATION_REQUIRED", 409);
+    // E2 §11.1: the phone keeps the decision pending and retries it with the
+    // same operation_id once its first confirmation is accepted. The 409 is
+    // therefore NOT journaled (like APP_UPDATE_REQUIRED): a stored answer
+    // would turn every retry into the same 409 (cierre 2026-11-13).
+    if (!existing) throw new CallHttpError(409, "PARTICIPATION_REQUIRED");
     if (scope === "ADMINISTRATION") {
       if (consent.version !== CONSENT_V4_VERSION) return reject("CONSENT_REQUIRED", 409);
       if (call.status === "CANCELLED") return reject("WIDENING_NOT_ALLOWED", 409, { status: call.status });
