@@ -110,6 +110,18 @@ describePostgres("D-01 administrative actions in the Bitácora on PostgreSQL", (
     const own = await call("get", `/audit-logs?entityName=User`, director);
     expect(own.status).toBe(200);
     expect(own.body.filter((row: any) => row.entityId === id)).toHaveLength(5);
+    // RNF-05, F10-SEC-02: the actor is named, never by e-mail, for the
+    // Directiva nor for the Administración.
+    const adminUser = await prisma.user.findUniqueOrThrow({ where: { id: adminUserId }, select: { name: true, email: true, role: true } });
+    const asAdmin = await call("get", `/audit-logs?entityName=User`, admin);
+    expect(asAdmin.status).toBe(200);
+    for (const res of [own, asAdmin]) {
+      const rows = res.body.filter((row: any) => row.entityId === id);
+      expect(rows.map((row: any) => row.actor)).toEqual(Array(5).fill({ id: adminUserId, name: adminUser.name, role: adminUser.role }));
+      expect(res.text).not.toContain(adminUser.email);
+      expect(res.text).not.toContain(email);
+      expect(res.body.every((row: any) => !("email" in (row.actor ?? {})) && !("email" in (row.owner ?? {})))).toBe(true);
+    }
     const other = await call("get", "/audit-logs", directorB);
     expect(other.status).toBe(200);
     expect(other.text).not.toContain(id);

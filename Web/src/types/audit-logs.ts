@@ -28,14 +28,17 @@ export interface AuditCampaignSummary {
   status: CampaignStatus;
 }
 
+/** RNF-05, F10-SEC-02: la Bitácora nombra a las personas; nunca trae su correo. */
+export type AuditPerson = Omit<UserSummary, 'email'>;
+
 export interface AuditLog {
   id: string;
   campaignId: string | null;
   campaign?: AuditCampaignSummary | null;
   ownerUserId: string | null;
-  owner?: UserSummary | null;
+  owner?: AuditPerson | null;
   actorUserId: string | null;
-  actor?: UserSummary | null;
+  actor?: AuditPerson | null;
   action: AuditAction;
   entityName: string;
   entityId: string | null;
