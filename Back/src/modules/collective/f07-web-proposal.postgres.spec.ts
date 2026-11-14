@@ -180,8 +180,6 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     http().post(`/api/v1/collective/campaigns/${campaign}/proposals`).set(auth(session));
   const proposal = (id: string, session = director): Promise<Res> =>
     http().get(`/api/v1/collective/proposals/${id}`).set(auth(session));
-  const proposalCsv = (id: string, session = director): Promise<Res> =>
-    http().get(`/api/v1/collective/proposals/${id}/csv`).set(auth(session));
   const history = (campaign: string, session = director): Promise<Res> =>
     http().get(`/api/v1/collective/campaigns/${campaign}/proposals`).set(auth(session));
 
@@ -283,16 +281,11 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
       expect(line).toMatchObject({ quantity_base: null, quantity_presentation: null, contributors: null, data_as_of: null });
     }
     const detail = await proposal(rawC1.body.proposal_ref);
-    const file = await proposalCsv(rawC1.body.proposal_ref);
     expect(detail.body).toEqual(rawC1.body);
-    expect(file.status).toBe(200);
-    expect(file.headers["content-type"]).toMatch(/text\/csv/);
-    for (const text of [rawC1.text, detail.text, file.text]) expectNoHiddenTotals(text, "RAW", "C1");
+    for (const text of [rawC1.text, detail.text]) expectNoHiddenTotals(text, "RAW", "C1");
     expectNoHiddenTotals(rawC2.text, "RAW", "C2");
-    // CSV carries exactly the JSON states, nothing more.
-    const csvLines = file.text.trim().split("\n").slice(5);
-    expect(csvLines).toHaveLength(rawC1.body.lines.length);
-    expect(file.text).toContain(",DISCLOSED,25000,25,3,");
+    // The CSV route was withdrawn (2026-11-12): the Web exports Excel from the detail JSON.
+    expect((await http().get(`/api/v1/collective/proposals/${rawC1.body.proposal_ref}/csv`).set(auth(director))).status).toBe(404);
   });
 
   it("regeneration with the same authorized inputs gives the same lines, order and fingerprint", async () => {
@@ -316,7 +309,6 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     const res = await generate(campaigns.C2);
     expect(res.status).toBe(201);
     await proposal(res.body.proposal_ref);
-    await proposalCsv(res.body.proposal_ref);
     expect(await effectCounts()).toBe(before);
     expect(await prisma.jointPurchaseProposal.count()).toBe(proposalsBefore + 1);
     // The stored lines hold no quantity column at all, only a release reference.
@@ -371,7 +363,6 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
         () => http().post(`/api/v1/collective/campaigns/${campaigns.C1}/proposals`).set(h),
         () => http().get(`/api/v1/collective/campaigns/${campaigns.C1}/proposals`).set(h),
         () => http().get(`/api/v1/collective/proposals/${id}`).set(h),
-        () => http().get(`/api/v1/collective/proposals/${id}/csv`).set(h),
         () => http().get(`${ASSOCIATIONS}/catalog`).set(h),
         () => http().get(ASSOCIATIONS).set(h),
       ];
@@ -387,14 +378,14 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     for (const res of await routes()) expect(res.status).toBe(401);
     const foreign = await routes(otherTenantDirector);
     // Campaign- and proposal-scoped routes: 404, indistinguishable from missing.
-    for (const res of foreign.slice(0, 5)) {
+    for (const res of foreign.slice(0, 4)) {
       expect(res.status).toBe(404);
       expect(res.text).not.toContain("25000");
     }
     // Catalogue and associations of tenant B: nothing from tenant A.
-    expect(foreign[5].status).toBe(200);
+    expect(foreign[4].status).toBe(200);
+    expect(foreign[4].text).not.toContain(products["Belator"]);
     expect(foreign[5].text).not.toContain(products["Belator"]);
-    expect(foreign[6].text).not.toContain(products["Belator"]);
     expect(await prisma.jointPurchaseProposal.count()).toBe(count);
   });
 
@@ -442,27 +433,19 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     expect(overflow.body.lines.find((l: any) => nameOf(l.product_ref) === "Urea F06")).toMatchObject({
       status: "OVERFLOW", quantity_base: null, quantity_presentation: null, contributors: null,
     });
-    // User-controlled text is neutralised in the CSV.
-    const file = await proposalCsv(overflow.body.proposal_ref);
-    expect(file.text).toContain(`"'=Campana, con fórmula"`);
-    expect(file.text).not.toMatch(/(^|,)=Campana/m);
   });
 
   /**
-   * After a figure leaves the summary, no new response serves it: detail,
-   * listing/history and CSV of every earlier draft, a fresh draft with its
-   * CSV, and the summary JSON/CSV. Fingerprints that covered it are hidden.
+   * After a figure leaves the summary, no new response serves it: detail and
+   * listing/history of every earlier draft, a fresh draft and the summary
+   * (the JSON is the only channel since the CSV routes were withdrawn on
+   * 2026-11-12). Fingerprints that covered it are hidden.
    */
   async function expectNoLongerServed(campaign: string, drafts: string[], amounts: string[], fingerprints: string[]) {
     const number = new RegExp(`(^|[^0-9a-f-])(${amounts.join("|")})([^0-9a-f-]|$)`);
     const fresh = await generate(campaign);
     expect(fresh.status).toBe(201);
-    const responses: Res[] = [
-      fresh,
-      await proposalCsv(fresh.body.proposal_ref),
-      await summary(campaign),
-      await http().get(`/api/v1/collective/campaigns/${campaign}/summary.csv`).set(auth(director)),
-    ];
+    const responses: Res[] = [fresh, await summary(campaign)];
     for (const id of drafts) {
       const detail = await proposal(id);
       expect(detail.status).toBe(200);
@@ -470,7 +453,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
         if (line.status !== "DISCLOSED") expect(line).toMatchObject({ quantity_base: null, quantity_presentation: null, contributors: null });
       }
       expect(detail.body.inputs_fingerprint).toBeNull();
-      responses.push(detail, await proposalCsv(id));
+      responses.push(detail);
     }
     const list = await history(campaign);
     expect(list.status).toBe(200);
@@ -484,7 +467,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     }
   }
 
-  it("a figure withdrawn by the summary is not served by an earlier proposal, JSON or CSV", async () => {
+  it("a figure withdrawn by the summary is not served by an earlier proposal", async () => {
     const c1 = await generate(campaigns.C1);
     expect(c1.body.lines.find((l: any) => nameOf(l.product_ref) === "Urea F06").status).toBe("DISCLOSED");
     // F3 cancels its Urea need: two Members remain, the summary withdraws 25000 (R4).
@@ -500,9 +483,6 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
         status: "WITHDRAWN", quantity_base: null, quantity_presentation: null, contributors: null,
       });
       expect(detail.text).not.toContain("25000");
-      const file = await proposalCsv(id);
-      expect(file.text).not.toContain("25000");
-      expect(file.text).toContain(",WITHDRAWN,");
     }
     const s = await summary(campaigns.C1);
     expect(s.body.cells.find((cell: any) => cell.projection_type === "DECLARED_NEED" && nameOf(cell.product_ref) === "Urea F06").status)
@@ -546,11 +526,8 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
       const detail = await proposal(id);
       expect(detail.body.lines[0]).toMatchObject({ status: "WITHDRAWN", quantity_base: null, quantity_presentation: null });
       expect(detail.body.inputs_fingerprint).toBeNull();
-      const file = await proposalCsv(id);
-      for (const text of [detail.text, file.text]) {
-        expect(text).not.toMatch(/(^|[^0-9a-f-])(6000|6600)([^0-9a-f-]|$)/);
-        expect(text).not.toContain(p1.body.inputs_fingerprint);
-      }
+      expect(detail.text).not.toMatch(/(^|[^0-9a-f-])(6000|6600)([^0-9a-f-]|$)/);
+      expect(detail.text).not.toContain(p1.body.inputs_fingerprint);
     }
     expect((await prisma.collectiveRelease.findUniqueOrThrow({ where: { id: r1.id } })).withdrawnAt).toBeNull();
     const list = await history(campaigns.C4);
@@ -558,7 +535,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     const cell = (await summary(campaigns.C4)).body.cells[0];
     expect(cell.status).toMatch(/^SUPPRESSED_/);
     expect(cell.total_base).toBeNull();
-    // Detail, listing/history and CSV of P1 and P2, a fresh draft and the summary: neither figure.
+    // Detail and listing/history of P1 and P2, a fresh draft and the summary: neither figure.
     await expectNoLongerServed(
       campaigns.C4,
       [p1.body.proposal_ref, p2.body.proposal_ref],
@@ -585,8 +562,6 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
         expect(line).toMatchObject({ status: "POLICY_PENDING", quantity_base: null, quantity_presentation: null, contributors: null });
       }
       expect(detail.text).not.toContain("11500");
-      const file = await proposalCsv(rawC2.body.proposal_ref);
-      expect(file.text).not.toContain("11500");
       // A campaign of another tenant is still 404, not 409.
       expect((await generate(campaigns.C2, otherTenantDirector)).status).toBe(404);
     } finally {

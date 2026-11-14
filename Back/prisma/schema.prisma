@@ -244,6 +244,15 @@ model Tenant {
   comparabilitySeasons     ComparabilitySeason[]
   campaignClassifications  CampaignSeasonClassification[]
   estimationJobs           EstimationJob[]
+  identificationRequests   ProductIdentificationRequest[]
+  jointPurchaseCalls       JointPurchaseCall[]
+  jointParticipations      JointPurchaseParticipation[]
+  proposalEstimationLinks  JointPurchaseProposalEstimationLink[]
+  proposalSelections       JointPurchaseProposalSelection[]
+  callOrigins              JointPurchaseCallOrigin[]
+  substitutionGrants       JointPurchaseSubstitutionGrant[]
+  substitutionGrantEvents  JointPurchaseSubstitutionGrantEvent[]
+  responsibleChanges       JointPurchaseResponsibleChange[]
 }
 
 model User {
@@ -258,36 +267,59 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tenant                    Tenant                         @relation(fields: [tenantId], references: [id])
+  tenant                    Tenant                                @relation(fields: [tenantId], references: [id])
   members                   Member[]
   refreshTokens             RefreshToken[]
   warehouses                Warehouse[]
   inventoryLots             InventoryLot[]
-  stockMovements            StockMovement[]                @relation("StockMovementActor")
-  ownedStockMovements       StockMovement[]                @relation("StockMovementOwner")
+  stockMovements            StockMovement[]                       @relation("StockMovementActor")
+  ownedStockMovements       StockMovement[]                       @relation("StockMovementOwner")
   purchases                 Purchase[]
   purchaseItemAllocations   PurchaseItemAllocation[]
   purchaseParticipants      PurchaseParticipant[]
   payableAccounts           PayableAccount[]
-  payments                  Payment[]                      @relation("PaymentRegistrar")
+  payments                  Payment[]                             @relation("PaymentRegistrar")
   syncOperations            SyncOperation[]
-  createdCampaigns          AgriculturalCampaign[]         @relation("CampaignCreator")
-  closedCampaigns           AgriculturalCampaign[]         @relation("CampaignCloser")
+  createdCampaigns          AgriculturalCampaign[]                @relation("CampaignCreator")
+  closedCampaigns           AgriculturalCampaign[]                @relation("CampaignCloser")
   plots                     Plot[]
   plotCropAssignments       PlotCropAssignment[]
-  ownedApplications         AgrochemicalApplication[]      @relation("AgrochemicalApplicationOwner")
-  appliedApplications       AgrochemicalApplication[]      @relation("AgrochemicalApplicationAppliedBy")
+  ownedApplications         AgrochemicalApplication[]             @relation("AgrochemicalApplicationOwner")
+  appliedApplications       AgrochemicalApplication[]             @relation("AgrochemicalApplicationAppliedBy")
   calendarEvents            CalendarEvent[]
-  auditLogsAsActor          AuditLog[]                     @relation("AuditActor")
-  auditLogsAsOwner          AuditLog[]                     @relation("AuditOwner")
-  productAssociationsMade   ProductCanonicalAssociation[]  @relation("ProductAssociationActor")
-  productAssociationsClosed ProductCanonicalAssociation[]  @relation("ProductAssociationCloser")
-  jointPurchaseProposals    JointPurchaseProposal[]        @relation("JointPurchaseProposalAuthor")
-  collectiveSeals           CollectiveSeal[]               @relation("CollectiveSealActor")
-  estimationRuns            EstimationRun[]                @relation("EstimationRunRequester")
-  estimationJobs            EstimationJob[]                @relation("EstimationJobRequester")
-  comparabilitySeasons      ComparabilitySeason[]          @relation("ComparabilitySeasonCreator")
-  campaignClassifications   CampaignSeasonClassification[] @relation("CampaignSeasonClassifier")
+  auditLogsAsActor          AuditLog[]                            @relation("AuditActor")
+  auditLogsAsOwner          AuditLog[]                            @relation("AuditOwner")
+  productAssociationsMade   ProductCanonicalAssociation[]         @relation("ProductAssociationActor")
+  productAssociationsClosed ProductCanonicalAssociation[]         @relation("ProductAssociationCloser")
+  jointPurchaseProposals    JointPurchaseProposal[]               @relation("JointPurchaseProposalAuthor")
+  collectiveSeals           CollectiveSeal[]                      @relation("CollectiveSealActor")
+  estimationRuns            EstimationRun[]                       @relation("EstimationRunRequester")
+  estimationJobs            EstimationJob[]                       @relation("EstimationJobRequester")
+  comparabilitySeasons      ComparabilitySeason[]                 @relation("ComparabilitySeasonCreator")
+  campaignClassifications   CampaignSeasonClassification[]        @relation("CampaignSeasonClassifier")
+  identificationsResolved   ProductIdentificationRequest[]        @relation("ProductIdentificationResolver")
+  identificationNotes       ProductIdentificationRequest[]        @relation("ProductIdentificationNoteAuthor")
+  identificationEvents      ProductIdentificationEvent[]          @relation("ProductIdentificationEventActor")
+  callsAsResponsible        JointPurchaseCall[]                   @relation("JointPurchaseCallResponsible")
+  callsCreated              JointPurchaseCall[]                   @relation("JointPurchaseCallCreator")
+  callsOpened               JointPurchaseCall[]                   @relation("JointPurchaseCallOpener")
+  callsCancelled            JointPurchaseCall[]                   @relation("JointPurchaseCallCanceller")
+  callAccessGrants          JointPurchaseCallAccess[]             @relation("JointPurchaseCallAccessHolder")
+  callAccessGranted         JointPurchaseCallAccess[]             @relation("JointPurchaseCallAccessGrantor")
+  callAccessEventsAbout     JointPurchaseCallAccessEvent[]        @relation("JointPurchaseCallAccessEventSubject")
+  callAccessEventsActed     JointPurchaseCallAccessEvent[]        @relation("JointPurchaseCallAccessEventActor")
+  callEvents                JointPurchaseCallEvent[]              @relation("JointPurchaseCallEventActor")
+  callClosings              JointPurchaseCallClosing[]            @relation("JointPurchaseCallCloser")
+  proposalEstimationLinks   JointPurchaseProposalEstimationLink[] @relation("JointPurchaseProposalEstimationLinkAuthor")
+  proposalSelections        JointPurchaseProposalSelection[]      @relation("JointPurchaseProposalSelectionEditor")
+  callOrigins               JointPurchaseCallOrigin[]             @relation("JointPurchaseCallOriginRecorder")
+  substitutionGrantsHeld    JointPurchaseSubstitutionGrant[]      @relation("SubstitutionGrantHolder")
+  substitutionGrantsGiven   JointPurchaseSubstitutionGrant[]      @relation("SubstitutionGrantGrantor")
+  substitutionEventsAbout   JointPurchaseSubstitutionGrantEvent[] @relation("SubstitutionGrantEventSubject")
+  substitutionEventsActed   JointPurchaseSubstitutionGrantEvent[] @relation("SubstitutionGrantEventActor")
+  responsibleChangesFrom    JointPurchaseResponsibleChange[]      @relation("ResponsibleChangePrevious")
+  responsibleChangesTo      JointPurchaseResponsibleChange[]      @relation("ResponsibleChangeNew")
+  responsibleChangesActed   JointPurchaseResponsibleChange[]      @relation("ResponsibleChangeActor")
 }
 
 model Member {
@@ -299,13 +331,16 @@ model Member {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
-  user                    User                     @relation(fields: [userId], references: [id])
+  tenant                  Tenant                                @relation(fields: [tenantId], references: [id])
+  user                    User                                  @relation(fields: [userId], references: [id])
   clientRegistrations     ClientRegistration[]
   authSessions            AuthSession[]
   syncV1OperationJournals SyncV1OperationJournal[]
   syncV1Contributions     SyncV1Contribution[]
   backupMetadata          BackupMetadata[]
+  identificationRequests  ProductIdentificationRequest[]
+  jointParticipations     JointPurchaseParticipation[]
+  jointOperations         JointPurchaseParticipationOperation[]
 
   @@unique([tenantId, userId])
   // Referenced by the journal's composite FK: Member must belong to its tenant.
@@ -398,20 +433,26 @@ model Product {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  tenant                     Tenant                        @relation(fields: [tenantId], references: [id])
+  tenant                     Tenant                           @relation(fields: [tenantId], references: [id])
   inventoryLots              InventoryLot[]
   movements                  StockMovement[]
   purchaseItems              PurchaseItem[]
   demandForecasts            DemandForecast[]
   agrochemicalApplications   AgrochemicalApplication[]
   syncV1Contributions        SyncV1Contribution[]
-  denominationAssociations   ProductCanonicalAssociation[] @relation("ProductAssociationDenomination")
-  canonicalAssociations      ProductCanonicalAssociation[] @relation("ProductAssociationCanonical")
+  denominationAssociations   ProductCanonicalAssociation[]    @relation("ProductAssociationDenomination")
+  canonicalAssociations      ProductCanonicalAssociation[]    @relation("ProductAssociationCanonical")
   collectiveReleases         CollectiveRelease[]
   jointPurchaseProposalLines JointPurchaseProposalLine[]
   collectiveSealEntries      CollectiveSealEntry[]
   consumptionSeries          ConsumptionSeries[]
   estimationResults          EstimationResult[]
+  identificationRequests     ProductIdentificationRequest[]   @relation("ProductIdentificationProduct")
+  identificationEvents       ProductIdentificationEvent[]     @relation("ProductIdentificationEventProduct")
+  jointPurchaseCallProducts  JointPurchaseCallProduct[]
+  callOriginProducts         JointPurchaseCallOriginProduct[]
+  jointPurchaseLines         JointPurchaseParticipationLine[]
+  jointPurchaseClosingLines  JointPurchaseCallClosingLine[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, qrCodeValue])
@@ -474,6 +515,7 @@ model AgriculturalCampaign {
   estimationRuns           EstimationRun[]
   seasonClassifications    CampaignSeasonClassification[]
   estimationJobs           EstimationJob[]
+  jointPurchaseCalls       JointPurchaseCall[]
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -1054,6 +1096,9 @@ model CollectiveRelease {
   dataAsOf           DateTime?
   releasedAt         DateTime             @default(now())
   withdrawnAt        DateTime?
+  /// E4 §4.4: política con que se decidió. NULL = anterior a E4 (F07-POL-01,
+  /// siempre con 3 o más aportantes); sin relleno.
+  policy             String?              @db.VarChar(16)
 
   tenant           Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   campaign         AgriculturalCampaign        @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1147,13 +1192,22 @@ model JointPurchaseProposal {
   // before the change (contributors of every cell, suppressed ones included);
   // PUBLISHED_FIGURES = Members inside a published figure. Never rewritten.
   coverageBasis           String?                     @db.VarChar(24)
+  // E4 §4.4: disclosure policy the draft was generated with. NULL = drafts
+  // generated before E4 (F07-POL-01). Never rewritten.
+  disclosurePolicy        String?                     @db.VarChar(16)
   generatedAt             DateTime                    @default(now())
   generatedByUserId       String
 
-  tenant      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  campaign    AgriculturalCampaign        @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  generatedBy User                        @relation("JointPurchaseProposalAuthor", fields: [generatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  lines       JointPurchaseProposalLine[]
+  tenant          Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign        AgriculturalCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  generatedBy     User                                  @relation("JointPurchaseProposalAuthor", fields: [generatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  lines           JointPurchaseProposalLine[]
+  calls           JointPurchaseCall[]
+  /// E3-P2: convocatorias creadas desde este borrador (origen inmutable).
+  callOrigins     JointPurchaseCallOrigin[]
+  /// E3: referencia de consumo estimado fijada (vínculos inmutables) y selección de productos.
+  estimationLinks JointPurchaseProposalEstimationLink[]
+  selection       JointPurchaseProposalSelection?
 
   @@index([tenantId, campaignId, generatedAt])
 }
@@ -1170,9 +1224,11 @@ model JointPurchaseProposalLine {
   releaseId          String?                         @db.Uuid
   pendingChanges     Boolean                         @default(false)
 
-  proposal         JointPurchaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  canonicalProduct Product               @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  release          CollectiveRelease?    @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  proposal         JointPurchaseProposal            @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  canonicalProduct Product                          @relation(fields: [canonicalProductId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  release          CollectiveRelease?               @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  callProducts     JointPurchaseCallProduct[]
+  callOrigins      JointPurchaseCallOriginProduct[]
 
   @@id([proposalId, position])
   @@unique([proposalId, canonicalProductId, baseUnit])
@@ -1204,7 +1260,9 @@ model CollectiveSeal {
   sealedByRole            UserRole
   disclosureMode          String   @db.VarChar(32)
   policy                  String   @db.VarChar(16)
-  threshold               Int
+  /// E4 §4.4: 3 con F07-POL-01; NULL con F07-POL-02 (sin umbral). CHECK
+  /// política ⇔ umbral en la migración.
+  threshold               Int?
   linkedMembers           Int
   membersWithContribution Int
   suppressedCells         Boolean
@@ -1448,10 +1506,11 @@ model EstimationJob {
   stopCode          String?             @db.VarChar(48)
   stopEvidence      Json?
 
-  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  requestedBy    User                 @relation("EstimationJobRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  targetCampaign AgriculturalCampaign @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant         Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy    User                                  @relation("EstimationJobRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetCampaign AgriculturalCampaign                  @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   run            EstimationRun?
+  proposalLinks  JointPurchaseProposalEstimationLink[]
 
   @@unique([tenantId, requestId])
   @@index([status, enqueuedAt])
@@ -1484,22 +1543,24 @@ model EstimationRun {
   horizon                Int
   disclosureMode         String               @db.VarChar(32)
   policy                 String               @db.VarChar(16)
-  threshold              Int
+  /// E4 §4.4: 3 con F07-POL-01; NULL con F07-POL-02. CHECK política ⇔ umbral.
+  threshold              Int?
   outcome                EstimationRunOutcome
   failureCode            String?              @db.VarChar(48)
   previousRunId          String?              @db.Uuid
   contentHash            String               @db.Char(64)
   generatedAt            DateTime             @default(now())
 
-  tenant               Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  job                  EstimationJob                @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  requestedBy          User                         @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  targetCampaign       AgriculturalCampaign         @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  season               ComparabilitySeason          @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  targetClassification CampaignSeasonClassification @relation(fields: [targetClassificationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  previousRun          EstimationRun?               @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  nextRun              EstimationRun?               @relation("EstimationRunSuccession")
+  tenant               Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  job                  EstimationJob                         @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy          User                                  @relation("EstimationRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetCampaign       AgriculturalCampaign                  @relation(fields: [targetCampaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  season               ComparabilitySeason                   @relation(fields: [seasonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  targetClassification CampaignSeasonClassification          @relation(fields: [targetClassificationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previousRun          EstimationRun?                        @relation("EstimationRunSuccession", fields: [previousRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  nextRun              EstimationRun?                        @relation("EstimationRunSuccession")
   results              EstimationResult[]
+  proposalLinks        JointPurchaseProposalEstimationLink[]
 
   @@unique([previousRunId])
   @@index([tenantId, targetCampaignId, generatedAt])
@@ -1534,4 +1595,620 @@ model EstimationResult {
 
   @@id([runId, canonicalProductId, baseUnit])
   @@index([seriesId])
+}
+
+/// E1 (etapa 1): solicitud de identificación de un producto reportado por el
+/// agricultor. No es un `Product`: queda PENDING hasta que la Directiva (o el
+/// Administrador del mismo tenant) lo vincula a un producto existente o crea
+/// uno colectivo. El vínculo en el teléfono sigue siendo una elección del
+/// agricultor (E1-D4).
+enum ProductIdentificationStatus {
+  PENDING
+  LINKED
+}
+
+enum ProductIdentificationResolution {
+  LINKED_EXISTING
+  CREATED_PRODUCT
+}
+
+enum ProductIdentificationPhotoState {
+  NONE
+  STORED
+  REMOVED
+}
+
+enum ProductIdentificationEventKind {
+  RECEIVED
+  UPDATED
+  PHOTO_RECEIVED
+  PHOTO_REPLACED
+  PHOTO_REMOVED
+  LINKED
+  RELINKED
+  PRODUCT_CREATED
+  NOTE
+}
+
+/// E1 §3. Sólo metadatos de la foto: el binario vive en el almacenamiento
+/// privado (E1-D8), bajo una clave UUID generada por el servidor.
+model ProductIdentificationRequest {
+  id                  String                           @id @default(uuid()) @db.Uuid
+  tenantId            String
+  memberId            String
+  /// UUID v4 generado por el teléfono (idempotencia, E1-D3).
+  clientRequestId     String                           @db.Uuid
+  localName           String                           @db.VarChar(120)
+  activeIngredient    String?                          @db.VarChar(120)
+  /// "L" | "KG" (CHECK en la migración); inmutable.
+  unit                String                           @db.VarChar(2)
+  baseUnit            SyncV1BaseUnit
+  status              ProductIdentificationStatus      @default(PENDING)
+  resolution          ProductIdentificationResolution?
+  productId           String?
+  resolvedByUserId    String?
+  resolvedAt          DateTime?
+  resolutionReason    String?                          @db.VarChar(280)
+  pendingNote         String?                          @db.VarChar(280)
+  pendingNoteByUserId String?
+  pendingNoteAt       DateTime?
+  photoState          ProductIdentificationPhotoState  @default(NONE)
+  photoStorageKey     String?                          @unique @db.Uuid
+  photoSha256         String?                          @db.Char(64)
+  photoContentType    String?                          @db.VarChar(16)
+  photoSizeBytes      Int?
+  photoWidth          Int?
+  photoHeight         Int?
+  photoConsentVersion String?                          @db.VarChar(16)
+  photoConsentAt      DateTime?
+  photoStoredAt       DateTime?
+  photoRemovedAt      DateTime?
+  receivedAt          DateTime                         @default(now())
+  updatedAt           DateTime                         @updatedAt
+
+  tenant        Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member        Member                       @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  product       Product?                     @relation("ProductIdentificationProduct", fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  resolvedBy    User?                        @relation("ProductIdentificationResolver", fields: [resolvedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  pendingNoteBy User?                        @relation("ProductIdentificationNoteAuthor", fields: [pendingNoteByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  events        ProductIdentificationEvent[]
+
+  @@unique([tenantId, memberId, clientRequestId])
+  @@index([tenantId, status, receivedAt])
+}
+
+/// E1-D13: historial de una solicitud. No se borra ni se modifica (trigger en
+/// la migración). `actorUserId` null = el agricultor, que nunca se nombra.
+model ProductIdentificationEvent {
+  id          String                         @id @default(uuid()) @db.Uuid
+  requestId   String                         @db.Uuid
+  at          DateTime                       @default(now())
+  kind        ProductIdentificationEventKind
+  actorUserId String?
+  productId   String?
+  /// Motivo o nota; nunca nombres de personas ni rutas de archivo.
+  detail      String?                        @db.VarChar(280)
+
+  request ProductIdentificationRequest @relation(fields: [requestId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor   User?                        @relation("ProductIdentificationEventActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  product Product?                     @relation("ProductIdentificationEventProduct", fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([requestId, at])
+}
+
+/// E2 (etapa 2): convocatorias de compra conjunta y participación identificada
+/// (docs/architecture/E2_CONVOCATORIAS_COMPRA_CONJUNTA_CONTRATO.md §3). Una
+/// participación no es una compra ni una deuda: nada aquí escribe compras,
+/// cuentas, pagos, inventario ni Sync v1.
+enum JointPurchaseCallStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum JointPurchaseCallEventKind {
+  CREATED
+  UPDATED
+  OPENED
+  CLOSED
+  CANCELLED
+  RESPONSIBLE_ASSIGNED
+  /// E2-P3 (§10.2): concesión y revocación de permisos de colaboradores.
+  ACCESS_GRANTED
+  ACCESS_REVOKED
+  /// P-A (§12): sustitución de la persona responsable y revisión de delegaciones.
+  RESPONSIBLE_REPLACED
+  ACCESS_CONFIRMED
+}
+
+/// E2-P3 (§10.2): acción registrada en JointPurchaseCallAccessEvent.
+enum JointPurchaseCallAccessAction {
+  GRANTED
+  REVOKED
+  /// P-A (§12): suspendida al sustituir a la responsable; confirmada por la sucesora.
+  SUSPENDED
+  CONFIRMED
+}
+
+enum JointPurchaseParticipationStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
+enum JointPurchaseCallCloseMode {
+  MANUAL
+  AUTOMATIC
+}
+
+/// E2-D1/D2: convocatoria; nombre, fecha límite, responsable y productos no
+/// cambian después de abrir (CHECK de estados coherentes en la migración).
+model JointPurchaseCall {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  tenantId           String
+  campaignId         String
+  name               String                  @db.VarChar(120)
+  status             JointPurchaseCallStatus @default(DRAFT)
+  deadlineAt         DateTime
+  responsibleUserId  String
+  sourceProposalId   String?                 @db.Uuid
+  createdByUserId    String
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  openedAt           DateTime?
+  openedByUserId     String?
+  closedAt           DateTime?
+  cancelledAt        DateTime?
+  cancelledByUserId  String?
+  cancelReason       String?                 @db.VarChar(280)
+  /// P-A (§12): versión de la responsabilidad; empieza en 1 y sólo la sube una
+  /// sustitución (JointPurchaseResponsibleChange). Las autorizaciones de los
+  /// agricultores y las delegaciones se atan a una versión concreta.
+  responsibleVersion Int                     @default(1)
+
+  tenant             Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaign           AgriculturalCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  responsible        User                                  @relation("JointPurchaseCallResponsible", fields: [responsibleUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy          User                                  @relation("JointPurchaseCallCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  openedBy           User?                                 @relation("JointPurchaseCallOpener", fields: [openedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  cancelledBy        User?                                 @relation("JointPurchaseCallCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProposal     JointPurchaseProposal?                @relation(fields: [sourceProposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  products           JointPurchaseCallProduct[]
+  participations     JointPurchaseParticipation[]
+  operations         JointPurchaseParticipationOperation[]
+  consentDecisions   JointPurchaseConsentDecision[]
+  events             JointPurchaseCallEvent[]
+  access             JointPurchaseCallAccess[]
+  accessEvents       JointPurchaseCallAccessEvent[]
+  closing            JointPurchaseCallClosing?
+  /// E3-P2: productos y procedencia con que se creó (sólo inserción); NULL antes de la migración.
+  origin             JointPurchaseCallOrigin?
+  responsibleChanges JointPurchaseResponsibleChange[]
+
+  @@index([tenantId, campaignId, status])
+  @@index([status, deadlineAt])
+}
+
+/// Producto colectivo de la convocatoria. `openCampaignId` = `campaignId`
+/// mientras la convocatoria está OPEN y NULL en otro caso: índice único parcial
+/// (tenantId, openCampaignId, productId) en la migración (E2-D3).
+model JointPurchaseCallProduct {
+  callId           String         @db.Uuid
+  position         Int
+  tenantId         String
+  productId        String
+  baseUnit         SyncV1BaseUnit
+  openCampaignId   String?
+  /// Línea de origen (proposalId, position) de un borrador F07: sólo referencia.
+  sourceProposalId String?        @db.Uuid
+  sourcePosition   Int?
+
+  call       JointPurchaseCall          @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  product    Product                    @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceLine JointPurchaseProposalLine? @relation(fields: [sourceProposalId, sourcePosition], references: [proposalId, position], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([callId, position])
+  @@unique([callId, productId])
+}
+
+/// E2-D6 y E2-P3 (§10.2): permisos por convocatoria, `PARTICIPANTS` o
+/// `MANAGE`. E4 (2026-11-13): las filas `PARTICIPANTS` son historia y no dan
+/// acceso (el detalle lo consulta la Administración habilitada por rol); la
+/// base rechaza insertar o borrar una (disparador). `MANAGE` sigue como antes:
+/// sólo la responsable lo concede; revocar borra la fila y la traza queda en
+/// JointPurchaseCallAccessEvent.
+model JointPurchaseCallAccess {
+  callId             String   @db.Uuid
+  userId             String
+  grant              String   @db.VarChar(16)
+  grantedAt          DateTime @default(now())
+  grantedByUserId    String?
+  /// P-A (§12): versión de la responsabilidad con que se concedió. Una
+  /// delegación de otra versión queda suspendida hasta que la sucesora la
+  /// revise (la confirma con una fila nueva o la retira).
+  responsibleVersion Int      @default(1)
+
+  call      JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user      User              @relation("JointPurchaseCallAccessHolder", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  grantedBy User?             @relation("JointPurchaseCallAccessGrantor", fields: [grantedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([callId, userId, grant])
+}
+
+/// E2-P3 (§10.2): registro sólo de inserción (disparador en la migración) de
+/// cada concesión y revocación de un permiso de colaborador.
+model JointPurchaseCallAccessEvent {
+  id          String                        @id @default(uuid()) @db.Uuid
+  callId      String                        @db.Uuid
+  userId      String
+  grant       String                        @db.VarChar(16)
+  action      JointPurchaseCallAccessAction
+  actorUserId String
+  at          DateTime                      @default(now())
+
+  call  JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user  User              @relation("JointPurchaseCallAccessEventSubject", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor User              @relation("JointPurchaseCallAccessEventActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([callId, at])
+  @@index([callId, userId, grant])
+}
+
+/// E2-D8/D9: una participación por (convocatoria, Member), con el
+/// consentimiento CONV-1 aceptado en el teléfono y recibido por el servidor.
+model JointPurchaseParticipation {
+  id                        String                           @id @default(uuid()) @db.Uuid
+  callId                    String                           @db.Uuid
+  tenantId                  String
+  memberId                  String
+  status                    JointPurchaseParticipationStatus
+  consentVersion            String                           @db.VarChar(16)
+  consentAcceptedAt         DateTime
+  consentReceivedAt         DateTime
+  lastSequence              Int
+  lastOperationId           String                           @db.Uuid
+  acceptedAt                DateTime
+  createdAt                 DateTime                         @default(now())
+  updatedAt                 DateTime                         @updatedAt
+  /// §10.6 (P-C): alcance vigente del consentimiento, fijado por la última
+  /// decisión aceptada (orden propio, 0 = la aceptación inicial). Las
+  /// cantidades nunca lo cambian.
+  consentScope              JointPurchaseConsentScope
+  consentScopeVersion       String                           @db.VarChar(16)
+  consentScopeDecidedAt     DateTime
+  consentScopeReceivedAt    DateTime
+  consentScopeSequence      Int                              @default(0)
+  /// P-A C1 (§12): versión de la responsabilidad que autorizó el agricultor.
+  /// Sólo coincide con la de la convocatoria si autorizó a la responsable
+  /// actual; NULL = ninguna comprobable (p. ej., primera confirmación de una
+  /// versión anterior de la app después de una sustitución). Las cantidades
+  /// nunca la cambian.
+  consentResponsibleVersion Int?
+
+  call      JointPurchaseCall                @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant    Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member    Member                           @relation(fields: [tenantId, memberId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  lines     JointPurchaseParticipationLine[]
+  decisions JointPurchaseConsentDecision[]
+
+  @@unique([callId, memberId])
+}
+
+/// §10.6 (P-C): quién puede ver el nombre y las cantidades del agricultor.
+/// E4 §4.2 (2026-11-13): ADMINISTRATION (CONV-4: la Administración habilitada
+/// ve el detalle) y TOTALS_ONLY (retiró esa autorización; cubre sólo los
+/// totales). Los dos anteriores se conservan como se aceptaron y ya no dan
+/// acceso al detalle a nadie.
+enum JointPurchaseConsentScope {
+  RESPONSIBLE_ONLY
+  COLLABORATORS
+  ADMINISTRATION
+  TOTALS_ONLY
+}
+
+/// §10.6 (P-C): registro sólo de inserción de cada decisión sobre el
+/// consentimiento: la aceptación inicial (INITIAL), cada ampliación o
+/// reducción explícita (DECISION, con su operation_id) y el alcance que ya
+/// tenían las participaciones anteriores a la migración (MIGRATED).
+model JointPurchaseConsentDecision {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  participationId    String                    @db.Uuid
+  callId             String                    @db.Uuid
+  memberId           String
+  scope              JointPurchaseConsentScope
+  consentVersion     String                    @db.VarChar(16)
+  decidedAt          DateTime
+  receivedAt         DateTime
+  sequence           Int
+  operationId        String?                   @db.Uuid
+  source             String                    @db.VarChar(16)
+  /// P-A C1 (§12): versión de la responsabilidad que esta decisión autoriza
+  /// (INITIAL o una autorización explícita); NULL si no autoriza a ninguna.
+  responsibleVersion Int?
+
+  participation JointPurchaseParticipation @relation(fields: [participationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  call          JointPurchaseCall          @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([participationId, sequence])
+}
+
+/// Cantidad solicitada en la unidad base del producto (entero > 0, CHECK).
+model JointPurchaseParticipationLine {
+  participationId String         @db.Uuid
+  productId       String
+  baseUnit        SyncV1BaseUnit
+  quantityBase    BigInt
+
+  participation JointPurchaseParticipation @relation(fields: [participationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  product       Product                    @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([participationId, productId])
+}
+
+/// E2-D10: diario de operaciones del agricultor (idempotencia y orden). Se
+/// registra toda operación decidida con la convocatoria bloqueada; `response`
+/// guarda la respuesta enviada para devolverla igual ante un reintento.
+model JointPurchaseParticipationOperation {
+  callId      String   @db.Uuid
+  memberId    String
+  operationId String   @db.Uuid
+  sequence    Int
+  kind        String   @db.VarChar(16)
+  outcome     String   @db.VarChar(24)
+  fingerprint String   @db.Char(64)
+  response    Json
+  receivedAt  DateTime @default(now())
+
+  call   JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  member Member            @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([callId, memberId, operationId])
+  @@index([callId, memberId, outcome, sequence])
+}
+
+/// Historial de la convocatoria; sin nombres ni cantidades de agricultores. No
+/// se modifica ni se borra (trigger en la migración).
+model JointPurchaseCallEvent {
+  id          String                     @id @default(uuid()) @db.Uuid
+  callId      String                     @db.Uuid
+  at          DateTime                   @default(now())
+  kind        JointPurchaseCallEventKind
+  actorUserId String?
+  detail      String?                    @db.VarChar(280)
+
+  call  JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor User?             @relation("JointPurchaseCallEventActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([callId, at])
+}
+
+/// E2-D13: «Consolidado al cierre», instantánea inmutable (trigger en la
+/// migración para las cuatro tablas del cierre).
+model JointPurchaseCallClosing {
+  callId           String                     @id @db.Uuid
+  mode             JointPurchaseCallCloseMode
+  cutoffAt         DateTime
+  closedAt         DateTime
+  closedByUserId   String?
+  participantCount Int
+
+  call         JointPurchaseCall                     @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  closedBy     User?                                 @relation("JointPurchaseCallCloser", fields: [closedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  lines        JointPurchaseCallClosingLine[]
+  participants JointPurchaseCallClosingParticipant[]
+}
+
+model JointPurchaseCallClosingLine {
+  callId            String         @db.Uuid
+  productId         String
+  baseUnit          SyncV1BaseUnit
+  totalQuantityBase BigInt
+  participantCount  Int
+
+  closing JointPurchaseCallClosing @relation(fields: [callId], references: [callId], onDelete: Restrict, onUpdate: Restrict)
+  product Product                  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([callId, productId])
+}
+
+model JointPurchaseCallClosingParticipant {
+  callId          String   @db.Uuid
+  participationId String   @db.Uuid
+  memberId        String
+  acceptedAt      DateTime
+
+  closing JointPurchaseCallClosing                  @relation(fields: [callId], references: [callId], onDelete: Restrict, onUpdate: Restrict)
+  lines   JointPurchaseCallClosingParticipantLine[]
+
+  @@id([callId, participationId])
+}
+
+model JointPurchaseCallClosingParticipantLine {
+  callId          String @db.Uuid
+  participationId String @db.Uuid
+  productId       String
+  quantityBase    BigInt
+
+  participant JointPurchaseCallClosingParticipant @relation(fields: [callId, participationId], references: [callId, participationId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([callId, participationId, productId])
+}
+
+/// E3 (docs/architecture/E3_ESTIMACION_EN_BORRADOR_CONTRATO.md §3): vínculo
+/// inmutable entre un borrador de propuesta y la ejecución F12 que fija como
+/// referencia de consumo estimado, o el trabajo que la producirá. La vigente
+/// es la de mayor `sequence`; un vínculo CLEAR la quita. El trabajador F12 no
+/// escribe aquí. `requestHash` (SHA-256 del cuerpo canónico de prepare/clear)
+/// distingue la repetición de un `requestId` de su reutilización con otro cuerpo.
+model JointPurchaseProposalEstimationLink {
+  id              String   @id @default(uuid()) @db.Uuid
+  proposalId      String   @db.Uuid
+  tenantId        String
+  sequence        Int
+  requestId       String   @db.Uuid
+  requestHash     String   @db.Char(64)
+  mode            String   @db.VarChar(8)
+  action          String   @db.VarChar(24)
+  runId           String?  @db.Uuid
+  jobId           String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  createdByUserId String
+  createdByRole   String   @db.VarChar(16)
+
+  proposal  JointPurchaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  run       EstimationRun?        @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  job       EstimationJob?        @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy User                  @relation("JointPurchaseProposalEstimationLinkAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([proposalId, sequence])
+  @@unique([proposalId, requestId])
+  @@index([runId])
+  @@index([jobId])
+}
+
+/// E3 §6: la única decisión editable del borrador, qué productos llevar a una
+/// convocatoria; control optimista por `revision`. Cada cambio deja una entrada
+/// de AuditLog. La estimación nunca la cambia.
+model JointPurchaseProposalSelection {
+  proposalId      String   @id @db.Uuid
+  tenantId        String
+  revision        Int
+  productRefs     Json
+  updatedAt       DateTime
+  updatedByUserId String
+
+  proposal  JointPurchaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  updatedBy User                  @relation("JointPurchaseProposalSelectionEditor", fields: [updatedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+}
+
+enum JointPurchaseCallOriginKind {
+  PROPOSAL
+  CATALOG
+}
+
+/// E3-P2: de dónde salió la convocatoria al crearla, una fila por convocatoria
+/// y sólo de inserción (disparadores en la migración). PROPOSAL guarda el
+/// borrador, su huella en ese momento y la revisión de su selección guardada
+/// (NULL si nunca se guardó); `selectionMatched` dice si los productos al crear
+/// eran exactamente los de esa selección (sin importar el orden). CATALOG no
+/// guarda ninguna referencia. Nunca cantidades, cifras, aportantes ni
+/// estimaciones. Las ediciones posteriores del borrador no la cambian.
+model JointPurchaseCallOrigin {
+  callId              String                      @id @db.Uuid
+  tenantId            String
+  kind                JointPurchaseCallOriginKind
+  proposalId          String?                     @db.Uuid
+  proposalFingerprint String?                     @db.Char(64)
+  selectionRevision   Int?
+  selectionMatched    Boolean?
+  recordedAt          DateTime
+  recordedByUserId    String
+
+  call       JointPurchaseCall                @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant     Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  proposal   JointPurchaseProposal?           @relation(fields: [proposalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  recordedBy User                             @relation("JointPurchaseCallOriginRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  products   JointPurchaseCallOriginProduct[]
+}
+
+/// E3-P2: producto de la convocatoria tal como quedó al crearla (orden y
+/// unidad). `proposalId`/`proposalPosition` citan la línea del borrador de la
+/// que venía (NULL si no venía de una línea); `proposalId` repite el del origen
+/// para la clave foránea compuesta. Sólo inserción.
+model JointPurchaseCallOriginProduct {
+  callId           String         @db.Uuid
+  position         Int
+  productId        String
+  baseUnit         SyncV1BaseUnit
+  proposalId       String?        @db.Uuid
+  proposalPosition Int?
+
+  origin       JointPurchaseCallOrigin    @relation(fields: [callId], references: [callId], onDelete: Restrict, onUpdate: Restrict)
+  product      Product                    @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  proposalLine JointPurchaseProposalLine? @relation(fields: [proposalId, proposalPosition], references: [proposalId, position], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([callId, position])
+  @@unique([callId, productId])
+}
+
+/// P-A A1 (§12, decisión del autor del 2026-11-12): permiso del sindicato
+/// «Sustituir responsable», concedido por una persona ADMINISTRADOR habilitada
+/// a una persona concreta y habilitada de la Directiva o la Administración del
+/// mismo sindicato, nunca a sí misma ni a un rol entero. Revocar borra la fila;
+/// la traza queda en JointPurchaseSubstitutionGrantEvent. Sólo permite
+/// sustituir responsables (B1): no da acceso a participantes ni administración.
+/// E4 §3.2 (2026-11-13): historia, no da ningún poder; sustituye la
+/// Administración habilitada. Las filas se conservan sin borrar.
+model JointPurchaseSubstitutionGrant {
+  tenantId        String
+  userId          String
+  grantedByUserId String
+  grantedAt       DateTime
+  reason          String   @db.VarChar(280)
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user      User   @relation("SubstitutionGrantHolder", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  grantedBy User   @relation("SubstitutionGrantGrantor", fields: [grantedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([tenantId, userId])
+}
+
+/// P-A A1: registro sólo de inserción de cada concesión y revocación del permiso.
+model JointPurchaseSubstitutionGrantEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String
+  userId      String
+  action      String   @db.VarChar(16)
+  actorUserId String
+  at          DateTime
+  reason      String?  @db.VarChar(280)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user   User   @relation("SubstitutionGrantEventSubject", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor  User   @relation("SubstitutionGrantEventActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([tenantId, at])
+}
+
+/// P-A B1 (§12): cada sustitución de la persona responsable, sólo de
+/// inserción. `version` es la versión nueva de la responsabilidad;
+/// `requestId`/`requestHash` hacen idempotente el reintento.
+model JointPurchaseResponsibleChange {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  callId               String                  @db.Uuid
+  tenantId             String
+  version              Int
+  previousUserId       String
+  newUserId            String
+  actorUserId          String
+  reason               String                  @db.VarChar(280)
+  at                   DateTime
+  callStatus           JointPurchaseCallStatus
+  suspendedDelegations Int
+  requestId            String                  @db.Uuid
+  requestHash          String                  @db.Char(64)
+
+  call     JointPurchaseCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  previous User              @relation("ResponsibleChangePrevious", fields: [previousUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  next     User              @relation("ResponsibleChangeNew", fields: [newUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor    User              @relation("ResponsibleChangeActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([callId, version])
+  @@unique([callId, requestId])
+}
+
+/// E4 §5.1 (D-03): cada vez que la política colectiva configurada
+/// (`COLLECTIVE_DISCLOSURE_POLICY`) difiere de la última registrada, el
+/// arranque inserta una fila. Sólo de inserción (disparador); vacía al migrar.
+model CollectiveDisclosurePolicyActivation {
+  id             String   @id @default(uuid()) @db.Uuid
+  policy         String   @db.VarChar(16)
+  previousPolicy String?  @db.VarChar(16)
+  activatedAt    DateTime
+  source         String   @db.VarChar(16)
+
+  @@index([activatedAt])
 }

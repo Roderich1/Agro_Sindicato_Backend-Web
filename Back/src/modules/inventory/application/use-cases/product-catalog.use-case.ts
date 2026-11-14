@@ -26,8 +26,16 @@ export class ProductCatalogUseCase {
     return products.map((product) => this.map(product));
   }
 
-  async create(tenantId: string, dto: CreateProductDto) {
-    const existing = await this.prisma.product.findUnique({
+  /**
+   * `client` lets a caller create the product inside its own transaction
+   * (E1 create-product: the product and its link are one unit of work).
+   */
+  async create(
+    tenantId: string,
+    dto: CreateProductDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const existing = await client.product.findUnique({
       where: { tenantId_name: { tenantId, name: dto.name.trim() } },
     });
 
@@ -36,9 +44,9 @@ export class ProductCatalogUseCase {
     }
 
     const qrCodeValue = dto.qrCodeValue?.trim() || this.generateQrCodeValue();
-    await this.ensureQrCodeAvailable(tenantId, qrCodeValue);
+    await this.ensureQrCodeAvailable(tenantId, qrCodeValue, undefined, client);
 
-    const product = await this.prisma.product.create({
+    const product = await client.product.create({
       data: {
         tenantId,
         name: dto.name.trim(),
@@ -118,8 +126,13 @@ export class ProductCatalogUseCase {
     return this.map(updated);
   }
 
-  private async ensureQrCodeAvailable(tenantId: string, qrCodeValue: string, currentProductId?: string) {
-    const duplicated = await this.prisma.product.findFirst({
+  private async ensureQrCodeAvailable(
+    tenantId: string,
+    qrCodeValue: string,
+    currentProductId?: string,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const duplicated = await client.product.findFirst({
       where: {
         tenantId,
         qrCodeValue,

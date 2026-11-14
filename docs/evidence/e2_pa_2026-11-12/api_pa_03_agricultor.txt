@@ -1,0 +1,14 @@
+## forma por contrato tras la sustitución (agricultor1)
+{"contract":3,"contractVersion":3,"responsible":{"name":"Sucesora PA (sintética)","version":2},"participation":{"status":"ACTIVE","scope":"COLLABORATORS","authorization":{"authorized":false,"version":1},"lines":1},"participation_keys":["accepted_at","consent","consent_scope","last_operation_id","last_sequence","lines","responsible_authorization","status"]}
+{"contract":2,"contractVersion":2,"responsible":{"name":"Sucesora PA (sintética)"},"participation":{"status":"ACTIVE","scope":"COLLABORATORS","authorization":"(sin dato en este contrato)","lines":1},"participation_keys":["accepted_at","consent","consent_scope","last_operation_id","last_sequence","lines","status"]}
+## contrato 1 (sin cabecera): lista
+{"root_keys": "calls,consent,contractVersion,server_time", "contractVersion": 1, "consent": "CONV-1", "participations": [{"call": "123434f8", "status": "ACTIVE", "consent": "CONV-3", "scope": "(sin consent_scope)", "participation_keys": "accepted_at,consent,last_operation_id,last_sequence,lines,status"}]}
+## cantidades nunca autorizan (contrato 2 y 3)
+{"modify":2,"status":200,"outcome":"ACCEPTED","participation":{"status":"ACTIVE","scope":"RESPONSIBLE_ONLY","authorization":"(sin dato en este contrato)","lines":1}}
+{"modify":3,"status":200,"outcome":"ACCEPTED","participation":{"status":"ACTIVE","scope":"COLLABORATORS","authorization":{"authorized":false,"version":1},"lines":1}}
+## ampliar sin autorizar (contrato 2, app v18)
+{"action":"widen","contract":2,"shown_version":null,"status":409,"outcome":"AUTHORIZATION_REQUIRED","responsible_version":2,"participation":{"status":"ACTIVE","scope":"RESPONSIBLE_ONLY","authorization":"(sin dato en este contrato)","lines":1},"retry_same_status":409}
+## autorización pendiente para la responsable anterior (versión 1)
+{"action":"authorize","contract":3,"shown_version":1,"status":409,"outcome":"RESPONSIBLE_CHANGED","responsible_version":2,"participation":{"status":"ACTIVE","scope":"COLLABORATORS","authorization":{"authorized":false,"version":1},"lines":1},"retry_same_status":409}
+## autorizar sólo a la nueva (versión 2)
+{"action":"authorize","contract":3,"shown_version":2,"status":200,"outcome":"ACCEPTED","participation":{"status":"ACTIVE","scope":"RESPONSIBLE_ONLY","authorization":{"authorized":true,"version":2},"lines":1},"retry_same_status":200}

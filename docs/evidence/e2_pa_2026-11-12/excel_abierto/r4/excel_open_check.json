@@ -1,0 +1,11 @@
+﻿{
+    "file":  "resumen-de-campana-2026-11-12.xlsx",
+    "sheet":  "Resumen de campaña",
+    "filter":  true,
+    "frozen":  true,
+    "split_row":  5,
+    "used":  "A1:C13",
+    "formats":  "A2=General; B2=General; A3=General; B3=General; A5=General; B5=General",
+    "col_widths":  "35.2,16,20.8",
+    "shot":  "excel_resumen-de-campana-2026-11-12_01.png"
+}

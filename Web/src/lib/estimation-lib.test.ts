@@ -1,6 +1,7 @@
 import { AxiosError, AxiosHeaders } from 'axios';
 import { describe, expect, it } from 'vitest';
-import { parseCsv, RESULTS_CSV_COLUMNS, resultsCsv } from './estimation-csv';
+import { readXlsx, rowOf } from '../test/xlsx-read';
+import { buildEstimationXlsx } from './estimation-xlsx';
 import { clearsInstitutionalData, estimationError, formatAlpha, newRequestId } from './estimation-text';
 import { decimalToPresentation, formatBaseValue, formatDecimalQuantity } from './quantity';
 import type { InstitutionalResults } from '../types/estimation';
@@ -88,30 +89,67 @@ describe('exportación de la consulta (#179, tercer criterio)', () => {
     ],
   };
 
-  it('cada celda es el valor de la respuesta, sin traducir ni recalcular', () => {
-    const [header, ...rows] = parseCsv(resultsCsv(response));
-    expect(header).toEqual([...RESULTS_CSV_COLUMNS]);
-    expect(rows).toHaveLength(2);
-    const asObject = (row: string[]) => Object.fromEntries(header!.map((column, i) => [column, row[i]]));
-    response.results.forEach((result, i) => {
-      const row = asObject(rows[i]!);
-      expect(row).toMatchObject({
-        target_name: response.target.name,
-        season_key: 'INVIERNO',
-        product_ref: result.product.product_ref,
-        status: result.status,
-        reason_code: result.reason_code ?? '',
-        run_ref: result.run_ref,
-        generated_at: result.generated_at,
-        span_length: String(result.span_length),
-        estimate_base: result.estimate_base ?? '',
-        naive_base: result.naive_base ?? '',
-        validity: result.validity,
-        validity_reason: result.validity_reason ?? '',
-      });
-    });
+  /**
+   * Desde el 2026-11-12 la consulta se exporta sólo en Excel (el CSV se retiró).
+   * Cada columna que daba el CSV sigue en el libro, en la portada o en una
+   * columna filtrable de «Resultados», con el valor de la respuesta.
+   */
+  it('cada columna del antiguo CSV está en el Excel con el valor de la respuesta; una ausencia queda vacía', () => {
+    const exportedAt = new Date('2026-11-12T12:00:00.000Z');
+    const { sheets } = readXlsx(buildEstimationXlsx({ results: response, details: {}, exportedAt }).bytes);
+    const cover = sheets.get('Estimación')!;
+    // target_campaign_ref, target_name, season_key, evaluated_at → portada.
+    expect(cover.text).toContain('c-t');
+    expect(cover.text).toContain('Objetivo, "sintético"');
+    expect(cover.text).toContain('INVIERNO: Temporada sintética');
+    expect(cover.text).toContain('Vigencia evaluada el');
+    const res = sheets.get('Resultados')!;
+    const header = Array.from({ length: 15 }, (_, i) => res.cells.get(`${String.fromCharCode(65 + i)}5`)?.value);
+    expect(header).toEqual([
+      'Producto',
+      'Estimación',
+      'Línea base',
+      'Unidad',
+      'Estado',
+      'Motivo',
+      'Vigencia',
+      'Motivo de la vigencia',
+      'α',
+      'Campañas observadas',
+      'Ejecución del (hora de Bolivia, UTC−4)',
+      'Ejecución (referencia)',
+      'Método',
+      'Cobertura del tramo',
+      'Referencia del producto',
+    ]);
+    // Encabezados filtrables: el autofiltro cubre las 15 columnas y las 2 filas.
+    expect(res.xml.getElementsByTagName('autoFilter')[0]!.getAttribute('ref')).toBe('A5:O7');
+    const herb = rowOf(res, 'Herbicida');
+    const at = (col: string, row: number) => res.cells.get(`${col}${row}`)?.value ?? null;
+    expect(at('O', herb)).toBe('p-1');
+    expect(at('B', herb)).toBe('111');
+    expect(at('C', herb)).toBe('116');
+    expect(at('D', herb)).toBe('L');
+    expect(at('E', herb)).toBe('Estimado');
+    expect(at('G', herb)).toBe('Vigente');
+    expect(at('J', herb)).toBe('4');
+    expect(at('L', herb)).toBe('r-1');
+    expect(at('M', herb)).toBe('SES frente a la línea base (SES_NAIVE)');
+    expect(at('N', herb)).toBe('Identificada en cada campaña del tramo');
+    // 2026-11-02T14:00Z → 10:00 en Bolivia.
+    expect(Number(at('K', herb))).toBeCloseTo(46328 + 10 / 24, 6);
+
+    const fung = rowOf(res, 'Fungicida');
+    expect(at('O', fung)).toBe('p-2');
+    expect(at('E', fung)).toBe('Datos insuficientes');
+    expect(at('F', fung)).toContain('menos de tres campañas comparables');
+    expect(at('G', fung)).toBe('No utilizable');
+    expect(at('H', fung)).toBe('Este resultado no tiene cifra.');
+    expect(at('J', fung)).toBe('2');
+    expect(at('N', fung)).toBe('Desconocida en alguna campaña');
     // Una ausencia es una celda vacía, nunca un cero.
-    expect(asObject(rows[1]!).estimate_base).toBe('');
+    expect(res.cells.has(`B${fung}`)).toBe(false);
+    expect(res.cells.has(`C${fung}`)).toBe(false);
   });
 });
 

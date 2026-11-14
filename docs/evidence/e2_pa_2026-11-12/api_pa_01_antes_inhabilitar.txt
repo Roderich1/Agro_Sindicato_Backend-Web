@@ -1,0 +1,1 @@
+{"viewer":"directiva","is_responsible":false,"can_manage":true,"can_substitute_responsible":false,"pending_authorization_count":0,"pending_delegation_reviews":0,"totals":["RESPONSIBLE_ONLY","RESPONSIBLE_ONLY"],"participants":{"errorCode":"PARTICIPANTS_FORBIDDEN"}}

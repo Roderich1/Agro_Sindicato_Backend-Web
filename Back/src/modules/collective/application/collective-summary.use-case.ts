@@ -17,11 +17,11 @@ import {
 import {
   CellDecision,
   decideCells,
+  decideCellsWithoutThreshold,
   PriorRelease,
-  PROVISIONAL_THRESHOLD,
 } from "../domain/disclosure-policy";
 import { sealedCellStatus } from "../domain/seal";
-import { CollectiveConfig, DisclosureMode } from "./collective-config";
+import { CollectiveConfig, DisclosureMode, DisclosurePolicy, storedPolicy, thresholdOf } from "./collective-config";
 
 /**
  * `WITHDRAWN_AFTER_SEAL` only appears in a sealed version: its contributor
@@ -45,6 +45,9 @@ export interface SealRef {
   sealed_at: string;
   accepted_until: string;
   sealed_by: { user_ref: string; name: string; role: UserRole };
+  /** E4 §3.4: the policy and threshold the campaign was sealed with (never changed by a later activation). */
+  policy: DisclosurePolicy;
+  threshold: number | null;
 }
 
 /** One output cell. Only aggregates derived in Central (F06 §5). */
@@ -68,9 +71,14 @@ export interface CollectiveSummary {
   campaign: { campaign_ref: string; name: string; status: CampaignStatus };
   /** Null while the campaign has no sealed version. */
   seal: SealRef | null;
+  /**
+   * E4 §3.4: the policy the figures were decided with: the configured one for
+   * an unsealed campaign, the sealed one for a sealed campaign. `threshold`
+   * is 3 with F07-POL-01 and null with F07-POL-02 or POLICY_PENDING.
+   */
   disclosure: {
     mode: DisclosureMode;
-    policy: "F07-POL-01";
+    policy: DisclosurePolicy;
     approved: false;
     threshold: number | null;
   };
@@ -141,7 +149,7 @@ export type SealedVersion = Prisma.CollectiveSealGetPayload<{ include: typeof SE
  * Collective summary of a campaign (F06 #21): read-only over Sync v1
  * contributions, grouped by the current canonical product (F07-REC-01) and
  * disclosed only under the provisional policy (F07-POL-01). Every output
- * channel (JSON and CSV) is built from this result.
+ * channel (the JSON, and the Web's Excel built from it) comes from this result.
  */
 @Injectable()
 export class CollectiveSummaryUseCase {
@@ -168,7 +176,7 @@ export class CollectiveSummaryUseCase {
 
   /**
    * The summary and, for each disclosed cell, the release that backs its
-   * figure (internal: never part of the JSON/CSV output). `within` runs in the
+   * figure (internal: never part of the JSON output). `within` runs in the
    * same transaction and advisory lock, so a consumer such as the joint
    * purchase proposal (F07 #27) sees exactly the decisions of this summary.
    */
@@ -194,7 +202,7 @@ export class CollectiveSummaryUseCase {
         summary: {
           ...header,
           seal: await this.sealRef(this.prisma, tenantId, campaignId),
-          disclosure: { mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null },
+          disclosure: { mode: "POLICY_PENDING", policy: this.config.policy, approved: false, threshold: null },
           coverage: null,
           cells: [],
         },
@@ -246,7 +254,8 @@ export class CollectiveSummaryUseCase {
       summary: {
         ...header,
         seal: toSealRef(sealed),
-        disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: PROVISIONAL_THRESHOLD },
+        // E4 §5.3: a sealed version keeps the policy it was sealed with.
+        disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: storedPolicy(sealed.policy), approved: false, threshold: sealed.threshold },
         coverage,
         cells,
       },
@@ -264,10 +273,14 @@ export class CollectiveSummaryUseCase {
     const canonicalOf = await this.canonicalMap(tx, tenantId);
     const cells = consolidate(contributions, canonicalOf);
     const histories = await this.releaseHistories(tx, tenantId, campaignId);
-    // F10-SEC-02 (#45): every cell is checked against the figures of the keys
-    // its contributions came from and against those decided before it in this
-    // read (key order), within one work budget for the read.
-    const decisions = decideCells(cells, new Map([...histories].map(([id, { history }]) => [id, history])));
+    const policy = this.config.policy;
+    const byCell = new Map([...histories].map(([id, { history }]) => [id, history]));
+    // F07-POL-01 / F10-SEC-02 (#45): every cell is checked against the figures
+    // of the keys its contributions came from and against those decided before
+    // it in this read (key order), within one work budget for the read.
+    // E4 §5.1: F07-POL-02, only after its explicit activation, has no
+    // threshold nor rule of combinations.
+    const decisions = policy === "F07-POL-02" ? decideCellsWithoutThreshold(cells, byCell) : decideCells(cells, byCell);
     const now = new Date();
     const output: { key: CellKey; decision: CellDecision; cell: Cell | null; prior: PriorRelease | null }[] = [];
     for (const cell of cells) {
@@ -325,6 +338,8 @@ export class CollectiveSummaryUseCase {
               contributorCount: cell!.members.size,
               dataAsOf: cell!.dataAsOf,
               releasedAt: now,
+              // E4 §4.4: every new disclosure records its policy.
+              policy,
               items: {
                 create: cell!.contributions.map((contribution) => ({
                   contributionId: contribution.contributionId,
@@ -363,9 +378,9 @@ export class CollectiveSummaryUseCase {
     return {
       disclosure: {
         mode: "PROVISIONAL_SYNTHETIC",
-        policy: "F07-POL-01",
+        policy,
         approved: false,
-        threshold: PROVISIONAL_THRESHOLD,
+        threshold: thresholdOf(policy),
       },
       coverage: {
         linked_members: linked.size,
@@ -495,7 +510,7 @@ const HIDDEN = {
 };
 
 /**
- * A sealed version served under the policy in force (contract §5): no
+ * A sealed version served under its own policy (contract §5, E4 §5.3): no
  * decision, no write. Only cells still visible carry a figure and appear in
  * `releaseOf`; the coverage is the one stored at the seal. The caller handles
  * POLICY_PENDING (no cells at all). Summary, proposals and trends all use it.
@@ -513,7 +528,7 @@ export function servedSealed(sealed: SealedVersion): {
         contributors: entry.release?.contributorCount ?? null,
         visibilityWithdrawnAt: entry.visibilityWithdrawnAt,
       },
-      PROVISIONAL_THRESHOLD,
+      sealed.threshold,
     );
     const base = {
       projection_type: entry.projectionType,
@@ -564,6 +579,8 @@ export function toSealRef(seal: {
   sealedAt: Date;
   sealedByRole: UserRole;
   sealedBy: { id: string; name: string };
+  policy: string;
+  threshold: number | null;
 }): SealRef {
   return {
     seal_ref: seal.id,
@@ -571,6 +588,8 @@ export function toSealRef(seal: {
     sealed_at: seal.sealedAt.toISOString(),
     accepted_until: seal.sealedAt.toISOString(),
     sealed_by: { user_ref: seal.sealedBy.id, name: seal.sealedBy.name, role: seal.sealedByRole },
+    policy: storedPolicy(seal.policy),
+    threshold: seal.threshold,
   };
 }
 
@@ -612,56 +631,4 @@ function publishedMembers(
     if (decision.kind === "SHOW_PRIOR") prior!.memberOf.forEach((member) => members.add(member));
   }
   return members;
-}
-
-/**
- * Same disclosure decisions as JSON, as CSV (F07-POL-01: every channel). A
- * text that a spreadsheet would read as a formula (=, +, -, @, tab or CR at
- * the start, e.g. a product or campaign name) is prefixed with ' and quoted,
- * so it is shown, never executed (CSV injection). Figures and dates never
- * start with those characters and are left as they are.
- */
-export function summaryCsv(summary: CollectiveSummary): string {
-  const quote = (value: string | number | boolean | null) => {
-    const raw = value === null ? "" : String(value);
-    const formula = /^[=+\-@\t\r]/.test(raw);
-    const text = formula ? `'${raw}` : raw;
-    return formula || /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-  };
-  const lines = [
-    ["campaign_ref", "campaign", "disclosure", "policy", "approved", "threshold", "linked_members", "members_with_contribution", "suppressed_cells", "seal_ref", "seal_version", "sealed_at"].join(","),
-    [
-      summary.campaign.campaign_ref,
-      summary.campaign.name,
-      summary.disclosure.mode,
-      summary.disclosure.policy,
-      summary.disclosure.approved,
-      summary.disclosure.threshold,
-      summary.coverage?.linked_members ?? null,
-      summary.coverage?.members_with_contribution ?? null,
-      summary.coverage?.suppressed_cells ?? null,
-      summary.seal?.seal_ref ?? null,
-      summary.seal?.version ?? null,
-      summary.seal?.sealed_at ?? null,
-    ].map(quote).join(","),
-    "",
-    ["projection_type", "product_ref", "product_name", "base_unit", "presentation_unit", "status", "total_base", "total_presentation", "contributors", "data_as_of", "released_at", "pending_changes"].join(","),
-    ...summary.cells.map((cell) =>
-      [
-        cell.projection_type,
-        cell.product_ref,
-        cell.product_name,
-        cell.base_unit,
-        cell.presentation_unit,
-        cell.status,
-        cell.total_base,
-        cell.total_presentation,
-        cell.contributors,
-        cell.data_as_of,
-        cell.released_at,
-        cell.pending_changes,
-      ].map(quote).join(","),
-    ),
-  ];
-  return `${lines.join("\n")}\n`;
 }

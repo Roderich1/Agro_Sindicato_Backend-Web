@@ -43,6 +43,10 @@ export const envSchema = z.object({
   COLLECTIVE_DISCLOSURE_MODE: optionalText(
     z.enum(["disabled", "provisional-synthetic"]),
   ),
+  // E4 §5.1 (D-03): disclosure policy of the collective figures. F07-POL-01
+  // (k = 3 and the rule of combinations) by default; F07-POL-02 (no farmer
+  // threshold) only when set explicitly. Any other value stops the start.
+  COLLECTIVE_DISCLOSURE_POLICY: optionalText(z.enum(["F07-POL-01", "F07-POL-02"])),
   // F07 manual seal of a campaign's collective version. Off by default: it is
   // enabled only with a Mobile build that handles CAMPAIGN_SEALED as a
   // terminal failure (F07_SEALED_HISTORY_CONTRACT §3.2). Reading sealed
@@ -97,6 +101,22 @@ export const envSchema = z.object({
   BACKUP_S3_SECRET_ACCESS_KEY: optionalText(z.string().regex(/^\S{1,256}$/)),
   // One segment ending in "/" (e.g. `ensayo-f08/`): never the bucket root.
   BACKUP_S3_PREFIX: optionalText(z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}\/$/)),
+  // E1-D8: private storage of label photos (second instance of the F08
+  // storage). Empty or `disk` = PRODUCT_PHOTO_STORAGE_DIR (never the backups'
+  // directory); `b2` = the BACKUP_S3_* bucket and credentials with the
+  // photos' own prefix. Unset or incomplete: photo routes answer 503 and the
+  // request data routes keep working.
+  PRODUCT_PHOTO_STORAGE_DIR: optionalText(z.string()),
+  PRODUCT_PHOTO_STORAGE_PROVIDER: optionalText(z.enum(["disk", "b2"])),
+  // One segment ending in "/", distinct from BACKUP_S3_PREFIX.
+  PRODUCT_PHOTO_S3_PREFIX: optionalText(z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}\/$/)),
+  // E1 §10: photo sweep inside the API process (orphans and staging
+  // leftovers older than 24 h, photos past their retention). Empty = no
+  // periodic sweep (the operator runs `npm run product-photos:sweep`).
+  PRODUCT_PHOTO_SWEEP_INTERVAL_MS: optionalText(z.coerce.number().int().min(60_000).max(604_800_000)),
+  // Days a LINKED request keeps its photo after the last link decision
+  // (empty = 90). PENDING requests always keep it.
+  PRODUCT_PHOTO_RETENTION_DAYS_AFTER_LINK: optionalText(z.coerce.number().int().min(1).max(3650)),
   // #81 PHASE 6: the farmer's legacy private writes are closed (403
   // LEGACY_ROUTE_CLOSED). `enabled` is an operational rollback of this
   // server only, never the normal path; it authorises nothing.
@@ -111,6 +131,18 @@ export const envSchema = z.object({
   ESTIMATION_LEASE_MS: optionalText(z.coerce.number().int().min(100).max(86_400_000)),
   ESTIMATION_MAX_PRODUCTS: optionalText(z.coerce.number().int().positive().max(10_000)),
   ESTIMATION_MAX_ATTEMPTS: optionalText(z.coerce.number().int().positive().max(20)),
+  // E2-D12: automatic close of joint purchase calls whose deadline passed
+  // (cutoff = deadline, never later). Empty = every 60000 ms; `0` or
+  // `disabled` = off in this process.
+  JOINT_PURCHASE_CLOSE_INTERVAL_MS: optionalText(
+    z.union([
+      z.literal("disabled"),
+      z.coerce
+        .number()
+        .int()
+        .refine((value) => value === 0 || (value >= 100 && value <= 3_600_000), "0, or 100–3600000"),
+    ]),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -161,14 +161,12 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     serve(resultsWith([result('Herbicida')]), [run('run-1', [detail('Herbicida')])]);
     renderAt(<EstimationPage />, { path: PATH });
     const row = await screen.findByTestId('result-Herbicida');
-    expect(within(row).getByTestId('estimate').textContent).toBe('111 L111.000 mL');
+    expect(within(row).getByTestId('estimate').textContent).toBe('111 LCifra exacta: 111 L (111.000 mL)'); // E3-R8: redondeada al presentar, la exacta escrita debajo
     expect(within(row).getByTestId('naive').textContent).toBe('116 L116.000 mL');
     await waitFor(() => expect(within(row).getByTestId('alpha').textContent).toBe('0,50'));
     expect(within(row).getByTestId('observed-span').textContent).toBe('4: C1 a C4');
     expect(within(row).getByTestId('observed-values').textContent).toBe('96 · 120 · 104 · 116 L');
     expect(within(row).getByTestId('validity').textContent).toBe('Vigente');
-    expect(screen.getByText(/no se suma a ellas ni crea compras, propuestas o movimientos/)).toBeTruthy();
-    expect(screen.getByTestId('season').textContent).toMatch(/Temporada INVIERNO/);
   });
 
   it('datos insuficientes: el motivo y ninguna cifra, nunca un cero', async () => {
@@ -179,7 +177,8 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     renderAt(<EstimationPage />, { path: PATH });
     const row = await screen.findByTestId('result-Fungicida');
     expect(within(row).getByTestId('reason').textContent).toMatch(/menos de tres campañas comparables consecutivas/);
-    expect(within(row).getByTestId('estimate').textContent).toBe('Sin cifra');
+    // «Datos insuficientes» ocupa el lugar de la cifra: ninguna cantidad, ningún cero.
+    expect(within(row).getByTestId('estimate').textContent).toBe('Datos insuficientes');
     expect(within(row).getByTestId('naive').textContent).toBe('Sin cifra');
     expect(row.textContent).not.toMatch(/\b0 L\b/);
     expect(within(row).getByTestId('validity').textContent).toMatch(/No utilizable.*no tiene cifra/);
@@ -216,7 +215,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     );
     renderAt(<EstimationPage />, { path: PATH });
     const row = await screen.findByTestId('result-Glifosato');
-    expect(within(row).getByTestId('estimate').textContent).toBe('Sin cifra');
+    expect(within(row).getByTestId('estimate').textContent).toBe('Datos insuficientes');
     expect(within(row).getByTestId('naive').textContent).toBe('Sin cifra');
     expect(row.textContent).not.toMatch(/5 L|5\.000/);
   });
@@ -236,7 +235,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect(within(withdrawn).getByTestId('naive').textContent).toBe('Cifra retirada');
     expect(within(withdrawn).getByTestId('validity').textContent).toMatch(/Desactualizado.*ya no se divulga/);
     const urea = screen.getByTestId('result-Urea');
-    expect(within(urea).getByTestId('estimate').textContent).toBe('2,5005 KG2.500,5 g');
+    expect(within(urea).getByTestId('estimate').textContent).toBe('≈ 2,5 KGCifra exacta: 2,5005 KG (2.500,5 g)'); // E3-R8: redondeada a la décima, la exacta escrita debajo
     expect(within(urea).getByTestId('validity').textContent).toMatch(/Sustituido/);
     expect(within(screen.getByTestId('result-Insecticida')).getByTestId('validity').textContent).toMatch(/No utilizable.*falló/);
   });
@@ -309,14 +308,14 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     const row = await screen.findByTestId('result-Herbicida');
     await waitFor(() => expect(within(row).getByTestId('alpha').textContent).toBe('0,50'));
     // Hasta la siguiente consulta, el cliente no sabe del cambio: la cifra sigue a la vista.
-    expect(within(row).getByTestId('estimate').textContent).toBe('111 L111.000 mL');
+    expect(within(row).getByTestId('estimate').textContent).toBe('111 LCifra exacta: 111 L (111.000 mL)'); // E3-R8: redondeada al presentar, la exacta escrita debajo
     vi.mocked(estimationService.run).mockRejectedValue(httpError(status, message));
     fireEvent.click(screen.getByRole('button', { name: 'Ver detalle' }));
     expect(await screen.findByTestId(`error-${kind}`)).toBeTruthy();
     expect(screen.queryByTestId('result-Herbicida')).toBeNull();
     expect(screen.queryByTestId('history-item')).toBeNull();
     expect(screen.queryByText(/111 L/)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Descargar Excel' })).toHaveProperty('disabled', true);
   });
 
   it('política pendiente: sin cifras ni solicitud', async () => {
@@ -337,9 +336,8 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     expect((await screen.findByTestId('error-offline')).textContent).toMatch(/Sin conexión con el servidor/);
     expect(screen.getByTestId('stale')).toBeTruthy();
     expect(screen.getByTestId('result-Herbicida')).toBeTruthy();
-    // Sin conexión no se exporta: el CSV es de una consulta respondida, no una copia para consultar sin conexión.
-    expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('csv-note').textContent).toMatch(/No es una copia para consultar sin conexión/);
+    // Sin conexión no se exporta: el Excel es de una consulta respondida, no una copia para consultar sin conexión.
+    expect(screen.getByRole('button', { name: 'Descargar Excel' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     await screen.findByTestId('job-status');
     const [first, second] = vi.mocked(estimationService.request).mock.calls.map((call) => call[0].requestId);
@@ -405,20 +403,22 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
         result('Insecticida', { estimate_base: null, naive_base: null, validity: 'OUTDATED', validity_reason: 'SOURCES_WITHDRAWN' }),
       ]);
 
-    it('se descarga a petición, se guarda para la sesión y no es el CSV', async () => {
+    it('se descarga a petición, se guarda para la sesión y no es el Excel de la consulta', async () => {
       const read = resultsWith([result('Herbicida')]);
       serve(read, [run('run-1', [detail('Herbicida')])]);
       vi.mocked(estimationService.download).mockResolvedValue(downloadOf(read));
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('result-Herbicida');
       expect(screen.getByTestId('copy-status').textContent).toMatch(/No hay una copia de esta campaña/);
-      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar copia' /* rediseño v2 (lámina 26): antes «Descargar copia para consultar sin conexión» */ }));
       expect((await screen.findByTestId('copy-note')).textContent).toBe('Copia guardada en este navegador.');
       await waitFor(() => expect(screen.getByTestId('copy-status').textContent).toMatch(/Hay una copia de esta campaña en este navegador, descargada el/));
       expect(estimationService.download).toHaveBeenCalledWith(CAMPAIGN.id);
       const stored = await readableCopies(null);
       expect(stored.map((c) => [c.owner.userId, c.owner.tenantId, c.download.target.campaign_ref])).toEqual([['u-1', 't-1', CAMPAIGN.id]]);
-      expect(screen.getByRole('button', { name: 'Exportar CSV de la consulta' })).toBeTruthy();
+      // La exportación de la consulta es aparte (sólo Excel; ningún CSV).
+      expect(screen.getByRole('button', { name: 'Descargar Excel' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /CSV/ })).toBeNull();
     });
 
     it('sin conexión y con copia: fechas, período, vigencia al descargar, vigencia actual desconocida y aviso; ausencias sin cifra', async () => {
@@ -427,7 +427,8 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('error-offline');
       const view = await screen.findByTestId(`copy-${CAMPAIGN.id}`);
-      expect(within(view).getByTestId('copy-downloaded').textContent).toMatch(/Descargada el .* \(hora del servidor\) por Usuario sintético \(Directiva\), Sindicato sintético/);
+      // Rediseño v2 (lámina 27): «Campaña · guardada el … por … · Sindicato».
+      expect(within(view).getByTestId('copy-downloaded').textContent).toMatch(/guardada el .* \(hora del servidor\) por Usuario sintético \(Directiva\) · Sindicato sintético/);
       expect(within(view).getByTestId('copy-period').textContent).toMatch(/Período objetivo: Campaña sintética.*Temporada INVIERNO/);
       expect(within(view).getByTestId('copy-outdated').textContent).toMatch(/Puede estar desactualizada.*vigencia actual es desconocida/);
       const herbicide = within(view).getByTestId('copy-result-Herbicida');
@@ -441,7 +442,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       expect(within(short).getByTestId('copy-reason').textContent).toMatch(/menos de tres campañas/);
       expect(short.textContent).not.toMatch(/\b0 L\b/);
       expect(within(within(view).getByTestId('copy-result-Insecticida')).getByTestId('copy-estimate').textContent).toBe('Cifra retirada');
-      expect(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' })).toHaveProperty('disabled', true);
+      expect(screen.getByRole('button', { name: 'Guardar copia' })).toHaveProperty('disabled', true);
     });
 
     it('sin conexión y sin copia de esta identidad: el aviso y ninguna cifra (la copia de otra identidad no se ve)', async () => {
@@ -489,7 +490,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       vi.mocked(estimationService.download).mockResolvedValue({ ...downloadOf(read), profile: 'FARMER' } as unknown as InstitutionalDownload);
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('result-Herbicida');
-      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar copia' }));
       expect(await screen.findByTestId('error-forbidden')).toBeTruthy();
       expect(await memory.list()).toEqual([]);
     });
@@ -503,7 +504,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       });
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('result-Herbicida');
-      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar copia' }));
       expect((await screen.findByTestId('copy-note')).textContent).toMatch(/La sesión cambió o se retiró el acceso durante la descarga/);
       expect(await memory.list()).toEqual([]);
     });
@@ -517,7 +518,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       });
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('result-Herbicida');
-      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar copia' }));
       expect((await screen.findByTestId('copy-note')).textContent).toMatch(/La sesión cambió o se retiró el acceso/);
       expect(await memory.list()).toEqual([]);
     });
@@ -554,7 +555,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       closeContext();
       renderAt(<EstimationPage />, { path: PATH });
       await screen.findByTestId('result-Herbicida');
-      fireEvent.click(screen.getByRole('button', { name: 'Descargar copia para consultar sin conexión' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar copia' }));
       expect((await screen.findByTestId('copy-note')).textContent).toMatch(/No hay un acceso local vigente/);
       expect(estimationService.download).not.toHaveBeenCalled();
     });

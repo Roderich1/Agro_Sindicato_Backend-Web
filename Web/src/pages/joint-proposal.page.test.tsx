@@ -1,6 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { available, linkViewFor } from '../dev/fixtures/proposal-fixtures';
 import { fmtDateTime } from '../lib/collective-text';
 import { collectiveService } from '../services/collective.service';
 import { campaignsService } from '../services/campaigns.service';
@@ -8,8 +9,25 @@ import { line, proposalWith } from '../test/fixtures';
 import { CAMPAIGN, renderAt } from '../test/render';
 import { JointProposalPage } from './joint-proposal.page';
 
+/** Rediseño v2 (lámina 07): la lista de borradores está en la pestaña «Borradores anteriores»; «Ver» vuelve al borrador. */
+async function verBorradores(): Promise<HTMLButtonElement[]> {
+  fireEvent.click(await screen.findByRole('tab', { name: /anteriores/i }));
+  return (await screen.findAllByRole('button', { name: 'Ver' })) as HTMLButtonElement[];
+}
+
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { proposals: vi.fn(), generateProposal: vi.fn(), proposal: vi.fn(), proposalCsv: vi.fn(), proposalEstimationReference: vi.fn(() => new Promise(() => undefined)) },
+  collectiveService: {
+    proposals: vi.fn(),
+    generateProposal: vi.fn(),
+    proposal: vi.fn(),
+    proposalEstimationReference: vi.fn(() => new Promise(() => undefined)),
+    // E3: la referencia fijada y la selección se leen aparte; aquí no responden (no ocultan el borrador).
+    estimationLink: vi.fn(() => new Promise(() => undefined)),
+    proposalSelection: vi.fn(() => new Promise(() => undefined)),
+    prepareEstimationLink: vi.fn(),
+    clearEstimationLink: vi.fn(),
+    saveProposalSelection: vi.fn(),
+  },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
 
@@ -37,14 +55,17 @@ describe('Propuesta de compra conjunta (borrador)', () => {
   it('genera un borrador y muestra sólo lo que el servidor publicó', async () => {
     vi.mocked(collectiveService.generateProposal).mockResolvedValue(DRAFT);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     const urea = await screen.findByTestId('line-Urea-G');
     expect(collectiveService.generateProposal).toHaveBeenCalledWith(CAMPAIGN.id);
     expect(within(urea).getByText('25 KG')).toBeTruthy();
     expect(within(screen.getByTestId('line-Mancozeb-G')).getByText('11,5 KG')).toBeTruthy();
-    expect(screen.getByTestId('line-Mancozeb-G').textContent).toMatch(/aún no alcanzan el umbral/);
+    // E4: el aviso de cifra anterior ya no habla de «umbral»; la línea sin cifra del borrador anterior se rotula con
+    // la política F07-POL-01 que la produjo (antes «Menos aportantes que el umbral de privacidad»).
+    expect(screen.getByTestId('line-Mancozeb-G').textContent).toMatch(/todavía no se publican: se muestra la cifra anterior/);
     const belator = screen.getByTestId('line-Belator-ML');
-    expect(belator.textContent).toMatch(/umbral/);
+    expect(belator.textContent).toMatch(/Sin cifra según la política F07-POL-01/);
+    expect(belator.textContent).not.toMatch(/privacidad/);
     expect(belator.textContent).not.toMatch(/\d+ L/);
     const withdrawn = screen.getByTestId('line-Glifosato-ML');
     expect(withdrawn.textContent).toMatch(/Genere un borrador nuevo/);
@@ -59,9 +80,10 @@ describe('Propuesta de compra conjunta (borrador)', () => {
   it('la cobertura de un borrador se rotula con su fecha de generación, no como la actual (F10)', async () => {
     vi.mocked(collectiveService.generateProposal).mockResolvedValue(DRAFT);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     const coverage = await screen.findByTestId('coverage');
-    expect(coverage.textContent).toContain(`Cobertura al generar el borrador (${fmtDateTime(DRAFT.generated_at)})`);
+    // Rediseño v2 (lámina 06): la cobertura va en la línea «Generado el … · al generarlo (fecha), …».
+    expect(coverage.textContent).toContain(`al generarlo (${fmtDateTime(DRAFT.generated_at)})`);
     expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas en esa fecha/);
     expect(coverage.textContent).toMatch(/No es la cobertura actual/);
   });
@@ -72,7 +94,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
       coverage: { linked_members: 4, members_with_contribution: 3, basis: 'ALL_CONTRIBUTORS' },
     });
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     const coverage = await screen.findByTestId('coverage');
     expect(coverage.textContent).toMatch(/3 de 4 agricultores vinculados habían aportado datos en esa fecha/);
     expect(coverage.textContent).toMatch(/regla anterior a F10-SEC-02/);
@@ -82,7 +104,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
   it('POLICY_PENDING al generar: lo explica y no muestra ninguna línea', async () => {
     vi.mocked(collectiveService.generateProposal).mockRejectedValue(conflict());
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
     expect(await screen.findByText(/no se genera ni se guarda ninguna propuesta con cifras/)).toBeTruthy();
     expect(screen.queryByLabelText('Detalle del borrador')).toBeNull();
   });
@@ -98,7 +120,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
       }),
     );
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
+    fireEvent.click((await verBorradores())[0]!);
     const detail = await screen.findByLabelText('Detalle del borrador');
     expect(detail.textContent).toMatch(/no se muestran cifras/);
     expect(detail.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
@@ -119,13 +141,40 @@ describe('Propuesta de compra conjunta (borrador)', () => {
       ),
     );
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }));
+    fireEvent.click((await verBorradores())[0]!);
     const urea = await screen.findByTestId('line-Urea-G');
     expect(urea.textContent).toMatch(/Sustituido/);
     expect(urea.textContent).toMatch(/cifra más reciente/);
     expect(urea.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
     expect(screen.getByTestId('line-Glifosato-ML').textContent).toMatch(/ya no publica/);
     expect(screen.getAllByText('huella oculta').length).toBe(2);
+  });
+
+  it('al elegir una campaña con borradores abre el último por consulta, sin generar uno', async () => {
+    vi.mocked(collectiveService.proposals).mockResolvedValue([
+      { proposal_ref: 'p-ultimo', status: 'DRAFT', generated_at: '2026-10-17T13:00:00.000Z', generated_by: DRAFT.generated_by, inputs_fingerprint: DRAFT.inputs_fingerprint, line_count: 4 },
+      { proposal_ref: 'p-anterior', status: 'DRAFT', generated_at: '2026-10-16T13:00:00.000Z', generated_by: DRAFT.generated_by, inputs_fingerprint: null, line_count: 1 },
+    ]);
+    vi.mocked(collectiveService.proposal).mockImplementation(async (id) =>
+      id === 'p-ultimo' ? { ...DRAFT, proposal_ref: 'p-ultimo' } : proposalWith([line({ position: 0, product_name: 'Urea', base_unit: 'G', quantity_base: '1000', quantity_presentation: '1', contributors: 3 })], { proposal_ref: 'p-anterior', inputs_fingerprint: null }),
+    );
+    renderAt(<JointProposalPage />, { path: PATH });
+    const urea = await screen.findByTestId('line-Urea-G');
+    expect(within(urea).getByText('25 KG')).toBeTruthy();
+    expect(collectiveService.proposal).toHaveBeenCalledWith('p-ultimo');
+    expect(collectiveService.generateProposal).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { level: 2, name: /^Borrador · / })).toBeTruthy();
+    // Rediseño v2 (lámina 06): con un borrador abierto el botón dice «Generar borrador nuevo».
+    expect(screen.getByRole('button', { name: 'Generar borrador nuevo' })).toBeTruthy();
+    // El borrador mostrado no se vuelve a abrir; el histórico sí, y esa elección se respeta.
+    const buttons = await verBorradores();
+    // Rediseño v2: «Ver» del borrador mostrado sólo vuelve a su pestaña; no lo pide otra vez.
+    fireEvent.click(buttons[0]!);
+    expect(collectiveService.proposal).toHaveBeenCalledTimes(1);
+    fireEvent.click((await verBorradores())[1]!);
+    await screen.findByText('1 KG');
+    expect(screen.queryByText('25 KG')).toBeNull();
+    expect(collectiveService.generateProposal).not.toHaveBeenCalled();
   });
 
   it('el historial muestra huella y autor, sin cantidades', async () => {
@@ -139,17 +188,42 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(history.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
   });
 
-  it('el CSV se pide al servidor (misma política), no se arma en el navegador', async () => {
+  it('sólo «Descargar Excel»: al pulsar vuelve a pedir el borrador y su referencia fijada; un rechazo se explica y no descarga', async () => {
     vi.mocked(collectiveService.generateProposal).mockResolvedValue(DRAFT);
-    vi.mocked(collectiveService.proposalCsv).mockResolvedValue(new Blob(['x']));
     const createObjectURL = vi.fn(() => 'blob:x');
     Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     renderAt(<JointProposalPage />, { path: PATH });
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar propuesta (borrador)' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Exportar CSV' }));
-    await vi.waitFor(() => expect(collectiveService.proposalCsv).toHaveBeenCalledWith(DRAFT.proposal_ref));
-    expect(createObjectURL).toHaveBeenCalled();
-    expect(click).toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
+    const button = await screen.findByRole('button', { name: 'Descargar Excel' });
+    // Excel es la única exportación: ningún botón de CSV.
+    expect(screen.queryByRole('button', { name: /CSV/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/CSV/);
+
+    vi.mocked(collectiveService.proposal).mockResolvedValue(DRAFT);
+    vi.mocked(collectiveService.estimationLink).mockResolvedValue(linkViewFor(DRAFT, [{ state: 'NO_RESULT' }, available('25000.000000')]));
+    try {
+      fireEvent.click(button);
+      await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+      expect(click).toHaveBeenCalled();
+      // GET hechos al exportar, con la sesión: el servidor aplica sus reglas (nada sale de la pantalla en memoria).
+      expect(collectiveService.proposal).toHaveBeenCalledWith(DRAFT.proposal_ref);
+      expect(collectiveService.estimationLink).toHaveBeenLastCalledWith(DRAFT.proposal_ref);
+      // La referencia fijada, nunca la vigente al consultar (F12-EST-08).
+      expect(collectiveService.proposalEstimationReference).not.toHaveBeenCalled();
+
+      vi.mocked(collectiveService.proposal).mockRejectedValue(new AxiosError('forbidden', 'ERR', undefined, undefined, {
+        status: 403,
+        statusText: '',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+        data: {},
+      }));
+      fireEvent.click(button);
+      expect((await screen.findByTestId('export-error')).textContent).toBe('Su rol no tiene acceso a la información colectiva.');
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.mocked(collectiveService.estimationLink).mockImplementation(() => new Promise(() => undefined));
+    }
   });
 });

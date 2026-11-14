@@ -1,0 +1,58 @@
+{
+  "scrollHeight": 1632,
+  "vh": 768,
+  "mainChars": 2805,
+  "heads": [
+    "H1 Resumen @81",
+    "H2 Versión sellada @292",
+    "H2 Necesidades declaradas por producto @499",
+    "H2 Consumo publicado @757",
+    "H3 Litros (L) @831",
+    "H3 Kilogramos (KG) @1220",
+    "H2 Pendiente según los datos @1536"
+  ],
+  "cardsWithBorder": 5,
+  "buttons": [
+    "Actualizar",
+    "Descargar Excel",
+    "Revisar borrador",
+    "Ver cobertura",
+    "Abrir Necesidades y propuestas"
+  ],
+  "chips": 10,
+  "longParagraphs": 8,
+  "firstScreen": [
+    "h1: Resumen",
+    "select: Invierno 2026 (DEMO) · Abierta · ActivaInvierno 2025 (DEMO) · CerradaInvierno 2024 (DEMO) · CerradaInvierno 20",
+    "button: Actualizar",
+    "button: Descargar Excel",
+    "a: Revisar borrador",
+    "p: Cifra más reciente: datos hasta 5 nov de 2026, 3:50 p. m. · cada cifra indica su propia fecha.",
+    "p: Cobertura al sellar (5 nov de 2026, 3:50 p. m.)",
+    "a: Ver cobertura",
+    "p: 14 de 14 agricultores vinculados con cifras publicadas (100%)",
+    "p: Fijada al sellar; no se recalcula. Hay filas sin cifra (ocultas o en revisión) cuyos aportes no se cuentan. Au",
+    "h2: Versión sellada",
+    "p: Versión 1 sellada",
+    "p: El 5 nov de 2026, 3:50 p. m. por Directiva DEMO (Directiva) · datos aceptados hasta 5 nov de 2026, 3:50 p. m. ",
+    "p: Cada cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor ",
+    "h2: Necesidades declaradas por producto",
+    "p: Sin necesidades publicadas. Lo que cada agricultor declaró que necesita; no es pronóstico, consumo ni cantidad",
+    "p: Sin necesidades publicadas",
+    "h2: Consumo publicado"
+  ],
+  "campaigns": [
+    "d6a02d5d-baae-49cc-8a95-7f7f5255406c | Invierno 2026 (DEMO) · Abierta · Activa",
+    "a484c2c8-8e9e-42ef-9f5b-5b4a9dce9c33 | Invierno 2025 (DEMO) · Cerrada",
+    "aaadddab-bcf9-4a0b-b082-223f83432dbe | Invierno 2024 (DEMO) · Cerrada",
+    "fc5ed041-b3da-4c95-ba16-ef641ad69af1 | Invierno 2023 (DEMO) · Cerrada",
+    "a30030cb-e64c-4213-bd2d-fc9342f89e51 | Invierno 2022 (DEMO) · Cerrada",
+    "ddb826ae-8363-4405-ba0a-7b0cdcb19408 | Invierno 2021 (DEMO) · Cerrada",
+    "f1e504fd-1932-420f-b71e-d91d475fd3af | Invierno 2020 (DEMO) · Cerrada",
+    "112cc627-3bfa-4a8a-9c4d-3098f5a3bf7c | Invierno 2019 (DEMO) · Cerrada",
+    "940ccf34-d345-4768-86ce-63daf33576ab | Invierno 2018 (DEMO) · Cerrada",
+    "9a6aedf6-7d38-47f0-a245-96417b94b250 | Invierno 2017 (DEMO) · Cerrada",
+    "3e8c5576-d277-40a6-b7e7-00422ece272b | Invierno 2016 (DEMO) · Cerrada",
+    "8f59e32e-e81b-4da7-930f-d5e9f744585a | Invierno 2015 (DEMO) · Cerrada"
+  ]
+}

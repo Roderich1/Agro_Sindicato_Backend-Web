@@ -1,0 +1,1 @@
+export default [{ role: 'anon', steps: [ { goto: '/login', after: 3000 }, { shot: 'acceso/01-ingresar', desc: 'Ingresar (lámina 01), sin copia sin conexión', sizes: ['escritorio', 'portatil', 'movil'] } ] }];

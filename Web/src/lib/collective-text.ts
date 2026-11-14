@@ -1,13 +1,42 @@
 import axios from 'axios';
-import type { AnyStatus, SealBlock } from '../types/collective';
+import type { AnyStatus, DisclosurePolicy, SealBlock } from '../types/collective';
 
-/** Motivo comprensible, sin cantidad ni conteo exacto de aportantes. */
+/** Estado de una campaña, para personas. */
+export const CAMPAIGN_STATUS_TEXT: Record<string, string> = {
+  PLANIFICADA: 'Planificada',
+  ABIERTA: 'Abierta',
+  CERRADA: 'Cerrada',
+  CANCELADA: 'Cancelada',
+};
+
+/**
+ * E4 §5.1: rótulo de la política con que se decidió una cifra, para mostrarla
+ * junto a lo sellado, los borradores, las tendencias y el Excel. `threshold`
+ * es el umbral que trae la respuesta (3 con `F07-POL-01`, `null` con `F07-POL-02`).
+ */
+export function policyText(policy: DisclosurePolicy | string, threshold?: number | null): string {
+  if (policy === 'F07-POL-01') return `F07-POL-01 (mínimo de ${threshold ?? 3} aportantes por cifra)`;
+  if (policy === 'F07-POL-02') return 'F07-POL-02 (totales sin nombres, sin mínimo de aportantes)';
+  return policy;
+}
+
+/** E4 §5.1 y ayuda de CONV-4: el riesgo aceptado de los totales sin umbral, dicho sin «anónimo». */
+export const SMALL_GROUP_NOTE =
+  'Son datos agregados, sin nombres. Con pocas personas aportando, quien sepa quién participó podría deducir cuánto aportó cada una.';
+
+/** Cifra anterior a la vista mientras hay cambios sin publicar (sólo con `F07-POL-01`; con `F07-POL-02` no ocurre). */
+export const PENDING_CHANGES_TEXT = 'Hay cambios recibidos que todavía no se publican: se muestra la cifra anterior.';
+
+/**
+ * Motivo comprensible, sin cantidad ni conteo exacto de aportantes.
+ * `SUPPRESSED_UNDER_THRESHOLD` sólo lo produce `F07-POL-01` (en lo sellado o
+ * en los borradores anteriores es un estado histórico): se rotula con esa
+ * política, sin «oculto por privacidad» ni «anónimo» (E4 §5.1).
+ */
 export function statusReason(status: AnyStatus, threshold?: number | null): string | null {
   switch (status) {
     case 'SUPPRESSED_UNDER_THRESHOLD':
-      return threshold
-        ? `Menos de ${threshold} agricultores aportaron: la cifra no se publica para no revelar aportes individuales.`
-        : 'Menos aportantes que el umbral de la política: la cifra no se publica para no revelar aportes individuales.';
+      return `Sin cifra según la política F07-POL-01 (mínimo de ${threshold ?? 3} aportantes).`;
     case 'SUPPRESSED_REVISION':
       return 'La cifra anterior se retiró por una baja, una disputa o una reagrupación, y aún no hay cambios suficientes para publicar otra.';
     case 'OVERFLOW':

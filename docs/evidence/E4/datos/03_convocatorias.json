@@ -1,0 +1,625 @@
+{
+ "label": "VER1",
+ "created_at": "2026-11-13T21:17:29.610Z",
+ "calls": {
+  "CA": {
+   "call_ref": "579247e7-a6c4-4c03-868c-0fed5ac4eb1c",
+   "name": "E4V Abierta D1",
+   "responsible": "D1",
+   "reused": true,
+   "detalle_D1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 1,
+    "can_view_participants": false,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      "1000",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      2,
+      null,
+      "PENDING_CONSENT",
+      null
+     ]
+    ]
+   },
+   "detalle_A1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 1,
+    "can_view_participants": true,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      "1000",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      2,
+      null,
+      "PENDING_CONSENT",
+      null
+     ]
+    ]
+   }
+  },
+  "CB": {
+   "call_ref": "444f67ea-24d8-4139-82e6-cd0495d02300",
+   "name": "E4V Cerrada A1",
+   "responsible": "A1",
+   "detalle_D1": {
+    "status": 200,
+    "state": "CLOSED",
+    "pending_consent_count": 2,
+    "can_view_participants": false,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      3,
+      "6000",
+      "VISIBLE",
+      "PREVIOUS_POLICY_K3"
+     ],
+     [
+      "Fertilizante",
+      2,
+      null,
+      "PENDING_CONSENT",
+      null
+     ]
+    ]
+   },
+   "detalle_A1": {
+    "status": 200,
+    "state": "CLOSED",
+    "pending_consent_count": 2,
+    "can_view_participants": true,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      3,
+      null,
+      "PENDING_CONSENT",
+      null
+     ],
+     [
+      "Fertilizante",
+      2,
+      null,
+      "PENDING_CONSENT",
+      null
+     ]
+    ]
+   }
+  },
+  "CC": {
+   "call_ref": "a7a72493-6b45-444b-9457-f286a3a6d904",
+   "name": "E4V Abierta D3",
+   "responsible": "D3",
+   "detalle_D1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 1,
+    "can_view_participants": false,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      "1500",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      1,
+      null,
+      "PENDING_CONSENT",
+      null
+     ]
+    ]
+   },
+   "detalle_A1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 1,
+    "can_view_participants": true,
+    "can_substitute_responsible": true,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      "1500",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      1,
+      null,
+      "PENDING_CONSENT",
+      null
+     ]
+    ]
+   }
+  },
+  "CD": {
+   "call_ref": "352ecdcc-5eb3-40db-8924-e23075e95a7c",
+   "name": "E4V Cerrada D3",
+   "responsible": "D3",
+   "detalle_D1": {
+    "status": 200,
+    "state": "CLOSED",
+    "pending_consent_count": 0,
+    "can_view_participants": false,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      2,
+      "2500",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   },
+   "detalle_A1": {
+    "status": 200,
+    "state": "CLOSED",
+    "pending_consent_count": 0,
+    "can_view_participants": true,
+    "can_substitute_responsible": true,
+    "totals": [
+     [
+      "Herbicida",
+      2,
+      "2500",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   }
+  },
+  "CM1": {
+   "call_ref": "8dc0a4a3-481c-406a-ba39-b2d84dc618ef",
+   "name": "E4V Movil nueva",
+   "responsible": "A2",
+   "detalle_D1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 0,
+    "can_view_participants": false,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      "1000",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   },
+   "detalle_A1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 0,
+    "can_view_participants": true,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      "1000",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   }
+  },
+  "CM2": {
+   "call_ref": "63a5335d-1047-49a3-ba50-b663d0a7bd4e",
+   "name": "E4V Movil anterior",
+   "responsible": "A2",
+   "detalle_D1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 1,
+    "can_view_participants": false,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      null,
+      "PENDING_CONSENT",
+      null
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   },
+   "detalle_A1": {
+    "status": 200,
+    "state": "OPEN",
+    "pending_consent_count": 1,
+    "can_view_participants": true,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      null,
+      "PENDING_CONSENT",
+      null
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   }
+  },
+  "CX": {
+   "call_ref": "f7e9a993-aa00-49e2-8b07-6fefc205c6dc",
+   "name": "E4V Cancelada",
+   "responsible": "D1",
+   "detalle_D1": {
+    "status": 200,
+    "state": "CANCELLED",
+    "pending_consent_count": 1,
+    "can_view_participants": false,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      null,
+      "PENDING_CONSENT",
+      null
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   },
+   "detalle_A1": {
+    "status": 200,
+    "state": "CANCELLED",
+    "pending_consent_count": 1,
+    "can_view_participants": true,
+    "can_substitute_responsible": false,
+    "totals": [
+     [
+      "Herbicida",
+      1,
+      null,
+      "PENDING_CONSENT",
+      null
+     ],
+     [
+      "Fertilizante",
+      0,
+      "0",
+      "VISIBLE",
+      "ROLE_CONSENT"
+     ]
+    ]
+   }
+  }
+ },
+ "steps": [
+  {
+   "what": "A1 crea el producto Herbicida E4V CB (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "L"
+   }
+  },
+  {
+   "what": "A1 crea el producto Fertilizante E4V CB (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "kg"
+   }
+  },
+  {
+   "what": "CB actualiza el borrador existente con sus productos (A1)",
+   "status": 200
+  },
+  {
+   "what": "CB abre",
+   "status": 200
+  },
+  {
+   "what": "CB F1 confirma con CONV-3 (contrato 3)",
+   "status": 200,
+   "extract": {
+    "scope": "RESPONSIBLE_ONLY"
+   }
+  },
+  {
+   "what": "CB F2 confirma con CONV-4 (contrato 4)",
+   "status": 200,
+   "extract": {
+    "scope": "ADMINISTRATION"
+   }
+  },
+  {
+   "what": "CB F3 confirma con CONV-1 (contrato 1)",
+   "status": 200,
+   "extract": {
+    "scope": null
+   }
+  },
+  {
+   "what": "CB cierra A1",
+   "status": 200,
+   "extract": {
+    "lines": [
+     [
+      3,
+      null,
+      "PENDING_CONSENT",
+      null
+     ],
+     [
+      2,
+      null,
+      "PENDING_CONSENT",
+      null
+     ]
+    ],
+    "participants": 1
+   }
+  },
+  {
+   "what": "A1 crea el producto Herbicida E4V CC (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "L"
+   }
+  },
+  {
+   "what": "A1 crea el producto Fertilizante E4V CC (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "kg"
+   }
+  },
+  {
+   "what": "CC crea borrador (D3)",
+   "status": 201
+  },
+  {
+   "what": "CC abre",
+   "status": 200
+  },
+  {
+   "what": "CC F2 confirma con CONV-4 (contrato 4)",
+   "status": 200,
+   "extract": {
+    "scope": "ADMINISTRATION"
+   }
+  },
+  {
+   "what": "CC F3 confirma con CONV-1 (contrato 1)",
+   "status": 200,
+   "extract": {
+    "scope": null
+   }
+  },
+  {
+   "what": "A1 crea el producto Herbicida E4V CD (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "L"
+   }
+  },
+  {
+   "what": "A1 crea el producto Fertilizante E4V CD (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "kg"
+   }
+  },
+  {
+   "what": "CD crea borrador (D3)",
+   "status": 201
+  },
+  {
+   "what": "CD abre",
+   "status": 200
+  },
+  {
+   "what": "CD F1 confirma con CONV-4 (contrato 4)",
+   "status": 200,
+   "extract": {
+    "scope": "ADMINISTRATION"
+   }
+  },
+  {
+   "what": "CD F2 confirma con CONV-4 (contrato 4)",
+   "status": 200,
+   "extract": {
+    "scope": "ADMINISTRATION"
+   }
+  },
+  {
+   "what": "CD cierra D3",
+   "status": 200
+  },
+  {
+   "what": "A1 crea el producto Herbicida E4V CM1 (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "L"
+   }
+  },
+  {
+   "what": "A1 crea el producto Fertilizante E4V CM1 (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "kg"
+   }
+  },
+  {
+   "what": "CM1 crea borrador (A2)",
+   "status": 201
+  },
+  {
+   "what": "CM1 abre",
+   "status": 200
+  },
+  {
+   "what": "CM1 F2 confirma con CONV-4 (contrato 4)",
+   "status": 200,
+   "extract": {
+    "scope": "ADMINISTRATION"
+   }
+  },
+  {
+   "what": "A1 crea el producto Herbicida E4V CM2 (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "L"
+   }
+  },
+  {
+   "what": "A1 crea el producto Fertilizante E4V CM2 (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "kg"
+   }
+  },
+  {
+   "what": "CM2 crea borrador (A2)",
+   "status": 201
+  },
+  {
+   "what": "CM2 abre",
+   "status": 200
+  },
+  {
+   "what": "CM2 F1 confirma con CONV-3 (contrato 3)",
+   "status": 200,
+   "extract": {
+    "scope": "RESPONSIBLE_ONLY"
+   }
+  },
+  {
+   "what": "A1 crea el producto Herbicida E4V CX (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "L"
+   }
+  },
+  {
+   "what": "A1 crea el producto Fertilizante E4V CX (POST /inventory/products)",
+   "status": 201,
+   "extract": {
+    "unit": "kg"
+   }
+  },
+  {
+   "what": "CX crea borrador (D1)",
+   "status": 201
+  },
+  {
+   "what": "CX abre",
+   "status": 200
+  },
+  {
+   "what": "CX F1 confirma con CONV-3 (contrato 3)",
+   "status": 200,
+   "extract": {
+    "scope": "RESPONSIBLE_ONLY"
+   }
+  },
+  {
+   "what": "CX cancela D1",
+   "status": 200
+  },
+  {
+   "what": "A1 deshabilita a D3 (PATCH /users/:id/deactivate)",
+   "status": 200,
+   "extract": {
+    "isActive": false
+   }
+  },
+  {
+   "what": "push F1 DECLARED_NEED Herbicida 5000",
+   "status": 503,
+   "extract": {}
+  },
+  {
+   "what": "push F1 DECLARED_NEED Fertilizante 4000",
+   "status": 503,
+   "extract": {}
+  },
+  {
+   "what": "push F2 DECLARED_NEED Fertilizante 6000",
+   "status": 503,
+   "extract": {}
+  },
+  {
+   "what": "push F1 CONSUMPTION_TOTAL Herbicida 2000",
+   "status": 503,
+   "extract": {}
+  }
+ ],
+ "campaign_ref": "018e370b-34f2-4be3-8da4-85230b46238c"
+}

@@ -1,0 +1,220 @@
+[
+  {
+    "name": "propuestas",
+    "width": 320,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "Borradores de la campaña: 640/286"
+    ],
+    "h1": 2,
+    "file": "propuestas-worst-320.png"
+  },
+  {
+    "name": "propuestas",
+    "width": 390,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "Borradores de la campaña: 640/356"
+    ],
+    "h1": 2,
+    "file": "propuestas-worst-390.png"
+  },
+  {
+    "name": "propuestas",
+    "width": 1366,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [],
+    "h1": 2,
+    "file": "propuestas-worst-1366.png"
+  },
+  {
+    "name": "propuestas",
+    "width": 683,
+    "pageOverflow": 112,
+    "offenders": [],
+    "scrollers": [
+      "Líneas del borrador: 749/633",
+      "Borradores de la campaña: 640/633"
+    ],
+    "h1": 2,
+    "file": "propuestas-worst-1366-zoom200.png"
+  },
+  {
+    "name": "historico-tendencias",
+    "width": 320,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "div: 576/244",
+      "div: 480/244",
+      "div: 480/244",
+      "div: 480/244"
+    ],
+    "h1": 2,
+    "file": "historico-tendencias-worst-320.png"
+  },
+  {
+    "name": "historico-tendencias",
+    "width": 390,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "div: 576/314",
+      "div: 480/314",
+      "div: 480/314",
+      "div: 480/314"
+    ],
+    "h1": 2,
+    "file": "historico-tendencias-worst-390.png"
+  },
+  {
+    "name": "historico-tendencias",
+    "width": 1366,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [],
+    "h1": 2,
+    "file": "historico-tendencias-worst-1366.png"
+  },
+  {
+    "name": "historico-tendencias",
+    "width": 683,
+    "pageOverflow": 112,
+    "offenders": [],
+    "scrollers": [
+      "div: 1040/633"
+    ],
+    "h1": 2,
+    "file": "historico-tendencias-worst-1366-zoom200.png"
+  },
+  {
+    "name": "historico-estimacion",
+    "width": 320,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [],
+    "h1": 2,
+    "file": "historico-estimacion-worst-320.png"
+  },
+  {
+    "name": "historico-estimacion",
+    "width": 390,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [],
+    "h1": 2,
+    "file": "historico-estimacion-worst-390.png"
+  },
+  {
+    "name": "historico-estimacion",
+    "width": 1366,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "div: 1062/1060"
+    ],
+    "h1": 2,
+    "file": "historico-estimacion-worst-1366.png"
+  },
+  {
+    "name": "historico-estimacion",
+    "width": 683,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "div: 1062/633"
+    ],
+    "h1": 2,
+    "file": "historico-estimacion-worst-1366-zoom200.png"
+  },
+  {
+    "name": "catalogo-productos",
+    "width": 320,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "Productos inactivos: 539/286"
+    ],
+    "h1": 2,
+    "file": "catalogo-productos-worst-320.png"
+  },
+  {
+    "name": "catalogo-productos",
+    "width": 390,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "Productos inactivos: 539/356"
+    ],
+    "h1": 2,
+    "file": "catalogo-productos-worst-390.png"
+  },
+  {
+    "name": "catalogo-productos",
+    "width": 1366,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [],
+    "h1": 2,
+    "file": "catalogo-productos-worst-1366.png"
+  },
+  {
+    "name": "catalogo-productos",
+    "width": 683,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [],
+    "h1": 2,
+    "file": "catalogo-productos-worst-1366-zoom200.png"
+  },
+  {
+    "name": "catalogo-equivalencias",
+    "width": 320,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "Denominaciones sin asociar: 520/286",
+      "Equivalencias vigentes: 709/286",
+      "Historial de equivalencias: 760/286"
+    ],
+    "h1": 2,
+    "file": "catalogo-equivalencias-worst-320.png"
+  },
+  {
+    "name": "catalogo-equivalencias",
+    "width": 390,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "Denominaciones sin asociar: 520/356",
+      "Equivalencias vigentes: 709/356",
+      "Historial de equivalencias: 760/356"
+    ],
+    "h1": 2,
+    "file": "catalogo-equivalencias-worst-390.png"
+  },
+  {
+    "name": "catalogo-equivalencias",
+    "width": 1366,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [],
+    "h1": 2,
+    "file": "catalogo-equivalencias-worst-1366.png"
+  },
+  {
+    "name": "catalogo-equivalencias",
+    "width": 683,
+    "pageOverflow": 0,
+    "offenders": [],
+    "scrollers": [
+      "Equivalencias vigentes: 709/633",
+      "Historial de equivalencias: 760/633"
+    ],
+    "h1": 2,
+    "file": "catalogo-equivalencias-worst-1366-zoom200.png"
+  }
+]

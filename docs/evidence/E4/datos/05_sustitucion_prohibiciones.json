@@ -1,0 +1,24 @@
+[
+ {
+  "key": "CC",
+  "what": "D1 (Directiva) intenta sustituir",
+  "status": 403,
+  "body": {
+   "errorCode": "SUBSTITUTION_FORBIDDEN"
+  }
+ },
+ {
+  "key": "CC",
+  "what": "A1 intenta nombrarse a sí misma",
+  "status": 422,
+  "body": {
+   "errorCode": "SUCCESSOR_NOT_ELIGIBLE"
+  }
+ },
+ {
+  "key": "CC",
+  "what": "responsable tras los intentos",
+  "responsible": "D3 sintético VER1",
+  "version": 1
+ }
+]

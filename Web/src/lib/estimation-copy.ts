@@ -38,7 +38,7 @@ import type { InstitutionalDownload } from '../types/estimation';
  * cifrado, ni anonimización, ni una garantía criptográfica.
  *
  * **Lo que guarda:** la respuesta de `GET /download` tal como llegó, sin
- * credenciales (ningún token ni contraseña). No es el CSV de la consulta.
+ * credenciales (ningún token ni contraseña). No es el Excel de la consulta.
  *
  * **Lo que no se sabe sin conexión:** revocaciones ni cambios de fuentes.
  */

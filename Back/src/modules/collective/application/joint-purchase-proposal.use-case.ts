@@ -2,8 +2,8 @@ import { ConflictException, Injectable, Logger, NotFoundException } from "@nestj
 import type { CampaignStatus, Prisma, SyncV1BaseUnit } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { cellId } from "../domain/consolidation";
-import { csvField, ProposalCellStatus, proposalFingerprint } from "../domain/proposal";
-import { CollectiveConfig, DisclosureMode } from "./collective-config";
+import { ProposalCellStatus, proposalFingerprint } from "../domain/proposal";
+import { CollectiveConfig, DisclosureMode, DisclosurePolicy, storedPolicy } from "./collective-config";
 import {
   CollectiveSummary,
   CollectiveSummaryUseCase,
@@ -52,7 +52,8 @@ export interface ProposalView {
   generated_by: { user_ref: string; name: string };
   /** Null whenever a figure of the draft is not served (it would cover it). */
   inputs_fingerprint: string | null;
-  disclosure: { mode: DisclosureMode; policy: "F07-POL-01"; approved: false };
+  /** E4 §4.4: the policy the draft was generated with (F07-POL-01 for drafts before E4). */
+  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: false };
   /**
    * Stored at generation. `basis` (F10-SEC-02): PUBLISHED_FIGURES counts the
    * Members inside a published figure; ALL_CONTRIBUTORS is the earlier rule of
@@ -82,7 +83,7 @@ export const PROPOSAL_NOTICE =
  * the state the summary decided and, when DISCLOSED, a reference to the
  * release that backs the figure. Every read takes the summary decision and a
  * line keeps its figure only while the summary shows that same release for its
- * cell; the proposal, its history and its CSV therefore never serve a figure
+ * cell; the proposal and its history therefore never serve a figure
  * the summary does not show now, nor any figure when the current mode does
  * not authorize disclosure. Generation writes only the proposal and its lines:
  * no purchase, lot, movement, payable account or payment.
@@ -190,8 +191,13 @@ export class JointPurchaseProposalUseCase {
         status: cell.status === "WITHDRAWN_AFTER_SEAL" ? ("SUPPRESSED_REVISION" as const) : cell.status,
       }));
     const coverage = summary.coverage!;
+    // E4 §4.4: the draft records the policy its figures were decided with
+    // (that of the summary: the configured one, or the sealed one); its
+    // fingerprint includes it (v2).
+    const policy = summary.disclosure.policy;
     const fingerprint = proposalFingerprint({
       campaign_ref: summary.campaign.campaign_ref,
+      policy,
       coverage,
       cells,
     });
@@ -203,6 +209,7 @@ export class JointPurchaseProposalUseCase {
         linkedMembers: coverage.linked_members,
         membersWithContribution: coverage.members_with_contribution,
         coverageBasis: "PUBLISHED_FIGURES",
+        disclosurePolicy: policy,
         generatedByUserId: actorUserId,
         lines: {
           create: cells.map((cell, position) => ({
@@ -258,7 +265,7 @@ export class JointPurchaseProposalUseCase {
       generated_by: { user_ref: row.generatedBy.id, name: row.generatedBy.name },
       // The fingerprint covers the figures: hidden whenever one is not served.
       inputs_fingerprint: fingerprintVisible(row.lines, current) ? row.inputsFingerprint : null,
-      disclosure: { mode: authorized ? "PROVISIONAL_SYNTHETIC" : "POLICY_PENDING", policy: "F07-POL-01", approved: false },
+      disclosure: { mode: authorized ? "PROVISIONAL_SYNTHETIC" : "POLICY_PENDING", policy: storedPolicy(row.disclosurePolicy), approved: false },
       coverage: authorized
         ? {
             linked_members: row.linkedMembers,
@@ -354,66 +361,4 @@ function requireRelease(releaseOf: ReadonlyMap<string, string>, productRef: stri
   // A DISCLOSED cell always comes from a release; anything else is a bug.
   if (!id) throw new Error("DISCLOSED cell without release");
   return id;
-}
-
-type CsvValue = string | number | boolean | null;
-
-/**
- * Columns another reading appends after the proposal's own (F12-EST-08: the
- * estimation reference). The proposal's columns, rows and values never change:
- * removing the appended columns gives `proposalCsv(view)` exactly.
- */
-export interface ProposalCsvAppendix {
-  head: { header: string[]; values: CsvValue[] };
-  lineHeader: string[];
-  line: (position: number) => CsvValue[];
-}
-
-/** Same view as JSON, as CSV: same states, no other figure (R8). */
-export function proposalCsv(view: ProposalView, appendix?: ProposalCsvAppendix): string {
-  const row = (values: CsvValue[]) => values.map(csvField).join(",");
-  const lines = [
-    row(["proposal_ref", "status", "basis", "campaign_ref", "campaign", "generated_at", "generated_by", "inputs_fingerprint", "disclosure", "policy", "approved", "linked_members", "members_with_contribution", "coverage_basis", "seal_ref", "seal_version", "sealed_at", ...(appendix?.head.header ?? [])]),
-    row([
-      view.proposal_ref,
-      view.status,
-      view.basis,
-      view.campaign.campaign_ref,
-      view.campaign.name,
-      view.generated_at,
-      view.generated_by.name,
-      view.inputs_fingerprint,
-      view.disclosure.mode,
-      view.disclosure.policy,
-      view.disclosure.approved,
-      view.coverage?.linked_members ?? null,
-      view.coverage?.members_with_contribution ?? null,
-      view.coverage?.basis ?? null,
-      view.seal?.seal_ref ?? null,
-      view.seal?.version ?? null,
-      view.seal?.sealed_at ?? null,
-      ...(appendix?.head.values ?? []),
-    ]),
-    row(["notice", view.notice]),
-    "",
-    row(["position", "product_ref", "product_name", "base_unit", "presentation_unit", "status", "quantity_base", "quantity_presentation", "contributors", "data_as_of", "released_at", "pending_changes", ...(appendix?.lineHeader ?? [])]),
-    ...view.lines.map((line) =>
-      row([
-        line.position,
-        line.product_ref,
-        line.product_name,
-        line.base_unit,
-        line.presentation_unit,
-        line.status,
-        line.quantity_base,
-        line.quantity_presentation,
-        line.contributors,
-        line.data_as_of,
-        line.released_at,
-        line.pending_changes,
-        ...(appendix?.line(line.position) ?? []),
-      ]),
-    ),
-  ];
-  return `${lines.join("\n")}\n`;
 }

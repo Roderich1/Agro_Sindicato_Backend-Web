@@ -1,0 +1,102 @@
+[
+ {
+  "rol": "A1",
+  "text": "A1 en CC",
+  "expect": [
+   [
+    "F3 sintético",
+    true
+   ],
+   [
+    "F2 sintético",
+    true
+   ]
+  ],
+  "forbid": []
+ },
+ {
+  "rol": "A1",
+  "apiLog": "A1 en CC",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "D1",
+  "text": "D1 en CC",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ],
+   [
+    "F3 sintético",
+    false
+   ],
+   [
+    "anónim",
+    false
+   ],
+   [
+    "umbral",
+    false
+   ],
+   [
+    "Consultar participantes y cantidades",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "D1",
+  "apiLog": "D1 en CC",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "D1",
+  "bodies": "D1 en CC",
+  "responses": 9,
+  "paths": [
+   "GET /api/v1/catalog/identification-requests 200",
+   "GET /api/v1/campaigns/active 200",
+   "GET /api/v1/campaigns 200",
+   "GET /api/v1/collective/campaigns/<id>/summary 200",
+   "GET /api/v1/collective/campaigns/<id>/seal 200",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators 200",
+   "GET /api/v1/joint-purchase-calls/<id> 200"
+  ],
+  "findings": []
+ }
+]

@@ -1,0 +1,60 @@
+INSPECCIÓN tras iniciar sesión: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor al iniciar sesión: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login"]
+INSPECCIÓN URL directa /dashboard: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /dashboard: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /inventory: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /inventory: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /purchases: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /purchases: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /sync: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /sync: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /plots: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /plots: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /applications: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /applications: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /reports: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /reports: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /colectivo/resumen: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /colectivo/resumen: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /colectivo/compras-conjuntas: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /colectivo/compras-conjuntas: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+AVISO agricultor {"goto":"/colectivo/catalogo?vista=identificacion","reload":true,"after":4500}: la sesión se perdió (pantalla de inicio de sesión)
+INSPECCIÓN URL directa /colectivo/catalogo?vista=identificacion: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor URL directa /colectivo/catalogo?vista=identificacion: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+AVISO agricultor {"goto":"/campaigns","reload":true,"after":4500}: la sesión se perdió (pantalla de inicio de sesión)
+INSPECCIÓN URL directa /campaigns: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor URL directa /campaigns: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+AVISO agricultor {"goto":"/calendar","reload":true,"after":4500}: la sesión se perdió (pantalla de inicio de sesión)
+INSPECCIÓN URL directa /calendar: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor URL directa /calendar: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+AVISO agricultor {"goto":"/audit-logs","reload":true,"after":4500}: la sesión se perdió (pantalla de inicio de sesión)
+INSPECCIÓN URL directa /audit-logs: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor URL directa /audit-logs: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+AVISO agricultor {"goto":"/users","reload":true,"after":4500}: la sesión se perdió (pantalla de inicio de sesión)
+INSPECCIÓN URL directa /users: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor URL directa /users: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+AVISO agricultor {"click":"^Cambiar de cuenta$"}: sin elemento /^Cambiar de cuenta$/ en body
+INSPECCIÓN tras «Cambiar de cuenta»: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor al cambiar de cuenta: []
+INSPECCIÓN tras «Cerrar sesión»: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor al cerrar sesión: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","POST /api/v1/auth/logout"]
+INSPECCIÓN Directiva tras iniciar sesión: {"path":"/colectivo/resumen","dialogs":[],"buttons":[],"h1":["Resumen"],"nav":2,"links":15}
+INSPECCIÓN Directiva en /inventory (ruta antigua): {"path":"/colectivo/resumen","dialogs":[],"buttons":[],"h1":["Resumen"],"nav":2,"links":15}
+INSPECCIÓN Directiva en /users: {"path":"/colectivo/resumen","dialogs":[],"buttons":[],"h1":["Resumen"],"nav":2,"links":15}
+INSPECCIÓN Directiva tras cerrar sesión: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+INSPECCIÓN URL directa /colectivo/catalogo?vista=identificacion: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /colectivo/catalogo?vista=identificacion: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /campaigns: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /campaigns: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /calendar: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /calendar: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /audit-logs: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /audit-logs: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN URL directa /users: {"path":"/sin-acceso-web","dialogs":[],"buttons":[],"h1":["Esta cuenta utiliza la aplicación móvil."],"nav":0,"links":0}
+API agricultor URL directa /users: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh"]
+INSPECCIÓN tras «Cambiar de cuenta»: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}
+API agricultor al cambiar de cuenta: ["POST /api/v1/auth/logout"]
+INSPECCIÓN Administración tras iniciar sesión: {"path":"/colectivo/resumen","dialogs":[],"buttons":[],"h1":["Resumen"],"nav":2,"links":16}
+INSPECCIÓN Administración en /users: {"path":"/users","dialogs":[],"buttons":[],"h1":["Usuarios"],"nav":2,"links":13}
+INSPECCIÓN Administración en /sync (ruta antigua): {"path":"/colectivo/resumen","dialogs":[],"buttons":[],"h1":["Resumen"],"nav":2,"links":16}
+INSPECCIÓN Administración tras cerrar sesión: {"path":"/login","dialogs":[],"buttons":[],"h1":["Ingresar"],"nav":0,"links":0}

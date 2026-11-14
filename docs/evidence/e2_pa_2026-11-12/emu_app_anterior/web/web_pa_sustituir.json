@@ -1,0 +1,36 @@
+{
+  "action": "sustituir",
+  "at": "2026-11-12T18:17:22.374Z",
+  "shots": [
+    "pa_w04_inhabilitada",
+    "pa_w05_sustituir_dialogo",
+    "pa_w06_sustituida"
+  ],
+  "ineligible": "La persona responsable ya no es un usuario activo de la Directiva o la Administración. Los permisos que concedió quedan suspendidos y nadie puede administrar la convocatoria por su rol. Quien tenga el permiso «Sustituir responsable» puede nombrar a otra persona responsable. Si está abierta, se cierra sola al vencer la fecha límite.",
+  "closeButton": false,
+  "selfNote": "Usted no aparece en la lista: quien sustituye no puede nombrarse como nueva persona responsable. Si debe serlo, otra persona habilitada con el permiso «Sustituir responsable» tiene que nombrarle.",
+  "options": [
+    "Seleccione…",
+    "Administración DEMO · Administrador",
+    "Administración PA 2 (sintética) · Administrador",
+    "Responsable PA (sintética) · Directiva",
+    "Sucesora PA (sintética) · Directiva"
+  ],
+  "change": "Sucesora PA (sintética) sustituyó a Responsable PA 3 (sintética) el 12 nov de 2026, 2:17 p. m., por decisión de Directiva DEMO. Motivo: La responsable dejó de estar habilitada; coordina la entrega la sucesora",
+  "api": [
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-substitution-permissions → 200",
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-substitution-permissions → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "GET /api/v1/joint-purchase-calls/eligible-responsibles → 200",
+    "POST /api/v1/joint-purchase-calls/<id>/responsible → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200"
+  ]
+}

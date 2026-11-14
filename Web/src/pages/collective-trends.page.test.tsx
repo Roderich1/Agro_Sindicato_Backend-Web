@@ -8,7 +8,7 @@ import type { TrendSeries } from '../types/collective';
 import { CollectiveTrendsPage } from './collective-trends.page';
 
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { trends: vi.fn(), trendsCsv: vi.fn() },
+  collectiveService: { trends: vi.fn() },
 }));
 
 const PATH = '/colectivo/tendencias';
@@ -60,23 +60,31 @@ describe('Tendencias entre campañas', () => {
     expect(withdrawn.textContent).toMatch(/retiró su aporte después del sellado/);
     expect(withdrawn.textContent).not.toMatch(/9000|9 L/);
     expect(within(herb).getByTestId('point-Campaña 2026').textContent).toMatch(/no tiene una versión sellada/);
-    // Gráfico: un solo punto publicado y ninguna línea hacia un hueco.
-    expect(within(herb).getAllByTestId('trend-point')).toHaveLength(1);
-    expect(within(herb).queryAllByTestId('trend-segment')).toHaveLength(0);
-    expect(within(herb).getByRole('img').getAttribute('aria-label')).toMatch(/1 de 3 campañas con cifra publicada; las demás son huecos, no ceros/);
-    expect(herb.querySelector('svg title')?.textContent).toBe('Campaña 2024: 6 L');
+    // Gráfico (producto elegido por defecto: Herbicida): un solo punto publicado, sin segmentos; sólo campañas selladas.
+    const chart = screen.getByTestId('trend-chart');
+    expect(within(chart).getAllByTestId('trend-point')).toHaveLength(1);
+    expect(within(chart).queryAllByTestId('trend-segment')).toHaveLength(0);
+    expect(chart.getAttribute('aria-label')).toMatch(/1 de 2 campañas selladas con cifra publicada; las demás son huecos, no ceros/);
+    expect(chart.querySelector('title')?.textContent).toBe('Campaña 2024: 6 L');
+    // La campaña abierta sin sellar no se dibuja como histórico.
+    expect(chart.textContent).not.toMatch(/Campaña 2026/);
+    expect(screen.getByText(/Campañas sin sellar \(Campaña 2026\) no se dibujan como histórico/)).toBeTruthy();
 
-    // Dos campañas consecutivas con cifra: un segmento; la tercera es un hueco.
+    // Dos campañas consecutivas con cifra: dos columnas con cantidad y unidad; la tercera no es histórico.
+    fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-urea|G' } });
+    const ureaChart = screen.getByTestId('trend-chart');
+    expect(within(ureaChart).getAllByTestId('trend-point')).toHaveLength(2);
+    expect([...ureaChart.querySelectorAll('title')].map((t) => t.textContent)).toEqual(['Campaña 2024: 25 KG', 'Campaña 2025: 30 KG']);
     const ur = screen.getByTestId('series-DECLARED_NEED-Urea-G');
-    expect(within(ur).getAllByTestId('trend-point')).toHaveLength(2);
-    expect(within(ur).getAllByTestId('trend-segment')).toHaveLength(1);
-    expect(within(ur).getByTestId('point-Campaña 2024').textContent).toMatch(/aún no alcanzan el umbral/);
-    expect([...ur.querySelectorAll('svg title')].map((t) => t.textContent)).toEqual(['Campaña 2024: 25 KG', 'Campaña 2025: 30 KG']);
+    // E4: el aviso de cifra anterior ya no habla de «umbral».
+    expect(within(ur).getByTestId('point-Campaña 2024').textContent).toMatch(/todavía no se publican: se muestra la cifra anterior/);
 
+    fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-gli|ML' } });
+    expect(within(screen.getByTestId('trend-chart')).queryAllByTestId('trend-point')).toHaveLength(0);
     const gli = screen.getByTestId('series-DECLARED_NEED-Glifosato-ML');
-    expect(within(gli).queryAllByTestId('trend-point')).toHaveLength(0);
     expect(within(gli).getByTestId('point-Campaña 2025').textContent).toMatch(/No significa cero/);
-    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/Menos de 3 agricultores/);
+    // E4 §3.4/§5.1: lo sellado con F07-POL-01 conserva su estado, rotulado con esa política (antes «Menos de 3 agricultores»).
+    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/);
 
     // Sin totales entre campañas, productos ni unidades.
     expect(document.body.textContent).not.toMatch(/55 KG|36 L|Total general|Promedio/);
@@ -92,13 +100,27 @@ describe('Tendencias entre campañas', () => {
     expect(document.body.textContent).toMatch(/no prueba que cada agricultor\s+consumiera o necesitara más o menos/);
   });
 
-  it('necesidad y consumo se piden por separado', async () => {
+  it('abre con «Consumo publicado»; necesidad y consumo se piden por separado con dos opciones visibles', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([]));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
     await screen.findByText(/Sin series selladas/);
-    expect(collectiveService.trends).toHaveBeenLastCalledWith('DECLARED_NEED');
-    fireEvent.change(screen.getByLabelText(/Dato/), { target: { value: 'CONSUMPTION_TOTAL' } });
-    await waitFor(() => expect(collectiveService.trends).toHaveBeenLastCalledWith('CONSUMPTION_TOTAL'));
+    expect(screen.getByText(/Filtro aplicado: «Consumo publicado»/)).toBeTruthy();
+    expect(collectiveService.trends).toHaveBeenLastCalledWith('CONSUMPTION_TOTAL');
+    const group = screen.getByRole('group', { name: 'Dato' });
+    expect(within(group).getByRole('button', { name: 'Consumo publicado' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(group).getByRole('button', { name: 'Necesidad declarada' }));
+    await waitFor(() => expect(collectiveService.trends).toHaveBeenLastCalledWith('DECLARED_NEED'));
+    expect(within(group).getByRole('button', { name: 'Necesidad declarada' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('el gráfico aparece antes de la tabla; campañas, versión y cobertura quedan en «Ver campañas y cobertura»', async () => {
+    vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida]));
+    renderAt(<CollectiveTrendsPage />, { path: PATH });
+    const chart = await screen.findByTestId('trend-chart');
+    const sources = screen.getByTestId('sources');
+    expect(sources.textContent).toMatch(/Ver campañas y cobertura/);
+    expect(chart.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(chart.textContent).toMatch(/L por campaña sellada/);
   });
 
   it('POLICY_PENDING: sin series ni cifras', async () => {

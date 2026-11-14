@@ -1,0 +1,41 @@
+{
+  "action": "sucesora",
+  "at": "2026-11-12T16:19:10.869Z",
+  "shots": [
+    "pa_w07_sucesora_restringida",
+    "pa_w08_confirmar_dialogo",
+    "pa_w09_revisadas"
+  ],
+  "pendingReviews": "2 permisos concedidos por la responsable anterior esperan su revisión en «Colaboradores»: confírmelos o retírelos. Mientras tanto no se ejercen.",
+  "pendingAuthorization": "2 participaciones pendientes de que sus agricultores autoricen a la persona responsable actual: sus datos no se muestran.",
+  "totals": [
+    "Total no visible: incluye participaciones cuyos agricultores aún no autorizaron a la persona responsable actual."
+  ],
+  "participantRows": 0,
+  "access": [
+    "Concedido«Consultar participantes y cantidades» · Administración DEMO· por Responsable PA (sintética) · 12 nov de 2026, 12:15 p. m.",
+    "Concedido«Administrar la convocatoria» · Directiva DEMO· por Responsable PA (sintética) · 12 nov de 2026, 12:15 p. m.",
+    "Suspendido al sustituir a la responsable«Administrar la convocatoria» · Directiva DEMO· por Directiva DEMO · 12 nov de 2026, 12:18 p. m.",
+    "Suspendido al sustituir a la responsable«Consultar participantes y cantidades» · Administración DEMO· por Directiva DEMO · 12 nov de 2026, 12:18 p. m.",
+    "Confirmado por la nueva responsable«Consultar participantes y cantidades» · Administración DEMO· por Sucesora PA (sintética) · 12 nov de 2026, 12:19 p. m.",
+    "Retirado«Administrar la convocatoria» · Directiva DEMO· por Sucesora PA (sintética) · 12 nov de 2026, 12:19 p. m."
+  ],
+  "api": [
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-substitution-permissions → 200",
+    "GET /api/v1/joint-purchase-substitution-permissions → 200",
+    "GET /api/v1/joint-purchase-calls → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/participants → 200",
+    "POST /api/v1/joint-purchase-calls/<id>/collaborators/review → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/participants → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/collaborators → 200",
+    "POST /api/v1/joint-purchase-calls/<id>/collaborators/review → 200",
+    "GET /api/v1/joint-purchase-calls/<id> → 200",
+    "GET /api/v1/joint-purchase-calls/<id>/participants → 200"
+  ]
+}

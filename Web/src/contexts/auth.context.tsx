@@ -2,10 +2,11 @@ import axios from 'axios';
 import {
   createContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
-import { api, clearAccessToken, setAccessToken } from '../lib/axios';
+import { api, clearAccessToken, setAccessToken, setSessionSync } from '../lib/axios';
 import { closeContext, openContext, purgeInaccessibleCopies } from '../lib/estimation-copy';
 
 export interface TenantInfo {
@@ -56,9 +57,45 @@ function endSession() {
   return purgeInaccessibleCopies();
 }
 
+/** Misma cuenta, sindicato y rol: la sesión local no cambia (ni se vuelve a pintar). */
+function sameSession(a: AuthUser, b: AuthUser): boolean {
+  return a.id === b.id && a.tenantId === b.tenantId && a.role === b.role;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUserState] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Usuario vigente para los avisos del cliente HTTP, que llegan fuera del render.
+  const userRef = useRef<AuthUser | null>(null);
+  const setUser = (next: AuthUser | null) => {
+    userRef.current = next;
+    setUserState(next);
+  };
+
+  /**
+   * Cierre O5 (decisión D): el rol vigente que devuelve el servidor (`GET /auth/me`
+   * tras un 403, o la renovación del token) sustituye al de la sesión local. La
+   * barra lateral y las guardas de ruta leen `user.role`, así que se recalculan y
+   * una página que el nuevo rol no permite redirige a su inicio. Sin sesión local
+   * no se adopta nada (el inicio de sesión sigue siendo el único que la abre).
+   */
+  useEffect(() => {
+    const adoptServerUser = (next: AuthUser) => {
+      const current = userRef.current;
+      if (!current || sameSession(current, next)) return;
+      beginSession(next);
+      userRef.current = next;
+      setUserState(next);
+    };
+    return setSessionSync({
+      revalidate: async () => {
+        if (!userRef.current) return;
+        const { data } = await api.get<AuthUser>('/auth/me');
+        adoptServerUser(data);
+      },
+      refreshed: adoptServerUser,
+    });
+  }, []);
 
   useEffect(() => {
     axios

@@ -994,7 +994,7 @@ Sirve cuando dos nombres son el mismo producto, por ejemplo «Bellator» y «Bel
 
 ![Reconciliación de Bellator y Belator](../evidence/f10_dsux/20261019T032254Z/VER1-Bellator-1366x768/2-reconciliacion-W3.png)
 
-#### 9.4 Propuesta de compra conjunta y CSV
+#### 9.4 Propuesta de compra conjunta y Excel
 
 1. Vaya a «Necesidades y propuesta» y pulse «Generar propuesta (borrador)».
 2. El borrador muestra:
@@ -1002,7 +1002,7 @@ Sirve cuando dos nombres son el mismo producto, por ejemplo «Bellator» y «Bel
    - una **huella**: el mismo resultado con los mismos datos da la misma huella;
    - las líneas con la «Necesidad declarada»;
    - la cobertura en la fecha del borrador.
-3. Para descargarlo, pulse «Exportar CSV». El archivo se llama `propuesta-<referencia>.csv` y tiene las columnas en inglés.
+3. Para descargarlo, pulse «Descargar Excel». El archivo se llama `propuesta-<referencia>.xlsx`. Desde el 2026-11-12 (decisión del autor) Excel es la única exportación: el CSV se retiró y sus columnas quedaron en el libro (`docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`).
 
 **Pregunta W5, «¿Generar ese borrador compra los productos?»: no.** El borrador es «para revisión humana. Usa la necesidad declarada por los agricultores: no resta stock y no es una necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos.» No hay ninguna acción para convertirlo en compra.
 
@@ -1021,7 +1021,7 @@ Es **otra cifra**: no se suma a la necesidad declarada, no es la cantidad a pedi
   Nunca aparece un cero en su lugar.
 - **Fila con la necesidad oculta** (decisión del autor del 2026-11-03). La necesidad sigue oculta. Si la estimación de ese producto está permitida, la celda lo dice antes de la cifra: «La necesidad de esta fila no está divulgada. Lo que sigue es la estimación del consumo: no la sustituye ni se suma a la propuesta.». El prototipo W3 del documento dibuja «—» en esa fila; la diferencia es deliberada.
 - **Un borrador antiguo** muestra la estimación vigente hoy, marcada como «posterior al borrador» si se calculó después.
-- **«Exportar CSV»** conserva las columnas del borrador y añade la referencia al final, en columnas `estimation_*`, con el momento en que se evaluó la vigencia. En una fila oculta, la necesidad queda vacía; nunca lleva la estimación ni un cero.
+- **«Descargar Excel»** (desde el 2026-11-12, en lugar de «Exportar CSV») vuelve a pedir al servidor, al pulsarlo, el borrador y la **referencia fijada** en él (E3), nunca la estimación más reciente. La portada identifica el borrador y la versión, la fecha y el estado de la referencia; la hoja «Consumo estimado» lleva cada línea con su estado, su vigencia y el alcance de cada cifra. Una cifra restringida o retirada no aparece, y no hay diferencias ni porcentajes mientras el servidor no declare comparables las cifras. Sin referencia fijada, el libro lo dice y no lleva ninguna estimación. En una fila oculta, la necesidad queda vacía; nunca lleva la estimación ni un cero.
 
 **Más detalles:**
 - Cada vez que genera, se añade un borrador nuevo al «Historial de borradores». No se sobrescribe ninguno.
@@ -1086,7 +1086,7 @@ Menú «Tendencias». Compara **sólo versiones selladas**, producto por product
 | «Oculto», «Oculto (revisión)», «Retirado tras sellar» | Los mismos motivos que en el resumen (§9.1) |
 
 - **El gráfico** de cada producto sólo dibuja las campañas con cifra publicada y dice cuántas son: «…: n de m campañas con cifra publicada; las demás son huecos, no ceros.»
-- **«Descargar CSV»** guarda `tendencias-necesidad.csv` o `tendencias-consumo.csv`, con los mismos estados y el aviso.
+- **«Descargar Excel»** guarda `tendencias-necesidad-declarada.xlsx` o `tendencias-consumo-publicado.xlsx`, con los mismos estados, el aviso y una hoja «Campañas». Desde el 2026-11-12 sustituye al CSV.
 
 Mientras el sellado esté desactivado no hay versiones selladas, así que la página no muestra cifras: «Sin series selladas. Ninguna versión sellada tiene datos de este tipo. Eso no significa cero.»
 
@@ -1143,7 +1143,7 @@ La estimación del consumo es una **referencia exploratoria** para la próxima c
 
 **Ejecuciones anteriores.** La sección lista todas las ejecuciones, incluidas las fallidas, de la más reciente a la más antigua, con «Ver detalle» y «Cargar más». Ninguna se modifica ni se borra.
 
-**Exportar.** «Exportar CSV de la consulta» guarda en un archivo la consulta tal como la respondió el servidor. No es una copia para consultar sin conexión.
+**Exportar.** «Descargar Excel» guarda en un libro la consulta tal como la responde el servidor al pulsarlo (desde el 2026-11-12 sustituye a «Exportar CSV de la consulta»). No es una copia para consultar sin conexión.
 
 **Copia sin conexión en este navegador.**
 1. Con conexión, pulse «Descargar copia para consultar sin conexión».
@@ -1228,7 +1228,7 @@ La estimación del consumo es una **referencia exploratoria** para la próxima c
   - estado de sincronización de cada agricultor;
   - necesidad neta;
   - ejecutar compras o pagos;
-  - CSV del resumen;
+  - CSV (desde el 2026-11-12 la Web sólo exporta en Excel);
   - «¿Olvidó su contraseña?».
 - **Privacidad de los respaldos en la nube:**
   - Desde esta versión, la app los cifra en el teléfono con la clave de recuperación antes de subirlos (§7.2). El servidor y el proveedor guardan la copia cifrada y no tienen la clave.

@@ -156,12 +156,11 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       expect(json.body.disclosure).toEqual({ mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null });
       expect(json.body.coverage).toBeNull();
       expect(json.body.cells).toEqual([]);
+      // The JSON is the only channel: the CSV route was withdrawn (2026-11-12).
       const csv: Res = await http()
         .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
         .set("Authorization", `Bearer ${director.token}`);
-      expect(csv.status).toBe(200);
-      expect(csv.text).toContain("POLICY_PENDING");
-      expect(csv.text).not.toContain("15000");
+      expect(csv.status).toBe(404);
       expect(await prisma.collectiveRelease.count()).toBe(0);
     } finally {
       config.mode = "PROVISIONAL_SYNTHETIC";
@@ -236,11 +235,6 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       await replace(heads, 2, p, "3000"); // same value, new sequence
       const json = await summary();
       expect(cellOf(json, p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", pending_changes: true });
-      const csv: Res = await http()
-        .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
-        .set("Authorization", `Bearer ${director.token}`);
-      expect(csv.text).toContain(`,${p},`);
-      expect(csv.text).not.toContain(",6100,");
     });
 
     it("replacements without a new value are not new information", async () => {
@@ -341,12 +335,6 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       // counts, so it is withdrawn; never a figure with that amount subtracted.
       expect(cellOf(res, p)).toMatchObject({ status: "SUPPRESSED_REVISION", total_base: null, contributors: null });
       expect(res.body.coverage.linked_members).toBe(before.body.coverage.linked_members - 1);
-      const csv = await http()
-        .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
-        .set("Authorization", `Bearer ${director.token}`);
-      // Same decision in the CSV channel: status, totals and contributors empty.
-      const row = (csv.text as string).split("\n").find((line) => line.includes(p))!;
-      expect(row.split(",").slice(5, 9)).toEqual(["SUPPRESSED_REVISION", "", "", ""]);
       const releases = await prisma.collectiveRelease.findMany({
         where: { canonicalProductId: p }, include: { items: true },
       });
@@ -430,21 +418,14 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     expect(cellOf(await summary(), p)).toMatchObject({ status: "OVERFLOW", total_base: null });
   });
 
-  it("JSON and CSV carry the same decisions; no individual data", async () => {
+  it("the JSON is the only channel and carries no individual data", async () => {
     const json = await summary();
+    expect(json.headers["cache-control"]).toBe("no-store");
+    // The CSV route was withdrawn (2026-11-12): the Web exports Excel from this JSON.
     const csv: Res = await http()
       .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
       .set("Authorization", `Bearer ${director.token}`);
-    expect(csv.headers["content-type"]).toContain("text/csv");
-    expect(csv.headers["cache-control"]).toBe("no-store");
-    // Line 1 header, 2 values, 3 blank, 4 column names, then one row per cell.
-    const rows = csv.text.trim().split("\n").slice(4);
-    expect(rows).toHaveLength(json.body.cells.length);
-    for (const cell of json.body.cells) {
-      const line = rows.find((row) => row.startsWith(`${cell.projection_type},${cell.product_ref},`));
-      expect(line).toBeDefined();
-      expect(line).toContain(`,${cell.status},${cell.total_base ?? ""},`);
-    }
+    expect(csv.status).toBe(404);
     const text = JSON.stringify(json.body);
     for (const id of farmers.map((farmer) => farmer.memberId)) expect(text).not.toContain(id);
     expect(Object.keys(json.body.cells[0]).sort()).toEqual([
@@ -638,11 +619,6 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     // The first consultation after the migration sees these values.
     for (const [i, value] of ["1100", "2000", "3000"].entries()) heads[i] = await push(farmers[i]!, p, value, heads[i]!);
     expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", contributors: 3, pending_changes: true });
-    const csv: Res = await http()
-      .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
-      .set("Authorization", `Bearer ${director.token}`);
-    expect(csv.text).toContain(`,${p},`);
-    expect(csv.text).not.toContain(",6100,");
     expect(await prisma.collectiveRelease.count({ where: { canonicalProductId: p } })).toBe(1);
 
     // Two Members join: two provable changes, still fewer than k.

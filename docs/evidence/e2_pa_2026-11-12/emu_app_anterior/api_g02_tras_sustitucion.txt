@@ -1,0 +1,60 @@
+## 2026-11-12T14:18:21-04:00 tras la sustitución (Web) — lo que ve cada persona
+{"viewer":"suc","is_responsible":true,"can_manage":true,"can_substitute_responsible":false,"pending_authorization_count":3,"pending_delegation_reviews":2,"totals":["RESTRICTED","VISIBLE"],"participants":{"count":0,"pending":3,"hidden":0}}
+{"viewer":"admin","is_responsible":false,"can_manage":false,"can_substitute_responsible":false,"pending_authorization_count":0,"pending_delegation_reviews":2,"totals":["RESPONSIBLE_ONLY","RESPONSIBLE_ONLY"],"participants":{"errorCode":"PARTICIPANTS_FORBIDDEN"}}
+{"viewer":"directiva","is_responsible":false,"can_manage":false,"can_substitute_responsible":false,"pending_authorization_count":0,"pending_delegation_reviews":2,"totals":["RESPONSIBLE_ONLY","RESPONSIBLE_ONLY"],"participants":{"errorCode":"PARTICIPANTS_FORBIDDEN"}}
+{
+ "status": "OPEN",
+ "responsible": "Sucesora PA (sintética)",
+ "responsible_version": 2,
+ "participations": [
+  {
+   "status": "ACTIVE",
+   "scope": "COLLABORATORS",
+   "authorized_version": 1
+  },
+  {
+   "status": "ACTIVE",
+   "scope": "RESPONSIBLE_ONLY",
+   "authorized_version": 1
+  },
+  {
+   "status": "ACTIVE",
+   "scope": "RESPONSIBLE_ONLY",
+   "authorized_version": 1
+  }
+ ],
+ "access": [
+  {
+   "user": "Administración DEMO",
+   "grant": "PARTICIPANTS",
+   "by_system": false,
+   "version": 1
+  },
+  {
+   "user": "Directiva DEMO",
+   "grant": "MANAGE",
+   "by_system": false,
+   "version": 1
+  },
+  {
+   "user": "Sucesora PA (sintética)",
+   "grant": "PARTICIPANTS",
+   "by_system": true,
+   "version": 2
+  }
+ ],
+ "access_events": [
+  "GRANTED:PARTICIPANTS",
+  "GRANTED:MANAGE",
+  "SUSPENDED:PARTICIPANTS",
+  "SUSPENDED:MANAGE"
+ ],
+ "changes": [
+  {
+   "version": 2,
+   "status_then": "OPEN",
+   "suspended": 2,
+   "reason": "La responsable dejó de estar habilitada; coordina la entrega la sucesora"
+  }
+ ]
+}

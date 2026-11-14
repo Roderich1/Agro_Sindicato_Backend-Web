@@ -1,0 +1,55 @@
+{
+ "label": "VER1",
+ "created_at": "2026-11-13T21:16:24.200Z",
+ "calls": {
+  "CA": {
+   "call_ref": "579247e7-a6c4-4c03-868c-0fed5ac4eb1c",
+   "name": "E4V Abierta D1",
+   "responsible": "D1"
+  },
+  "CB": {
+   "call_ref": "444f67ea-24d8-4139-82e6-cd0495d02300",
+   "name": "E4V Cerrada A1",
+   "responsible": "A1"
+  }
+ },
+ "steps": [
+  {
+   "what": "A1 crea la Directiva D3 (POST /users)",
+   "status": 201,
+   "extract": {
+    "role": "DIRECTIVA"
+   }
+  },
+  {
+   "what": "CA crea borrador (D1)",
+   "status": 201
+  },
+  {
+   "what": "CA abre",
+   "status": 200
+  },
+  {
+   "what": "CA F1 confirma con CONV-4 (contrato 4)",
+   "status": 200,
+   "extract": {
+    "scope": "ADMINISTRATION"
+   }
+  },
+  {
+   "what": "CA F2 confirma con CONV-3 (contrato 3)",
+   "status": 200,
+   "extract": {
+    "scope": "RESPONSIBLE_ONLY"
+   }
+  },
+  {
+   "what": "CB crea borrador (A1)",
+   "status": 201
+  },
+  {
+   "what": "CB abre",
+   "status": 409
+  }
+ ]
+}

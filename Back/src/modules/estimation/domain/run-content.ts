@@ -29,7 +29,8 @@ export interface RunContent {
   horizon: number;
   disclosure_mode: string;
   policy: string;
-  threshold: number;
+  /** E4 §4.4: 3 with F07-POL-01, null with F07-POL-02. */
+  threshold: number | null;
   outcome: string;
   failure_code: string | null;
   previous_run_ref: string | null;

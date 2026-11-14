@@ -1,9 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { CampaignStatus, SyncV1BaseUnit, SyncV1ProjectionType } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
-import { PROVISIONAL_THRESHOLD } from "../domain/disclosure-policy";
-import { csvField } from "../domain/proposal";
-import { CollectiveConfig, DisclosureMode } from "./collective-config";
+import { CollectiveConfig, DisclosureMode, DisclosurePolicy } from "./collective-config";
 import {
   CellStatus,
   CollectiveSummary,
@@ -53,7 +51,8 @@ export interface TrendSeries {
 
 export interface CollectiveTrends {
   contractVersion: 1;
-  disclosure: { mode: DisclosureMode; policy: "F07-POL-01"; approved: false; threshold: number | null };
+  /** E4 §3.4: the configured policy; each campaign's sealed policy is in `campaigns[].seal`. */
+  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: false; threshold: number | null };
   projection_type: SyncV1ProjectionType | null;
   campaigns: TrendCampaign[];
   series: TrendSeries[];
@@ -151,8 +150,8 @@ export class CollectiveTrendsUseCase {
     return {
       contractVersion: 1,
       disclosure: authorized
-        ? { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false, threshold: PROVISIONAL_THRESHOLD }
-        : { mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null },
+        ? { mode: "PROVISIONAL_SYNTHETIC", policy: this.config.policy, approved: false, threshold: this.config.threshold }
+        : { mode: "POLICY_PENDING", policy: this.config.policy, approved: false, threshold: null },
       projection_type: projectionType,
       campaigns: campaigns.map((campaign) => {
         const seal = sealOf.get(campaign.id);
@@ -175,54 +174,4 @@ export class CollectiveTrendsUseCase {
       notice: TRENDS_NOTICE,
     };
   }
-}
-
-/** The same trends as CSV: the same states and figures, nothing more. */
-export function trendsCsv(trends: CollectiveTrends): string {
-  const row = (values: (string | number | boolean | null)[]) => values.map(csvField).join(",");
-  const campaignOf = new Map(trends.campaigns.map((campaign) => [campaign.campaign_ref, campaign]));
-  const lines = [
-    row(["disclosure", "policy", "approved", "threshold", "projection_type"]),
-    row([trends.disclosure.mode, trends.disclosure.policy, trends.disclosure.approved, trends.disclosure.threshold, trends.projection_type]),
-    row(["notice", trends.notice]),
-    "",
-    row(["campaign_ref", "campaign", "campaign_status", "start_date", "seal_ref", "seal_version", "sealed_at", "linked_members", "members_with_contribution", "suppressed_cells"]),
-    ...trends.campaigns.map((campaign) =>
-      row([
-        campaign.campaign_ref,
-        campaign.name,
-        campaign.status,
-        campaign.start_date,
-        campaign.seal?.seal_ref ?? null,
-        campaign.seal?.version ?? null,
-        campaign.seal?.sealed_at ?? null,
-        campaign.coverage?.linked_members ?? null,
-        campaign.coverage?.members_with_contribution ?? null,
-        campaign.coverage?.suppressed_cells ?? null,
-      ]),
-    ),
-    "",
-    row(["projection_type", "product_ref", "product_name", "base_unit", "presentation_unit", "campaign_ref", "campaign", "seal_ref", "status", "total_base", "total_presentation", "contributors", "data_as_of", "pending_changes"]),
-    ...trends.series.flatMap((line) =>
-      line.points.map((point) =>
-        row([
-          line.projection_type,
-          line.product_ref,
-          line.product_name,
-          line.base_unit,
-          line.presentation_unit,
-          point.campaign_ref,
-          campaignOf.get(point.campaign_ref)?.name ?? null,
-          campaignOf.get(point.campaign_ref)?.seal?.seal_ref ?? null,
-          point.status,
-          point.total_base,
-          point.total_presentation,
-          point.contributors,
-          point.data_as_of,
-          point.pending_changes,
-        ]),
-      ),
-    ),
-  ];
-  return `${lines.join("\n")}\n`;
 }

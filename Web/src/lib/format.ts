@@ -1,16 +1,14 @@
 import axios from 'axios';
-import { legacyFarmerWebEnabled } from './navigation';
 
 export const OFFLINE_MESSAGE =
   'Sin conexión con el servidor. La Web no guarda operaciones para después: vuelva a intentarlo en línea.';
 
 /**
  * F07-WEB-01 (#23): un fallo de red (sin respuesta) no se ejecuta ni se
- * encola, y se dice así. Con el flag de rollback vuelve la cola legacy del
- * agricultor y el texto sería falso: entonces no se da (null).
+ * encola, y se dice así. La Web no tiene cola offline.
  */
 export function offlineMessage(err: unknown): string | null {
-  return axios.isAxiosError(err) && !err.response && !legacyFarmerWebEnabled() ? OFFLINE_MESSAGE : null;
+  return axios.isAxiosError(err) && !err.response ? OFFLINE_MESSAGE : null;
 }
 
 export function extractError(err: unknown, fallback: string): string {
@@ -32,6 +30,21 @@ export function fmtDate(value: string | null | undefined): string {
     month: 'short',
     day: '2-digit',
   });
+}
+
+const CALENDAR_DAY = new Intl.DateTimeFormat('es-BO', { year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC' });
+
+/**
+ * Día de calendario guardado a medianoche UTC (p. ej. `startDate` de una
+ * campaña: el servidor guarda `new Date('2026-10-15')`). Se formatea en UTC
+ * para no mostrar el día anterior en UTC−4. Para instantes (hora de cierre,
+ * generación, sellado) use `fmtDateTime`. Sin valor o con una fecha no
+ * válida devuelve `null`: la vista decide qué texto mostrar.
+ */
+export function fmtCalendarDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : CALENDAR_DAY.format(date);
 }
 
 export function fmtNumber(value: string | number | null | undefined): string {
@@ -57,4 +70,17 @@ export function fmtMoney(value: string | number | null | undefined): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+const PERCENT = new Intl.NumberFormat('es-BO', { style: 'percent', maximumFractionDigits: 0 });
+
+/**
+ * Porcentaje para personas (contrato del rediseño §5). Devuelve `null` si el
+ * denominador es 0 o algún valor no es finito: la vista entonces no muestra
+ * porcentaje. Sólo para la cobertura (`members_with_contribution /
+ * linked_members`) y diferencias de estimación comparables.
+ */
+export function fmtPercent(numerator: number, denominator: number): string | null {
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) return null;
+  return PERCENT.format(numerator / denominator);
 }

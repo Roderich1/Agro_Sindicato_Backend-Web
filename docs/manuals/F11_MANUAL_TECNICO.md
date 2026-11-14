@@ -246,7 +246,7 @@ El Backend valida el entorno al arrancar con un esquema zod (`Back/src/config/en
 
 | Dónde | Variable | Uso |
 |---|---|---|
-| Web (compilación) | `VITE_LEGACY_FARMER_WEB=enabled` | Muestra las pantallas heredadas del agricultor. Por defecto, apagado: un agricultor ve sólo el aviso «Esta Web es para la Directiva y el Administrador». **Con el Backend por defecto, esas pantallas no pueden guardar** (403 `LEGACY_ROUTE_CLOSED`): para eso haría falta además `LEGACY_PRIVATE_WRITES_ROLLBACK=enabled` en el servidor (§10) |
+| Web (compilación) | — | La bandera `VITE_LEGACY_FARMER_WEB` se retiró el 2026-11-12 junto con las pantallas heredadas del agricultor. La Web es sólo de Directiva y Administración; una cuenta AGRICULTOR ve el aviso «Esta cuenta utiliza la aplicación móvil. La Web está disponible para Directiva y Administración.» |
 | Web (desarrollo) | `VITE_API_PROXY_TARGET` | Destino del proxy de Vite (por defecto `http://localhost:3000`) |
 | App (compilación) | `AGRO_API_BASE_URL` | Origen HTTPS del Central (§2.4) |
 
@@ -873,3 +873,7 @@ No acredita precisión con campañas reales, ahorro ni superioridad general del 
 - `npm run openapi:check` incluye la especificación INT-09 (etapa `IMPLEMENTED`, 12 operaciones) y la forma cerrada de la referencia de la propuesta.
 - Las suites PostgreSQL de F12 corren en `backend-f02.yml` con `F12_EST_PG_TEST_URL` apuntando a una base de administración desechable. Cada una crea su propia base.
 - **[Sin probar]** cualquier despliegue fuera de los entornos desechables de ensayo.
+
+## Anexo (2026-11-12): exportación CSV retirada
+
+Por decisión del autor del 2026-11-12, **Excel es la única exportación para el usuario**. Se retiraron las rutas `GET /api/v1/collective/campaigns/{campaignId}/summary.csv`, `GET /api/v1/collective/trends.csv` y `GET /api/v1/collective/proposals/{proposalId}/csv` (Back `eeaf327`) y los botones «Exportar CSV» de la Web (`7acf0a1`). Lo que este documento dice de esos CSV describe la versión anterior; la política de divulgación se sigue aplicando igual en el JSON y en los libros Excel, que se arman con las mismas respuestas del servidor. Equivalencias columna a columna: `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`. El Excel del borrador usa la referencia de estimación **fijada** (contrato E2 §11.9; sustituye a E3-R10 y a N8).

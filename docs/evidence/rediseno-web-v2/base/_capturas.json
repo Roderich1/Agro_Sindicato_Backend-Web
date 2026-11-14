@@ -1,0 +1,318 @@
+[
+ {
+  "files": [
+   "acceso/01-ingresar__escritorio.png",
+   "acceso/01-ingresar__portatil.png",
+   "acceso/01-ingresar__movil.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Ingresar (lámina 01), sin copia sin conexión",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "foco/01-ingresar-foco-correo__escritorio.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Foco visible en el campo de correo (teclado)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "acceso/02-aviso-agricultor__escritorio.png",
+   "acceso/02-aviso-agricultor__portatil.png",
+   "acceso/02-aviso-agricultor__movil.png"
+  ],
+  "ruta": "/sin-acceso-web",
+  "rol": "agricultor",
+  "desc": "Aviso para una cuenta de agricultor (lámina 02)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "armazon/03-resumen-directiva__escritorio.png",
+   "armazon/03-resumen-directiva__portatil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Armazón con el Resumen actual (contenido de A sin rediseñar)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "armazon/03-resumen-directiva-pantalla__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Armazón con el Resumen, sólo la primera pantalla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "armazon/21-catalogo-grupo-abierto__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Grupo Catálogo abierto con «Por identificar» activo e insignia si hay pendientes",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "armazon/barra-plegada__escritorio.png"
+  ],
+  "ruta": "/colectivo/catalogo?vista=identificacion",
+  "rol": "directiva",
+  "desc": "Barra lateral plegada (sólo iconos)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "foco/03-foco-barra-lateral__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Foco visible (lima) en un ítem de la barra lateral oscura",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/30-nueva-campana-dialog__escritorio.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Diálogo real (Modal → Dialog) «Nueva campaña»; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/35-resumen-telefono__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen en teléfono (390): barra superior oscura y barra inferior",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/35-resumen-telefono-pantalla__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Resumen en teléfono, primera pantalla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/43-menu-mas-directiva__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Menú «Más» de la Directiva (lámina 43)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/46-dialogo-hoja-inferior__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Diálogo real «Nueva campaña» como hoja inferior en teléfono; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "armazon/31-usuarios-administrador__escritorio.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Armazón del Administrador: Usuarios en «Sindicato»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/44-menu-mas-administrador__movil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "admin",
+  "desc": "Menú «Más» del Administrador, con Usuarios",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/01-ingresar__zoom200.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Ingresar con zoom al 200 % (720×450 a 2x)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "tableta/01-ingresar__tableta.png"
+  ],
+  "ruta": "/login",
+  "rol": "anon",
+  "desc": "Ingresar en tableta (820)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "correcciones/03-resumen-sin-franja__escritorio.png",
+   "correcciones/03-resumen-sin-franja__portatil.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Escritorio sin franja superior: «Datos sintéticos» en la cabecera de la vista y conexión en la tarjeta de usuario",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "correcciones/25-historico-chip-unico__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico",
+  "rol": "directiva",
+  "desc": "Cabecera con vista anidada: un solo «Datos sintéticos»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "correcciones/barra-plegada-conexion__escritorio.png"
+  ],
+  "ruta": "/colectivo/historico",
+  "rol": "directiva",
+  "desc": "Barra plegada: conexión sólo para lectores de pantalla si hay red",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/03-resumen__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Armazón con el Resumen con zoom al 200 %: horizontal de poco alto, sin barra inferior y con «Menú»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/03-resumen-pantalla__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Primera pantalla con zoom al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/43-menu-mas__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» con zoom al 200 %, abierto desde «Menú»: ventana visible, arriba",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "tableta/03-resumen-pantalla__tableta.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Armazón con el Resumen en tableta (820)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "tableta/43-menu-mas__tableta.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» en tableta (820)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/43-menu-mas-tareas__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» con zoom al 200 %: tareas de la barra inferior repetidas en horizontal",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/43-menu-mas-final__zoom200.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "«Más» con zoom al 200 %: panel desplazado hasta «Cerrar sesión»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/campanas-cabecera-pegada__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Cabecera pegada a la barra en Campañas (390), dentro de space-y",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/detalle-campana-heroe-pegado__movil.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "HeroPanel attachToHeader en el detalle de campaña (390)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/stepper-version-cifras__escritorio.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "Stepper «Versión de las cifras» con la línea completa (escritorio)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "ronda3/barra-lateral-desplazada__escritorio.png"
+  ],
+  "ruta": "/colectivo/resumen",
+  "rol": "directiva",
+  "desc": "Barra lateral fija con la página desplazada 1500 px (ventana visible)",
+  "estado": "",
+  "simulado": false
+ }
+]

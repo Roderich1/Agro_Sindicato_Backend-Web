@@ -2,15 +2,34 @@ import type { SchemaObject } from "@nestjs/swagger/dist/interfaces/open-api-spec
 
 const nullableString = { type: "string", nullable: true } as const;
 
+/**
+ * E4 §5.1: the disclosure policy a decision was made with. `F07-POL-01`
+ * (threshold of 3 Members and rule of combinations) is the default and the
+ * policy of everything sealed or generated before; `F07-POL-02` (no threshold
+ * of farmers) only after its explicit activation (`COLLECTIVE_DISCLOSURE_POLICY`).
+ */
+const policySchema: SchemaObject = {
+  type: "string",
+  enum: ["F07-POL-01", "F07-POL-02"],
+  description: "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita",
+};
+const thresholdSchema: SchemaObject = {
+  type: "integer",
+  nullable: true,
+  description: "3 con F07-POL-01; null con F07-POL-02 (sin umbral) y con POLICY_PENDING",
+};
+
 /** F07 (2026-10-23): the sealed version of a campaign; null if not sealed. */
 const sealRefSchema: SchemaObject = {
   type: "object",
   nullable: true,
   additionalProperties: false,
-  required: ["seal_ref", "version", "sealed_at", "accepted_until", "sealed_by"],
+  required: ["seal_ref", "version", "sealed_at", "accepted_until", "sealed_by", "policy", "threshold"],
   properties: {
     seal_ref: { type: "string", format: "uuid" },
     version: { type: "integer", enum: [1], description: "Este bloque no crea versiones posteriores" },
+    policy: { ...policySchema, description: "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)" },
+    threshold: { ...thresholdSchema, description: "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)" },
     sealed_at: { type: "string", format: "date-time", description: "Hora del servidor del sellado" },
     accepted_until: {
       type: "string",
@@ -57,14 +76,18 @@ export const collectiveCellSchema: SchemaObject = {
     status: {
       type: "string",
       enum: ["DISCLOSED", "SUPPRESSED_UNDER_THRESHOLD", "SUPPRESSED_REVISION", "OVERFLOW", "WITHDRAWN_AFTER_SEAL"],
-      description: "WITHDRAWN_AFTER_SEAL: sólo en una versión sellada; el aportante retiró su aporte después del sellado",
+      description:
+        "WITHDRAWN_AFTER_SEAL: sólo en una versión sellada; el aportante retiró su aporte después del sellado. SUPPRESSED_UNDER_THRESHOLD: estado histórico de F07-POL-01 (lo sellado con esa política); F07-POL-02 nunca lo produce",
     },
     total_base: { ...nullableString, description: "Entero exacto en unidad base; null si no se divulga" },
     total_presentation: { ...nullableString, description: "L/KG exactos; null si no se divulga" },
     contributors: { type: "integer", nullable: true, description: "Members distintos; null si no se divulga" },
     data_as_of: { ...nullableString, format: "date-time", description: "Última aceptación central incluida" },
     released_at: { ...nullableString, format: "date-time" },
-    pending_changes: { type: "boolean", description: "Hay cambios que aún no alcanzan el umbral" },
+    pending_changes: {
+      type: "boolean",
+      description: "La cifra mostrada es la anterior y hay cambios que todavía no se publican (F07-POL-01); con F07-POL-02 sólo es false",
+    },
   },
 };
 
@@ -89,11 +112,12 @@ export const collectiveSummarySchema: SchemaObject = {
       type: "object",
       additionalProperties: false,
       required: ["mode", "policy", "approved", "threshold"],
+      description: "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
       properties: {
         mode: { type: "string", enum: ["POLICY_PENDING", "PROVISIONAL_SYNTHETIC"] },
-        policy: { type: "string", enum: ["F07-POL-01"] },
+        policy: policySchema,
         approved: { type: "boolean", enum: [false] },
-        threshold: { type: "integer", nullable: true },
+        threshold: thresholdSchema,
       },
     },
     coverage: {
@@ -211,6 +235,7 @@ const proposalLineSchema: SchemaObject = {
         "SUPERSEDED",
         "POLICY_PENDING",
       ],
+      description: "SUPPRESSED_UNDER_THRESHOLD: sólo en borradores generados con F07-POL-01 (disclosure.policy); se conserva sin cifra",
     },
     quantity_base: { ...nullableString, description: "Necesidad declarada divulgada, entero exacto; null si no se divulga" },
     quantity_presentation: { ...nullableString, description: "L/KG exactos; null si no se divulga" },
@@ -264,7 +289,7 @@ export const proposalSchema: SchemaObject = {
       required: ["mode", "policy", "approved"],
       properties: {
         mode: { type: "string", enum: ["POLICY_PENDING", "PROVISIONAL_SYNTHETIC"] },
-        policy: { type: "string", enum: ["F07-POL-01"] },
+        policy: { ...policySchema, description: "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)" },
         approved: { type: "boolean", enum: [false] },
       },
     },
@@ -382,7 +407,8 @@ const trendPointSchema: SchemaObject = {
         "NO_DATA",
         "NOT_SEALED",
       ],
-      description: "NO_DATA: la versión sellada no tiene esa celda (desconocido, no cero). NOT_SEALED: sin versión sellada",
+      description:
+        "NO_DATA: la versión sellada no tiene esa celda (desconocido, no cero). NOT_SEALED: sin versión sellada. SUPPRESSED_UNDER_THRESHOLD: sólo en campañas selladas con F07-POL-01 (campaigns[].seal.policy)",
     },
     total_base: nullableString,
     total_presentation: nullableString,

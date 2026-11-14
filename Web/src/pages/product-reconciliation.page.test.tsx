@@ -4,11 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import type { Association, CatalogEntry } from '../types/collective';
 import { renderAt } from '../test/render';
+import { productsService } from '../services/inventory.service';
+import type { Product } from '../types/inventory';
 import { ProductReconciliationPage } from './product-reconciliation.page';
 
 vi.mock('../services/collective.service', () => ({
   collectiveService: { catalog: vi.fn(), associations: vi.fn(), associate: vi.fn(), closeAssociation: vi.fn() },
 }));
+vi.mock('../services/inventory.service', () => ({ productsService: { create: vi.fn() } }));
 
 const CATALOG: CatalogEntry[] = [
   { product_ref: 'belator', product_name: 'Belator', unit: 'L', base_unit: 'ML', is_active: true },
@@ -43,12 +46,12 @@ describe('Reconciliación de denominaciones', () => {
   it('no asocia nada sin elegir canónico, motivo y confirmación explícita', async () => {
     renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
     const row = await screen.findByTestId('product-Bellator');
-    fireEvent.click(within(row).getByRole('button', { name: 'Asociar…' }));
-    const confirm = screen.getByRole('button', { name: 'Confirmar asociación' }) as HTMLButtonElement;
+    fireEvent.click(within(row).getByRole('button', { name: /^Unir/ }));
+    const confirm = screen.getByRole('button', { name: 'Unir' }) as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
 
     // Sólo candidatos de la misma dimensión (L): nada en KG ni sin unidad.
-    const select = screen.getByLabelText('Producto canónico') as HTMLSelectElement;
+    const select = screen.getByLabelText('Con el producto') as HTMLSelectElement;
     const options = [...select.options].map((o) => o.textContent);
     expect(options).toEqual(['Seleccione…', 'Belator (L)']);
 
@@ -60,7 +63,7 @@ describe('Reconciliación de denominaciones', () => {
 
     vi.mocked(collectiveService.associations).mockResolvedValue({ current: [ASSOCIATED], history: [] });
     fireEvent.click(confirm);
-    expect(await screen.findByText(/«Bellator» quedó asociado a «Belator»/)).toBeTruthy();
+    expect(await screen.findByText(/«Bellator» quedó unido a «Belator»/)).toBeTruthy();
     expect(collectiveService.associate).toHaveBeenCalledWith({
       productId: 'bellator',
       canonicalProductId: 'belator',
@@ -74,10 +77,10 @@ describe('Reconciliación de denominaciones', () => {
     vi.mocked(collectiveService.associations).mockResolvedValue({ current: [ASSOCIATED], history: [] });
     renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
     const coad = await screen.findByTestId('product-Coadyuvante');
-    expect((within(coad).getByRole('button', { name: 'Asociar…' }) as HTMLButtonElement).disabled).toBe(true);
-    const belator = screen.getByTestId('product-Belator');
-    expect(belator.textContent).toMatch(/Canónico de 1/);
-    expect((within(belator).getByRole('button', { name: 'Asociar…' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((within(coad).getByRole('button', { name: /^Unir/ }) as HTMLButtonElement).disabled).toBe(true);
+    // Rediseño v2 (lámina 22): el nombre principal de una unión no está entre los «Nombres sueltos», así que no se puede unir a otro.
+    expect(screen.queryByTestId('product-Belator')).toBeNull();
+    expect(screen.getByTestId('canonical-note').textContent).toBe('«Belator» no aparece aquí: ya es el nombre principal de una unión.');
   });
 
   it('el historial muestra anterior → nuevo, actor, fecha y motivos', async () => {
@@ -106,11 +109,11 @@ describe('Reconciliación de denominaciones', () => {
     error.response = { status: 409, data: { message: 'ASSOCIATION_CHANGED' }, statusText: '', headers: {}, config: { headers: new AxiosHeaders() } };
     vi.mocked(collectiveService.associate).mockRejectedValue(error);
     renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
-    fireEvent.click(within(await screen.findByTestId('product-Bellator')).getByRole('button', { name: 'Asociar…' }));
-    fireEvent.change(screen.getByLabelText('Producto canónico'), { target: { value: 'belator' } });
+    fireEvent.click(within(await screen.findByTestId('product-Bellator')).getByRole('button', { name: /^Unir/ }));
+    fireEvent.change(screen.getByLabelText('Con el producto'), { target: { value: 'belator' } });
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'misma formulación' } });
     fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar asociación' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Unir' }));
     expect(await screen.findByText(/Los datos cambiaron mientras tanto/)).toBeTruthy();
     expect(screen.queryByText(/POLICY_PENDING|política/i)).toBeNull();
   });
@@ -119,14 +122,48 @@ describe('Reconciliación de denominaciones', () => {
     vi.mocked(collectiveService.associations).mockResolvedValue({ current: [ASSOCIATED], history: [] });
     vi.mocked(collectiveService.closeAssociation).mockResolvedValue({ changed: true, association: 'a-2' });
     renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
-    fireEvent.click(within(await screen.findByTestId('current-Bellator')).getByRole('button', { name: 'Deshacer' }));
-    const submit = screen.getByRole('button', { name: 'Deshacer asociación' }) as HTMLButtonElement;
+    fireEvent.click(within(await screen.findByTestId('current-Bellator')).getByRole('button', { name: /^Separar/ }));
+    const submit = screen.getByRole('button', { name: 'Separar' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'error' } });
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(submit);
     await vi.waitFor(() =>
       expect(collectiveService.closeAssociation).toHaveBeenCalledWith('bellator', { reason: 'error', confirmed: true }),
+    );
+  });
+
+  it('desde una denominación pendiente se crea un producto distinto y se vuelve al selector; la asociación sigue pidiendo confirmación', async () => {
+    const created = { id: 'nuevo', name: 'Bellator Plus', unit: 'L', isActive: true } as Product;
+    vi.mocked(productsService.create).mockResolvedValue(created);
+    renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
+    fireEvent.click(within(await screen.findByTestId('product-Bellator')).getByRole('button', { name: /^Unir/ }));
+    fireEvent.click(screen.getByRole('button', { name: '¿No está en la lista? Crear producto distinto…' }));
+    // La unidad queda fija en la de la denominación (L): kg no se puede elegir.
+    expect((screen.getByLabelText(/^Kilogramos/) as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText(/^Litros/) as HTMLInputElement).checked).toBe(true);
+    // Un nombre que ya existe en el catálogo se avisa.
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'belator' } });
+    expect(screen.getByRole('alert').textContent).toMatch(/Ya existe «Belator»/);
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Bellator Plus' } });
+    vi.mocked(collectiveService.catalog).mockResolvedValue([
+      ...CATALOG,
+      { product_ref: 'nuevo', product_name: 'Bellator Plus', unit: 'L', base_unit: 'ML', is_active: true },
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Crear y volver al selector' }));
+    await vi.waitFor(() => expect(productsService.create).toHaveBeenCalledWith({ name: 'Bellator Plus', unit: 'L' }));
+    expect(await screen.findByTestId('created-product')).toBeTruthy();
+    const select = screen.getByLabelText('Con el producto') as HTMLSelectElement;
+    expect(select.value).toBe('nuevo');
+    // Crear no asocia: hace falta motivo y confirmación explícita.
+    const confirm = screen.getByRole('button', { name: 'Unir' }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    expect(collectiveService.associate).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'es otro producto' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(confirm);
+    await vi.waitFor(() =>
+      expect(collectiveService.associate).toHaveBeenCalledWith({ productId: 'bellator', canonicalProductId: 'nuevo', reason: 'es otro producto', confirmed: true }),
     );
   });
 });

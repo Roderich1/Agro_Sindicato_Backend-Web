@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AppShell, buttonClass, EmptyState, labelClass, Notice, secondaryButtonClass } from '../components/app-shell';
-import { CampaignPicker } from '../components/collective-ui';
+import { AppShell } from '../components/app-shell';
+import { ExportButtons } from '../components/export-buttons';
+import { Button, CampaignPill, Card, DataState, type DataStateKind, ICON, Icon, Notice, PageHeader, SectionHeader, secondaryButtonClass } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { fmtDateTime } from '../lib/collective-text';
-import { resultsCsv } from '../lib/estimation-csv';
 import {
   clearsInstitutionalData,
   estimationError,
@@ -48,6 +48,18 @@ import type {
   SeriesPoint,
 } from '../types/estimation';
 
+/**
+ * Sombra en el borde por el que una tabla sigue (sin JavaScript): los degradados blancos se desplazan con el
+ * contenido (`local`) y tapan la sombra fija (`scroll`) sólo cuando se llega a ese borde. Sin desplazamiento no se ve.
+ */
+const SCROLL_HINT = '[background:linear-gradient(to_right,#fff_30%,rgb(255_255_255/0))_left_center/40px_100%_no-repeat_local,linear-gradient(to_left,#fff_30%,rgb(255_255_255/0))_right_center/40px_100%_no-repeat_local,radial-gradient(farthest-side_at_0_50%,rgb(15_23_42/0.2),transparent)_left_center/12px_100%_no-repeat_scroll,radial-gradient(farthest-side_at_100%_50%,rgb(15_23_42/0.2),transparent)_right_center/12px_100%_no-repeat_scroll]';
+
+/**
+ * H3 (emulador, 2026-11-11): al desplazar una tabla a lo ancho, la primera columna (campaña o producto)
+ * queda fija a la izquierda con fondo opaco y un borde, para que ninguna cifra pierda su fila.
+ */
+const STICKY_EDGE = 'shadow-[inset_-1px_0_0_#e2e8f0]';
+
 /** Cada cuánto se consulta un trabajo en cola o en proceso. */
 export const POLL_MS = 2000;
 const ELIGIBLE = ['PLANIFICADA', 'ABIERTA'];
@@ -77,11 +89,24 @@ function byCodeUnits(a: string, b: string): number {
  * calcula el servidor, por lotes. La estimación es una referencia de consumo
  * para una campaña comparable: no se suma a la necesidad declarada ni crea
  * compras, propuestas o movimientos. Un dato ausente nunca se muestra como
- * cero, y cada cifra dice de qué ejecución viene. El CSV exporta la consulta tal
- * como respondió el servidor y requiere conexión; no es la copia descargada para
- * consultar sin conexión (RF-40, F12-EST-07), que esta pantalla no tiene.
+ * cero, y cada cifra dice de qué ejecución viene. «Descargar Excel» exporta la
+ * consulta tal como responde el servidor y requiere conexión; no es la copia descargada para
+ * consultar sin conexión (RF-40, F12-EST-07), que esta pantalla sí ofrece aparte.
+ *
+ * Rediseño (sesión C, 2026-11-10): el cuerpo es `EstimationView`, que también
+ * usa el contenedor «Histórico y estimaciones» (`?vista=estimacion`). Muestra
+ * cuándo se evaluó la vigencia (`evaluated_at`) y la ejecución de cada cifra en
+ * «Ver detalle». Abrir la vista sólo consulta: no pide estimaciones ni copias.
  */
 export function EstimationPage() {
+  return (
+    <AppShell title="Estimación del consumo" section="Colectivo">
+      <EstimationView />
+    </AppShell>
+  );
+}
+
+export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
   const { user } = useAuth();
   const { campaigns, selected, select, error: campaignsError } = useSelectedCampaign();
   const [results, setResults] = useState<InstitutionalResults | null>(null);
@@ -292,19 +317,6 @@ export function EstimationPage() {
     }
   };
 
-  const exportCsv = () => {
-    if (!results) return;
-    const blob = new Blob([resultsCsv(results)], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `estimacion-${results.target.name.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-
   /** RF-40: descarga explícita, con conexión; se guarda sólo si la sesión sigue siendo la que la pidió. */
   const downloadCopy = async () => {
     if (!selected || !user || !identity) return;
@@ -335,80 +347,116 @@ export function EstimationPage() {
 
   const offline = error?.kind === 'offline';
   const blocked = error?.kind === 'policy' || error?.kind === 'forbidden' || error?.kind === 'session';
+  const calculatedAt = latestGeneratedAt(results);
   return (
-    <AppShell
-      title="Estimación del consumo"
-      section="Directiva"
-      actions={
-        <button type="button" className={secondaryButtonClass} onClick={exportCsv} disabled={stale || !results || results.results.length === 0}>
-          Exportar CSV de la consulta
-        </button>
-      }
-    >
-      <div className="space-y-6">
-        <Notice kind="info">
-          Referencia de consumo para una campaña comparable, calculada en el servidor con suavizamiento exponencial simple
-          (SES) frente a la línea base naive. No es una necesidad declarada ni una propuesta: no se suma a ellas ni crea
-          compras, propuestas o movimientos.
-        </Notice>
-        <div className="flex flex-wrap items-end gap-6">
-          <div>
-            <p className={labelClass}>Organización</p>
-            <p className="text-sm font-semibold text-slate-800" data-testid="institution">
-              {user?.tenant?.name ?? '—'}
+      <div className="space-y-5">
+        <PageHeader
+          headingLevel={headingLevel}
+          title="Estimación del consumo"
+          subtitle="Un cálculo a partir de campañas anteriores, hecho por el servidor. Es una referencia: no se suma a la necesidad ni crea compras."
+        />
+        <div className="flex flex-wrap items-center gap-3" data-testid="estimation-toolbar">
+          <CampaignPill campaigns={campaigns} selected={selected} onSelect={select} />
+          {calculatedAt && (
+            <p className="text-sm text-ink-muted" data-testid="calculated-at">
+              Calculada el {fmtDateTime(calculatedAt)}
+              {results?.season ? ` · temporada ${results.season.key.toLowerCase()}` : ''}
             </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+            <ExportButtons kind="estimation" reference={selected} disabled={stale || !results || results.results.length === 0} />
+            {!blocked && selected && (
+              <Button onClick={() => void request()} disabled={busy || !eligible} busy={busy}>
+                {busy ? 'Generando…' : 'Generar estimación'}
+              </Button>
+            )}
           </div>
-          <CampaignPicker campaigns={campaigns} selected={selected} onSelect={select} />
         </div>
         {campaignsError && <Notice kind="error">{campaignsError}</Notice>}
         {error && (
           <div data-testid={`error-${error.kind}`}>
-            <Notice kind={error.kind === 'offline' ? 'warn' : 'error'}>{error.message}</Notice>
+            <Card>
+              <DataState state={ERROR_STATE[error.kind]} title={ERROR_TITLE[error.kind]} description={error.message} />
+            </Card>
           </div>
         )}
         {stale && (
-          <p className="text-xs text-amber-700" data-testid="stale">
+          <p className="rounded-control bg-warn-bg px-4 py-2 text-sm text-warn-ink" data-testid="stale">
             Lo que se muestra es de la última consulta que respondió; puede no estar actualizado. Sin conexión no se
             exporta, y generar, actualizar o descargar también requieren conexión.
           </p>
         )}
 
-        {!blocked && selected && (
-          <RequestPanel
-            eligible={eligible}
-            campaignStatus={campaign?.status ?? null}
-            busy={busy}
-            catalog={catalog}
-            chosen={chosen}
-            onChoose={setChosen}
-            onRequest={() => void request()}
-          />
+        {((!blocked && selected) || job) && (
+          <div className="space-y-2">
+            {!blocked && selected && (
+              <RequestOptions eligible={eligible} campaignStatus={campaign?.status ?? null} catalog={catalog} chosen={chosen} onChoose={setChosen} />
+            )}
+            {job && <JobPanel job={job} polling={polling} onRecheck={() => void recheckJob()} />}
+          </div>
         )}
-        {job && <JobPanel job={job} polling={polling} onRecheck={() => void recheckJob()} />}
-        {loading && <p className="text-sm text-slate-500">Cargando…</p>}
-        {results && <ResultsSection results={results} details={details} latestRun={job?.run_ref ?? null} />}
-        {results && (
-          <HistorySection runs={runs} hasMore={cursor !== null} onMore={() => void moreRuns()} onOpen={(id) => void openRun(id)} openedId={opened?.run_ref ?? null} />
+        {loading && (
+          <Card>
+            <DataState state="loading" title="Cargando la estimación…" skeletonRows={3} />
+          </Card>
         )}
-        {opened && <RunDetail run={opened} onClose={() => setOpened(null)} />}
-        {!blocked && selected && (
-          <CopyPanel
-            copy={copy}
-            offline={offline}
-            downloading={downloading}
-            note={copyNote}
-            onDownload={() => void downloadCopy()}
-          />
-        )}
-        {!blocked && offline && copy && <EstimationCopyView copy={copy} />}
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] xl:items-start">
+          <div className="min-w-0 space-y-5">
+            {results && <ResultsSection results={results} details={details} latestRun={job?.run_ref ?? null} />}
+            {opened && <RunDetail run={opened} onClose={() => setOpened(null)} />}
+            {!blocked && offline && copy && <EstimationCopyView copy={copy} />}
+          </div>
+          {((!blocked && selected) || results) && (
+            <div className="min-w-0 space-y-5">
+              {!blocked && selected && (
+                <CopyPanel copy={copy} offline={offline} downloading={downloading} note={copyNote} onDownload={() => void downloadCopy()} />
+              )}
+              {results && (
+                <HistorySection runs={runs} hasMore={cursor !== null} onMore={() => void moreRuns()} onOpen={(id) => void openRun(id)} openedId={opened?.run_ref ?? null} />
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </AppShell>
   );
 }
 
 /**
+ * «Calculada el …» de la barra (lámina 26): la ejecución más reciente entre
+ * los resultados mostrados (regla de presentación, como «Cifra más reciente»).
+ */
+function latestGeneratedAt(results: InstitutionalResults | null): string | null {
+  let latest: { at: number; value: string } | null = null;
+  for (const result of results?.results ?? []) {
+    const at = Date.parse(result.generated_at);
+    if (Number.isFinite(at) && (!latest || at > latest.at)) latest = { at, value: result.generated_at };
+  }
+  return latest?.value ?? null;
+}
+
+/** Cómo se presenta cada clase de error de INT-09 (§4 del contrato compartido). */
+const ERROR_STATE: Record<EstimationError['kind'], DataStateKind> = {
+  offline: 'stale',
+  session: 'forbidden',
+  forbidden: 'forbidden',
+  policy: 'restricted',
+  'not-found': 'error',
+  invalid: 'error',
+  other: 'error',
+};
+const ERROR_TITLE: Record<EstimationError['kind'], string> = {
+  offline: 'Sin conexión',
+  session: 'Sesión vencida',
+  forbidden: 'Sin permiso',
+  policy: 'Información restringida',
+  'not-found': 'No disponible',
+  invalid: 'Solicitud no admitida',
+  other: 'No fue posible completar la consulta',
+};
+
+/**
  * F12-EST-07-WEB (#180): la copia para consultar sin conexión. Se descarga a
- * petición y con conexión; es distinta del CSV de la consulta.
+ * petición y con conexión; es distinta del Excel de la consulta.
  */
 function CopyPanel({
   copy,
@@ -424,84 +472,73 @@ function CopyPanel({
   onDownload: () => void;
 }) {
   return (
-    <section className="glass-card space-y-3 p-5" aria-label="Copia para consultar sin conexión" data-testid="copy-panel">
-      <div>
-        <h2 className="text-base font-bold text-slate-900">Copia para consultar sin conexión</h2>
-        <p className="mt-0.5 text-xs text-slate-500">
-          Guarda en este navegador la última estimación permitida de esta campaña, con sus fechas y la vigencia que tenía al
-          descargarse. Sin conexión puede estar desactualizada. Sólo la lee esta sesión, también sin conexión tras recargar; al cerrarla deja de poder leerse, y después se borra (si falla, se reintenta). No es el CSV de la
-          consulta.
-        </p>
-      </div>
-      <p className="text-sm text-slate-700" data-testid="copy-status">
-        {copy
-          ? `Hay una copia de esta campaña en este navegador, descargada el ${fmtDateTime(copy.download.downloaded_at)}.`
-          : offline
-            ? 'No hay una estimación descargada de esta campaña en este navegador. Sin conexión no se muestra ninguna cifra.'
-            : 'No hay una copia de esta campaña en este navegador.'}
-        {copy && (
-          <>
-            {' '}
-            <Link className="font-semibold text-emerald-700 underline" to={ESTIMATION_COPY_PATH}>
-              Ver las copias descargadas
-            </Link>
-          </>
-        )}
+    <section className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-7" aria-labelledby="llevarla-sin-conexion" data-testid="copy-panel">
+      <h2 id="llevarla-sin-conexion" className="text-2xl font-bold text-ink">
+        Llevarla sin conexión
+      </h2>
+      <p className="mt-2 text-base leading-relaxed text-ink-muted">
+        Guarde una copia en este navegador para consultarla sin internet. Es distinta del Excel: sólo la lee esta sesión y sin conexión puede
+        estar desactualizada.
       </p>
-      {note && (
-        <p className="text-xs text-slate-600" data-testid="copy-note">
-          {note}
+      <div className="mt-4">
+        <Button variant="secondary" block onClick={onDownload} disabled={downloading || offline} busy={downloading}>
+          {downloading ? 'Guardando…' : 'Guardar copia'}
+        </Button>
+      </div>
+      <div className="mt-3 space-y-1 text-sm text-ink-muted">
+        <p data-testid="copy-status">
+          {copy
+            ? `Hay una copia de esta campaña en este navegador, descargada el ${fmtDateTime(copy.download.downloaded_at)}.`
+            : offline
+              ? 'No hay una estimación descargada de esta campaña en este navegador. Sin conexión no se muestra ninguna cifra.'
+              : 'No hay una copia de esta campaña en este navegador.'}
+          {copy && (
+            <>
+              {' '}
+              <Link className="font-semibold text-link underline" to={ESTIMATION_COPY_PATH}>
+                Ver las copias descargadas
+              </Link>
+            </>
+          )}
         </p>
-      )}
-      <button type="button" className={secondaryButtonClass} onClick={onDownload} disabled={downloading || offline}>
-        {downloading ? 'Descargando…' : 'Descargar copia para consultar sin conexión'}
-      </button>
-      {offline && <p className="text-xs text-slate-500">Descargar requiere conexión.</p>}
+        {note && (
+          <p className="text-sm text-ink" data-testid="copy-note">
+            {note}
+          </p>
+        )}
+        {offline && <p>Guardar una copia requiere conexión.</p>}
+      </div>
     </section>
   );
 }
 
-function RequestPanel({
+/**
+ * Opciones de la solicitud. El botón «Generar estimación» está en la barra;
+ * aquí sólo la elección opcional de productos y el motivo por el que no se
+ * puede generar.
+ */
+function RequestOptions({
   eligible,
   campaignStatus,
-  busy,
   catalog,
   chosen,
   onChoose,
-  onRequest,
 }: {
   eligible: boolean;
   campaignStatus: string | null;
-  busy: boolean;
   catalog: CatalogEntry[] | null;
   chosen: string[];
   onChoose: (refs: string[]) => void;
-  onRequest: () => void;
 }) {
   const toggle = (ref: string) => onChoose(chosen.includes(ref) ? chosen.filter((r) => r !== ref) : [...chosen, ref]);
+  const hasCatalog = Boolean(catalog && catalog.length > 0);
   return (
-    <section className="glass-card space-y-4 p-5" aria-label="Generar estimación">
-      <div>
-        <h2 className="text-base font-bold text-slate-900">Generar estimación</h2>
-        <p className="mt-0.5 text-xs text-slate-500">
-          El servidor calcula por lotes, fuera de esta pantalla: la solicitud queda en cola y se consulta su estado.
+    <section className="text-sm" aria-label="Opciones de la estimación">
+      {eligible && (
+        <p className="text-xs text-slate-600" data-testid="classification-note">
+          Además, la campaña debe estar clasificada en una temporada comparable. Esta pantalla no puede comprobarlo antes
+          de pedir: si no lo está, el servidor lo rechaza sin calcular nada y aquí se explica el motivo.
         </p>
-      </div>
-      {catalog && catalog.length > 0 && (
-        <fieldset>
-          <legend className={labelClass}>Productos (opcional)</legend>
-          <p className="mb-2 text-xs text-slate-500">
-            Sin marcar ninguno, se estiman los productos con consumo publicado en la temporada de la campaña.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {catalog.map((entry) => (
-              <label key={entry.product_ref} className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" checked={chosen.includes(entry.product_ref)} onChange={() => toggle(entry.product_ref)} />
-                {entry.product_name}
-              </label>
-            ))}
-          </div>
-        </fieldset>
       )}
       {!eligible && campaignStatus && (
         <p className="text-xs text-slate-600" data-testid="not-eligible">
@@ -509,9 +546,24 @@ function RequestPanel({
           abierta. Sus resultados anteriores siguen consultándose abajo.
         </p>
       )}
-      <button type="button" className={buttonClass} onClick={onRequest} disabled={busy || !eligible}>
-        {busy ? 'Generando…' : 'Generar estimación'}
-      </button>
+      {hasCatalog && eligible && (
+        <details className="group">
+          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span className="text-emerald-700 group-open:hidden">Elegir productos</span>
+            <span className="hidden text-emerald-700 group-open:inline">Ocultar productos</span>
+            {' · '}
+            {chosen.length > 0 ? `${chosen.length} elegidos` : 'todos los que tienen consumo publicado'}
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-white/60 px-4 py-3">
+            {catalog!.map((entry) => (
+              <label key={entry.product_ref} className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={chosen.includes(entry.product_ref)} onChange={() => toggle(entry.product_ref)} />
+                {entry.product_name}
+              </label>
+            ))}
+          </div>
+        </details>
+      )}
     </section>
   );
 }
@@ -519,31 +571,34 @@ function RequestPanel({
 function JobPanel({ job, polling, onRecheck }: { job: Job; polling: boolean; onRecheck: () => void }) {
   const active = job.status === 'QUEUED' || job.status === 'RUNNING';
   return (
-    <section className="glass-card space-y-2 p-5" aria-label="Estado del trabajo" data-testid="job">
-      <h2 className="text-base font-bold text-slate-900">Trabajo solicitado</h2>
-      <p className="text-sm text-slate-800" data-testid="job-status">
-        {JOB_STATUS_TEXT[job.status]}
-        {job.status === 'RUNNING' && ` (intento ${job.attempts} de ${job.max_attempts})`}
-      </p>
-      <p className="text-xs text-slate-500">
-        En cola desde {fmtDateTime(job.enqueued_at)}
-        {job.started_at && ` · iniciado ${fmtDateTime(job.started_at)}`}
-        {job.finished_at && ` · terminado ${fmtDateTime(job.finished_at)}`}
-      </p>
-      {active && (
-        <p className="text-xs text-slate-500">
-          {polling ? 'Se consulta el estado automáticamente mientras esté en curso.' : 'La consulta automática se detuvo por un error: use «Consultar estado ahora».'}
-        </p>
-      )}
-      {job.status === 'NOT_EXECUTED' && job.stop_code && (
-        <Notice kind="warn">
-          <span data-testid="job-stop">{STOP_TEXT[job.stop_code]}</span>
-        </Notice>
-      )}
-      {job.status === 'COMPLETED' && (
-        <p className="text-xs text-slate-600">La ejecución quedó registrada; los resultados se muestran abajo con su vigencia.</p>
-      )}
-      <button type="button" className={secondaryButtonClass} onClick={onRecheck}>
+    <section
+      className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border px-4 py-2 ${
+        active ? 'border-sky-200 bg-sky-50/60' : 'border-slate-200 bg-white/60'
+      }`}
+      aria-label="Estado del trabajo"
+      data-testid="job"
+    >
+      <div className="text-sm text-slate-800">
+        <span className="font-semibold">Última solicitud: </span>
+        <span data-testid="job-status">
+          {JOB_STATUS_TEXT[job.status]}
+          {job.status === 'RUNNING' && ` (intento ${job.attempts} de ${job.max_attempts})`}
+        </span>
+        <span className="ml-2 text-xs text-slate-500">
+          en cola {fmtDateTime(job.enqueued_at)}
+          {job.finished_at && ` · terminada ${fmtDateTime(job.finished_at)}`}
+          {active && (polling ? ' · se consulta el estado automáticamente' : ' · la consulta automática se detuvo por un error')}
+          {job.status === 'COMPLETED' && ' · resultados abajo, con su vigencia'}
+        </span>
+        {job.status === 'NOT_EXECUTED' && job.stop_code && (
+          <div className="mt-2">
+            <Notice kind="warn" compact>
+              <span data-testid="job-stop">{STOP_TEXT[job.stop_code]}</span>
+            </Notice>
+          </div>
+        )}
+      </div>
+      <button type="button" className="text-xs font-semibold text-emerald-700 underline-offset-2 hover:underline" onClick={onRecheck}>
         Consultar estado ahora
       </button>
     </section>
@@ -581,84 +636,91 @@ function observedValues(detail: ResultDetail | null, unit: 'L' | 'KG'): string |
   return `${values.join(' · ')} ${unit}`;
 }
 
+/** Campaña del último consumo comprobado anterior a la campaña objetivo (la que da la línea base). */
+function lastObservedCampaign(detail: ResultDetail | null): string | null {
+  if (!detail) return null;
+  const before = detail.points.filter((p) => p.exclusion_reason !== 'NOT_BEFORE_TARGET' && p.kind === 'VERIFIED_CONSUMPTION' && p.quantity_base !== null);
+  const last = before[before.length - 1];
+  return last ? last.campaign.name : null;
+}
+
+/**
+ * Resultados por producto: la cifra estimada con su unidad, la línea base (el
+ * último consumo publicado de la serie, tal como la entrega la API) y la
+ * vigencia. «Datos insuficientes» se muestra en lugar de la cifra, con su
+ * motivo; una fila de una ejecución anterior lo dice junto a su vigencia. La
+ * serie observada, el método (α), la cobertura y la ejecución van en «Ver
+ * detalle».
+ */
 function ResultsSection({ results, details, latestRun }: { results: InstitutionalResults; details: Record<string, Run>; latestRun: string | null }) {
   return (
-    <section className="glass-card overflow-hidden" aria-label="Resultados por producto">
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h2 className="text-base font-bold text-slate-900">Resultados para {results.target.name}</h2>
-        <p className="mt-0.5 text-xs text-slate-500" data-testid="season">
-          {results.season ? `Temporada ${results.season.key}: ${results.season.definition}` : 'La campaña no está clasificada en una temporada.'}
-          {' · '}Vigencia evaluada el {fmtDateTime(results.evaluated_at)}
-        </p>
-        <p className="mt-1 text-xs text-slate-500">{results.notice}</p>
-        <p className="mt-1 text-xs text-slate-500" data-testid="csv-note">
-          «Exportar CSV de la consulta» guarda en un archivo esta consulta tal como la respondió el servidor. No es una
-          copia para consultar sin conexión.
-        </p>
-      </div>
+    <section className="overflow-hidden rounded-card border border-line bg-surface shadow-card" aria-labelledby="resultados-estimacion">
+      <h2 id="resultados-estimacion" className="sr-only">
+        Resultados para {results.target.name}
+      </h2>
       {results.results.length === 0 ? (
-        <EmptyState title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra." />
+        <DataState state="empty" title="Sin ejecuciones" description="Todavía no hay ninguna estimación para esta campaña. No se muestra ninguna cifra: eso no significa cero." />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
+        <div className={`overflow-x-auto ${SCROLL_HINT}`}>
+          <table className="w-full text-base">
+            <thead className="border-b-2 border-ink text-left text-xs font-bold uppercase tracking-wider text-ink-muted max-sm:hidden">
               <tr>
-                <th className="px-4 py-3">Producto</th>
-                <th className="px-4 py-3">Resultado</th>
-                <th className="px-4 py-3">Estimación SES</th>
-                <th className="px-4 py-3">Línea base naive</th>
-                <th className="px-4 py-3 normal-case">α</th>
-                <th className="px-4 py-3">Campañas observadas</th>
-                <th className="px-4 py-3">Cobertura</th>
-                <th className="px-4 py-3">Vigencia</th>
-                <th className="px-4 py-3">Ejecución</th>
+                <th className="px-5 pb-3 pt-5 sm:pl-8">Producto</th>
+                <th className="px-4 pb-3 pt-5 text-right">Consumo estimado</th>
+                <th className="px-4 pb-3 pt-5 text-right">Último consumo publicado</th>
+                <th className="min-w-36 px-5 pb-3 pt-5 sm:pr-8">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-line">
               {results.results.map((result) => {
                 const detail = detailOf(details, result);
+                const baseCampaign = lastObservedCampaign(detail);
+                const earlier = latestRun !== null && result.run_ref !== latestRun;
+                const estimated = result.status === 'ESTIMATED';
                 return (
-                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`}>
-                    <td className="px-4 py-3 font-medium text-slate-800">
-                      {result.product.name}
-                      <span className="block text-[11px] text-slate-500">{result.presentation_unit}</span>
+                  <tr key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`result-${result.product.name}`} className="align-top max-sm:block max-sm:px-1 max-sm:py-3">
+                    <td className="px-5 py-4 [overflow-wrap:anywhere] max-sm:block max-sm:py-1 sm:min-w-48 sm:pl-8">
+                      <span className="text-base font-semibold text-ink">{result.product.name}</span>
+                      <span className="ml-1 text-sm font-normal text-ink-muted">{result.presentation_unit}</span>
+                      <RowDetail result={result} detail={detailOf(details, result)} />
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="font-semibold text-slate-800">{RESULT_STATUS_TEXT[result.status]}</span>
-                      {result.reason_code && <p className="text-[11px] text-slate-500" data-testid="reason">{REASON_TEXT[result.reason_code]}</p>}
-                    </td>
-                    <td className="px-4 py-3" data-testid="estimate">
-                      <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />
-                    </td>
-                    <td className="px-4 py-3" data-testid="naive">
-                      <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
-                    </td>
-                    <td className="px-4 py-3 tabular-nums" data-testid="alpha">
-                      {formatAlpha(detail?.alpha ?? null)}
-                      {detail?.fit_informative === false && <span className="block text-[11px] text-slate-500">Ajuste no informativo</span>}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600" data-testid="observed">
-                      <span data-testid="observed-span">{observed(detail)}</span>
-                      {observedValues(detail, result.presentation_unit) && (
-                        <span className="block tabular-nums text-slate-800" data-testid="observed-values">
-                          {observedValues(detail, result.presentation_unit)}
+                    <td className="px-4 py-4 max-sm:block max-sm:py-1 sm:text-right">
+                      <span className="mb-0.5 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Consumo estimado</span>
+                      {estimated ? (
+                        <span className="text-2xl leading-tight sm:text-[1.75rem]" data-testid="estimate">
+                          <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} rounded />
                         </span>
+                      ) : (
+                        <>
+                          <span className="block text-base text-ink-muted" data-testid="estimate">
+                            {RESULT_STATUS_TEXT[result.status]}
+                          </span>
+                          {result.reason_code && (
+                            <p className="mt-0.5 max-w-xs text-sm leading-snug text-ink-muted sm:ml-auto" data-testid="reason">
+                              {REASON_TEXT[result.reason_code]}
+                            </p>
+                          )}
+                        </>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
-                      {result.coverage.campaigns.length === 0
-                        ? '—'
-                        : result.coverage.status === 'IDENTIFIED'
-                          ? 'Identificada en cada campaña del tramo (participación, no integridad)'
-                          : 'Desconocida en alguna campaña'}
+                    <td className="px-4 py-4 max-sm:block max-sm:py-1 sm:text-right">
+                      <span className="mb-0.5 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Último consumo publicado</span>
+                      <span className="text-base" data-testid="naive">
+                        <Figure value={result.naive_base} unit={result.base_unit} kind="naive" status={result.status} validityReason={result.validity_reason} />
+                      </span>
+                      <span className="block text-sm text-ink-muted" data-testid="observed-last">
+                        {estimated && baseCampaign ? `en ${baseCampaign}` : estimated ? 'Último consumo publicado de la serie' : '—'}
+                      </span>
                     </td>
-                    <td className="px-4 py-3" data-testid="validity">
-                      <ValidityBadge validity={result.validity} reason={result.validity_reason} />
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600" data-testid="run">
-                      {fmtDateTime(result.generated_at)}
-                      {latestRun && result.run_ref !== latestRun && (
-                        <span className="block text-amber-700" data-testid="earlier-run">De una ejecución anterior, no de la última solicitada</span>
+                    <td className="px-5 py-4 max-sm:block max-sm:py-1 sm:pr-8">
+                      <span className="mb-0.5 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Estado</span>
+                      <span data-testid="validity">
+                        <ValidityBadge validity={result.validity} reason={result.validity_reason} />
+                      </span>
+                      {earlier && (
+                        <span className="mt-1 block text-sm font-medium text-caution" data-testid="earlier-run">
+                          De una ejecución anterior, no de la última solicitada
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -668,8 +730,76 @@ function ResultsSection({ results, details, latestRun }: { results: Institutiona
           </table>
         </div>
       )}
+      <div className="space-y-1 border-t border-line px-5 py-4 text-sm leading-relaxed text-ink-muted sm:px-8">
+        <p>«{RESULT_STATUS_TEXT.INSUFFICIENT_DATA}» significa que no hay suficientes campañas comparables seguidas con consumo publicado (el motivo va en cada fila). No es cero.</p>
+        <p data-testid="results-evaluated">
+          Vigencia evaluada el {fmtDateTime(results.evaluated_at)}
+          {results.season ? ` · temporada ${results.season.key}` : ''}. Cada cifra es una estimación puntual para esta campaña, con la fecha de
+          su ejecución; no es un rango histórico.
+        </p>
+      </div>
     </section>
   );
+}
+
+/** «Ver detalle» de una fila: serie observada, método (α), cobertura y ejecución (detalle técnico). */
+function RowDetail({ result, detail }: { result: InstitutionalResult; detail: ResultDetail | null }) {
+  return (
+    <div className="mt-1 text-sm text-ink-muted">
+      <details>
+        <summary className="cursor-pointer font-semibold text-link">Ver detalle</summary>
+        <dl className="mt-2 max-w-xs space-y-1 sm:w-max">
+          <div data-testid="observed">
+            <dt className="inline text-ink-muted">Serie observada: </dt>
+            <dd className="inline">
+              <span data-testid="observed-span">{observed(detail)}</span>
+              {observedValues(detail, result.presentation_unit) && (
+                <span className="block tabular-nums text-ink" data-testid="observed-values">
+                  {observedValues(detail, result.presentation_unit)}
+                </span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="inline text-ink-muted">Método: </dt>
+            <dd className="inline">
+              SES frente a la línea base naive · α <span className="tabular-nums" data-testid="alpha">{formatAlpha(detail?.alpha ?? null)}</span>
+              {detail?.fit_informative === false && <span className="ml-1 text-ink-muted">(ajuste no informativo)</span>}
+            </dd>
+          </div>
+          {result.coverage.campaigns.length > 0 && (
+            <div>
+              <dt className="inline text-ink-muted">Cobertura: </dt>
+              <dd className="inline">
+                {result.coverage.status === 'IDENTIFIED' ? 'identificada en cada campaña del tramo (participación, no integridad)' : 'desconocida en alguna campaña'}
+              </dd>
+            </div>
+          )}
+          <div>
+            <dt className="inline text-ink-muted">Ejecución: </dt>
+            <dd className="inline">
+              <span data-testid="run">{fmtDateTime(result.generated_at)}</span>{' '}
+              <span className="text-ink-muted">
+                (ref. <code title={result.run_ref}>{result.run_ref.slice(0, 8)}</code>)
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </details>
+    </div>
+  );
+}
+
+/** Recuento de una ejecución sin los ceros: «1 estimado, 1 con datos insuficientes». */
+function countsText(counts: RunSummary['counts']): string {
+  const parts = [
+    [counts.estimated, 'estimados', 'estimado'],
+    [counts.insufficient_data, 'con datos insuficientes', 'con datos insuficientes'],
+    [counts.incompatible_data, 'incompatibles', 'incompatible'],
+    [counts.calculation_failed, 'fallidos', 'fallido'],
+  ] as const;
+  const shown = parts.filter(([n]) => n > 0).map(([n, plural, singular]) => `${n} ${n === 1 ? singular : plural}`);
+  return shown.length > 0 ? shown.join(', ') : 'sin resultados por producto';
 }
 
 function HistorySection({
@@ -686,35 +816,41 @@ function HistorySection({
   openedId: string | null;
 }) {
   return (
-    <section className="glass-card overflow-hidden" aria-label="Ejecuciones anteriores">
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h2 className="text-base font-bold text-slate-900">Ejecuciones anteriores</h2>
-        <p className="mt-0.5 text-xs text-slate-500">De la más reciente a la más antigua, incluidas las fallidas. Ninguna se modifica.</p>
-      </div>
+    <section className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-7" aria-labelledby="calculos-anteriores">
+      <h2 id="calculos-anteriores" className="text-2xl font-bold text-ink">
+        Cálculos anteriores{runs.length > 0 ? ` (${runs.length}${hasMore ? '+' : ''})` : ''}
+      </h2>
+      <p className="mt-1 text-sm text-ink-muted">De la más reciente a la más antigua, incluidas las fallidas. Ninguna se modifica.</p>
       {runs.length === 0 ? (
-        <EmptyState title="Sin ejecuciones" />
+        <DataState state="empty" compact title="Sin ejecuciones" description="" />
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="mt-3 divide-y divide-line border-t border-line">
           {runs.map((run) => (
-            <li key={run.run_ref} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3" data-testid="history-item">
-              <div className="text-sm">
-                <span className="font-semibold text-slate-800">{fmtDateTime(run.generated_at)}</span>
-                <span className="ml-2 text-xs text-slate-500">Temporada {run.season.key}</span>
-                <p className="text-xs text-slate-600" data-testid="history-outcome">
+            <li key={run.run_ref} className="flex items-center justify-between gap-3 py-3" data-testid="history-item">
+              <div className="min-w-0 text-sm">
+                <span className="block text-base font-semibold text-ink">{fmtDateTime(run.generated_at)}</span>
+                <span className="text-ink-muted">Temporada {run.season.key.toLowerCase()} · </span>
+                <span className="text-ink-muted" data-testid="history-outcome">
                   {run.outcome === 'CALCULATED'
-                    ? `Calculada: ${run.counts.estimated} estimados, ${run.counts.insufficient_data} con datos insuficientes, ${run.counts.incompatible_data} incompatibles, ${run.counts.calculation_failed} fallidos`
+                    ? `Calculada: ${countsText(run.counts)}`
                     : `Fallida. ${run.failure_code ? FAILURE_TEXT[run.failure_code] : ''}`}
-                </p>
+                </span>
               </div>
-              <button type="button" className={secondaryButtonClass} onClick={() => onOpen(run.run_ref)} disabled={openedId === run.run_ref}>
+              <button
+                type="button"
+                className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-semibold text-link disabled:text-ink-muted"
+                onClick={() => onOpen(run.run_ref)}
+                disabled={openedId === run.run_ref}
+              >
                 Ver detalle
+                <Icon d={ICON.chevronRight} className="h-4 w-4" />
               </button>
             </li>
           ))}
         </ul>
       )}
       {hasMore && (
-        <div className="border-t border-slate-100 px-5 py-3">
+        <div className="border-t border-line pt-3">
           <button type="button" className={secondaryButtonClass} onClick={onMore}>
             Cargar más
           </button>
@@ -739,28 +875,33 @@ const EXCLUSION_TEXT: Record<NonNullable<SeriesPoint['exclusion_reason']>, strin
 function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
   const useful = run.results;
   return (
-    <section className="glass-card overflow-hidden" aria-label="Detalle de la ejecución" data-testid="run-detail">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
-        <div>
-          <h2 className="text-base font-bold text-slate-900">Ejecución del {fmtDateTime(run.generated_at)}</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
+    <section className="overflow-hidden rounded-card border border-line bg-surface shadow-card" aria-label="Detalle de la ejecución" data-testid="run-detail">
+      <SectionHeader
+        title={`Ejecución del ${fmtDateTime(run.generated_at)}`}
+        note={
+          <>
             {run.outcome === 'CALCULATED' ? 'Calculada' : `Fallida. ${run.failure_code ? FAILURE_TEXT[run.failure_code] : ''}`} · método {run.method}{' '}
             {run.method_version} · temporada {run.season.key}. Las cifras de esta sección son las de esta ejecución.
-          </p>
-        </div>
-        <button type="button" className={secondaryButtonClass} onClick={onClose}>
-          Cerrar detalle
-        </button>
-      </div>
+          </>
+        }
+        actions={
+          <button type="button" className={secondaryButtonClass} onClick={onClose}>
+            Cerrar detalle
+          </button>
+        }
+      />
       {useful.length === 0 ? (
-        <EmptyState title="Sin resultados" description="Esta ejecución no registró resultados por producto." />
+        <DataState state="empty" title="Sin resultados" description="Esta ejecución no registró resultados por producto." />
       ) : (
-        <div className="space-y-6 p-5">
+        <div className="space-y-5 p-5">
           {useful.map((result) => (
             <div key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`detail-${result.product.name}`} className="space-y-2">
-              <h3 className="text-sm font-bold text-slate-900">
-                {result.product.name} ({result.presentation_unit}) · {RESULT_STATUS_TEXT[result.status]}
-              </h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h3 className="text-sm font-bold text-slate-900">
+                  {result.product.name} ({result.presentation_unit}) · {RESULT_STATUS_TEXT[result.status]}
+                </h3>
+                <ValidityBadge validity={result.validity} reason={result.validity_reason} />
+              </div>
               {result.reason_code && <p className="text-xs text-slate-600">{REASON_TEXT[result.reason_code]}</p>}
               <p className="text-xs text-slate-700">
                 SES:{' '}
@@ -770,13 +911,12 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
                 · α {formatAlpha(result.alpha)}
                 {result.fit_informative === false && ' (ajuste no informativo)'}
               </p>
-              <ValidityBadge validity={result.validity} reason={result.validity_reason} />
               {result.points.length > 0 && (
-                <div className="overflow-x-auto">
+                <div className={`overflow-x-auto ${SCROLL_HINT}`}>
                   <table className="w-full text-xs">
                     <thead className="bg-slate-50 text-left uppercase tracking-wider text-slate-500">
                       <tr>
-                        <th className="px-3 py-2">Campaña</th>
+                        <th className={`sticky left-0 z-[1] bg-slate-50 px-3 py-2 ${STICKY_EDGE}`}>Campaña</th>
                         <th className="px-3 py-2">Clase</th>
                         <th className="px-3 py-2">Consumo publicado</th>
                         <th className="px-3 py-2">En el tramo</th>
@@ -786,7 +926,7 @@ function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
                     <tbody className="divide-y divide-slate-100">
                       {result.points.map((point) => (
                         <tr key={point.position} data-testid={`point-${point.campaign.name}`}>
-                          <td className="px-3 py-2">{point.campaign.name}</td>
+                          <td className={`sticky left-0 z-[1] min-w-28 bg-white px-3 py-2 [overflow-wrap:anywhere] ${STICKY_EDGE}`}>{point.campaign.name}</td>
                           <td className="px-3 py-2">{KIND_TEXT[point.kind]}</td>
                           <td className="px-3 py-2 tabular-nums">
                             {point.kind === 'VERIFIED_CONSUMPTION' && point.quantity_base !== null

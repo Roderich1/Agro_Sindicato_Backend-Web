@@ -121,11 +121,13 @@ assert.deepEqual(Object.keys(product.properties).sort(), [...product.required].s
 process.stdout.write("F05 Sync v1 OpenAPI contract assertions passed.\n");
 
 // F06 collective summary (#21) and F07-REC-01 associations (#108): routes,
-// statuses, bearer, closed shapes and no figures per Member.
+// statuses, bearer, closed shapes and no figures per Member. The CSV routes
+// (summary.csv, proposals/{proposalId}/csv, trends.csv) were withdrawn on
+// 2026-11-12: the Web exports Excel from the JSON, and the exact list of
+// paths below keeps them from coming back unnoticed.
 const f06 = JSON.parse(readFileSync(resolve(__dirname, "../../docs/api/openapi-f06-collective.json"), "utf8"));
 const f06Required = [
   ["/api/v1/collective/campaigns/{campaignId}/summary", "get", "200", "401", "403", "404"],
-  ["/api/v1/collective/campaigns/{campaignId}/summary.csv", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/product-associations", "get", "200", "401", "403"],
   ["/api/v1/collective/product-associations", "post", "200", "401", "403", "404", "409", "422"],
   ["/api/v1/collective/product-associations/{productId}/close", "post", "200", "401", "403", "404", "422"],
@@ -134,14 +136,18 @@ const f06Required = [
   ["/api/v1/collective/campaigns/{campaignId}/proposals", "post", "201", "401", "403", "404", "409"],
   ["/api/v1/collective/campaigns/{campaignId}/proposals", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/proposals/{proposalId}", "get", "200", "401", "403", "404"],
-  ["/api/v1/collective/proposals/{proposalId}/csv", "get", "200", "401", "403", "404"],
   // F12-EST-08 (#181): the estimation as a separate reference of a proposal.
   ["/api/v1/collective/proposals/{proposalId}/estimation-reference", "get", "200", "401", "403", "404"],
+  // E3: the estimate fixed as a reference of a draft and the products chosen for a call.
+  ["/api/v1/collective/proposals/{proposalId}/estimation-link", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/proposals/{proposalId}/estimation-link/prepare", "post", "200", "400", "401", "403", "404", "409"],
+  ["/api/v1/collective/proposals/{proposalId}/estimation-link/clear", "post", "200", "400", "401", "403", "404", "409"],
+  ["/api/v1/collective/proposals/{proposalId}/selection", "get", "200", "401", "403", "404"],
+  ["/api/v1/collective/proposals/{proposalId}/selection", "put", "200", "400", "401", "403", "404", "409", "422"],
   // F07 (2026-10-23): manual seal and trends over sealed versions.
   ["/api/v1/collective/campaigns/{campaignId}/seal", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/campaigns/{campaignId}/seal", "post", "200", "400", "401", "403", "404", "409", "422"],
   ["/api/v1/collective/trends", "get", "200", "401", "403"],
-  ["/api/v1/collective/trends.csv", "get", "200", "401", "403"],
 ];
 assert.deepEqual(
   Object.keys(f06.paths).sort(),
@@ -164,7 +170,6 @@ assert.deepEqual(Object.keys(cell.properties).sort(), [...cell.required].sort())
 for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "quantity_base"]) {
   assert.ok(!(forbidden in cell.properties), `Cell must not expose ${forbidden}`);
 }
-assert.ok(f06.paths["/api/v1/collective/campaigns/{campaignId}/summary.csv"].get.responses["200"].content["text/csv"]);
 // F07 #27: closed proposal shapes, DRAFT only, declared need, no per-Member data.
 const proposal = f06.paths["/api/v1/collective/proposals/{proposalId}"].get.responses["200"].content["application/json"].schema;
 assert.equal(proposal.additionalProperties, false);
@@ -183,7 +188,6 @@ for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "net
 }
 const history = f06.paths["/api/v1/collective/campaigns/{campaignId}/proposals"].get.responses["200"].content["application/json"].schema;
 assert.ok(!("lines" in history.items.properties) && !("quantity_base" in history.items.properties));
-assert.ok(f06.paths["/api/v1/collective/proposals/{proposalId}/csv"].get.responses["200"].content["text/csv"]);
 // F12-EST-08 (#181): the reference is closed, identified as the consumption
 // estimate, separate from the lines (it repeats no need figure) and carries
 // neither the naive baseline, the coverage, the series nor per-Member data.
@@ -226,7 +230,6 @@ for (const state of ["NO_DATA", "NOT_SEALED", "WITHDRAWN_AFTER_SEAL"]) assert.ok
 for (const forbidden of ["memberId", "member_ref", "accountId", "clientId", "sum", "average", "delta"]) {
   assert.ok(!(forbidden in point.properties), `Trend point must not expose ${forbidden}`);
 }
-assert.ok(f06.paths["/api/v1/collective/trends.csv"].get.responses["200"].content["text/csv"]);
 process.stdout.write("F06 collective OpenAPI contract assertions passed.\n");
 
 // F08 private backups (#39): owner-scoped routes, closed errors, no owner ids.

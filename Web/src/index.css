@@ -1,181 +1,618 @@
 @import 'tailwindcss';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ══════════════════════════════════════════
-   DESIGN SYSTEM — Agro PWA v2
+   SISTEMA VISUAL — Web institucional, rediseño v2 (2026-11-13)
+   Identidad de las láminas «Agrocuentas · Rediseño de la Web» y de la app
+   móvil del mismo diseño: verde muy oscuro (tinta), lima como acento y fondos
+   claros. Tipografías autoalojadas (public/fonts, ver LICENSES.md): DM Sans
+   para el texto, Bricolage Grotesque para títulos y cifras grandes. Contrato
+   de componentes: src/components/ui/README.md.
    ══════════════════════════════════════════ */
 
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/DMSans-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/DMSans-500.ttf') format('truetype');
+}
+/* 600 no tiene instancia propia: `font-semibold` usa la de 700 (sin negrita sintética). */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('/fonts/DMSans-700.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('/fonts/BricolageGrotesque-700.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800 900;
+  font-display: swap;
+  src: url('/fonts/BricolageGrotesque-800.ttf') format('truetype');
+}
+
+/* Tokens de Tailwind: generan utilidades (`bg-ink`, `text-lime`, `rounded-card`,
+   `font-display`…). Contrastes AA medidos (WCAG 2.x) en el README de ui. */
+@theme {
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Tinta (verde muy oscuro) y sus superficies elevadas sobre oscuro. */
+  --color-ink: #0f2a1d;
+  --color-ink-raised: #29473a;
+  --color-ink-line: #1e3a2d;
+  --color-ink-muted: #55645a;
+  --color-on-ink: #e8f1ea;
+  --color-on-ink-muted: #b9c9be;
+
+  /* Lima: acento sobre oscuro y fondo de botones primarios en la cabecera. */
+  --color-lime: #c8f04a;
+  --color-lime-soft: #e3f6a8;
+  --color-lime-ink: #24400a;
+
+  /* Fondos claros. */
+  --color-canvas: #f2f4ee;
+  --color-surface: #ffffff;
+  --color-sunken: #e9ede4;
+  --color-field: #f2f4ee;
+  --color-line: #dfe4da;
+  --color-track: #e3e8dd;
+  --color-field-border: #7d8d82;
+  --color-link: #1f6b3a;
+
+  /* Estados (siempre con texto). */
+  --color-warn-bg: #ffe0a3;
+  --color-warn-ink: #3d2700;
+  --color-caution: #8a5300;
+  --color-danger: #b3261e;
+  --color-danger-bg: #ffdad6;
+  --color-danger-ink: #8c1d18;
+
+  /*
+   * Compatibilidad: la escala `brand-*` del rediseño v1 la usan vistas de A/B/C
+   * (`bg-brand-700 text-white`, `text-brand-800`…). Se reasigna a la identidad
+   * nueva para que esas vistas no queden con el verde anterior.
+   */
+  --color-brand-50: #f1f8d9;
+  --color-brand-100: #e3f6a8;
+  --color-brand-600: #1f6b3a;
+  --color-brand-700: #0f2a1d;
+  --color-brand-800: #1e3a2d;
+
+  /* Radios: controles, campos, tarjetas grandes y cabeceras oscuras. */
+  --radius-control: 12px;
+  --radius-field: 14px;
+  --radius-card: 24px;
+  --radius-hero: 28px;
+
+  --shadow-card: 0 1px 2px rgba(15, 42, 29, 0.04);
+  --shadow-raised: 0 12px 32px -8px rgba(15, 42, 29, 0.22), 0 2px 6px -2px rgba(15, 42, 29, 0.1);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 :root {
-  /* ── Brand palette ── */
-  --color-primary: #059669;
-  --color-primary-light: #34d399;
-  --color-primary-dark: #047857;
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-accent: #0ea5e9;
+  /* Compatibilidad: nombres anteriores, ahora apuntan a los tokens. */
+  --color-primary: var(--color-brand-600);
+  --color-primary-dark: var(--color-brand-700);
+  --color-primary-50: var(--color-brand-50);
+  --color-primary-100: var(--color-brand-100);
+  --bg-body: var(--color-canvas);
+  --bg-card: var(--color-surface);
+  --bg-card-solid: var(--color-surface);
 
-  /* ── Surfaces ── */
-  --bg-body: #f4f8f0;
-  --bg-sidebar: #0f1d15;
-  --bg-card: rgba(255, 255, 255, 0.82);
-  --bg-card-solid: #ffffff;
+  /* Foco: tinta sobre claro; lima sobre oscuro (`.ui-on-ink`). */
+  --color-focus: var(--color-ink);
 
-  /* ── Typography ── */
-  font-family:
-    'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
-  color: #0f172a;
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+
+  /* Espaciado del armazón (múltiplos de 4 px). */
+  --space-gutter: 1rem;
+  --sidebar-width: 272px;
+  --sidebar-rail: 88px;
+
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* ── Shadows (tinted) ── */
-  --shadow-xs: 0 1px 2px rgba(16, 69, 41, 0.04);
-  --shadow-sm: 0 1px 3px rgba(16, 69, 41, 0.06), 0 1px 2px rgba(16, 69, 41, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(16, 69, 41, 0.07), 0 2px 4px -2px rgba(16, 69, 41, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(16, 69, 41, 0.08), 0 4px 6px -4px rgba(16, 69, 41, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(16, 69, 41, 0.08), 0 8px 10px -6px rgba(16, 69, 41, 0.04);
-  --shadow-glow: 0 0 20px rgba(5, 150, 105, 0.15);
-}
-
-/* ── Base ── */
-body {
-  margin: 0;
-  background: var(--bg-body);
-  background-image:
-    radial-gradient(ellipse at 0% 0%, rgba(209, 250, 229, 0.5) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(167, 243, 208, 0.3) 0%, transparent 50%);
-  background-attachment: fixed;
-  min-height: 100vh;
-}
-
-button {
-  cursor: pointer;
 }
 
 /* ══════════════════════════════════════════
-   ANIMATIONS
+   BASE (capa base: las utilidades pueden sobrescribirla)
    ══════════════════════════════════════════ */
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+@layer base {
+  html {
+    /* Sin destello gris al tocar: cada control tiene su propio :active. */
+    -webkit-tap-highlight-color: transparent;
+    /* Sin inflado de texto al girar el teléfono. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Títulos con la tipografía de pantalla; el peso lo pone cada componente. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  /* Controles: respuesta inmediata al tocar (sin espera de doble toque) y
+     etiqueta no seleccionable con pulsación larga. El texto de contenido sigue
+     siendo seleccionable. */
+  button,
+  [role='button'],
+  summary {
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  a {
+    touch-action: manipulation;
+  }
+
+  h1[id],
+  h2[id],
+  h3[id] {
+    scroll-margin-top: 80px;
+  }
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Teléfonos y tabletas: un campo con letra menor de 16 px hace que iOS
+   amplíe la página al enfocarlo. Fuera de capa para ganar a `text-sm`. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
+/* Foco visible en todo control (teclado), sin animación. Sobre superficies
+   oscuras (`.ui-on-ink`) el anillo pasa a lima. Las utilidades
+   `focus-visible:outline-*` heredadas usan el mismo color. */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
-}
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(100%); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes toast-out {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(100%); }
-}
-
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes progress-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out both;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-fade-slide {
-  animation: fadeSlide 0.2s ease-out both;
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 1.4s ease-in-out infinite;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-toast-in {
-  animation: toast-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-toast-out {
-  animation: toast-out 0.3s ease-in both;
+/* En capa: las utilidades (`lg:text-ink`, `text-white`) pueden sobrescribir el color. */
+@layer components {
+  .ui-on-ink {
+    --color-focus: var(--color-lime);
+    color: var(--color-on-ink);
+  }
 }
 
 /* ══════════════════════════════════════════
-   SCROLLBAR
+   MOVIMIENTO
+   Sólo lo que tiene un propósito y se ve pocas veces al día. Duraciones
+   ≤ 200 ms con `--ease-out`. Sin bucles salvo indicadores de carga.
+   ══════════════════════════════════════════ */
+
+/* Panel lateral que entra desde la derecha (vistas heredadas): ocasional. */
+@keyframes ui-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Aviso que aparece tras una acción del usuario: ocasional, evita un cambio brusco. */
+@keyframes ui-enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Hoja inferior del teléfono (diálogos): sube 24 px una sola vez. */
+@keyframes ui-enter-sheet {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer components {
+  .animate-slide-in-right {
+    animation: ui-enter-right var(--duration-base) var(--ease-out) both;
+  }
+
+  .animate-fade-slide,
+  .animate-scale-in {
+    animation: ui-enter-fade var(--duration-fast) var(--ease-out) both;
+  }
+
+  .ui-dialog-panel {
+    animation: ui-enter-fade var(--duration-fast) var(--ease-out) both;
+  }
+
+  @media (max-width: 639px) {
+    .ui-dialog-panel {
+      animation: ui-enter-sheet var(--duration-base) var(--ease-out) both;
+    }
+  }
+
+  /* Respuesta al pulsar un control: escala mínima, sólo transform y colores. */
+  /* También en enlaces con aspecto de botón: sin selección ni menú de pulsación larga. */
+  .ui-press {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    transition-property: transform, background-color, border-color, color;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-out);
+  }
+
+  .ui-press:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+/* ══════════════════════════════════════════
+   ARMAZÓN: márgenes y zonas seguras (viewport-fit=cover)
+   Con el contenido bajo la muesca, los bordes se separan de ella con
+   env(safe-area-inset-*); sin muesca, env() vale 0 y quedan los márgenes.
+   ══════════════════════════════════════════ */
+
+@layer components {
+  .ui-gutter {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .ui-gutter {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .ui-gutter {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  .ui-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Paneles a toda altura (menú «Más»): el pie queda sobre el indicador de inicio. */
+  .ui-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Barra inferior del teléfono: por encima del indicador de inicio. */
+  .ui-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* El contenido no queda tapado por la barra inferior (4,5 rem + zona segura). */
+  .ui-main {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 1024px) {
+    .ui-main {
+      padding-bottom: 2.5rem;
+    }
+  }
+
+  /* Menú «Más»: deja libre la barra inferior, que sigue visible debajo. */
+  .ui-more-panel {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Accesos de la barra inferior repetidos en «Más»: sólo cuando la barra se oculta (horizontal). */
+  .ui-more-primary {
+    display: none;
+  }
+
+  /* Botón «Menú» de la cabecera: sólo cuando la barra inferior se oculta (horizontal). */
+  .ui-header-menu {
+    display: none;
+  }
+
+  /* HeroPanel `attachToHeader` (y ViewHeader de C): esquinas. Los márgenes van fuera de capa, más abajo. */
+  .ui-hero-attach {
+    border-radius: 0 0 var(--radius-hero) var(--radius-hero);
+  }
+
+  @media (min-width: 1024px) {
+    .ui-hero-attach {
+      border-radius: var(--radius-hero);
+    }
+  }
+
+  /* Barra lateral de escritorio: ancho completo o plegada. */
+  .ui-content {
+    transition: none;
+  }
+
+  @media (min-width: 1024px) {
+    .ui-content {
+      padding-left: var(--sidebar-width);
+    }
+
+    .ui-content[data-rail='true'] {
+      padding-left: var(--sidebar-rail);
+    }
+  }
+}
+
+/*
+ * HeroPanel `attachToHeader`: en teléfono y tableta continúa la barra superior
+ * oscura (lámina 35), sin margen superior ni lateral. Fuera de capa a propósito:
+ * dentro de un `space-y-*` (utilidad, que gana a la capa `components`) el
+ * margen superior quedaba en 0. Sólo por debajo de 1024 px; en escritorio la
+ * cabecera conserva los márgenes que le dé su contenedor.
+ */
+@media (max-width: 1023.98px) {
+  .ui-hero-attach {
+    margin-top: -1.25rem;
+    margin-left: calc(-1 * max(1rem, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(1rem, env(safe-area-inset-right, 0px)));
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  .ui-hero-attach {
+    margin-left: calc(-1 * max(1.5rem, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(1.5rem, env(safe-area-inset-right, 0px)));
+  }
+}
+
+/* ══════════════════════════════════════════
+   SUPERFICIES (sólidas: sin cristal, sin desenfoque, sin degradados)
+   Los nombres se conservan porque las vistas actuales los usan.
+   ══════════════════════════════════════════ */
+
+@layer components {
+  .glass-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass-card-elevated {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-raised);
+  }
+
+  /* Velo de diálogos: verde grisáceo de las láminas (46), sin desenfoque. */
+  .modal-backdrop {
+    background: rgba(15, 42, 29, 0.5);
+  }
+
+  /* Bloque de carga estático (sin brillo animado). */
+  .skeleton {
+    background: var(--color-sunken);
+    border-radius: 999px;
+  }
+
+  .sidebar-item-text {
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Estado «oculto»: borde discontinuo (no es cero ni error). */
+  .ui-dashed {
+    border: 1px dashed currentColor;
+  }
+}
+
+/* ══════════════════════════════════════════
+   TABLAS
+   ══════════════════════════════════════════ */
+
+@layer components {
+  .table-container {
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    box-shadow: var(--shadow-card);
+  }
+
+  .table-container table tbody tr:nth-child(even) {
+    background-color: #f7f8f4;
+  }
+
+  /* DataTable (components/ui): desplazamiento horizontal interno, cabecera
+     pegajosa, cifras alineadas. */
+  /*
+   * Sombra lateral sólo cuando hay más tabla a ese lado: dos velos blancos que
+   * se desplazan con el contenido (`local`) tapan dos sombras fijas (`scroll`)
+   * al llegar a cada borde. Sin desplazamiento no se ve.
+   */
+  .ui-table-scroll {
+    overflow: auto;
+    overscroll-behavior-x: contain;
+    background:
+      linear-gradient(to right, #fff 30%, rgb(255 255 255 / 0)) left center / 40px 100% no-repeat local,
+      linear-gradient(to left, #fff 30%, rgb(255 255 255 / 0)) right center / 40px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgb(15 42 29 / 0.2), transparent) left center / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(15 42 29 / 0.2), transparent) right center / 12px 100% no-repeat scroll;
+    background-color: var(--color-surface);
+  }
+
+  .ui-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    /* Translúcido: deja ver la sombra lateral también en la fila de cabecera. */
+    background: rgb(255 255 255 / 0.92);
+    border-bottom: 2px solid var(--color-ink);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+
+  .ui-table tbody td,
+  .ui-table tbody th {
+    border-bottom: 1px solid var(--color-line);
+    padding: 0.75rem 1rem;
+    vertical-align: top;
+    text-align: left;
+  }
+
+  .ui-table tbody tr:last-child td,
+  .ui-table tbody tr:last-child th {
+    border-bottom: 0;
+  }
+
+  .ui-table .ui-num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /*
+   * Tabla apilada (DataTable con `columns`): por debajo de 640 px cada fila es
+   * una tarjeta y cada celda repite su encabezado (`data-label`). Para lectores
+   * de pantalla sigue siendo una tabla: sólo cambia la presentación.
+   */
+  @media (max-width: 639px) {
+    .ui-table-stack thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .ui-table-stack,
+    .ui-table-stack tbody,
+    .ui-table-stack tr,
+    .ui-table-stack td,
+    .ui-table-stack tbody th {
+      display: block;
+      width: 100%;
+    }
+
+    /* Gana al `minWidth` en línea: apilada no hace falta desplazar. */
+    .ui-table-stack {
+      min-width: 0 !important;
+    }
+
+    .ui-table-stack tbody tr {
+      border-bottom: 1px solid var(--color-line);
+      padding: 0.5rem 0;
+    }
+
+    .ui-table-stack tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    .ui-table-stack tbody td,
+    .ui-table-stack tbody th {
+      display: grid;
+      grid-template-columns: minmax(7rem, 40%) 1fr;
+      gap: 0.75rem;
+      border-bottom: 0;
+      padding: 0.375rem 1rem;
+    }
+
+    .ui-table-stack tbody td::before,
+    .ui-table-stack tbody th::before {
+      content: attr(data-label);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-ink-muted);
+    }
+
+    .ui-table-stack .ui-num {
+      text-align: left;
+      white-space: normal;
+    }
+  }
+}
+
+/* Hover sólo con ratón: en pantallas táctiles se quedaría pegado tras tocar. */
+@media (hover: hover) and (pointer: fine) {
+  .table-container table tbody tr:hover,
+  .table-container table tbody tr:nth-child(even):hover {
+    background-color: var(--color-canvas);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 42, 29, 0.28);
+  }
+}
+
+/* ══════════════════════════════════════════
+   BARRAS DE DESPLAZAMIENTO
    ══════════════════════════════════════════ */
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -183,220 +620,112 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.12);
+  background: rgba(15, 42, 29, 0.18);
   border-radius: 999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.2);
-}
-
 /* ══════════════════════════════════════════
-   GLASSMORPHISM & CARDS
+   ACCESIBILIDAD
    ══════════════════════════════════════════ */
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: var(--shadow-sm);
-  border-radius: 16px;
-  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
-}
-
-.glass-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.glass-card-elevated {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: var(--shadow-md);
-  border-radius: 16px;
-}
-
-/* ══════════════════════════════════════════
-   NUMERIC / TABULAR
-   ══════════════════════════════════════════ */
-
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-/* ══════════════════════════════════════════
-   SKELETON LOADER (improved)
-   ══════════════════════════════════════════ */
-
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(226, 232, 240, 0.6) 25%,
-    rgba(241, 245, 249, 0.8) 50%,
-    rgba(226, 232, 240, 0.6) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 8px;
-}
-
-/* ══════════════════════════════════════════
-   ACCESSIBILITY
-   ══════════════════════════════════════════ */
-
-/* Skip link */
+/* Enlace «Saltar al contenido»: aparece con el foco, sin animación. */
 .skip-link {
   position: absolute;
-  top: -40px;
+  top: -48px;
   left: 0;
   z-index: 100;
-  padding: 8px 16px;
-  background: var(--color-primary-dark);
-  color: #fff;
+  padding: 10px 18px;
+  background: var(--color-lime);
+  color: var(--color-ink);
   font-size: 0.875rem;
-  font-weight: 600;
-  border-radius: 0 0 8px 0;
-  transition: top 0.15s;
+  font-weight: 700;
+  border-radius: 0 0 14px 0;
 }
 .skip-link:focus {
   top: 0;
 }
 
-/* Focus visible */
-:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Scroll margin for headings */
-h1[id], h2[id], h3[id] {
-  scroll-margin-top: 80px;
-}
-
-/* ══════════════════════════════════════════
-   REDUCED MOTION
-   ══════════════════════════════════════════ */
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-slide-up,
-  .animate-slide-in-right,
-  .animate-slide-in-left,
-  .animate-scale-in,
-  .animate-fade-slide,
-  .animate-pulse-soft,
-  .animate-float,
-  .animate-toast-in,
-  .animate-toast-out {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
-
-  .skeleton {
-    animation: none;
-    background: rgba(226, 232, 240, 0.6);
-  }
-
-  * {
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ══════════════════════════════════════════
-   SIDEBAR TRANSITION UTILITIES
-   ══════════════════════════════════════════ */
-
-.sidebar-transition {
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sidebar-item-text {
-  transition: opacity 0.2s ease, width 0.2s ease;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-/* ══════════════════════════════════════════
-   MODAL BACKDROP
-   ══════════════════════════════════════════ */
-
-.modal-backdrop {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-/* ══════════════════════════════════════════
-   GRADIENT UTILITIES
-   ══════════════════════════════════════════ */
-
-.gradient-mesh {
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 60% 80%, rgba(52, 211, 153, 0.1) 0%, transparent 50%);
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, #059669, #0ea5e9);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ══════════════════════════════════════════
-   TABLE IMPROVEMENTS
-   ══════════════════════════════════════════ */
-
-.table-container {
-  overflow: hidden;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: var(--shadow-sm);
-}
-
-.table-container table tbody tr {
-  transition: background-color 0.15s ease;
-}
-
-.table-container table tbody tr:hover {
-  background-color: rgba(241, 245, 249, 0.6);
-}
-
-.table-container table tbody tr:nth-child(even) {
-  background-color: rgba(248, 250, 252, 0.4);
-}
-
-.table-container table tbody tr:nth-child(even):hover {
-  background-color: rgba(241, 245, 249, 0.7);
-}
-
-/* ══════════════════════════════════════════
-   FORM ENHANCEMENTS
-   ══════════════════════════════════════════ */
-
+/* Campos con icono (vistas heredadas: usuarios). */
 .input-icon-wrapper {
   position: relative;
 }
 
 .input-icon-wrapper .input-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--color-ink-muted);
   pointer-events: none;
-  transition: color 0.2s;
 }
 
 .input-icon-wrapper input:focus ~ .input-icon,
 .input-icon-wrapper select:focus ~ .input-icon {
-  color: var(--color-primary);
+  color: var(--color-ink);
+}
+
+/* ══════════════════════════════════════════
+   TELÉFONO EN HORIZONTAL (alto ≤ 500 px), hallazgo H2 del emulador
+   Fuera de capa para ganar a las utilidades (`flex`, `sticky`, `min-h-14`).
+   ══════════════════════════════════════════ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* La barra inferior se oculta: el botón «Menú» de la cabecera abre «Más», con todas las tareas. */
+  .ui-bottom-nav {
+    display: none;
+  }
+
+  .ui-header-menu {
+    display: inline-flex;
+  }
+
+  .ui-more-primary {
+    display: block;
+  }
+
+  .ui-more-panel {
+    bottom: 0;
+  }
+
+  .ui-main {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Cabecera compacta y no fija: se va con el contenido. */
+  .ui-shell-header {
+    position: static;
+  }
+
+  .ui-shell-bar {
+    min-height: 2.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  /* El menú desplaza entero dentro del diálogo. */
+  .ui-menu-panel {
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Movimiento reducido: se conservan opacidad y color; se quita todo
+   desplazamiento y escala. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .ui-dialog-panel {
+    animation-name: ui-enter-fade !important;
+  }
+
+  .ui-press:active:not(:disabled) {
+    transform: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, outline-color, opacity !important;
+    scroll-behavior: auto !important;
+  }
 }

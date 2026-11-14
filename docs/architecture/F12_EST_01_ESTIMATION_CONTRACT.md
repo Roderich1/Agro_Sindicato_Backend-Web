@@ -102,6 +102,7 @@ Las dos últimas **nunca** son cero, no se interpolan y no entran en el cálculo
 **Lo que no se entrega en ningún perfil:**
 - inventarios privados, compras, cuentas familiares, fotografías ni existencias privadas;
 - aportes individuales: cantidad por agricultor, Member que aporta o número de aportantes de una fila.
+  - **Enmienda E3-P1 (decisión del autor, 2026-11-12):** la vista E3 de la referencia fijada en un borrador (`/collective/proposals/{id}/estimation-link`, sólo DIRECTIVA y ADMINISTRADOR) entrega, para un resultado **con cifra entregada**, el número de campañas del tramo y el **mínimo y el máximo** de aportantes de las cifras de consumo usadas, nunca por campaña ni identidades. No amplía el acceso: F07 ya entrega `contributors` de cada cifra publicada, también de `CONSUMPTION_TOTAL`, a esos roles (resumen e histórico sellado). Las rutas de INT-09 (`/estimation/…`) no cambian. Ver `E3_P1_OPCIONES_ALCANCE_COMPARABLE.md`.
 
 La serie solo usa cifras ya publicadas y selladas (§3).
 
@@ -667,6 +668,8 @@ F12-EST-08 solo la muestra en una columna separada (RN-29), según §7.1.
 
 ## 8. Vigencia derivada al consultar
 
+> **Nota de sustitución (2026-11-13).** En la comprobación de retirada, «un número de aportantes no menor que el umbral vigente» deja de exigirse. La política aplicada (§5) se registra con `threshold` nulo en las ejecuciones con `F07-POL-02`, y las anteriores conservan el suyo. El método, los parámetros y el requisito de varias campañas comparables no cambian. Rige [E4](E4_ACCESO_POR_ROL_Y_SIN_UMBRAL_CONTRATO.md) §3.4 y §4.4 (decisiones del autor del 2026-11-13 y criterio del orquestador derivado del encargo, revisable por el autor; autoría en E4 §0). El texto siguiente se conserva como historia: describe el comportamiento anterior a E4, que sigue en el código hasta que E4 se implemente.
+
 Para un resultado de la ejecución *E* (campaña objetivo *T*, producto *P*, unidad *U*), en este orden:
 
 1. **`NOT_USABLE`:** *E* es `FAILED` (`RUN_FAILED`) o el resultado no es `ESTIMATED` (`NO_FIGURE`).
@@ -892,3 +895,7 @@ Los identificadores llevan el prefijo `EST-D` para no confundirse con otras deci
 | 2026-11-03 (UTC), decimoquinta | Decisión del autor: la referencia se muestra también en las filas con la necesidad oculta, rotulada como estimación y sin sustituir la necesidad (§7.1); diferencia deliberada respecto a W3 |
 | 2026-11-03 (UTC), decimosexta | F12-EST-10 (Refs #183): las filas de estado de las temporadas (§12) y de la referencia en la propuesta (§7.1, §12) dicen que están integradas en `main` (`35d9a1b` y `075a511`). Índice de evidencia en `docs/evidence/F12_EST_10_INDICE_EVIDENCIA_2026-11-03.md` |
 | 2026-11-03 (UTC), decimoséptima | Decisión del autor sobre GATE-F12: los números de la política (`F07-POL-01`, #107) y de GOV-02 (#185) corregidos en §2, §3 y §11.3; supuesto del catálogo de campañas completo (§11.3, punto 6) |
+
+## Anexo (2026-11-12): exportación CSV retirada
+
+Por decisión del autor del 2026-11-12, **Excel es la única exportación para el usuario**. Se retiraron las rutas `GET /api/v1/collective/campaigns/{campaignId}/summary.csv`, `GET /api/v1/collective/trends.csv` y `GET /api/v1/collective/proposals/{proposalId}/csv` (Back `eeaf327`) y los botones «Exportar CSV» de la Web (`7acf0a1`). Lo que este documento dice de esos CSV describe la versión anterior; la política de divulgación se sigue aplicando igual en el JSON y en los libros Excel, que se arman con las mismas respuestas del servidor. Equivalencias columna a columna: `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`. El Excel del borrador usa la referencia de estimación **fijada** (contrato E2 §11.9; sustituye a E3-R10 y a N8).

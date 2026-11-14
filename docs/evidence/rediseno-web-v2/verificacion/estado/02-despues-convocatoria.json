@@ -1,0 +1,360 @@
+{
+ "at": "2026-11-13T11:33:37.591Z",
+ "counts": {
+  "purchases": 0,
+  "purchaseItems": 0,
+  "payableAccounts": 0,
+  "payments": 0,
+  "inventoryLots": 0,
+  "stockMovements": 0,
+  "jointPurchaseCalls": 12,
+  "callClosings": 5,
+  "auditLogs": 104,
+  "products": 13,
+  "activeProducts": 13
+ },
+ "calls": [
+  {
+   "id": "e2a01800",
+   "name": "Convocatoria histórica sintética (sembrada para probar Historial)",
+   "status": "CLOSED",
+   "deadline": "2026-03-20T12:00:00.000Z",
+   "responsible": "Directiva DEMO",
+   "version": 1,
+   "participations": 1,
+   "products": 1,
+   "events": 3
+  },
+  {
+   "id": "97d993e8",
+   "name": "Herbicidas invierno 2026 (sintética)",
+   "status": "CLOSED",
+   "deadline": "2026-11-11T21:59:00.000Z",
+   "responsible": "Directiva DEMO",
+   "version": 1,
+   "participations": 2,
+   "products": 2,
+   "events": 4
+  },
+  {
+   "id": "514f346e",
+   "name": "Compra conjunta desde propuesta E3 (sintética)",
+   "status": "CLOSED",
+   "deadline": "2026-11-12T01:24:00.000Z",
+   "responsible": "Directiva DEMO",
+   "version": 1,
+   "participations": 3,
+   "products": 2,
+   "events": 8
+  },
+  {
+   "id": "2a461584",
+   "name": "Convocatoria E3-P2 con origen (sintética)",
+   "status": "DRAFT",
+   "deadline": "2026-11-12T05:26:00.000Z",
+   "responsible": "Directiva DEMO",
+   "version": 1,
+   "participations": 0,
+   "products": 2,
+   "events": 3
+  },
+  {
+   "id": "e6a66b78",
+   "name": "Convocatoria CONV-1 a CONV-2 (sintética)",
+   "status": "CLOSED",
+   "deadline": "2026-11-12T06:32:00.000Z",
+   "responsible": "Directiva DEMO",
+   "version": 1,
+   "participations": 2,
+   "products": 2,
+   "events": 5
+  },
+  {
+   "id": "c5e618a7",
+   "name": "Convocatoria P-C y N7 (sintética)",
+   "status": "OPEN",
+   "deadline": "2026-11-15T11:59:00.000Z",
+   "responsible": "Directiva DEMO",
+   "version": 1,
+   "participations": 2,
+   "products": 2,
+   "events": 6
+  },
+  {
+   "id": "123434f8",
+   "name": "Convocatoria P-A sustitución (sintética)",
+   "status": "OPEN",
+   "deadline": "2026-11-14T16:15:01.084Z",
+   "responsible": "Sucesora PA (sintética)",
+   "version": 2,
+   "participations": 2,
+   "products": 2,
+   "events": 8
+  },
+  {
+   "id": "a351af7a",
+   "name": "Convocatoria P-A concurrencia (sintética)",
+   "status": "OPEN",
+   "deadline": "2026-11-14T16:34:21.288Z",
+   "responsible": "Sucesora PA (sintética)",
+   "version": 2,
+   "participations": 0,
+   "products": 2,
+   "events": 4
+  },
+  {
+   "id": "56b761a0",
+   "name": "Convocatoria P-A concurrencia (sintética) 16:36:26",
+   "status": "CANCELLED",
+   "deadline": "2026-11-14T16:36:26.382Z",
+   "responsible": "Administración DEMO",
+   "version": 2,
+   "participations": 0,
+   "products": 2,
+   "events": 5
+  },
+  {
+   "id": "69bfef4a",
+   "name": "Convocatoria P-A app anterior (sintética)",
+   "status": "OPEN",
+   "deadline": "2026-11-14T17:50:05.815Z",
+   "responsible": "Sucesora PA (sintética)",
+   "version": 2,
+   "participations": 3,
+   "products": 2,
+   "events": 6
+  },
+  {
+   "id": "2894efd3",
+   "name": "Convocatoria de demostración para el rediseño: herbicidas y fungicidas de la campaña de invierno (sintética)",
+   "status": "OPEN",
+   "deadline": "2026-11-14T20:26:54.118Z",
+   "responsible": "Responsable PA (sintética)",
+   "version": 1,
+   "participations": 2,
+   "products": 2,
+   "events": 5
+  },
+  {
+   "id": "bffce00b",
+   "name": "Recorrido v2 (sintética)",
+   "status": "CLOSED",
+   "deadline": "2026-11-20T22:00:00.000Z",
+   "responsible": "Directiva DEMO",
+   "version": 1,
+   "participations": 0,
+   "products": 1,
+   "events": 4
+  }
+ ],
+ "substitutionHolders": [
+  {
+   "user": "Directiva DEMO",
+   "at": "2026-11-12T16:17:51.563Z"
+  },
+  {
+   "user": "Administración PA 2 (sintética)",
+   "at": "2026-11-12T16:34:52.622Z"
+  }
+ ],
+ "substitutionEvents": [
+  {
+   "user": "Directiva DEMO",
+   "action": "GRANTED",
+   "actor": "Administración PA 2 (sintética)",
+   "at": "2026-11-12T16:17:51.563Z"
+  },
+  {
+   "user": "Administración PA 2 (sintética)",
+   "action": "GRANTED",
+   "actor": "Administración DEMO",
+   "at": "2026-11-12T16:34:52.622Z"
+  }
+ ],
+ "identification": [
+  {
+   "id": "cca64746",
+   "localName": "Herbicida 48 SL del agro (etiqueta)",
+   "status": "LINKED",
+   "photo": "STORED",
+   "product": "6551b2f1",
+   "resolvedAt": "2026-11-11T18:06:25.363Z"
+  },
+  {
+   "id": "6611e1f2",
+   "localName": "Fertilizante foliar artesanal ZZ",
+   "status": "LINKED",
+   "photo": "NONE",
+   "product": "41b006e7",
+   "resolvedAt": "2026-11-11T18:06:37.073Z"
+  },
+  {
+   "id": "9718c788",
+   "localName": "Polvo azul sin etiqueta",
+   "status": "PENDING",
+   "photo": "NONE",
+   "product": null,
+   "resolvedAt": null
+  },
+  {
+   "id": "e3b52e15",
+   "localName": "Abono foliar casero",
+   "status": "LINKED",
+   "photo": "REMOVED",
+   "product": "8e5a227d",
+   "resolvedAt": "2026-11-11T20:58:56.053Z"
+  },
+  {
+   "id": "85fb97ae",
+   "localName": "Cal agricola",
+   "status": "PENDING",
+   "photo": "NONE",
+   "product": null,
+   "resolvedAt": null
+  },
+  {
+   "id": "0a0bc73d",
+   "localName": "Herbicidal sintetico U",
+   "status": "PENDING",
+   "photo": "NONE",
+   "product": null,
+   "resolvedAt": null
+  },
+  {
+   "id": "32212d3e",
+   "localName": "Herbicida 48 SL del agro (etiqueta)",
+   "status": "PENDING",
+   "photo": "STORED",
+   "product": null,
+   "resolvedAt": null
+  },
+  {
+   "id": "f6991bbd",
+   "localName": "Fertilizante foliar artesanal ZZ",
+   "status": "PENDING",
+   "photo": "NONE",
+   "product": null,
+   "resolvedAt": null
+  },
+  {
+   "id": "1dd20a77",
+   "localName": "Polvo azul sin etiqueta",
+   "status": "PENDING",
+   "photo": "NONE",
+   "product": null,
+   "resolvedAt": null
+  }
+ ],
+ "users": [
+  {
+   "name": "Administración DEMO",
+   "role": "ADMINISTRADOR",
+   "active": true
+  },
+  {
+   "name": "Administración PA 2 (sintética)",
+   "role": "ADMINISTRADOR",
+   "active": true
+  },
+  {
+   "name": "Ana Quispe (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Beto Mamani (sintético)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Carmen Choque (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Darío Flores (sintético)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Directiva DEMO",
+   "role": "DIRECTIVA",
+   "active": true
+  },
+  {
+   "name": "Elena Condori (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Fabián Rojas (sintético)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Gabriela Ticona (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Hugo Apaza (sintético)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Inés Huanca (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Julio Limachi (sintético)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Karina Poma (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Luis Calle (sintético)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Marta Yujra (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Néstor Copa (sintético)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Responsable PA 2 (sintética)",
+   "role": "DIRECTIVA",
+   "active": false
+  },
+  {
+   "name": "Responsable PA 3 (sintética)",
+   "role": "DIRECTIVA",
+   "active": false
+  },
+  {
+   "name": "Responsable PA (sintética)",
+   "role": "DIRECTIVA",
+   "active": false
+  },
+  {
+   "name": "Rosa Vargas (sintética)",
+   "role": "AGRICULTOR",
+   "active": true
+  },
+  {
+   "name": "Sucesora PA (sintética)",
+   "role": "DIRECTIVA",
+   "active": true
+  }
+ ]
+}

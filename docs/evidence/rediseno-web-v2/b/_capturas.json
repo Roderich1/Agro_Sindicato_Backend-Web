@@ -1,0 +1,654 @@
+[
+ {
+  "files": [
+   "lista/09-compras-conjuntas__escritorio.png",
+   "lista/09-compras-conjuntas__portatil.png",
+   "lista/09-compras-conjuntas__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Lista (lámina 09): filtros con contador, abiertas, borradores y terminadas",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "lista/09-permiso-sustituir-lectura__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Franja «Sustituir responsable» desplegada en modo lectura (U.4)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "lista/09-filtro-abiertas__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Filtro «Abiertas» con su contador",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "lista/09-filtro-canceladas__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Filtro «Canceladas»",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-1-nueva-convocatoria__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Nueva convocatoria (15.1): ayudas H-14 y H-15; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-1-nueva-desde-borrador__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Nueva convocatoria con productos de un borrador de compra; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/10-borrador__escritorio.png",
+   "detalle/10-borrador__portatil.png",
+   "detalle/10-borrador__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Borrador (lámina 10), responsable",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-2-abrir__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Abrir (15.2): botón desactivado hasta marcar la casilla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-4-cancelar__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Cancelar (15.4): motivo obligatorio y casilla",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/34-1-editar__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Editar la convocatoria (34.1), sólo en borrador; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/11-abierta-responsable__escritorio.png",
+   "detalle/11-abierta-responsable__portatil.png",
+   "detalle/11-abierta-responsable__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Abierta, vista por la responsable (lámina 11)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/11-como-funciona-el-acceso__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "«Cómo funciona el acceso» desplegado",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-3-cerrar__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Cerrar y consolidar (15.3)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-5-conceder__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Conceder permiso (15.5)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/34-2-retirar__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Retirar el permiso (34.2)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/12-cerrada-consolidado__escritorio.png",
+   "detalle/12-cerrada-consolidado__portatil.png",
+   "detalle/12-cerrada-consolidado__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Cerrada con consolidado, cierre manual (lámina 12)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/13-cancelada__escritorio.png",
+   "detalle/13-cancelada__portatil.png",
+   "detalle/13-cancelada__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Cancelada por Administración, vista por la Directiva (lámina 13)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/20-responsable-no-habilitada__escritorio.png",
+   "detalle/20-responsable-no-habilitada__portatil.png",
+   "detalle/20-responsable-no-habilitada__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Responsable no habilitada, con «Sustituir responsable…» y «Renunciar» (lámina 20)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-6-sustituir__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable (15.6); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/20-renunciar-suspendido__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Renunciar a un permiso suspendido (confirmación; no se envía)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "foco/20-foco-cabecera__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Foco visible (lima) en la cabecera oscura",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/37-compras-conjuntas__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Lista en teléfono (lámina 37)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/45-nueva-convocatoria__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Formulario en teléfono (lámina 45), hoja inferior; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/38-abierta-responsable__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Abierta en teléfono (lámina 38)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/46-cancelar-hoja-inferior__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Confirmación con motivo en hoja inferior (lámina 46); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/49-sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable en teléfono (lámina 49); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/11-abierta__zoom200.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Abierta al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "zoom200/09-lista__zoom200.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Lista al 200 %",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/18-cerrada-sin-permiso__escritorio.png",
+   "detalle/18-cerrada-sin-permiso__portatil.png",
+   "detalle/18-cerrada-sin-permiso__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "admin",
+  "desc": "Cerrada vista por Administración sin «Consultar participantes» (lámina 18)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/19-cerrada-menos-de-3__escritorio.png",
+   "detalle/19-cerrada-menos-de-3__portatil.png",
+   "detalle/19-cerrada-menos-de-3__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "admin",
+  "desc": "Cerrada con menos de 3 por producto, sin permiso (lámina 19)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/11b-abierta-colaboradora__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "admin",
+  "desc": "Abierta vista por una colaboradora con «Consultar participantes» (CONV-2)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/16-sin-permiso-participantes__escritorio.png",
+   "detalle/16-sin-permiso-participantes__portatil.png",
+   "detalle/16-sin-permiso-participantes__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "admin2",
+  "desc": "Abierta sin «Consultar participantes» (lámina 16)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/17-permiso-retirado__escritorio.png",
+   "detalle/17-permiso-retirado__portatil.png",
+   "detalle/17-permiso-retirado__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "admin2",
+  "desc": "Permiso retirado (lámina 17; dato creado con datos_b.cjs revoked)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/48-permiso-retirado__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "admin2",
+  "desc": "Permiso retirado en teléfono (lámina 48)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "detalle/14-nueva-responsable__escritorio.png",
+   "detalle/14-nueva-responsable__portatil.png",
+   "detalle/14-nueva-responsable__tableta.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "suc",
+  "desc": "Nueva responsable con permisos por revisar (lámina 14)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/14-confirmar-permiso__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "suc",
+  "desc": "Confirmar un permiso suspendido; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/50-nueva-responsable__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "suc",
+  "desc": "Nueva responsable en teléfono (lámina 50)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/20-responsable-no-habilitada__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Responsable no habilitada en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/49-sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable en teléfono (lámina 49), hoja inferior; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-5-conceder__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Conceder permiso (15.5): foco inicial en «Persona»; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-6-sustituir__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable (15.6): foco inicial en la persona; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/20-responsable-no-habilitada__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Responsable no habilitada en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/49-sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable en teléfono (lámina 49), hoja inferior; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-5-conceder__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Conceder permiso (15.5): foco inicial en «Persona»; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-6-sustituir__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable (15.6): foco inicial en la persona; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/20-responsable-no-habilitada__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Responsable no habilitada en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/49-sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable en teléfono (lámina 49), hoja inferior; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-5-conceder__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Conceder permiso (15.5): foco inicial en «Persona»; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "dialogos/15-6-sustituir__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable (15.6): foco inicial en la persona; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/20-responsable-no-habilitada__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Responsable no habilitada en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "telefono/49-sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a la responsable en teléfono (lámina 49), hoja inferior; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "foco/11-retorno-foco-cabecera__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Esc cierra el diálogo y el foco vuelve a «Cerrar y consolidar…» (anillo lima sobre la cabecera oscura)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "foco/11-retorno-foco-retirar__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Esc cierra «Retirar el permiso» y el foco vuelve a «Retirar» (anillo de tinta sobre la tarjeta)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/09-compras-conjuntas__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Lista con PageHeader pegado (lámina 09)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/15-1-nueva-convocatoria__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Formulario en escritorio; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/11-abierta-responsable__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Participantes con DataTable (lámina 11)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/15-6-sustituir__escritorio.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir en escritorio; no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/37-compras-conjuntas__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Lista en teléfono (lámina 37): un solo h1, cabecera oscura",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/37-compras-conjuntas-pantalla__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Primera pantalla de la lista en teléfono",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/45-nueva-convocatoria__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Formulario a pantalla completa en teléfono (lámina 45); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/38-abierta-responsable__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Abierta en teléfono con participantes apilados (lámina 38)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/49-sustituir__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas/<id>?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Sustituir a pantalla completa en teléfono (lámina 49); no se envía",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "adopcion/37-compras-conjuntas-pantalla__movil.png"
+  ],
+  "ruta": "/colectivo/compras-conjuntas?campaign=<id>",
+  "rol": "directiva",
+  "desc": "Primera pantalla de la lista en teléfono (lámina 37)",
+  "estado": "",
+  "simulado": false
+ }
+]

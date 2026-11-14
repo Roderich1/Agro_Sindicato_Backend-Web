@@ -85,6 +85,30 @@ export function formatDecimalQuantity(base: string | null, unit: BaseUnit): stri
   return presentation === null ? null : `${groupDecimal(presentation)} ${PRESENTATION_UNIT[unit]}`;
 }
 
+/**
+ * E3 §5: una estimación redondeada SÓLO para presentarla junto a la necesidad,
+ * a una décima (mitad hacia arriba), con aritmética exacta sobre el string:
+ * desde 1 L/KG en L/KG (`"428929.385090"` G → `"≈ 428,9 KG"`), por debajo en
+ * mL/g para no mostrar «≈ 0» (`"30.123456"` G → `"≈ 30,1 g"`); `"0.000000"` →
+ * `"0 L"`. La cifra exacta sigue disponible (título y «Ver cálculo»). `null`
+ * si no es válida.
+ */
+export function formatRoundedEstimate(base: string | null, unit: BaseUnit): string | null {
+  if (base === null || !isBaseDecimal(base)) return null;
+  const [whole, fraction = ''] = base.split('.');
+  const micro = BigInt(whole!) * 1_000_000n + BigInt(fraction.padEnd(6, '0'));
+  const small = micro > 0n && micro < 1_000_000_000n;
+  // Décimas de la unidad mostrada: L/KG = micro / 10^8; mL/g = micro / 10^5.
+  const step = small ? 100_000n : 100_000_000n;
+  const tenths = (micro + step / 2n) / step;
+  const exact = tenths * step === micro;
+  const integer = tenths / 10n;
+  const decimal = tenths % 10n;
+  const text = groupDecimal(decimal === 0n ? integer.toString() : `${integer}.${decimal}`);
+  const shownUnit = small ? (unit === 'ML' ? 'mL' : 'g') : PRESENTATION_UNIT[unit];
+  return `${exact ? '' : '≈ '}${text} ${shownUnit}`;
+}
+
 /** La cifra tal como la entrega el servidor, en unidad base: `"111000.000000"` → `"111.000 mL"`. */
 export function formatBaseValue(base: string | null, unit: BaseUnit): string | null {
   if (base === null || !(isBaseQuantity(base) || isBaseDecimal(base))) return null;

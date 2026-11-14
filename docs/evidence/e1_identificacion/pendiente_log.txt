@@ -1,0 +1,30 @@
+sesión iniciada como directiva (ruta /colectivo/resumen)
+vista cargada; contiene «Por identificar»: true; solicitudes visibles: 1
+captura pendiente_01_lista.png
+captura pendiente_02_dialogo.png
+diálogo: parecido false; aclaración false
+captura pendiente_03_formulario.png
+captura pendiente_04_resultado.png
+resultado: Pendiente por falta de información
+peticiones API: 19; errores de consola: 2
+  consola: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  consola: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+POST /api/v1/auth/login
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+POST /api/v1/auth/refresh
+POST /api/v1/auth/refresh
+GET /api/v1/campaigns/active
+GET /api/v1/campaigns
+GET /api/v1/catalog/identification-requests?status=PENDING
+GET /api/v1/catalog/identification-requests?status=PENDING
+GET /api/v1/catalog/identification-requests/<id>/candidates
+GET /api/v1/collective/product-associations/catalog
+GET /api/v1/catalog/identification-requests/<id>/history
+GET /api/v1/catalog/identification-requests/<id>/candidates
+GET /api/v1/collective/product-associations/catalog
+GET /api/v1/catalog/identification-requests/<id>/history
+POST /api/v1/catalog/identification-requests/<id>/defer
+GET /api/v1/catalog/identification-requests?status=PENDING

@@ -1,5 +1,5 @@
 import { Cell, cellId, consolidate, EligibleContribution, MAX_TOTAL_BASE } from "./consolidation";
-import { decideCell, decideCells, decideCellWithRelated, PriorRelease } from "./disclosure-policy";
+import { decideCell, decideCells, decideCellsWithoutThreshold, decideCellWithoutThreshold, decideCellWithRelated, PriorRelease } from "./disclosure-policy";
 import { amountColumn, newlyRevealing, WorkBudget } from "./differencing";
 
 /**
@@ -430,5 +430,58 @@ describe("F10-SEC-02: unknown amounts and the work limit fail closed", () => {
       }
     }
     expect(released).toBeGreaterThan(50);
+  });
+});
+
+describe("E4 §5.1: F07-POL-02, without a farmer threshold (only after its explicit activation)", () => {
+  it("R1 retired: a cell of 1 and of 2 contributors is published", () => {
+    expect(decideCellWithoutThreshold(cellOf(contribution(1, 5000n)), [])).toEqual({ kind: "RELEASE" });
+    expect(decideCellWithoutThreshold(cellOf(contribution(1, 5000n), contribution(2, 7000n)), [])).toEqual({ kind: "RELEASE" });
+  });
+
+  it("R2 kept: an explicit zero counts and is zero; an absence is no cell", () => {
+    const cell = cellOf(contribution(1, 0n));
+    expect(cell.total).toBe(0n);
+    expect(decideCellWithoutThreshold(cell, [])).toEqual({ kind: "RELEASE" });
+    expect(consolidate([], new Map())).toEqual([]);
+  });
+
+  it("units are never added (ML and G stay separate cells)", () => {
+    const liquid = contribution(1, 1000n);
+    const solid = { ...contribution(2, 1000n), baseUnit: "G" as const };
+    const cells = consolidate([liquid, solid], new Map());
+    expect(cells.map((cell) => cell.baseUnit)).toEqual(["G", "ML"]);
+    const decided = decideCellsWithoutThreshold(cells, new Map());
+    expect([...decided.values()]).toEqual([{ kind: "RELEASE" }, { kind: "RELEASE" }]);
+  });
+
+  it("the same state as the latest figure shows it again, never with pending changes", () => {
+    const one = [contribution(1, 5000n)];
+    expect(decideCellWithoutThreshold(cellOf(...one), [releaseOf(one)])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: false });
+  });
+
+  it("R3/§9 retired: a change of 1 Member publishes a new figure (no pending changes kept)", () => {
+    const before = [contribution(1, 5000n), contribution(2, 7000n), contribution(3, 1000n)];
+    const after = [contribution(1, 5000n), contribution(2, 7500n, 2), contribution(3, 1000n)];
+    expect(decideCellWithoutThreshold(cellOf(...after), [releaseOf(before)])).toEqual({ kind: "RELEASE", withdrawPrior: false });
+    // The same change under F07-POL-01 keeps the earlier figure with pending changes.
+    expect(decideCell(cellOf(...after), [releaseOf(before)])).toEqual({ kind: "SHOW_PRIOR", pendingChanges: true });
+  });
+
+  it("R4 kept: a contribution that left (cancel, dispute, inactive) withdraws the earlier figure and a new one is published with the rest", () => {
+    const before = [contribution(1, 5000n), contribution(2, 7000n)];
+    expect(decideCellWithoutThreshold(cellOf(contribution(1, 5000n)), [releaseOf(before)])).toEqual({ kind: "RELEASE", withdrawPrior: true });
+  });
+
+  it("a withdrawn latest figure is never shown again: the current state is published", () => {
+    const one = [contribution(1, 5000n)];
+    expect(decideCellWithoutThreshold(cellOf(...one), [releaseOf(one, new Date())])).toEqual({ kind: "RELEASE", withdrawPrior: false });
+  });
+
+  it("R7 kept: a total above int64 is OVERFLOW and withdraws the figure shown", () => {
+    const huge = cellOf(contribution(1, MAX_TOTAL_BASE), contribution(2, 1n));
+    expect(huge.overflow).toBe(true);
+    expect(decideCellWithoutThreshold(huge, [])).toEqual({ kind: "OVERFLOW", withdrawPrior: false });
+    expect(decideCellWithoutThreshold(huge, [releaseOf([contribution(1, 5n)])])).toEqual({ kind: "OVERFLOW", withdrawPrior: true });
   });
 });

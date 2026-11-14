@@ -1,0 +1,19 @@
+{
+  "action": "excel",
+  "at": "2026-11-12T16:29:55.687Z",
+  "shots": [
+    "pa_x01_borrador"
+  ],
+  "api": [
+    "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+    "GET /api/v1/collective/campaigns/<id>/proposals → 200",
+    "GET /api/v1/collective/proposals/<id> → 200",
+    "GET /api/v1/collective/proposals/<id> → 200",
+    "GET /api/v1/collective/proposals/<id>/selection → 200",
+    "GET /api/v1/collective/proposals/<id>/selection → 200",
+    "GET /api/v1/collective/proposals/<id>/estimation-link → 200",
+    "GET /api/v1/collective/proposals/<id>/estimation-link → 200",
+    "GET /api/v1/collective/proposals/<id> → 200",
+    "GET /api/v1/collective/proposals/<id>/estimation-link → 200"
+  ]
+}

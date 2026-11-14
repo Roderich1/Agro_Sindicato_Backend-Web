@@ -107,7 +107,8 @@ describePostgres("F12-EST-01 estimation schema", () => {
         products: await db.product.findMany({ orderBy: { id: "asc" } }),
         associations: await db.productCanonicalAssociation.findMany({ orderBy: { id: "asc" } }),
         contributions: await db.syncV1Contribution.findMany({ orderBy: { id: "asc" } }),
-        releases: await db.collectiveRelease.findMany({ orderBy: { id: "asc" }, include: { items: true } }),
+        // E4: CollectiveRelease.policy is omitted (this base predates it; the dump compares the same columns).
+        releases: await db.collectiveRelease.findMany({ orderBy: { id: "asc" }, include: { items: true }, omit: { policy: true } }),
         seals: await db.collectiveSeal.findMany({
           orderBy: { id: "asc" },
           include: { entries: { orderBy: [{ projectionType: "asc" }, { canonicalProductId: "asc" }, { baseUnit: "asc" }] } },
@@ -207,6 +208,8 @@ describePostgres("F12-EST-01 estimation schema", () => {
       (
         await db.collectiveRelease.create({
           data: { tenantId: f.tenantA, campaignId, canonicalProductId: product, projectionType: "CONSUMPTION_TOTAL", baseUnit, totalBase, contributorCount: 3 },
+          // E4: only the id is read back; this base predates the E4 column CollectiveRelease.policy.
+          select: { id: true },
         })
       ).id;
     zeroRelease = (
@@ -216,6 +219,7 @@ describePostgres("F12-EST-01 estimation schema", () => {
           baseUnit: "ML", totalBase: 0n, contributorCount: 3,
           items: { create: [{ contributionId: contribution.id, sequence: 1, quantityBase: 0n }] },
         },
+        select: { id: true },
       })
     ).id;
     olderReleases = [await release(olderCampaigns[0]!, 120000n), await release(olderCampaigns[1]!, 104000n)];

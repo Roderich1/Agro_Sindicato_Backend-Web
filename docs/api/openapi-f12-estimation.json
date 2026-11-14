@@ -1829,7 +1829,9 @@
           },
           "threshold": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "nullable": true,
+            "description": "E4 §4.4: 3 con F07-POL-01 (las ejecuciones anteriores lo conservan); null con F07-POL-02, sin umbral de agricultores."
           }
         },
         "required": [

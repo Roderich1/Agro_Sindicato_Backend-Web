@@ -1,0 +1,175 @@
+[
+ {
+  "rol": "A2",
+  "text": "A2 Administración (barra)",
+  "expect": [
+   [
+    "Usuarios",
+    true
+   ],
+   [
+    "F1 sintético",
+    true
+   ]
+  ],
+  "forbid": []
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "role",
+  "user": "A2",
+  "role": "DIRECTIVA",
+  "status": 200,
+  "at": "2026-11-13T23:12:53.273Z"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 como Directiva (barra y datos)",
+  "expect": [],
+  "forbid": [
+   [
+    "Usuarios",
+    false
+   ],
+   [
+    "F1 sintético",
+    false
+   ],
+   [
+    "F2 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 tras pasar a Directiva",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/login",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/collective/campaigns/<id>/summary",
+   "GET /api/v1/collective/campaigns/<id>/seal",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/auth/me",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A2",
+  "bodies": "A2 tras pasar a Directiva",
+  "responses": 15,
+  "paths": [
+   "GET /api/v1/catalog/identification-requests 200",
+   "GET /api/v1/campaigns/active 200",
+   "GET /api/v1/campaigns 200",
+   "GET /api/v1/collective/campaigns/<id>/summary 200",
+   "GET /api/v1/collective/campaigns/<id>/seal 200",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators 200",
+   "GET /api/v1/joint-purchase-calls/<id> 200",
+   "GET /api/v1/joint-purchase-calls/<id>/participants 200"
+  ],
+  "findings": [
+   "GET /api/v1/joint-purchase-calls/<id>/participants: contiene el nombre «F1»",
+   "GET /api/v1/joint-purchase-calls/<id>/participants: $.participants con 1 filas",
+   "GET /api/v1/joint-purchase-calls/<id>/participants: $.participants[0] une nombre y cantidad"
+  ]
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "role",
+  "user": "A2",
+  "role": "ADMINISTRADOR",
+  "status": 200,
+  "at": "2026-11-13T23:13:00.791Z"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 de nuevo Administración",
+  "expect": [
+   [
+    "Usuarios",
+    true
+   ],
+   [
+    "F1 sintético",
+    true
+   ]
+  ],
+  "forbid": []
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 de vuelta",
+  "calls": [
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "GET /api/v1/catalog/identification-requests?status=PENDING",
+   "GET /api/v1/campaigns/active",
+   "GET /api/v1/campaigns",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "GET /api/v1/joint-purchase-calls/<id>/collaborators",
+   "GET /api/v1/joint-purchase-calls/<id>/participants"
+  ],
+  "participantsRequested": true
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "deactivate",
+  "user": "A2",
+  "role": null,
+  "status": 200,
+  "at": "2026-11-13T23:13:09.442Z"
+ },
+ {
+  "rol": "A2",
+  "url": "A2 deshabilitada",
+  "path": "/login"
+ },
+ {
+  "rol": "A2",
+  "text": "A2 deshabilitada",
+  "expect": [],
+  "forbid": [
+   [
+    "F1 sintético",
+    false
+   ]
+  ]
+ },
+ {
+  "rol": "A2",
+  "apiLog": "A2 deshabilitada",
+  "calls": [
+   "GET /api/v1/joint-purchase-calls/<id>",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh",
+   "POST /api/v1/auth/refresh"
+  ],
+  "participantsRequested": false
+ },
+ {
+  "rol": "A1 (API)",
+  "admin": "activate",
+  "user": "A2",
+  "role": null,
+  "status": 200,
+  "at": "2026-11-13T23:13:17.969Z"
+ }
+]

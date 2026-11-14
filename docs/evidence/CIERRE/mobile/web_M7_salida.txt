@@ -1,0 +1,7 @@
+captura web/M7_A1_CC__escritorio.png, web/M7_A1_CC__movil.png
+TEXTO A1 A1 en CC: espera [["F3 sintético",true],["F2 sintético",true]] prohíbe []
+API A1 A1 en CC: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>/participants"]
+captura web/M7_D1_CC__escritorio.png, web/M7_D1_CC__movil.png
+TEXTO D1 D1 en CC: espera [] prohíbe [["F1 sintético",false],["F2 sintético",false],["F3 sintético",false],["anónim",false],["umbral",false],["Consultar participantes y cantidades",false]]
+API D1 D1 en CC: ["POST /api/v1/auth/refresh","POST /api/v1/auth/refresh","POST /api/v1/auth/login","GET /api/v1/catalog/identification-requests?status=PENDING","GET /api/v1/campaigns/active","GET /api/v1/campaigns","GET /api/v1/collective/campaigns/<id>/summary","GET /api/v1/collective/campaigns/<id>/seal","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators","GET /api/v1/joint-purchase-calls/<id>","GET /api/v1/joint-purchase-calls/<id>/collaborators"]
+CUERPOS D1 D1 en CC: 9 respuestas JSON; hallazgos: ninguno

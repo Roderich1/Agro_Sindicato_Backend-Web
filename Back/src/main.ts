@@ -8,6 +8,8 @@ import { AppModule } from "./app.module";
 import { HttpExceptionLoggingFilter } from "./bootstrap/http-exception-logging.filter";
 import { createOpenApiDocument } from "./bootstrap/openapi";
 import { configureBackupsBodyGuard } from "./modules/backups/api/rest/backups-body";
+import { configureJointPurchaseCallsBody } from "./modules/joint-purchase-calls/api/rest/calls-body";
+import { configureProductIdentificationBody } from "./modules/product-identification/api/rest/identification-body";
 import { configureSyncV1BodyParser } from "./modules/sync-v1/api/rest/sync-v1-body";
 
 async function bootstrap() {
@@ -28,6 +30,12 @@ async function bootstrap() {
   // After helmet and CORS (its 415 carries their headers) and still before
   // Nest's own parsers, which are registered on init.
   configureBackupsBodyGuard(app);
+  // E1: the label photo is a stream (same rule as F08) and the request data
+  // is parsed without echoing a malformed body.
+  configureProductIdentificationBody(app);
+  // E2: JSON bodies of the joint purchase calls parsed without echoing a
+  // malformed body (same rule as E1).
+  configureJointPurchaseCallsBody(app);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

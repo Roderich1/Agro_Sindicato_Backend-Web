@@ -1,0 +1,382 @@
+{
+  "exportedAt": "2026-11-05T17:19:22.990Z",
+  "demo": {
+    "proposal": {
+      "contractVersion": 1,
+      "proposal_ref": "11f5e558-dbd6-4000-9a58-b0b906c2bcd7",
+      "status": "DRAFT",
+      "basis": "DECLARED_NEED",
+      "campaign": {
+        "campaign_ref": "5260fb61-607f-4663-8909-d9697dc42620",
+        "name": "Invierno 2026 (DEMO)",
+        "status": "(no consta en el CSV)"
+      },
+      "seal": null,
+      "generated_at": "2026-11-05T14:21:43.361Z",
+      "generated_by": {
+        "user_ref": "",
+        "name": "Directiva DEMO"
+      },
+      "inputs_fingerprint": "89c6048b1f527a9b818d83ac0c2b242af910dc37c51159a116942910ebce90b8",
+      "disclosure": {
+        "mode": "PROVISIONAL_SYNTHETIC",
+        "policy": "F07-POL-01",
+        "approved": false
+      },
+      "coverage": {
+        "linked_members": 6,
+        "members_with_contribution": 6,
+        "basis": "PUBLISHED_FIGURES"
+      },
+      "lines": [
+        {
+          "position": 0,
+          "product_ref": "89ea1e6a-6dd1-472f-bd11-a860fdb3693a",
+          "product_name": "Fungicida DEMO",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "DISCLOSED",
+          "quantity_base": "53000",
+          "quantity_presentation": "53",
+          "contributors": 3,
+          "data_as_of": "2026-11-03T23:54:25.043Z",
+          "released_at": "2026-11-03T23:56:10.842Z",
+          "pending_changes": false
+        },
+        {
+          "position": 1,
+          "product_ref": "ddbaedf8-7463-4f17-88cc-8b6a95ca3513",
+          "product_name": "Herbicida DEMO",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "DISCLOSED",
+          "quantity_base": "250000",
+          "quantity_presentation": "250",
+          "contributors": 5,
+          "data_as_of": "2026-11-03T23:28:29.139Z",
+          "released_at": "2026-11-03T23:29:49.715Z",
+          "pending_changes": false
+        },
+        {
+          "position": 2,
+          "product_ref": "e4722350-2e22-4783-9803-47c91c5db0ba",
+          "product_name": "Insecticida DEMO",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "SUPPRESSED_UNDER_THRESHOLD",
+          "quantity_base": null,
+          "quantity_presentation": null,
+          "contributors": null,
+          "data_as_of": null,
+          "released_at": null,
+          "pending_changes": false
+        }
+      ],
+      "notice": "Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos."
+    },
+    "reference": {
+      "contract_version": 1,
+      "kind": "PROPOSAL_ESTIMATION_REFERENCE",
+      "label": "Estimación del consumo",
+      "proposal_ref": "11f5e558-dbd6-4000-9a58-b0b906c2bcd7",
+      "proposal_generated_at": "2026-11-05T14:21:43.361Z",
+      "target_campaign_ref": "5260fb61-607f-4663-8909-d9697dc42620",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-05T16:32:32.673Z",
+      "season": {
+        "season_ref": "",
+        "key": "invierno",
+        "definition": "",
+        "duration_days": 0
+      },
+      "notice": "Estimación del consumo: referencia separada para el mismo producto, unidad y campaña. No se suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas, los totales ni la huella del borrador. Su vigencia se evalúa al consultar.",
+      "lines": [
+        {
+          "position": 0,
+          "product_ref": "89ea1e6a-6dd1-472f-bd11-a860fdb3693a",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": null,
+          "estimation": {
+            "status": "INSUFFICIENT_DATA",
+            "reason_code": "SPAN_TOO_SHORT",
+            "estimate_base": null,
+            "validity": "NOT_USABLE",
+            "validity_reason": "NO_FIGURE",
+            "method": "SES_NAIVE",
+            "run_ref": "e1ff8a6f-481b-4020-81a5-4971a086d3c1",
+            "generated_at": "2026-11-05T16:13:40.761Z",
+            "span_length": null,
+            "run_relation": "AFTER_PROPOSAL"
+          }
+        },
+        {
+          "position": 1,
+          "product_ref": "ddbaedf8-7463-4f17-88cc-8b6a95ca3513",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": null,
+          "estimation": {
+            "status": "ESTIMATED",
+            "reason_code": null,
+            "estimate_base": "111000.000000",
+            "validity": "CURRENT",
+            "validity_reason": null,
+            "method": "SES_NAIVE",
+            "run_ref": "39d51027-1d1a-4df3-bba0-0f1fb47e0db7",
+            "generated_at": "2026-11-05T16:12:55.510Z",
+            "span_length": null,
+            "run_relation": "AFTER_PROPOSAL"
+          }
+        },
+        {
+          "position": 2,
+          "product_ref": "e4722350-2e22-4783-9803-47c91c5db0ba",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": "NO_RESULT",
+          "estimation": null
+        }
+      ]
+    }
+  },
+  "cases": {
+    "proposal": {
+      "contractVersion": 1,
+      "proposal_ref": "cafe0000-0000-4000-8000-000000000001",
+      "status": "DRAFT",
+      "basis": "DECLARED_NEED",
+      "campaign": {
+        "campaign_ref": "c-sintetica",
+        "name": "Campaña sintética de casos",
+        "status": "ABIERTA"
+      },
+      "seal": null,
+      "generated_at": "2026-11-05T14:21:43.361Z",
+      "generated_by": {
+        "user_ref": "",
+        "name": "Directiva sintética"
+      },
+      "inputs_fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "disclosure": {
+        "mode": "PROVISIONAL_SYNTHETIC",
+        "policy": "F07-POL-01",
+        "approved": false
+      },
+      "coverage": {
+        "linked_members": 6,
+        "members_with_contribution": 5,
+        "basis": "PUBLISHED_FIGURES"
+      },
+      "lines": [
+        {
+          "position": 0,
+          "product_ref": "p-Herbicida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "DISCLOSED",
+          "quantity_base": "11500",
+          "quantity_presentation": "11.5",
+          "contributors": 5,
+          "data_as_of": "2026-11-03T23:54:25.043Z",
+          "released_at": null,
+          "pending_changes": true,
+          "product_name": "Herbicida sintético"
+        },
+        {
+          "position": 1,
+          "product_ref": "p-Adherente sintético",
+          "base_unit": "G",
+          "presentation_unit": "KG",
+          "status": "DISCLOSED",
+          "quantity_base": "25",
+          "quantity_presentation": "0.025",
+          "contributors": 4,
+          "data_as_of": "2026-11-03T23:54:25.043Z",
+          "released_at": null,
+          "pending_changes": false,
+          "product_name": "Adherente sintético"
+        },
+        {
+          "position": 2,
+          "product_ref": "p-Fungicida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "DISCLOSED",
+          "quantity_base": "1234567500",
+          "quantity_presentation": "1234567.5",
+          "contributors": 6,
+          "data_as_of": "2026-11-03T23:54:25.043Z",
+          "released_at": null,
+          "pending_changes": false,
+          "product_name": "Fungicida sintético"
+        },
+        {
+          "position": 3,
+          "product_ref": "p-Insecticida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "SUPPRESSED_UNDER_THRESHOLD",
+          "quantity_base": null,
+          "quantity_presentation": null,
+          "contributors": null,
+          "data_as_of": null,
+          "released_at": null,
+          "pending_changes": false,
+          "product_name": "Insecticida sintético"
+        },
+        {
+          "position": 4,
+          "product_ref": "p-Acaricida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "SUPPRESSED_REVISION",
+          "quantity_base": null,
+          "quantity_presentation": null,
+          "contributors": null,
+          "data_as_of": null,
+          "released_at": null,
+          "pending_changes": false,
+          "product_name": "Acaricida sintético"
+        },
+        {
+          "position": 5,
+          "product_ref": "p-Cero sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "status": "DISCLOSED",
+          "quantity_base": "0",
+          "quantity_presentation": "0",
+          "contributors": 3,
+          "data_as_of": "2026-11-03T23:54:25.043Z",
+          "released_at": null,
+          "pending_changes": false,
+          "product_name": "Cero sintético"
+        }
+      ],
+      "notice": "Borrador para revisión humana. Usa la necesidad declarada, no resta stock y no es necesidad neta. No crea compras, lotes, movimientos, deudas ni pagos."
+    },
+    "reference": {
+      "contract_version": 1,
+      "kind": "PROPOSAL_ESTIMATION_REFERENCE",
+      "label": "Estimación del consumo",
+      "proposal_ref": "cafe0000-0000-4000-8000-000000000001",
+      "proposal_generated_at": "2026-11-05T14:21:43.361Z",
+      "target_campaign_ref": "5260fb61-607f-4663-8909-d9697dc42620",
+      "availability": "AVAILABLE",
+      "evaluated_at": "2026-11-05T16:32:32.673Z",
+      "season": {
+        "season_ref": "",
+        "key": "invierno",
+        "definition": "",
+        "duration_days": 0
+      },
+      "notice": "Estimación del consumo: referencia separada para el mismo producto, unidad y campaña. No se suma a la necesidad declarada, no es la cantidad solicitada y no cambia las líneas, los totales ni la huella del borrador. Su vigencia se evalúa al consultar.",
+      "lines": [
+        {
+          "position": 0,
+          "product_ref": "p-Herbicida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": null,
+          "estimation": {
+            "status": "ESTIMATED",
+            "reason_code": null,
+            "estimate_base": "10750.250000",
+            "validity": "CURRENT",
+            "validity_reason": null,
+            "method": "SES_NAIVE",
+            "run_ref": "run-sintetico",
+            "generated_at": "2026-11-05T16:12:55.510Z",
+            "span_length": 3,
+            "run_relation": "AFTER_PROPOSAL"
+          }
+        },
+        {
+          "position": 1,
+          "product_ref": "p-Adherente sintético",
+          "base_unit": "G",
+          "presentation_unit": "KG",
+          "absence": null,
+          "estimation": {
+            "status": "ESTIMATED",
+            "reason_code": null,
+            "estimate_base": "0.292613",
+            "validity": "OUTDATED",
+            "validity_reason": "SOURCES_CHANGED",
+            "method": "SES_NAIVE",
+            "run_ref": "run-sintetico",
+            "generated_at": "2026-11-05T16:12:55.510Z",
+            "span_length": 3,
+            "run_relation": "BEFORE_PROPOSAL"
+          }
+        },
+        {
+          "position": 2,
+          "product_ref": "p-Fungicida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": null,
+          "estimation": {
+            "status": "INSUFFICIENT_DATA",
+            "reason_code": "SPAN_TOO_SHORT",
+            "estimate_base": null,
+            "validity": "NOT_USABLE",
+            "validity_reason": "NO_FIGURE",
+            "method": "SES_NAIVE",
+            "run_ref": "run-sintetico",
+            "generated_at": "2026-11-05T16:12:55.510Z",
+            "span_length": 3,
+            "run_relation": "AFTER_PROPOSAL"
+          }
+        },
+        {
+          "position": 3,
+          "product_ref": "p-Insecticida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": null,
+          "estimation": {
+            "status": "ESTIMATED",
+            "reason_code": null,
+            "estimate_base": "48000.500000",
+            "validity": "CURRENT",
+            "validity_reason": null,
+            "method": "SES_NAIVE",
+            "run_ref": "run-sintetico",
+            "generated_at": "2026-11-05T16:12:55.510Z",
+            "span_length": 3,
+            "run_relation": "AFTER_PROPOSAL"
+          }
+        },
+        {
+          "position": 4,
+          "product_ref": "p-Acaricida sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": "NO_RESULT",
+          "estimation": null
+        },
+        {
+          "position": 5,
+          "product_ref": "p-Cero sintético",
+          "base_unit": "ML",
+          "presentation_unit": "L",
+          "absence": null,
+          "estimation": {
+            "status": "ESTIMATED",
+            "reason_code": null,
+            "estimate_base": null,
+            "validity": "NOT_USABLE",
+            "validity_reason": "SOURCES_WITHDRAWN",
+            "method": "SES_NAIVE",
+            "run_ref": "run-sintetico",
+            "generated_at": "2026-11-05T16:12:55.510Z",
+            "span_length": 3,
+            "run_relation": "AFTER_PROPOSAL"
+          }
+        }
+      ]
+    }
+  }
+}

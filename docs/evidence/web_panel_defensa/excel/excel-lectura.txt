@@ -1,0 +1,25 @@
+Resumen colectivo: resumen-invierno-2026-demo.xlsx (23982 bytes)
+Propuesta conjunta: propuesta-11f5e558-dbd6-4000-9a58-b0b906c2bcd7.xlsx (28293 bytes)
+Tendencias (Consumo publicado): tendencias-consumo-publicado.xlsx (29056 bytes)
+Estimaci√≥n del consumo: estimacion-invierno-2026-demo.xlsx (33665 bytes)
+== estimacion-invierno-2026-demo.xlsx: 3 hojas
+  - Estimaci¢n: rango A1:B15, 2 celdas num«∏ricas, pesta«Òa color 1383695
+  - Resultados: rango A1:L8, 5 celdas num«∏ricas, pesta«Òa color 5732356
+  - Serie observada: rango A1:G20, 6 celdas num«∏ricas, pesta«Òa color 15312142
+== propuesta-11f5e558-dbd6-4000-9a58-b0b906c2bcd7.xlsx: 3 hojas
+  - Borrador: rango A1:B21, 2 celdas num«∏ricas, pesta«Òa color 1383695
+  - Necesidades: rango A1:G8, 6 celdas num«∏ricas, pesta«Òa color 5732356
+  - Referencia de consumo: rango A1:J8, 5 celdas num«∏ricas, pesta«Òa color 15312142
+== resumen-invierno-2026-demo.xlsx: 3 hojas
+  - Resumen: rango A1:B16, 1 celdas num«∏ricas, pesta«Òa color 1383695
+  - Necesidad declarada: rango A1:G8, 6 celdas num«∏ricas, pesta«Òa color 5732356
+  - Consumo publicado: rango A1:G6, 0 celdas num«∏ricas, pesta«Òa color 15312142
+== tendencias-consumo-publicado.xlsx: 3 hojas
+  - Tendencias: rango A1:B18, 1 celdas num«∏ricas, pesta«Òa color 1383695
+  - Por campa§a: rango A1:F7, 6 celdas num«∏ricas, pesta«Òa color 5732356
+  - Detalle: rango A1:H15, 18 celdas num«∏ricas, pesta«Òa color 15312142
+archivos de reparaci«¸n en TEMP: antes 0, despu«∏s 0
+PNG: C:\Users\MSI\AppData\Local\Temp\claude\19f18dd01a2b8b61\ca08ed06-9c23-48ab-a03b-a59b4129ffe6\scratchpad\panel-run\excel2\xlsx\tendencias-consumo-publicado-3-Detalle.png
+2026-11-05T18:47:44Z
+
+[exited with code 0]

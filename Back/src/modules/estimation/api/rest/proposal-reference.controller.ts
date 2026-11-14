@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Param, ParseUUIDPipe } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiProduces, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { UserRole } from "@prisma/client";
 import { CurrentUser } from "../../../iam/api/rest/decorators/current-user.decorator";
 import { Roles } from "../../../iam/api/rest/decorators/roles.decorator";
@@ -13,7 +13,7 @@ const NotFound = ApiResponse({ status: 404, description: "Propuesta inexistente 
 
 /**
  * F12-EST-08 (#181): the estimation reference next to a draft joint purchase
- * proposal and its export, for the Directiva of the effective tenant and its
+ * proposal, for the Directiva of the effective tenant and its
  * ADMINISTRADOR (the proposal's roles). Read-only: nothing is written, and the
  * draft, its lines and its fingerprint are not recalculated.
  */
@@ -40,22 +40,5 @@ export class ProposalEstimationReferenceController {
     @Param("proposalId", new ParseUUIDPipe()) proposalId: string,
   ) {
     return this.references.reference(user, proposalId);
-  }
-
-  @Get("proposals/:proposalId/csv")
-  @Header("Content-Type", "text/csv; charset=utf-8")
-  @Header("Content-Disposition", 'attachment; filename="propuesta-conjunta.csv"')
-  @Header("Cache-Control", "no-store")
-  @ApiOperation({ summary: "El mismo detalle como CSV, con la misma política, y la estimación en columnas separadas" })
-  @ApiProduces("text/csv")
-  @ApiResponse({ status: 200, description: "CSV con los mismos estados que el JSON; las columnas estimation_* son la referencia y no cambian las del borrador", schema: { type: "string" } })
-  @Unauthenticated
-  @Forbidden
-  @NotFound
-  csv(
-    @CurrentUser() user: AuthenticatedPrincipal,
-    @Param("proposalId", new ParseUUIDPipe()) proposalId: string,
-  ) {
-    return this.references.csv(user, proposalId);
   }
 }

@@ -1,0 +1,46 @@
+[
+ {
+  "files": [
+   "21-39-catalogo-productos__escritorio.png",
+   "21-39-catalogo-productos__movil.png"
+  ],
+  "ruta": "/colectivo/catalogo",
+  "rol": "directiva",
+  "desc": "Catálogo · Productos con PageHeader pegado (láminas 21 y 39)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "28-41-campanas__escritorio.png",
+   "28-41-campanas__movil.png"
+  ],
+  "ruta": "/campaigns",
+  "rol": "directiva",
+  "desc": "Campañas con PageHeader pegado (láminas 28 y 41)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "29-detalle-campana__escritorio.png",
+   "29-detalle-campana__movil.png"
+  ],
+  "ruta": "/campaigns/<id>",
+  "rol": "directiva",
+  "desc": "Detalle de campaña: chips junto al título y «Datos sintéticos» solo arriba (lámina 29)",
+  "estado": "",
+  "simulado": false
+ },
+ {
+  "files": [
+   "31-44-usuarios__escritorio.png",
+   "31-44-usuarios__movil.png"
+  ],
+  "ruta": "/users",
+  "rol": "admin",
+  "desc": "Usuarios con el panel de B en modo gestión (láminas 31 y 44)",
+  "estado": "",
+  "simulado": false
+ }
+]

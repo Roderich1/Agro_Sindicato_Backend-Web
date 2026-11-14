@@ -2492,6 +2492,574 @@
           "target_campaign_ref"
         ]
       },
+      "PhotoConsentDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "FOTO-1",
+            "description": "Versión del texto de consentimiento mostrado en el teléfono"
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-11T18:20:00.000Z"
+          }
+        },
+        "required": [
+          "version",
+          "accepted_at"
+        ]
+      },
+      "UpsertIdentificationRequestDto": {
+        "type": "object",
+        "properties": {
+          "contractVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "local_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "1–120 caracteres tras recortar espacios"
+          },
+          "active_ingredient": {
+            "type": "object",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "L",
+              "KG"
+            ],
+            "description": "Otra unidad: 422 UNIT_UNSUPPORTED. Inmutable."
+          },
+          "photo_consent": {
+            "nullable": true,
+            "description": "Consentimiento aparte para la foto (E1-D11); una vez registrado no se borra con un PUT posterior",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoConsentDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "contractVersion",
+          "local_name",
+          "unit"
+        ]
+      },
+      "LinkIdentificationDto": {
+        "type": "object",
+        "properties": {
+          "product_ref": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Producto del catálogo del tenant"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Vacío o > 280: 422 REASON_REQUIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita (RF-33); distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "product_ref",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "CreateIdentifiedProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160,
+            "description": "Nombre del producto colectivo (2–160 tras recortar)"
+          },
+          "active_ingredient": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 160
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "DeferIdentificationDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Nota para el agricultor, sin nombre del autor hacia él"
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "note",
+          "confirmed"
+        ]
+      },
+      "ParticipationConsentDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "CONV-4",
+            "description": "Versión del texto mostrado: CONV-4 (vigente, da ADMINISTRATION), o CONV-3, CONV-2 y CONV-1 (operaciones de apps anteriores, con el alcance de su texto); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)"
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de aceptación en el teléfono"
+          }
+        },
+        "required": [
+          "version",
+          "accepted_at"
+        ]
+      },
+      "ParticipationLineDto": {
+        "type": "object",
+        "properties": {
+          "product_ref": {
+            "type": "string",
+            "description": "Producto de la convocatoria; otro: 422 PRODUCT_NOT_IN_CALL"
+          },
+          "quantity_base": {
+            "type": "string",
+            "example": "2500",
+            "pattern": "^[1-9][0-9]*$",
+            "description": "Entero decimal > 0 en la unidad base (ML/G), como Sync v1; inválido: 422 QUANTITY_INVALID"
+          }
+        },
+        "required": [
+          "product_ref",
+          "quantity_base"
+        ]
+      },
+      "ConfirmParticipationDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 en minúsculas generado por el teléfono (idempotencia)"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Creciente por convocatoria en ese teléfono"
+          },
+          "consent": {
+            "nullable": true,
+            "description": "Obligatorio si hay líneas",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ParticipationConsentDto"
+              }
+            ]
+          },
+          "responsible_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "P-A C1 (contrato 3): versión de la responsabilidad que mostraba el teléfono al aceptar. Sólo cuenta al crear la participación; las cantidades nunca autorizan a nadie"
+          },
+          "lines": {
+            "maxItems": 50,
+            "description": "Vacía = retiro (E2-D8)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParticipationLineDto"
+            }
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence",
+          "lines"
+        ]
+      },
+      "WithdrawParticipationDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence"
+        ]
+      },
+      "ConsentDecisionTextDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "CONV-4",
+            "description": "Texto mostrado: CONV-4 para ADMINISTRATION; cualquiera conocido para TOTALS_ONLY o RESPONSIBLE_ONLY"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de la decisión en el teléfono"
+          }
+        },
+        "required": [
+          "version",
+          "decided_at"
+        ]
+      },
+      "ConsentDecisionDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 en minúsculas generado por el teléfono (idempotencia)"
+          },
+          "sequence": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Creciente entre las decisiones de consentimiento de esta participación (orden propio, distinto del de las cantidades)"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATION",
+              "TOTALS_ONLY",
+              "RESPONSIBLE_ONLY",
+              "COLLABORATORS"
+            ],
+            "description": "E4 §4.2: ADMINISTRATION (CONV-4: la Administración habilitada ve el detalle), TOTALS_ONLY (retira esa autorización; sólo totales), RESPONSIBLE_ONLY (reducción anterior). COLLABORATORS: 409 CONSENT_VERSION_RETIRED. Los contratos 1–3 sólo envían los dos anteriores"
+          },
+          "consent": {
+            "$ref": "#/components/schemas/ConsentDecisionTextDto"
+          },
+          "responsible_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "P-A C1 (contrato 3): versión de la responsabilidad que mostraba el teléfono"
+          },
+          "authorize_responsible": {
+            "type": "boolean",
+            "description": "P-A C1 (contrato 3), retirado por E4: true → 409 CONSENT_VERSION_RETIRED. Con ADMINISTRATION no se admite (400)"
+          }
+        },
+        "required": [
+          "operation_id",
+          "sequence",
+          "scope",
+          "consent"
+        ]
+      },
+      "CallProductRefDto": {
+        "type": "object",
+        "properties": {
+          "product_ref": {
+            "type": "string",
+            "description": "Producto colectivo del catálogo del tenant (activo, L o KG, canónico)"
+          }
+        },
+        "required": [
+          "product_ref"
+        ]
+      },
+      "CreateCallDto": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "description": "Campaña agrícola del tenant (PLANIFICADA o ABIERTA)"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "1–120 caracteres tras recortar espacios"
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Hora del servidor; debe ser posterior a ahora (y a la apertura)"
+          },
+          "responsible_user_id": {
+            "type": "string",
+            "description": "Usuario DIRECTIVA o ADMINISTRADOR activo del tenant (ver eligible-responsibles)"
+          },
+          "products": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallProductRefDto"
+            }
+          },
+          "source_proposal_id": {
+            "type": "object",
+            "nullable": true,
+            "format": "uuid",
+            "description": "Borrador de propuesta (F07) de la misma campaña: cada producto que tenga línea en él guarda la referencia (propuesta, posición)"
+          }
+        },
+        "required": [
+          "campaign_id",
+          "name",
+          "deadline_at",
+          "responsible_user_id",
+          "products"
+        ]
+      },
+      "PatchCallDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responsible_user_id": {
+            "type": "string"
+          },
+          "products": {
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Reemplaza la lista completa",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallProductRefDto"
+            }
+          },
+          "source_proposal_id": {
+            "type": "object",
+            "nullable": true,
+            "format": "uuid",
+            "description": "null quita el origen"
+          }
+        }
+      },
+      "ConfirmActionDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "confirmed"
+        ]
+      },
+      "CancelCallDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280,
+            "description": "Vacío o > 280: 422 REASON_REQUIRED"
+          }
+        },
+        "required": [
+          "confirmed",
+          "reason"
+        ]
+      },
+      "GrantCollaboratorDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string",
+            "description": "Otro usuario DIRECTIVA o ADMINISTRADOR activo del tenant, distinto del responsable"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ],
+            "description": "MANAGE: administrar la convocatoria. PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant",
+          "confirmed"
+        ]
+      },
+      "RevokeCollaboratorDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant"
+        ]
+      },
+      "ReviewDelegationDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string"
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "PARTICIPANTS",
+              "MANAGE"
+            ],
+            "description": "PARTICIPANTS (retirado por E4): 409 GRANT_RETIRED"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "CONFIRM",
+              "RETIRE"
+            ],
+            "description": "CONFIRM la vuelve a conceder con la versión vigente; RETIRE la retira"
+          }
+        },
+        "required": [
+          "user_ref",
+          "grant",
+          "decision"
+        ]
+      },
+      "SubstituteResponsibleDto": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador de la solicitud (idempotencia): el mismo con otro cuerpo → 409 REQUEST_ID_REUSED"
+          },
+          "expected_responsible_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Versión de la responsabilidad que vio quien sustituye; otra → 409 RESPONSIBLE_CHANGED"
+          },
+          "new_responsible_ref": {
+            "type": "string",
+            "description": "Sucesora: otra persona DIRECTIVA o ADMINISTRADOR habilitada del tenant"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280,
+            "description": "Vacío o > 280: 422 REASON_REQUIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "request_id",
+          "expected_responsible_version",
+          "new_responsible_ref",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "GrantSubstitutionDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string",
+            "description": "Persona DIRECTIVA o ADMINISTRADOR habilitada del tenant, distinta de quien concede"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280,
+            "description": "Motivo; vacío o > 280: 422 REASON_REQUIRED"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita; distinto de true: 422 CONFIRMATION_REQUIRED"
+          }
+        },
+        "required": [
+          "user_ref",
+          "reason",
+          "confirmed"
+        ]
+      },
+      "RevokeSubstitutionDto": {
+        "type": "object",
+        "properties": {
+          "user_ref": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 280,
+            "description": "Motivo opcional de la revocación"
+          }
+        },
+        "required": [
+          "user_ref"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
