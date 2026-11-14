@@ -9,7 +9,7 @@ Integración final de Backend, Web y Mobile para la entrega del proyecto de grad
 | `Roderich1/Agro_Sindicato_Backend-Web` | [`integracion/cierre-be`](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/tree/integracion/cierre-be) | [#209](https://github.com/Roderich1/Agro_Sindicato_Backend-Web/pull/209) | `0946d9f` (Back idéntico desde `744930d`) |
 | `Roderich1/AppMovilAgroquimico` | [`integracion/cierre-mob`](https://github.com/Roderich1/AppMovilAgroquimico/tree/integracion/cierre-mob) | [#192](https://github.com/Roderich1/AppMovilAgroquimico/pull/192) | `aeeb4f0` |
 
-SHA de `main` tras la fusión: ver §9 (se registran después de fusionar, en `_artefactos/cierre/README.md` y en el informe al autor).
+**`main` tras la fusión (2026-11-13):** Backend/Web `17db85e` (merge de #209); Mobile `34e9926` (merge de #192). Ambos contienen las puntas probadas (`656d7b9` y `7cd8507`). MOB #191 y BE #206 son PR apilados (base en otra rama) ya contenidos en `main`; siguen abiertos.
 
 **Ramas publicadas** (todas con SHA remoto comprobado con `git ls-remote`):
 - Backend/Web: `feat/acceso-rol-sin-k` (744930d), `feat/acceso-rol-sin-k-a`, `feat/acceso-rol-sin-k-b`, `docs/acceso-rol-sin-k-verificacion`, `feat/web-rediseno-v2` (07c1c02), `docs/web-rediseno-v2-verificacion`, `feat/web-rediseno-integracion`, `chore/web-solo-institucional`, `docs/web-redesign-input` (sólo material de diseño, **no** integrado), `feat/etapa1-identificacion-productos`, `feat/etapa3-estimacion-borrador`, `cierre/web-rol` (a35f8c2), `integracion/cierre-be`.
@@ -57,6 +57,8 @@ Incluidos por ascendencia (GitHub los marcará como fusionados al entrar #209/#1
 - Las participaciones con textos anteriores a CONV-4 no se reescriben: la app ofrece «Revisar quién puede ver mi participación» y un aviso en Inicio.
 
 ## 5. Pruebas sobre los commits finales
+
+CI de GitHub sobre la última punta del Backend (`656d7b9`, sólo documentación): «Backend F02» falló en el primer intento por un tiempo de espera de 5 s en `beforeAll` de `current-auth-context.postgres.spec.ts`, al arrancar Nest en el runner. Pasó al relanzar el trabajo, sin cambiar ninguna prueba; el mismo código ya había pasado en `7afd574` y en la suite local. Queda registrado como intermitencia por tiempo del runner.
 
 Detalle en `docs/evidence/CIERRE/README.md`.
 
@@ -119,7 +121,22 @@ Todo sintético; API real 3400 (Back final) y Web real 5184 (`0946d9f`); Mobile 
 
 ## 9. APK final
 
-⟨se completa tras fusionar a main: commit, versión, SHA-256, ubicación en `_artefactos/cierre/`, backend compatible⟩
+| Campo | Valor |
+|---|---|
+| Commit | Mobile `main` `34e9926` |
+| Versión | `pubspec` 1.0.0+1; esquema SQLite 20; contrato del agricultor 4 |
+| Compilación | `flutter build apk --release` (Flutter 3.47.2), configuración existente, worktree limpio, sin `--dart-define` |
+| Archivo | `_artefactos/cierre/agrocuentas-release-34e9926-SIN-FIRMAR.apk` (110 989 325 B), fuera de Git |
+| SHA-256 | `c7b947a2ff4b0ae4c3d35e07217d012e676dc2b59d7e409744dc7c03cdc84798` |
+| Firma | **sin firmar** (`apksigner verify` → `DOES NOT VERIFY`): no existe `android/key.properties` |
+| Backend compatible | Backend/Web `main` `17db85e` |
+
+**No es una distribución instalable ni permanente.** Requisitos para distribuirla:
+- la keystore de release;
+- una API desplegada, cuyo origen se compila con `AGRO_API_BASE_URL`;
+- para la voz, los modelos y las bibliotecas nativas.
+
+Las APK del recorrido en emulador (`.cierre`, perfil x64, clave de depuración, con el origen de un túnel ya cerrado) son sólo de revisión.
 
 ## 10. Aceptación funcional frente a visual
 
