@@ -1,7 +1,8 @@
 # OE5: preparación del entorno de usabilidad con el conjunto DS-UX (2026-11-14)
 
 - **Qué es:** preparación técnica del entorno para las sesiones de usabilidad del protocolo único (paquete U2: GUION-5, TAR-3; Anexo J). La hizo Claude Code con datos sintéticos.
-- **Qué no es:** no es una sesión de usabilidad. Este registro no contiene participantes, tiempos, ayudas, SUS ni resultados. Solo cubre el entorno preparado; lo ocurrido fuera de él (por ejemplo, sesiones en otro dispositivo o con otra instalación) no está cubierto.
+- **Qué no es:** no es una sesión de usabilidad. El entorno de evaluación preparado no registra actividad de participantes. Este registro no contiene tiempos, ayudas, SUS ni resultados, y no cubre nada fuera de ese entorno.
+- **Sesiones:** la versión, el dispositivo y los resultados de las sesiones se documentan con sus registros reales. Lo que no se pueda recuperar queda como «no registrado», sin suponerlo.
 - **Requisitos:** RNF-07 (RU-13). Lectura colectiva con F07-POL-02 (decisión del autor, E4; su activación institucional sigue pendiente, GOV-02).
 
 ## Versión congelada
@@ -11,7 +12,7 @@
 | Mobile | `main` `f105e994d6a0c092056431a687ad614b362d33bb` |
 | Backend y Web | `main` `6a0ea0e`. La API y la Web se sirven desde un worktree en `94fa285`, sin cambios locales. `git diff 81c4611 94fa285 -- Back Web` y `git diff 94fa285 6a0ea0e -- Back Web` están vacíos |
 | APK | `agrocuentas-oe5-f105e99-x64-profile-con-origen.apk` (fuera de Git), SHA-256 `66b9a6161c6440799d0f0121bbad6139e9d90e512d6a985f7b5d1c53e716f6ec`, 337 712 384 B, `profile` x86_64, firma de depuración (`CN=Android Debug`, certificado SHA-256 `dd55ce96…66c3dc`), `versionCode` 4001. La copia instalada (`base.apk` extraída del emulador) tiene el mismo SHA-256 |
-| Dispositivo | **Emulador** AVD `Cierre_Pixel8` (`emulator-5560`), imagen `sdk_gphone16k_x86_64` (Android 16), America/La_Paz. **Esta preparación no instaló la candidata en ningún teléfono físico.** Este registro no establece dónde se hicieron las sesiones |
+| Dispositivo | **Emulador** AVD `Cierre_Pixel8` (`emulator-5560`), imagen `sdk_gphone16k_x86_64` (Android 16), America/La_Paz. **Esta preparación no instaló la candidata en ningún teléfono físico.** El dispositivo de las sesiones no consta aquí |
 | API | Local, puerto 3400, `NODE_ENV=development`, `COLLECTIVE_DISCLOSURE_MODE=provisional-synthetic`, `COLLECTIVE_DISCLOSURE_POLICY=F07-POL-02`. La app llega a ella por un túnel HTTPS temporal autorizado por el autor; el origen no se publica |
 | Web | Vite en el puerto 5186 desde el worktree en `94fa285`. Los 129 archivos fuente servidos coinciden con el árbol de ese commit |
 
@@ -23,8 +24,8 @@
 
 | Tenant | Uso |
 |---|---|
-| `f10ux-movil-oe5m` | Sesiones móviles. Cuentas `a01`, `a02`, `a03` y `x01-oe5m@f10ux.example.test` |
-| `f10ux-web-i01` | Persona institucional. Cuentas `directiva-i01` (DIRECTIVA) y `presidente-i01` (ADMINISTRADOR) |
+| `f10ux-movil-oe5m` | Preparado para las sesiones móviles. Cuentas `a01`, `a02`, `a03` y `x01-oe5m@f10ux.example.test` |
+| `f10ux-web-i01` | Preparado para la persona institucional. Cuentas `directiva-i01` (DIRECTIVA) y `presidente-i01` (ADMINISTRADOR) |
 | `f10ux-web-i02`, `f10ux-web-x01w` | Reserva y piloto Web |
 | `f10ux-web-ver1`, `f10ux-web-ver2` | Verificación de UW3 y UW4 en los dos sentidos. Quedaron consumidos |
 

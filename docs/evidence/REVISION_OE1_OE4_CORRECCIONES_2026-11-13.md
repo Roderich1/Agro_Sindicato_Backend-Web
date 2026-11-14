@@ -58,7 +58,7 @@ Encargo del autor del 2026-11-14 (texto literal en la revisión OE1–OE4, `DECI
 
 ### Candidata de evaluación OE5 (preparada en emulador)
 
-**Corrección del 2026-11-14:** en la versión anterior de este apartado se leía «sólo emulador, por decisión del autor». El autor indicó usar sólo el emulador **para la preparación**, después de que MIUI rechazara la instalación por USB en el teléfono. No decidió evaluar sólo en emulador: dónde se hacen las sesiones sigue abierto. La candidata se congeló el 14-11 y el entorno se preparó con el conjunto del protocolo único: ver `OE5_PREPARACION_DSUX_2026-11-14.md`.
+**Corrección del 2026-11-14:** en la versión anterior de este apartado se leía «sólo emulador, por decisión del autor». El autor indicó usar sólo el emulador **para la preparación**, después de que MIUI rechazara la instalación por USB en el teléfono. No decidió evaluar sólo en emulador. El dispositivo de las sesiones se documenta con sus registros reales. La candidata se congeló el 14-11 y el entorno se preparó con el conjunto del protocolo único: ver `OE5_PREPARACION_DSUX_2026-11-14.md`.
 
 | Campo | Valor |
 |---|---|
