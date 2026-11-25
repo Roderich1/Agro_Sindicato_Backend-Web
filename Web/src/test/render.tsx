@@ -2,8 +2,8 @@ import { cleanup, render } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach } from 'vitest';
-import { AuthContext, type AuthUser } from '../contexts/auth.context';
-import { CampaignContext } from '../contexts/campaign.context';
+import { AuthContext, type AuthUser } from '../contexts/auth-context';
+import { CampaignContext } from '../contexts/campaign-context';
 import type { Campaign } from '../types/campaigns';
 
 afterEach(cleanup);

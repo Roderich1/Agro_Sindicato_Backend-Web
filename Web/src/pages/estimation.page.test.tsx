@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CollectiveRoute } from '../components/collective-route';
 import {
@@ -128,6 +129,27 @@ let memory: CopyBackend;
 /** Guarda en el contexto local vigente de la sesión simulada. */
 const saveForSession = (body: InstitutionalDownload) => saveCopy(currentContext()!, SESSION, body);
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (cause: unknown) => void;
+  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+
+function CampaignNavigation() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button onClick={() => navigate(`${PATH}?campaign=${CLOSED.id}`)}>Elegir campaña B</button>
+      <button onClick={() => navigate(`${PATH}?campaign=${CAMPAIGN.id}`)}>Elegir campaña A</button>
+    </>
+  );
+}
+
+function showEstimate(name: string) {
+  return resultsWith([result(name)]);
+}
+
 describe('Estimación del consumo (F12-EST-06, #179)', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -144,6 +166,75 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
+
+  it('descarta resultados tardíos al volver a elegir la misma campaña', async () => {
+    const firstA = deferred<InstitutionalResults>();
+    serve(showEstimate('Estimación vigente'), [run('run-1', [])]);
+    vi.mocked(estimationService.results).mockReturnValueOnce(firstA.promise);
+    renderAt(<><CampaignNavigation /><EstimationPage /></>, { path: PATH });
+
+    await waitFor(() => expect(estimationService.results).toHaveBeenCalledWith(CAMPAIGN.id));
+    fireEvent.click(screen.getByRole('button', { name: 'Elegir campaña B' }));
+    await waitFor(() => expect(estimationService.results).toHaveBeenCalledWith(CLOSED.id));
+    fireEvent.click(screen.getByRole('button', { name: 'Elegir campaña A' }));
+    await waitFor(() => expect(estimationService.results).toHaveBeenCalledTimes(3));
+    expect(await screen.findByText('Estimación vigente')).toBeTruthy();
+
+    await act(async () => firstA.resolve(showEstimate('Estimación anterior')));
+    expect(screen.getByText('Estimación vigente')).toBeTruthy();
+    expect(screen.queryByText('Estimación anterior')).toBeNull();
+  });
+
+  it('ignora errores de otra campaña y mantiene la carga de la vigente', async () => {
+    const responseA = deferred<InstitutionalResults>();
+    const responseB = deferred<InstitutionalResults>();
+    serve(showEstimate('Estimación de B'), [run('run-1', [])]);
+    vi.mocked(estimationService.results).mockReturnValueOnce(responseA.promise).mockReturnValueOnce(responseB.promise);
+    renderAt(<><CampaignNavigation /><EstimationPage /></>, { path: PATH });
+
+    await waitFor(() => expect(estimationService.results).toHaveBeenCalledWith(CAMPAIGN.id));
+    fireEvent.click(screen.getByRole('button', { name: 'Elegir campaña B' }));
+    await waitFor(() => expect(estimationService.results).toHaveBeenCalledWith(CLOSED.id));
+
+    await act(async () => responseA.reject(httpError(404, 'CAMPAIGN_NOT_FOUND')));
+    expect(screen.getByText('Cargando la estimación…')).toBeTruthy();
+    expect(screen.queryByTestId('error-not-found')).toBeNull();
+
+    await act(async () => responseB.resolve(showEstimate('Estimación de B')));
+    expect(screen.getByText('Estimación de B')).toBeTruthy();
+    expect(screen.queryByText('Cargando la estimación…')).toBeNull();
+  });
+
+  it('ignora los detalles de la campaña anterior si llegan después de cambiar de filtro', async () => {
+    const detailsA = deferred<Run>();
+    serve(showEstimate('Estimación de B'), [run('run-1', [])]);
+    vi.mocked(estimationService.results).mockResolvedValueOnce(showEstimate('Estimación de A'));
+    vi.mocked(estimationService.run).mockReturnValueOnce(detailsA.promise);
+    renderAt(<><CampaignNavigation /><EstimationPage /></>, { path: PATH });
+
+    await waitFor(() => expect(estimationService.run).toHaveBeenCalledWith('run-1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Elegir campaña B' }));
+    expect(await screen.findByText('Estimación de B')).toBeTruthy();
+
+    await act(async () => detailsA.resolve(run('run-1', [])));
+    expect(screen.getByText('Estimación de B')).toBeTruthy();
+    expect(screen.queryByText('Estimación de A')).toBeNull();
+  });
+
+  it('conserva el contexto local si el rechazo llega después de desmontar la vista', async () => {
+    const response = deferred<InstitutionalResults>();
+    serve(showEstimate('Estimación desmontada'), []);
+    vi.mocked(estimationService.results).mockReturnValueOnce(response.promise);
+    const context = currentContext();
+    const view = renderAt(<EstimationPage />, { path: PATH });
+
+    await waitFor(() => expect(estimationService.results).toHaveBeenCalledWith(CAMPAIGN.id));
+    view.unmount();
+    await act(async () => response.reject(httpError(403, 'Forbidden')));
+
+    expect(currentContext()).toEqual(context);
+  });
+
 
   it('un rol sin permiso no ve la pantalla ni puede generar', async () => {
     renderAt(

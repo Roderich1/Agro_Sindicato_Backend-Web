@@ -1,5 +1,4 @@
-import { INestApplication, Logger } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
+import { Logger } from "@nestjs/common";
 import { afterAll, beforeAll } from "@jest/globals";
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";

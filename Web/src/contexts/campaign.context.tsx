@@ -1,31 +1,12 @@
-import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { campaignsService } from '../services/campaigns.service';
 import type { Campaign } from '../types/campaigns';
 import { useAuth } from '../hooks/use-auth';
 import { collectiveError } from '../lib/collective-text';
 import { isCollectiveRole } from '../lib/navigation';
+import { CampaignContext, type CampaignContextValue } from './campaign-context';
 
-export interface CampaignContextValue {
-  activeCampaign: Campaign | null;
-  isLoading: boolean;
-  error: string | null;
-  refreshActiveCampaign: () => Promise<void>;
-  hasActiveCampaign: boolean;
-  /**
-   * Lista de `GET /campaigns`, pedida una sola vez por sesión y compartida por
-   * todas las vistas (la API limita a 20 peticiones por minuto). `undefined`
-   * sólo cuando quien provee el contexto no la gestiona (p. ej. una prueba que
-   * da un valor fijo): entonces `useCampaignList` la pide por su cuenta.
-   */
-  campaigns?: Campaign[];
-  /** `true` mientras la lista se está pidiendo (primera vez o `refreshCampaigns`). */
-  campaignsLoading?: boolean;
-  campaignsError?: string | null;
-  /** Vuelve a pedir la lista; lo llaman las vistas tras crear, editar, abrir o cerrar. */
-  refreshCampaigns?: () => Promise<void>;
-}
-
-export const CampaignContext = createContext<CampaignContextValue | null>(null);
+export type { CampaignContextValue } from './campaign-context';
 
 /** Quien no es Directiva ni Administrador no recibe datos en la Web: no se piden las campañas. */
 function mayLoad(role: string | undefined): boolean {

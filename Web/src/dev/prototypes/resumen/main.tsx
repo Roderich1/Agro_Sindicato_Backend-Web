@@ -7,15 +7,15 @@
  */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import '../../../index.css';
 import './proto.css';
-import { AppShell } from '../../../components/app-shell';
-import { DataState } from '../../../components/ui';
-import { AuthContext } from '../../../contexts/auth.context';
+import { AuthContext } from '../../../contexts/auth-context';
 import type { ResumenDataset } from './datasets';
 import { ResumenPrototypes } from './harness';
+import { Elsewhere } from './proto-elsewhere';
 import { installStubs } from './stubs';
+import { PROTO_PATH } from './variants';
 
 if (!import.meta.env.DEV) throw new Error('Los prototipos del Resumen sólo funcionan en desarrollo.');
 
@@ -30,26 +30,6 @@ const user = {
   tenantId: 't-proto',
   tenant: { id: 't-proto', name: 'Sindicato sintético de productores del valle', slug: 'sintetico' },
 };
-
-export const PROTO_PATH = '/src/dev/resumen-prototipos.html';
-
-function Elsewhere() {
-  const location = useLocation();
-  return (
-    <AppShell title="Prototipo" section="Prototipo · sólo desarrollo">
-      <DataState
-        state="empty"
-        title="Esta ruta no forma parte del prototipo"
-        description={`«${location.pathname}» pertenece a la aplicación real, que no cambia en este bloque.`}
-        action={
-          <Link to={`${PROTO_PATH}${location.search}`} className="font-semibold text-brand-800 underline underline-offset-2">
-            Volver a los prototipos del Resumen
-          </Link>
-        }
-      />
-    </AppShell>
-  );
-}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

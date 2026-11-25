@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Collapsible, DataState, Section } from '../../../components/ui';
 import { coverageLink, countsText, counts, groups, plural, type Order } from './model';
-import { AttentionList, attentionItems, Bars, Definitions, DetailTable, ConsumptionList, Gate, Header, OrderControl, PolicyPending, quietLink, Stats, statsFor, type VariantProps } from './parts';
+import { AttentionList, Bars, Definitions, DetailTable, ConsumptionList, Gate, Header, OrderControl, PolicyPending, quietLink, Stats, type VariantProps } from './parts';
+import { attentionItems, statsFor } from './parts-helpers';
 
 /**
  * Variante A «Panorama» (eje: lectura de un vistazo). Pocos indicadores sobre

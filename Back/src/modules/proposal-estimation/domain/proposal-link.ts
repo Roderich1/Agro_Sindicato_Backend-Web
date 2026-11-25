@@ -153,7 +153,10 @@ export function compare(input: ComparisonInput): Comparison {
   const estimate = input.estimate;
   const needValue = need.quantityBase === null ? null : parseNeed(need.quantityBase);
   if (needValue === null) blockers.push("NEED_NOT_DISCLOSED");
-  const estimateValue = estimate?.estimateBase == null ? null : parseEstimate(estimate.estimateBase);
+  const estimateValue =
+    estimate === null || estimate === undefined || estimate.estimateBase === null || estimate.estimateBase === undefined
+      ? null
+      : parseEstimate(estimate.estimateBase);
   if (estimateValue === null) blockers.push("ESTIMATE_NOT_AVAILABLE");
   if (estimate) {
     if (estimateValue !== null && !estimate.current) blockers.push("ESTIMATE_NOT_CURRENT");

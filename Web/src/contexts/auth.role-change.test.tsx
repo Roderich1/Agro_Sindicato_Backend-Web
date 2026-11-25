@@ -11,8 +11,9 @@ import { api, clearAccessToken, getAccessToken } from '../lib/axios';
 import { memoryBackend, setCopyBackend } from '../lib/estimation-copy';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { CAMPAIGN, userWith } from '../test/render';
-import { CampaignContext } from './campaign.context';
-import { AuthContext, AuthProvider, type AuthContextValue } from './auth.context';
+import { CampaignContext } from './campaign-context';
+import { AuthContext, type AuthContextValue } from './auth-context';
+import { AuthProvider } from './auth.context';
 
 /**
  * Cierre O5 (decisión D del autor): si el rol de la cuenta cambia con la Web
@@ -98,8 +99,11 @@ afterEach(() => {
 describe('cambio de rol con la Web abierta (cierre O5)', () => {
   it('ADMINISTRADOR → DIRECTIVA: un 403 revalida, la barra lateral pierde Usuarios y sale de /users', async () => {
     let answerUsers: (reply: { status: number }) => void = () => undefined;
+    const requestUsers = vi.fn(() => new Promise<{ status: number }>((resolve) => {
+      answerUsers = resolve;
+    }));
     serve({
-      'GET /users': () => new Promise((resolve) => { answerUsers = resolve; }),
+      'GET /users': requestUsers,
       'GET /auth/me': () => ({ status: 200, data: userWith('DIRECTIVA') }),
     });
     startAs('ADMINISTRADOR');
@@ -126,6 +130,7 @@ describe('cambio de rol con la Web abierta (cierre O5)', () => {
     expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
 
     // El servidor ya no permite Usuarios: la consulta responde 403.
+    await waitFor(() => expect(requestUsers).toHaveBeenCalledTimes(1));
     await act(async () => answerUsers({ status: 403 }));
 
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe(COLLECTIVE_PATHS.summary));

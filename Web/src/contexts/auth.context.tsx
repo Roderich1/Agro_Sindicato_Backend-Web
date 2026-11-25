@@ -1,6 +1,5 @@
 import axios from 'axios';
 import {
-  createContext,
   useEffect,
   useRef,
   useState,
@@ -8,35 +7,14 @@ import {
 } from 'react';
 import { api, clearAccessToken, setAccessToken, setSessionSync } from '../lib/axios';
 import { closeContext, openContext, purgeInaccessibleCopies } from '../lib/estimation-copy';
+import { AuthContext, type AuthUser } from './auth-context';
 
-export interface TenantInfo {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  tenantId: string;
-  tenant: TenantInfo;
-}
+export type { AuthContextValue, AuthUser, TenantInfo } from './auth-context';
 
 interface AuthResponse {
   accessToken: string;
   user: AuthUser;
 }
-
-export interface AuthContextValue {
-  user: AuthUser | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
  * F12-EST-07-WEB (#180): la copia de la estimación sólo se lee en el contexto

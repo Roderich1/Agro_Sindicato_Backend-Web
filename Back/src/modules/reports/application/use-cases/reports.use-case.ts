@@ -5,8 +5,6 @@ import {
   PayableStatus,
   Prisma,
   PurchaseType,
-  StockMovementReasonType,
-  StockMovementType,
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
