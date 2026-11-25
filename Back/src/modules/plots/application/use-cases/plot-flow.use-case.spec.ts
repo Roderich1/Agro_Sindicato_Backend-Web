@@ -1,6 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { CampaignStatus, CropAssignmentStatus, PlotStatus, UserRole } from '@prisma/client';
-import { CampaignContextService } from '@/modules/campaigns/application/services/campaign-context.service';
 import { PlotFlowUseCase } from './plot-flow.use-case';
 
 describe('PlotFlowUseCase', () => {

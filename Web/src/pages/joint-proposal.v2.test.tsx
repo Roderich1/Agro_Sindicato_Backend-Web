@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { AuthContext } from '../contexts/auth.context';
-import { CampaignContext } from '../contexts/campaign.context';
+import { AuthContext } from '../contexts/auth-context';
+import { CampaignContext } from '../contexts/campaign-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { available, linkViewFor, selectionFor } from '../dev/fixtures/proposal-fixtures';
 import { campaignsService } from '../services/campaigns.service';

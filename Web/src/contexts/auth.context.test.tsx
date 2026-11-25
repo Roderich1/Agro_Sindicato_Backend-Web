@@ -15,7 +15,8 @@ import {
 import { api } from '../lib/axios';
 import { userWith } from '../test/render';
 import type { InstitutionalDownload } from '../types/estimation';
-import { AuthContext, AuthProvider, type AuthContextValue } from './auth.context';
+import { AuthContext, type AuthContextValue } from './auth-context';
+import { AuthProvider } from './auth.context';
 
 /**
  * F12-EST-07-WEB (#180): el contexto local de la copia sigue a la sesión que

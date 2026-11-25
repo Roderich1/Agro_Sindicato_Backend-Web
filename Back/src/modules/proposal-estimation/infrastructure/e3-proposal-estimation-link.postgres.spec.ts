@@ -66,7 +66,7 @@ describePostgres("E3 estimation reference fixed in a draft proposal", () => {
   const runs: Record<string, string> = {};
   const jobs: Record<string, string> = {};
   let season: string;
-  let sources: SyntheticSource[] = [];
+  const sources: SyntheticSource[] = [];
   let foreignProposal: string;
   const demo: Record<string, unknown> = {};
   let untouchedAtStart: Map<string, string>;

@@ -1,12 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthContext } from '../../../contexts/auth.context';
+import { AuthContext } from '../../../contexts/auth-context';
 import { CAMPAIGN_IDS } from '../../fixtures/campaigns-fixtures';
 import * as summaryFixtures from '../../fixtures/summary-fixtures';
 import { datasetFor, type ResumenDataset } from './datasets';
-import { ResumenPrototypes, VARIANTS } from './harness';
+import { ResumenPrototypes } from './harness';
 import { installStubs } from './stubs';
+import { VARIANTS } from './variants';
 
 /** Cantidad con unidad («0 L», «1.234,5 KG»): nunca en una fila sin cifra publicada. */
 const QUANTITY = /\d[\d.,]*\s?(L|KG)\b/;

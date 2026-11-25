@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AuthContext } from './auth.context';
+import { AuthContext } from './auth-context';
 import { notifyIdentificationChanged, useIdentificationPending } from './identification-pending';
 import { IdentificationPendingProvider } from './identification-pending-provider';
 import { identificationService } from '../services/identification.service';

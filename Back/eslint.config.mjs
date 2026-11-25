@@ -41,12 +41,30 @@ export default [
     },
     rules: {
       ...tsPlugin.configs.recommended.rules,
+      'no-undef': 'off',
+      eqeqeq: 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+  {
+    files: [
+      'src/modules/backups/infrastructure/s3/**/*.ts',
+      'src/modules/inventory/application/use-cases/stock/**/*.ts',
+      'src/modules/plots/application/use-cases/plot-flow/**/*.ts',
+      'src/modules/collective/application/summary/**/*.ts',
+      'src/modules/proposal-estimation/application/link/**/*.ts',
+      'src/modules/joint-purchase-calls/application/farmer/**/*.ts',
+      'src/modules/joint-purchase-calls/application/institutional/**/*.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
 ];

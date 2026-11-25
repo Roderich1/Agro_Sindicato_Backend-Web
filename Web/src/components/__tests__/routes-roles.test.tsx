@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // Texto fuente de App.tsx (importación `?raw` de Vite; sin APIs de Node).
 import app from '../../App.tsx?raw';
 import viteConfig from '../../../vite.config.ts?raw';
-import { AuthContext } from '../../contexts/auth.context';
+import { AuthContext } from '../../contexts/auth-context';
 import { CampaignProvider } from '../../contexts/campaign.context';
 import { extractError, offlineMessage } from '../../lib/format';
 import { COLLECTIVE_PATHS, WEB_NOT_FOR_FARMERS_PATH } from '../../lib/navigation';

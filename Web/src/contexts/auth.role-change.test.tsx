@@ -11,8 +11,9 @@ import { api, clearAccessToken, getAccessToken } from '../lib/axios';
 import { memoryBackend, setCopyBackend } from '../lib/estimation-copy';
 import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { CAMPAIGN, userWith } from '../test/render';
-import { CampaignContext } from './campaign.context';
-import { AuthContext, AuthProvider, type AuthContextValue } from './auth.context';
+import { CampaignContext } from './campaign-context';
+import { AuthContext, type AuthContextValue } from './auth-context';
+import { AuthProvider } from './auth.context';
 
 /**
  * Cierre O5 (decisión D del autor): si el rol de la cuenta cambia con la Web

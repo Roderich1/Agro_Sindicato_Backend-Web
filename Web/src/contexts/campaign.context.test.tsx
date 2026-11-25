@@ -11,7 +11,7 @@ import { JointProposalPage } from '../pages/joint-proposal.page';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
 import { userWith } from '../test/render';
-import { AuthContext } from './auth.context';
+import { AuthContext } from './auth-context';
 import { CampaignProvider } from './campaign.context';
 
 /** Cualquier lectura colectiva o de estimación queda pendiente: sólo importan las de campañas. */

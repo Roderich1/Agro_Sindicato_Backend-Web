@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { StrictMode, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
-import { AuthContext } from '../../contexts/auth.context';
+import { AuthContext } from '../../contexts/auth-context';
 import { CampaignProvider } from '../../contexts/campaign.context';
 import { campaignsService } from '../../services/campaigns.service';
 import { userWith } from '../../test/render';

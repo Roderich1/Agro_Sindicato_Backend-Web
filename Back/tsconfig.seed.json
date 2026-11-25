@@ -7,7 +7,7 @@
     "incremental": false
   },
   "include": [
-    "prisma/seed.ts"
+    "prisma/**/*.ts"
   ],
   "exclude": [
     "node_modules",

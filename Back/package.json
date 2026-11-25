@@ -13,6 +13,7 @@
     "backups:inventory": "node dist/modules/backups/cli/backups-inventory.js",
     "product-photos:sweep": "node dist/modules/product-identification/cli/product-photo-sweep.js",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
+    "lint:check": "eslint \"src/**/*.ts\" \"prisma/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "prisma:generate": "prisma generate",

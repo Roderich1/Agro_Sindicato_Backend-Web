@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { buttonClass, Collapsible, DataState, Section, surfaceClass } from '../../../components/ui';
 import type { CollectiveSummary } from '../../../types/collective';
 import { coverageLink, countsText, counts, groups, proposalsLink, type Order } from './model';
-import { AttentionList, attentionItems, Bars, Definitions, DetailTable, ConsumptionList, Gate, Header, OrderControl, PolicyPending, quietLink, Stats, statsFor, type VariantProps } from './parts';
+import { AttentionList, Bars, Definitions, DetailTable, ConsumptionList, Gate, Header, OrderControl, PolicyPending, quietLink, Stats, type VariantProps } from './parts';
+import { attentionItems, statsFor } from './parts-helpers';
 
 /**
  * Variante B «Acción» (eje: qué hacer ahora). Dos columnas en escritorio: a la

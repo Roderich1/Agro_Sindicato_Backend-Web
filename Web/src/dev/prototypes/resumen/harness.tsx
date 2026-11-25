@@ -13,32 +13,11 @@ import { auditLogsService } from '../../../services/audit-logs.service';
 import { collectiveService } from '../../../services/collective.service';
 import { estimationService } from '../../../services/estimation.service';
 import type { CollectiveSummary } from '../../../types/collective';
-import { Accion } from './accion';
-import { Comparacion } from './comparacion';
 import { DATASETS, datasetFor, type ResumenDataset } from './datasets';
-import { Ejecutivo } from './ejecutivo';
 import { estimationView, type ActivityView, type EstimationView } from './model';
-import { Panorama } from './panorama';
 import { ProtoPicker } from './picker';
 import type { LoadState, VariantProps } from './parts';
-
-/**
- * Arnés de los prototipos del Resumen (2026-11-11), sólo en desarrollo: las
- * variantes y la vista actual («Actual» = `CollectiveSummaryPage` real) con el
- * MISMO conjunto de datos sintético, una a la vez, a tamaño real dentro del
- * armazón. Los servicios están sustituidos (`stubs.ts`): ninguna petición sale
- * a un servidor y toda escritura se rechaza. `?v=` y `?datos=` viven en la
- * URL; `?campaign=` funciona como en la vista real. «Ejecutivo» (2026-11-11,
- * tarde) responde a la propuesta de tablero del autor con los datos que la API
- * sirve hoy a la Directiva: añade la lectura de la bitácora de la campaña.
- */
-export const VARIANTS: { name: string; slug: string; Component: ((props: VariantProps) => JSX.Element) | null; estimation: boolean; activity: boolean }[] = [
-  { name: 'Actual', slug: 'actual', Component: null, estimation: false, activity: false },
-  { name: 'Panorama', slug: 'panorama', Component: Panorama, estimation: false, activity: false },
-  { name: 'Acción', slug: 'accion', Component: Accion, estimation: false, activity: false },
-  { name: 'Comparación', slug: 'comparacion', Component: Comparacion, estimation: true, activity: false },
-  { name: 'Ejecutivo', slug: 'ejecutivo', Component: Ejecutivo, estimation: true, activity: true },
-];
+import { VARIANTS } from './variants';
 
 const NARROW = '(max-width: 1023px)';
 function subscribeNarrow(listener: () => void) {
