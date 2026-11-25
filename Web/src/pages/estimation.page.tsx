@@ -92,7 +92,7 @@ export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] xl:items-start">
         <div className="min-w-0 space-y-5">
           {vm.results && <ResultsSection results={vm.results} details={vm.details} latestRun={vm.job?.run_ref ?? null} />}
-          {vm.opened && <RunDetail run={vm.opened} onClose={() => vm.setOpened(null)} />}
+          {vm.opened && <RunDetail run={vm.opened} onClose={vm.closeRun} />}
           {!vm.blocked && vm.offline && vm.copy && <EstimationCopyView copy={vm.copy} />}
         </div>
         {((!vm.blocked && vm.selected) || vm.results) && (
