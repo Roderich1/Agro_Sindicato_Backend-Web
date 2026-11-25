@@ -178,7 +178,7 @@ export function Header({
           {!isOnline && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-danger-bg px-2.5 py-0.5 text-sm font-semibold text-danger-ink" data-testid="connection-mobile">
               <span className="h-2 w-2 rounded-full bg-danger" aria-hidden="true" />
-              Sin conexión
+              <span>Sin conexión</span>
             </span>
           )}
           <button

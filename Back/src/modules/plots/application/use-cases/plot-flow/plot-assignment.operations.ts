@@ -43,7 +43,7 @@ export async function listAssignments(
   return assignments.map((assignment) => mapAssignment(assignment));
 }
 
-export async function createAssignment(
+export function createAssignment(
   prisma: PrismaService,
   campaignContext: CampaignContextService,
   tenantId: string,
@@ -102,7 +102,7 @@ export async function createAssignment(
   });
 }
 
-export async function updateAssignment(
+export function updateAssignment(
   prisma: PrismaService,
   campaignContext: CampaignContextService,
   tenantId: string,

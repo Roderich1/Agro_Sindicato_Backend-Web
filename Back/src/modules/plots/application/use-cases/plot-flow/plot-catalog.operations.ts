@@ -48,7 +48,7 @@ export async function listPlots(
   return plots.map((plot) => mapPlot(plot));
 }
 
-export async function createPlot(
+export function createPlot(
   prisma: PrismaService,
   tenantId: string,
   actor: Actor,
@@ -88,7 +88,7 @@ export async function createPlot(
   });
 }
 
-export async function updatePlot(
+export function updatePlot(
   prisma: PrismaService,
   tenantId: string,
   actor: Actor,
@@ -136,7 +136,7 @@ export async function updatePlot(
   });
 }
 
-export async function deactivatePlot(
+export function deactivatePlot(
   prisma: PrismaService,
   tenantId: string,
   actor: Actor,
@@ -191,7 +191,7 @@ export async function listCrops(
   return crops.map((crop) => mapCrop(crop));
 }
 
-export async function createCrop(
+export function createCrop(
   prisma: PrismaService,
   tenantId: string,
   actor: Actor,
@@ -225,7 +225,7 @@ export async function createCrop(
   });
 }
 
-export async function updateCrop(
+export function updateCrop(
   prisma: PrismaService,
   tenantId: string,
   actor: Actor,

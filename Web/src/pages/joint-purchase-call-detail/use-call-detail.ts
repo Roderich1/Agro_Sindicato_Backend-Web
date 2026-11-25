@@ -83,7 +83,7 @@ export function useCallDetail(id: string) {
     }
     if (!current()) return;
     setProblem(null);
-    const permissionsKey = `${[...(detail.my_grants ?? [])].sort().join(',')}|${detail.collaborator_count ?? ''}`;
+    const permissionsKey = `${[...(detail.my_grants ?? [])].sort((a, b) => a.localeCompare(b)).join(',')}|${detail.collaborator_count ?? ''}`;
     if (permissionsKeyRef.current !== null && permissionsKeyRef.current !== permissionsKey) setCollaboratorsTick((tick) => tick + 1);
     permissionsKeyRef.current = permissionsKey;
     if (detail.can_view_participants) {

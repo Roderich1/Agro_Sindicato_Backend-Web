@@ -132,15 +132,19 @@ export function LinkPanel({
           <ul className="space-y-2.5">
             {candidates.map((candidate) => {
               const checked = target === candidate.product_ref;
+              const candidateId = `identification-candidate-${request.id}-${candidate.product_ref}`;
               return (
                 <li key={candidate.product_ref} data-testid={`candidate-${candidate.product_ref}`}>
                   <label
+                    htmlFor={candidateId}
+                    aria-label={candidate.product_name}
                     className={`flex items-start gap-3 rounded-[18px] bg-surface px-4 py-3 ${checked ? 'border-2 border-ink' : 'border border-line'} ${
                       candidate.is_active ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
                     }`}
                   >
                     <input
                       type="radio"
+                      id={candidateId}
                       name={`identification-candidate-${request.id}`}
                       className="mt-1 h-5 w-5 shrink-0 accent-ink"
                       value={candidate.product_ref}

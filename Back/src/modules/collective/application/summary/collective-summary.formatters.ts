@@ -118,7 +118,10 @@ export function figure(
 /** Exact base -> L/KG (1000 base units each), without floats. */
 export function presentation(totalBase: bigint): string {
   const whole = totalBase / 1000n;
-  const fraction = (totalBase % 1000n).toString().padStart(3, "0").replace(/0+$/, "");
+  const digits = (totalBase % 1000n).toString().padStart(3, "0");
+  let end = digits.length;
+  while (end > 0 && digits[end - 1] === "0") end--;
+  const fraction = digits.slice(0, end);
   return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 

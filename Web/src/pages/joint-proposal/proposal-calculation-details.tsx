@@ -49,7 +49,7 @@ export function CalculationDetails({ view, proposal }: { view: EstimationLinkVie
   return (
     <details className={`${surfaceClass} group overflow-hidden`} data-testid="calculation" onToggle={onToggle}>
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-base font-semibold text-ink hover:bg-canvas [&::-webkit-details-marker]:hidden">
-        Parámetros, fuentes e historial
+        <span>Parámetros, fuentes e historial</span>
         <span className="text-sm font-semibold text-link group-open:hidden">Ver</span>
         <span className="hidden text-sm font-semibold text-ink-muted group-open:inline">Ocultar</span>
       </summary>

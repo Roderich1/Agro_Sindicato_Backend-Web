@@ -22,7 +22,7 @@ export async function findLatestSealRef(
   return seal ? toSealRef(seal) : null;
 }
 
-export async function loadSealedVersion(
+export function loadSealedVersion(
   tx: Tx,
   tenantId: string,
   campaignId: string,

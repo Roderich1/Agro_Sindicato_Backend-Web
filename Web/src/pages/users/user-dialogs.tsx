@@ -4,6 +4,12 @@ import { createUser, deactivateUser, resetUserPassword, updateUser } from '../..
 import { ROLE_LABELS, USER_ROLES, type AdminUser, type UserRole } from '../../types/users';
 import { extractError, MIN_PASSWORD } from './user.constants';
 
+function isValidAccountEmail(email: string): boolean {
+  const [local, domain, extra] = email.trim().split('@');
+  if (!local || !domain || extra !== undefined || /\s/.test(local) || /\s/.test(domain)) return false;
+  return domain.lastIndexOf('.', domain.length - 2) > 0;
+}
+
 /** Lámina 33.1. Rol propuesto: Directiva; los agricultores entran por la aplicación móvil. */
 export function CreateUserDialog({ onCancel, onCreated }: { onCancel: () => void; onCreated: (user: AdminUser) => void }) {
   const [name, setName] = useState('');
@@ -15,7 +21,7 @@ export function CreateUserDialog({ onCancel, onCreated }: { onCancel: () => void
   const [error, setError] = useState<string | null>(null);
 
   const nameValid = name.trim().length >= 2;
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const emailValid = isValidAccountEmail(email);
   const passwordValid = password.length >= MIN_PASSWORD;
   const adminConfirmed = role !== 'ADMINISTRADOR' || allowAdmin;
   const canSubmit = nameValid && emailValid && passwordValid && adminConfirmed && !isSubmitting;

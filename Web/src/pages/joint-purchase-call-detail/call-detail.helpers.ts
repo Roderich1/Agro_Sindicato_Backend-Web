@@ -35,7 +35,7 @@ export interface RevokedGrant {
 
 /** «12 nov»: el día sin hora ni año (chip «Usted es responsable desde…»). */
 export function fmtShortDay(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-BO', { day: 'numeric', month: 'short' }).replace(/\./g, '');
+  return new Date(iso).toLocaleDateString('es-BO', { day: 'numeric', month: 'short' }).replaceAll('.', '');
 }
 
 /** Datos clave de la cabecera según el estado (láminas 10–20); el primero va en lima. */

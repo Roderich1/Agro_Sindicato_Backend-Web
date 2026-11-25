@@ -24,7 +24,7 @@ export interface StockMutationDeps {
   readonly campaignContext: CampaignContextService;
 }
 
-export async function registerInitialStock(
+export function registerInitialStock(
   deps: StockMutationDeps,
   tenantId: string,
   userId: string,
@@ -82,7 +82,7 @@ export async function registerInitialStock(
   });
 }
 
-export async function registerEntry(
+export function registerEntry(
   deps: StockMutationDeps,
   tenantId: string,
   userId: string,
@@ -152,7 +152,7 @@ export async function registerEntry(
   });
 }
 
-export async function registerExit(
+export function registerExit(
   deps: StockMutationDeps,
   tenantId: string,
   userId: string,
