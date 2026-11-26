@@ -15,12 +15,9 @@ export const PENDING_CHANGES_TEXT = 'Hay cambios recibidos que todavía no se pu
 /**
  * Motivo comprensible, sin cantidad ni conteo exacto de aportantes.
  * `SUPPRESSED_UNDER_THRESHOLD` sólo lo produce `F07-POL-01` (en lo sellado o
- * en los borradores anteriores es un estado histórico): se rotula con esa
- * política, sin «oculto por privacidad» ni «anónimo» (E4 §5.1).
+ * en los borradores anteriores es un estado histórico).
  */
-export function statusReason(status: AnyStatus, ...legacy: [] | [number | null | undefined]): string | null {
-  // Existing callers may still pass the threshold stored with a historical result.
-  void legacy;
+export function statusReason(status: AnyStatus): string | null {
   switch (status) {
     case 'SUPPRESSED_UNDER_THRESHOLD':
       return 'Sin datos disponibles.';

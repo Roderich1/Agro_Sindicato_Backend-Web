@@ -5,8 +5,9 @@ import { ActivityTimeline, CallCard, LockLine } from '../components/b/call-ui';
 import { Button, buttonClassFor, DataState, Notice, StatusChip } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { CALL_STATUS_CHIP } from '../lib/joint-purchase-call-text';
+import type { JointPurchaseCallDetail } from '../types/joint-purchase-calls';
 import { CallDetailDialogs } from './joint-purchase-call-detail/call-action-dialogs';
-import { heroFacts } from './joint-purchase-call-detail/call-detail.helpers';
+import { heroFacts, type DialogState } from './joint-purchase-call-detail/call-detail.helpers';
 import { ClosingPanel, ParticipantsPanel } from './joint-purchase-call-detail/call-participants-closing';
 import { CallProvenance, ProductsCard } from './joint-purchase-call-detail/call-products-and-footnote';
 import { useCallDetail } from './joint-purchase-call-detail/use-call-detail';
@@ -27,7 +28,7 @@ export function JointPurchaseCallDetailPage() {
   return <CallDetail key={context} id={id} />;
 }
 
-function CallDetail({ id }: { id: string }) {
+function CallDetail({ id }: Readonly<{ id: string }>) {
   const vm = useCallDetail(id);
 
   if (vm.problem || !vm.call) {
@@ -54,29 +55,6 @@ function CallDetail({ id }: { id: string }) {
 
   const call = vm.call;
   const canManage = call.can_manage === true;
-  const canEnd = canManage || call.can_cancel_or_close === true;
-  const active = call.status === 'DRAFT' || call.status === 'OPEN';
-  const actions = (
-    <>
-      {active && canEnd && <HeroDangerButton onClick={() => vm.setDialog({ kind: 'cancel' })}>Cancelar convocatoria…</HeroDangerButton>}
-      {call.status === 'DRAFT' && canManage && (
-        <>
-          <Button variant="on-dark" onClick={() => vm.setDialog({ kind: 'edit' })}>
-            Editar
-          </Button>
-          <Button variant="accent" onClick={() => vm.setDialog({ kind: 'open' })}>
-            Abrir convocatoria…
-          </Button>
-        </>
-      )}
-      {call.status === 'OPEN' && canEnd && (
-        <Button variant="accent" onClick={() => vm.setDialog({ kind: 'close' })}>
-          Cerrar y consolidar…
-        </Button>
-      )}
-    </>
-  );
-  const hasActions = (active && canEnd) || (call.status === 'DRAFT' && canManage);
 
   return (
     <AppShell title={call.name} section="Colectivo">
@@ -87,7 +65,7 @@ function CallDetail({ id }: { id: string }) {
           eyebrow={`Compra conjunta · ${call.campaign.name}`}
           chips={<StatusChip status={CALL_STATUS_CHIP[call.status] ?? call.status} testId="call-status" />}
           facts={heroFacts(call, vm.closing)}
-          actions={hasActions ? actions : undefined}
+          actions={callActions(call, vm.setDialog)}
         />
 
         {vm.alert && (
@@ -136,5 +114,32 @@ function CallDetail({ id }: { id: string }) {
         onLostPermission={vm.lostPermission}
       />
     </AppShell>
+  );
+}
+
+function callActions(call: JointPurchaseCallDetail, openDialog: (dialog: DialogState) => void) {
+  const canManage = call.can_manage === true;
+  const canEnd = canManage || call.can_cancel_or_close === true;
+  if (!canEnd || (call.status !== 'DRAFT' && call.status !== 'OPEN')) return;
+
+  return (
+    <>
+      <HeroDangerButton onClick={() => openDialog({ kind: 'cancel' })}>Cancelar convocatoria…</HeroDangerButton>
+      {call.status === 'DRAFT' && canManage && (
+        <>
+          <Button variant="on-dark" onClick={() => openDialog({ kind: 'edit' })}>
+            Editar
+          </Button>
+          <Button variant="accent" onClick={() => openDialog({ kind: 'open' })}>
+            Abrir convocatoria…
+          </Button>
+        </>
+      )}
+      {call.status === 'OPEN' && (
+        <Button variant="accent" onClick={() => openDialog({ kind: 'close' })}>
+          Cerrar y consolidar…
+        </Button>
+      )}
+    </>
   );
 }

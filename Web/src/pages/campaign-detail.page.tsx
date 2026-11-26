@@ -261,7 +261,7 @@ export function CampaignDetailPage() {
   );
 }
 
-function VersionCard({ campaign, summary }: { campaign: Campaign; summary: CollectiveSummary }) {
+function VersionCard({ campaign, summary }: Readonly<{ campaign: Campaign; summary: CollectiveSummary }>) {
   const history = summary.seal;
   const historyUrl = `${COLLECTIVE_PATHS.history}?vista=tendencias&campaign=${enc(campaign.id)}`;
   return (

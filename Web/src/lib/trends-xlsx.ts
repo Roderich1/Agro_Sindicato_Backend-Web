@@ -104,7 +104,6 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
               presentation: point.total_presentation,
               baseUnit: line.base_unit,
               presentationUnit: line.presentation_unit,
-              threshold: campaign.seal?.threshold ?? null,
             }).cell;
           }),
         ];
@@ -135,7 +134,6 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
     'Referencia de la versión histórica',
   ];
   const sealOf = new Map(trends.campaigns.map((campaign) => [campaign.campaign_ref, campaign.seal?.seal_ref ?? null]));
-  const thresholdOf = new Map(trends.campaigns.map((campaign) => [campaign.campaign_ref, campaign.seal?.threshold ?? null]));
   const detailRows: XlsxCell[][] = pending
     ? []
     : trends.series.flatMap((line) =>
@@ -147,7 +145,6 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
             baseUnit: line.base_unit,
             presentationUnit: line.presentation_unit,
             pending: point.pending_changes,
-            threshold: thresholdOf.get(point.campaign_ref) ?? null,
           });
           const disclosed = point.status === 'DISCLOSED';
           return [

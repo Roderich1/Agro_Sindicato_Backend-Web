@@ -296,7 +296,7 @@ function ListGroup({ title, count = null, children }: { title: string; count?: n
 }
 
 /** Tarjeta de una convocatoria abierta (láminas 09 y 37). El nombre es el enlace; la tarjeta entera responde al clic. */
-function OpenCallCard({ call, to }: { call: JointPurchaseCallSummary; to: string }) {
+function OpenCallCard({ call, to }: Readonly<{ call: JointPurchaseCallSummary; to: string }>) {
   return (
     <li className={`${surfaceClass} relative flex min-w-0 flex-col px-5 py-5 hover:border-ink`} data-testid={`call-row-${call.call_id}`}>
       <div className="flex flex-wrap items-center gap-2">
@@ -324,7 +324,7 @@ function OpenCallCard({ call, to }: { call: JointPurchaseCallSummary; to: string
   );
 }
 
-function DraftRow({ call, to }: { call: JointPurchaseCallSummary; to: string }) {
+function DraftRow({ call, to }: Readonly<{ call: JointPurchaseCallSummary; to: string }>) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-4 sm:px-6" data-testid={`call-row-${call.call_id}`}>
       <div className="min-w-0 flex-1 basis-64">

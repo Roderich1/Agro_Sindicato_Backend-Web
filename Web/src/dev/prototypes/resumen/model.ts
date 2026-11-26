@@ -48,7 +48,7 @@ export interface Group {
   published: number;
 }
 
-function toRow(cell: SummaryCell, max: bigint, threshold: number | null): Row {
+function toRow(cell: SummaryCell, max: bigint): Row {
   const disclosed = cell.status === 'DISCLOSED';
   const text = disclosed ? formatQuantity(cell.total_base, cell.base_unit, cell.total_presentation) : null;
   const value = disclosed && isBaseQuantity(cell.total_base) ? BigInt(cell.total_base) : null;
@@ -65,7 +65,7 @@ function toRow(cell: SummaryCell, max: bigint, threshold: number | null): Row {
     contributors: disclosed ? cell.contributors : null,
     asOf: disclosed ? cell.data_as_of : null,
     pending: disclosed && cell.pending_changes,
-    reason: disclosed ? null : statusReason(cell.status, threshold),
+    reason: disclosed ? null : statusReason(cell.status),
   };
 }
 
@@ -86,7 +86,7 @@ export function groups(summary: CollectiveSummary, projection: SummaryCell['proj
         const value = cell.status === 'DISCLOSED' && isBaseQuantity(cell.total_base) ? BigInt(cell.total_base) : 0n;
         return value > top ? value : top;
       }, 0n);
-      const rows = own.map((cell) => toRow(cell, max, summary.disclosure.threshold));
+      const rows = own.map((cell) => toRow(cell, max));
       rows.sort((a, b) => {
         if (order === 'nombre') return byName(a, b);
         if (a.disclosed !== b.disclosed) return a.disclosed ? -1 : 1;

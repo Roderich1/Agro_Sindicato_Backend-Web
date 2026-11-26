@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppShell } from '../components/app-shell';
 import { DisclosureNotice, PendingChangesNote, ProductCell, QuantityCell } from '../components/collective-ui';
 import { ExportButtons } from '../components/export-buttons';
@@ -96,26 +96,46 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
   const [trends, setTrends] = useState<CollectiveTrends | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(false);
+  const latestRequest = useRef(0);
 
   const load = useCallback(async (projectionType: ProjectionType) => {
+    const request = ++latestRequest.current;
     setLoading(true);
     setProblem(null);
     try {
       const data = await collectiveService.trends(projectionType);
+      if (request !== latestRequest.current) return;
       reportDisclosureMode(data.disclosure.mode);
       setTrends(data);
     } catch (err) {
+      if (request !== latestRequest.current) return;
       setTrends(null);
       const kind = axios.isAxiosError(err) ? dataStateKindForError(err) : 'error';
       setProblem({ kind, message: collectiveError(err, 'No fue posible cargar las tendencias.') });
     } finally {
-      setLoading(false);
+      if (request === latestRequest.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void Promise.resolve().then(() => load(type));
-  }, [type, load]);
+    let mounted = true;
+    const beforeInitialLoad = latestRequest.current;
+    void Promise.resolve().then(() => {
+      if (mounted && latestRequest.current === beforeInitialLoad) {
+        return load('CONSUMPTION_TOTAL');
+      }
+    });
+    return () => {
+      mounted = false;
+      latestRequest.current++;
+    };
+  }, [load]);
+
+  const chooseType = (next: ProjectionType) => {
+    if (next === type) return;
+    setType(next);
+    void load(next);
+  };
 
   const current = TYPES.find((entry) => entry.type === type)!;
   const history = trends ? scopeHistory(trends, { campaignId }) : null;
@@ -134,7 +154,7 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
           hideLabel
           testId="trend-type"
           value={type}
-          onChange={setType}
+          onChange={chooseType}
           options={TYPES.map((entry) => ({ value: entry.type, label: entry.label }))}
         />
         <div className="flex min-w-0 items-center gap-2">
@@ -220,7 +240,7 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
                   {typeLabel} por campaña, en {UNIT_WORD[selected.presentation_unit]}. Bajo cada campaña, su cobertura.
                 </p>
               </div>
-              <TrendChart line={selected} campaigns={sealed} threshold={trends.disclosure.threshold} />
+              <TrendChart line={selected} campaigns={sealed} />
             </section>
             <HowToRead />
           </div>
@@ -228,7 +248,7 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
       <Collapsible title="Ver campañas y cobertura" testId="sources">
         <div className="space-y-5 p-5">
           <CampaignsTable campaigns={trends.campaigns} />
-          {selected && <SeriesTable line={selected} campaigns={trends.campaigns} threshold={trends.disclosure.threshold} />}
+          {selected && <SeriesTable line={selected} campaigns={trends.campaigns} />}
         </div>
       </Collapsible>
     </div>
@@ -291,10 +311,8 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
   );
 }
 
-function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campaigns: TrendCampaign[]; threshold: number | null }) {
+function SeriesTable({ line, campaigns }: { line: TrendSeries; campaigns: TrendCampaign[] }) {
   const nameOf = new Map(campaigns.map((campaign) => [campaign.campaign_ref, campaign.name]));
-  // E4 §3.4: el motivo de una celda sellada usa el umbral con que se selló su campaña.
-  const thresholdOf = new Map(campaigns.map((campaign) => [campaign.campaign_ref, campaign.seal?.threshold ?? null]));
   const title = `${line.product_name} (${line.presentation_unit})`;
   return (
     <section
@@ -316,7 +334,7 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
             {line.points.map((point) => (
               <tr key={point.campaign_ref} data-testid={`point-${nameOf.get(point.campaign_ref)}`}>
                 <td className={`w-32 min-w-32 px-3 py-3 [overflow-wrap:anywhere] sm:w-auto sm:min-w-40 sm:px-5 ${STICKY_CELL}`}>
-                  <ProductCell name={nameOf.get(point.campaign_ref) ?? ''} unit="" status={point.status} threshold={thresholdOf.get(point.campaign_ref) ?? threshold} />
+                  <ProductCell name={nameOf.get(point.campaign_ref) ?? ''} unit="" status={point.status} />
                 </td>
                 <td className="px-3 py-3 sm:px-5">
                   <QuantityCell
@@ -324,7 +342,6 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
                     base={point.total_base}
                     serverPresentation={point.total_presentation}
                     unit={line.base_unit}
-                    threshold={thresholdOf.get(point.campaign_ref) ?? threshold}
                     asOf={point.data_as_of}
                   />
                   {point.status === 'DISCLOSED' && point.pending_changes && <PendingChangesNote />}
@@ -364,7 +381,7 @@ interface Column {
   reason: string;
 }
 
-function columnsOf(line: TrendSeries, campaigns: TrendCampaign[], threshold: number | null): Column[] {
+function columnsOf(line: TrendSeries, campaigns: TrendCampaign[]): Column[] {
   const pointOf = new Map(line.points.map((point) => [point.campaign_ref, point]));
   return campaigns.map((campaign) => {
     const point = pointOf.get(campaign.campaign_ref) ?? null;
@@ -372,7 +389,7 @@ function columnsOf(line: TrendSeries, campaigns: TrendCampaign[], threshold: num
     const label = point && point.status === 'DISCLOSED' ? formatQuantity(point.total_base, line.base_unit, point.total_presentation) : null;
     const status = point?.status ?? 'NO_DATA';
     const gap = status === 'DISCLOSED' ? 'cifra no válida' : GAP_TEXT[status];
-    const reason = status === 'DISCLOSED' ? 'El dato recibido no es válido; no se muestra.' : (statusReason(status, campaign.seal?.threshold ?? threshold) ?? '');
+    const reason = status === 'DISCLOSED' ? 'El dato recibido no es válido; no se muestra.' : (statusReason(status) ?? '');
     return { campaign, point, value, label, gap, reason };
   });
 }
@@ -412,8 +429,8 @@ const permille = (value: bigint, max: bigint) => (max === 0n ? 0 : Number((value
  * columna. Un solo color: no hay series que distinguir. En pantallas
  * estrechas, las mismas cifras como barras horizontales.
  */
-function TrendChart({ line, campaigns, threshold }: { line: TrendSeries; campaigns: TrendCampaign[]; threshold: number | null }) {
-  const columns = columnsOf(line, campaigns, threshold);
+function TrendChart({ line, campaigns }: { line: TrendSeries; campaigns: TrendCampaign[] }) {
+  const columns = columnsOf(line, campaigns);
   const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
   const shown = columns.filter(({ value, label }) => value !== null && label !== null).length;
   const summary = `${line.product_name}: ${shown} de ${columns.length} campañas con cifra publicada; las demás son huecos, no ceros.`;

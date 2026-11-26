@@ -147,7 +147,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(urea.textContent).toMatch(/cifra más reciente/);
     expect(urea.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
     expect(screen.getByTestId('line-Glifosato-ML').textContent).toMatch(/ya no publica/);
-    expect(screen.getAllByText('huella oculta').length).toBe(1);
+    expect(screen.getAllByText('huella oculta')).toHaveLength(1);
   });
 
   it('al elegir una campaña con borradores abre el último por consulta, sin generar uno', async () => {

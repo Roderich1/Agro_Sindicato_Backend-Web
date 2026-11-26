@@ -17,8 +17,8 @@ const COUNT = new Intl.NumberFormat('es-BO');
  * `title`. Un estado desconocido se trata, como antes, como «Política
  * pendiente» (sin cifra), nunca como un código en bruto.
  */
-export function StatusBadge({ status, threshold }: { status: AnyStatus; threshold?: number | null }) {
-  return <StatusChip status={isKnownStatus(status) ? status : 'POLICY_PENDING'} threshold={threshold} />;
+export function StatusBadge({ status }: { status: AnyStatus }) {
+  return <StatusChip status={isKnownStatus(status) ? status : 'POLICY_PENDING'} />;
 }
 
 /**
@@ -29,18 +29,16 @@ export function ProductCell({
   name,
   unit,
   status,
-  threshold,
 }: {
   name: string;
   unit: string;
   status: AnyStatus;
-  threshold?: number | null;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span className="text-base font-semibold text-ink">{name}</span>
       {unit && <span className="text-xs text-ink-muted">{unit}</span>}
-      <StatusBadge status={status} threshold={threshold} />
+      <StatusBadge status={status} />
     </div>
   );
 }
@@ -54,7 +52,6 @@ export function QuantityCell({
   base,
   serverPresentation,
   unit,
-  threshold,
   asOf,
   size = 'md',
 }: {
@@ -62,14 +59,13 @@ export function QuantityCell({
   base: string | null;
   serverPresentation: string | null;
   unit: BaseUnit;
-  threshold?: number | null;
   /** Fecha hasta la que el servidor aceptó datos para esta cifra; se muestra bajo la cifra. */
   asOf?: string | null;
   /** `lg`: cifra grande, para proyector. */
   size?: 'md' | 'lg';
 }) {
   if (status !== 'DISCLOSED') {
-    return <span className="text-xs leading-snug text-ink-muted">{statusReason(status, threshold)}</span>;
+    return <span className="text-xs leading-snug text-ink-muted">{statusReason(status)}</span>;
   }
   const text = formatQuantity(base, unit, serverPresentation);
   if (text === null) {
@@ -187,7 +183,7 @@ export function SealBanner({ seal }: { seal: SealRef }) {
  * Aviso de política pendiente: se conserva porque bloquea las cifras. El modo
  * sintético no lleva banner: el armazón muestra la etiqueta «Datos sintéticos».
  */
-export function DisclosureNotice({ mode }: { mode: import('../types/collective').DisclosureMode }) {
+export function DisclosureNotice({ mode }: Readonly<{ mode: import('../types/collective').DisclosureMode }>) {
   if (mode === 'POLICY_PENDING') {
     return (
       <Notice kind="info">
@@ -324,7 +320,7 @@ export interface BarRow {
  * motivo. Un cero divulgado se escribe «0 L» sin barra. Un solo color: no hay
  * series que distinguir.
  */
-export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit: 'L' | 'KG'; threshold: number | null }) {
+export function ComparisonBars({ rows, unit }: { rows: BarRow[]; unit: 'L' | 'KG' }) {
   const values = rows.map((row) => (row.status === 'DISCLOSED' && isBaseQuantity(row.base) ? BigInt(row.base!) : null));
   const max = values.reduce<bigint>((top, value) => (value !== null && value > top ? value : top), 0n);
   const width = (value: bigint | null) => (value === null || max === 0n ? 0 : Number((value * 1000n) / max) / 10);
@@ -335,7 +331,7 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
         const text = row.status === 'DISCLOSED' ? formatQuantity(row.base, unit === 'L' ? 'ML' : 'G', row.presentation) : null;
         return (
           <li key={row.key} className="grid items-center gap-x-4 gap-y-1 px-5 py-2.5 sm:grid-cols-[minmax(11rem,15rem)_1fr_auto]" data-testid={row.testId}>
-            <ProductCell name={row.name} unit={row.unit} status={row.status} threshold={threshold} />
+            <ProductCell name={row.name} unit={row.unit} status={row.status} />
             {row.status === 'DISCLOSED' ? (
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" title={text ?? undefined}>
                 <div className="h-2 min-w-24 flex-1 rounded-full bg-track">
@@ -350,7 +346,7 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
                 </span>
               </div>
             ) : (
-              <p className="text-xs leading-snug text-ink-muted">{statusReason(row.status, threshold)}</p>
+              <p className="text-xs leading-snug text-ink-muted">{statusReason(row.status)}</p>
             )}
             <div className="text-right text-xs text-ink-muted sm:w-44">
               {row.status === 'DISCLOSED' ? (

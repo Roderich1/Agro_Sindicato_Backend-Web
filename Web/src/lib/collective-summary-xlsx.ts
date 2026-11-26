@@ -52,7 +52,7 @@ function counts(cells: SummaryCell[]): string {
     : `${published} con cifra publicada · ${other} sin cifra publicada`;
 }
 
-function rowsOf(cells: SummaryCell[], threshold: number | null, offset: number): XlsxCell[][] {
+function rowsOf(cells: SummaryCell[], offset: number): XlsxCell[][] {
   return cells.map((cell) => {
     const quantity = publishedQuantity({
       status: cell.status,
@@ -61,7 +61,6 @@ function rowsOf(cells: SummaryCell[], threshold: number | null, offset: number):
       baseUnit: cell.base_unit,
       presentationUnit: cell.presentation_unit,
       pending: cell.pending_changes,
-      threshold,
     });
     const disclosed = cell.status === 'DISCLOSED';
     return [
@@ -141,7 +140,7 @@ export function buildSummaryXlsx(input: SummaryXlsxInput): BuiltXlsx {
       note: 'Lo que cada agricultor declaró que necesita para la campaña. No es pronóstico, consumo ni cantidad comprada.',
       headers,
       widths,
-      rows: pending ? [] : rowsOf(needs, summary.disclosure.threshold, offset),
+      rows: pending ? [] : rowsOf(needs, offset),
       emptyText: pending ? 'Sin datos disponibles.' : 'Ningún agricultor publicó una necesidad declarada en esta campaña. Eso no significa cero.',
     }),
     dataSheet({
@@ -150,7 +149,7 @@ export function buildSummaryXlsx(input: SummaryXlsxInput): BuiltXlsx {
       note: 'Consumo que los agricultores registraron y publicaron desde la app. Es un dato distinto de la necesidad declarada.',
       headers,
       widths,
-      rows: pending ? [] : rowsOf(consumption, summary.disclosure.threshold, offset),
+      rows: pending ? [] : rowsOf(consumption, offset),
       emptyText: pending ? 'Sin datos disponibles.' : 'Sin consumo publicado en esta campaña. Eso no significa cero.',
       tabColor: '0EA5E9',
     }),

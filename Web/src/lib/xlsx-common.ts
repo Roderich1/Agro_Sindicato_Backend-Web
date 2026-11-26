@@ -88,11 +88,10 @@ export function publishedQuantity(input: {
   baseUnit: 'ML' | 'G';
   presentationUnit: 'L' | 'KG';
   pending?: boolean;
-  threshold?: number | null;
 }): { cell: XlsxCell; explanation: string } {
   if (input.status !== 'DISCLOSED') {
     // Aunque llegara un número por error en una celda no publicada, no se exporta.
-    return { cell: null, explanation: statusReason(input.status, input.threshold) ?? `Sin cifra (${STATUS_LABEL[input.status] ?? input.status}).` };
+    return { cell: null, explanation: statusReason(input.status) ?? `Sin cifra (${STATUS_LABEL[input.status] ?? input.status}).` };
   }
   const computed = input.base === null ? null : toPresentation(input.base);
   const coherent =

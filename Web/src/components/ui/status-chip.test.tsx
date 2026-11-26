@@ -23,10 +23,10 @@ const DISCLOSURE: { status: AnyStatus; label: string }[] = [
 
 describe('StatusChip: estados de divulgación', () => {
   it.each(DISCLOSURE)('$status: texto en español y motivo en title', ({ status, label }) => {
-    render(<StatusChip status={status} threshold={3} testId="chip" />);
+    render(<StatusChip status={status} testId="chip" />);
     const chip = screen.getByTestId('chip');
     expect(chip.textContent).toBe(label);
-    const reason = statusReason(status, 3);
+    const reason = statusReason(status);
     if (status === 'DISCLOSED') {
       expect(reason).toBeNull();
       expect(chip.getAttribute('title')).toBeNull();
@@ -39,7 +39,7 @@ describe('StatusChip: estados de divulgación', () => {
   // Reescrita por E4 §5.1: el motivo nombra la política F07-POL-01 con el umbral recibido (antes «Menos de 5 agricultores…
   // para no revelar aportes individuales»). Se conserva que usa el umbral recibido y no da conteos exactos.
   it('el motivo bajo umbral usa el umbral recibido, con su política y sin conteos exactos', () => {
-    render(<StatusChip status="SUPPRESSED_UNDER_THRESHOLD" threshold={5} testId="chip" />);
+    render(<StatusChip status="SUPPRESSED_UNDER_THRESHOLD" testId="chip" />);
     const title = screen.getByTestId('chip').getAttribute('title') ?? '';
     expect(title).toBe('Sin datos disponibles.');
     expect(title).not.toMatch(/privacidad|anónim/i);

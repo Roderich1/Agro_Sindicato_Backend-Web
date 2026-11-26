@@ -49,7 +49,7 @@ export function SummaryError({ kind, text, onRetry, onLogout }: { kind: DataStat
 }
 
 /** «Necesidades declaradas»: buscador y filtros en el navegador sobre la respuesta ya recibida. */
-export function NeedsSection({ needs, threshold }: { needs: SummaryCell[]; threshold: number | null }) {
+export function NeedsSection({ needs }: Readonly<{ needs: SummaryCell[] }>) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<NeedsFilter>('all');
   const term = query.trim().toLocaleLowerCase('es');
@@ -105,7 +105,7 @@ export function NeedsSection({ needs, threshold }: { needs: SummaryCell[]; thres
                 }}
               />
             ) : (
-              <NeedsBars cells={visible} threshold={threshold} />
+              <NeedsBars cells={visible} />
             )}
           </div>
           <p className="mt-4 flex items-start gap-2 text-sm leading-relaxed text-ink-muted" data-testid="needs-footnote">
@@ -121,7 +121,7 @@ export function NeedsSection({ needs, threshold }: { needs: SummaryCell[]; thres
 }
 
 /** «Consumo publicado» (H-22): otro dato; no se resta ni se compara con la necesidad. */
-export function ConsumptionCard({ cells, threshold }: { cells: SummaryCell[]; threshold: number | null }) {
+export function ConsumptionCard({ cells }: { cells: SummaryCell[] }) {
   return (
     <section aria-labelledby="consumo-publicado" className="rounded-card border border-line bg-surface px-5 py-6 shadow-card sm:px-7" data-testid="consumption">
       <h2 id="consumo-publicado" className="text-2xl font-bold text-ink">
@@ -132,7 +132,7 @@ export function ConsumptionCard({ cells, threshold }: { cells: SummaryCell[]; th
         <p className="mt-3 text-sm text-ink-muted">Sin consumo publicado en esta campaña. Eso no significa cero.</p>
       ) : (
         <div className="mt-2">
-          <NeedsBars cells={cells} threshold={threshold} bars={false} />
+          <NeedsBars cells={cells} bars={false} />
         </div>
       )}
     </section>

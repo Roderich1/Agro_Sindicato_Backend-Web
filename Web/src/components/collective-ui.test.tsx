@@ -10,10 +10,10 @@ afterEach(cleanup);
 /** Rediseño 2026-11-10: el StatusBadge colectivo delega en StatusChip sin cambiar sus reglas. */
 describe('StatusBadge colectivo (delegado en StatusChip)', () => {
   it('mismo texto y motivo en title', () => {
-    render(<StatusBadge status="SUPPRESSED_UNDER_THRESHOLD" threshold={3} />);
+    render(<StatusBadge status="SUPPRESSED_UNDER_THRESHOLD" />);
     // E4 §5.1: el estado de F07-POL-01 se rotula con su política (antes «Oculto por privacidad»).
     const chip = screen.getByText('Sin datos disponibles');
-    expect(chip.getAttribute('title')).toBe(statusReason('SUPPRESSED_UNDER_THRESHOLD', 3));
+    expect(chip.getAttribute('title')).toBe(statusReason('SUPPRESSED_UNDER_THRESHOLD'));
   });
 
   it('un estado desconocido se muestra como «Sin datos disponibles», nunca como código en bruto', () => {
@@ -47,7 +47,7 @@ describe('CoverageBanner y ComparisonBars: cifras grandes', () => {
       asOf: null,
       pending: false,
     };
-    render(<ComparisonBars rows={[row]} unit="L" threshold={3} />);
+    render(<ComparisonBars rows={[row]} unit="L" />);
     const figure = screen.getByText('123.456.789,012 L');
     expect(figure.className).toContain('min-w-44');
     expect(figure.className).not.toMatch(/(^|\s)w-44/);

@@ -171,13 +171,13 @@ export function CollectiveSummaryPage() {
                     />
                   </Card>
                 ) : (
-                  <NeedsSection needs={needs} threshold={summary.disclosure.threshold} />
+                  <NeedsSection needs={needs} />
                 )}
               </div>
             )}
             {summary && (
               <div className="min-w-0 space-y-6 xl:col-start-2 xl:row-start-2">
-                {!policyPending && <ConsumptionCard cells={consumption} threshold={summary.disclosure.threshold} />}
+                {!policyPending && <ConsumptionCard cells={consumption} />}
                 <VersionCard
                   seal={summary.seal}
                   status={summary.campaign.status}

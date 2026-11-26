@@ -85,7 +85,7 @@ export function Ejecutivo(props: VariantProps) {
                   {needs.length === 0 ? (
                     <DataState state="empty" title="Sin necesidades publicadas" description="Ningún agricultor publicó una necesidad declarada en esta campaña. Eso no significa cero." />
                   ) : (
-                    <TopBars groups={needs} threshold={summary.disclosure.threshold} />
+                    <TopBars groups={needs} />
                   )}
                 </Section>
               )}
@@ -138,13 +138,13 @@ export function Ejecutivo(props: VariantProps) {
           {synthetic && (
             <>
               <Collapsible title="Consumo publicado" testId="consumption">
-                <ConsumptionList groups={consumption} threshold={summary.disclosure.threshold} />
+                <ConsumptionList groups={consumption} />
               </Collapsible>
               <Collapsible title="Tabla completa: cifras, aportantes y fechas" testId="detail-table">
                 {needs.length === 0 ? (
                   <p className="px-5 py-3 text-sm text-slate-600">Sin necesidades publicadas. Eso no significa cero.</p>
                 ) : (
-                  <DetailTable groups={needs} caption="Necesidades declaradas por producto, con aportantes y fecha de cada cifra" threshold={summary.disclosure.threshold} />
+                  <DetailTable groups={needs} caption="Necesidades declaradas por producto, con aportantes y fecha de cada cifra" />
                 )}
               </Collapsible>
             </>
@@ -221,7 +221,7 @@ function Kpis({ summary, isActive }: { summary: CollectiveSummary; isActive: boo
 
 const TOP = 5;
 
-function TopBars({ groups: all, threshold }: { groups: Group[]; threshold: number | null }) {
+function TopBars({ groups: all }: { groups: Group[] }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   return (
     <div className="grid gap-y-6 px-5 py-4">
@@ -232,7 +232,7 @@ function TopBars({ groups: all, threshold }: { groups: Group[]; threshold: numbe
         const hiddenRest = group.rows.slice(TOP).filter((row) => !row.disclosed).length;
         return (
           <div key={group.unit} className="min-w-0" data-testid={`top-${group.unit}`}>
-            <Bars groups={[shown]} density="compact" threshold={threshold} />
+            <Bars groups={[shown]} density="compact" />
             {group.rows.length > TOP + 1 && (
               <button
                 type="button"

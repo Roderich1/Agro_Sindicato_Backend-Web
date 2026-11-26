@@ -13,7 +13,7 @@ import type { JointPurchaseCallDetail } from '../../types/joint-purchase-calls';
 import { PendingConsentLine } from './call-participants-closing';
 
 /** Procedencia registrada al crear la convocatoria. */
-export function CallProvenance({ call }: { call: JointPurchaseCallDetail }) {
+export function CallProvenance({ call }: Readonly<{ call: JointPurchaseCallDetail }>) {
   const origin = callOriginText(call.origin);
   const row = '[&>dd]:ml-1 [&>dd]:inline [&>dt]:inline';
   return (

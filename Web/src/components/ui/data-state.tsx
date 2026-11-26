@@ -88,9 +88,8 @@ export interface DataStateProps {
   onRetry?: () => void;
   /** Sólo `no-match`: muestra «Quitar filtros». */
   onClearFilters?: () => void;
-  /** Sólo `restricted`: la explicación por defecto pasa a ser `statusReason(status, threshold)`. */
+  /** Sólo `restricted`: la explicación por defecto pasa a ser `statusReason(status)`. */
   status?: AnyStatus;
-  threshold?: number | null;
   /** Acción adicional propia de la vista (un enlace, por ejemplo). */
   action?: ReactNode;
   /** Versión en línea para una celda, tarjeta o fila. */
@@ -117,9 +116,9 @@ function Spinner({ className }: { className: string }) {
  * desactualizado: icono en un recuadro de color + título + explicación, nunca
  * un «0». El color acompaña; el título dice el estado.
  */
-export function DataState({ state, title, description, onRetry, onClearFilters, status, threshold, action, compact = false, align = 'start', skeletonRows, testId }: DataStateProps) {
+export function DataState({ state, title, description, onRetry, onClearFilters, status, action, compact = false, align = 'start', skeletonRows, testId }: Readonly<DataStateProps>) {
   const base = DEFAULTS[state];
-  const fallback = state === 'restricted' && status ? (statusReason(status, threshold) ?? base.description) : base.description;
+  const fallback = state === 'restricted' && status ? (statusReason(status) ?? base.description) : base.description;
   const text = description ?? fallback;
   const role = state === 'loading' ? 'status' : ALERT_STATES.includes(state) ? 'alert' : undefined;
   const centered = align === 'center';

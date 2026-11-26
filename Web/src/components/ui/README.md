@@ -406,7 +406,7 @@ Textos por defecto (la vista puede sustituir título y explicación):
 | `no-match` | Sin coincidencias | Ningún registro coincide con el filtro aplicado. |
 | `error` | No se pudo cargar la información | Vuelva a intentarlo en un momento. |
 | `forbidden` | Sin permiso | Su rol no tiene acceso a esta información. |
-| `restricted` | Información restringida | `statusReason(status, threshold)` o «Esta cifra no se publica.» |
+| `restricted` | Información restringida | `statusReason(status)` o «Esta cifra no se publica.» |
 | `insufficient` | Datos insuficientes | El servidor indica que no hay datos suficientes. No significa cero. |
 | `stale` | Resultado desactualizado | Este resultado corresponde a una ejecución anterior. |
 | `offline` | Sin conexión con el servidor | La Web no guarda cambios para después. Vuelva a intentarlo cuando tenga conexión. |

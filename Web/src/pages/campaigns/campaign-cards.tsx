@@ -47,6 +47,13 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
   const canManage = Boolean(user && MANAGER_ROLES.includes(user.role));
   if (!canManage) return <span className={`self-center text-xs ${onDark ? 'text-on-ink-muted' : 'text-ink-muted'}`}>Sólo consulta</span>;
 
+  let coverageText = 'Cobertura no disponible.';
+  if (coverageLoading) {
+    coverageText = 'Cargando cobertura…';
+  } else if (coverage) {
+    coverageText = `Cobertura disponible: ${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados con aportes publicados.`;
+  }
+
   const terminal = campaign.status === 'CERRADA' || campaign.status === 'CANCELADA';
   const variant = onDark ? 'on-dark' : 'secondary';
   const size = onDark ? 'md' : 'sm';
@@ -137,9 +144,7 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
             El cierre es definitivo. Los datos recibidos hasta ese momento se guardan en el histórico. Después se podrán retirar autorizaciones.
           </Notice>
           <p className="mt-3 text-sm text-ink-muted" aria-live="polite">
-            {coverageLoading ? 'Cargando cobertura…' : coverage
-              ? `Cobertura disponible: ${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados con aportes publicados.`
-              : 'Cobertura no disponible.'}
+            {coverageText}
           </p>
           <p className="mt-2 text-sm text-ink-muted">Los teléfonos desconectados no detienen el cierre.</p>
         </ConfirmDialog>

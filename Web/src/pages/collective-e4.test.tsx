@@ -1,9 +1,8 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdentificationPendingContext } from '../contexts/identification-pending';
 import { buildSummaryXlsx } from '../lib/collective-summary-xlsx';
-import { scopeHistory } from '../lib/history-scope';
-import { buildTrendsXlsx } from '../lib/trends-xlsx';
+import { downloadTrendsXlsx } from '../lib/trends-xlsx';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
 import { point, sealStateWith, trendsWith } from '../test/fixtures';
@@ -17,6 +16,10 @@ vi.mock('../services/collective.service', () => ({
   collectiveService: { summary: vi.fn(), sealState: vi.fn(), seal: vi.fn(), generateProposal: vi.fn(), trends: vi.fn() },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn() } }));
+vi.mock('../lib/trends-xlsx', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/trends-xlsx')>();
+  return { ...actual, downloadTrendsXlsx: vi.fn(actual.buildTrendsXlsx) };
+});
 
 /*
  * E4 §5 en las vistas colectivas, con las formas de
@@ -180,12 +183,51 @@ describe('E4: tendencias con la política de cada campaña sellada (§4.3)', () 
     expect(document.body.textContent).not.toMatch(RETIRED_TEXTS);
   });
 
-  it('Excel: respeta la campaña y el producto seleccionados', () => {
-    const scoped = scopeHistory(trends(), { campaignId: 'c-2025', productKey: 'p-0002|G' });
-    const { sheets } = readXlsx(buildTrendsXlsx({ trends: scoped, type: 'CONSUMPTION_TOTAL', exportedAt: new Date('2026-11-13T17:00:00.000Z') }).bytes);
+  it('Excel: vuelve a consultar el tipo activo y respeta la campaña y el producto seleccionados', async () => {
+    const history = trends();
+    const need: TrendSeries = { ...series, projection_type: 'DECLARED_NEED' };
+    const other: TrendSeries = { ...need, product_ref: 'other', product_name: 'Otro producto' };
+    vi.mocked(collectiveService.trends).mockImplementation(async (type) =>
+      type === 'DECLARED_NEED' ? { ...history, series: [other, need] } : history,
+    );
+    renderAt(<CollectiveTrendsPage />, { path: '/colectivo/tendencias' });
+    await screen.findByTestId('series-CONSUMPTION_TOTAL-Producto sintético P2-G');
+    fireEvent.click(screen.getByRole('button', { name: 'Necesidad declarada' }));
+    await screen.findByTestId('series-DECLARED_NEED-Otro producto-G');
+    fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: 'c-2025' } });
+    fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-0002|G' } });
+    expect(screen.getByTestId('series-DECLARED_NEED-Producto sintético P2-G')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar Excel' }));
+    await waitFor(() => expect(downloadTrendsXlsx).toHaveBeenCalledOnce());
+    expect(collectiveService.trends).toHaveBeenNthCalledWith(3, 'DECLARED_NEED');
+    expect(downloadTrendsXlsx).toHaveBeenCalledWith(expect.objectContaining({ type: 'DECLARED_NEED' }));
+    const workbook = vi.mocked(downloadTrendsXlsx).mock.results[0]!.value;
+    const { sheets } = readXlsx(workbook.bytes);
     const cover = sheets.get('Tendencias')!;
     expect(cover.text).not.toMatch(RETIRED_TEXTS);
     expect(sheets.get('Campañas')!.text).toContain('Campaña 2025');
     expect(sheets.get('Campañas')!.text).not.toContain('Campaña 2024');
+    expect(sheets.get('Detalle')!.text).toContain('Producto sintético P2');
+    expect(sheets.get('Detalle')!.text).not.toContain('Otro producto');
+  });
+
+  it('mantiene el tipo elegido aunque la consulta anterior termine después', async () => {
+    const history = trends();
+    let finishConsumption!: (value: typeof history) => void;
+    const consumption = new Promise<typeof history>((resolve) => { finishConsumption = resolve; });
+    const need: TrendSeries = { ...series, projection_type: 'DECLARED_NEED' };
+    vi.mocked(collectiveService.trends).mockImplementation(async (type) =>
+      type === 'DECLARED_NEED' ? { ...history, series: [need] } : consumption,
+    );
+    renderAt(<CollectiveTrendsPage />, { path: '/colectivo/tendencias' });
+    await waitFor(() => expect(collectiveService.trends).toHaveBeenCalledWith('CONSUMPTION_TOTAL'));
+    fireEvent.click(screen.getByRole('button', { name: 'Necesidad declarada' }));
+    await screen.findByTestId('series-DECLARED_NEED-Producto sintético P2-G');
+
+    await act(async () => finishConsumption(history));
+
+    expect(screen.queryByTestId('series-CONSUMPTION_TOTAL-Producto sintético P2-G')).toBeNull();
+    expect(screen.getByTestId('series-DECLARED_NEED-Producto sintético P2-G')).toBeTruthy();
   });
 });

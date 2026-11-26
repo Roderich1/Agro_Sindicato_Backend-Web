@@ -92,7 +92,7 @@ describe('Chips', () => {
   it('StatusChip «Oculto por privacidad» usa el estilo oculto; «Abierta», el punto', () => {
     render(
       <>
-        <StatusChip status="SUPPRESSED_UNDER_THRESHOLD" threshold={3} testId="s" />
+        <StatusChip status="SUPPRESSED_UNDER_THRESHOLD" testId="s" />
         <StatusChip status="ABIERTA" testId="a" />
       </>,
     );
