@@ -63,7 +63,7 @@ describe('NeedsBars (variante «Analítica comparativa»)', () => {
     }
     // E4 §5.1: el motivo nombra la política que produjo el estado (antes «Menos de 3 agricultores»), sin «privacidad».
     const previous = row(byName('Fungicida protectante Mancozeb 80 % WP en bolsa de 25 kg')).textContent;
-    expect(previous).toMatch(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/);
+    expect(previous).toMatch(/Sin datos disponibles/);
     expect(previous).not.toMatch(/privacidad|anónim/i);
   });
 

@@ -194,7 +194,7 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
       'Referencia de la campaña',
       'Referencia de la versión histórica',
     ],
-    widths: [30, 16, 20, 12, 20, 34, 14, 14, 12, 38, 38],
+    widths: [30, 16, 20, 12, 20, 14, 14, 12, 38, 38],
     rows: trends.campaigns.map((campaign): XlsxCell[] => [
       text(campaign.name, 'strong'),
       text(campaignStatusText(campaign.status)),

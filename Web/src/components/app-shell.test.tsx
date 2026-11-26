@@ -103,13 +103,13 @@ describe('AppShell: menú por tareas', () => {
     const nav = mainNav();
     const toggle = within(nav).getByRole('button', { name: 'Mostrar las vistas de Histórico' });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(within(nav).queryByRole('link', { name: 'Histórico sellado' })).toBeNull();
+    expect(within(nav).queryByRole('link', { name: 'Histórico de campañas' })).toBeNull();
     fireEvent.click(toggle);
     const hide = within(nav).getByRole('button', { name: 'Ocultar las vistas de Histórico' });
     expect(hide.getAttribute('aria-expanded')).toBe('true');
-    expect(within(nav).getByRole('link', { name: 'Histórico sellado' }).getAttribute('href')).toBe(`${COLLECTIVE_PATHS.history}?vista=tendencias`);
+    expect(within(nav).getByRole('link', { name: 'Histórico de campañas' }).getAttribute('href')).toBe(`${COLLECTIVE_PATHS.history}?vista=tendencias`);
     // Fuera de su sección, ninguna subvista se marca como la actual.
-    expect(within(nav).getByRole('link', { name: 'Histórico sellado' }).getAttribute('aria-current')).toBeNull();
+    expect(within(nav).getByRole('link', { name: 'Histórico de campañas' }).getAttribute('aria-current')).toBeNull();
   });
 
   it('el ítem activo se distingue también por texto y peso, no sólo por color; los iconos son decorativos', () => {
@@ -279,7 +279,7 @@ describe('AppShell: teléfono', () => {
     expect(within(list).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([COLLECTIVE_PATHS.history, '/campaigns', '/audit-logs']);
     const history = within(list).getByRole('link', { name: 'Histórico y estimaciones' });
     expect(history.getAttribute('aria-describedby')).toBeTruthy();
-    expect(document.getElementById(history.getAttribute('aria-describedby')!)!.textContent).toBe('Campañas selladas y consumo estimado');
+    expect(document.getElementById(history.getAttribute('aria-describedby')!)!.textContent).toBe('Histórico por campaña y consumo estimado');
     expect(within(dialog).queryByRole('link', { name: 'Usuarios' })).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Cerrar sesión' })).toBeTruthy();
   });

@@ -10,15 +10,15 @@ afterEach(cleanup);
 const DISCLOSURE: { status: AnyStatus; label: string }[] = [
   { status: 'DISCLOSED', label: 'Publicado' },
   // E4 §5.1: rotulado con su política (antes «Oculto por privacidad»).
-  { status: 'SUPPRESSED_UNDER_THRESHOLD', label: 'Sin cifra (F07-POL-01)' },
+  { status: 'SUPPRESSED_UNDER_THRESHOLD', label: 'Sin datos disponibles' },
   { status: 'SUPPRESSED_REVISION', label: 'Sin cifra publicada' },
   { status: 'OVERFLOW', label: 'Fuera de rango' },
   { status: 'WITHDRAWN', label: 'Retirado' },
   { status: 'SUPERSEDED', label: 'Sustituido' },
-  { status: 'POLICY_PENDING', label: 'Política pendiente' },
-  { status: 'WITHDRAWN_AFTER_SEAL', label: 'Retirado tras sellar' },
+  { status: 'POLICY_PENDING', label: 'Sin datos disponibles' },
+  { status: 'WITHDRAWN_AFTER_SEAL', label: 'Datos retirados' },
   { status: 'NO_DATA', label: 'Sin cifra publicada' },
-  { status: 'NOT_SEALED', label: 'Sin sellar' },
+  { status: 'NOT_SEALED', label: 'Sin resultados históricos' },
 ];
 
 describe('StatusChip: estados de divulgación', () => {
@@ -41,7 +41,7 @@ describe('StatusChip: estados de divulgación', () => {
   it('el motivo bajo umbral usa el umbral recibido, con su política y sin conteos exactos', () => {
     render(<StatusChip status="SUPPRESSED_UNDER_THRESHOLD" threshold={5} testId="chip" />);
     const title = screen.getByTestId('chip').getAttribute('title') ?? '';
-    expect(title).toBe('Sin cifra según la política F07-POL-01 (mínimo de 5 aportantes).');
+    expect(title).toBe('Sin datos disponibles.');
     expect(title).not.toMatch(/privacidad|anónim/i);
   });
 });

@@ -12,13 +12,13 @@ describe('StatusBadge colectivo (delegado en StatusChip)', () => {
   it('mismo texto y motivo en title', () => {
     render(<StatusBadge status="SUPPRESSED_UNDER_THRESHOLD" threshold={3} />);
     // E4 §5.1: el estado de F07-POL-01 se rotula con su política (antes «Oculto por privacidad»).
-    const chip = screen.getByText('Sin cifra (F07-POL-01)');
+    const chip = screen.getByText('Sin datos disponibles');
     expect(chip.getAttribute('title')).toBe(statusReason('SUPPRESSED_UNDER_THRESHOLD', 3));
   });
 
-  it('un estado desconocido se muestra como «Política pendiente», nunca como código en bruto', () => {
+  it('un estado desconocido se muestra como «Sin datos disponibles», nunca como código en bruto', () => {
     render(<StatusBadge status={'ESTADO_FUTURO' as AnyStatus} />);
-    expect(screen.getByText('Política pendiente')).toBeTruthy();
+    expect(screen.getByText('Sin datos disponibles')).toBeTruthy();
     expect(screen.queryByText('ESTADO_FUTURO')).toBeNull();
   });
 });

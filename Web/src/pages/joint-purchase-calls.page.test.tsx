@@ -223,7 +223,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     // Rediseño v2 (lámina 09): la campaña ya no se repite en cada tarjeta; es la elegida en el selector de la cabecera.
     expect((screen.getByLabelText('Campaña') as HTMLSelectElement).value).toBe(CAMPAIGN.id);
     expect(screen.getByRole('option', { name: new RegExp(CAMPAIGN.name) })).toBeTruthy();
-    expect(within(row).getByText('Responsable sintética')).toBeTruthy();
+    expect(within(row).queryByText('Responsable sintética')).toBeNull();
     expect(within(row).getByText('4')).toBeTruthy();
     expect(within(screen.getByTestId('call-row-c-2')).getByText('Borrador')).toBeTruthy();
   });

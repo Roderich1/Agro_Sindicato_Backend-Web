@@ -57,15 +57,15 @@ describe('Histórico y estimaciones (contenedor)', () => {
     serveEstimation(estimationFx.demo);
   });
 
-  it('abre «Histórico sellado» por defecto y no pide la estimación', async () => {
+  it('abre «Histórico de campañas» por defecto y no pide la estimación', async () => {
     render('');
     // El h1 lo pone PageHeader (AppShell también lo pone hasta la fase 2 de A); cada vista va como h2.
     // Rediseño v2 (láminas 25 y 26): cada vista lleva su propio título de nivel 1; el contenedor no repite otro.
-    expect(await screen.findByRole('heading', { level: 1, name: 'Histórico sellado' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Histórico de campañas' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Histórico y estimaciones' })).toBeNull();
     expect(await screen.findByTestId('trend-chart')).toBeTruthy();
     const group = screen.getByRole('group', { name: 'Vista' });
-    expect(within(group).getByRole('button', { name: 'Histórico sellado' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(group).getByRole('button', { name: 'Histórico de campañas' }).getAttribute('aria-pressed')).toBe('true');
     expect(estimationService.results).not.toHaveBeenCalled();
   });
 
@@ -73,15 +73,15 @@ describe('Histórico y estimaciones (contenedor)', () => {
     // Toda descarga (el Excel) pasa por un enlace temporal: ninguno se pulsa al abrir o cambiar de vista.
     const download = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     render(`?campaign=${CAMPAIGN.id}`);
-    await screen.findByTestId('trend-chart');
+    await screen.findByText('Sin datos disponibles');
     fireEvent.click(screen.getByRole('button', { name: 'Estimación del consumo' }));
     await screen.findByTestId('result-Glifosato');
     const search = new URLSearchParams(screen.getByTestId('location').textContent!);
     expect(search.get('vista')).toBe('estimacion');
     expect(search.get('campaign')).toBe(CAMPAIGN.id);
     expect(estimationService.results).toHaveBeenCalledWith(CAMPAIGN.id);
-    fireEvent.click(screen.getByRole('button', { name: 'Histórico sellado' }));
-    await screen.findByTestId('trend-chart');
+    fireEvent.click(screen.getByRole('button', { name: 'Histórico de campañas' }));
+    await screen.findByText('Sin datos disponibles');
     expect(new URLSearchParams(screen.getByTestId('location').textContent!).get('campaign')).toBe(CAMPAIGN.id);
     // Abrir y cambiar de vista sólo consulta: ningún trabajo de estimación ni descarga.
     expect(estimationService.request).not.toHaveBeenCalled();
@@ -110,12 +110,12 @@ describe('Histórico y estimaciones (contenedor)', () => {
       'sin dato',
       'retirado',
       // E4 §5.1: el hueco de F07-POL-01 se rotula con su política (antes «oculto»).
-      'sin cifra (F07-POL-01)',
+      'sin datos disponibles',
       'en revisión',
     ]);
     expect(chart.textContent).toMatch(/123\.456\.789,012 L/);
     expect(chart.textContent).toMatch(/0,025 L/);
-    expect(chart.getAttribute('aria-label')).toMatch(/4 de 8 campañas selladas/);
+    expect(chart.getAttribute('aria-label')).toMatch(/4 de 8 campañas/);
     const compact = screen.getByTestId('trend-chart-compact');
     expect(compact.querySelectorAll('li')).toHaveLength(8);
     expect(compact.textContent).toMatch(/Invierno 2020 – Comunidad Villa Esperanza del Valle Alto/);
@@ -146,7 +146,7 @@ describe('Histórico y estimaciones (contenedor)', () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsFx.empty);
     serveEstimation(estimationFx.empty);
     const view = render('');
-    expect(await screen.findByText('Sin series selladas')).toBeTruthy();
+    expect(await screen.findByText('Sin datos disponibles')).toBeTruthy();
     view.unmount();
     render(`?vista=estimacion&campaign=${CAMPAIGN.id}`);
     expect(await screen.findByText(/Todavía no hay ninguna estimación/)).toBeTruthy();
@@ -157,7 +157,7 @@ describe('Histórico y estimaciones (contenedor)', () => {
     serveEstimation(estimationFx.one);
     const view = render('');
     const chart = await screen.findByTestId('trend-chart');
-    expect(chart.getAttribute('aria-label')).toMatch(/1 de 1 campañas selladas/);
+    expect(chart.getAttribute('aria-label')).toMatch(/1 de 1 campañas/);
     view.unmount();
     render(`?vista=estimacion&campaign=${CAMPAIGN.id}`);
     expect(within(await screen.findByTestId('result-Urea')).getByTestId('estimate').textContent).toMatch(/^1 KG/);

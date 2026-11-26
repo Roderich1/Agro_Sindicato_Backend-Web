@@ -12,8 +12,8 @@ import { CampaignsPage } from './campaigns.page';
 vi.mock('../services/campaigns.service', () => ({
   campaignsService: { list: vi.fn(), active: vi.fn(), create: vi.fn(), update: vi.fn(), open: vi.fn(), close: vi.fn() },
 }));
-// H-25 (rediseño v2): «Sellada · versión N» sale de una sola lectura de `GET /collective/trends`.
-vi.mock('../services/collective.service', () => ({ collectiveService: { trends: vi.fn() } }));
+// H-25 (rediseño v2): «Histórico disponible» sale de una sola lectura de `GET /collective/trends`.
+vi.mock('../services/collective.service', () => ({ collectiveService: { trends: vi.fn(), closePreview: vi.fn() } }));
 
 function show(list: Campaign[], { role = 'DIRECTIVA', active = fixtures.activeOf(list) }: { role?: string; active?: Campaign | null } = {}) {
   vi.mocked(campaignsService.list).mockResolvedValue(list);
@@ -79,17 +79,17 @@ describe('Campañas', () => {
     expect(within(screen.getByTestId('active-campaign')).getByText('Fin estimado vencido · sin cierre registrado')).toBeTruthy();
   });
 
-  it('H-25: «Sellada · versión N» sale de una sola lectura de la serie sellada; sin dato no hay chip', async () => {
+  it('H-25: «Histórico disponible» sale de una sola lectura de la serie sellada; sin dato no hay chip', async () => {
     const sealedCampaign = fixtures.worst.find((campaign) => campaign.id === CAMPAIGN_IDS.worstClosedSealed)!;
     vi.mocked(collectiveService.trends).mockResolvedValue({
       campaigns: [{ campaign_ref: sealedCampaign.id, name: sealedCampaign.name, status: 'CERRADA', start_date: sealedCampaign.startDate, seal: { version: 1 }, coverage: null }],
     } as never);
     show(fixtures.worst);
     await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`);
-    expect(await within(row(sealedCampaign.name)).findByText('Sellada · versión 1')).toBeTruthy();
+    expect(await within(row(sealedCampaign.name)).findByText('Histórico disponible')).toBeTruthy();
     expect(collectiveService.trends).toHaveBeenCalledTimes(1);
     expect(collectiveService.trends).toHaveBeenCalledWith(null);
-    expect(within(row('Campaña de invierno 2025')).queryByText(/Sellada/)).toBeNull();
+    expect(within(row('Campaña de invierno 2025')).queryByText(/Histórico disponible/)).toBeNull();
     // La cobertura de cada campaña no va en la lista (H-18).
     expect(screen.queryByText(/agricultores (vinculados )?con cifras/)).toBeNull();
   });
@@ -105,11 +105,14 @@ describe('Campañas', () => {
   });
 
   it('cerrar conserva la confirmación: nada se envía hasta confirmar', async () => {
+    vi.mocked(collectiveService.closePreview).mockResolvedValue({ coverage: { linked_members: 3, members_with_contribution: 1, suppressed_cells: false } });
     vi.mocked(campaignsService.close).mockResolvedValue({ ...fixtures.worst[0], status: 'CERRADA', isActive: false });
     show(fixtures.worst);
     fireEvent.click(await within(await screen.findByTestId(`campaign-row-${LONG_CAMPAIGN_NAME}`)).findByRole('button', { name: 'Cerrar campaña…' }));
     expect(campaignsService.close).not.toHaveBeenCalled();
-    expect(screen.getByText(/Cerrar no es sellar/)).toBeTruthy();
+    expect(await screen.findByText(/Cobertura disponible: 1 de 3/)).toBeTruthy();
+    expect(collectiveService.closePreview).toHaveBeenCalledWith(CAMPAIGN_IDS.worstActive);
+    expect(screen.getByText(/El cierre es definitivo/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar campaña' }));
     await waitFor(() => expect(campaignsService.close).toHaveBeenCalledWith(CAMPAIGN_IDS.worstActive, { notes: null }));
     // Tras cerrar se vuelven a pedir la lista y la activa de la sesión.

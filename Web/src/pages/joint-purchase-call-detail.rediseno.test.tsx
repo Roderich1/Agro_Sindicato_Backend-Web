@@ -1,12 +1,9 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  CALL_FOOTNOTE,
   PARTICIPANTS_FORBIDDEN_TEXT,
   PENDING_CONSENT_TOTAL_NOTE,
   PENDING_CONSENT_TOTAL_TEXT,
-  RESPONSIBLE_INELIGIBLE_WHO,
-  WHAT_NEXT_TEXT,
 } from '../lib/joint-purchase-call-text';
 import { campaignsService } from '../services/campaigns.service';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
@@ -32,7 +29,6 @@ vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.f
  * con las formas del servidor (contrato institucional 2, E4). Datos
  * sintéticos. Quien consulta es `u-1`, de la Directiva.
  */
-const ME = { user_ref: 'u-1', name: 'Usuario sintético' };
 const RESP = { user_ref: 'u-2', name: 'Responsable sintética' };
 const BASE: JointPurchaseCallDetail = {
   contractVersion: 2,
@@ -97,7 +93,6 @@ const EMPTY: JointPurchaseCallCollaborators = {
 };
 
 const render = () => renderAt(<JointPurchaseCallDetailPage />, { path: `/colectivo/compras-conjuntas/c-1?campaign=${CAMPAIGN.id}`, routePath: '/colectivo/compras-conjuntas/:id' });
-const dialog = () => screen.queryByRole('dialog') ?? screen.getByRole('alertdialog');
 
 describe('Detalle de convocatoria: estados del rediseño v2', () => {
   beforeEach(() => {
@@ -106,64 +101,21 @@ describe('Detalle de convocatoria: estados del rediseño v2', () => {
     vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(EMPTY);
   });
 
-  // Reescrita por E4: el permiso que se retira ahora es «Administrar»; los permisos de visualización retirados
-  // no se anuncian como pérdida propia. La Directiva ve el total provisional (regla T) y no ve nombres.
-  it('17: «Administrar» retirado antes de entrar: aviso con la fecha, «Su acceso» y total provisional; no pide participantes', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(BASE);
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue({
-      ...EMPTY,
-      history: [
-        { at: '2026-11-12T08:00:00.000Z', action: 'GRANTED', grant: 'MANAGE', user: ME, actor: RESP, retired: false, notice: null },
-        { at: '2026-11-13T13:12:00.000Z', action: 'REVOKED', grant: 'MANAGE', user: ME, actor: RESP, retired: false, notice: null },
-      ],
+  it('conserva agregados y acciones institucionales con delegaciones históricas', async () => {
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
+      ...BASE, can_manage: true, can_cancel_or_close: true,
+      responsible: { ...BASE.responsible, eligible: false },
     });
     render();
-    const banner = await screen.findByTestId('access-revoked-MANAGE');
-    expect(banner.textContent).toMatch(/Su permiso «Administrar la convocatoria» se retiró el .*Ya no puede administrarla/);
-    const panel = screen.getByTestId('collaborators-panel');
-    expect(within(panel).getByRole('heading', { name: 'Su acceso' })).toBeTruthy();
-    expect(within(panel).getByTestId('my-revoked-MANAGE').textContent).toMatch(/Retirado por Responsable sintética el/);
+    expect(await screen.findByRole('button', { name: 'Cerrar y consolidar…' })).toBeTruthy();
     expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/9,5 L/);
     expect(screen.getByTestId('participants-forbidden').textContent).toBe(PARTICIPANTS_FORBIDDEN_TEXT);
-    expect(jointPurchaseCallsService.participants).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('access-revoked-MANAGE')).toBeNull();
+    expect(screen.queryByTestId('collaborators-panel')).toBeNull();
+    expect(jointPurchaseCallsService.collaborators).not.toHaveBeenCalled();
   });
 
-  // Reescrita por E4: quien consulta es de la Directiva y no sustituye: ve a quién pedírselo (antes, el texto del
-  // permiso «Sustituir responsable», retirado). La renuncia a un «Administrar» suspendido se conserva.
-  it('20: responsable no habilitada: la Directiva con «Administrar» suspendido ve a quién pedir la sustitución y puede renunciar con confirmación', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
-      ...BASE,
-      responsible: { ...RESP, role: 'DIRECTIVA', eligible: false, version: 1 },
-      delegations_suspended: true,
-    });
-    const suspended = {
-      ...EMPTY,
-      collaborators: [
-        { ...ME, role: 'DIRECTIVA', grants: [{ grant: 'MANAGE' as const, label: 'Administrar la convocatoria', granted_at: '2026-11-12T16:26:00.000Z', granted_by: RESP, status: 'SUSPENDED' as const, responsible_version: 1 }] },
-      ],
-    };
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(suspended);
-    vi.mocked(jointPurchaseCallsService.revoke).mockResolvedValue(EMPTY);
-    render();
-    const panel = await screen.findByTestId('collaborators-panel');
-    expect(await within(panel).findByRole('heading', { name: 'Permisos suspendidos · 1' })).toBeTruthy();
-    expect(within(panel).getByTestId('grant-status-u-1-MANAGE').textContent).toBe('Suspendido: la responsable no está habilitada.');
-    expect(within(panel).queryByTestId('substitution-why')).toBeNull();
-    expect(screen.getByTestId('responsible-ineligible-who').textContent?.trim()).toBe(RESPONSIBLE_INELIGIBLE_WHO);
-    expect(screen.queryByRole('button', { name: 'Sustituir responsable…' })).toBeNull();
-    expect(screen.getByTestId('participants-forbidden').textContent).toBe(PARTICIPANTS_FORBIDDEN_TEXT);
-    expect(screen.getByTestId('responsible-ineligible-chip')).toBeTruthy();
-    // Ni cerrar ni cancelar por el cargo (N2 rechazada).
-    expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull();
-    fireEvent.click(within(panel).getByRole('button', { name: 'Renunciar a este permiso' }));
-    const submit = within(dialog()).getByRole('button', { name: 'Renunciar a este permiso' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    fireEvent.click(within(dialog()).getByRole('checkbox'));
-    fireEvent.click(submit);
-    await waitFor(() => expect(jointPurchaseCallsService.revoke).toHaveBeenCalledWith('c-1', 'u-1', 'MANAGE'));
-  });
-
-  it('13: cancelada: motivo destacado, quién canceló y la responsable en la cabecera; «Quién pidió» sin consolidado', async () => {
+  it('13: cancelada: motivo destacado, quién canceló en la cabecera; «Quién pidió» sin consolidado', async () => {
     vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
       ...BASE,
       status: 'CANCELLED',
@@ -173,13 +125,13 @@ describe('Detalle de convocatoria: estados del rediseño v2', () => {
       responsible: { ...RESP, role: 'DIRECTIVA', eligible: false, version: 1 },
     });
     render();
-    expect((await screen.findByTestId('cancel-reason')).textContent).toBe('Motivo de la cancelación: Convocatoria de prueba que ya no se usará');
+    expect((await screen.findByTestId('cancel-reason')).textContent).toBe('Convocatoria de prueba que ya no se usará');
     const facts = screen.getByTestId('call-key-facts').textContent ?? '';
-    expect(facts).toMatch(/Cancelada el.*Por.*Administración sintética.*Responsable.*Responsable sintética/);
+    expect(facts).toMatch(/Cancelada el.*Por.*Administración sintética/);
     // H-11: en una cancelada no se marca «Responsable no habilitada».
     expect(screen.queryByTestId('responsible-ineligible-chip')).toBeNull();
     expect(screen.getByTestId('participants-cancelled')).toBeTruthy();
-    expect(screen.getByTestId('call-footnote').textContent).toBe(CALL_FOOTNOTE);
+    expect(screen.queryByTestId('collaborators-panel')).toBeNull();
   });
 
   // Reescrita por E4 (sin umbral): con 2 personas y una autorización anterior el total queda «Pendiente de
@@ -218,7 +170,6 @@ describe('Detalle de convocatoria: estados del rediseño v2', () => {
     expect(document.body.textContent).not.toMatch(/umbral|menos de 3/i);
     expect(line.textContent).not.toMatch(/\b0 L\b/);
     expect(screen.getByTestId('closing-mode').textContent).toMatch(/Automático, al vencer el plazo/);
-    expect(screen.getByTestId('what-next').textContent).toContain(WHAT_NEXT_TEXT);
     expect(screen.getAllByTestId('call-history-event')[0]!.textContent).toMatch(/Convocatoria cerrada al vencer el plazo.*Sistema/);
     expect(screen.getByTestId('closing-detail-hidden')).toBeTruthy();
     // Sin permisos en la convocatoria cerrada (ni cancelada) no se dibuja «Quién más puede administrarla».

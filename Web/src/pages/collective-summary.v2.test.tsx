@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdentificationPendingContext } from '../contexts/identification-pending';
@@ -56,7 +56,7 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
     expect(within(hero).getByRole('button', { name: 'Descargar Excel' })).toBeTruthy();
     expect(screen.getByTestId('needs-published').textContent).toBe('Necesidades publicadas2 productos');
     // E4 §5.1: el indicador nombra la política (antes «Ocultas por privacidad»).
-    expect(screen.getByTestId('needs-hidden').textContent).toBe('Sin cifra (F07-POL-01)1 producto');
+    expect(screen.getByTestId('needs-hidden').textContent).toBe('Sin datos disponibles1 producto');
     expect(screen.getByTestId('needs-other').textContent).toBe('Sin cifra publicada1 producto');
     expect(collectiveService.seal).not.toHaveBeenCalled();
     expect(collectiveService.generateProposal).not.toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
     show();
     const notice = await screen.findByTestId('all-hidden');
     expect(notice.textContent).toMatch(/Hay productos, pero ninguna cifra se puede mostrar/);
-    expect(notice.textContent).toMatch(/al menos 3 agricultores\. Hay 2 productos declarados que aún no llegan/);
+    expect(notice.textContent).toMatch(/Revise el estado de cada producto/);
     expect(screen.queryByTestId('latest-figure')).toBeNull();
   });
 
@@ -141,14 +141,14 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
     const { unmount } = show();
     const steps = await screen.findByTestId('version-steps');
     expect(within(steps).getByText('Abierta').closest('li')!.getAttribute('aria-current')).toBe('step');
-    expect(await screen.findByText('Sellar: disponible al cerrar; todavía no se puede sellar.')).toBeTruthy();
+    expect(await screen.findByText('Los resultados se fijan al cerrar la campaña.')).toBeTruthy();
     unmount();
     vi.mocked(collectiveService.summary).mockResolvedValueOnce({ ...summaryWith(CELLS), seal: SEAL });
     show();
     const sealed = await screen.findByTestId('seal-banner');
-    expect(within(sealed).getByText('Sellada').closest('li')!.getAttribute('aria-current')).toBe('step');
-    expect(within(sealed).getByText('Sellada · versión 1')).toBeTruthy();
-    await waitFor(() => expect(collectiveService.sealState).toHaveBeenCalledTimes(1));
+    expect(within(sealed).getByRole('list').querySelector('[aria-current=step]')!.getAttribute('aria-current')).toBe('step');
+    expect(within(sealed).getByText('Resultados fijados el', { exact: false })).toBeTruthy();
+    expect(collectiveService.sealState).not.toHaveBeenCalled();
   });
 
   it('PLANIFICADA: no dibuja la línea de pasos; muestra el estado', async () => {

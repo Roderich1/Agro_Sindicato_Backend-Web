@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CLOSE_IMPLICATION,
   fmtWhen,
-  MANAGE_ONLY_TEXT,
   NOT_A_PURCHASE_TEXT,
   OPEN_ACCESS_LINE,
   OPEN_IMPLICATIONS,
@@ -294,7 +293,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     expect(jointPurchaseCallsService.get).toHaveBeenCalledWith('c-1');
     // Rediseño v2 (lámina 10): los datos clave van en la cabecera; en un borrador, «Los agricultores: Aún no la ven».
     const facts = screen.getByTestId('call-key-facts');
-    expect(facts.textContent).toMatch(/Responsable sintética/);
+    expect(facts.textContent).not.toMatch(/Responsable sintética/);
     expect(facts.textContent).toMatch(/Aún no la ven/);
     expect(screen.getByTestId('draft-requests').textContent).toMatch(/Nadie puede pedir todavía/);
     expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/Necesidad declarada en el borrador: 120 L/);
@@ -703,7 +702,7 @@ describe('Compras conjuntas: gestión por rol y consentimiento', () => {
     expect(anyDialog()).toBeNull();
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull());
     expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2);
-    expect(screen.getByTestId('manage-note').textContent).toBe(MANAGE_ONLY_TEXT);
+    expect(screen.queryByTestId('manage-note')).toBeNull();
   });
 
   it('403 MANAGE_FORBIDDEN al guardar el borrador: cierra el formulario, lo explica y recarga', async () => {
@@ -825,7 +824,7 @@ describe('Compras conjuntas: gestión por rol y consentimiento', () => {
       window.dispatchEvent(new Event('focus'));
     });
     await screen.findByTestId('participants-revoked');
-    expect(requestSessionRevalidation).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(requestSessionRevalidation).toHaveBeenCalledTimes(1));
   });
 
   // Reescrita por E4: el permiso que cambia la lista de colaboradores es ahora «Administrar».

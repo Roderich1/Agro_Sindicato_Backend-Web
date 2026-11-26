@@ -84,7 +84,7 @@ describe('Chips', () => {
     expect(screen.getByTestId('c').textContent).toBe('Datos sintéticos');
     const privacy = screen.getByTestId('p');
     // E4 §5.1: texto por defecto con la política que produce el estado (antes «Oculta por privacidad»).
-    expect(privacy.textContent).toBe('Sin cifra (F07-POL-01)');
+    expect(privacy.textContent).toBe('Sin datos disponibles');
     expect(privacy.className).toContain('ui-dashed');
     expect(container.querySelectorAll('svg[aria-hidden="true"]').length).toBe(1);
   });
@@ -255,7 +255,7 @@ describe('DataState: estados de la lámina 05', () => {
   it.each([
     ['offline', 'Sin conexión con el servidor', 'alert'],
     ['busy', 'El servidor está ocupado', 'alert'],
-    ['policy-pending', 'Las cifras todavía no se pueden mostrar', null],
+    ['policy-pending', 'Sin datos disponibles', null],
   ] as const)('%s: título propio, sin cifras', (state, title, role) => {
     render(<DataState state={state} testId="ds" />);
     const node = screen.getByTestId('ds');

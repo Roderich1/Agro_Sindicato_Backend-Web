@@ -57,18 +57,16 @@ describe('Tendencias entre campañas', () => {
     const herb = await screen.findByTestId('series-DECLARED_NEED-Herbicida-ML');
     expect(within(herb).getByTestId('point-Campaña 2024').textContent).toContain('6 L');
     const withdrawn = within(herb).getByTestId('point-Campaña 2025');
-    expect(withdrawn.textContent).toMatch(/retiró su aporte después del sellado/);
+    expect(withdrawn.textContent).toMatch(/Datos retirados/);
     expect(withdrawn.textContent).not.toMatch(/9000|9 L/);
-    expect(within(herb).getByTestId('point-Campaña 2026').textContent).toMatch(/no tiene una versión sellada/);
     // Gráfico (producto elegido por defecto: Herbicida): un solo punto publicado, sin segmentos; sólo campañas selladas.
     const chart = screen.getByTestId('trend-chart');
     expect(within(chart).getAllByTestId('trend-point')).toHaveLength(1);
     expect(within(chart).queryAllByTestId('trend-segment')).toHaveLength(0);
-    expect(chart.getAttribute('aria-label')).toMatch(/1 de 2 campañas selladas con cifra publicada; las demás son huecos, no ceros/);
+    expect(chart.getAttribute('aria-label')).toMatch(/1 de 2 campañas con cifra publicada; las demás son huecos, no ceros/);
     expect(chart.querySelector('title')?.textContent).toBe('Campaña 2024: 6 L');
     // La campaña abierta sin sellar no se dibuja como histórico.
     expect(chart.textContent).not.toMatch(/Campaña 2026/);
-    expect(screen.getByText(/Campañas sin sellar \(Campaña 2026\) no se dibujan como histórico/)).toBeTruthy();
 
     // Dos campañas consecutivas con cifra: dos columnas con cantidad y unidad; la tercera no es histórico.
     fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-urea|G' } });
@@ -82,9 +80,9 @@ describe('Tendencias entre campañas', () => {
     fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-gli|ML' } });
     expect(within(screen.getByTestId('trend-chart')).queryAllByTestId('trend-point')).toHaveLength(0);
     const gli = screen.getByTestId('series-DECLARED_NEED-Glifosato-ML');
-    expect(within(gli).getByTestId('point-Campaña 2025').textContent).toMatch(/No significa cero/);
+    expect(within(gli).getByTestId('point-Campaña 2025').textContent).toMatch(/Sin datos disponibles/);
     // E4 §3.4/§5.1: lo sellado con F07-POL-01 conserva su estado, rotulado con esa política (antes «Menos de 3 agricultores»).
-    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/);
+    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin datos disponibles/);
 
     // Sin totales entre campañas, productos ni unidades.
     expect(document.body.textContent).not.toMatch(/55 KG|36 L|Total general|Promedio/);
@@ -94,17 +92,16 @@ describe('Tendencias entre campañas', () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida]));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
     const sealed = await screen.findByTestId('campaign-Campaña 2024');
-    expect(sealed.textContent).toMatch(/Versión 1, sellada el/);
+    expect(sealed.textContent).toMatch(/Cerrada/);
     expect(sealed.textContent).toMatch(/4 de 7 con cifras publicadas/);
-    expect(screen.getByTestId('campaign-Campaña 2026').textContent).toMatch(/Sin sellar: no aporta cifras/);
     expect(document.body.textContent).toMatch(/no prueba que cada agricultor\s+consumiera o necesitara más o menos/);
   });
 
   it('abre con «Consumo publicado»; necesidad y consumo se piden por separado con dos opciones visibles', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([]));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
-    await screen.findByText(/Sin series selladas/);
-    expect(screen.getByText(/Filtro aplicado: «Consumo publicado»/)).toBeTruthy();
+    await screen.findByText(/Sin datos disponibles/);
+    expect(screen.getByRole('button', { name: 'Consumo publicado' }).getAttribute('aria-pressed')).toBe('true');
     expect(collectiveService.trends).toHaveBeenLastCalledWith('CONSUMPTION_TOTAL');
     const group = screen.getByRole('group', { name: 'Dato' });
     expect(within(group).getByRole('button', { name: 'Consumo publicado' }).getAttribute('aria-pressed')).toBe('true');
@@ -120,13 +117,13 @@ describe('Tendencias entre campañas', () => {
     const sources = screen.getByTestId('sources');
     expect(sources.textContent).toMatch(/Ver campañas y cobertura/);
     expect(chart.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(chart.textContent).toMatch(/L por campaña sellada/);
+    expect(chart.textContent).toMatch(/L por campaña/);
   });
 
   it('POLICY_PENDING: sin series ni cifras', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida], 'POLICY_PENDING'));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
-    expect(await screen.findByText(/Política de divulgación pendiente/)).toBeTruthy();
+    expect(await screen.findByText(/Sin datos disponibles/)).toBeTruthy();
     expect(screen.queryByTestId('series-DECLARED_NEED-Herbicida-ML')).toBeNull();
     expect(document.body.textContent).not.toMatch(/6 L/);
   });

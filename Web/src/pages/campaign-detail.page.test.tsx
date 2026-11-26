@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAMPAIGN_IDS, LONG_CAMPAIGN_NAME } from '../dev/fixtures/campaigns-fixtures';
@@ -43,14 +43,14 @@ describe('Detalle de campaña', () => {
     vi.unstubAllEnvs();
   });
 
-  it('compone la fila de la lista, el resumen, el sellado y los borradores con una sola lectura del resumen (StrictMode)', async () => {
+  it('compone la fila de la lista, el resumen, el histórico y los borradores con una sola lectura del resumen (StrictMode)', async () => {
     show(fixtures.worst, { strict: true });
     expect(await screen.findByRole('heading', { level: 1, name: LONG_CAMPAIGN_NAME })).toBeTruthy();
     await screen.findByTestId('detail-proposals');
-    await waitFor(() => expect(collectiveService.sealState).toHaveBeenCalled());
+    await screen.findByTestId('detail-seal');
     expect(collectiveService.summary).toHaveBeenCalledTimes(1);
     expect(collectiveService.summary).toHaveBeenCalledWith(CAMPAIGN_IDS.worstActive);
-    expect(collectiveService.sealState).toHaveBeenCalledTimes(1);
+    expect(collectiveService.sealState).not.toHaveBeenCalled();
     expect(collectiveService.proposals).toHaveBeenCalledTimes(1);
     expect(campaignsService.list).toHaveBeenCalledTimes(1);
     expectNoWrites();
@@ -70,7 +70,7 @@ describe('Detalle de campaña', () => {
     const coverage = await screen.findByTestId('coverage');
     expect(coverage.textContent).toMatch(/51 de 1\.284 agricultores vinculados con cifras publicadas/);
     expect(coverage.textContent).toMatch(/aporten o no/);
-    expect(coverage.textContent).toMatch(/Hay filas sin cifra/);
+    expect(coverage.textContent).toMatch(/Hay aportes que no forman parte de las cifras disponibles/);
     expect(coverage.textContent).toMatch(/no que los datos estén completos ni que sean suficientes/);
     expect(within(coverage).getByRole('link', { name: 'Ver cobertura' }).getAttribute('href')).toBe(`/colectivo/cobertura?campaign=${CAMPAIGN_IDS.worstActive}`);
   });
@@ -97,13 +97,13 @@ describe('Detalle de campaña', () => {
     expect(within(screen.getByTestId('general')).getAllByTestId('synthetic-badge')).toHaveLength(1);
   });
 
-  it('cerrada sin sellar: cobertura 0 de 0 sin porcentaje, «Sin sellar» y panel de sellado sin sellar nada', async () => {
+  it('cerrada anterior sin histórico: muestra su cobertura y estado sin acción de sellar', async () => {
     show(fixtures.worstClosedUnsealed);
     const coverage = await screen.findByTestId('coverage');
     expect(coverage.textContent).toMatch(/0 de 0 agricultores vinculados/);
     expect(coverage.textContent).not.toMatch(/%/);
-    expect(screen.getByTestId('unsealed').textContent).toMatch(/Sin sellar/);
-    expect(await screen.findByTestId('seal-review')).toBeTruthy();
+    expect(screen.getByTestId('detail-seal').textContent).toMatch(/Sin resultados históricos disponibles/);
+    expect(screen.queryByTestId('seal-review')).toBeNull();
     expect(screen.getByTestId('closed-at').textContent).toMatch(/^Cerrada el /);
     expect(within(screen.getByTestId('detail-proposals')).getByText('Sin borradores')).toBeTruthy();
     expectNoWrites();
@@ -112,7 +112,7 @@ describe('Detalle de campaña', () => {
   it('sellada: versión identificada y sin lectura del estado de sellado', async () => {
     show(fixtures.worstSealed);
     const seal = await screen.findByTestId('seal-banner');
-    expect(seal.textContent).toMatch(/Versión 1 sellada/);
+    expect(seal.textContent).toMatch(/Fijados el/);
     expect(seal.textContent).toContain(fixtures.LONG_AUTHOR);
     expect(collectiveService.sealState).not.toHaveBeenCalled();
   });
