@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AnyStatus, DisclosurePolicy, SealBlock } from '../types/collective';
+import type { AnyStatus, SealBlock } from '../types/collective';
 
 /** Estado de una campaña, para personas. */
 export const CAMPAIGN_STATUS_TEXT: Record<string, string> = {
@@ -8,21 +8,6 @@ export const CAMPAIGN_STATUS_TEXT: Record<string, string> = {
   CERRADA: 'Cerrada',
   CANCELADA: 'Cancelada',
 };
-
-/**
- * E4 §5.1: rótulo de la política con que se decidió una cifra, para mostrarla
- * junto a lo sellado, los borradores, las tendencias y el Excel. `threshold`
- * es el umbral que trae la respuesta (3 con `F07-POL-01`, `null` con `F07-POL-02`).
- */
-export function policyText(policy: DisclosurePolicy | string, threshold?: number | null): string {
-  if (policy === 'F07-POL-01') return `F07-POL-01 (mínimo de ${threshold ?? 3} aportantes por cifra)`;
-  if (policy === 'F07-POL-02') return 'F07-POL-02 (totales sin nombres, sin mínimo de aportantes)';
-  return policy;
-}
-
-/** E4 §5.1 y ayuda de CONV-4: el riesgo aceptado de los totales sin umbral, dicho sin «anónimo». */
-export const SMALL_GROUP_NOTE =
-  'Son datos agregados, sin nombres. Con pocas personas aportando, quien sepa quién participó podría deducir cuánto aportó cada una.';
 
 /** Cifra anterior a la vista mientras hay cambios sin publicar (sólo con `F07-POL-01`; con `F07-POL-02` no ocurre). */
 export const PENDING_CHANGES_TEXT = 'Hay cambios recibidos que todavía no se publican: se muestra la cifra anterior.';
@@ -33,12 +18,14 @@ export const PENDING_CHANGES_TEXT = 'Hay cambios recibidos que todavía no se pu
  * en los borradores anteriores es un estado histórico): se rotula con esa
  * política, sin «oculto por privacidad» ni «anónimo» (E4 §5.1).
  */
-export function statusReason(status: AnyStatus, threshold?: number | null): string | null {
+export function statusReason(status: AnyStatus, ...legacy: [] | [number | null | undefined]): string | null {
+  // Existing callers may still pass the threshold stored with a historical result.
+  void legacy;
   switch (status) {
     case 'SUPPRESSED_UNDER_THRESHOLD':
-      return `Sin cifra según la política F07-POL-01 (mínimo de ${threshold ?? 3} aportantes).`;
+      return 'Sin datos disponibles.';
     case 'SUPPRESSED_REVISION':
-      return 'La cifra anterior se retiró por una baja, una disputa o una reagrupación, y aún no hay cambios suficientes para publicar otra.';
+      return 'Datos retirados.';
     case 'OVERFLOW':
       return 'El total supera el rango numérico admitido; no se trunca ni se redondea.';
     case 'WITHDRAWN':
@@ -46,13 +33,13 @@ export function statusReason(status: AnyStatus, threshold?: number | null): stri
     case 'SUPERSEDED':
       return 'El resumen publica ahora una cifra más reciente. Genere un borrador nuevo para verla.';
     case 'POLICY_PENDING':
-      return 'La política de divulgación no está aprobada: no se muestran cifras.';
+      return 'Sin datos disponibles.';
     case 'WITHDRAWN_AFTER_SEAL':
-      return 'Un aportante retiró su aporte después del sellado: la cifra sellada ya no se muestra. El dato sellado no cambió.';
+      return 'Datos retirados.';
     case 'NO_DATA':
-      return 'La versión sellada de esta campaña no tiene datos de este producto y unidad. No significa cero.';
+      return 'Sin datos disponibles.';
     case 'NOT_SEALED':
-      return 'Esta campaña no tiene una versión sellada: las tendencias sólo usan versiones selladas.';
+      return 'Sin resultados históricos disponibles.';
     default:
       return null;
   }

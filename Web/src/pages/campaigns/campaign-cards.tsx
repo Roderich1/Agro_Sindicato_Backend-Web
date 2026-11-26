@@ -6,6 +6,8 @@ import { useCampaign } from '../../hooks/use-campaign';
 import { fmtDateTime } from '../../lib/collective-text';
 import { extractError } from '../../lib/format';
 import { campaignDetailPath } from '../../lib/navigation';
+import { collectiveService } from '../../services/collective.service';
+import type { CollectiveSummary } from '../../types/collective';
 import { campaignsService } from '../../services/campaigns.service';
 import type { Campaign } from '../../types/campaigns';
 import { fmtCampaignDay, isEstimatedEndOverdue, OVERDUE_TEXT } from '../campaign-dates';
@@ -16,7 +18,7 @@ function SealChip({ version }: { version: number | null }) {
   if (version === null) return null;
   return (
     <Chip tone="positive" dot>
-      Sellada · versión {version}
+      Histórico disponible
     </Chip>
   );
 }
@@ -37,6 +39,8 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
   const [editing, setEditing] = useState(false);
   const [closing, setClosing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [coverage, setCoverage] = useState<CollectiveSummary['coverage']>(null);
+  const [coverageLoading, setCoverageLoading] = useState(false);
   const [closeBusy, setCloseBusy] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +66,19 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
       setError(extractError(err, 'No fue posible abrir la campaña.'));
     } finally {
       setBusy(false);
+    }
+  };
+  const reviewClose = async () => {
+    setClosing(true);
+    setCoverage(null);
+    setCoverageLoading(true);
+    try {
+      const preview = await collectiveService.closePreview(campaign.id);
+      setCoverage(preview.coverage);
+    } catch {
+      setCoverage(null);
+    } finally {
+      setCoverageLoading(false);
     }
   };
   const close = async (notes: string) => {
@@ -90,7 +107,7 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
         </Button>
       )}
       {campaign.isActive && (
-        <Button variant={variant} size={size} onClick={() => setClosing(true)}>
+        <Button variant={variant} size={size} onClick={() => void reviewClose()}>
           Cerrar campaña…
         </Button>
       )}
@@ -106,6 +123,7 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
         <ConfirmDialog
           title={`Cerrar «${campaign.name}»`}
           confirmLabel="Cerrar campaña"
+          confirmDisabled={coverageLoading}
           reason={{ label: 'Motivo o notas', required: false, help: 'Opcional.', maxLength: 500 }}
           busy={closeBusy}
           error={closeError}
@@ -116,8 +134,14 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
           }}
         >
           <Notice kind="warn">
-            Cerrar no es sellar, y una campaña cerrada no se puede reabrir. Al cerrarla se bloquean las operaciones normales asociadas a este periodo.
+            El cierre es definitivo. Los datos recibidos hasta ese momento se guardan en el histórico. Después se podrán retirar autorizaciones.
           </Notice>
+          <p className="mt-3 text-sm text-ink-muted" aria-live="polite">
+            {coverageLoading ? 'Cargando cobertura…' : coverage
+              ? `Cobertura disponible: ${coverage.members_with_contribution} de ${coverage.linked_members} agricultores vinculados con aportes publicados.`
+              : 'Cobertura no disponible.'}
+          </p>
+          <p className="mt-2 text-sm text-ink-muted">Los teléfonos desconectados no detienen el cierre.</p>
         </ConfirmDialog>
       )}
     </>

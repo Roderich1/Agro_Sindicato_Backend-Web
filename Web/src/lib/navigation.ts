@@ -188,18 +188,18 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     path: COLLECTIVE_PATHS.history,
     label: 'Histórico',
     title: 'Histórico y estimaciones',
-    description: 'Campañas selladas y consumo estimado',
+    description: 'Histórico por campaña y consumo estimado',
     icon: 'bars',
     also: [COLLECTIVE_PATHS.trends, COLLECTIVE_PATHS.estimation],
     children: [
-      { label: 'Histórico sellado', vista: 'tendencias', also: [COLLECTIVE_PATHS.trends] },
+      { label: 'Histórico de campañas', vista: 'tendencias', also: [COLLECTIVE_PATHS.trends] },
       { label: 'Estimación del consumo', vista: 'estimacion', also: [COLLECTIVE_PATHS.estimation] },
     ],
   },
   {
     path: CAMPAIGNS_PATH,
     label: 'Campañas',
-    description: 'Abrir, cerrar y sellar',
+    description: 'Abrir y cerrar campañas',
     icon: 'calendar',
   },
   {

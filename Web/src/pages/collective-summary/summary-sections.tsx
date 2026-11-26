@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from 'react';
-import { PolicyLine } from '../../components/collective-ui';
 import { NeedsBars } from '../../components/needs-bars';
 import {
   AttentionList,
@@ -15,9 +14,9 @@ import {
   type AttentionItem,
   type DataStateKind,
 } from '../../components/ui';
-import { fmtDateTime, policyText } from '../../lib/collective-text';
+import { fmtDateTime } from '../../lib/collective-text';
 import { CAMPAIGNS_PATH, COLLECTIVE_PATHS } from '../../lib/navigation';
-import type { CollectiveSummary, DisclosurePolicy, SealRef, SummaryCell } from '../../types/collective';
+import type { CollectiveSummary, SealRef, SummaryCell } from '../../types/collective';
 import { COUNT, FILTERS, plural, STEPS, type NeedsFilter } from './summary-helpers';
 
 /** Estados 6–9 de la lámina 05, distinguidos por el error de la llamada (sin API nueva). */
@@ -50,7 +49,7 @@ export function SummaryError({ kind, text, onRetry, onLogout }: { kind: DataStat
 }
 
 /** «Necesidades declaradas»: buscador y filtros en el navegador sobre la respuesta ya recibida. */
-export function NeedsSection({ needs, policy, threshold }: { needs: SummaryCell[]; policy: DisclosurePolicy; threshold: number | null }) {
+export function NeedsSection({ needs, threshold }: { needs: SummaryCell[]; threshold: number | null }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<NeedsFilter>('all');
   const term = query.trim().toLocaleLowerCase('es');
@@ -91,11 +90,7 @@ export function NeedsSection({ needs, policy, threshold }: { needs: SummaryCell[
                 state="restricted"
                 compact
                 title="Hay productos, pero ninguna cifra se puede mostrar"
-                description={
-                  policy === 'F07-POL-01'
-                    ? `Con la política F07-POL-01 cada cifra necesita al menos ${threshold ?? 3} agricultores. Hay ${plural(needs.length, 'producto declarado que aún no llega', 'productos declarados que aún no llegan')}.`
-                    : `Hay ${plural(needs.length, 'producto declarado', 'productos declarados')} sin cifra publicada: en revisión, retirada o fuera de rango. Cada fila dice su motivo.`
-                }
+                description="Revise el estado de cada producto."
               />
             </div>
           )}
@@ -116,15 +111,9 @@ export function NeedsSection({ needs, policy, threshold }: { needs: SummaryCell[
           <p className="mt-4 flex items-start gap-2 text-sm leading-relaxed text-ink-muted" data-testid="needs-footnote">
             <Icon d={ICON.info} className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              {policy === 'F07-POL-01'
-                ? `Con la política F07-POL-01 una cifra no se publica cuando aportaron menos de ${threshold ?? 3} agricultores.`
-                : 'Las cifras se publican aunque aporte una sola persona.'}{' '}
-              Sin cifra no es cero. Las barras comparan solo productos de la misma unidad.
+              Sin datos disponibles y cero son estados distintos. Las barras comparan solo productos de la misma unidad.
             </span>
           </p>
-          <div className="mt-2">
-            <PolicyLine policy={policy} threshold={threshold} />
-          </div>
         </>
       )}
     </section>
@@ -156,9 +145,9 @@ export function VersionCard({ seal, status, sealPanel }: { seal: SealRef | null;
   const note = seal
     ? null
     : status === 'ABIERTA'
-      ? 'Las cifras pueden cambiar. Se sellan cuando la campaña esté cerrada.'
+      ? 'Los resultados se fijan al cerrar la campaña.'
       : status === 'CERRADA'
-        ? 'La campaña está cerrada; sus cifras todavía no están selladas. Cerrar no es sellar.'
+        ? 'Sin resultados históricos disponibles.'
         : null;
   return (
     <section aria-labelledby="version-cifras" className="space-y-4 rounded-card border border-line bg-surface px-5 py-6 shadow-card sm:px-7" data-testid={seal ? 'seal-banner' : 'version-tile'}>
@@ -169,26 +158,21 @@ export function VersionCard({ seal, status, sealPanel }: { seal: SealRef | null;
         <Stepper label="Versión de las cifras" steps={STEPS} current={current} note={note} testId="version-steps" />
       ) : (
         <p className="text-sm text-ink-muted">
-          <StatusChip status={status} /> <span className="ml-1">Esta campaña no tiene versiones de cifras para sellar.</span>
+          <StatusChip status={status} /> <span className="ml-1">Sin resultados históricos disponibles.</span>
         </p>
       )}
       {seal && (
         <div className="space-y-2 border-t border-line pt-4">
           <Chip tone="lime" dot size="md">
-            Sellada · versión {seal.version}
+            Histórico disponible
           </Chip>
           <h3 className="text-xl font-bold text-ink">Cifras fijadas</h3>
           <p className="text-sm leading-relaxed text-ink [overflow-wrap:anywhere]">
-            Versión {seal.version} sellada el {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} (
-            {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}). Datos aceptados hasta {fmtDateTime(seal.accepted_until)} · ref.{' '}
-            <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>.
-          </p>
-          <p className="text-sm leading-relaxed text-ink" data-testid="seal-policy">
-            Política aplicada al sellar: {policyText(seal.policy, seal.threshold)}.
+            Resultados fijados el {fmtDateTime(seal.sealed_at)} por {seal.sealed_by.name} (
+            {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}). Datos aceptados hasta {fmtDateTime(seal.accepted_until)}.
           </p>
           <p className="text-sm leading-relaxed text-ink-muted">
-            Ya no cambian, aunque después rija otra política. Si un agricultor retira su aporte, esa cifra deja de mostrarse. Cada cifra indica su propia fecha; el servidor no
-            puede asegurar que todos los teléfonos publicaron todo.
+            Los datos que pierdan su autorización dejan de mostrarse.
           </p>
         </div>
       )}
@@ -224,21 +208,6 @@ export function PendingActions({
     });
   }
   if (summary && campaignId) {
-    if (summary.campaign.status === 'CERRADA' && summary.seal === null) {
-      items.push({
-        id: 'closed-unsealed',
-        onClick: () => {
-          const target = document.getElementById('sellado');
-          target?.scrollIntoView({ block: 'start' });
-          target?.focus({ preventScroll: true });
-        },
-        text: (
-          <span data-testid="action-closed-unsealed">
-            Campaña cerrada sin sellar: revise la versión y, si corresponde, séllela. <span className="font-semibold">Ir al sellado</span>
-          </span>
-        ),
-      });
-    }
     items.push({ id: 'review', to: proposalsUrl, text: <span data-testid="action-review">Revisar el borrador de compra</span> });
     const pending = summary.cells.filter((cell) => cell.pending_changes).length;
     if (pending > 0) {

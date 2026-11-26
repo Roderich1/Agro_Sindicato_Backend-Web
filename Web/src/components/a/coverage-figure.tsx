@@ -70,7 +70,7 @@ function CoverageBlock({ coverage, sealedAt, link, bar, testId }: { coverage: Co
   return (
     <div className={`min-w-0 ${bar ? 'w-full' : ''}`} data-testid={testId}>
       <p className="flex flex-wrap items-baseline gap-x-3 text-sm text-on-ink-muted">
-        <span>{sealedAt ? `Cobertura al sellar (${fmtDateTime(sealedAt)})` : 'Cobertura'}</span>
+        <span>{sealedAt ? `Cobertura histórica (${fmtDateTime(sealedAt)})` : 'Cobertura'}</span>
         {link && (
           <Link to={link} className="font-semibold text-lime underline underline-offset-2">
             Ver cobertura
@@ -94,8 +94,8 @@ function CoverageBlock({ coverage, sealedAt, link, bar, testId }: { coverage: Co
       )}
       <p className="mt-3 max-w-2xl text-xs leading-relaxed text-on-ink-muted">
         {linked === 0 && 'Hoy no hay agricultores vinculados activos: no se calcula porcentaje. '}
-        {sealedAt && 'Fijada al sellar; no se recalcula. '}
-        {coverage.suppressed_cells && 'Hay filas sin cifra (por la política F07-POL-01, en revisión o retiradas) cuyos aportes no se cuentan. '}
+        {sealedAt && 'Cobertura registrada para el histórico. '}
+        {coverage.suppressed_cells && 'Hay aportes que no forman parte de las cifras disponibles. '}
         Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
       </p>
     </div>

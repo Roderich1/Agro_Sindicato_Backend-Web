@@ -68,8 +68,8 @@ const DEFAULTS: Record<DataStateKind, { title: string; description: string | nul
     cls: 'bg-warn-bg text-warn-ink',
   },
   'policy-pending': {
-    title: 'Las cifras todavía no se pueden mostrar',
-    description: 'La política de publicación del sindicato está pendiente. Mientras no se apruebe, el servidor no publica cifras colectivas.',
+    title: 'Sin datos disponibles',
+    description: '',
     icon: ICON.lock,
     cls: 'bg-warn-bg text-warn-ink',
   },

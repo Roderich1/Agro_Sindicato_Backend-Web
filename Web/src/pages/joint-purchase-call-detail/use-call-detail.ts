@@ -2,12 +2,11 @@ import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { requestSessionRevalidation } from '../../lib/axios';
-import { callError, COLLABORATORS_LOST_TEXT, MANAGE_LOST_TEXT } from '../../lib/joint-purchase-call-text';
+import { callError } from '../../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS } from '../../lib/navigation';
 import { jointPurchaseCallsService } from '../../services/joint-purchase-calls.service';
 import type {
   JointPurchaseCallClosing,
-  JointPurchaseCallCollaborators,
   JointPurchaseCallDetail,
   JointPurchaseCallParticipants,
 } from '../../types/joint-purchase-calls';
@@ -17,7 +16,6 @@ import {
   PARTICIPANTS_RECHECK_MS,
   withoutIdentifiedDetail,
   type DialogState,
-  type PermissionLostCode,
   type Problem,
 } from './call-detail.helpers';
 
@@ -35,17 +33,12 @@ export function useCallDetail(id: string) {
   const [closingProblem, setClosingProblem] = useState<string | null>(null);
   /** Se tuvo el acceso al detalle identificado en esta vista y ya no (E4 §6.4). */
   const [revoked, setRevoked] = useState(false);
-  const [collaborators, setCollaborators] = useState<JointPurchaseCallCollaborators | null>(null);
-  const [collaboratorsProblem, setCollaboratorsProblem] = useState<string | null>(null);
 
   const aliveRef = useRef(true);
   const seqRef = useRef(0);
-  const collaboratorsSeqRef = useRef(0);
   const hadPermissionRef = useRef(false);
   const shownRef = useRef(false);
   const lastFocusCheckRef = useRef(0);
-  const permissionsKeyRef = useRef<string | null>(null);
-  const [collaboratorsTick, setCollaboratorsTick] = useState(0);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -77,15 +70,11 @@ export function useCallDetail(id: string) {
       setCall(null);
       setParticipants(null);
       setClosing(null);
-      setCollaborators(null);
       setProblem({ message: callError(err, 'No fue posible cargar la convocatoria.'), forbidden: status === 403 });
       return;
     }
     if (!current()) return;
     setProblem(null);
-    const permissionsKey = `${[...(detail.my_grants ?? [])].sort((a, b) => a.localeCompare(b)).join(',')}|${detail.collaborator_count ?? ''}`;
-    if (permissionsKeyRef.current !== null && permissionsKeyRef.current !== permissionsKey) setCollaboratorsTick((tick) => tick + 1);
-    permissionsKeyRef.current = permissionsKey;
     if (detail.can_view_participants) {
       hadPermissionRef.current = true;
       setRevoked(false);
@@ -125,29 +114,9 @@ export function useCallDetail(id: string) {
     }
   }, [id, forgetParticipants]);
 
-  const loadCollaborators = useCallback(async () => {
-    const seq = ++collaboratorsSeqRef.current;
-    const current = () => aliveRef.current && collaboratorsSeqRef.current === seq;
-    try {
-      const view = await jointPurchaseCallsService.collaborators(id);
-      if (!current()) return;
-      setCollaborators(view);
-      setCollaboratorsProblem(null);
-    } catch (err) {
-      if (current()) setCollaboratorsProblem(callError(err, 'No fue posible cargar quién más puede administrarla.'));
-    }
-  }, [id]);
-
   useEffect(() => {
-    void Promise.resolve().then(() => {
-      void refresh();
-      void loadCollaborators();
-    });
-  }, [refresh, loadCollaborators]);
-
-  useEffect(() => {
-    if (collaboratorsTick > 0) void Promise.resolve().then(loadCollaborators);
-  }, [collaboratorsTick, loadCollaborators]);
+    void Promise.resolve().then(refresh);
+  }, [refresh]);
 
   const lastViewRef = useRef<{ id: string; canView: boolean } | null>(null);
   useEffect(() => {
@@ -184,18 +153,11 @@ export function useCallDetail(id: string) {
     await refresh();
   };
 
-  const lostPermission = async (code: PermissionLostCode) => {
+  const lostPermission = async () => {
     setDialog(null);
     setMessage(null);
-    setAlert(code === 'MANAGE_FORBIDDEN' ? MANAGE_LOST_TEXT : COLLABORATORS_LOST_TEXT);
-    await Promise.all([refresh(), loadCollaborators()]);
-  };
-
-  const collaboratorsChanged = async (view: JointPurchaseCallCollaborators, text: string) => {
-    collaboratorsSeqRef.current += 1;
-    setCollaborators(view);
-    setCollaboratorsProblem(null);
-    await done(text);
+    setAlert('Su cuenta ya no tiene acceso para gestionar esta convocatoria.');
+    await refresh();
   };
 
   const campaignId = call?.campaign.campaign_ref ?? params.get('campaign');
@@ -205,9 +167,7 @@ export function useCallDetail(id: string) {
     call,
     problem,
     message,
-    setMessage,
     alert,
-    setAlert,
     dialog,
     setDialog,
     participants,
@@ -215,13 +175,9 @@ export function useCallDetail(id: string) {
     closing,
     closingProblem,
     revoked,
-    collaborators,
-    collaboratorsProblem,
     backTo,
     refresh,
-    loadCollaborators,
     done,
     lostPermission,
-    collaboratorsChanged,
   };
 }

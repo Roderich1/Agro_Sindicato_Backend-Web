@@ -4,8 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { Facts } from '../components/c/bits';
 import { ParticipationCard } from '../components/c/participation-card';
-import { SealPanel } from '../components/seal-panel';
-import { buttonClassFor, Chip, DataState, HeroPanel, Icon, ICON, linkClass, Notice, StatusChip, Stepper, surfaceClass } from '../components/ui';
+import { buttonClassFor, Chip, DataState, HeroPanel, Icon, ICON, linkClass, Notice, StatusChip, surfaceClass } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaignList } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
@@ -20,12 +19,6 @@ import { CampaignActions, OverdueNote } from './campaigns.page';
 type Failure = { kind: 'error' | 'forbidden'; text: string };
 
 const COUNT = new Intl.NumberFormat('es-BO');
-const STEPS = [
-  { key: 'ABIERTA', label: 'Abierta' },
-  { key: 'CERRADA', label: 'Cerrada' },
-  { key: 'SELLADA', label: 'Sellada' },
-];
-
 function failure(err: unknown, fallback: string, text: (err: unknown, fallback: string) => string): Failure {
   return { kind: axios.isAxiosError(err) && err.response?.status === 403 ? 'forbidden' : 'error', text: text(err, fallback) };
 }
@@ -117,7 +110,7 @@ export function CampaignDetailPage() {
 
   const changed = async (text: string) => {
     setMessage(text);
-    await refreshList();
+    await Promise.all([refreshList(), loadSummary(id)]);
   };
 
   const backLink = (
@@ -202,7 +195,7 @@ export function CampaignDetailPage() {
           <div className={surfaceClass}>
             <DataState
               state="forbidden"
-              description="La participación, la versión sellada y los borradores sólo los consultan la Directiva y el Administrador."
+              description="La participación y los borradores están disponibles para Directiva y Administración."
               testId="collective-forbidden"
             />
           </div>
@@ -217,7 +210,7 @@ export function CampaignDetailPage() {
         ) : (
           <div className="grid items-start gap-5 xl:grid-cols-2">
             <ParticipationCard coverage={summary.coverage} sealedAt={summary.seal?.sealed_at} link={`${COLLECTIVE_PATHS.coverage}?campaign=${enc(campaign.id)}`} />
-            <VersionCard campaign={campaign} summary={summary} onSealed={() => void loadSummary(campaign.id)} />
+            <VersionCard campaign={campaign} summary={summary} />
           </div>
         )}
 
@@ -228,7 +221,6 @@ export function CampaignDetailPage() {
                 <h2 id="drafts-title" className="font-display text-2xl font-bold text-ink">
                   Borradores de compra
                 </h2>
-                <p className="mt-0.5 text-sm text-ink-muted">Un borrador no crea compras, lotes, movimientos, deudas ni pagos.</p>
               </div>
               {proposals && proposals.length > 0 && (
                 <Link to={proposalsUrl} className={buttonClassFor('secondary', 'sm')}>
@@ -269,55 +261,26 @@ export function CampaignDetailPage() {
   );
 }
 
-/** «Versión de las cifras» (lámina 29) con el panel de sellado de la sesión A (30.3), sin editarlo. */
-function VersionCard({ campaign, summary, onSealed }: { campaign: Campaign; summary: CollectiveSummary; onSealed: () => void }) {
-  const seal = summary.seal;
-  const step = seal ? 2 : campaign.status === 'CERRADA' ? 1 : campaign.status === 'ABIERTA' ? 0 : -1;
+function VersionCard({ campaign, summary }: { campaign: Campaign; summary: CollectiveSummary }) {
+  const history = summary.seal;
   const historyUrl = `${COLLECTIVE_PATHS.history}?vista=tendencias&campaign=${enc(campaign.id)}`;
   return (
     <section className={`${surfaceClass} min-w-0 px-5 py-6 sm:px-8`} aria-labelledby="version-title" data-testid="detail-seal">
-      <h2 id="version-title" className="font-display text-2xl font-bold text-ink">
-        Versión de las cifras
-      </h2>
+      <h2 id="version-title" className="font-display text-2xl font-bold text-ink">Resultados históricos</h2>
       <div className="mt-4 space-y-4">
-        {step >= 0 ? (
-          <Stepper label="Versión de las cifras" steps={STEPS} current={step} />
-        ) : (
-          <p className="flex flex-wrap items-center gap-2 text-sm text-ink">
-            Estado de la campaña: <StatusChip status={campaign.status} />
-          </p>
-        )}
-        {seal ? (
-          <div data-testid="seal-banner" className="space-y-3">
-            <Facts
-              rows={[
-                ['Versión', `Versión ${seal.version} sellada`],
-                ['Sellada el', fmtDateTime(seal.sealed_at)],
-                ['Por', `${seal.sealed_by.name} (${seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'})`],
-                ['Datos aceptados hasta', fmtDateTime(seal.accepted_until)],
-              ]}
-            />
-            <p className="text-sm leading-relaxed text-ink-muted">
-              La versión sellada ya no se corrige. Cada cifra indica su propia fecha. El servidor no puede asegurar que todos los teléfonos publicaron todo.
-              Referencia <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>.
-            </p>
+        {history ? (
+          <div data-testid="seal-banner">
+            <Facts rows={[
+              ['Fijados el', fmtDateTime(history.sealed_at)],
+              ['Por', history.sealed_by.name],
+            ]} />
           </div>
         ) : (
-          <>
-            <p className="text-base leading-relaxed text-ink-muted" data-testid="unsealed">
-              <span className="font-semibold text-ink">Sin sellar.</span>{' '}
-              {campaign.status === 'CERRADA'
-                ? 'La campaña está cerrada: revise la cobertura y los avisos y selle la versión. Una vez sellada, ya no se corrige.'
-                : 'Las cifras todavía pueden cambiar. Primero se cierra la campaña; después se sella la versión, y ya no se corrige. Cerrar no es sellar.'}
-            </p>
-            <div id="sellado">
-              <SealPanel campaignId={campaign.id} onSealed={onSealed} />
-            </div>
-          </>
+          <p className="text-sm text-ink-muted">
+            {campaign.status === 'CERRADA' ? 'Sin resultados históricos disponibles.' : 'Los resultados se fijan al cerrar la campaña.'}
+          </p>
         )}
-        <Link to={historyUrl} className={`${linkClass} inline-flex min-h-11 items-center`}>
-          Ver el histórico sellado
-        </Link>
+        <Link to={historyUrl} className={`${linkClass} inline-flex min-h-11 items-center`}>Ver histórico de campañas</Link>
       </div>
     </section>
   );

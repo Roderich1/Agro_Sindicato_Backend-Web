@@ -3,11 +3,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '../components/app-shell';
 import { DisclosureNotice, PendingChangesNote, ProductCell, QuantityCell } from '../components/collective-ui';
 import { ExportButtons } from '../components/export-buttons';
-import { Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Card, Collapsible, DataState, dataStateKindForError, ICON, Icon, PageHeader, SectionHeader, SegmentedControl, type DataStateKind } from '../components/ui';
-import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime, policyText, statusReason } from '../lib/collective-text';
+import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
-import { CAMPAIGNS_PATH } from '../lib/navigation';
+import { historyProductKey, scopeHistory } from '../lib/history-scope';
 import { formatQuantity, isBaseQuantity } from '../lib/quantity';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveTrends, ProjectionType, TrendCampaign, TrendPoint, TrendSeries } from '../types/collective';
@@ -16,12 +16,12 @@ const TYPES: { type: ProjectionType; label: string; description: string }[] = [
   {
     type: 'CONSUMPTION_TOTAL',
     label: 'Consumo publicado',
-    description: 'Consumo que los agricultores registraron y publicaron. Se muestra aparte: no se resta de la necesidad.',
+    description: 'Consumo publicado por campaña.',
   },
   {
     type: 'DECLARED_NEED',
     label: 'Necesidad declarada',
-    description: 'Cantidad que cada agricultor declaró en la app. No es pronóstico ni recomendación.',
+    description: 'Necesidad declarada por campaña.',
   },
 ];
 
@@ -38,7 +38,6 @@ const SCROLL_HINT = '[background:linear-gradient(to_right,#fff_30%,rgb(255_255_2
 const STICKY_HEAD = 'sticky left-0 z-[1] shadow-[inset_-1px_0_0_#e2e8f0] bg-slate-50';
 const STICKY_CELL = 'sticky left-0 z-[1] shadow-[inset_-1px_0_0_#e2e8f0] bg-white';
 
-const seriesKey = (line: TrendSeries) => `${line.product_ref}|${line.base_unit}`;
 
 /** Un problema de carga, con el estado del §4 con el que se presenta. */
 interface Problem {
@@ -70,7 +69,7 @@ const COUNT = new Intl.NumberFormat('es-BO');
  *
  * Rediseño v2 (láminas 25 y 40, H-10 provisional): columnas de un solo color,
  * sin destacar el máximo ni escribir «la campaña más alta»; bajo el nombre de
- * cada campaña, su cobertura al sellar (F07 §8: «muestra la cobertura de cada
+ * cada campaña, su cobertura (F07 §8: «muestra la cobertura de cada
  * campaña» junto a la serie). Sin totales, medias, diferencias ni tasas.
  */
 export function CollectiveTrendsPage() {
@@ -82,6 +81,16 @@ export function CollectiveTrendsPage() {
 }
 
 export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
+  const [params, setParams] = useSearchParams();
+  const campaignId = params.get('campaign') ?? '';
+  const chooseCampaign = (next: string) => {
+    setParams((previous) => {
+      const query = new URLSearchParams(previous);
+      if (next) query.set('campaign', next);
+      else query.delete('campaign');
+      return query;
+    });
+  };
   const [type, setType] = useState<ProjectionType>('CONSUMPTION_TOTAL');
   const [productKey, setProductKey] = useState<string | null>(null);
   const [trends, setTrends] = useState<CollectiveTrends | null>(null);
@@ -109,14 +118,15 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
   }, [type, load]);
 
   const current = TYPES.find((entry) => entry.type === type)!;
-  const series = trends?.series ?? [];
-  const selected = series.find((line) => seriesKey(line) === productKey) ?? series[0] ?? null;
+  const history = trends ? scopeHistory(trends, { campaignId }) : null;
+  const series = history?.series ?? [];
+  const selected = series.find((line) => historyProductKey(line) === productKey) ?? series[0] ?? null;
   return (
     <div className="space-y-5">
       <PageHeader
         headingLevel={headingLevel}
-        title="Histórico sellado"
-        subtitle={`Cifras de campañas ya selladas, una por una. No se mezclan con la estimación. ${current.description}`}
+        title="Histórico de campañas"
+        subtitle={current.description}
       />
       <div className="flex flex-wrap items-center gap-3" data-testid="toolbar">
         <SegmentedControl
@@ -127,6 +137,22 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
           onChange={setType}
           options={TYPES.map((entry) => ({ value: entry.type, label: entry.label }))}
         />
+        <div className="flex min-w-0 items-center gap-2">
+          <label className="sr-only" htmlFor="trend-campaign">Campaña</label>
+          <select
+            id="trend-campaign"
+            className="min-h-11 max-w-full rounded-full border border-line bg-surface px-4 font-semibold text-ink"
+            value={campaignId}
+            onChange={(event) => chooseCampaign(event.target.value)}
+          >
+            <option value="">Todas las campañas</option>
+            {campaignId && !trends?.campaigns.some((campaign) => campaign.campaign_ref === campaignId && campaign.seal) &&
+              <option value={campaignId}>Campaña sin resultados históricos</option>}
+            {trends?.campaigns.filter((campaign) => campaign.seal !== null).map((campaign) => (
+              <option key={campaign.campaign_ref} value={campaign.campaign_ref}>{campaign.name}</option>
+            ))}
+          </select>
+        </div>
         <span className="relative inline-flex min-w-0 max-w-full flex-1 basis-60 sm:flex-none">
           <label className="sr-only" htmlFor="trend-product">
             Producto
@@ -134,13 +160,13 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
           <select
             id="trend-product"
             className="block min-h-11 w-full max-w-full cursor-pointer appearance-none truncate rounded-full border border-line bg-surface py-2 pl-5 pr-11 text-base font-semibold text-ink shadow-card hover:border-ink disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-72"
-            value={selected ? seriesKey(selected) : ''}
+            value={selected ? historyProductKey(selected) : ''}
             onChange={(event) => setProductKey(event.target.value)}
             disabled={series.length === 0}
           >
-            {series.length === 0 && <option value="">Sin productos con cifras selladas</option>}
+            {series.length === 0 && <option value="">Sin productos disponibles</option>}
             {series.map((line) => (
-              <option key={seriesKey(line)} value={seriesKey(line)}>
+              <option key={historyProductKey(line)} value={historyProductKey(line)}>
                 {line.product_name} ({line.presentation_unit})
               </option>
             ))}
@@ -150,7 +176,7 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
           </span>
         </span>
         <div className="sm:ml-auto">
-          <ExportButtons kind="trends" reference={type} disabled={!trends} />
+          <ExportButtons kind="trends" reference={type} disabled={!history?.campaigns.length || loading} historyScope={{ campaignId, productKey: selected ? historyProductKey(selected) : null }} />
         </div>
       </div>
       {problem && (
@@ -167,24 +193,22 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
           <DataState state="loading" title="Cargando el histórico…" skeletonRows={3} />
         </Card>
       )}
-      {trends && !loading && <TrendsBody trends={trends} selected={selected} typeLabel={current.label} />}
+      {history && !loading && <TrendsBody trends={history} selected={selected} typeLabel={current.label} />}
     </div>
   );
 }
 
 function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends; selected: TrendSeries | null; typeLabel: string }) {
   const sealed = trends.campaigns.filter((campaign) => campaign.seal !== null);
-  const unsealed = trends.campaigns.filter((campaign) => campaign.seal === null);
   return (
     <div className="space-y-4">
       <DisclosureNotice mode={trends.disclosure.mode} />
-      {trends.disclosure.mode === 'PROVISIONAL_SYNTHETIC' &&
+      {trends.disclosure.mode !== 'POLICY_PENDING' &&
         (selected === null ? (
           <Card>
             <DataState
               state="empty"
-              title="Sin series selladas"
-              description={`Filtro aplicado: «${typeLabel}». No hay cifras selladas de ${typeLabel.toLowerCase()} en ninguna campaña. Eso no significa cero.`}
+              title="Sin datos disponibles"
             />
           </Card>
         ) : (
@@ -193,25 +217,18 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
               <div className="px-5 sm:px-8">
                 <h2 className="text-2xl font-bold text-ink [overflow-wrap:anywhere] sm:text-[1.75rem]">{selected.product_name}</h2>
                 <p className="mt-1 text-base text-ink-muted">
-                  {typeLabel} por campaña sellada, en {UNIT_WORD[selected.presentation_unit]}. Bajo cada campaña, su cobertura al sellar.
-                </p>
-                <p className="mt-1 text-sm text-ink-muted">
-                  {unsealed.length > 0
-                    ? `Campañas sin sellar (${unsealed.map((campaign) => campaign.name).join(', ')}) no se dibujan como histórico.`
-                    : 'Sin columna = sin cifra publicada, no cero.'}
+                  {typeLabel} por campaña, en {UNIT_WORD[selected.presentation_unit]}. Bajo cada campaña, su cobertura.
                 </p>
               </div>
               <TrendChart line={selected} campaigns={sealed} threshold={trends.disclosure.threshold} />
             </section>
-            <HowToRead unsealed={unsealed} />
+            <HowToRead />
           </div>
         ))}
       <Collapsible title="Ver campañas y cobertura" testId="sources">
         <div className="space-y-5 p-5">
-          <p className="text-xs text-slate-600">{trends.notice} Ningún dato individual se incorpora para enriquecer estas tendencias.</p>
           <CampaignsTable campaigns={trends.campaigns} />
-          {trends.disclosure.mode === 'PROVISIONAL_SYNTHETIC' &&
-            trends.series.map((line) => <SeriesTable key={seriesKey(line)} line={line} campaigns={trends.campaigns} threshold={trends.disclosure.threshold} />)}
+          {selected && <SeriesTable line={selected} campaigns={trends.campaigns} threshold={trends.disclosure.threshold} />}
         </div>
       </Collapsible>
     </div>
@@ -219,29 +236,16 @@ function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends;
 }
 
 /** «Cómo leerlo» (lámina 25), sin «Campaña más alta» (H-10). */
-function HowToRead({ unsealed }: { unsealed: TrendCampaign[] }) {
+function HowToRead() {
   return (
     <section aria-labelledby="como-leerlo" className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-8" data-testid="how-to-read">
       <h2 id="como-leerlo" className="text-2xl font-bold text-ink">
         Cómo leerlo
       </h2>
       <ul className="mt-3 list-disc space-y-2 pl-5 text-base leading-relaxed text-ink">
-        <li>Solo entran campañas selladas.</li>
-        {unsealed.length > 0 && (
-          <li>
-            {unsealed.map((campaign) => campaign.name).join(', ')} {unsealed.length === 1 ? 'no está sellada' : 'no están selladas'}: no se dibuja
-            {unsealed.length === 1 ? '' : 'n'}.
-          </li>
-        )}
         <li>Un hueco es «sin dato» o «sin cifra», nunca cero.</li>
-        <li>Cada campaña conserva la política con que se selló; las cifras de campañas con políticas distintas no se suman ni se restan.</li>
         <li>La cobertura cambia entre campañas: un cambio de cobertura no prueba un cambio de consumo de cada agricultor.</li>
       </ul>
-      <p className="mt-4">
-        <Link to={CAMPAIGNS_PATH} className="font-semibold text-link underline underline-offset-2">
-          Ver campañas y cobertura
-        </Link>
-      </p>
     </section>
   );
 }
@@ -250,8 +254,8 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200" aria-label="Campañas y versiones">
       <SectionHeader
-        title="Campañas, versión y cobertura"
-        note="La cobertura es la fijada al sellar. Un cambio de cobertura entre campañas no prueba que cada agricultor consumiera o necesitara más o menos."
+        title="Campañas y cobertura"
+        note="Se muestra la cobertura registrada para cada campaña. Un cambio de cobertura entre campañas no prueba que cada agricultor consumiera o necesitara más o menos."
       />
       {campaigns.length === 0 ? (
         <DataState state="empty" compact title="Sin campañas" description="Todavía no hay campañas en el histórico." />
@@ -262,9 +266,8 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
               <tr>
                 <th className={`px-3 py-2.5 sm:px-5 ${STICKY_HEAD}`}>Campaña</th>
                 <th className="px-3 py-2.5 sm:px-5">Estado</th>
-                <th className="px-3 py-2.5 sm:px-5">Versión sellada</th>
-                <th className="px-3 py-2.5 sm:px-5">Política al sellar</th>
-                <th className="px-3 py-2.5 sm:px-5">Cobertura al sellar</th>
+                <th className="px-3 py-2.5 sm:px-5">Resultados fijados</th>
+                <th className="px-3 py-2.5 sm:px-5">Cobertura histórica</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -273,10 +276,7 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
                   <td className={`w-32 min-w-32 px-3 py-2.5 font-medium text-slate-800 [overflow-wrap:anywhere] sm:w-auto sm:min-w-40 sm:px-5 ${STICKY_CELL}`}>{campaign.name}</td>
                   <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5">{CAMPAIGN_STATUS_TEXT[campaign.status] ?? campaign.status}</td>
                   <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5">
-                    {campaign.seal ? `Versión ${campaign.seal.version}, sellada el ${fmtDateTime(campaign.seal.sealed_at)}` : 'Sin sellar: no aporta cifras'}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-slate-700 sm:px-5" data-testid={`campaign-policy-${campaign.name}`}>
-                    {campaign.seal ? policyText(campaign.seal.policy, campaign.seal.threshold) : '—'}
+                    {campaign.seal ? `${fmtDateTime(campaign.seal.sealed_at)}` : 'Sin resultados históricos'}
                   </td>
                   <td className="px-3 py-2.5 text-xs tabular-nums text-slate-700 sm:px-5">
                     {campaign.coverage ? `${campaign.coverage.members_with_contribution} de ${campaign.coverage.linked_members} con cifras publicadas` : '—'}
@@ -341,15 +341,15 @@ function SeriesTable({ line, campaigns, threshold }: { line: TrendSeries; campai
 
 /** Rótulo breve de un hueco, con su estado (F07 §8): ninguno es cero. */
 const GAP_TEXT: Record<Exclude<TrendPoint['status'], 'DISCLOSED'>, string> = {
-  SUPPRESSED_UNDER_THRESHOLD: 'sin cifra (F07-POL-01)',
+  SUPPRESSED_UNDER_THRESHOLD: 'sin datos disponibles',
   SUPPRESSED_REVISION: 'en revisión',
   OVERFLOW: 'fuera de rango',
   WITHDRAWN_AFTER_SEAL: 'retirado',
   NO_DATA: 'sin dato',
-  NOT_SEALED: 'sin sellar',
+  NOT_SEALED: 'sin resultados históricos',
 };
 
-/** Cobertura al sellar de una campaña, corta («14 de 15»); sin dato, «sin cobertura». */
+/** Cobertura histórica de una campaña, corta («14 de 15»); sin dato, «sin cobertura». */
 function coverageText(campaign: TrendCampaign): string {
   return campaign.coverage ? `${COUNT.format(campaign.coverage.members_with_contribution)} de ${COUNT.format(campaign.coverage.linked_members)}` : 'sin cobertura';
 }
@@ -416,7 +416,7 @@ function TrendChart({ line, campaigns, threshold }: { line: TrendSeries; campaig
   const columns = columnsOf(line, campaigns, threshold);
   const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
   const shown = columns.filter(({ value, label }) => value !== null && label !== null).length;
-  const summary = `${line.product_name}: ${shown} de ${columns.length} campañas selladas con cifra publicada; las demás son huecos, no ceros.`;
+  const summary = `${line.product_name}: ${shown} de ${columns.length} campañas con cifra publicada; las demás son huecos, no ceros.`;
   return (
     <>
       <div className="hidden overflow-x-auto px-5 py-4 sm:block">
@@ -439,7 +439,7 @@ function ColumnsSvg({ line, columns, max, summary }: { line: TrendSeries; column
   return (
     <svg role="img" aria-label={summary} width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="text-ink" data-testid="trend-chart">
       <text x={PAD.left - 8} y={16} fontSize={12} fill="#55645a">
-        {line.presentation_unit} por campaña sellada
+        {line.presentation_unit} por campaña
       </text>
       <line x1={PAD.left - 8} x2={width - PAD.right + 8} y1={baseline} y2={baseline} stroke="#0f2a1d" strokeWidth={2} />
       {columns.map(({ campaign, value, label, gap, reason }, index) => {
@@ -490,7 +490,7 @@ function ColumnsSvg({ line, columns, max, summary }: { line: TrendSeries; column
 function CompactBars({ line, columns, max, summary }: { line: TrendSeries; columns: Column[]; max: bigint; summary: string }) {
   return (
     <div className="px-5 pt-4 sm:hidden">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Solo campañas selladas · {line.presentation_unit}</p>
+      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Solo campañas · {line.presentation_unit}</p>
       <ul className="divide-y divide-line" aria-label={summary} data-testid="trend-chart-compact">
         {columns.map(({ campaign, value, label, gap, reason }) => (
           <li key={campaign.campaign_ref} className="min-w-0 py-3">
@@ -508,7 +508,7 @@ function CompactBars({ line, columns, max, summary }: { line: TrendSeries; colum
               </div>
             )}
             <p className="mt-1 text-sm text-ink-muted">
-              Cobertura al sellar: {coverageText(campaign)}
+              Cobertura histórica: {coverageText(campaign)}
               {value === null || !label ? ` · ${reason}` : ''}
             </p>
           </li>

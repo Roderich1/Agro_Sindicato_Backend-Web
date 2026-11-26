@@ -1,4 +1,4 @@
-import { DisclosureNotice, Fingerprint, PolicyLine } from '../../components/collective-ui';
+import { DisclosureNotice } from '../../components/collective-ui';
 import { Button, Card, Chip, DataState, DataTable, ICON, Notice, PrivacyChip, statusChipLabel } from '../../components/ui';
 import { fmtDateTime, PENDING_CHANGES_TEXT, statusReason } from '../../lib/collective-text';
 import { comparisonMessages, estimateScopeText, hasEstimateFigure } from '../../lib/estimation-link-text';
@@ -28,14 +28,13 @@ export function ProposalDetail(props: DetailProps) {
       )}
       {proposal.lines.length === 0 ? (
         <Card>
-          <DataState state="empty" title="Sin necesidades declaradas publicadas" description="Ausencia de declaración = desconocido, no cero." />
+          <DataState state="empty" title="Sin aportes autorizados" />
         </Card>
       ) : (
         <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
           <div className="space-y-1 px-5 pt-4 sm:px-8">
             <LinesSummary lines={proposal.lines} />
             {/* E4 §4.4: el borrador conserva la política con que se generó. */}
-            {proposal.disclosure.mode === 'PROVISIONAL_SYNTHETIC' && <PolicyLine policy={proposal.disclosure.policy} threshold={null} testId="proposal-policy" />}
             {messages.shared && (
               <p className="text-sm text-ink-muted" data-testid="comparison-note">
                 {messages.shared}
@@ -110,11 +109,6 @@ export function ProposalDetail(props: DetailProps) {
           onPrepareCall={props.onPrepareCall}
         />
       )}
-      <p className="text-sm text-ink-muted">
-        Borrador basado en las necesidades declaradas publicadas. Requiere revisión: no resta stock, no es una necesidad neta y no ejecuta
-        ninguna compra. Huella del borrador: <Fingerprint value={proposal.inputs_fingerprint} />. Misma huella = mismas entradas autorizadas y mismas líneas. Cada
-        borrador queda guardado tal como se generó; ninguno se modifica. No crea compras, lotes, movimientos, deudas ni pagos.
-      </p>
     </section>
   );
 }
@@ -218,7 +212,7 @@ function EstimateCell({ line, link, message }: { line: ProposalLine; link: LinkL
     case 'RESTRICTED':
       return short(
         'Restringida',
-        e.validity_reason === 'SOURCES_WITHDRAWN' ? VALIDITY_REASON_TEXT.SOURCES_WITHDRAWN : 'La política de divulgación no está aprobada: no se muestra la cifra.',
+        e.validity_reason === 'SOURCES_WITHDRAWN' ? VALIDITY_REASON_TEXT.SOURCES_WITHDRAWN : 'Sin estimación disponible.',
       );
     case 'AVAILABLE':
     case 'OUTDATED':

@@ -333,7 +333,7 @@ function ImpactUnavailable() {
   return (
     <p className="rounded-control bg-sunken px-4 py-3 text-sm leading-relaxed text-ink" data-testid="impact-unavailable">
       <span className="font-semibold">Efecto en las cifras, antes y después: no disponible.</span> El sistema no ofrece una vista previa. Tras
-      confirmar, algunas cifras del resumen pueden quedar sin publicar mientras se revisan; las versiones selladas no cambian.
+      confirmar, algunas cifras del resumen pueden quedar sin publicar mientras se revisan; el cambio se aplica a resultados futuros.
     </p>
   );
 }

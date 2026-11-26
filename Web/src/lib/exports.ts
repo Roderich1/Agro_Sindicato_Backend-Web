@@ -17,13 +17,14 @@ import { downloadProposalExcel } from './joint-purchase-excel-export';
 import { downloadTrendsXlsx } from './trends-xlsx';
 import { collectiveService } from '../services/collective.service';
 import { estimationService } from '../services/estimation.service';
+import { scopeHistory, type HistoryScope } from './history-scope';
 import type { ProjectionType } from '../types/collective';
 
 export type ExcelKind = 'summary' | 'proposal' | 'trends' | 'estimation';
 
 export interface ExcelExport {
   /** `null` si ninguna vista tiene Excel. */
-  download: ((kind: ExcelKind, ref: string) => Promise<void>) | null;
+  download: ((kind: ExcelKind, ref: string, historyScope?: HistoryScope) => Promise<void>) | null;
   /** Vistas con Excel disponible. */
   supports: (kind: ExcelKind) => boolean;
   /** Motivo que se muestra mientras no está disponible. */
@@ -39,7 +40,7 @@ const PROJECTION_TYPES: ProjectionType[] = ['CONSUMPTION_TOTAL', 'DECLARED_NEED'
  * pantalla con la sesión del usuario: el servidor vuelve a aplicar permisos y
  * política, y nada se toma de lo que la pantalla tenga en memoria.
  */
-export async function downloadExcel(kind: ExcelKind, ref: string): Promise<void> {
+export async function downloadExcel(kind: ExcelKind, ref: string, historyScope?: HistoryScope): Promise<void> {
   switch (kind) {
     case 'summary': {
       downloadSummaryXlsx({ summary: await collectiveService.summary(ref) });
@@ -52,7 +53,8 @@ export async function downloadExcel(kind: ExcelKind, ref: string): Promise<void>
     case 'trends': {
       const type = PROJECTION_TYPES.find((t) => t === ref);
       if (!type) throw new Error('Tipo de tendencia no reconocido: no se exporta.');
-      downloadTrendsXlsx({ trends: await collectiveService.trends(type), type });
+      const history = await collectiveService.trends(type);
+      downloadTrendsXlsx({ trends: scopeHistory(history, historyScope ?? { campaignId: '' }), type });
       return;
     }
     case 'estimation': {

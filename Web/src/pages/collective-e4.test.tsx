@@ -1,8 +1,8 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdentificationPendingContext } from '../contexts/identification-pending';
-import { SMALL_GROUP_NOTE } from '../lib/collective-text';
 import { buildSummaryXlsx } from '../lib/collective-summary-xlsx';
+import { scopeHistory } from '../lib/history-scope';
 import { buildTrendsXlsx } from '../lib/trends-xlsx';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
@@ -29,7 +29,7 @@ const SUMMARY_POL_02: CollectiveSummary = {
   contractVersion: 1,
   campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name, status: 'ABIERTA' },
   seal: null,
-  disclosure: { mode: 'PROVISIONAL_SYNTHETIC', policy: 'F07-POL-02', approved: false, threshold: null },
+  disclosure: { mode: 'APPROVED', policy: 'F07-POL-02', approved: true, threshold: null },
   coverage: { linked_members: 12, members_with_contribution: 3, suppressed_cells: false },
   cells: [
     {
@@ -80,7 +80,7 @@ const SUMMARY_SEALED_POL_01: CollectiveSummary = {
   ],
 };
 
-const RETIRED_TEXTS = /umbral|Oculta por privacidad|Oculto por privacidad|Menos de \d+ agricultores|anónim/i;
+const RETIRED_TEXTS = /F07-POL|umbral|Oculta por privacidad|Oculto por privacidad|Menos de \d+ agricultores|anónim/i;
 
 const showSummary = () =>
   renderAt(
@@ -97,7 +97,7 @@ describe('E4: Resumen colectivo sin umbral (F07-POL-02) y lo sellado con F07-POL
     vi.mocked(collectiveService.sealState).mockResolvedValue(sealStateWith({ can_seal: false, blocked_by: ['CAMPAIGN_NOT_CLOSED'], review: null }));
   });
 
-  it('§4.1: una celda de 1 aportante y otra de 2 se publican; el cero es un cero; la política se ve; ningún texto de umbral', async () => {
+  it('§4.1: una celda de 1 aportante y otra de 2 se publican; el cero es un cero; la interfaz presenta estados comprensibles', async () => {
     vi.mocked(collectiveService.summary).mockResolvedValue(SUMMARY_POL_02);
     showSummary();
     const one = await screen.findByTestId('cell-DECLARED_NEED-Producto sintético P1-ML');
@@ -107,43 +107,36 @@ describe('E4: Resumen colectivo sin umbral (F07-POL-02) y lo sellado con F07-POL
     expect(two.querySelector('[data-figure]')!.textContent).toBe('0 KG');
     expect(two.textContent).toMatch(/2 agricultores/);
     expect(screen.queryByTestId('needs-hidden')).toBeNull();
-    const policy = screen.getByTestId('policy-line');
-    expect(policy.textContent).toContain('F07-POL-02 (totales sin nombres, sin mínimo de aportantes)');
-    expect(policy.textContent).toContain(SMALL_GROUP_NOTE);
-    expect(screen.getByTestId('needs-footnote').textContent).toMatch(/aunque aporte una sola persona/);
+    const policy = screen.queryByTestId('policy-line');
+    expect(policy).toBeNull();
     expect(document.body.textContent).not.toMatch(RETIRED_TEXTS);
   });
 
-  it('§4.2: campaña sellada con F07-POL-01: su política visible, la fila sin cifra rotulada con ella, sin «oculto por privacidad»', async () => {
+  it('§4.2: campaña sellada con F07-POL-01: conserva la ausencia histórica y su cifra publicada', async () => {
     vi.mocked(collectiveService.summary).mockResolvedValue(SUMMARY_SEALED_POL_01);
     showSummary();
     const p2 = await screen.findByTestId('cell-CONSUMPTION_TOTAL-Producto sintético P2-G');
-    expect(p2.textContent).toMatch(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/);
+    expect(p2.textContent).toContain('Sin datos disponibles.');
     expect(p2.textContent).not.toMatch(/\d[\d.,]*\s?KG\b/);
-    expect(screen.getByTestId('seal-policy').textContent).toMatch(/Política aplicada al sellar: F07-POL-01 \(mínimo de 3 aportantes por cifra\)/);
+    expect(screen.queryByTestId('seal-policy')).toBeNull();
     expect(screen.getByTestId('cell-CONSUMPTION_TOTAL-Producto sintético P1-ML').querySelector('[data-figure]')!.textContent).toBe('84 L');
     expect(document.body.textContent).not.toMatch(/privacidad|anónim/i);
   });
 
-  it('Excel del §4.1: «Política aplicada» F07-POL-02, el aviso de totales con pocas personas y las cifras de 1 y 2 aportantes', () => {
+  it('Excel del §4.1: cifras de 1 y 2 aportantes, con datos técnicos omitidos', () => {
     const { sheets } = readXlsx(buildSummaryXlsx({ summary: SUMMARY_POL_02, exportedAt: new Date('2026-11-13T17:00:00.000Z') }).bytes);
     const cover = sheets.get('Resumen')!;
-    expect(cover.text).toContain('Política aplicada');
-    expect(cover.text).toContain('F07-POL-02 (totales sin nombres, sin mínimo de aportantes)');
-    expect(cover.text).toContain(SMALL_GROUP_NOTE);
+    expect(cover.text).not.toMatch(RETIRED_TEXTS);
     expect(cover.text).toContain('2 productos: 2 con cifra publicada · 0 sin cifra publicada.');
     expect(cover.text + sheets.get('Necesidad declarada')!.text).not.toMatch(RETIRED_TEXTS);
     expect(sheets.get('Necesidad declarada')!.text).toContain('12.5');
   });
 
-  it('Excel del §4.2: «Política aplicada al sellar» F07-POL-01 y el estado sin cifra rotulado con esa política', () => {
+  it('Excel del §4.2: conserva la ausencia histórica', () => {
     const { sheets } = readXlsx(buildSummaryXlsx({ summary: SUMMARY_SEALED_POL_01, exportedAt: new Date('2026-11-13T17:00:00.000Z') }).bytes);
     const cover = sheets.get('Resumen')!;
-    expect(cover.text).toContain('Política aplicada al sellar');
-    expect(cover.text).toContain('F07-POL-01 (mínimo de 3 aportantes por cifra)');
-    expect(cover.text).not.toContain(SMALL_GROUP_NOTE);
+    expect(cover.text).not.toMatch(RETIRED_TEXTS);
     const consumption = sheets.get('Consumo publicado')!;
-    expect(consumption.text).toContain('Sin cifra (F07-POL-01)');
     expect(consumption.text).not.toMatch(/privacidad|anónim/i);
   });
 });
@@ -175,25 +168,24 @@ describe('E4: tendencias con la política de cada campaña sellada (§4.3)', () 
 
   beforeEach(() => vi.clearAllMocks());
 
-  it('cada campaña muestra su política; el hueco de 2024 dice su política y la cifra de 1 aportante de 2025 se publica', async () => {
+  it('muestra la ausencia histórica y filtra por campaña y producto', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trends());
     renderAt(<CollectiveTrendsPage />, { path: '/colectivo/tendencias' });
-    expect((await screen.findByTestId('campaign-policy-Campaña 2024')).textContent).toBe('F07-POL-01 (mínimo de 3 aportantes por cifra)');
-    expect(screen.getByTestId('campaign-policy-Campaña 2025').textContent).toBe('F07-POL-02 (totales sin nombres, sin mínimo de aportantes)');
-    const table = screen.getByTestId('series-CONSUMPTION_TOTAL-Producto sintético P2-G');
-    expect(within(table).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/);
+    const table = await screen.findByTestId('series-CONSUMPTION_TOTAL-Producto sintético P2-G');
+    expect(within(table).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin datos disponibles/);
     expect(within(table).getByTestId('point-Campaña 2025').textContent).toMatch(/5 KG/);
-    expect(screen.getByTestId('how-to-read').textContent).toMatch(/conserva la política con que se selló/);
-    expect(document.body.textContent).not.toMatch(/umbral|privacidad|anónim/i);
+    expect(screen.queryByRole('option', { name: 'Campaña 2026' })).toBeNull();
+    fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: 'c-2025' } });
+    expect(within(table).queryByTestId('point-Campaña 2024')).toBeNull();
+    expect(document.body.textContent).not.toMatch(RETIRED_TEXTS);
   });
 
-  it('Excel: la portada y «Campañas» llevan la política de cada campaña; sin «Umbral de privacidad»', () => {
-    const { sheets } = readXlsx(buildTrendsXlsx({ trends: trends(), type: 'CONSUMPTION_TOTAL', exportedAt: new Date('2026-11-13T17:00:00.000Z') }).bytes);
+  it('Excel: respeta la campaña y el producto seleccionados', () => {
+    const scoped = scopeHistory(trends(), { campaignId: 'c-2025', productKey: 'p-0002|G' });
+    const { sheets } = readXlsx(buildTrendsXlsx({ trends: scoped, type: 'CONSUMPTION_TOTAL', exportedAt: new Date('2026-11-13T17:00:00.000Z') }).bytes);
     const cover = sheets.get('Tendencias')!;
-    expect(cover.text).toContain('Campaña 2024: Cerrada, versión 1 sellada con F07-POL-01 (mínimo de 3 aportantes por cifra)');
-    expect(cover.text).toContain('Campaña 2025: Cerrada, versión 1 sellada con F07-POL-02 (totales sin nombres, sin mínimo de aportantes)');
-    expect(cover.text).toContain('Configurada ahora: F07-POL-02');
-    expect(cover.text).not.toMatch(/Umbral de privacidad|anónim/i);
-    expect(sheets.get('Campañas')!.text).toContain('F07-POL-02 (totales sin nombres, sin mínimo de aportantes)');
+    expect(cover.text).not.toMatch(RETIRED_TEXTS);
+    expect(sheets.get('Campañas')!.text).toContain('Campaña 2025');
+    expect(sheets.get('Campañas')!.text).not.toContain('Campaña 2024');
   });
 });

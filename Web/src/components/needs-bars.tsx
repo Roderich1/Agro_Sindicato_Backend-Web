@@ -19,7 +19,7 @@ const COUNT = new Intl.NumberFormat('es-BO');
  * - Una cifra publicada se escribe exacta y grande; con `bars`, una barra en la
  *   escala de su unidad, sólo si es mayor que cero («0 L» va sin barra).
  * - Una fila sin cifra muestra el chip punteado con el texto de su estado
- *   (H-06; con E4 §5.1, «Sin cifra (F07-POL-01)» para el estado de esa
+ *   (H-06; con E4 §5.1, «Sin datos disponibles» para el estado de esa
  *   política), su motivo y «aportantes no revelados»: sin número, barra ni cero.
  *   Con `F07-POL-02` una celda con 1 o 2 aportantes se publica como cualquier otra.
  * - Sin `bars` (consumo publicado, columna lateral) es una lista compacta.
@@ -50,14 +50,14 @@ function sortByName(cells: SummaryCell[]): SummaryCell[] {
   return [...cells].sort((a, b) => a.product_name.localeCompare(b.product_name, 'es', { sensitivity: 'base' }));
 }
 
-/** «4 con cifra · 3 sin cifra por F07-POL-01 · 1 sin cifra publicada»: recuento de filas por estado, nunca una cantidad. */
+/** «4 con cifra · 3 sin datos disponibles · 1 sin cifra publicada»: recuento de filas por estado, nunca una cantidad. */
 function groupCounts(cells: SummaryCell[]): string {
   const published = cells.filter((cell) => cell.status === 'DISCLOSED').length;
   const previous = cells.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
   const other = cells.length - published - previous;
   const parts: string[] = [];
   if (published > 0) parts.push(`${COUNT.format(published)} con cifra`);
-  if (previous > 0) parts.push(`${COUNT.format(previous)} sin cifra por F07-POL-01`);
+  if (previous > 0) parts.push(`${COUNT.format(previous)} sin datos disponibles`);
   if (other > 0) parts.push(`${COUNT.format(other)} sin cifra publicada`);
   return parts.join(' · ');
 }

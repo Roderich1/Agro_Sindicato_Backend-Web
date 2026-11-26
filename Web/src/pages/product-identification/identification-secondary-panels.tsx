@@ -245,7 +245,7 @@ export function CorrectionPanel({ request, onCancel, onDone }: { request: Identi
         Corrige la identificación que hizo el sindicato. No cambia por sí sola el inventario, las compras ni los vínculos del agricultor en su
         aplicación: el vínculo lo confirma él.
       </p>
-      <Checkbox label="Confirmo el cambio. Las cifras ya selladas no se modifican." checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={busy} />
+      <Checkbox label="Confirmo el cambio. El cambio se aplicará a resultados futuros." checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={busy} />
       {error && <Notice kind="error">{error}</Notice>}
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button variant="secondary" onClick={onCancel} disabled={busy}>

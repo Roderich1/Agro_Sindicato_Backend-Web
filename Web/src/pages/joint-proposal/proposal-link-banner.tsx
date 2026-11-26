@@ -68,7 +68,7 @@ export function LinkBanner({
       title = 'Sin referencia de consumo estimado';
       detail = view.prepare_blocker
         ? PREPARE_BLOCKER_TEXT[view.prepare_blocker]
-        : 'Obtenga una referencia para ver el consumo estimado junto a la necesidad declarada: se fija una ejecución ya calculada si es compatible; si no, se pide un cálculo.';
+        : 'Puede obtener una referencia de consumo estimado.';
       break;
     case 'CALCULATING':
       title = 'Calculando la referencia…';
@@ -95,7 +95,7 @@ export function LinkBanner({
       icon = ICON.lock;
       title = 'Referencia restringida';
       detail =
-        'La política de divulgación no está aprobada: se conserva el vínculo (ejecución, fecha y método) pero no se muestra ninguna cifra ni recuento.';
+        'Sin estimación disponible.';
       break;
   }
   const actionLabel = (intent: LinkIntent) => (view.state === 'UNAVAILABLE' && intent === 'UPDATE' ? 'Reintentar' : intent === 'INITIAL' ? 'Obtener' : 'Actualizar');

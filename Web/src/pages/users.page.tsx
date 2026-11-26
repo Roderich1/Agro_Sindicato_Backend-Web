@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '../components/app-shell';
-import { SubstitutionPermissionsHistoryPanel } from '../components/b/substitution-permissions';
 import {
   DataState,
   type DataStateKind,
@@ -174,7 +173,6 @@ export function UsersPage() {
           </section>
 
           <aside className="min-w-0" aria-label="Historial del permiso «Sustituir responsable»">
-            <SubstitutionPermissionsHistoryPanel />
           </aside>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { Figure } from '../../components/estimation-figure';
 import { surfaceClass } from '../../components/ui';
-import { collectiveError, fmtDateTime, policyText } from '../../lib/collective-text';
+import { collectiveError, fmtDateTime } from '../../lib/collective-text';
 import { ACTION_TEXT, MODE_TEXT } from '../../lib/estimation-link-text';
 import { formatAlpha, JOB_STATUS_TEXT, RESULT_STATUS_TEXT } from '../../lib/estimation-text';
 import { fmtCalendarDate } from '../../lib/format';
@@ -67,10 +67,6 @@ export function CalculationDetails({ view, proposal }: { view: EstimationLinkVie
             <dt className="text-ink-muted">Campaña objetivo (período)</dt>
             <dd>
               {run.target.name} · {fmtCalendarDate(run.target.start_date) ?? '—'} a {fmtCalendarDate(run.target.end_date) ?? 'sin fecha de cierre'}
-            </dd>
-            <dt className="text-ink-muted">Política aplicada</dt>
-            <dd>
-              {policyText(run.disclosure.policy, run.disclosure.threshold)} · {run.disclosure.mode}
             </dd>
             <dt className="text-ink-muted">Ejecución</dt>
             <dd>

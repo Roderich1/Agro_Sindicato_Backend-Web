@@ -1,10 +1,7 @@
-import { Button, DataState, Dialog, labelClass, Notice, SegmentedControl, Select, TextInput } from '../components/ui';
+import { Button, Dialog, labelClass, Notice, SegmentedControl, TextInput } from '../components/ui';
 import {
   CREATE_AS_DRAFT_NOTE,
   DEADLINE_HELP,
-  handOverText,
-  RESPONSIBLE_NOTICE,
-  ROLE_LABEL,
 } from '../lib/joint-purchase-call-text';
 import type { JointPurchaseCallDetail } from '../types/joint-purchase-calls';
 import { CatalogPicker, FieldError, ProposalPicker } from './joint-purchase-calls/call-form-pickers';
@@ -31,12 +28,11 @@ export function JointPurchaseCallForm({
   preset?: { proposalId: string; productRefs: readonly string[] };
 }) {
   const form = useCallForm({ campaignId, call, preset, onSaved, onManageForbidden });
-  const handOver = handOverText(form.responsibleName);
 
   return (
     <Dialog
-      title={form.confirmingHandOver ? 'Antes de guardar: dejará de administrar este borrador' : form.editing ? 'Editar la convocatoria' : 'Nueva convocatoria'}
-      onClose={form.confirmingHandOver ? () => form.setConfirmingHandOver(false) : onClose}
+      title={form.editing ? 'Editar la convocatoria' : 'Nueva convocatoria'}
+      onClose={onClose}
       dirty={form.dirty}
       busy={form.busy}
       size="lg"
@@ -44,16 +40,6 @@ export function JointPurchaseCallForm({
       fullScreenOnPhone
       testId="call-form"
       footer={
-        form.confirmingHandOver ? (
-          <>
-            <Button variant="secondary" onClick={() => form.setConfirmingHandOver(false)} disabled={form.busy}>
-              Volver
-            </Button>
-            <Button onClick={() => void form.submit(true)} busy={form.busy}>
-              Confirmar
-            </Button>
-          </>
-        ) : (
           <>
             <Button variant="secondary" onClick={onClose} disabled={form.busy}>
               Cancelar
@@ -62,23 +48,9 @@ export function JointPurchaseCallForm({
               {form.editing ? 'Guardar cambios' : 'Crear borrador'}
             </Button>
           </>
-        )
       }
     >
-      {form.confirmingHandOver && (
-        <div className="space-y-4" data-testid="handover-warning">
-          <Notice kind="warn">
-            <p>{handOver.lead}</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              {handOver.losses.map((loss) => (
-                <li key={loss}>{loss}</li>
-              ))}
-            </ul>
-            <p className="mt-2">{handOver.closing}</p>
-          </Notice>
-        </div>
-      )}
-      <div className="space-y-5" hidden={form.confirmingHandOver}>
+      <div className="space-y-5">
         <p className="text-base text-ink-muted">
           Campaña: <strong className="font-semibold text-ink">{campaignName}</strong>
         </p>
@@ -86,8 +58,7 @@ export function JointPurchaseCallForm({
         {form.prepared && (
           <Notice kind="info" compact>
             <span data-testid="prepared-notice">
-              Preparada desde un borrador de compra. Complete el nombre, la fecha límite y el responsable, revise los productos y
-              confirme con «Crear borrador». No se crea nada ni se inscribe a nadie hasta entonces.
+              Preparada desde un borrador de compra. Revise los productos, el nombre y la fecha límite antes de crear el borrador.
             </span>
           </Notice>
         )}
@@ -112,32 +83,6 @@ export function JointPurchaseCallForm({
           help={DEADLINE_HELP}
           error={form.errors.deadline}
         />
-
-        {form.responsiblesError ? (
-          <div>
-            <p className={labelClass}>Responsable</p>
-            <DataState compact state="error" description={form.responsiblesError} onRetry={() => void form.loadResponsibles()} />
-          </div>
-        ) : (
-          <Select
-            id="call-responsible"
-            label="Responsable"
-            value={form.responsibleId}
-            disabled={!form.responsibles}
-            onChange={(event) => form.setResponsibleId(event.target.value)}
-            error={form.errors.responsible}
-            help={<span data-testid="responsible-notice">{RESPONSIBLE_NOTICE}</span>}
-          >
-            <option value="">{form.responsibles ? 'Seleccione…' : 'Cargando…'}</option>
-            {(form.responsibles ?? []).map((user) => (
-              <option key={user.user_ref} value={user.user_ref}>
-                {user.name}
-                {user.user_ref === form.me ? ' (usted)' : ''}
-                {ROLE_LABEL[user.role] ? ` · ${ROLE_LABEL[user.role]}` : ''}
-              </option>
-            ))}
-          </Select>
-        )}
 
         <fieldset className="min-w-0 space-y-3" aria-describedby={form.errors.products ? 'call-products-error' : undefined}>
           <legend className={labelClass}>Productos</legend>

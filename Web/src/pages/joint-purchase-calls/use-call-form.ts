@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAuth } from '../../hooks/use-auth';
+import { useCallback, useRef, useState } from 'react';
 import { callError, callErrorCode, fromLocalInput, toLocalInput } from '../../lib/joint-purchase-call-text';
 import { jointPurchaseCallsService } from '../../services/joint-purchase-calls.service';
 import type { Proposal } from '../../types/collective';
 import type {
-  EligibleResponsible,
   JointPurchaseCallDetail,
   JointPurchaseCallProductInput,
 } from '../../types/joint-purchase-calls';
@@ -21,7 +19,6 @@ export const MAX_NAME = 120;
 export interface Errors {
   name?: string;
   deadline?: string;
-  responsible?: string;
   products?: string;
 }
 
@@ -42,7 +39,6 @@ export function useCallForm({
   const prepared = !call && preset ? preset : null;
   const [name, setName] = useState(call?.name ?? '');
   const [deadline, setDeadline] = useState(toLocalInput(call?.deadline_at));
-  const [responsibleId, setResponsibleId] = useState(call?.responsible.user_ref ?? '');
   const [source, setSource] = useState<Source>(call?.source_proposal_ref || prepared ? 'proposal' : 'catalog');
   const [catalogRefs, setCatalogRefs] = useState<Set<string>>(
     () => new Set(call && !call.source_proposal_ref ? call.products.map((product) => product.product_ref) : []),
@@ -59,26 +55,6 @@ export function useCallForm({
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmingHandOver, setConfirmingHandOver] = useState(false);
-  const { user } = useAuth();
-  const me = user?.id ?? null;
-
-  const [responsibles, setResponsibles] = useState<EligibleResponsible[] | null>(null);
-  const [responsiblesError, setResponsiblesError] = useState<string | null>(null);
-
-  const loadResponsibles = useCallback(async () => {
-    try {
-      setResponsibles(await jointPurchaseCallsService.eligibleResponsibles());
-      setResponsiblesError(null);
-    } catch (err) {
-      setResponsiblesError(callError(err, 'No fue posible cargar los usuarios que pueden ser responsables.'));
-    }
-  }, []);
-
-  useEffect(() => {
-    void Promise.resolve().then(loadResponsibles);
-  }, [loadResponsibles]);
-
   const validate = (): Errors => {
     const next: Errors = {};
     const trimmed = name.trim();
@@ -87,7 +63,6 @@ export function useCallForm({
     const iso = fromLocalInput(deadline);
     if (!iso) next.deadline = 'Elija la fecha y hora límite.';
     else if (new Date(iso).getTime() <= Date.now()) next.deadline = 'La fecha límite debe ser posterior a este momento.';
-    if (!responsibleId) next.responsible = 'Elija el responsable.';
     const count = source === 'catalog' ? catalogRefs.size : positions.size;
     if (count === 0) next.products = 'Elija al menos un producto.';
     return next;
@@ -115,28 +90,14 @@ export function useCallForm({
     return [...new Set(refs)].map((product_ref) => ({ product_ref }));
   };
 
-  const handsOver = me !== null && responsibleId !== '' && responsibleId !== me && (!call || call.responsible.user_ref === me);
-  const responsibleName =
-    responsibles?.find((entry) => entry.user_ref === responsibleId)?.name ??
-    (call?.responsible.user_ref === responsibleId ? call.responsible.name : null) ??
-    'la persona elegida';
-
-  const submit = async (handOverConfirmed = false) => {
+  const submit = async () => {
     const found = validate();
     setErrors(found);
     setServerError(null);
-    if (Object.keys(found).length > 0) {
-      setConfirmingHandOver(false);
-      return;
-    }
-    if (handsOver && !handOverConfirmed) {
-      setConfirmingHandOver(true);
-      return;
-    }
+    if (Object.keys(found).length > 0) return;
     const base = {
       name: name.trim(),
       deadline_at: fromLocalInput(deadline)!,
-      responsible_user_id: responsibleId,
       products: chosenProducts(),
     };
     setBusy(true);
@@ -158,7 +119,6 @@ export function useCallForm({
         return;
       }
       setServerError(callError(err, 'No fue posible guardar el borrador.'));
-      setConfirmingHandOver(false);
       setBusy(false);
     }
   };
@@ -171,10 +131,8 @@ export function useCallForm({
   };
 
   const dirty =
-    !confirmingHandOver &&
     (name !== (call?.name ?? '') ||
       deadline !== toLocalInput(call?.deadline_at) ||
-      responsibleId !== (call?.responsible.user_ref ?? '') ||
       (!call && !prepared && (catalogRefs.size > 0 || positions.size > 0)));
 
   return {
@@ -184,8 +142,6 @@ export function useCallForm({
     setName,
     deadline,
     setDeadline,
-    responsibleId,
-    setResponsibleId,
     source,
     setSource,
     catalogRefs,
@@ -197,16 +153,9 @@ export function useCallForm({
     errors,
     serverError,
     busy,
-    confirmingHandOver,
-    setConfirmingHandOver,
-    me,
-    responsibles,
-    responsiblesError,
-    loadResponsibles,
     proposal,
     showProposal,
     ignored,
-    responsibleName,
     submit,
     dirty,
   };

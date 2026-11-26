@@ -27,6 +27,7 @@ export interface ConfirmDialogProps {
   reason?: ConfirmReason;
   /** Casilla «Confirmo que…»: la acción no se habilita hasta marcarla. */
   acknowledgement?: ReactNode;
+  confirmDisabled?: boolean;
   /** Envío en curso: deshabilita los botones y bloquea el cierre. */
   busy?: boolean;
   /** Error del servidor, mostrado dentro del diálogo; el motivo escrito se conserva. */
@@ -52,6 +53,7 @@ export function ConfirmDialog({
   tone = 'primary',
   reason,
   acknowledgement,
+  confirmDisabled = false,
   busy = false,
   error,
   onConfirm,
@@ -77,7 +79,7 @@ export function ConfirmDialog({
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </Button>
-          <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={() => onConfirm(trimmed)} disabled={!ready} busy={busy}>
+          <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={() => onConfirm(trimmed)} disabled={!ready || confirmDisabled} busy={busy}>
             {confirmLabel}
           </Button>
         </>
