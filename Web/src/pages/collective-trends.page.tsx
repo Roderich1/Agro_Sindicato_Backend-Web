@@ -311,7 +311,7 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
   );
 }
 
-function SeriesTable({ line, campaigns }: { line: TrendSeries; campaigns: TrendCampaign[] }) {
+function SeriesTable({ line, campaigns }: Readonly<{ line: TrendSeries; campaigns: TrendCampaign[] }>) {
   const nameOf = new Map(campaigns.map((campaign) => [campaign.campaign_ref, campaign.name]));
   const title = `${line.product_name} (${line.presentation_unit})`;
   return (
@@ -429,7 +429,7 @@ const permille = (value: bigint, max: bigint) => (max === 0n ? 0 : Number((value
  * columna. Un solo color: no hay series que distinguir. En pantallas
  * estrechas, las mismas cifras como barras horizontales.
  */
-function TrendChart({ line, campaigns }: { line: TrendSeries; campaigns: TrendCampaign[] }) {
+function TrendChart({ line, campaigns }: Readonly<{ line: TrendSeries; campaigns: TrendCampaign[] }>) {
   const columns = columnsOf(line, campaigns);
   const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
   const shown = columns.filter(({ value, label }) => value !== null && label !== null).length;

@@ -121,7 +121,7 @@ export function NeedsSection({ needs }: Readonly<{ needs: SummaryCell[] }>) {
 }
 
 /** «Consumo publicado» (H-22): otro dato; no se resta ni se compara con la necesidad. */
-export function ConsumptionCard({ cells }: { cells: SummaryCell[] }) {
+export function ConsumptionCard({ cells }: Readonly<{ cells: SummaryCell[] }>) {
   return (
     <section aria-labelledby="consumo-publicado" className="rounded-card border border-line bg-surface px-5 py-6 shadow-card sm:px-7" data-testid="consumption">
       <h2 id="consumo-publicado" className="text-2xl font-bold text-ink">

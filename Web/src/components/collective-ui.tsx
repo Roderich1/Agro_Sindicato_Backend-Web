@@ -320,7 +320,7 @@ export interface BarRow {
  * motivo. Un cero divulgado se escribe «0 L» sin barra. Un solo color: no hay
  * series que distinguir.
  */
-export function ComparisonBars({ rows, unit }: { rows: BarRow[]; unit: 'L' | 'KG' }) {
+export function ComparisonBars({ rows, unit }: Readonly<{ rows: BarRow[]; unit: 'L' | 'KG' }>) {
   const values = rows.map((row) => (row.status === 'DISCLOSED' && isBaseQuantity(row.base) ? BigInt(row.base!) : null));
   const max = values.reduce<bigint>((top, value) => (value !== null && value > top ? value : top), 0n);
   const width = (value: bigint | null) => (value === null || max === 0n ? 0 : Number((value * 1000n) / max) / 10);

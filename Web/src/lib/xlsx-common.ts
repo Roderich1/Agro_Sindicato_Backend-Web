@@ -126,10 +126,12 @@ export function campaignStatusText(status: string): string {
   return CAMPAIGN_STATUS_TEXT[status] ?? status;
 }
 
+const COVERAGE_SUFFIX = { now: '', draft: ' al generar el borrador', sealed: ' histórica' } as const;
+
 export function coverageText(coverage: Coverage | null, when: 'now' | 'draft' | 'sealed'): string {
   if (!coverage) return 'Sin dato de cobertura.';
   const who = coverage.basis === 'ALL_CONTRIBUTORS' ? 'agricultores vinculados habían aportado datos' : 'agricultores vinculados con cifras publicadas';
-  const suffix = when === 'draft' ? ' al generar el borrador' : when === 'sealed' ? ' histórica' : '';
+  const suffix = COVERAGE_SUFFIX[when];
   const extra = coverage.suppressed_cells ? ' Hay filas sin cifra cuyos aportes no se cuentan.' : '';
   return `${coverage.members_with_contribution} de ${coverage.linked_members} ${who}${suffix}.${extra} Ausencia de aporte = desconocido, no cero.`;
 }

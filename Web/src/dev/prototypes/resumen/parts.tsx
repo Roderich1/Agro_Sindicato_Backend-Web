@@ -160,7 +160,7 @@ export interface BarsProps {
   estimation?: EstimationView | null;
 }
 
-export function Bars({ groups, density = 'wide', meta = false, columns = false, estimation = null }: BarsProps) {
+export function Bars({ groups, density = 'wide', meta = false, columns = false, estimation = null }: Readonly<BarsProps>) {
   const withReference = estimation !== null && estimation.kind === 'results';
   return (
     <div className={`grid gap-y-6 ${columns && groups.length > 1 ? 'lg:grid-cols-2 lg:gap-x-10' : ''}`}>
@@ -191,7 +191,7 @@ export function Bars({ groups, density = 'wide', meta = false, columns = false, 
   );
 }
 
-function BarRow({ row, density, meta, estimation }: { row: Row; density: 'wide' | 'compact'; meta: boolean; estimation: EstimationView | null }) {
+function BarRow({ row, density, meta, estimation }: Readonly<{ row: Row; density: 'wide' | 'compact'; meta: boolean; estimation: EstimationView | null }>) {
   const bar = density === 'wide' ? 'h-5' : 'h-3';
   const figure = density === 'wide' ? 'text-lg' : 'text-base';
   const reference = estimation ? referenceFor(row, estimation) : null;
@@ -271,7 +271,7 @@ function Reference({ cell }: { cell: NonNullable<ReturnType<typeof referenceFor>
 
 /* ── Tabla completa: alternativa textual del gráfico, con cada fecha ──────── */
 
-export function DetailTable({ groups, caption }: { groups: Group[]; caption: string }) {
+export function DetailTable({ groups, caption }: Readonly<{ groups: Group[]; caption: string }>) {
   return (
     <DataTable caption={caption} minWidth={720}>
       <thead>
@@ -316,7 +316,7 @@ export function DetailTable({ groups, caption }: { groups: Group[]; caption: str
 }
 
 /** Consumo publicado: lista compacta, separada de la necesidad (no se resta ni se compara). */
-export function ConsumptionList({ groups }: { groups: Group[] }) {
+export function ConsumptionList({ groups }: Readonly<{ groups: Group[] }>) {
   if (groups.length === 0) {
     return <p className="px-5 py-3 text-sm text-slate-600">Sin consumo publicado en esta campaña. Eso no significa cero.</p>;
   }
