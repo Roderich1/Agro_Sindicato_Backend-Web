@@ -2,16 +2,11 @@ import type { SchemaObject } from "@nestjs/swagger/dist/interfaces/open-api-spec
 
 const nullableString = { type: "string", nullable: true } as const;
 
-/**
- * E4 §5.1: the disclosure policy a decision was made with. `F07-POL-01`
- * (threshold of 3 Members and rule of combinations) is the default and the
- * policy of everything sealed or generated before; `F07-POL-02` (no threshold
- * of farmers) only after its explicit activation (`COLLECTIVE_DISCLOSURE_POLICY`).
- */
+/** Active institutional policy or the original policy of a stored result. */
 const policySchema: SchemaObject = {
   type: "string",
   enum: ["F07-POL-01", "F07-POL-02"],
-  description: "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita",
+  description: "F07-POL-02 es la regla institucional vigente y publica desde un aporte autorizado. F07-POL-01 identifica resultados históricos que conservan su regla original",
 };
 const thresholdSchema: SchemaObject = {
   type: "integer",

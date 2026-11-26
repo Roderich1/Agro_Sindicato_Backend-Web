@@ -2,12 +2,7 @@ import type { BaseUnit } from '../lib/quantity';
 
 /** Contrato del resumen colectivo (Back `collective-summary.use-case.ts`). */
 export type DisclosureMode = 'APPROVED' | 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC';
-/**
- * E4 §5.1: política con que se decidió una cifra. `F07-POL-01` (mínimo de 3
- * aportantes y regla de combinaciones) es la de lo sellado o generado antes y
- * la que rige por defecto; `F07-POL-02` (sin umbral de agricultores) sólo tras
- * su activación explícita en el servidor.
- */
+/** Regla vigente F07-POL-02 o regla original de un resultado histórico. */
 export type DisclosurePolicy = 'F07-POL-01' | 'F07-POL-02';
 export type ProjectionType = 'CONSUMPTION_TOTAL' | 'DECLARED_NEED';
 /**
