@@ -173,7 +173,7 @@ export function buildTrendsXlsx(input: TrendsXlsxInput): BuiltXlsx {
     headers: detailHeaders,
     widths: [30, 24, 14, 8, 22, 64, 12, 20, 12, 38, 38, 38],
     rows: detailRows,
-    emptyText: pending ? 'Sin datos disponibles.' : 'Sin datos disponibles.',
+    emptyText: 'Sin datos disponibles.',
     tabColor: '0EA5E9',
   });
 

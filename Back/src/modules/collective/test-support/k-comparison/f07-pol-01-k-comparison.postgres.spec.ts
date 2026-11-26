@@ -14,6 +14,7 @@ import {
   TestSession,
   unusablePasswordHash,
 } from "../../../sync-v1/test-support/sync-v1-test-app";
+import { CollectiveConfig } from "../../application/collective-config";
 import { Projection, Scenario, ScenarioContribution, scenarios } from "./scenarios";
 
 /**
@@ -27,12 +28,8 @@ import { Projection, Scenario, ScenarioContribution, scenarios } from "./scenari
  *                          docs/evidence/f07_k_comparison, whose files are the
  *                          historical runs on 98375dc and 04fbc9d
  *
- * TEST-ONLY INJECTION of k: the system keeps PROVISIONAL_THRESHOLD = 3
- * (provisional, synthetic trials only) and POLICY_PENDING as its default mode;
- * this suite turns PROVISIONAL_SYNTHETIC on for itself (2026-10-24 note in
- * F07_POL_01_COMPARACION_K.md). Only in this file's module registry, the mock
- * below makes `decideCells` use F07_K_COMPARE_K and the summary report it.
- * With k = 3 the mock passes the default through unchanged.
+ * The test injects the archived rule into its own app instance. The mocks
+ * give its decisions and response metadata the same historical threshold.
  *
  * Every scenario runs the same sequence through the real API (Sync v1 push,
  * Directiva and Administrador endpoints): E1 publish, E2 supersede,
@@ -53,6 +50,16 @@ jest.mock("../../domain/disclosure-policy", () => {
       actual.decideCells(cells, histories, k, budget),
   };
 });
+
+jest.mock("../../application/collective-config", () => {
+  const actual = jest.requireActual("../../application/collective-config");
+  return {
+    ...actual,
+    thresholdOf: (policy: string) =>
+      policy === "F07-POL-01" ? Number(process.env["F07_K_COMPARE_K"] ?? "3") : actual.thresholdOf(policy),
+  };
+});
+
 
 const adminUrl = process.env["F07_K_COMPARE_PG_URL"];
 const describePostgres = adminUrl ? describe : describe.skip;
@@ -99,7 +106,7 @@ const git = (...args: string[]) =>
 const run: { meta: Record<string, unknown>; scenarios: unknown[] } = {
   meta: {
     k: K,
-    injection: "jest.mock de disclosure-policy sólo en este archivo; el sistema conserva PROVISIONAL_THRESHOLD = 3",
+    injection: "Política histórica inyectada en la aplicación de prueba",
     sha: git("rev-parse", "HEAD"),
     tree_clean: git("status", "--porcelain") === "",
     node: process.version,
@@ -111,13 +118,11 @@ const run: { meta: Record<string, unknown>; scenarios: unknown[] } = {
 describePostgres(`F07-POL-01 k comparison (k = ${K})`, () => {
   beforeAll(() => {
     if (!Number.isInteger(K) || K < 2) throw new Error("F07_K_COMPARE_K must be an integer >= 2");
-    process.env["COLLECTIVE_DISCLOSURE_MODE"] = "provisional-synthetic";
     for (const level of ["log", "warn"] as const) jest.spyOn(Logger.prototype, level).mockImplementation(() => undefined);
   });
 
   afterAll(() => {
     jest.restoreAllMocks();
-    delete process.env["COLLECTIVE_DISCLOSURE_MODE"];
     run.meta["finished_at"] = new Date().toISOString();
     if (OUT) {
       mkdirSync(OUT, { recursive: true });
@@ -137,6 +142,7 @@ async function runScenario(scenario: Scenario): Promise<string[]> {
   const prefix = `f07k${K}_${scenario.id.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
   const databaseUrl = await createIsolatedDatabase(adminUrl!, prefix);
   const { app, prisma, jwt } = await createSyncV1App(databaseUrl);
+  Object.assign(app.get(CollectiveConfig), { policy: "F07-POL-01", mode: "PROVISIONAL_SYNTHETIC" });
   const failures: string[] = [];
   const check = (name: string, ok: boolean, detail: unknown = "") => {
     if (!ok) failures.push(`${name}: ${JSON.stringify(detail)}`);
