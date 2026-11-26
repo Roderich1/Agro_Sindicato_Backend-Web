@@ -99,7 +99,8 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
   const latestRequest = useRef(0);
 
   const load = useCallback(async (projectionType: ProjectionType) => {
-    const request = ++latestRequest.current;
+    const request = latestRequest.current + 1;
+    latestRequest.current = request;
     setLoading(true);
     setProblem(null);
     try {
@@ -127,7 +128,7 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
     });
     return () => {
       mounted = false;
-      latestRequest.current++;
+      latestRequest.current += 1;
     };
   }, [load]);
 
