@@ -52,7 +52,7 @@ export interface TrendSeries {
 export interface CollectiveTrends {
   contractVersion: 1;
   /** E4 §3.4: the configured policy; each campaign's sealed policy is in `campaigns[].seal`. */
-  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: false; threshold: number | null };
+  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: boolean; threshold: number | null };
   projection_type: SyncV1ProjectionType | null;
   campaigns: TrendCampaign[];
   series: TrendSeries[];
@@ -98,7 +98,7 @@ export class CollectiveTrendsUseCase {
     });
     const sealOf = new Map<string, (typeof seals)[number]>();
     for (const seal of seals) if (!sealOf.has(seal.campaignId)) sealOf.set(seal.campaignId, seal);
-    const authorized = this.config.mode === "PROVISIONAL_SYNTHETIC";
+    const authorized = this.config.mode !== "POLICY_PENDING";
 
     const served = new Map<string, { cells: SummaryCell[]; coverage: CollectiveSummary["coverage"] }>();
     if (authorized) {
@@ -150,7 +150,7 @@ export class CollectiveTrendsUseCase {
     return {
       contractVersion: 1,
       disclosure: authorized
-        ? { mode: "PROVISIONAL_SYNTHETIC", policy: this.config.policy, approved: false, threshold: this.config.threshold }
+        ? { mode: this.config.mode, policy: this.config.policy, approved: this.config.mode === "APPROVED", threshold: this.config.threshold }
         : { mode: "POLICY_PENDING", policy: this.config.policy, approved: false, threshold: null },
       projection_type: projectionType,
       campaigns: campaigns.map((campaign) => {

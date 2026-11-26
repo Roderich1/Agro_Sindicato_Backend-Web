@@ -9,14 +9,7 @@ import { CollectiveSummaryUseCase } from "./application/collective-summary.use-c
 import { CollectiveTrendsUseCase } from "./application/collective-trends.use-case";
 import { JointPurchaseProposalUseCase } from "./application/joint-purchase-proposal.use-case";
 
-/**
- * F06 #21: consolidation over Sync v1 contributions (read-only on them) and
- * the provisional disclosure policy F07-POL-01 (#107), disabled for real
- * figures until that policy is approved. F07 #26/#27: draft joint purchase
- * proposals over the same decisions. F07 (2026-10-23): manual seal of a
- * campaign's collective version and trends over sealed versions. E4 §5.1:
- * F07-POL-02 (no farmer threshold) only after its explicit, traced activation.
- */
+/** Totales colectivos, borradores y registro histórico fijado al cerrar la campaña. */
 @Module({
   controllers: [CollectiveController, JointPurchaseProposalsController, CollectiveHistoryController],
   providers: [
@@ -29,6 +22,6 @@ import { JointPurchaseProposalUseCase } from "./application/joint-purchase-propo
   ],
   // F12 reads the disclosure mode in force before building a series, and
   // F12-EST-08 shows its reference next to a proposal it reads from here.
-  exports: [CollectiveConfig, JointPurchaseProposalUseCase],
+  exports: [CollectiveConfig, JointPurchaseProposalUseCase, CollectiveSealUseCase],
 })
 export class CollectiveModule {}

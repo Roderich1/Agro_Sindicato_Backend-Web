@@ -114,9 +114,9 @@ export const collectiveSummarySchema: SchemaObject = {
       required: ["mode", "policy", "approved", "threshold"],
       description: "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
       properties: {
-        mode: { type: "string", enum: ["POLICY_PENDING", "PROVISIONAL_SYNTHETIC"] },
+        mode: { type: "string", enum: ["APPROVED", "POLICY_PENDING", "PROVISIONAL_SYNTHETIC"] },
         policy: policySchema,
-        approved: { type: "boolean", enum: [false] },
+        approved: { type: "boolean" },
         threshold: thresholdSchema,
       },
     },
@@ -288,9 +288,9 @@ export const proposalSchema: SchemaObject = {
       additionalProperties: false,
       required: ["mode", "policy", "approved"],
       properties: {
-        mode: { type: "string", enum: ["POLICY_PENDING", "PROVISIONAL_SYNTHETIC"] },
+        mode: { type: "string", enum: ["APPROVED", "POLICY_PENDING", "PROVISIONAL_SYNTHETIC"] },
         policy: { ...policySchema, description: "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)" },
-        approved: { type: "boolean", enum: [false] },
+        approved: { type: "boolean" },
       },
     },
     coverage: {

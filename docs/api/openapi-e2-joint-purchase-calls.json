@@ -17967,6 +17967,24 @@
           }
         }
       },
+      "SealCampaignDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita de quien sella (DIRECTIVA o ADMINISTRADOR)"
+          },
+          "review_ref": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "review_ref de la revisión mostrada (GET …/seal)"
+          }
+        },
+        "required": [
+          "confirmed",
+          "review_ref"
+        ]
+      },
       "CreatePlotDto": {
         "type": "object",
         "properties": {
@@ -18578,24 +18596,6 @@
           "operations"
         ]
       },
-      "SealCampaignDto": {
-        "type": "object",
-        "properties": {
-          "confirmed": {
-            "type": "boolean",
-            "description": "Confirmación explícita de quien sella (DIRECTIVA o ADMINISTRADOR)"
-          },
-          "review_ref": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{64}$",
-            "description": "review_ref de la revisión mostrada (GET …/seal)"
-          }
-        },
-        "required": [
-          "confirmed",
-          "review_ref"
-        ]
-      },
       "CreateSeasonDto": {
         "type": "object",
         "properties": {
@@ -19049,7 +19049,8 @@
           },
           "responsible_user_id": {
             "type": "string",
-            "description": "Usuario DIRECTIVA o ADMINISTRADOR activo del tenant (ver eligible-responsibles)"
+            "deprecated": true,
+            "description": "Campo de compatibilidad. Por defecto se registra el creador."
           },
           "products": {
             "minItems": 1,
@@ -19070,7 +19071,6 @@
           "campaign_id",
           "name",
           "deadline_at",
-          "responsible_user_id",
           "products"
         ]
       },

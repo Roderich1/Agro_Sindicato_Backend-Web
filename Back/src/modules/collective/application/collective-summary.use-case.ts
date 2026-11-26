@@ -7,7 +7,7 @@ import {
   decideCellsWithoutThreshold,
   PriorRelease,
 } from "../domain/disclosure-policy";
-import { CollectiveConfig, storedPolicy, thresholdOf } from "./collective-config";
+import { CollectiveConfig, storedDisclosureMode, storedPolicy, thresholdOf } from "./collective-config";
 import {
   figure,
   publishedMembers,
@@ -61,7 +61,7 @@ export {
 /**
  * Collective summary of a campaign (F06 #21): read-only over Sync v1
  * contributions, grouped by the current canonical product (F07-REC-01) and
- * disclosed only under the provisional policy (F07-POL-01). Every output
+ * disclosed using authorized contributions. Every output
  * channel (the JSON, and the Web's Excel built from it) comes from this result.
  */
 @Injectable()
@@ -160,9 +160,9 @@ export class CollectiveSummaryUseCase {
         ...header,
         seal: toSealRef(sealed),
         disclosure: {
-          mode: "PROVISIONAL_SYNTHETIC",
+          mode: storedDisclosureMode(sealed.disclosureMode),
           policy: storedPolicy(sealed.policy),
-          approved: false,
+          approved: sealed.disclosureMode === "APPROVED",
           threshold: sealed.threshold,
         },
         coverage,
@@ -211,7 +211,7 @@ export class CollectiveSummaryUseCase {
     sortCells(result);
     const linked = await fetchLinkedMembers(tx, tenantId);
     return {
-      disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy, approved: false, threshold: thresholdOf(policy) },
+      disclosure: { mode: this.config.mode, policy, approved: this.config.mode === "APPROVED", threshold: thresholdOf(policy) },
       coverage: {
         linked_members: linked.size,
         members_with_contribution: publishedMembers(output).size,

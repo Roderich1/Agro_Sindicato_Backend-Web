@@ -1,4 +1,4 @@
-import { JointPurchaseCallStatus, SyncV1BaseUnit } from "@prisma/client";
+import { JointPurchaseCallStatus, Prisma, SyncV1BaseUnit } from "@prisma/client";
 import { CollectiveConfig } from "@/modules/collective/application/collective-config";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { InstitutionalActor } from "../../domain/call-error";
@@ -25,6 +25,28 @@ import {
   sortHistory,
 } from "./institutional-calls.types";
 
+const releaseVisibility = {
+  withdrawnAt: true,
+  items: {
+    where: {
+      contribution: {
+        OR: [
+          { status: { not: "ACTIVE" } },
+          { member: { OR: [{ isActive: false }, { role: { not: "AGRICULTOR" } }, { user: { isActive: false } }] } },
+        ],
+      },
+    },
+    select: { contributionId: true },
+    take: 1,
+  },
+} satisfies Prisma.CollectiveReleaseSelect;
+
+type ReleaseVisibility = { withdrawnAt: Date | null; items: readonly unknown[] };
+
+function releaseIsVisible(release: ReleaseVisibility | null): boolean {
+  return release !== null && release.withdrawnAt === null && release.items.length === 0;
+}
+
 export async function renderDetailView(
   db: Tx | PrismaService,
   collective: CollectiveConfig,
@@ -50,7 +72,7 @@ export async function renderDetailView(
               proposalId: true,
               position: true,
               status: true,
-              release: { select: { totalBase: true, contributorCount: true, releasedAt: true, withdrawnAt: true } },
+              release: { select: { totalBase: true, contributorCount: true, releasedAt: true, ...releaseVisibility } },
             },
           },
         },
@@ -75,7 +97,7 @@ export async function renderDetailView(
           proposal: {
             select: {
               generatedAt: true,
-              lines: { where: { status: "DISCLOSED" }, select: { release: { select: { withdrawnAt: true } } } },
+              lines: { where: { status: "DISCLOSED" }, select: { release: { select: releaseVisibility } } },
             },
           },
         },
@@ -85,7 +107,7 @@ export async function renderDetailView(
   if (!call) throw NOT_FOUND();
   const access = await accessOf(db, call, actor.userId);
   const totals = await totalsOf(db, call, call.closing);
-  const disclosureAuthorized = collective.mode === "PROVISIONAL_SYNTHETIC";
+  const disclosureAuthorized = collective.mode !== "POLICY_PENDING";
   const responsibleEligible = await responsibleIsEligible(db, actor.tenantId, call.responsibleUserId);
   const delegations = await db.jointPurchaseCallAccess.findMany({
     where: { callId: call.id, grant: ACCESS_MANAGE, grantedByUserId: { not: null } },
@@ -233,13 +255,13 @@ function originView(
       proposalPosition: number | null;
       product: { name: string };
     }[];
-    proposal: { generatedAt: Date; lines: { release: { withdrawnAt: Date | null } | null }[] } | null;
+    proposal: { generatedAt: Date; lines: { release: ReleaseVisibility | null }[] } | null;
   } | null,
   disclosureAuthorized: boolean,
 ): CallOriginView | null {
   if (!origin) return null;
   const fingerprintServed =
-    disclosureAuthorized && (origin.proposal?.lines ?? []).every((line) => line.release !== null && line.release.withdrawnAt === null);
+    disclosureAuthorized && (origin.proposal?.lines ?? []).every((line) => releaseIsVisible(line.release));
   return {
     kind: origin.kind,
     proposal_ref: origin.proposalId,
@@ -264,13 +286,13 @@ function referenceOf(
     proposalId: string;
     position: number;
     status: string;
-    release: { totalBase: bigint; contributorCount: number; releasedAt: Date; withdrawnAt: Date | null } | null;
+    release: (ReleaseVisibility & { totalBase: bigint; contributorCount: number; releasedAt: Date }) | null;
   } | null,
   disclosureAuthorized: boolean,
 ): ProposalReferenceView | null {
   if (!line) return null;
   const release = line.release;
-  if (disclosureAuthorized && line.status === "DISCLOSED" && release && release.withdrawnAt === null) {
+  if (disclosureAuthorized && line.status === "DISCLOSED" && release && releaseIsVisible(release)) {
     return {
       proposal_ref: line.proposalId,
       position: line.position,

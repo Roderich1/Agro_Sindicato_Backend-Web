@@ -185,6 +185,11 @@ export class PushOperationUseCase {
       envelope.payload;
     const valued = envelope.action !== "CANCEL";
 
+    // F07 seal (F07_SEALED_HISTORY_CONTRACT §3.5, §7): shared against the
+    // seal's exclusive lock, for every action that reaches a decision, so this
+    // operation is clearly before the seal (inside its decision) or after it.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${sealLockKey(identity.tenantId, campaign_ref)}, 0))`;
+
     // Inexistent, foreign or inactive references share one code: no
     // cross-tenant existence is revealed.
     const campaign = await tx.agriculturalCampaign.findFirst({
@@ -209,10 +214,6 @@ export class PushOperationUseCase {
       productId: product.id,
       baseUnit: base_unit,
     };
-    // F07 seal (F07_SEALED_HISTORY_CONTRACT §3.5, §7): shared against the
-    // seal's exclusive lock, for every action that reaches a decision, so this
-    // operation is clearly before the seal (inside its decision) or after it.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${sealLockKey(identity.tenantId, campaign.id)}, 0))`;
     const seal = await tx.collectiveSeal.findFirst({
       where: { tenantId: identity.tenantId, campaignId: campaign.id },
       select: { id: true },

@@ -145,6 +145,7 @@ const f06Required = [
   ["/api/v1/collective/proposals/{proposalId}/selection", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/proposals/{proposalId}/selection", "put", "200", "400", "401", "403", "404", "409", "422"],
   // F07 (2026-10-23): manual seal and trends over sealed versions.
+  ["/api/v1/collective/campaigns/{campaignId}/close-preview", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/campaigns/{campaignId}/seal", "get", "200", "401", "403", "404"],
   ["/api/v1/collective/campaigns/{campaignId}/seal", "post", "200", "400", "401", "403", "404", "409", "422"],
   ["/api/v1/collective/trends", "get", "200", "401", "403"],
@@ -163,7 +164,8 @@ for (const [path, method, ...statuses] of f06Required) {
 const summary = f06.paths["/api/v1/collective/campaigns/{campaignId}/summary"].get.responses["200"].content["application/json"].schema;
 assert.equal(summary.additionalProperties, false);
 assert.deepEqual(summary.required, ["contractVersion", "campaign", "seal", "disclosure", "coverage", "cells"]);
-assert.deepEqual(summary.properties.disclosure.properties.approved.enum, [false]);
+assert.equal(summary.properties.disclosure.properties.approved.type, "boolean");
+assert.ok(summary.properties.disclosure.properties.mode.enum.includes("APPROVED"));
 const cell = summary.properties.cells.items;
 assert.equal(cell.additionalProperties, false);
 assert.deepEqual(Object.keys(cell.properties).sort(), [...cell.required].sort());

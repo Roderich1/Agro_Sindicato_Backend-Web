@@ -261,3 +261,8 @@ Todos los datos son sintéticos. Las capturas del rediseño Web v2 son **anterio
 ## 14. Trazabilidad
 
 Según `docs/cierre/MATRIZ_DOCUMENTO_GRADO.md`: proyección colectiva RU-08, RU-10, RU-17, CU-12, CU-13, RF-16, RF-21, RF-22, RF-24, RNF-05; política y sellado RF-24, RNF-05; borrador RU-08, CU-12, RF-23; estimación RU-20, RU-21, CU-20, CU-21, RF-35–RF-40, INT-09; identificación RF-33, RF-34, CU-18; Web institucional INT-02, RU-18, RU-19; bitácora RF-25, RNF-12. Convocatorias y acceso por rol: **ID por confirmar** por el autor (E4, apartado 10 del contrato).
+
+
+## Actualización de la gestión institucional
+
+Desde el 26 de noviembre de 2026, el cierre de campaña fija sus resultados de forma atómica. Administración y Directiva gestionan las convocatorias de su sindicato por rol. Para las reglas vigentes de publicación, visibilidad, cierre y recuperación histórica, consulte [Cierre de campaña y gestión institucional](../architecture/CIERRE_Y_GESTION_INSTITUCIONAL.md).

@@ -1,6 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditAction, CalendarEventStatus, CalendarEventType, CampaignStatus, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma/prisma.service';
+import { CollectiveSealUseCase } from '@/modules/collective/application/collective-seal.use-case';
+import { sealLockKey } from '@/modules/collective/domain/seal';
 import { CampaignContextService } from '../services/campaign-context.service';
 
 type TxClient = Prisma.TransactionClient;
@@ -33,6 +35,7 @@ export class CampaignManagementUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly campaignContext: CampaignContextService,
+    private readonly seals: CollectiveSealUseCase,
   ) {}
 
   async listCampaigns(tenantId: string, input: ListCampaignsInput = {}) {
@@ -121,6 +124,7 @@ export class CampaignManagementUseCase {
     this.assertCanManageCampaign(actorRole);
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${sealLockKey(tenantId, campaignId)}, 0))`;
       const campaign = await this.findCampaignOrThrow(tx, tenantId, campaignId);
       if (campaign.status === CampaignStatus.CERRADA || campaign.status === CampaignStatus.CANCELADA) {
         throw new BadRequestException('No se puede editar una campana cerrada o cancelada.');
@@ -180,6 +184,7 @@ export class CampaignManagementUseCase {
     this.assertCanManageCampaign(actorRole);
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${sealLockKey(tenantId, campaignId)}, 0))`;
       const campaign = await this.findCampaignOrThrow(tx, tenantId, campaignId);
       if (campaign.status === CampaignStatus.CERRADA || campaign.status === CampaignStatus.CANCELADA) {
         throw new BadRequestException('No se puede abrir una campana cerrada o cancelada.');
@@ -221,7 +226,9 @@ export class CampaignManagementUseCase {
     this.assertCanManageCampaign(actorRole);
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${sealLockKey(tenantId, campaignId)}, 0))`;
       const campaign = await this.findCampaignOrThrow(tx, tenantId, campaignId);
+      if (campaign.status === CampaignStatus.CERRADA) return this.mapCampaign(campaign);
       if (campaign.status !== CampaignStatus.ABIERTA || !campaign.isActive) {
         throw new BadRequestException('Solo se puede cerrar una campana abierta y activa.');
       }
@@ -257,8 +264,9 @@ export class CampaignManagementUseCase {
         eventDate: closedCampaign.closedAt ?? new Date(),
       });
 
+      await this.seals.writeLocked(tx, tenantId, { userId: actorUserId, role: actorRole }, closedCampaign);
       return this.mapCampaign(closedCampaign);
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 10000, timeout: 30000 });
   }
 
   assertCanManageCampaign(role: UserRole) {
