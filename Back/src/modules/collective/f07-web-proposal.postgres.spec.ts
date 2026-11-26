@@ -187,9 +187,15 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
 
   /** Oracle rows of one stage/campaign that the summary shows (ABSENT: no cell). */
   function oracle(stage: "RAW" | "CANONICAL", campaign: string, type?: Type): OracleCell[] {
-    return (csv("F06_EXPECTED_CELLS.csv") as unknown as OracleCell[]).filter(
-      (row) => row.stage === stage && row.campaign === campaign && row.status !== "ABSENT" && (!type || row.projection_type === type),
-    );
+    const rows = csv("F06_EXPECTED_CELLS.csv") as unknown as OracleCell[];
+    const scoped = rows.filter((row) => row.campaign === campaign && row.status !== "ABSENT" && (!type || row.projection_type === type));
+    const visible = scoped.filter((row) => row.stage === stage).map((row) => ({
+      ...row, status: "DISCLOSED", visible_total_base: row.total_base, visible_contributors: row.members,
+    }));
+    if (stage === "RAW") return visible;
+    return [...visible, ...scoped.filter((row) => row.stage === "RAW" && row.product === "Bellator").map((row) => ({
+      ...row, status: "SUPPRESSED_REVISION", visible_total_base: "", visible_contributors: "",
+    }))];
   }
 
   function expectSummaryMatches(res: Res, stage: "RAW" | "CANONICAL", campaign: string) {
@@ -216,14 +222,6 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
       .map((row) => [row.product, row.base_unit, row.status, row.visible_total_base || null, row.visible_contributors ? Number(row.visible_contributors) : null].join("|"))
       .sort();
     expect(got).toEqual(expected);
-  }
-
-  /** Hidden totals of suppressed cells must not appear as numbers anywhere. */
-  function expectNoHiddenTotals(text: string, stage: "RAW" | "CANONICAL", campaign: string) {
-    for (const row of csv("F06_EXPECTED_CELLS.csv") as unknown as OracleCell[]) {
-      if (row.stage !== stage || row.campaign !== campaign || row.status === "DISCLOSED" || !row.total_base) continue;
-      expect(text).not.toMatch(new RegExp(`(^|[^0-9a-f-])${row.total_base}([^0-9a-f-]|$)`));
-    }
   }
 
   async function effectCounts() {
@@ -253,12 +251,12 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
   let rawC1: Res;
   let rawC2: Res;
 
-  it("RAW stage: summary and proposal match the D4 oracle; suppressed figures never appear", async () => {
+  it("RAW stage: summary and proposal publish authorized totals from the D4 inputs", async () => {
     for (const [key, ref] of [["C1", campaigns.C1], ["C2", campaigns.C2]] as const) {
       const s = await summary(ref);
       expectSummaryMatches(s, "RAW", key);
       // Absence is unknown: F4 counts in linked_members only.
-      expect(s.body.coverage).toEqual({ linked_members: 4, members_with_contribution: 3, suppressed_cells: true });
+      expect(s.body.coverage).toEqual({ linked_members: 4, members_with_contribution: 3, suppressed_cells: false });
     }
     rawC1 = await generate(campaigns.C1);
     rawC2 = await generate(campaigns.C2);
@@ -268,7 +266,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     expect(rawC1.body).toMatchObject({
       status: "DRAFT",
       basis: "DECLARED_NEED",
-      disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", approved: false },
+      disclosure: { mode: "APPROVED", policy: "F07-POL-02", approved: true },
       coverage: { linked_members: 4, members_with_contribution: 3, basis: "PUBLISHED_FIGURES" },
     });
     expect(rawC1.body.notice).toMatch(/no es necesidad neta/);
@@ -282,8 +280,6 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     }
     const detail = await proposal(rawC1.body.proposal_ref);
     expect(detail.body).toEqual(rawC1.body);
-    for (const text of [rawC1.text, detail.text]) expectNoHiddenTotals(text, "RAW", "C1");
-    expectNoHiddenTotals(rawC2.text, "RAW", "C2");
     // The CSV route was withdrawn (2026-11-12): the Web exports Excel from the detail JSON.
     expect((await http().get(`/api/v1/collective/proposals/${rawC1.body.proposal_ref}/csv`).set(auth(director))).status).toBe(404);
   });
@@ -334,20 +330,20 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     });
     // Only the Belator line changed: Bellator merged into it; Urea is identical.
     expect(regenerated.body.inputs_fingerprint).not.toBe(rawC1.body.inputs_fingerprint);
-    // (Its position moves up because the Bellator line is gone.)
+    // (Compare Urea independently of the release status of the other rows.)
     const urea = (body: any) => {
       const { position: _p, ...line } = body.lines.find((l: any) => nameOf(l.product_ref) === "Urea F06");
       return line;
     };
     expect(urea(regenerated.body)).toEqual(urea(rawC1.body));
-    expectNoHiddenTotals(regenerated.text, "CANONICAL", "C1");
     // C2 declared needs are not affected by the association: same fingerprint.
     const c2 = await generate(campaigns.C2);
     expectProposalMatches(c2, "CANONICAL", "C2");
     expect(c2.body.inputs_fingerprint).toBe(rawC2.body.inputs_fingerprint);
-    // The earlier RAW draft still shows only what it showed (Urea), never the Belator total.
     const old = await proposal(rawC1.body.proposal_ref);
-    expectProposalMatches(old, "RAW", "C1");
+    expect(old.body.lines).toContainEqual(expect.objectContaining({ product_ref: products["Belator"], status: "SUPERSEDED", quantity_base: null }));
+    expect(old.body.lines).toContainEqual(expect.objectContaining({ product_ref: products["Bellator"], status: "WITHDRAWN", quantity_base: null }));
+    expect(urea(old.body)).toEqual(urea(rawC1.body));
   });
 
   it("roles and tenant: DIRECTIVA and ADMINISTRADOR of the tenant; AGRICULTOR 403; other tenant 404; no session 401", async () => {
@@ -413,7 +409,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     expect(list.body.current[0]).toMatchObject({ actor_name: "Usuario sintético directorA", closed_by_name: null });
   });
 
-  it("pending changes keep the prior figure flagged; an overflow never shows a figure", async () => {
+  it("publishes the current total and leaves an overflowing total without a figure", async () => {
     const [a, b, c] = [farmers.F1, farmers.F2, farmers.F3];
     const target = { campaign: campaigns.C3, product: products["Glifosato F06"], type: "DECLARED_NEED" as Type, unit: "ML" as const };
     const first = await push(a, { ...target, quantity: "1000" });
@@ -423,9 +419,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     expect(released.body.lines[0]).toMatchObject({ status: "DISCLOSED", quantity_base: "6000", pending_changes: false });
     await push(a, { ...target, action: "SUPERSEDE", pred: first, quantity: "1500" });
     const pending = await generate(campaigns.C3);
-    // One Member changed: the prior figure stays, flagged; the new total never appears.
-    expect(pending.body.lines[0]).toMatchObject({ status: "DISCLOSED", quantity_base: "6000", pending_changes: true });
-    expect(pending.text).not.toContain("6500");
+    expect(pending.body.lines[0]).toMatchObject({ status: "DISCLOSED", quantity_base: "6500", pending_changes: false });
     expect(pending.body.inputs_fingerprint).not.toBe(released.body.inputs_fingerprint);
     const big = { ...target, product: products["Urea F06"], unit: "G" as const };
     for (const s of [a, b, c]) await push(s, { ...big, quantity: "4000000000000000000" });
@@ -485,8 +479,8 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
       expect(detail.text).not.toContain("25000");
     }
     const s = await summary(campaigns.C1);
-    expect(s.body.cells.find((cell: any) => cell.projection_type === "DECLARED_NEED" && nameOf(cell.product_ref) === "Urea F06").status)
-      .toBe("SUPPRESSED_UNDER_THRESHOLD");
+    expect(s.body.cells.find((cell: any) => cell.projection_type === "DECLARED_NEED" && nameOf(cell.product_ref) === "Urea F06"))
+      .toMatchObject({ status: "DISCLOSED", contributors: 2 });
     // Every C1 draft has the Urea line: none serves 25000 or the fingerprint that covered it.
     const drafts = (await prisma.jointPurchaseProposal.findMany({ where: { campaignId: campaigns.C1 }, select: { id: true } })).map((p) => p.id);
     expect(drafts.length).toBeGreaterThanOrEqual(4);
@@ -520,7 +514,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     expect(superseded.body.lines[0]).toMatchObject({ status: "SUPERSEDED", quantity_base: null, contributors: null });
     expect(superseded.body.inputs_fingerprint).toBeNull();
     expect(superseded.text).not.toContain("6000");
-    // A cancellation withdraws R2; the cell is suppressed. R1 still has withdrawnAt = null.
+    // A cancellation withdraws R2 and publishes the remaining authorized values.
     await push(c, { ...target, action: "CANCEL", pred: heads[2] });
     for (const id of [p1.body.proposal_ref, p2.body.proposal_ref]) {
       const detail = await proposal(id);
@@ -533,8 +527,7 @@ describePostgres("F07 Web summary and joint purchase proposal on PostgreSQL", ()
     const list = await history(campaigns.C4);
     expect(list.body.map((entry: any) => entry.inputs_fingerprint)).toEqual([null, null]);
     const cell = (await summary(campaigns.C4)).body.cells[0];
-    expect(cell.status).toMatch(/^SUPPRESSED_/);
-    expect(cell.total_base).toBeNull();
+    expect(cell).toMatchObject({ status: "DISCLOSED", total_base: "3300", contributors: 2 });
     // Detail and listing/history of P1 and P2, a fresh draft and the summary: neither figure.
     await expectNoLongerServed(
       campaigns.C4,

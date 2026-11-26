@@ -88,7 +88,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
   /** Head operation of each (farmer, campaign, type, product). */
   const heads = new Map<string, string>();
 
-  const mutable = () => config as unknown as { mode: string; sealingEnabled: boolean };
+  const mutable = () => config as unknown as { mode: string; policy: string };
 
   beforeAll(async () => {
     process.env["COLLECTIVE_DISCLOSURE_MODE"] = "provisional-synthetic";
@@ -96,6 +96,10 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     const databaseUrl = await createIsolatedDatabase(postgresUrl!, "f07_seal");
     ({ app, prisma, jwt } = await createSyncV1App(databaseUrl));
     config = app.get(CollectiveConfig);
+    // Recreate archived results under their recorded rule. The production
+    // close under the approved rule is exercised in approved-campaign-close.
+    mutable().mode = "PROVISIONAL_SYNTHETIC";
+    mutable().policy = "F07-POL-01";
     f = await seedFixture(prisma);
     director = await createSession(prisma, jwt, f.members.directorA);
     admin = await createSession(prisma, jwt, f.members.adminA);
@@ -191,8 +195,8 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     http().get(`/api/v1/collective/campaigns/${campaign}/seal`).set(auth(session));
   const seal = (campaign: string, payload: unknown, session = director): Promise<Res> =>
     http().post(`/api/v1/collective/campaigns/${campaign}/seal`).set(auth(session)).send(payload as object);
-  const close = (campaign: string, session = director): Promise<Res> =>
-    http().post(`/api/v1/campaigns/${campaign}/close`).set(auth(session)).send({});
+  const closeLegacyFixture = (campaignId: string) =>
+    prisma.agriculturalCampaign.update({ where: { id: campaignId }, data: { status: "CERRADA", isActive: false, closedAt: new Date() } });
   const trends = (query = ""): Promise<Res> => http().get(`/api/v1/collective/trends${query}`).set(auth(director));
   const generate = (campaign: string): Promise<Res> =>
     http().post(`/api/v1/collective/campaigns/${campaign}/proposals`).set(auth(director));
@@ -327,8 +331,8 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     expect(back.line).toMatchObject({ status: "DISCLOSED", quantity_base: "6000", pending_changes: false });
   });
 
-  it("closing is not sealing; a publication after closing gets CAMPAIGN_NOT_OPEN", async () => {
-    expect((await close(campaigns.CA!)).status).toBe(200);
+  it("a campaign closed under the prior implementation refuses new publications before regularization", async () => {
+    await closeLegacyFixture(campaigns.CA!);
     const late = await push("F5", { campaign: campaigns.CA!, type: "DECLARED_NEED", product: products["Herbicida"]!, unit: "ML", quantity: "900" });
     expect(late.res.body).toMatchObject({ outcome: "REJECTED", code: "CAMPAIGN_NOT_OPEN" });
     afterClosePublish = { operationId: late.operationId, payload: late.payload, res: late.res };
@@ -348,7 +352,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     expect(await writeSnapshot()).toBe(snapshot);
   });
 
-  it("a missing confirmation, a stale review, a disabled flag, an open campaign and POLICY_PENDING leave no effect", async () => {
+  it("a missing confirmation, a stale review, an open campaign and a missing rule leave no effect", async () => {
     const state = await sealState(campaigns.CA!);
     const reviewRef = state.body.review.review_ref as string;
     expect(state.body.review).toMatchObject({
@@ -366,14 +370,6 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     expect(stale.status).toBe(409);
     expect(stale.body.message).toBe("SEAL_REVIEW_STALE");
 
-    mutable().sealingEnabled = false;
-    try {
-      expect((await sealState(campaigns.CA!)).body).toMatchObject({ can_seal: false, blocked_by: ["SEALING_DISABLED"], review: null });
-      const disabled = await seal(campaigns.CA!, { confirmed: true, review_ref: reviewRef });
-      expect([disabled.status, disabled.body.message]).toEqual([409, "SEALING_DISABLED"]);
-    } finally {
-      mutable().sealingEnabled = true;
-    }
     const open = await sealState(campaigns.CB!);
     expect(open.body).toMatchObject({ state: "NOT_SEALED", can_seal: false, blocked_by: ["CAMPAIGN_NOT_CLOSED"], review: null });
     const notClosed = await seal(campaigns.CB!, { confirmed: true, review_ref: reviewRef });
@@ -422,7 +418,17 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     });
     const audit = await prisma.auditLog.findMany({ where: { entityName: "CollectiveSeal" } });
     expect(audit).toHaveLength(1);
-    expect(audit[0]).toMatchObject({ actorUserId: expect.any(String), campaignId: campaigns.CA, action: "OTRO", before: null, after: null });
+    expect(audit[0]).toMatchObject({
+      actorUserId: expect.any(String),
+      campaignId: campaigns.CA,
+      action: "OTRO",
+      before: null,
+      after: {
+        recordedAt: expect.any(String),
+        releaseRefs: [expect.any(String), expect.any(String)],
+        source: "RECOVERED_AUTHORIZED_SYNC",
+      },
+    });
     expect(audit[0]!.summary).not.toMatch(/[0-9]{3,}/);
   });
 
@@ -584,7 +590,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
       ["F2", "DECLARED_NEED", "Urea", "G", "1000"],
       ["F3", "DECLARED_NEED", "Urea", "G", "1000"],
     ]);
-    expect((await close(campaigns.CD!, admin)).status).toBe(200);
+    await closeLegacyFixture(campaigns.CD!);
     const state = await sealState(campaigns.CD!, admin);
     const payload = { confirmed: true, review_ref: state.body.review.review_ref };
     const results = await Promise.all([
@@ -609,7 +615,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
       ["F2", "CONSUMPTION_TOTAL", "Herbicida", "ML", "100"],
       ["F3", "CONSUMPTION_TOTAL", "Herbicida", "ML", "100"],
     ]);
-    expect((await close(campaigns.CE!)).status).toBe(200);
+    await closeLegacyFixture(campaigns.CE!);
     const state = await sealState(campaigns.CE!);
     // The failure is injected at the last write of the seal (its audit row).
     await prisma.$executeRawUnsafe(`
@@ -660,7 +666,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     expect(finished - started).toBeGreaterThanOrEqual(holdMs - 400);
   });
 
-  it("CANCEL ↔ seal race (ADMINISTRADOR): before → SUPPRESSED_REVISION in the version; after → WITHDRAWN_AFTER_SEAL; never in between", async () => {
+  it("CANCEL ↔ legacy regularization: before → suppressed in the archived result; after → withdrawn", async () => {
     const outcomes: string[] = [];
     for (let round = 0; round < 3; round++) {
       const campaign = randomUUID();
@@ -675,9 +681,16 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
         ["F3", "CONSUMPTION_TOTAL", "Urea", "G", "70"],
         ["F4", "CONSUMPTION_TOTAL", "Urea", "G", "80"],
       ]);
+      // There is another recoverable result even if the withdrawal prevents
+      // the earlier consumption total from being recovered.
+      await publishAll(campaign, [
+        ["F1", "DECLARED_NEED", "Herbicida", "ML", "10"],
+        ["F2", "DECLARED_NEED", "Herbicida", "ML", "10"],
+        ["F3", "DECLARED_NEED", "Herbicida", "ML", "10"],
+      ]);
       // The figure 260 is disclosed before closing.
       expect((await summary(campaign)).body.cells[0]).toMatchObject({ status: "DISCLOSED", total_base: "260" });
-      expect((await close(campaign, admin)).status).toBe(200);
+      await closeLegacyFixture(campaign);
       const state = await sealState(campaign, admin);
       const review = state.body.review.review_ref;
       // Round 0: cancel strictly before; round 1: strictly after; round 2: concurrent.
@@ -696,7 +709,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
         sealRes = await reviewAndSeal(campaign, admin);
       }
       expect(sealRes.body).toMatchObject({ state: "SEALED", seal: { sealed_by: { role: "ADMINISTRADOR" } } });
-      const entry = await prisma.collectiveSealEntry.findFirstOrThrow({ where: { seal: { campaignId: campaign } } });
+      const entry = await prisma.collectiveSealEntry.findFirstOrThrow({ where: { seal: { campaignId: campaign }, projectionType: "CONSUMPTION_TOTAL" } });
       const served = (await summary(campaign)).body.cells[0];
       if (entry.status === "SUPPRESSED_REVISION") {
         expect(entry.visibilityWithdrawnAt).toBeNull();
@@ -798,7 +811,7 @@ describePostgres("F07 collective seal and sealed history on PostgreSQL", () => {
     // figure, visibly (suppressed), instead of keeping a departed
     // Member inside a shown figure.
     await prisma.member.update({ where: { id: farmers["G7"]!.memberId }, data: { isActive: false } });
-    expect((await close(campaign)).status).toBe(200);
+    await closeLegacyFixture(campaign);
 
     // The database refuses a new seal without its consumption coverage (at commit).
     await expect(

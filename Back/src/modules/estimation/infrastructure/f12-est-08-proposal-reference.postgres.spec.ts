@@ -111,12 +111,12 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     await sealedCampaign("C2", 2016, [["Herbicida", ["40000", "40000", "40000"]], ["Acaricida", ["1200", "1200", "1200"]]]);
     await sealedCampaign("C3", 2017, [["Herbicida", ["34000", "35000", "35000"]], ["Fungicida", ["100", "100", "100"]], ["Acaricida", ["1100", "1100", "1100"]]]);
     await sealedCampaign("C4", 2018, [["Herbicida", ["38000", "39000", "39000"]], ["Fungicida", ["200", "200", "200"]], ["Acaricida", ["1300", "1300", "1300"]]]);
-    // The target: open, with needs declared by three farmers (Insecticida by two: under the threshold).
+    // The target: open, with needs declared by two or three farmers.
     await campaign("T", 2019, "ABIERTA");
     for (const [i, quantity] of ["30000", "40000", "50000"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Herbicida", quantity);
     for (const [i, quantity] of ["500", "700", "800"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Fungicida", quantity);
     for (const [i, quantity] of ["1000", "2000"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Insecticida", quantity);
-    // Acaricida: need declared by two farmers only (hidden), while its consumption estimate is allowed.
+    // Acaricida: need declared by two farmers, with an independent consumption estimate.
     for (const [i, quantity] of ["4000", "6000"].entries()) await push(`F${i + 1}`, "DECLARED_NEED", campaigns["T"]!, "Acaricida", quantity);
     await campaign("X", 2020, "PLANIFICADA");
     await season("INVIERNO");
@@ -175,18 +175,16 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     });
   }
 
-  async function closeAndSeal(campaignId: string) {
+  async function closeCampaign(campaignId: string) {
     expect((await http().post(`/api/v1/campaigns/${campaignId}/close`).set(auth(director)).send({})).status).toBe(200);
     const state = await http().get(`/api/v1/collective/campaigns/${campaignId}/seal`).set(auth(director));
-    expect(state.body.can_seal).toBe(true);
-    const sealed = await http().post(`/api/v1/collective/campaigns/${campaignId}/seal`).set(auth(director)).send({ confirmed: true, review_ref: state.body.review.review_ref });
-    expect(sealed.status).toBe(200);
+    expect(state.body).toMatchObject({ state: "SEALED", can_seal: false, seal: { version: 1 } });
   }
 
   async function sealedCampaign(key: string, year: number, rows: [string, [string, string, string]][]) {
     await campaign(key, year, "ABIERTA");
     for (const [product, quantities] of rows) for (const [i, quantity] of quantities.entries()) await push(`F${i + 1}`, "CONSUMPTION_TOTAL", campaigns[key]!, product, quantity);
-    await closeAndSeal(campaigns[key]!);
+    await closeCampaign(campaigns[key]!);
   }
 
   async function season(key: string) {
@@ -313,8 +311,8 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
     expect(p1.inputs_fingerprint).toBe(p0.inputs_fingerprint);
     expect(linesOf(p1)).toEqual(linesOf(p0));
     expect(total(p1)).toBe(total(p0));
-    // Herbicida 30 + 40 + 50 L and Fungicida 0.5 + 0.7 + 0.8 L; Insecticida is under the threshold.
-    expect(total(p1)).toBe("122000");
+    // Includes declared need from all the authorized lines.
+    expect(total(p1)).toBe("135000");
     // The stored lines carry no estimate: same columns, same values.
     const stored = await prisma.jointPurchaseProposalLine.findMany({ where: { proposalId: { in: [p0.proposal_ref, p1.proposal_ref] } }, orderBy: [{ proposalId: "asc" }, { position: "asc" }] });
     const strip = (rows: typeof stored, id: string) => rows.filter((r) => r.proposalId === id).map(({ proposalId: _, ...rest }) => rest);
@@ -338,12 +336,12 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
       absence: null,
       estimation: { status: "INSUFFICIENT_DATA", reason_code: "SPAN_TOO_SHORT", estimate_base: null, validity: "NOT_USABLE", validity_reason: "NO_FIGURE", run_ref: runs["R1"] },
     });
-    // A line under the threshold keeps its own state; no run includes its product.
-    expect(p1.lines.find((l) => l.product_ref === products["Insecticida"])).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", quantity_base: null });
+    // Declared need is published even when historical consumption has no result.
+    expect(p1.lines.find((l) => l.product_ref === products["Insecticida"])).toMatchObject({ status: "DISCLOSED", quantity_base: "3000" });
     expect(lineOf(r1, "Insecticida")).toMatchObject({ absence: "NO_RESULT", estimation: null });
-    // Hidden need, allowed estimate: the reference is there, separate, for both authorized roles; the need stays hidden.
-    const hidden = p1.lines.find((l) => l.product_ref === products["Acaricida"])!;
-    expect(hidden).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", quantity_base: null, quantity_presentation: null, contributors: null });
+    // Declared need and estimate are separate, also for both institutional roles.
+    const need = p1.lines.find((l) => l.product_ref === products["Acaricida"])!;
+    expect(need).toMatchObject({ status: "DISCLOSED", quantity_base: "10000", contributors: 2 });
     const acaricide = lineOf(r1, "Acaricida");
     expect(acaricide).toMatchObject({ absence: null, estimation: { status: "ESTIMATED", validity: "CURRENT", run_ref: runs["R1"] } });
     expect(acaricide.estimation!.estimate_base).toMatch(/^[1-9][0-9]*\.[0-9]{6}$/);
@@ -404,13 +402,13 @@ describePostgres("F12-EST-08 estimation reference of a joint purchase proposal",
       expect(changed(before, await snapshot())).toEqual([]);
       demo["policy_pending"] = { availability: ref.availability };
     } finally {
-      (collective as { mode: string }).mode = "PROVISIONAL_SYNTHETIC";
+      (collective as { mode: string }).mode = "APPROVED";
     }
   });
 
   it("a sealed campaign: reading the draft and its reference recalculates and modifies nothing", async () => {
     const draftBefore = await prisma.jointPurchaseProposal.findUniqueOrThrow({ where: { id: proposals["P1"] }, include: { lines: { orderBy: { position: "asc" } } } });
-    await closeAndSeal(campaigns["T"]!);
+    await closeCampaign(campaigns["T"]!);
     const sealed = await view(proposals["P1"]!);
     expect(sealed.seal).toMatchObject({ version: 1 });
     expect(sealed.campaign.status).toBe("CERRADA");

@@ -2471,2018 +2471,6 @@
         ]
       }
     },
-    "/api/v1/collective/campaigns/{campaignId}/summary": {
-      "get": {
-        "operationId": "CollectiveController_get",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "contractVersion",
-                    "campaign",
-                    "seal",
-                    "disclosure",
-                    "coverage",
-                    "cells"
-                  ],
-                  "properties": {
-                    "contractVersion": {
-                      "type": "integer",
-                      "enum": [
-                        1
-                      ]
-                    },
-                    "campaign": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "campaign_ref",
-                        "name",
-                        "status"
-                      ],
-                      "properties": {
-                        "campaign_ref": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "seal": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "seal_ref",
-                        "version",
-                        "sealed_at",
-                        "accepted_until",
-                        "sealed_by",
-                        "policy",
-                        "threshold"
-                      ],
-                      "properties": {
-                        "seal_ref": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "version": {
-                          "type": "integer",
-                          "enum": [
-                            1
-                          ],
-                          "description": "Este bloque no crea versiones posteriores"
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
-                        },
-                        "threshold": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
-                        },
-                        "sealed_at": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Hora del servidor del sellado"
-                        },
-                        "accepted_until": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
-                        },
-                        "sealed_by": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "user_ref",
-                            "name",
-                            "role"
-                          ],
-                          "properties": {
-                            "user_ref": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "role": {
-                              "type": "string",
-                              "enum": [
-                                "DIRECTIVA",
-                                "ADMINISTRADOR"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "disclosure": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "mode",
-                        "policy",
-                        "approved",
-                        "threshold"
-                      ],
-                      "description": "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
-                      "properties": {
-                        "mode": {
-                          "type": "string",
-                          "enum": [
-                            "APPROVED",
-                            "POLICY_PENDING",
-                            "PROVISIONAL_SYNTHETIC"
-                          ]
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
-                        },
-                        "approved": {
-                          "type": "boolean"
-                        },
-                        "threshold": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "3 con F07-POL-01; null con F07-POL-02 (sin umbral) y con POLICY_PENDING"
-                        }
-                      }
-                    },
-                    "coverage": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "linked_members",
-                        "members_with_contribution",
-                        "suppressed_cells"
-                      ],
-                      "properties": {
-                        "linked_members": {
-                          "type": "integer"
-                        },
-                        "members_with_contribution": {
-                          "type": "integer",
-                          "description": "Members inside a published figure (F10-SEC-02): contributors of suppressed cells are not counted."
-                        },
-                        "suppressed_cells": {
-                          "type": "boolean",
-                          "description": "Some row has no figure; no count is given."
-                        }
-                      }
-                    },
-                    "cells": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "projection_type",
-                          "product_ref",
-                          "product_name",
-                          "base_unit",
-                          "presentation_unit",
-                          "status",
-                          "total_base",
-                          "total_presentation",
-                          "contributors",
-                          "data_as_of",
-                          "released_at",
-                          "pending_changes"
-                        ],
-                        "properties": {
-                          "projection_type": {
-                            "type": "string",
-                            "enum": [
-                              "CONSUMPTION_TOTAL",
-                              "DECLARED_NEED"
-                            ]
-                          },
-                          "product_ref": {
-                            "type": "string",
-                            "description": "Producto canónico vigente"
-                          },
-                          "product_name": {
-                            "type": "string"
-                          },
-                          "base_unit": {
-                            "type": "string",
-                            "enum": [
-                              "ML",
-                              "G"
-                            ]
-                          },
-                          "presentation_unit": {
-                            "type": "string",
-                            "enum": [
-                              "L",
-                              "KG"
-                            ]
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "DISCLOSED",
-                              "SUPPRESSED_UNDER_THRESHOLD",
-                              "SUPPRESSED_REVISION",
-                              "OVERFLOW",
-                              "WITHDRAWN_AFTER_SEAL"
-                            ],
-                            "description": "WITHDRAWN_AFTER_SEAL: sólo en una versión sellada; el aportante retiró su aporte después del sellado. SUPPRESSED_UNDER_THRESHOLD: estado histórico de F07-POL-01 (lo sellado con esa política); F07-POL-02 nunca lo produce"
-                          },
-                          "total_base": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "Entero exacto en unidad base; null si no se divulga"
-                          },
-                          "total_presentation": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "L/KG exactos; null si no se divulga"
-                          },
-                          "contributors": {
-                            "type": "integer",
-                            "nullable": true,
-                            "description": "Members distintos; null si no se divulga"
-                          },
-                          "data_as_of": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time",
-                            "description": "Última aceptación central incluida"
-                          },
-                          "released_at": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time"
-                          },
-                          "pending_changes": {
-                            "type": "boolean",
-                            "description": "La cifra mostrada es la anterior y hay cambios que todavía no se publican (F07-POL-01); con F07-POL-02 sólo es false"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Consolidado de la campaña (sin cifras mientras F07-POL-01 esté pendiente)",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
-    "/api/v1/collective/campaigns/{campaignId}/proposals": {
-      "post": {
-        "operationId": "JointPurchaseProposalsController_generate",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "contractVersion",
-                    "proposal_ref",
-                    "status",
-                    "basis",
-                    "campaign",
-                    "seal",
-                    "generated_at",
-                    "generated_by",
-                    "inputs_fingerprint",
-                    "disclosure",
-                    "coverage",
-                    "lines",
-                    "notice"
-                  ],
-                  "properties": {
-                    "contractVersion": {
-                      "type": "integer",
-                      "enum": [
-                        1
-                      ]
-                    },
-                    "proposal_ref": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "DRAFT"
-                      ]
-                    },
-                    "basis": {
-                      "type": "string",
-                      "enum": [
-                        "DECLARED_NEED"
-                      ],
-                      "description": "Necesidad declarada; no resta stock (no es necesidad neta)"
-                    },
-                    "campaign": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "campaign_ref",
-                        "name",
-                        "status"
-                      ],
-                      "properties": {
-                        "campaign_ref": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "seal": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "seal_ref",
-                        "version",
-                        "sealed_at",
-                        "accepted_until",
-                        "sealed_by",
-                        "policy",
-                        "threshold"
-                      ],
-                      "properties": {
-                        "seal_ref": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "version": {
-                          "type": "integer",
-                          "enum": [
-                            1
-                          ],
-                          "description": "Este bloque no crea versiones posteriores"
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
-                        },
-                        "threshold": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
-                        },
-                        "sealed_at": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Hora del servidor del sellado"
-                        },
-                        "accepted_until": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
-                        },
-                        "sealed_by": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "user_ref",
-                            "name",
-                            "role"
-                          ],
-                          "properties": {
-                            "user_ref": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "role": {
-                              "type": "string",
-                              "enum": [
-                                "DIRECTIVA",
-                                "ADMINISTRADOR"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "generated_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "generated_by": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "user_ref",
-                        "name"
-                      ],
-                      "properties": {
-                        "user_ref": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "inputs_fingerprint": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "SHA-256 de las entradas autorizadas, ordenadas; null si alguna cifra del borrador no se sirve"
-                    },
-                    "disclosure": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "mode",
-                        "policy",
-                        "approved"
-                      ],
-                      "properties": {
-                        "mode": {
-                          "type": "string",
-                          "enum": [
-                            "APPROVED",
-                            "POLICY_PENDING",
-                            "PROVISIONAL_SYNTHETIC"
-                          ]
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
-                        },
-                        "approved": {
-                          "type": "boolean"
-                        }
-                      }
-                    },
-                    "coverage": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "linked_members",
-                        "members_with_contribution",
-                        "basis"
-                      ],
-                      "properties": {
-                        "linked_members": {
-                          "type": "integer"
-                        },
-                        "members_with_contribution": {
-                          "type": "integer"
-                        },
-                        "basis": {
-                          "type": "string",
-                          "enum": [
-                            "PUBLISHED_FIGURES",
-                            "ALL_CONTRIBUTORS"
-                          ],
-                          "description": "Rule of members_with_contribution when the draft was generated (F10-SEC-02); stored drafts are never rewritten."
-                        }
-                      }
-                    },
-                    "lines": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "position",
-                          "product_ref",
-                          "product_name",
-                          "base_unit",
-                          "presentation_unit",
-                          "status",
-                          "quantity_base",
-                          "quantity_presentation",
-                          "contributors",
-                          "data_as_of",
-                          "released_at",
-                          "pending_changes"
-                        ],
-                        "properties": {
-                          "position": {
-                            "type": "integer"
-                          },
-                          "product_ref": {
-                            "type": "string",
-                            "description": "Producto canónico"
-                          },
-                          "product_name": {
-                            "type": "string"
-                          },
-                          "base_unit": {
-                            "type": "string",
-                            "enum": [
-                              "ML",
-                              "G"
-                            ]
-                          },
-                          "presentation_unit": {
-                            "type": "string",
-                            "enum": [
-                              "L",
-                              "KG"
-                            ]
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "DISCLOSED",
-                              "SUPPRESSED_UNDER_THRESHOLD",
-                              "SUPPRESSED_REVISION",
-                              "OVERFLOW",
-                              "WITHDRAWN",
-                              "SUPERSEDED",
-                              "POLICY_PENDING"
-                            ],
-                            "description": "SUPPRESSED_UNDER_THRESHOLD: sólo en borradores generados con F07-POL-01 (disclosure.policy); se conserva sin cifra"
-                          },
-                          "quantity_base": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "Necesidad declarada divulgada, entero exacto; null si no se divulga"
-                          },
-                          "quantity_presentation": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "L/KG exactos; null si no se divulga"
-                          },
-                          "contributors": {
-                            "type": "integer",
-                            "nullable": true
-                          },
-                          "data_as_of": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time"
-                          },
-                          "released_at": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time"
-                          },
-                          "pending_changes": {
-                            "type": "boolean"
-                          }
-                        }
-                      }
-                    },
-                    "notice": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          },
-          "409": {
-            "description": "POLICY_PENDING: sin divulgación autorizada no se genera ni guarda nada"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Generar un borrador de propuesta desde la necesidad declarada divulgada",
-        "tags": [
-          "collective"
-        ]
-      },
-      "get": {
-        "operationId": "JointPurchaseProposalsController_list",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "proposal_ref",
-                      "status",
-                      "generated_at",
-                      "generated_by",
-                      "inputs_fingerprint",
-                      "line_count"
-                    ],
-                    "properties": {
-                      "proposal_ref": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "DRAFT"
-                        ]
-                      },
-                      "generated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "generated_by": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "user_ref",
-                          "name"
-                        ],
-                        "properties": {
-                          "user_ref": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "inputs_fingerprint": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "line_count": {
-                        "type": "integer"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Historial de borradores de la campaña (sin cantidades)",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
-    "/api/v1/collective/proposals/{proposalId}": {
-      "get": {
-        "operationId": "JointPurchaseProposalsController_get",
-        "parameters": [
-          {
-            "name": "proposalId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "contractVersion",
-                    "proposal_ref",
-                    "status",
-                    "basis",
-                    "campaign",
-                    "seal",
-                    "generated_at",
-                    "generated_by",
-                    "inputs_fingerprint",
-                    "disclosure",
-                    "coverage",
-                    "lines",
-                    "notice"
-                  ],
-                  "properties": {
-                    "contractVersion": {
-                      "type": "integer",
-                      "enum": [
-                        1
-                      ]
-                    },
-                    "proposal_ref": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "DRAFT"
-                      ]
-                    },
-                    "basis": {
-                      "type": "string",
-                      "enum": [
-                        "DECLARED_NEED"
-                      ],
-                      "description": "Necesidad declarada; no resta stock (no es necesidad neta)"
-                    },
-                    "campaign": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "campaign_ref",
-                        "name",
-                        "status"
-                      ],
-                      "properties": {
-                        "campaign_ref": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "seal": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "seal_ref",
-                        "version",
-                        "sealed_at",
-                        "accepted_until",
-                        "sealed_by",
-                        "policy",
-                        "threshold"
-                      ],
-                      "properties": {
-                        "seal_ref": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "version": {
-                          "type": "integer",
-                          "enum": [
-                            1
-                          ],
-                          "description": "Este bloque no crea versiones posteriores"
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
-                        },
-                        "threshold": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
-                        },
-                        "sealed_at": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Hora del servidor del sellado"
-                        },
-                        "accepted_until": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
-                        },
-                        "sealed_by": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "user_ref",
-                            "name",
-                            "role"
-                          ],
-                          "properties": {
-                            "user_ref": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "role": {
-                              "type": "string",
-                              "enum": [
-                                "DIRECTIVA",
-                                "ADMINISTRADOR"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "generated_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "generated_by": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "user_ref",
-                        "name"
-                      ],
-                      "properties": {
-                        "user_ref": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "inputs_fingerprint": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "SHA-256 de las entradas autorizadas, ordenadas; null si alguna cifra del borrador no se sirve"
-                    },
-                    "disclosure": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "mode",
-                        "policy",
-                        "approved"
-                      ],
-                      "properties": {
-                        "mode": {
-                          "type": "string",
-                          "enum": [
-                            "APPROVED",
-                            "POLICY_PENDING",
-                            "PROVISIONAL_SYNTHETIC"
-                          ]
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
-                        },
-                        "approved": {
-                          "type": "boolean"
-                        }
-                      }
-                    },
-                    "coverage": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "linked_members",
-                        "members_with_contribution",
-                        "basis"
-                      ],
-                      "properties": {
-                        "linked_members": {
-                          "type": "integer"
-                        },
-                        "members_with_contribution": {
-                          "type": "integer"
-                        },
-                        "basis": {
-                          "type": "string",
-                          "enum": [
-                            "PUBLISHED_FIGURES",
-                            "ALL_CONTRIBUTORS"
-                          ],
-                          "description": "Rule of members_with_contribution when the draft was generated (F10-SEC-02); stored drafts are never rewritten."
-                        }
-                      }
-                    },
-                    "lines": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "position",
-                          "product_ref",
-                          "product_name",
-                          "base_unit",
-                          "presentation_unit",
-                          "status",
-                          "quantity_base",
-                          "quantity_presentation",
-                          "contributors",
-                          "data_as_of",
-                          "released_at",
-                          "pending_changes"
-                        ],
-                        "properties": {
-                          "position": {
-                            "type": "integer"
-                          },
-                          "product_ref": {
-                            "type": "string",
-                            "description": "Producto canónico"
-                          },
-                          "product_name": {
-                            "type": "string"
-                          },
-                          "base_unit": {
-                            "type": "string",
-                            "enum": [
-                              "ML",
-                              "G"
-                            ]
-                          },
-                          "presentation_unit": {
-                            "type": "string",
-                            "enum": [
-                              "L",
-                              "KG"
-                            ]
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "DISCLOSED",
-                              "SUPPRESSED_UNDER_THRESHOLD",
-                              "SUPPRESSED_REVISION",
-                              "OVERFLOW",
-                              "WITHDRAWN",
-                              "SUPERSEDED",
-                              "POLICY_PENDING"
-                            ],
-                            "description": "SUPPRESSED_UNDER_THRESHOLD: sólo en borradores generados con F07-POL-01 (disclosure.policy); se conserva sin cifra"
-                          },
-                          "quantity_base": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "Necesidad declarada divulgada, entero exacto; null si no se divulga"
-                          },
-                          "quantity_presentation": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "L/KG exactos; null si no se divulga"
-                          },
-                          "contributors": {
-                            "type": "integer",
-                            "nullable": true
-                          },
-                          "data_as_of": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time"
-                          },
-                          "released_at": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time"
-                          },
-                          "pending_changes": {
-                            "type": "boolean"
-                          }
-                        }
-                      }
-                    },
-                    "notice": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Propuesta inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Detalle del borrador con la misma política que el resumen",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
-    "/api/v1/collective/campaigns/{campaignId}/close-preview": {
-      "get": {
-        "operationId": "CollectiveHistoryController_closePreview",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "coverage",
-                    "recoverable_cells",
-                    "cells_without_figure"
-                  ],
-                  "properties": {
-                    "recoverable_cells": {
-                      "type": "integer"
-                    },
-                    "cells_without_figure": {
-                      "type": "integer"
-                    },
-                    "coverage": {
-                      "type": "object",
-                      "nullable": true,
-                      "required": [
-                        "linked_members",
-                        "members_with_contribution",
-                        "suppressed_cells"
-                      ],
-                      "properties": {
-                        "linked_members": {
-                          "type": "integer"
-                        },
-                        "members_with_contribution": {
-                          "type": "integer"
-                        },
-                        "suppressed_cells": {
-                          "type": "boolean"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Consultar la cobertura disponible antes del cierre",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
-    "/api/v1/collective/campaigns/{campaignId}/seal": {
-      "get": {
-        "operationId": "CollectiveHistoryController_state",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "contractVersion",
-                    "campaign",
-                    "state",
-                    "seal",
-                    "can_seal",
-                    "blocked_by",
-                    "review"
-                  ],
-                  "properties": {
-                    "contractVersion": {
-                      "type": "integer",
-                      "enum": [
-                        1
-                      ]
-                    },
-                    "campaign": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "campaign_ref",
-                        "name",
-                        "status"
-                      ],
-                      "properties": {
-                        "campaign_ref": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "state": {
-                      "type": "string",
-                      "enum": [
-                        "SEALED",
-                        "NOT_SEALED"
-                      ]
-                    },
-                    "seal": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "seal_ref",
-                        "version",
-                        "sealed_at",
-                        "accepted_until",
-                        "sealed_by",
-                        "policy",
-                        "threshold"
-                      ],
-                      "properties": {
-                        "seal_ref": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "version": {
-                          "type": "integer",
-                          "enum": [
-                            1
-                          ],
-                          "description": "Este bloque no crea versiones posteriores"
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
-                        },
-                        "threshold": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
-                        },
-                        "sealed_at": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Hora del servidor del sellado"
-                        },
-                        "accepted_until": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
-                        },
-                        "sealed_by": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "user_ref",
-                            "name",
-                            "role"
-                          ],
-                          "properties": {
-                            "user_ref": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "role": {
-                              "type": "string",
-                              "enum": [
-                                "DIRECTIVA",
-                                "ADMINISTRADOR"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "can_seal": {
-                      "type": "boolean"
-                    },
-                    "blocked_by": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "SEALING_DISABLED",
-                          "POLICY_PENDING",
-                          "CAMPAIGN_NOT_CLOSED"
-                        ]
-                      }
-                    },
-                    "review": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "review_ref",
-                        "accepted_until",
-                        "coverage",
-                        "open_disputes",
-                        "pending_changes",
-                        "cells_without_figure"
-                      ],
-                      "properties": {
-                        "review_ref": {
-                          "type": "string",
-                          "pattern": "^[0-9a-f]{64}$",
-                          "description": "Se envía al confirmar el sellado"
-                        },
-                        "accepted_until": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "coverage": {
-                          "type": "object",
-                          "nullable": false,
-                          "additionalProperties": false,
-                          "required": [
-                            "linked_members",
-                            "members_with_contribution",
-                            "suppressed_cells"
-                          ],
-                          "properties": {
-                            "linked_members": {
-                              "type": "integer"
-                            },
-                            "members_with_contribution": {
-                              "type": "integer"
-                            },
-                            "suppressed_cells": {
-                              "type": "boolean"
-                            }
-                          }
-                        },
-                        "open_disputes": {
-                          "type": "boolean",
-                          "description": "Alguna aportación tiene una disputa abierta; sin conteo"
-                        },
-                        "pending_changes": {
-                          "type": "boolean",
-                          "description": "Alguna cifra se muestra con cambios pendientes"
-                        },
-                        "cells_without_figure": {
-                          "type": "boolean",
-                          "description": "Alguna celda no tiene cifra; sin conteo"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Estado del sellado y revisión previa (cobertura, datos aceptados hasta, conflictos y límites)",
-        "tags": [
-          "collective"
-        ]
-      },
-      "post": {
-        "operationId": "CollectiveHistoryController_seal",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SealCampaignDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "created=false si ya estaba sellada",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "contractVersion",
-                    "campaign",
-                    "state",
-                    "seal",
-                    "can_seal",
-                    "blocked_by",
-                    "review",
-                    "created"
-                  ],
-                  "properties": {
-                    "contractVersion": {
-                      "type": "integer",
-                      "enum": [
-                        1
-                      ]
-                    },
-                    "campaign": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "campaign_ref",
-                        "name",
-                        "status"
-                      ],
-                      "properties": {
-                        "campaign_ref": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "state": {
-                      "type": "string",
-                      "enum": [
-                        "SEALED",
-                        "NOT_SEALED"
-                      ]
-                    },
-                    "seal": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "seal_ref",
-                        "version",
-                        "sealed_at",
-                        "accepted_until",
-                        "sealed_by",
-                        "policy",
-                        "threshold"
-                      ],
-                      "properties": {
-                        "seal_ref": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "version": {
-                          "type": "integer",
-                          "enum": [
-                            1
-                          ],
-                          "description": "Este bloque no crea versiones posteriores"
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
-                        },
-                        "threshold": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
-                        },
-                        "sealed_at": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Hora del servidor del sellado"
-                        },
-                        "accepted_until": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
-                        },
-                        "sealed_by": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "user_ref",
-                            "name",
-                            "role"
-                          ],
-                          "properties": {
-                            "user_ref": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "role": {
-                              "type": "string",
-                              "enum": [
-                                "DIRECTIVA",
-                                "ADMINISTRADOR"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "can_seal": {
-                      "type": "boolean"
-                    },
-                    "blocked_by": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "SEALING_DISABLED",
-                          "POLICY_PENDING",
-                          "CAMPAIGN_NOT_CLOSED"
-                        ]
-                      }
-                    },
-                    "review": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": false,
-                      "required": [
-                        "review_ref",
-                        "accepted_until",
-                        "coverage",
-                        "open_disputes",
-                        "pending_changes",
-                        "cells_without_figure"
-                      ],
-                      "properties": {
-                        "review_ref": {
-                          "type": "string",
-                          "pattern": "^[0-9a-f]{64}$",
-                          "description": "Se envía al confirmar el sellado"
-                        },
-                        "accepted_until": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "coverage": {
-                          "type": "object",
-                          "nullable": false,
-                          "additionalProperties": false,
-                          "required": [
-                            "linked_members",
-                            "members_with_contribution",
-                            "suppressed_cells"
-                          ],
-                          "properties": {
-                            "linked_members": {
-                              "type": "integer"
-                            },
-                            "members_with_contribution": {
-                              "type": "integer"
-                            },
-                            "suppressed_cells": {
-                              "type": "boolean"
-                            }
-                          }
-                        },
-                        "open_disputes": {
-                          "type": "boolean",
-                          "description": "Alguna aportación tiene una disputa abierta; sin conteo"
-                        },
-                        "pending_changes": {
-                          "type": "boolean",
-                          "description": "Alguna cifra se muestra con cambios pendientes"
-                        },
-                        "cells_without_figure": {
-                          "type": "boolean",
-                          "description": "Alguna celda no tiene cifra; sin conteo"
-                        }
-                      }
-                    },
-                    "created": {
-                      "type": "boolean",
-                      "description": "false: la campaña ya estaba sellada (respuesta idempotente)"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Body no válido"
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          },
-          "404": {
-            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
-          },
-          "409": {
-            "description": "CAMPAIGN_NOT_CLOSED, SEAL_REVIEW_STALE o NO_RECOVERABLE_HISTORY: no se escribe nada"
-          },
-          "422": {
-            "description": "CONFIRMATION_REQUIRED: no se escribe nada"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Regularizar resultados históricos recuperables de una campaña cerrada (idempotente)",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
-    "/api/v1/collective/trends": {
-      "get": {
-        "operationId": "CollectiveHistoryController_get",
-        "parameters": [
-          {
-            "name": "projection_type",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "CONSUMPTION_TOTAL",
-                "DECLARED_NEED"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "contractVersion",
-                    "disclosure",
-                    "projection_type",
-                    "campaigns",
-                    "series",
-                    "notice"
-                  ],
-                  "properties": {
-                    "contractVersion": {
-                      "type": "integer",
-                      "enum": [
-                        1
-                      ]
-                    },
-                    "disclosure": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "mode",
-                        "policy",
-                        "approved",
-                        "threshold"
-                      ],
-                      "description": "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
-                      "properties": {
-                        "mode": {
-                          "type": "string",
-                          "enum": [
-                            "APPROVED",
-                            "POLICY_PENDING",
-                            "PROVISIONAL_SYNTHETIC"
-                          ]
-                        },
-                        "policy": {
-                          "type": "string",
-                          "enum": [
-                            "F07-POL-01",
-                            "F07-POL-02"
-                          ],
-                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
-                        },
-                        "approved": {
-                          "type": "boolean"
-                        },
-                        "threshold": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "3 con F07-POL-01; null con F07-POL-02 (sin umbral) y con POLICY_PENDING"
-                        }
-                      }
-                    },
-                    "projection_type": {
-                      "type": "string",
-                      "nullable": true,
-                      "enum": [
-                        "CONSUMPTION_TOTAL",
-                        "DECLARED_NEED",
-                        null
-                      ]
-                    },
-                    "campaigns": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "campaign_ref",
-                          "name",
-                          "status",
-                          "start_date",
-                          "seal",
-                          "coverage"
-                        ],
-                        "properties": {
-                          "campaign_ref": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          },
-                          "start_date": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "seal": {
-                            "type": "object",
-                            "nullable": true,
-                            "additionalProperties": false,
-                            "required": [
-                              "seal_ref",
-                              "version",
-                              "sealed_at",
-                              "accepted_until",
-                              "sealed_by",
-                              "policy",
-                              "threshold"
-                            ],
-                            "properties": {
-                              "seal_ref": {
-                                "type": "string",
-                                "format": "uuid"
-                              },
-                              "version": {
-                                "type": "integer",
-                                "enum": [
-                                  1
-                                ],
-                                "description": "Este bloque no crea versiones posteriores"
-                              },
-                              "policy": {
-                                "type": "string",
-                                "enum": [
-                                  "F07-POL-01",
-                                  "F07-POL-02"
-                                ],
-                                "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
-                              },
-                              "threshold": {
-                                "type": "integer",
-                                "nullable": true,
-                                "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
-                              },
-                              "sealed_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "description": "Hora del servidor del sellado"
-                              },
-                              "accepted_until": {
-                                "type": "string",
-                                "format": "date-time",
-                                "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
-                              },
-                              "sealed_by": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "user_ref",
-                                  "name",
-                                  "role"
-                                ],
-                                "properties": {
-                                  "user_ref": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "role": {
-                                    "type": "string",
-                                    "enum": [
-                                      "DIRECTIVA",
-                                      "ADMINISTRADOR"
-                                    ]
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "coverage": {
-                            "type": "object",
-                            "nullable": true,
-                            "additionalProperties": false,
-                            "required": [
-                              "linked_members",
-                              "members_with_contribution",
-                              "suppressed_cells"
-                            ],
-                            "properties": {
-                              "linked_members": {
-                                "type": "integer"
-                              },
-                              "members_with_contribution": {
-                                "type": "integer"
-                              },
-                              "suppressed_cells": {
-                                "type": "boolean"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "series": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "projection_type",
-                          "product_ref",
-                          "product_name",
-                          "base_unit",
-                          "presentation_unit",
-                          "points"
-                        ],
-                        "properties": {
-                          "projection_type": {
-                            "type": "string",
-                            "enum": [
-                              "CONSUMPTION_TOTAL",
-                              "DECLARED_NEED"
-                            ]
-                          },
-                          "product_ref": {
-                            "type": "string"
-                          },
-                          "product_name": {
-                            "type": "string"
-                          },
-                          "base_unit": {
-                            "type": "string",
-                            "enum": [
-                              "ML",
-                              "G"
-                            ]
-                          },
-                          "presentation_unit": {
-                            "type": "string",
-                            "enum": [
-                              "L",
-                              "KG"
-                            ]
-                          },
-                          "points": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "campaign_ref",
-                                "status",
-                                "total_base",
-                                "total_presentation",
-                                "contributors",
-                                "data_as_of",
-                                "pending_changes"
-                              ],
-                              "properties": {
-                                "campaign_ref": {
-                                  "type": "string"
-                                },
-                                "status": {
-                                  "type": "string",
-                                  "enum": [
-                                    "DISCLOSED",
-                                    "SUPPRESSED_UNDER_THRESHOLD",
-                                    "SUPPRESSED_REVISION",
-                                    "OVERFLOW",
-                                    "WITHDRAWN_AFTER_SEAL",
-                                    "NO_DATA",
-                                    "NOT_SEALED"
-                                  ],
-                                  "description": "NO_DATA: la versión sellada no tiene esa celda (desconocido, no cero). NOT_SEALED: sin versión sellada. SUPPRESSED_UNDER_THRESHOLD: sólo en campañas selladas con F07-POL-01 (campaigns[].seal.policy)"
-                                },
-                                "total_base": {
-                                  "type": "string",
-                                  "nullable": true
-                                },
-                                "total_presentation": {
-                                  "type": "string",
-                                  "nullable": true
-                                },
-                                "contributors": {
-                                  "type": "integer",
-                                  "nullable": true
-                                },
-                                "data_as_of": {
-                                  "type": "string",
-                                  "nullable": true,
-                                  "format": "date-time"
-                                },
-                                "pending_changes": {
-                                  "type": "boolean"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "notice": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Sin credencial vigente"
-          },
-          "403": {
-            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Tendencias descriptivas entre versiones selladas (sin sumas entre campañas)",
-        "tags": [
-          "collective"
-        ]
-      }
-    },
     "/api/v1/plots": {
       "get": {
         "operationId": "PlotsController_list",
@@ -8038,6 +6026,2018 @@
         "summary": "Referencias centrales de campañas y productos del tenant para vinculación móvil (F05-SYNC-07)",
         "tags": [
           "sync v1"
+        ]
+      }
+    },
+    "/api/v1/collective/campaigns/{campaignId}/summary": {
+      "get": {
+        "operationId": "CollectiveController_get",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "campaign",
+                    "seal",
+                    "disclosure",
+                    "coverage",
+                    "cells"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "campaign": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "campaign_ref",
+                        "name",
+                        "status"
+                      ],
+                      "properties": {
+                        "campaign_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "seal": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "seal_ref",
+                        "version",
+                        "sealed_at",
+                        "accepted_until",
+                        "sealed_by",
+                        "policy",
+                        "threshold"
+                      ],
+                      "properties": {
+                        "seal_ref": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ],
+                          "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
+                        },
+                        "sealed_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor del sellado"
+                        },
+                        "accepted_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
+                        },
+                        "sealed_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name",
+                            "role"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DIRECTIVA",
+                                "ADMINISTRADOR"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "disclosure": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mode",
+                        "policy",
+                        "approved",
+                        "threshold"
+                      ],
+                      "description": "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "APPROVED",
+                            "POLICY_PENDING",
+                            "PROVISIONAL_SYNTHETIC"
+                          ]
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
+                        },
+                        "approved": {
+                          "type": "boolean"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "3 con F07-POL-01; null con F07-POL-02 (sin umbral) y con POLICY_PENDING"
+                        }
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "linked_members",
+                        "members_with_contribution",
+                        "suppressed_cells"
+                      ],
+                      "properties": {
+                        "linked_members": {
+                          "type": "integer"
+                        },
+                        "members_with_contribution": {
+                          "type": "integer",
+                          "description": "Members inside a published figure (F10-SEC-02): contributors of suppressed cells are not counted."
+                        },
+                        "suppressed_cells": {
+                          "type": "boolean",
+                          "description": "Some row has no figure; no count is given."
+                        }
+                      }
+                    },
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "projection_type",
+                          "product_ref",
+                          "product_name",
+                          "base_unit",
+                          "presentation_unit",
+                          "status",
+                          "total_base",
+                          "total_presentation",
+                          "contributors",
+                          "data_as_of",
+                          "released_at",
+                          "pending_changes"
+                        ],
+                        "properties": {
+                          "projection_type": {
+                            "type": "string",
+                            "enum": [
+                              "CONSUMPTION_TOTAL",
+                              "DECLARED_NEED"
+                            ]
+                          },
+                          "product_ref": {
+                            "type": "string",
+                            "description": "Producto canónico vigente"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "presentation_unit": {
+                            "type": "string",
+                            "enum": [
+                              "L",
+                              "KG"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DISCLOSED",
+                              "SUPPRESSED_UNDER_THRESHOLD",
+                              "SUPPRESSED_REVISION",
+                              "OVERFLOW",
+                              "WITHDRAWN_AFTER_SEAL"
+                            ],
+                            "description": "WITHDRAWN_AFTER_SEAL: sólo en una versión sellada; el aportante retiró su aporte después del sellado. SUPPRESSED_UNDER_THRESHOLD: estado histórico de F07-POL-01 (lo sellado con esa política); F07-POL-02 nunca lo produce"
+                          },
+                          "total_base": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Entero exacto en unidad base; null si no se divulga"
+                          },
+                          "total_presentation": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "L/KG exactos; null si no se divulga"
+                          },
+                          "contributors": {
+                            "type": "integer",
+                            "nullable": true,
+                            "description": "Members distintos; null si no se divulga"
+                          },
+                          "data_as_of": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time",
+                            "description": "Última aceptación central incluida"
+                          },
+                          "released_at": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "pending_changes": {
+                            "type": "boolean",
+                            "description": "La cifra mostrada es la anterior y hay cambios que todavía no se publican (F07-POL-01); con F07-POL-02 sólo es false"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consolidado de la campaña (sin cifras mientras F07-POL-01 esté pendiente)",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/campaigns/{campaignId}/proposals": {
+      "post": {
+        "operationId": "JointPurchaseProposalsController_generate",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "proposal_ref",
+                    "status",
+                    "basis",
+                    "campaign",
+                    "seal",
+                    "generated_at",
+                    "generated_by",
+                    "inputs_fingerprint",
+                    "disclosure",
+                    "coverage",
+                    "lines",
+                    "notice"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "proposal_ref": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT"
+                      ]
+                    },
+                    "basis": {
+                      "type": "string",
+                      "enum": [
+                        "DECLARED_NEED"
+                      ],
+                      "description": "Necesidad declarada; no resta stock (no es necesidad neta)"
+                    },
+                    "campaign": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "campaign_ref",
+                        "name",
+                        "status"
+                      ],
+                      "properties": {
+                        "campaign_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "seal": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "seal_ref",
+                        "version",
+                        "sealed_at",
+                        "accepted_until",
+                        "sealed_by",
+                        "policy",
+                        "threshold"
+                      ],
+                      "properties": {
+                        "seal_ref": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ],
+                          "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
+                        },
+                        "sealed_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor del sellado"
+                        },
+                        "accepted_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
+                        },
+                        "sealed_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name",
+                            "role"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DIRECTIVA",
+                                "ADMINISTRADOR"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "generated_by": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "user_ref",
+                        "name"
+                      ],
+                      "properties": {
+                        "user_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "inputs_fingerprint": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "SHA-256 de las entradas autorizadas, ordenadas; null si alguna cifra del borrador no se sirve"
+                    },
+                    "disclosure": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mode",
+                        "policy",
+                        "approved"
+                      ],
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "APPROVED",
+                            "POLICY_PENDING",
+                            "PROVISIONAL_SYNTHETIC"
+                          ]
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
+                        },
+                        "approved": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "linked_members",
+                        "members_with_contribution",
+                        "basis"
+                      ],
+                      "properties": {
+                        "linked_members": {
+                          "type": "integer"
+                        },
+                        "members_with_contribution": {
+                          "type": "integer"
+                        },
+                        "basis": {
+                          "type": "string",
+                          "enum": [
+                            "PUBLISHED_FIGURES",
+                            "ALL_CONTRIBUTORS"
+                          ],
+                          "description": "Rule of members_with_contribution when the draft was generated (F10-SEC-02); stored drafts are never rewritten."
+                        }
+                      }
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "position",
+                          "product_ref",
+                          "product_name",
+                          "base_unit",
+                          "presentation_unit",
+                          "status",
+                          "quantity_base",
+                          "quantity_presentation",
+                          "contributors",
+                          "data_as_of",
+                          "released_at",
+                          "pending_changes"
+                        ],
+                        "properties": {
+                          "position": {
+                            "type": "integer"
+                          },
+                          "product_ref": {
+                            "type": "string",
+                            "description": "Producto canónico"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "presentation_unit": {
+                            "type": "string",
+                            "enum": [
+                              "L",
+                              "KG"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DISCLOSED",
+                              "SUPPRESSED_UNDER_THRESHOLD",
+                              "SUPPRESSED_REVISION",
+                              "OVERFLOW",
+                              "WITHDRAWN",
+                              "SUPERSEDED",
+                              "POLICY_PENDING"
+                            ],
+                            "description": "SUPPRESSED_UNDER_THRESHOLD: sólo en borradores generados con F07-POL-01 (disclosure.policy); se conserva sin cifra"
+                          },
+                          "quantity_base": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Necesidad declarada divulgada, entero exacto; null si no se divulga"
+                          },
+                          "quantity_presentation": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "L/KG exactos; null si no se divulga"
+                          },
+                          "contributors": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "data_as_of": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "released_at": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "pending_changes": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          },
+          "409": {
+            "description": "POLICY_PENDING: sin divulgación autorizada no se genera ni guarda nada"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generar un borrador de propuesta desde la necesidad declarada divulgada",
+        "tags": [
+          "collective"
+        ]
+      },
+      "get": {
+        "operationId": "JointPurchaseProposalsController_list",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "proposal_ref",
+                      "status",
+                      "generated_at",
+                      "generated_by",
+                      "inputs_fingerprint",
+                      "line_count"
+                    ],
+                    "properties": {
+                      "proposal_ref": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "DRAFT"
+                        ]
+                      },
+                      "generated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "generated_by": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "user_ref",
+                          "name"
+                        ],
+                        "properties": {
+                          "user_ref": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "inputs_fingerprint": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "line_count": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Historial de borradores de la campaña (sin cantidades)",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/proposals/{proposalId}": {
+      "get": {
+        "operationId": "JointPurchaseProposalsController_get",
+        "parameters": [
+          {
+            "name": "proposalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "proposal_ref",
+                    "status",
+                    "basis",
+                    "campaign",
+                    "seal",
+                    "generated_at",
+                    "generated_by",
+                    "inputs_fingerprint",
+                    "disclosure",
+                    "coverage",
+                    "lines",
+                    "notice"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "proposal_ref": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT"
+                      ]
+                    },
+                    "basis": {
+                      "type": "string",
+                      "enum": [
+                        "DECLARED_NEED"
+                      ],
+                      "description": "Necesidad declarada; no resta stock (no es necesidad neta)"
+                    },
+                    "campaign": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "campaign_ref",
+                        "name",
+                        "status"
+                      ],
+                      "properties": {
+                        "campaign_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "seal": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "seal_ref",
+                        "version",
+                        "sealed_at",
+                        "accepted_until",
+                        "sealed_by",
+                        "policy",
+                        "threshold"
+                      ],
+                      "properties": {
+                        "seal_ref": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ],
+                          "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
+                        },
+                        "sealed_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor del sellado"
+                        },
+                        "accepted_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
+                        },
+                        "sealed_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name",
+                            "role"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DIRECTIVA",
+                                "ADMINISTRADOR"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "generated_by": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "user_ref",
+                        "name"
+                      ],
+                      "properties": {
+                        "user_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "inputs_fingerprint": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "SHA-256 de las entradas autorizadas, ordenadas; null si alguna cifra del borrador no se sirve"
+                    },
+                    "disclosure": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mode",
+                        "policy",
+                        "approved"
+                      ],
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "APPROVED",
+                            "POLICY_PENDING",
+                            "PROVISIONAL_SYNTHETIC"
+                          ]
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
+                        },
+                        "approved": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "linked_members",
+                        "members_with_contribution",
+                        "basis"
+                      ],
+                      "properties": {
+                        "linked_members": {
+                          "type": "integer"
+                        },
+                        "members_with_contribution": {
+                          "type": "integer"
+                        },
+                        "basis": {
+                          "type": "string",
+                          "enum": [
+                            "PUBLISHED_FIGURES",
+                            "ALL_CONTRIBUTORS"
+                          ],
+                          "description": "Rule of members_with_contribution when the draft was generated (F10-SEC-02); stored drafts are never rewritten."
+                        }
+                      }
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "position",
+                          "product_ref",
+                          "product_name",
+                          "base_unit",
+                          "presentation_unit",
+                          "status",
+                          "quantity_base",
+                          "quantity_presentation",
+                          "contributors",
+                          "data_as_of",
+                          "released_at",
+                          "pending_changes"
+                        ],
+                        "properties": {
+                          "position": {
+                            "type": "integer"
+                          },
+                          "product_ref": {
+                            "type": "string",
+                            "description": "Producto canónico"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "presentation_unit": {
+                            "type": "string",
+                            "enum": [
+                              "L",
+                              "KG"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DISCLOSED",
+                              "SUPPRESSED_UNDER_THRESHOLD",
+                              "SUPPRESSED_REVISION",
+                              "OVERFLOW",
+                              "WITHDRAWN",
+                              "SUPERSEDED",
+                              "POLICY_PENDING"
+                            ],
+                            "description": "SUPPRESSED_UNDER_THRESHOLD: sólo en borradores generados con F07-POL-01 (disclosure.policy); se conserva sin cifra"
+                          },
+                          "quantity_base": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Necesidad declarada divulgada, entero exacto; null si no se divulga"
+                          },
+                          "quantity_presentation": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "L/KG exactos; null si no se divulga"
+                          },
+                          "contributors": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "data_as_of": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "released_at": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "pending_changes": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Propuesta inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Detalle del borrador con la misma política que el resumen",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/campaigns/{campaignId}/close-preview": {
+      "get": {
+        "operationId": "CollectiveHistoryController_closePreview",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "coverage",
+                    "recoverable_cells",
+                    "cells_without_figure"
+                  ],
+                  "properties": {
+                    "recoverable_cells": {
+                      "type": "integer"
+                    },
+                    "cells_without_figure": {
+                      "type": "integer"
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "nullable": true,
+                      "required": [
+                        "linked_members",
+                        "members_with_contribution",
+                        "suppressed_cells"
+                      ],
+                      "properties": {
+                        "linked_members": {
+                          "type": "integer"
+                        },
+                        "members_with_contribution": {
+                          "type": "integer"
+                        },
+                        "suppressed_cells": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar la cobertura disponible antes del cierre",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/campaigns/{campaignId}/seal": {
+      "get": {
+        "operationId": "CollectiveHistoryController_state",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "campaign",
+                    "state",
+                    "seal",
+                    "can_seal",
+                    "blocked_by",
+                    "review"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "campaign": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "campaign_ref",
+                        "name",
+                        "status"
+                      ],
+                      "properties": {
+                        "campaign_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "SEALED",
+                        "NOT_SEALED"
+                      ]
+                    },
+                    "seal": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "seal_ref",
+                        "version",
+                        "sealed_at",
+                        "accepted_until",
+                        "sealed_by",
+                        "policy",
+                        "threshold"
+                      ],
+                      "properties": {
+                        "seal_ref": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ],
+                          "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
+                        },
+                        "sealed_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor del sellado"
+                        },
+                        "accepted_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
+                        },
+                        "sealed_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name",
+                            "role"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DIRECTIVA",
+                                "ADMINISTRADOR"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "can_seal": {
+                      "type": "boolean"
+                    },
+                    "blocked_by": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SEALING_DISABLED",
+                          "POLICY_PENDING",
+                          "CAMPAIGN_NOT_CLOSED"
+                        ]
+                      }
+                    },
+                    "review": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "review_ref",
+                        "accepted_until",
+                        "coverage",
+                        "open_disputes",
+                        "pending_changes",
+                        "cells_without_figure"
+                      ],
+                      "properties": {
+                        "review_ref": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "Se envía al confirmar el sellado"
+                        },
+                        "accepted_until": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "nullable": false,
+                          "additionalProperties": false,
+                          "required": [
+                            "linked_members",
+                            "members_with_contribution",
+                            "suppressed_cells"
+                          ],
+                          "properties": {
+                            "linked_members": {
+                              "type": "integer"
+                            },
+                            "members_with_contribution": {
+                              "type": "integer"
+                            },
+                            "suppressed_cells": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "open_disputes": {
+                          "type": "boolean",
+                          "description": "Alguna aportación tiene una disputa abierta; sin conteo"
+                        },
+                        "pending_changes": {
+                          "type": "boolean",
+                          "description": "Alguna cifra se muestra con cambios pendientes"
+                        },
+                        "cells_without_figure": {
+                          "type": "boolean",
+                          "description": "Alguna celda no tiene cifra; sin conteo"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Estado del sellado y revisión previa (cobertura, datos aceptados hasta, conflictos y límites)",
+        "tags": [
+          "collective"
+        ]
+      },
+      "post": {
+        "operationId": "CollectiveHistoryController_seal",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SealCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "created=false si ya estaba sellada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "campaign",
+                    "state",
+                    "seal",
+                    "can_seal",
+                    "blocked_by",
+                    "review",
+                    "created"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "campaign": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "campaign_ref",
+                        "name",
+                        "status"
+                      ],
+                      "properties": {
+                        "campaign_ref": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "SEALED",
+                        "NOT_SEALED"
+                      ]
+                    },
+                    "seal": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "seal_ref",
+                        "version",
+                        "sealed_at",
+                        "accepted_until",
+                        "sealed_by",
+                        "policy",
+                        "threshold"
+                      ],
+                      "properties": {
+                        "seal_ref": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ],
+                          "description": "Este bloque no crea versiones posteriores"
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
+                        },
+                        "sealed_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Hora del servidor del sellado"
+                        },
+                        "accepted_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
+                        },
+                        "sealed_by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "user_ref",
+                            "name",
+                            "role"
+                          ],
+                          "properties": {
+                            "user_ref": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DIRECTIVA",
+                                "ADMINISTRADOR"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "can_seal": {
+                      "type": "boolean"
+                    },
+                    "blocked_by": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SEALING_DISABLED",
+                          "POLICY_PENDING",
+                          "CAMPAIGN_NOT_CLOSED"
+                        ]
+                      }
+                    },
+                    "review": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": false,
+                      "required": [
+                        "review_ref",
+                        "accepted_until",
+                        "coverage",
+                        "open_disputes",
+                        "pending_changes",
+                        "cells_without_figure"
+                      ],
+                      "properties": {
+                        "review_ref": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "Se envía al confirmar el sellado"
+                        },
+                        "accepted_until": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "nullable": false,
+                          "additionalProperties": false,
+                          "required": [
+                            "linked_members",
+                            "members_with_contribution",
+                            "suppressed_cells"
+                          ],
+                          "properties": {
+                            "linked_members": {
+                              "type": "integer"
+                            },
+                            "members_with_contribution": {
+                              "type": "integer"
+                            },
+                            "suppressed_cells": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "open_disputes": {
+                          "type": "boolean",
+                          "description": "Alguna aportación tiene una disputa abierta; sin conteo"
+                        },
+                        "pending_changes": {
+                          "type": "boolean",
+                          "description": "Alguna cifra se muestra con cambios pendientes"
+                        },
+                        "cells_without_figure": {
+                          "type": "boolean",
+                          "description": "Alguna celda no tiene cifra; sin conteo"
+                        }
+                      }
+                    },
+                    "created": {
+                      "type": "boolean",
+                      "description": "false: la campaña ya estaba sellada (respuesta idempotente)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body no válido"
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          },
+          "409": {
+            "description": "CAMPAIGN_NOT_CLOSED, SEAL_REVIEW_STALE o NO_RECOVERABLE_HISTORY: no se escribe nada"
+          },
+          "422": {
+            "description": "CONFIRMATION_REQUIRED: no se escribe nada"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Regularizar resultados históricos recuperables de una campaña cerrada (idempotente)",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/trends": {
+      "get": {
+        "operationId": "CollectiveHistoryController_get",
+        "parameters": [
+          {
+            "name": "projection_type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CONSUMPTION_TOTAL",
+                "DECLARED_NEED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "disclosure",
+                    "projection_type",
+                    "campaigns",
+                    "series",
+                    "notice"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "disclosure": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mode",
+                        "policy",
+                        "approved",
+                        "threshold"
+                      ],
+                      "description": "En una campaña sellada, la política y el umbral con que se selló (iguales a seal.policy y seal.threshold)",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "APPROVED",
+                            "POLICY_PENDING",
+                            "PROVISIONAL_SYNTHETIC"
+                          ]
+                        },
+                        "policy": {
+                          "type": "string",
+                          "enum": [
+                            "F07-POL-01",
+                            "F07-POL-02"
+                          ],
+                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
+                        },
+                        "approved": {
+                          "type": "boolean"
+                        },
+                        "threshold": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "3 con F07-POL-01; null con F07-POL-02 (sin umbral) y con POLICY_PENDING"
+                        }
+                      }
+                    },
+                    "projection_type": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "CONSUMPTION_TOTAL",
+                        "DECLARED_NEED",
+                        null
+                      ]
+                    },
+                    "campaigns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "campaign_ref",
+                          "name",
+                          "status",
+                          "start_date",
+                          "seal",
+                          "coverage"
+                        ],
+                        "properties": {
+                          "campaign_ref": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "start_date": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "seal": {
+                            "type": "object",
+                            "nullable": true,
+                            "additionalProperties": false,
+                            "required": [
+                              "seal_ref",
+                              "version",
+                              "sealed_at",
+                              "accepted_until",
+                              "sealed_by",
+                              "policy",
+                              "threshold"
+                            ],
+                            "properties": {
+                              "seal_ref": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "version": {
+                                "type": "integer",
+                                "enum": [
+                                  1
+                                ],
+                                "description": "Este bloque no crea versiones posteriores"
+                              },
+                              "policy": {
+                                "type": "string",
+                                "enum": [
+                                  "F07-POL-01",
+                                  "F07-POL-02"
+                                ],
+                                "description": "E4 §3.4: política con la que se selló (lo sellado no cambia al activar otra)"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "E4 §3.4: umbral con el que se selló (3 con F07-POL-01; null con F07-POL-02)"
+                              },
+                              "sealed_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Hora del servidor del sellado"
+                              },
+                              "accepted_until": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Instante de la decisión sellada; cada cifra vale por su data_as_of. No prueba que los teléfonos publicaran todo"
+                              },
+                              "sealed_by": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "user_ref",
+                                  "name",
+                                  "role"
+                                ],
+                                "properties": {
+                                  "user_ref": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "enum": [
+                                      "DIRECTIVA",
+                                      "ADMINISTRADOR"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "coverage": {
+                            "type": "object",
+                            "nullable": true,
+                            "additionalProperties": false,
+                            "required": [
+                              "linked_members",
+                              "members_with_contribution",
+                              "suppressed_cells"
+                            ],
+                            "properties": {
+                              "linked_members": {
+                                "type": "integer"
+                              },
+                              "members_with_contribution": {
+                                "type": "integer"
+                              },
+                              "suppressed_cells": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "series": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "projection_type",
+                          "product_ref",
+                          "product_name",
+                          "base_unit",
+                          "presentation_unit",
+                          "points"
+                        ],
+                        "properties": {
+                          "projection_type": {
+                            "type": "string",
+                            "enum": [
+                              "CONSUMPTION_TOTAL",
+                              "DECLARED_NEED"
+                            ]
+                          },
+                          "product_ref": {
+                            "type": "string"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "presentation_unit": {
+                            "type": "string",
+                            "enum": [
+                              "L",
+                              "KG"
+                            ]
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "campaign_ref",
+                                "status",
+                                "total_base",
+                                "total_presentation",
+                                "contributors",
+                                "data_as_of",
+                                "pending_changes"
+                              ],
+                              "properties": {
+                                "campaign_ref": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DISCLOSED",
+                                    "SUPPRESSED_UNDER_THRESHOLD",
+                                    "SUPPRESSED_REVISION",
+                                    "OVERFLOW",
+                                    "WITHDRAWN_AFTER_SEAL",
+                                    "NO_DATA",
+                                    "NOT_SEALED"
+                                  ],
+                                  "description": "NO_DATA: la versión sellada no tiene esa celda (desconocido, no cero). NOT_SEALED: sin versión sellada. SUPPRESSED_UNDER_THRESHOLD: sólo en campañas selladas con F07-POL-01 (campaigns[].seal.policy)"
+                                },
+                                "total_base": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "total_presentation": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "contributors": {
+                                  "type": "integer",
+                                  "nullable": true
+                                },
+                                "data_as_of": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "format": "date-time"
+                                },
+                                "pending_changes": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tendencias descriptivas entre versiones selladas (sin sumas entre campañas)",
+        "tags": [
+          "collective"
         ]
       }
     },
@@ -44151,24 +44151,6 @@
           }
         }
       },
-      "SealCampaignDto": {
-        "type": "object",
-        "properties": {
-          "confirmed": {
-            "type": "boolean",
-            "description": "Confirmación explícita de quien sella (DIRECTIVA o ADMINISTRADOR)"
-          },
-          "review_ref": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{64}$",
-            "description": "review_ref de la revisión mostrada (GET …/seal)"
-          }
-        },
-        "required": [
-          "confirmed",
-          "review_ref"
-        ]
-      },
       "CreatePlotDto": {
         "type": "object",
         "properties": {
@@ -44778,6 +44760,24 @@
         "required": [
           "clientId",
           "operations"
+        ]
+      },
+      "SealCampaignDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmación explícita de quien sella (DIRECTIVA o ADMINISTRADOR)"
+          },
+          "review_ref": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "review_ref de la revisión mostrada (GET …/seal)"
+          }
+        },
+        "required": [
+          "confirmed",
+          "review_ref"
         ]
       },
       "CreateSeasonDto": {

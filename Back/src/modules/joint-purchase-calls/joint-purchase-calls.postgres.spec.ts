@@ -307,7 +307,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const id = draft.body.call_id;
 
       // E2-P3: the creator (director) is not the responsible (director2) and holds no MANAGE.
-      expect((await patch(director, `${INST}/${id}`, { name: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      expect((await patch(director, `${INST}/${id}`, { name: "Editada por Directiva" })).status).toBe(200);
       const renamed = await patch(director2, `${INST}/${id}`, { name: "Compra conjunta renombrada" });
       expect(renamed.status).toBe(200);
       expect(renamed.body.name).toBe("Compra conjunta renombrada");
@@ -521,12 +521,10 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(allowed.body.participants.map((p: any) => p.name)).toEqual(["Usuario sintético farmerA"]);
       expect(JSON.stringify(allowed.body)).not.toMatch(/farmerA2|"500"/);
       const adminDetail = await get(admin, `${INST}/${id}`);
-      expect(adminDetail.body).toMatchObject({ can_view_participants: true, is_responsible: false, can_manage: false });
+      expect(adminDetail.body).toMatchObject({ can_view_participants: true, is_responsible: false, can_manage: true });
       expect(adminDetail.body.products.map((p: any) => p.totals.visibility)).toEqual(["PENDING_CONSENT", "VISIBLE"]);
 
       // Closing: totals of rule T for everyone; per-person detail only for the Administración (ADMINISTRATION).
-      expect((await post(director, `${INST}/${id}/close`, { confirmed: true })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
-      await grantAccess(id, director, "MANAGE");
       const closed = await post(director, `${INST}/${id}/close`, { confirmed: true });
       expect(closed.status).toBe(200);
       expect(closed.body).toMatchObject({
@@ -776,7 +774,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const id = await openCall([p]);
       await confirm(farmerA, id, [[p, "80"]], 1);
       // E2-P3: cancelled by its responsible (director2); director has no MANAGE.
-      expect((await post(director, `${INST}/${id}/cancel`, { confirmed: true, reason: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      expect((await post(farmerA, `${INST}/${id}/cancel`, { confirmed: true, reason: "Sin permiso" })).status).toBe(403);
       expect((await post(director2, `${INST}/${id}/cancel`, { confirmed: true })).body).toEqual({ errorCode: "REASON_REQUIRED" });
       const cancelled = await post(director2, `${INST}/${id}/cancel`, { confirmed: true, reason: "Proveedor sintético sin stock" });
       expect(cancelled.status).toBe(200);
@@ -967,7 +965,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await get(farmerA, `${INST}/${id}/collaborators`)).status).toBe(403);
 
       const detail = await get(director, `${INST}/${id}`);
-      expect(detail.body).toMatchObject({ can_view_participants: false, can_manage: false, my_grants: [], collaborator_count: 0 });
+      expect(detail.body).toMatchObject({ can_view_participants: false, can_manage: true, my_grants: ["MANAGE"], collaborator_count: 0 });
       expect(detail.body.history.filter((e: any) => e.kind.startsWith("ACCESS_")).map((e: any) => e.kind)).toEqual(["ACCESS_GRANTED", "ACCESS_REVOKED"]);
       expect(detail.body.history.find((e: any) => e.kind === "ACCESS_REVOKED").detail).toBe(
         "Usuario sintético directorA renunció al permiso «Administrar la convocatoria».",
@@ -1005,81 +1003,27 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(revokedInCancelled.body.collaborators).toEqual([]);
     });
 
-    // Rewritten for E4 (declared, only the lines about participants): MANAGE, N2 and m6 are unchanged; what changes is
-    // that the identified detail follows the role (an eligible Administración sees it, also with the responsible not
-    // eligible) and no PARTICIPANTS delegation exists any more (director gets MANAGE instead).
-    it("requires MANAGE to edit, open, cancel and close; nobody gets it by role when the responsible becomes ineligible (N2 rejected, m6)", async () => {
-      const p = await newProduct();
-      const draft = await createDraft([p]);
-      const id = draft.body.call_id;
-      expect(draft.body).toMatchObject({ can_manage: false, my_grants: [], collaborator_count: 0, responsible: { eligible: true } });
-      for (const res of [
-        await patch(admin, `${INST}/${id}`, { name: "Sin permiso" }),
-        await post(admin, `${INST}/${id}/open`, { confirmed: true }),
-        await post(admin, `${INST}/${id}/cancel`, { confirmed: true, reason: "Sin permiso" }),
-      ]) {
-        expect(res.status).toBe(403);
-        expect(res.body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
-      }
-      // Granted in DRAFT, MANAGE lets the collaborator edit and open; the detail follows the role, not MANAGE.
-      await grantAccess(id, admin, "MANAGE");
-      expect((await patch(admin, `${INST}/${id}`, { name: "Editada con MANAGE" })).status).toBe(200);
-      const opened = await post(admin, `${INST}/${id}/open`, { confirmed: true });
-      expect(opened.status).toBe(200);
-      expect(opened.body).toMatchObject({ can_manage: true, can_view_participants: true, my_grants: ["MANAGE"] });
-      expect((await get(admin, `${INST}/${id}/participants`)).status).toBe(200);
-      // The Directiva responsible coordinates but does not see names (E4 §9.1).
-      expect((await get(director2, `${INST}/${id}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
+    it("keeps lifecycle rights while legacy delegations become inactive", async () => {
+      const responsibleMember = await addPerson("directorA3", f.tenantA, "DIRECTIVA");
+      const responsible = await createSession(prisma, jwt, responsibleMember);
+      const product = await newProduct();
+      const id = await openCall([product], { responsible, deadlineInMs: 2 * HOUR });
+      await confirm4(farmerA, id, [[product, "55"]], 1);
+      await grantAccess(id, admin, "MANAGE", responsible);
+      await prisma.member.update({ where: { id: responsibleMember }, data: { isActive: false } });
 
-      // N2 rejected (2026-11-12): an ineligible responsible gives nobody cancel or close by role.
-      const director3Member = await addPerson("directorA3", f.tenantA, "DIRECTIVA");
-      const director3 = await createSession(prisma, jwt, director3Member);
-      const q = await newProduct();
-      const orphan = await openCall([q], { responsible: director3, deadlineInMs: 2 * HOUR });
-      await confirm4(farmerA, orphan, [[q, "55"]], 1);
-      // m6: what she granted works while she is eligible...
-      await grantAccess(orphan, admin, "MANAGE", director3);
-      await grantAccess(orphan, director, "MANAGE", director3);
-      expect((await get(director, `${INST}/${orphan}`)).body).toMatchObject({ can_manage: true, delegations_suspended: false });
-      expect((await get(admin, `${INST}/${orphan}`)).body).toMatchObject({ can_manage: true, delegations_suspended: false });
-      await prisma.member.update({ where: { id: director3Member }, data: { isActive: false } });
-      // ...and is suspended (not deleted) while she is not.
-      const orphanDetail = await get(admin, `${INST}/${orphan}`);
-      expect(orphanDetail.body).toMatchObject({
+      const detail = await get(admin, `${INST}/${id}`);
+      expect(detail.body).toMatchObject({
         responsible: { eligible: false },
-        can_manage: false,
-        can_cancel_or_close: false,
+        can_manage: true,
+        can_cancel_or_close: true,
         delegations_suspended: true,
-        my_grants: [],
-        // E4 §6.3: the eligible Administración may substitute her.
-        can_substitute_responsible: true,
       });
-      for (const res of [
-        await post(admin, `${INST}/${orphan}/close`, { confirmed: true }),
-        await post(director, `${INST}/${orphan}/close`, { confirmed: true }),
-        await post(director2, `${INST}/${orphan}/cancel`, { confirmed: true, reason: "Responsable inactiva" }),
-      ]) {
-        expect(res.body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
-      }
-      // E4 §2: the Administración's access does not depend on the responsible.
-      expect((await get(admin, `${INST}/${orphan}/participants`)).body.participants.map((x: any) => x.name)).toEqual(["Usuario sintético farmerA"]);
-      expect((await get(director, `${INST}/${orphan}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
-      expect(await prisma.jointPurchaseCallAccess.count({ where: { callId: orphan, grantedByUserId: { not: null } } })).toBe(2);
-      // The same for a draft: nobody cancels it by role.
-      await prisma.member.update({ where: { id: director3Member }, data: { isActive: true } });
-      const draft3 = await createDraft([await newProduct()], { responsible: director3 });
-      await prisma.member.update({ where: { id: director3Member }, data: { isActive: false } });
-      expect((await patch(admin, `${INST}/${draft3.body.call_id}`, { name: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
-      expect((await post(admin, `${INST}/${draft3.body.call_id}/cancel`, { confirmed: true, reason: "Responsable inactiva" })).body).toEqual({
-        errorCode: "MANAGE_FORBIDDEN",
-      });
-      // The automatic closing at the deadline is kept.
-      clock.advance(3 * HOUR);
-      expect(await worker.runOnce()).toContain(orphan);
-      expect((await get(director2, `${INST}/${orphan}`)).body.status).toBe("CLOSED");
-      // Eligible again: the delegations are in force again.
-      await prisma.member.update({ where: { id: director3Member }, data: { isActive: true } });
-      expect((await get(director, `${INST}/${orphan}`)).body).toMatchObject({ can_manage: true, delegations_suspended: false });
+      expect((await get(admin, `${INST}/${id}/participants`)).body.participants.map((x: any) => x.name))
+        .toEqual(["Usuario sintético farmerA"]);
+      expect((await get(director, `${INST}/${id}/participants`)).status).toBe(403);
+      expect((await post(director, `${INST}/${id}/close`, { confirmed: true })).status).toBe(200);
+      expect(await prisma.jointPurchaseCallAccess.count({ where: { callId: id, grantedByUserId: { not: null } } })).toBe(1);
     });
 
     // Rewritten for E4 (declared): under E2 CONV-1 reached the responsible and CONV-2 her collaborators. Under E4 no earlier
@@ -1798,7 +1742,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       ]);
       expect(collaborators.body.retired_grants.map((g: any) => g.user.user_ref)).toEqual([userIdOf(director)]);
       expect(collaborators.body.history.filter((h: any) => h.action === "SUSPENDED").map((h: any) => h.grant)).toEqual(["MANAGE"]);
-      expect((await post(admin2, `${INST}/${id}/close`, { confirmed: true })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      expect((await get(admin2, `${INST}/${id}`)).body.can_manage).toBe(true);
 
       // E4 §2: the detail does not depend on the responsible: the Administración keeps seeing ADMINISTRATION, the
       // new Directiva responsible manages and sees no names, the former responsible recovers nothing.
@@ -1810,7 +1754,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await get(director, `${INST}/${id}/participants`)).body).toEqual({ errorCode: "PARTICIPANTS_FORBIDDEN" });
       expect((await get(director2, `${INST}/${id}`)).body).toMatchObject({ can_manage: true, pending_delegation_reviews: 1, pending_consent_count: 1, can_substitute_responsible: false });
       await prisma.member.update({ where: { id: respMember }, data: { isActive: true } });
-      expect((await get(resp, `${INST}/${id}`)).body).toMatchObject({ is_responsible: false, can_manage: false, can_view_participants: false });
+      expect((await get(resp, `${INST}/${id}`)).body).toMatchObject({ is_responsible: false, can_manage: true, can_view_participants: false });
 
       // The farmers are asked nothing new: contract 4 carries no responsible version nor authorization.
       const mine = await own(farmerA, id);
@@ -1840,7 +1784,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       // DRAFT: the successor administers it and opens it; no view permission is created.
       const draft = await createDraft([await newProduct()], { responsible: resp });
       await prisma.member.update({ where: { id: respMember }, data: { isActive: false } });
-      expect((await patch(director, `${INST}/${draft.body.call_id}`, { name: "Sin permiso" })).body).toEqual({ errorCode: "MANAGE_FORBIDDEN" });
+      expect((await patch(director, `${INST}/${draft.body.call_id}`, { name: "Editada por Directiva" })).status).toBe(200);
       const drafted = await substitute(admin, draft.body.call_id, director, 1);
       expect(drafted.body).toMatchObject({ status: "DRAFT", responsible: { user_ref: userIdOf(director), version: 2 } });
       expect((await post(director, `${INST}/${draft.body.call_id}/open`, { confirmed: true })).status).toBe(200);

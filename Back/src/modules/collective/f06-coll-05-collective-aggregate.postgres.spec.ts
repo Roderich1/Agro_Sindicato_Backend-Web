@@ -20,7 +20,6 @@ import {
   TestSession,
   unusablePasswordHash,
 } from "../sync-v1/test-support/sync-v1-test-app";
-import { CollectiveConfig } from "./application/collective-config";
 
 /**
  * F06-COLL-05 (#21): consolidation over real Sync v1 contributions (created
@@ -145,36 +144,23 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     return (res.body.cells as any[]).find((cell) => cell.product_ref === productId && cell.projection_type === type);
   }
 
-  it("without an approved policy there are no figures in any channel", async () => {
-    const config = app.get(CollectiveConfig) as { mode: string };
-    config.mode = "POLICY_PENDING";
-    try {
-      const p = await product("Sin política");
-      for (const farmer of farmers.slice(0, 3)) await push(farmer, { product: p, quantity: "5000" });
-      const json = await summary();
-      expect(json.status).toBe(200);
-      expect(json.body.disclosure).toEqual({ mode: "POLICY_PENDING", policy: "F07-POL-01", approved: false, threshold: null });
-      expect(json.body.coverage).toBeNull();
-      expect(json.body.cells).toEqual([]);
-      // The JSON is the only channel: the CSV route was withdrawn (2026-11-12).
-      const csv: Res = await http()
-        .get(`/api/v1/collective/campaigns/${f.campaigns.openA}/summary.csv`)
-        .set("Authorization", `Bearer ${director.token}`);
-      expect(csv.status).toBe(404);
-      expect(await prisma.collectiveRelease.count()).toBe(0);
-    } finally {
-      config.mode = "PROVISIONAL_SYNTHETIC";
-    }
+  it("publishes an authorized contribution under the approved rule", async () => {
+    const productId = await product("Regla vigente");
+    await push(farmers[0]!, { product: productId, quantity: "5000" });
+    const json = await summary();
+    expect(json.status).toBe(200);
+    expect(json.body.disclosure).toEqual({ mode: "APPROVED", policy: "F07-POL-02", approved: true, threshold: null });
+    expect(cellOf(json, productId)).toMatchObject({ status: "DISCLOSED", total_base: "5000", contributors: 1 });
   });
 
-  it("threshold, explicit zero, absence and coverage", async () => {
-    const need = await product("Umbral");
+  it("authorized totals, explicit zero, absence and coverage", async () => {
+    const need = await product("Aporte autorizado");
     const zero = await product("Cero", "kg");
     const absent = await product("Ausente");
     await push(farmers[0]!, { product: need, quantity: "12500" });
     await push(farmers[1]!, { product: need, quantity: "7500" });
     let res = await summary();
-    expect(cellOf(res, need)).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", total_base: null, contributors: null });
+    expect(cellOf(res, need)).toMatchObject({ status: "DISCLOSED", total_base: "20000", contributors: 2 });
     await push(farmers[2]!, { product: need, quantity: "1" });
     for (const farmer of farmers.slice(0, 3)) {
       await push(farmer, { product: zero, quantity: "0", unit: "G", type: "CONSUMPTION_TOTAL" });
@@ -192,20 +178,20 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     expect(res.body.coverage.members_with_contribution).toBeGreaterThanOrEqual(3);
   });
 
-  it("two answers never differ by a single Member's contribution", async () => {
+  it("an authorized change updates the published total", async () => {
     const p = await product("Diferencia");
     const heads: string[] = [];
     for (const [i, farmer] of farmers.slice(0, 3).entries()) {
       heads.push(await push(farmer, { product: p, quantity: String(1000 * (i + 1)) }));
     }
     expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", pending_changes: false });
-    // One Member replaces its value: the answer stays 6000, flagged pending.
+    // One Member replaces its value and the approved total updates.
     heads[0] = await push(farmers[0]!, { product: p, quantity: "4000", action: "SUPERSEDE", pred: heads[0] });
-    expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", pending_changes: true });
-    // A new Member joins: still not enough to isolate anybody.
+    expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "9000", pending_changes: false });
+    // The newly authorized contribution joins the total.
     await push(farmers[3]!, { product: p, quantity: SENTINEL });
-    expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6000", contributors: 3, pending_changes: true });
-    // A third Member changes: three distinct Members since the last figure.
+    expect(cellOf(await summary(), p)).toMatchObject({ total_base: (9000n + BigInt(SENTINEL)).toString(), contributors: 4, pending_changes: false });
+    // Another authorized update also changes the total.
     await push(farmers[1]!, { product: p, quantity: "2500", action: "SUPERSEDE", pred: heads[1] });
     const released = cellOf(await summary(), p);
     expect(released).toMatchObject({ status: "DISCLOSED", contributors: 4, pending_changes: false });
@@ -226,7 +212,7 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       heads[i] = await push(farmers[i]!, { product: p, quantity: value, action: "SUPERSEDE", pred: heads[i] });
     }
 
-    it("6000 → 6100 with three new sequences but one net change keeps the prior figure", async () => {
+    it("6000 → 6100 publishes a new total for one net change", async () => {
       const p = await product("Neto");
       const heads = await publishAll(p, ["1000", "2000", "3000"]);
       expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "6000" });
@@ -234,7 +220,7 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       await replace(heads, 1, p, "2000"); // same value, new sequence
       await replace(heads, 2, p, "3000"); // same value, new sequence
       const json = await summary();
-      expect(cellOf(json, p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", pending_changes: true });
+      expect(cellOf(json, p)).toMatchObject({ status: "DISCLOSED", total_base: "6100", pending_changes: false });
     });
 
     it("replacements without a new value are not new information", async () => {
@@ -252,26 +238,25 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       const heads = await publishAll(p, ["1000", "2000", "3000"]);
       await summary();
       await replace(heads, 0, p, "1700");
-      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6000", pending_changes: true });
+      expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6700", pending_changes: false });
       await replace(heads, 0, p, "1000");
       expect(cellOf(await summary(), p)).toMatchObject({ total_base: "6000", pending_changes: false });
     });
 
-    it("no figure differs from any earlier figure of the cell by fewer than k Members", async () => {
+    it("retains earlier totals and publishes updates regardless of the size of the net change", async () => {
       const p = await product("Historial");
       const heads = await publishAll(p, ["1000", "2000", "3000", "4000"]);
       expect(cellOf(await summary(), p)).toMatchObject({ total_base: "10000" }); // R1
       for (const [i, value] of ["1100", "2100", "3100", "4100"].entries()) await replace(heads, i, p, value);
       expect(cellOf(await summary(), p)).toMatchObject({ total_base: "10400", pending_changes: false }); // R2
-      // Three Members go back: three changes against R2, but only one against
-      // R1. Publishing 10100 would reveal the first Member's change (R3 − R1).
+      // The current total reflects the three members reverting their values.
       for (const [i, value] of [[1, "2000"], [2, "3000"], [3, "4000"]] as const) await replace(heads, i, p, value);
       const res = cellOf(await summary(), p);
-      expect(res.total_base).not.toBe("10100");
-      expect(res).toMatchObject({ status: "DISCLOSED", total_base: "10400", pending_changes: true });
+      expect(res).toMatchObject({ status: "DISCLOSED", total_base: "10100", pending_changes: false });
+      expect(await prisma.collectiveRelease.count({ where: { canonicalProductId: p } })).toBe(3);
     });
 
-    it("regrouping: a Member that joins through an association alone is not a new figure", async () => {
+    it("regrouping includes an authorized contribution as soon as the association applies", async () => {
       const belator = await product("Belator neto");
       const bellator = await product("Bellator neto");
       await publishAll(belator, ["1000", "2000", "3000"]);
@@ -280,7 +265,7 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       const res: Res = await http().post(ASSOCIATIONS).set("Authorization", `Bearer ${director.token}`)
         .send({ productId: bellator, canonicalProductId: belator, reason: "misma denominación", confirmed: true });
       expect(res.status).toBe(200);
-      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6000", pending_changes: true });
+      expect(cellOf(await summary(), belator)).toMatchObject({ total_base: "6500", pending_changes: false });
       // Undoing the association brings back exactly the released contributions.
       await http().post(`${ASSOCIATIONS}/${bellator}/close`).set("Authorization", `Bearer ${director.token}`)
         .send({ reason: "denominación distinta", confirmed: true });
@@ -295,7 +280,7 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "10000", contributors: 5 });
     // CANCEL: the contribution no longer counts and the old figure is withdrawn.
     await push(farmers[4]!, { product: p, action: "CANCEL", pred: heads[4] });
-    expect(cellOf(await summary(), p)).toMatchObject({ status: "SUPPRESSED_REVISION", total_base: null });
+    expect(cellOf(await summary(), p)).toMatchObject({ status: "DISCLOSED", total_base: "8000", contributors: 4 });
     const withdrawn = await prisma.collectiveRelease.findFirst({
       where: { canonicalProductId: p }, orderBy: { releasedAt: "asc" },
     });
@@ -312,8 +297,8 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     await prisma.member.update({ where: { id: farmers[2]!.memberId }, data: { isActive: false } });
     try {
       const res = await summary();
-      // Only farmers 0 and 1 remain eligible: under the threshold.
-      expect(cellOf(res, p)).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", total_base: null });
+      // Only farmers 0 and 1 remain eligible.
+      expect(cellOf(res, p)).toMatchObject({ status: "DISCLOSED", total_base: "4000", contributors: 2 });
       expect(res.body.coverage.linked_members).toBe(4);
     } finally {
       await prisma.member.update({ where: { id: farmers[2]!.memberId }, data: { isActive: true } });
@@ -331,17 +316,16 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     await prisma.member.update({ where: { id: farmers[2]!.memberId }, data: { role: "DIRECTIVA" } });
     try {
       const res = await summary();
-      // Rule 3: the earlier figure included a contribution that no longer
-      // counts, so it is withdrawn; never a figure with that amount subtracted.
-      expect(cellOf(res, p)).toMatchObject({ status: "SUPPRESSED_REVISION", total_base: null, contributors: null });
+      // Withdraw the previous figure and publish the remaining authorized values.
+      expect(cellOf(res, p)).toMatchObject({ status: "DISCLOSED", total_base: "8000", contributors: 4 });
       expect(res.body.coverage.linked_members).toBe(before.body.coverage.linked_members - 1);
       const releases = await prisma.collectiveRelease.findMany({
         where: { canonicalProductId: p }, include: { items: true },
       });
-      expect(releases).toHaveLength(1);
-      expect(releases[0]!.withdrawnAt).not.toBeNull();
-      // The history the differencing rule needs is kept (M3).
-      expect(releases[0]!.items).toHaveLength(5);
+      expect(releases).toHaveLength(2);
+      const earlier = releases.find((row) => row.totalBase === 10000n);
+      expect(earlier).toMatchObject({ withdrawnAt: expect.any(Date) });
+      expect(earlier?.items).toHaveLength(5);
     } finally {
       await prisma.member.update({ where: { id: farmers[2]!.memberId }, data: { role: "AGRICULTOR" } });
       await prisma.user.update({ where: { id: member.userId }, data: { role: "AGRICULTOR" } });
@@ -371,8 +355,8 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
       .send({ productId: bellator, canonicalProductId: belator, reason: "misma fórmula", confirmed: true });
     expect(res.status).toBe(200);
     expect(res.body.changed).toBe(true);
-    // f0 has two aliases: it is one contributor, so two Members < 3.
-    expect(cellOf(await summary(), belator)).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD" });
+    // f0 has two aliases and counts as one of the two contributors.
+    expect(cellOf(await summary(), belator)).toMatchObject({ status: "DISCLOSED", total_base: "6000", contributors: 2 });
     expect(cellOf(await summary(), bellator)).toBeUndefined();
     await push(f2!, { product: bellator, quantity: "4000" });
     expect(cellOf(await summary(), belator)).toMatchObject({
@@ -391,8 +375,8 @@ describePostgres("F06-COLL-05 collective aggregate on PostgreSQL", () => {
     expect(rows[0]!.closeReason).toBe("denominación distinta");
     const after = await summary();
     // Bellator's contributions left the group: the Belator figure is withdrawn.
-    expect(cellOf(after, belator)).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD" });
-    expect(cellOf(after, bellator)).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD" });
+    expect(cellOf(after, belator)).toMatchObject({ status: "DISCLOSED", total_base: "4000", contributors: 2 });
+    expect(cellOf(after, bellator)).toMatchObject({ status: "DISCLOSED", total_base: "6000", contributors: 2 });
     const list: Res = await http().get(ASSOCIATIONS).set("Authorization", `Bearer ${director.token}`);
     expect(list.body.history.some((row: any) => row.product_ref === bellator)).toBe(true);
     expect(JSON.stringify(list.body)).not.toMatch(/quantity|total/);
@@ -517,7 +501,7 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
   beforeAll(async () => {
     process.env["COLLECTIVE_DISCLOSURE_MODE"] = "provisional-synthetic";
     databaseUrl = await databaseBefore(postgresUrl!, QUANTITY_MIGRATION);
-    ({ app, prisma, jwt } = await createSyncV1App(databaseUrl));
+    ({ app, prisma, jwt } = await createSyncV1App(databaseUrl, { skipCollectivePolicyAudit: true }));
     f = await seedFixture(prisma);
     farmers.push(
       await createSession(prisma, jwt, f.members.farmerA),
@@ -593,7 +577,7 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     }
   }
 
-  it("6000 disclosed before the migration: one net change does not publish 6100", async () => {
+  it("keeps an older release intact and records traceable current totals after migration", async () => {
     const created = await prisma.product.create({
       data: { tenantId: f.tenantA, name: `Migración ${randomUUID().slice(0, 8)}`, unit: "L" },
     });
@@ -618,19 +602,16 @@ describePostgres("F07-POL-01: disclosures written before the quantity migration"
     // Valid SUPERSEDE: 1100 / 2000 / 3000, three sequences, one net change.
     // The first consultation after the migration sees these values.
     for (const [i, value] of ["1100", "2000", "3000"].entries()) heads[i] = await push(farmers[i]!, p, value, heads[i]!);
-    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", contributors: 3, pending_changes: true });
-    expect(await prisma.collectiveRelease.count({ where: { canonicalProductId: p } })).toBe(1);
-
-    // Two Members join: two provable changes, still fewer than k.
+    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "6100", contributors: 3, pending_changes: false });
     for (const i of [3, 4]) await push(farmers[i]!, p, "500");
-    expect(await cell(p)).toMatchObject({ total_base: "6000", pending_changes: true });
-    // A third joins: k Members provably changed against the old disclosure,
-    // but its amounts are unknown, so combinations with it cannot be checked
-    // exactly. F10-SEC-02 (#45, A's final review): fail-closed, the cell keeps
-    // 6000 with pending changes and no new figure is written.
+    expect(await cell(p)).toMatchObject({ total_base: "7100", contributors: 5, pending_changes: false });
     await push(farmers[5]!, p, "500");
-    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "6000", contributors: 3, pending_changes: true });
-    expect(await prisma.collectiveRelease.count({ where: { canonicalProductId: p } })).toBe(1);
+    expect(await cell(p)).toMatchObject({ status: "DISCLOSED", total_base: "7600", contributors: 6, pending_changes: false });
+    const releases = await prisma.collectiveRelease.findMany({ where: { canonicalProductId: p }, include: { items: true } });
+    expect(releases).toHaveLength(4);
+    const legacy = releases.find((release) => release.policy === null);
+    expect(legacy).toMatchObject({ totalBase: 6000n });
+    expect(legacy?.items.every((item) => item.quantityBase === null)).toBe(true);
     // After the migration a new figure records the amount of each contribution.
     const fresh = (await prisma.product.create({
       data: { tenantId: f.tenantA, name: `Migración ${randomUUID().slice(0, 8)}`, unit: "L" },

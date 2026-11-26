@@ -53,7 +53,6 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
   let director: TestSession;
 
   beforeAll(async () => {
-    process.env["COLLECTIVE_DISCLOSURE_MODE"] = "provisional-synthetic";
     const databaseUrl = await createIsolatedDatabase(postgresUrl!, "f07_acc");
     ({ app, prisma, jwt } = await createSyncV1App(databaseUrl));
     f = await seedFixture(prisma);
@@ -63,7 +62,6 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
 
   afterAll(async () => {
     jest.restoreAllMocks();
-    delete process.env["COLLECTIVE_DISCLOSURE_MODE"];
     await app?.close();
   });
 
@@ -205,18 +203,18 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
     const disclosed = await product("L");
     const small = await product("L");
     for (const quantity of ["10", "20", "30"]) await push(await farmer(), { campaign: k, product: disclosed, type: "DECLARED_NEED", unit: "ML", quantity });
-    // Two other farmers in a cell under the threshold: suppressed, and not counted.
+    // Two other farmers are included in the second published total.
     for (const quantity of ["40", "50"]) await push(await farmer(), { campaign: k, product: small, type: "DECLARED_NEED", unit: "ML", quantity });
     const res = await summary(k);
-    expect(cell(res, "DECLARED_NEED", small)).toMatchObject({ status: "SUPPRESSED_UNDER_THRESHOLD", total_base: null, contributors: null });
-    expect(res.body.coverage).toMatchObject({ members_with_contribution: 3, suppressed_cells: true });
+    expect(cell(res, "DECLARED_NEED", small)).toMatchObject({ status: "DISCLOSED", total_base: "90", contributors: 2 });
+    expect(res.body.coverage).toMatchObject({ members_with_contribution: 5, suppressed_cells: false });
     const draft = await http().post(`/api/v1/collective/campaigns/${k}/proposals`).set(auth(director));
     expect(draft.status).toBe(201);
-    expect(draft.body.coverage).toMatchObject({ members_with_contribution: 3, basis: "PUBLISHED_FIGURES" });
-    expect(draft.text).not.toMatch(/"90"|"2"/);
+    expect(draft.body.coverage).toMatchObject({ members_with_contribution: 5, basis: "PUBLISHED_FIGURES" });
+    expect(draft.body.lines).toContainEqual(expect.objectContaining({ product_ref: small, quantity_base: "90", contributors: 2 }));
   });
 
-  it("S1 (#126): a split decided in one read never publishes both P1 = 65 and P2 = 600 after 660", async () => {
+  it("recalculates both products after a canonical association is removed", async () => {
     const k = await campaign();
     const p1 = await product("L");
     const p2 = await product("L");
@@ -232,9 +230,7 @@ describePostgres("F07 acceptance: summary, coverage and proposal through the API
     expect((await http().post(`${ASSOCIATIONS}/${p2}/close`).set(auth(director)).send({ reason: "se separan", confirmed: true })).status).toBe(200);
     const split = await summary(k);
     const shown = [p1, p2].map((ref) => cell(split, "DECLARED_NEED", ref)).filter((c) => c?.status === "DISCLOSED").map((c) => c.total_base);
-    // 65 + 600 − 660 = 5 would isolate g: at most one of the two cells is published.
-    expect(shown.length).toBeLessThanOrEqual(1);
-    expect(shown.length).toBe(1);
+    expect(shown).toEqual(["65", "600"]);
   });
 
   it("the proposal is a DRAFT with no individual effect; its JSON, its detail and the summary agree; no savings are claimed", async () => {

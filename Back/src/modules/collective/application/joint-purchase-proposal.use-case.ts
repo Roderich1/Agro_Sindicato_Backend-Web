@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { releaseIsVisible, releaseVisibility } from "./summary/collective-release-visibility";
 import type { CampaignStatus, Prisma, SyncV1BaseUnit } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { cellId } from "../domain/consolidation";
@@ -247,7 +248,7 @@ export class JointPurchaseProposalUseCase {
           include: {
             canonicalProduct: { select: { name: true } },
             release: {
-              select: { totalBase: true, contributorCount: true, dataAsOf: true, releasedAt: true },
+              select: { totalBase: true, contributorCount: true, dataAsOf: true, releasedAt: true, ...releaseVisibility },
             },
           },
         },
@@ -292,7 +293,10 @@ export class JointPurchaseProposalUseCase {
         if (!current) return { ...base, status: "POLICY_PENDING" as const, ...hidden };
         if (line.status !== "DISCLOSED") return { ...base, status: line.status, ...hidden };
         const served = servedState(line, current);
-        if (served !== "SERVED") return { ...base, status: served, ...hidden };
+        if (served !== "SERVED") {
+          const status = releaseIsVisible(line.release) ? served : "WITHDRAWN";
+          return { ...base, status, ...hidden };
+        }
         const release = line.release!;
         return {
           ...base,

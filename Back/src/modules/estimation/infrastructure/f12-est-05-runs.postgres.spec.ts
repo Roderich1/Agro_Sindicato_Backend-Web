@@ -157,9 +157,7 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     for (const [product, quantities] of rows) for (const [i, quantity] of quantities.entries()) await push(`F${i + 1}`, campaigns[key], product, quantity);
     expect((await http().post(`/api/v1/campaigns/${campaigns[key]}/close`).set(auth(director)).send({})).status).toBe(200);
     const state = await http().get(`/api/v1/collective/campaigns/${campaigns[key]}/seal`).set(auth(director));
-    expect(state.body.can_seal).toBe(true);
-    const sealed = await http().post(`/api/v1/collective/campaigns/${campaigns[key]}/seal`).set(auth(director)).send({ confirmed: true, review_ref: state.body.review.review_ref });
-    expect(sealed.status).toBe(200);
+    expect(state.body).toMatchObject({ state: "SEALED", can_seal: false, seal: { version: 1 } });
   }
 
   async function plannedCampaign(key: string, year: number) {
@@ -284,7 +282,7 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     try {
       await expectCode({ target_campaign_ref: target }, 409, "POLICY_PENDING");
     } finally {
-      (collective as { mode: string }).mode = "PROVISIONAL_SYNTHETIC";
+      (collective as { mode: string }).mode = "APPROVED";
     }
     expect(await prisma.estimationJob.count()).toBe(0);
     expect(await prisma.estimationRun.count()).toBe(0);
@@ -314,7 +312,7 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
       outcome: "CALCULATED", failure_code: null, previous_run_ref: null, method: "SES_NAIVE", method_version: "F12-EST-04/1",
       season: { season_ref: seasons["INVIERNO"], key: "INVIERNO" }, target_classification_ref: classifications["T1"],
       counts: { estimated: 1, insufficient_data: 1, incompatible_data: 0, calculation_failed: 0 },
-      disclosure: { mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", threshold: 3 },
+      disclosure: { mode: "APPROVED", policy: "F07-POL-02", threshold: null },
       parameters: { alpha_step: "0.05", tie_tolerance: "1e-9", tie_break: "LARGEST_ALPHA", rounding: "ROUND_HALF_UP", result_scale: 6, horizon: 1 },
     });
     const h = herbicide(detail.body);
@@ -727,7 +725,7 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
       const pending = await http().get(path).set(auth(director));
       expect([pending.status, pending.body.message]).toEqual([409, "POLICY_PENDING"]);
     } finally {
-      (collective as { mode: string }).mode = "PROVISIONAL_SYNTHETIC";
+      (collective as { mode: string }).mode = "APPROVED";
     }
     demo["download"] = { institutional: copy.body, farmer: asFarmer.body };
   });
@@ -748,7 +746,7 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
       }
       expect((await http().get(`/api/v1/estimation/jobs/${pending}`).set(auth(director))).status).toBe(200);
     } finally {
-      (collective as { mode: string }).mode = "PROVISIONAL_SYNTHETIC";
+      (collective as { mode: string }).mode = "APPROVED";
     }
 
     const closing = await queue("U5", [products["Herbicida"]!]);
@@ -846,7 +844,7 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
       expect(spy).toHaveBeenCalledTimes(1);
     } finally {
       spy.mockRestore();
-      (collective as { mode: string }).mode = "PROVISIONAL_SYNTHETIC";
+      (collective as { mode: string }).mode = "APPROVED";
     }
     const stored = await job(jobId);
     expect(stored).toMatchObject({ status: "NOT_EXECUTED", stopCode: "POLICY_PENDING", attempts: 2, run: null });
@@ -926,30 +924,20 @@ describePostgres("F12-EST-05 jobs, runs and results with derived validity", () =
     demo["concurrency"] = { workers: 3, jobs: jobs.length, attempts: outcomes.map((o) => o.attempt), overlapped };
   });
 
-  it("E4 §4.4 / §8 test 11: with F07-POL-02 in force a new run records its policy and a NULL threshold; the earlier runs keep F07-POL-01 and 3", async () => {
-    const config = app.get(CollectiveConfig) as unknown as { policy: string };
-    const earlier = await prisma.estimationRun.findMany({ select: { id: true, policy: true, threshold: true } });
+  it("records the approved rule for new runs and preserves earlier provenance", async () => {
+    const provenance = { id: true, disclosureMode: true, policy: true, threshold: true } as const;
+    const earlier = await prisma.estimationRun.findMany({ select: provenance });
     expect(earlier.length).toBeGreaterThan(0);
-    expect(earlier.every((run) => run.policy === "F07-POL-01" && run.threshold === 3)).toBe(true);
-    config.policy = "F07-POL-02";
-    try {
-      const job = await queue("T1");
-      expect(await worker.processNext()).toMatchObject({ jobId: job, status: "COMPLETED" });
-      const run = await runOf(job);
-      expect([run.policy, run.threshold]).toEqual(["F07-POL-02", null]);
-      expect(await storedHash(run.id)).toBe(run.contentHash);
-      const detail = await http().get(`/api/v1/estimation/runs/${run.id}`).set(auth(director));
-      shaped("Run", detail.body);
-      expect(detail.body.disclosure).toEqual({ mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-02", threshold: null });
-      // The earlier runs are untouched and still say how they were made.
-      const old = await http().get(`/api/v1/estimation/runs/${runs["T1a"]}`).set(auth(director));
-      expect(old.body.disclosure).toEqual({ mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-01", threshold: 3 });
-      expect(await prisma.estimationRun.findMany({ where: { id: { in: earlier.map((r) => r.id) } }, select: { id: true, policy: true, threshold: true } })).toEqual(
-        expect.arrayContaining(earlier),
-      );
-    } finally {
-      config.policy = "F07-POL-01";
-    }
+    const job = await queue("T1");
+    expect(await worker.processNext()).toMatchObject({ jobId: job, status: "COMPLETED" });
+    const run = await runOf(job);
+    expect([run.disclosureMode, run.policy, run.threshold]).toEqual(["APPROVED", "F07-POL-02", null]);
+    expect(await storedHash(run.id)).toBe(run.contentHash);
+    const detail = await http().get(`/api/v1/estimation/runs/${run.id}`).set(auth(director));
+    shaped("Run", detail.body);
+    expect(detail.body.disclosure).toEqual({ mode: "APPROVED", policy: "F07-POL-02", threshold: null });
+    expect(await prisma.estimationRun.findMany({ where: { id: { in: earlier.map((r) => r.id) } }, select: provenance }))
+      .toEqual(expect.arrayContaining(earlier));
   });
 
   it("never updates nor deletes runs and results", async () => {

@@ -1,4 +1,5 @@
-import { JointPurchaseCallStatus, Prisma, SyncV1BaseUnit } from "@prisma/client";
+import { JointPurchaseCallStatus, SyncV1BaseUnit } from "@prisma/client";
+import { releaseIsVisible, releaseVisibility, ReleaseVisibility } from "@/modules/collective/application/summary/collective-release-visibility";
 import { CollectiveConfig } from "@/modules/collective/application/collective-config";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { InstitutionalActor } from "../../domain/call-error";
@@ -24,28 +25,6 @@ import {
   sameProducts,
   sortHistory,
 } from "./institutional-calls.types";
-
-const releaseVisibility = {
-  withdrawnAt: true,
-  items: {
-    where: {
-      contribution: {
-        OR: [
-          { status: { not: "ACTIVE" } },
-          { member: { OR: [{ isActive: false }, { role: { not: "AGRICULTOR" } }, { user: { isActive: false } }] } },
-        ],
-      },
-    },
-    select: { contributionId: true },
-    take: 1,
-  },
-} satisfies Prisma.CollectiveReleaseSelect;
-
-type ReleaseVisibility = { withdrawnAt: Date | null; items: readonly unknown[] };
-
-function releaseIsVisible(release: ReleaseVisibility | null): boolean {
-  return release !== null && release.withdrawnAt === null && release.items.length === 0;
-}
 
 export async function renderDetailView(
   db: Tx | PrismaService,

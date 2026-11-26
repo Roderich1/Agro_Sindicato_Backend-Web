@@ -856,12 +856,7 @@ describePostgres("E1 product identification on PostgreSQL", () => {
         await served(sealedCampaign);
         expect((await http().post(`/api/v1/campaigns/${sealedCampaign}/close`).set("Authorization", auth(director)).send({})).status).toBe(200);
         const state: Res = await http().get(`/api/v1/collective/campaigns/${sealedCampaign}/seal`).set("Authorization", auth(director));
-        expect(state.body.can_seal).toBe(true);
-        const sealed: Res = await http()
-          .post(`/api/v1/collective/campaigns/${sealedCampaign}/seal`)
-          .set("Authorization", auth(director))
-          .send({ confirmed: true, review_ref: state.body.review.review_ref });
-        expect([sealed.status, sealed.body.state, sealed.body.created]).toEqual([200, "SEALED", true]);
+        expect(state.body).toMatchObject({ state: "SEALED", can_seal: false, seal: { version: 1 } });
 
         const servedBefore = json({ sealed: await served(sealedCampaign), open: await served(openCampaign) });
         expect(servedBefore).toContain('"total_base":"6000"');

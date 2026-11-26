@@ -929,7 +929,7 @@
           "DIRECTIVA",
           "ADMINISTRADOR"
         ],
-        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (F07-POL-01, #107, dentro de las decisiones institucionales de GOV-02, #185) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
+        "x-policy-requirement": "El perfil FARMER entrega resultados agregados de estimación de su sindicato según la política institucional aprobada. Las fuentes históricas se verifican con la autorización vigente.",
         "parameters": [
           {
             "name": "target_campaign_ref",
@@ -1037,7 +1037,7 @@
           "DIRECTIVA",
           "ADMINISTRADOR"
         ],
-        "x-policy-requirement": "El perfil FARMER entrega la estimación al Agricultor. Con datos reales, sólo cuando la política institucional (F07-POL-01, #107, dentro de las decisiones institucionales de GOV-02, #185) contemple esta proyección. Hoy sólo hay datos sintéticos (PROVISIONAL_SYNTHETIC) y la política no está aprobada.",
+        "x-policy-requirement": "El perfil FARMER entrega resultados agregados de estimación de su sindicato según la política institucional aprobada. Las fuentes históricas se verifican con la autorización vigente.",
         "parameters": [
           {
             "name": "target_campaign_ref",
@@ -3075,7 +3075,8 @@
             "type": "string",
             "enum": [
               "POLICY_PENDING",
-              "PROVISIONAL_SYNTHETIC"
+              "PROVISIONAL_SYNTHETIC",
+              "APPROVED"
             ],
             "nullable": true
           }
