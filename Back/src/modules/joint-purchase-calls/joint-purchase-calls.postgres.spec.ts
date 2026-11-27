@@ -1,7 +1,7 @@
 import { INestApplication, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { afterAll, afterEach, beforeAll } from "@jest/globals";
-import { UserRole } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { randomBytes, randomUUID } from "node:crypto";
 import type { Server } from "node:net";
 // @ts-expect-error supertest has no declaration in the baseline test setup.
@@ -16,7 +16,9 @@ import {
   unusablePasswordHash,
 } from "@/modules/sync-v1/test-support/sync-v1-test-app";
 import { JointPurchaseAutoCloseWorker } from "./application/auto-close.worker";
+import { toParticipationView } from "./application/call-views";
 import { CONSENT_V4_HELP, CONSENT_V4_TEXT } from "./domain/consent";
+import { normalizeConfirm } from "./domain/participation-input";
 import { AdjustableClock, createE2App } from "./test-support/e2-test-app";
 
 /**
@@ -185,24 +187,62 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     return res;
   }
 
-  function confirm(session: TestSession, callId: string, lines: [string, string][], sequence: number, operationId = randomUUID(), consent: object | null = CONSENT) {
-    return put(session, `${ME}/${callId}/participation`, {
-      operation_id: operationId,
-      sequence,
-      ...(consent ? { consent } : {}),
-      lines: lines.map(([product_ref, quantity_base]) => ({ product_ref, quantity_base })),
-    });
-  }
+  const confirm = (session: TestSession, callId: string, lines: [string, string][], sequence: number, operationId = randomUUID(), consent: object | null = conv4()) =>
+    confirmAs("4", session, callId, lines, sequence, consent, operationId);
 
   const withdraw = (session: TestSession, callId: string, sequence: number, operationId = randomUUID()) =>
-    post(session, `${ME}/${callId}/participation/withdraw`, { operation_id: operationId, sequence });
+    withdrawAs("4", session, callId, sequence, operationId);
 
   // E4: the contract 2 helpers of P-C (`put2`, `decide`) were replaced by `confirmAs`/`decideAs` below.
 
   // ------------------------------------------------------------------ E4 helpers
 
   /** E4 §4.1: the consent of contract 4. */
-  const CONV4 = { version: "CONV-4", accepted_at: "2026-11-13T12:00:00.000Z" };
+  const conv4 = () => ({ version: "CONV-4", accepted_at: clock.now().toISOString() });
+  const orderConsent = () => ({ version: "CONV-5", accepted_at: clock.now().toISOString() });
+
+  /** Load a participation already accepted before the order rule, with its original audit record and ACK. */
+  async function historicalParticipation(
+    session: TestSession, callId: string, lines: [string, string][], consent = CONSENT, operationId = randomUUID(),
+  ) {
+    const scope = consent.version === "CONV-2" ? "COLLABORATORS" : "RESPONSIBLE_ONLY";
+    const acceptedAt = clock.now();
+    const consentAcceptedAt = new Date(consent.accepted_at);
+    const call = await prisma.jointPurchaseCall.findUniqueOrThrow({ where: { id: callId }, include: { products: true } });
+    const input = normalizeConfirm({
+      operation_id: operationId, sequence: 1, consent,
+      lines: lines.map(([product_ref, quantity_base]) => ({ product_ref, quantity_base })),
+    });
+    await prisma.$transaction(async (tx) => {
+      const row = await tx.jointPurchaseParticipation.create({
+        data: {
+          callId, tenantId: session.tenantId, memberId: session.memberId, status: "ACTIVE",
+          acceptedAt, lastOperationId: operationId, lastSequence: input.sequence,
+          consentVersion: consent.version, consentAcceptedAt, consentReceivedAt: acceptedAt,
+          consentScope: scope, consentScopeVersion: consent.version,
+          consentScopeDecidedAt: consentAcceptedAt, consentScopeReceivedAt: acceptedAt,
+          consentResponsibleVersion: call.responsibleVersion,
+          lines: { create: input.lines.map(({ productRef, quantityBase }) => ({
+            productId: productRef, quantityBase, baseUnit: call.products.find((product) => product.productId === productRef)!.baseUnit,
+          })) },
+          decisions: { create: {
+            callId, memberId: session.memberId, scope, consentVersion: consent.version,
+            decidedAt: consentAcceptedAt, receivedAt: acceptedAt, sequence: 0, source: "INITIAL",
+            responsibleVersion: call.responsibleVersion,
+          } },
+        },
+        include: { lines: true },
+      });
+      await tx.jointPurchaseParticipationOperation.create({
+        data: {
+          callId, memberId: session.memberId, operationId, sequence: input.sequence, kind: input.kind,
+          outcome: "ACCEPTED", fingerprint: input.fingerprint, receivedAt: acceptedAt,
+          response: { status: 200, body: { outcome: "ACCEPTED", participation: toParticipationView(row, call.responsibleVersion) } } as unknown as Prisma.InputJsonValue,
+        },
+      });
+    });
+    return operationId;
+  }
 
   /** A farmer write declaring a contract (`null`: no header, contract 1). */
   function confirmAs(
@@ -211,7 +251,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     callId: string,
     lines: [string, string][],
     sequence: number,
-    consent: object | null = CONV4,
+    consent: object | null = conv4(),
     operationId = randomUUID(),
   ): Promise<Res> {
     let req = http().put(`${ME}/${callId}/participation`).set("Authorization", auth(session));
@@ -225,7 +265,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   }
 
   /** E4: a first confirmation (or a modification) from the app of contract 4. */
-  const confirm4 = (session: TestSession, callId: string, lines: [string, string][], sequence: number, operationId = randomUUID(), consent: object | null = CONV4) =>
+  const confirm4 = (session: TestSession, callId: string, lines: [string, string][], sequence: number, operationId = randomUUID(), consent: object | null = conv4()) =>
     confirmAs("4", session, callId, lines, sequence, consent, operationId);
 
   function decideAs(
@@ -490,7 +530,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p2 = await newProduct("kg");
       const id = await openCall([p1, p2]);
       expect((await confirm4(farmerA, id, [[p1, "1500"], [p2, "300"]], 1)).status).toBe(200);
-      expect((await confirm(farmerA2, id, [[p1, "500"]], 1)).status).toBe(200);
+      await historicalParticipation(farmerA2, id, [[p1, "500"]]);
 
       for (const directiva of [director, director2]) {
         const denied = await get(directiva, `${INST}/${id}/participants`);
@@ -557,23 +597,75 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   });
 
   describe("farmer participation", () => {
+    it("renews a historical order atomically and never restores access by replaying a revoked grant", async () => {
+      const product = await newProduct();
+      const callId = await openCall([product]);
+      const foreignAdmin = await createSession(prisma, jwt, await addPerson("adminForOrderB", f.tenantB, "ADMINISTRADOR"));
+      await historicalParticipation(farmerA, callId, [[product, "17"]]);
+      const listPath = `${INST}/${callId}/participants`;
+      expect((await get(admin, listPath)).body).toMatchObject({ participants: [], pending_consent_count: 1 });
+      expect((await confirm4(farmerA, callId, [[product, "51"]], 2, randomUUID(), null)).body).toEqual({ errorCode: "ORDER_CONSENT_REQUIRED" });
+      const preRevision = await decisionsOf(callId, farmerA.memberId);
+      expect(preRevision).toEqual([["INITIAL", "RESPONSIBLE_ONLY", "CONV-1", 0, null]]);
+      clock.advance(1_000);
+      const consent = orderConsent();
+      const operationId = randomUUID();
+      const change = () => confirm4(farmerA, callId, [[product, "52"]], 2, operationId, consent);
+      expect((await change()).body.participation).toMatchObject({
+        consent: { version: "CONV-1" }, consent_scope: { scope: "ADMINISTRATION", version: "CONV-5", sequence: 1 },
+      });
+      expect((await get(admin, listPath)).body).toMatchObject({
+        pending_consent_count: 0, participants: [{ name: "Usuario sintético farmerA", lines: [{ product_ref: product, quantity_base: "52" }] }],
+      });
+      expect((await get(director, listPath)).status).toBe(403);
+      expect((await get(foreignAdmin, listPath)).status).toBe(404);
+      expect((await confirm4(farmerA, callId, [[product, "53"]], 3, randomUUID(), null)).status).toBe(200);
+      clock.advance(1_000);
+      expect((await decide4(farmerA, callId, "TOTALS_ONLY", 2)).status).toBe(200);
+      expect((await change()).status).toBe(200);
+      expect((await confirm4(farmerA, callId, [[product, "54"]], 4, randomUUID(), consent)).body).toEqual({ errorCode: "ORDER_CONSENT_REQUIRED" });
+      expect((await get(admin, listPath)).body).toMatchObject({ participants: [], pending_consent_count: 1 });
+      expect((await get(director, `${INST}/${callId}`)).body.products[0].totals).toMatchObject({ total_quantity_base: "53" });
+      expect(await decisionsOf(callId, farmerA.memberId)).toEqual([
+        ...preRevision, ["DECISION", "ADMINISTRATION", "CONV-5", 1, operationId],
+        expect.arrayContaining(["DECISION", "TOTALS_ONLY", "CONV-4", 2]),
+      ]);
+      expect((await post(director2, `${INST}/${callId}/close`, { confirmed: true })).status).toBe(200);
+      expect((await confirm4(farmerA, callId, [[product, "55"]], 5, randomUUID(), orderConsent())).body).toMatchObject({ errorCode: "CALL_NOT_OPEN", reason: "CLOSED" });
+      const closingPath = `${INST}/${callId}/closing`;
+      expect((await get(admin, closingPath)).body).toMatchObject({ participants: [], pending_consent_count: 1 });
+      expect((await decide4(farmerA, callId, "ADMINISTRATION", 3)).status).toBe(200);
+      expect((await get(admin, closingPath)).body.participants[0].lines[0].quantity_base).toBe("53");
+      expect((await decide4(farmerA, callId, "TOTALS_ONLY", 4)).status).toBe(200);
+      expect((await get(admin, closingPath)).body).toMatchObject({
+        participants: [], pending_consent_count: 1, lines: [{ total_quantity_base: "53" }],
+      });
+    });
+
     it("requires the current consent and records it", async () => {
       const p = await newProduct();
       const id = await openCall([p]);
       const without = await confirm(farmerA, id, [[p, "100"]], 1, randomUUID(), null);
       expect(without.status).toBe(409);
-      expect(without.body).toEqual({ errorCode: "CONSENT_REQUIRED" });
+      expect(without.body).toEqual({ errorCode: "ORDER_CONSENT_REQUIRED" });
       const outdated = await confirm(farmerA, id, [[p, "100"]], 2, randomUUID(), { version: "CONV-0", accepted_at: CONSENT.accepted_at });
-      expect(outdated.body).toEqual({ errorCode: "CONSENT_REQUIRED" });
+      expect(outdated.body).toEqual({ errorCode: "ORDER_CONSENT_REQUIRED" });
+      for (const version of ["CONV-4", "CONV-5"]) {
+        const accepted_at = new Date(clock.now().getTime() - 6 * 60_000).toISOString();
+        const beforeOpening = await confirm(farmerA, id, [[p, "100"]], 2, randomUUID(), { version, accepted_at });
+        expect(beforeOpening.status).toBe(409);
+        expect(beforeOpening.body).toEqual({ errorCode: "ORDER_CONSENT_REQUIRED" });
+      }
       expect(await prisma.jointPurchaseParticipation.count({ where: { callId: id } })).toBe(0);
-      const ok = await confirm(farmerA, id, [[p, "100"]], 3);
+      const consent = orderConsent();
+      const ok = await confirm(farmerA, id, [[p, "100"]], 3, randomUUID(), consent);
       expect(ok.status).toBe(200);
       expect(ok.headers["cache-control"]).toBe("no-store");
-      expect(ok.body.participation.consent.version).toBe("CONV-1");
-      expect(ok.body.participation.consent.accepted_at).toBe(CONSENT.accepted_at);
+      expect(ok.body.participation.consent.version).toBe("CONV-5");
+      expect(ok.body.participation.consent.accepted_at).toBe(consent.accepted_at);
       const row = await prisma.jointPurchaseParticipation.findFirstOrThrow({ where: { callId: id } });
-      expect(row.consentVersion).toBe("CONV-1");
-      expect(row.consentAcceptedAt.toISOString()).toBe(CONSENT.accepted_at);
+      expect(row.consentVersion).toBe("CONV-5");
+      expect(row.consentAcceptedAt.toISOString()).toBe(consent.accepted_at);
       expect(Math.abs(row.consentReceivedAt.getTime() - Date.now())).toBeLessThan(60_000);
       expect((await confirm(farmerA, id, [[await newProduct(), "1"]], 4)).body).toEqual({ errorCode: "PRODUCT_NOT_IN_CALL" });
       expect((await confirm(farmerA, id, [[p, "0"]], 5)).body).toEqual({ errorCode: "QUANTITY_INVALID" });
@@ -594,20 +686,21 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p = await newProduct();
       const id = await openCall([p]);
       const op = randomUUID();
-      const first = await confirm(farmerA, id, [[p, "250"]], 1, op);
-      const again = await confirm(farmerA, id, [[p, "250"]], 1, op);
+      const consent = conv4();
+      const first = await confirm(farmerA, id, [[p, "250"]], 1, op, consent);
+      const again = await confirm(farmerA, id, [[p, "250"]], 1, op, consent);
       expect(first.status).toBe(200);
       expect(again.status).toBe(200);
       expect(again.body).toEqual(first.body);
       // Double tap: both answers equal, one effect.
       const tap = randomUUID();
-      const taps = await Promise.all([confirm(farmerA, id, [[p, "260"]], 2, tap), confirm(farmerA, id, [[p, "260"]], 2, tap)]);
+      const taps = await Promise.all([confirm(farmerA, id, [[p, "260"]], 2, tap, null), confirm(farmerA, id, [[p, "260"]], 2, tap, null)]);
       expect(taps.map((r) => r.status)).toEqual([200, 200]);
       expect(taps[0].body).toEqual(taps[1].body);
       expect(await prisma.jointPurchaseParticipationOperation.count({ where: { callId: id } })).toBe(2);
       expect(await prisma.jointPurchaseParticipation.count({ where: { callId: id } })).toBe(1);
 
-      const reused = await confirm(farmerA, id, [[p, "999"]], 1, op);
+      const reused = await confirm(farmerA, id, [[p, "999"]], 1, op, consent);
       expect(reused.status).toBe(409);
       expect(reused.body).toEqual({ errorCode: "OPERATION_ID_REUSED" });
 
@@ -619,7 +712,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const line = await prisma.jointPurchaseParticipationLine.findFirstOrThrow({ where: { participation: { callId: id } } });
       expect(line.quantityBase).toBe(300n);
       // The retry of an accepted operation keeps its answer even after later ones.
-      expect((await confirm(farmerA, id, [[p, "250"]], 1, op)).body).toEqual(first.body);
+      expect((await confirm(farmerA, id, [[p, "250"]], 1, op, consent)).body).toEqual(first.body);
     });
 
     it("modifies and withdraws while open; withdraw is idempotent", async () => {
@@ -634,7 +727,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(out.body).toMatchObject({ outcome: "ACCEPTED", participation: { status: "WITHDRAWN", lines: [], last_sequence: 3 } });
       expect((await withdraw(farmerA, id, 3, op)).body).toEqual(out.body);
       expect((await get(director, `${INST}/${id}`)).body.participant_count).toBe(0);
-      const back = await confirm(farmerA, id, [[p, "50"]], 4);
+      expect((await confirm(farmerA, id, [[p, "50"]], 4)).body.errorCode).toBe("ORDER_CONSENT_REQUIRED");
+      clock.advance(1_000);
+      const back = await confirm(farmerA, id, [[p, "50"]], 4, randomUUID(), orderConsent());
       expect(back.body.participation.status).toBe("ACTIVE");
       // Withdrawing without a participation is accepted and orders later operations.
       const none = await withdraw(farmerA2, id, 5);
@@ -646,7 +741,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p = await newProduct();
       const id = await openCall([p]);
       const draft = await createDraft([await newProduct()]);
-      await confirm(farmerA, id, [[p, "70"]], 1);
+      const originalOp = await historicalParticipation(farmerA, id, [[p, "70"]]);
       const mine = await get2(farmerA, ME);
       expect(mine.status).toBe(200);
       // Rewritten for E4 §7.1 (declared): every contract reads the shape of contract 4, with CONV-4 and its help
@@ -666,9 +761,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
         expect({ ...same, server_time: null }).toEqual({ ...item, server_time: null });
       }
       // An accepted operation answers in the shape of the phone's contract.
-      const legacyAnswer = await confirm(farmerA, id, [[p, "70"]], 2);
+      const legacyAnswer = await confirmAs(null, farmerA, id, [[p, "70"]], 1, CONSENT, originalOp);
       expect(Object.keys(legacyAnswer.body.participation).sort()).toEqual(["accepted_at", "consent", "last_operation_id", "last_sequence", "lines", "status"]);
-      const stale = await confirm(farmerA, id, [[p, "71"]], 1);
+      const stale = await confirmAs(null, farmerA, id, [[p, "71"]], 1);
       expect(stale.body.errorCode).toBe("STALE_SEQUENCE");
       expect(stale.body.participation.consent_scope).toBeUndefined();
       expect(item).toMatchObject({
@@ -692,7 +787,8 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p = await newProduct();
       const id = await openCall([p], { deadlineInMs: HOUR });
       const op = randomUUID();
-      const accepted = await confirm(farmerA, id, [[p, "400"]], 1, op);
+      const consent = conv4();
+      const accepted = await confirm(farmerA, id, [[p, "400"]], 1, op, consent);
       expect(accepted.status).toBe(200);
       clock.advance(2 * HOUR);
       const late = await confirm(farmerA2, id, [[p, "900"]], 1);
@@ -708,9 +804,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(closing.body).toMatchObject({ mode: "AUTOMATIC", closed_by: null, participant_count: 1, cutoff_at: detail.body.deadline_at });
       // Rewritten for E4 §5.2 (declared): one person with CONV-1 does not cover the totals: PENDING_CONSENT for the
       // Directiva responsible (under E2 she saw "400" through her PARTICIPANTS row).
-      expect(closing.body.lines[0]).toMatchObject({ participant_count: 1, total_quantity_base: null, visibility: "PENDING_CONSENT", totals_basis: null });
+      expect(closing.body.lines[0]).toMatchObject({ participant_count: 1, total_quantity_base: "400", visibility: "VISIBLE", totals_basis: "ROLE_CONSENT" });
       // The accepted operation's retry still gets its answer; a new one is CLOSED.
-      expect((await confirm(farmerA, id, [[p, "400"]], 1, op)).body).toEqual(accepted.body);
+      expect((await confirm(farmerA, id, [[p, "400"]], 1, op, consent)).body).toEqual(accepted.body);
       expect((await confirm(farmerA, id, [[p, "1"]], 2)).body).toEqual({ errorCode: "CALL_NOT_OPEN", reason: "CLOSED" });
       expect(await worker.runOnce()).not.toContain(id);
       const own = (await get(farmerA, ME)).body.calls.find((c: any) => c.call_id === id);
@@ -741,9 +837,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p1 = await newProduct();
       const p2 = await newProduct("KG");
       const id = await openCall([p1, p2]);
-      await confirm(farmerA, id, [[p1, "100"], [p2, "5"]], 1);
-      await confirm(farmerA2, id, [[p1, "200"]], 1);
-      await confirm(farmerA3, id, [[p1, "300"], [p2, "7"]], 1);
+      await historicalParticipation(farmerA, id, [[p1, "100"], [p2, "5"]]);
+      await historicalParticipation(farmerA2, id, [[p1, "200"]]);
+      await historicalParticipation(farmerA3, id, [[p1, "300"], [p2, "7"]]);
       // E2-P3: director and admin close with MANAGE granted by the responsible; their view of the
       // closing is still that of anyone without PARTICIPANTS (threshold k), as before.
       await grantAccess(id, director, "MANAGE");
@@ -1033,8 +1129,8 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p1 = await newProduct();
       const p2 = await newProduct();
       const id = await openCall([p1, p2]);
-      expect((await confirm(farmerA, id, [[p1, "100"]], 1)).body.participation.consent.version).toBe("CONV-1");
-      expect((await confirm(farmerA2, id, [[p1, "200"], [p2, "20"]], 1, randomUUID(), CONV2)).body.participation.consent.version).toBe("CONV-2");
+      await historicalParticipation(farmerA, id, [[p1, "100"]]);
+      await historicalParticipation(farmerA2, id, [[p1, "200"], [p2, "20"]], CONV2);
       expect((await confirm4(farmerA3, id, [[p1, "300"], [p2, "30"]], 1)).status).toBe(200);
       // director held «Consultar participantes» before E4: the row is kept and gives nothing.
       await storedBeforeE4([{ callId: id, userId: userIdOf(director), grantedByUserId: userIdOf(director2) }]);
@@ -1133,7 +1229,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const opX = randomUUID();
       expect((await decide4(farmerA, id, "ADMINISTRATION", 1, opX)).body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
       // The first confirmation is made with the earlier text: RESPONSIBLE_ONLY, decision order 0.
-      expect((await confirm4(farmerA, id, [[p1, "100"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      await historicalParticipation(farmerA, id, [[p1, "100"]], { ...CONSENT, version: "CONV-3" });
       // Y: a later decision (seq 2, TOTALS_ONLY) reaches the server first and is accepted.
       const opY = randomUUID();
       const y = await decide4(farmerA, id, "TOTALS_ONLY", 2, opY, "CONV-1");
@@ -1160,7 +1256,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const zero = () => decideAs("4", farmerA2, id, { scope: "ADMINISTRATION", sequence: 0 }, opZero);
       const before = await zero();
       expect([before.status, before.body]).toEqual([400, { errorCode: "PAYLOAD_INVALID" }]);
-      expect((await confirm4(farmerA2, id, [[p1, "50"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      await historicalParticipation(farmerA2, id, [[p1, "50"]], { ...CONSENT, version: "CONV-3" });
       for (let round = 0; round < 2; round++) {
         const res = await zero();
         expect([res.status, res.body]).toEqual([400, { errorCode: "PAYLOAD_INVALID" }]);
@@ -1197,7 +1293,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect(await prisma.jointPurchaseParticipationOperation.count({ where: { operationId: { in: ops } } })).toBe(0);
 
       // The first confirmation, with the earlier text: RESPONSIBLE_ONLY (CONV-3 keeps its own record of the responsible, §4.3).
-      expect((await confirm4(farmerA, id, [[p1, "100"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      await historicalParticipation(farmerA, id, [[p1, "100"]], { ...CONSENT, version: "CONV-3" });
       const participation = () => prisma.jointPurchaseParticipation.findFirstOrThrow({ where: { callId: id, memberId: f.members.farmerA } });
       const confirmed = await participation();
 
@@ -1228,7 +1324,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const opTotals = randomUUID();
       expect((await decide4(farmerA, id, "ADMINISTRATION", 1, opAdmin)).body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
       expect((await decide4(farmerA, id, "TOTALS_ONLY", 1, opTotals)).body).toEqual({ errorCode: "PARTICIPATION_REQUIRED" });
-      expect((await confirm4(farmerA, id, [[p1, "100"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-13T09:00:00.000Z" })).status).toBe(200);
+      await historicalParticipation(farmerA, id, [[p1, "100"]], { ...CONSENT, version: "CONV-3" });
       expect((await post(director2, `${INST}/${id}/cancel`, { confirmed: true, reason: "Motivo sintético" })).status).toBe(200);
       // The answer a fresh operation gets today on a cancelled call…
       const today = await decide4(farmerA, id, "ADMINISTRATION", 1);
@@ -1676,7 +1772,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const p2 = await newProduct();
       const id = await openCall([p1, p2], { responsible: resp });
       expect((await confirm4(farmerA, id, [[p1, "100"]], 1)).status).toBe(200);
-      expect((await confirm(farmerA2, id, [[p1, "200"], [p2, "20"]], 1)).status).toBe(200);
+      await historicalParticipation(farmerA2, id, [[p1, "200"], [p2, "20"]]);
       await grantAccess(id, admin2, "MANAGE", resp);
       // director held «Consultar participantes» on this call before E4.
       await storedBeforeE4([{ callId: id, userId: userIdOf(director), grantedByUserId: userIdOf(resp) }]);
@@ -1795,7 +1891,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const q = await newProduct();
       const closedId = await openCall([q], { responsible: resp, deadlineInMs: 2 * HOUR });
       for (const [s, qty] of [[farmerA, "10"], [farmerA2, "20"], [farmerA3, "30"]] as const) {
-        expect((await confirm(s, closedId, [[q, qty]], 1)).status).toBe(200);
+        await historicalParticipation(s, closedId, [[q, qty]]);
       }
       clock.advance(3 * HOUR);
       expect(await worker.runOnce()).toContain(closedId);
@@ -1935,8 +2031,8 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const CONV2 = { version: "CONV-2", accepted_at: "2026-11-11T20:00:00.000Z" };
       const farmerA4 = await createSession(prisma, jwt, await addPerson("farmerA4", f.tenantA, "AGRICULTOR"));
       expect((await confirm4(farmerA, id, [[p, "11"]], 1)).status).toBe(200);
-      expect((await confirm(farmerA2, id, [[p, "22"]], 1)).status).toBe(200);
-      expect((await confirm(farmerA3, id, [[p, "33"]], 1, randomUUID(), CONV2)).status).toBe(200);
+      await historicalParticipation(farmerA2, id, [[p, "22"]]);
+      await historicalParticipation(farmerA3, id, [[p, "33"]], CONV2);
       expect((await confirm4(farmerA4, id, [[p, "44"]], 1)).status).toBe(200);
       expect((await decide4(farmerA4, id, "TOTALS_ONLY", 1)).status).toBe(200);
       await grantAccess(id, director, "MANAGE", admin);
@@ -2069,19 +2165,24 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
         const hist = contract ? await http().get(`${ME}/history`).set("Authorization", auth(farmerA)).set("X-Joint-Purchase-Contract", contract) : await get(farmerA, `${ME}/history`);
         expect(hist.body.contractVersion).toBe(4);
       }
-      // Writes of contracts 1–3 on a participation with an earlier scope: accepted, in their own shape.
-      const c3 = keep(await confirmAs("3", farmerA, id, [[p, "10"]], 1, { version: "CONV-3", accepted_at: "2026-11-12T09:00:00.000Z" }));
+      // Only an exact replay of a previously accepted legacy order still succeeds.
+      const conv3 = { ...CONSENT, version: "CONV-3" };
+      const oldOp = await historicalParticipation(farmerA, id, [[p, "10"]], conv3);
+      const c3 = keep(await confirmAs("3", farmerA, id, [[p, "10"]], 1, conv3, oldOp));
       expect(c3.status).toBe(200);
       expect(Object.keys(c3.body.participation).sort()).toEqual([
         "accepted_at", "consent", "consent_scope", "last_operation_id", "last_sequence", "lines", "responsible_authorization", "status",
       ]);
       expect(c3.body.participation.consent_scope.scope).toBe("RESPONSIBLE_ONLY");
-      const c2 = keep(await confirmAs("2", farmerA, id, [[p, "11"]], 2, null));
+      const c2 = keep(await confirmAs("2", farmerA, id, [[p, "10"]], 1, conv3, oldOp));
       expect(c2.status).toBe(200);
       expect(c2.body.participation.responsible_authorization).toBeUndefined();
       expect(c2.body.participation.consent_scope.scope).toBe("RESPONSIBLE_ONLY");
-      const c1 = keep(await confirmAs(null, farmerA, id, [[p, "12"]], 3, null));
+      const c1 = keep(await confirmAs(null, farmerA, id, [[p, "10"]], 1, conv3, oldOp));
       expect(Object.keys(c1.body.participation).sort()).toEqual(["accepted_at", "consent", "last_operation_id", "last_sequence", "lines", "status"]);
+      for (const contract of [null, "2", "3"] as const) {
+        expect((await confirmAs(contract, farmerA, id, [[p, "11"]], 2, null)).body).toEqual({ errorCode: "APP_UPDATE_REQUIRED" });
+      }
       expect(keep(await decideAs("2", farmerA, id, { scope: "RESPONSIBLE_ONLY", sequence: 1, version: "CONV-3" })).status).toBe(200);
       // Widening or authorizing: definitive 409.
       expect((await decideAs("2", farmerA, id, { scope: "COLLABORATORS", sequence: 2, version: "CONV-3" })).body).toEqual({ errorCode: "CONSENT_VERSION_RETIRED" });
@@ -2090,7 +2191,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       ).toEqual({ errorCode: "CONSENT_VERSION_RETIRED" });
       // A contract 1–3 phone never sends the new scopes, nor creates a CONV-4 participation.
       expect((await decideAs("3", farmerA, id, { scope: "ADMINISTRATION", sequence: 3 })).body).toEqual({ errorCode: "PAYLOAD_INVALID" });
-      expect((await confirmAs("3", farmerA2, id, [[p, "1"]], 1, CONV4)).body).toEqual({ errorCode: "APP_UPDATE_REQUIRED" });
+      expect((await confirmAs("3", farmerA2, id, [[p, "1"]], 1, conv4())).body).toEqual({ errorCode: "APP_UPDATE_REQUIRED" });
       expect(await prisma.jointPurchaseParticipation.count({ where: { callId: id, memberId: f.members.farmerA2 } })).toBe(0);
 
       // A participation with a new scope (a second phone already updated): contracts 1–3 get 409 APP_UPDATE_REQUIRED before deciding.
@@ -2109,10 +2210,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       // Not journaled: once updated, the same pending operation is decided.
       expect((await confirmAs("4", farmerA2, id, [[p, "21"]], 2, null, pendingOp)).status).toBe(200);
 
-      // Contract 4 sending an operation prepared before updating: CONV-3 creates the earlier scope, never CONV-4 (§9.9).
+      // An old operation queued before the upgrade has never authorized Administration.
       const old = await confirm4(farmerA3, id, [[p, "30"]], 1, randomUUID(), { version: "CONV-3", accepted_at: "2026-11-12T09:00:00.000Z" });
-      expect(old.body.participation.consent_scope).toMatchObject({ scope: "RESPONSIBLE_ONLY", version: "CONV-3" });
-      expect(old.body.participation.responsible_authorization).toBeUndefined();
+      expect(old.body).toEqual({ errorCode: "ORDER_CONSENT_REQUIRED" });
 
       // Never a 2xx with a new scope for contracts 1–3.
       expect(bodies.length).toBeGreaterThan(0);

@@ -285,6 +285,7 @@ describe('E4: detalle de convocatoria por rol (fixtures de E4_EJEMPLOS_RESPUESTA
     expect(within(screen.getByTestId('call-product-p-0002')).getByTestId('hidden-total').textContent).toBe(PENDING_CONSENT_TOTAL_TEXT);
     expect(within(panel).getByText(WHY_VISIBLE_TEXT)).toBeTruthy();
     expect(within(panel).getByTestId('pending-consent-notice').textContent).toBe(PARTICIPANTS_ADMIN.pending_consent_notice);
+    expect(within(panel).getByText('Queda pendiente para reparto.')).toBeTruthy();
     expect(within(panel).getAllByTestId('participant-row')).toHaveLength(3);
     expect(within(panel).getByTestId('provisional-note').textContent).toBe('Lista provisional: puede cambiar hasta el cierre');
   });
