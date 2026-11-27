@@ -141,7 +141,7 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
           }}
         >
           <Notice kind="warn">
-            El cierre es definitivo. Los datos recibidos hasta ese momento se guardan en el histórico. Después se podrán retirar autorizaciones.
+            El cierre es definitivo. Los datos recibidos hasta ese momento se guardan en el histórico. Los permisos de reparto ya aplicados se conservan.
           </Notice>
           <p className="mt-3 text-sm text-ink-muted" aria-live="polite">
             {coverageText}

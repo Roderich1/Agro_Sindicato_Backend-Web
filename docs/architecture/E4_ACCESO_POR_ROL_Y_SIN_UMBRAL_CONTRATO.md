@@ -152,7 +152,7 @@ Las respuestas institucionales llevan hoy `contractVersion: 1` (`BE:Back/src/mod
 
 ### 3.3 Agricultor (`BE:Back/src/modules/joint-purchase-calls/api/rest/farmer-calls.controller.ts`)
 
-La confirmación con cantidades se rige por la [autorización obligatoria del pedido](AUTORIZACION_PEDIDO_CONVOCATORIA.md). Esta sección conserva el contrato anterior como antecedente y las reglas que siguen vigentes para lectura, retiro y decisiones separadas de acceso.
+La confirmación con cantidades y la permanencia de la autorización aplicada a Administración se rigen por la [autorización del pedido](AUTORIZACION_PEDIDO_CONVOCATORIA.md). Esta sección conserva el contrato anterior como antecedente y las reglas que siguen vigentes para lectura y retiro del pedido.
 
 Hoy el teléfono declara su contrato con `X-Joint-Purchase-Contract` (1, 2 o 3). Un valor desconocido se lee como 1 (`farmer-calls.controller.ts:26-41`).
 

@@ -597,7 +597,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
   });
 
   describe("farmer participation", () => {
-    it("renews a historical order atomically and never restores access by replaying a revoked grant", async () => {
+    it("renews a historical order atomically and keeps Administration access after attempted reductions and closure", async () => {
       const product = await newProduct();
       const callId = await openCall([product]);
       const foreignAdmin = await createSession(prisma, jwt, await addPerson("adminForOrderB", f.tenantB, "ADMINISTRADOR"));
@@ -621,24 +621,27 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await get(foreignAdmin, listPath)).status).toBe(404);
       expect((await confirm4(farmerA, callId, [[product, "53"]], 3, randomUUID(), null)).status).toBe(200);
       clock.advance(1_000);
-      expect((await decide4(farmerA, callId, "TOTALS_ONLY", 2)).status).toBe(200);
+      const retractId = randomUUID();
+      const retract = () => decide4(farmerA, callId, "TOTALS_ONLY", 2, retractId);
+      const refused = await retract();
+      expect([refused.status, refused.body]).toEqual([409, { errorCode: "ORDER_CONSENT_LOCKED" }]);
+      expect((await retract()).body).toEqual(refused.body);
+      expect(await journalOf(retractId)).toEqual(["ORDER_CONSENT_LOCKED"]);
       expect((await change()).status).toBe(200);
-      expect((await confirm4(farmerA, callId, [[product, "54"]], 4, randomUUID(), consent)).body).toEqual({ errorCode: "ORDER_CONSENT_REQUIRED" });
-      expect((await get(admin, listPath)).body).toMatchObject({ participants: [], pending_consent_count: 1 });
+      expect((await decide4(farmerA, callId, "RESPONSIBLE_ONLY", 2)).body).toEqual(refused.body);
+      expect((await get(admin, listPath)).body).toMatchObject({
+        pending_consent_count: 0, participants: [{ name: "Usuario sintético farmerA", lines: [{ quantity_base: "53" }] }],
+      });
       expect((await get(director, `${INST}/${callId}`)).body.products[0].totals).toMatchObject({ total_quantity_base: "53" });
       expect(await decisionsOf(callId, farmerA.memberId)).toEqual([
         ...preRevision, ["DECISION", "ADMINISTRATION", "CONV-5", 1, operationId],
-        expect.arrayContaining(["DECISION", "TOTALS_ONLY", "CONV-4", 2]),
       ]);
       expect((await post(director2, `${INST}/${callId}/close`, { confirmed: true })).status).toBe(200);
       expect((await confirm4(farmerA, callId, [[product, "55"]], 5, randomUUID(), orderConsent())).body).toMatchObject({ errorCode: "CALL_NOT_OPEN", reason: "CLOSED" });
       const closingPath = `${INST}/${callId}/closing`;
-      expect((await get(admin, closingPath)).body).toMatchObject({ participants: [], pending_consent_count: 1 });
-      expect((await decide4(farmerA, callId, "ADMINISTRATION", 3)).status).toBe(200);
-      expect((await get(admin, closingPath)).body.participants[0].lines[0].quantity_base).toBe("53");
-      expect((await decide4(farmerA, callId, "TOTALS_ONLY", 4)).status).toBe(200);
+      expect((await decide4(farmerA, callId, "TOTALS_ONLY", 3)).body).toEqual(refused.body);
       expect((await get(admin, closingPath)).body).toMatchObject({
-        participants: [], pending_consent_count: 1, lines: [{ total_quantity_base: "53" }],
+        participants: [{ lines: [{ quantity_base: "53" }] }], pending_consent_count: 0, lines: [{ total_quantity_base: "53" }],
       });
     });
 
@@ -724,7 +727,12 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       const op = randomUUID();
       const out = await withdraw(farmerA, id, 3, op);
       expect(out.status).toBe(200);
-      expect(out.body).toMatchObject({ outcome: "ACCEPTED", participation: { status: "WITHDRAWN", lines: [], last_sequence: 3 } });
+      expect(out.body).toMatchObject({
+        outcome: "ACCEPTED",
+        participation: { status: "WITHDRAWN", lines: [], last_sequence: 3, consent_scope: { scope: "ADMINISTRATION" } },
+      });
+      expect((await get(admin, `${INST}/${id}/participants`)).body.participants).toEqual([]);
+      expect((await decide4(farmerA, id, "TOTALS_ONLY", 1)).body).toEqual({ errorCode: "ORDER_CONSENT_LOCKED" });
       expect((await withdraw(farmerA, id, 3, op)).body).toEqual(out.body);
       expect((await get(director, `${INST}/${id}`)).body.participant_count).toBe(0);
       expect((await confirm(farmerA, id, [[p, "50"]], 4)).body.errorCode).toBe("ORDER_CONSENT_REQUIRED");
@@ -1190,7 +1198,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     // Rewritten for E4 §4.2 (declared): the decisions are now ADMINISTRATION, TOTALS_ONLY and the earlier reduction;
     // widening to COLLABORATORS is retired. The P-C properties (own order, idempotency, quantities never change the
     // consent, insert-only register) are kept and checked again.
-    it("E2 §11.1 (cierre 2026-11-13): PARTICIPATION_REQUIRED is not journaled; retrying the same operation after the first confirmation applies it", async () => {
+    it("PARTICIPATION_REQUIRED is not journaled; retrying after the first confirmation records the locked authorization", async () => {
       const p1 = await newProduct();
       const id = await openCall([p1], { deadlineInMs: 4 * HOUR });
       const operationId = randomUUID();
@@ -1202,22 +1210,21 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       // First confirmation, then the phone retries the very same decision (same operation_id and body).
       expect((await confirm4(farmerA, id, [[p1, "100"]], 1)).status).toBe(200);
       const retried = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
-      expect(retried.status).toBe(200);
-      expect(retried.body.participation.consent_scope).toMatchObject({ scope: "TOTALS_ONLY", sequence: 1 });
+      expect(retried.status).toBe(409);
+      expect(retried.body).toEqual({ errorCode: "ORDER_CONSENT_LOCKED" });
       // A second retry gets the stored answer (idempotent), not the earlier 409.
       const again = await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId);
-      expect(again.status).toBe(200);
+      expect(again.status).toBe(409);
       expect(again.body).toEqual(retried.body);
-      // No duplicates: one decision of that operation (besides the first confirmation's) and one journal row.
+      // The rejected attempt has one journal row and leaves the initial decision intact.
       expect(await decisionsOf(id, f.members.farmerA)).toEqual([
         ["INITIAL", "ADMINISTRATION", "CONV-4", 0, null],
-        ["DECISION", "TOTALS_ONLY", "CONV-4", 1, operationId],
       ]);
-      expect(await journalOf(operationId)).toEqual(["ACCEPTED"]);
+      expect(await journalOf(operationId)).toEqual(["ORDER_CONSENT_LOCKED"]);
       const journalRows = await prisma.jointPurchaseParticipationOperation.count({ where: { callId: id } });
       expect((await decide4(farmerA, id, "TOTALS_ONLY", 1, operationId)).body).toEqual(retried.body);
       expect(await prisma.jointPurchaseParticipationOperation.count({ where: { callId: id } })).toBe(journalRows);
-      expect(await prisma.jointPurchaseConsentDecision.count({ where: { callId: id } })).toBe(2);
+      expect(await prisma.jointPurchaseConsentDecision.count({ where: { callId: id } })).toBe(1);
     });
 
     // E2 §11.1 (cierre 2026-11-14): a decision sent before the participation, once retried, keeps its own order.
@@ -1344,7 +1351,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect([stored.consentScope, stored.consentScopeSequence]).toEqual(["RESPONSIBLE_ONLY", 0]);
     });
 
-    it("E4 §4.2 (test 8): CONV-4 gives ADMINISTRATION; TOTALS_ONLY and reductions in their own order; widening and authorizing retired; quantities and decisions never cross", async () => {
+    it("CONV-4 grants Administration, reductions are refused, and quantity and consent journals stay independent", async () => {
       const p1 = await newProduct();
       const id = await openCall([p1], { deadlineInMs: 4 * HOUR });
       const names = async () => ((await get(admin, `${INST}/${id}/participants`)).body.participants as any[]).map((x) => x.name);
@@ -1377,16 +1384,10 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await stored()).consentScope).toBe("ADMINISTRATION");
       expect((await stored()).consentVersion).toBe("CONV-4");
 
-      // TOTALS_ONLY (D-05): with any known text; the name leaves the detail, the total stays.
+      // The old withdrawal request leaves the authorised detail and totals intact.
       const totalsOnly = await decide4(farmerA, id, "TOTALS_ONLY", 1, randomUUID(), "CONV-1");
-      expect(totalsOnly.status).toBe(200);
-      expect(totalsOnly.body.participation).toMatchObject({
-        lines: [{ product_ref: p1, quantity_base: "150" }],
-        last_sequence: 2,
-        consent: { version: "CONV-4" },
-        consent_scope: { scope: "TOTALS_ONLY", version: "CONV-1", sequence: 1 },
-      });
-      expect(await names()).toEqual([]);
+      expect([totalsOnly.status, totalsOnly.body]).toEqual([409, { errorCode: "ORDER_CONSENT_LOCKED" }]);
+      expect(await names()).toEqual(["Usuario sintético farmerA"]);
       expect((await total()).visibility).toBe("VISIBLE");
 
       // ADMINISTRATION needs CONV-4 and never names a responsible.
@@ -1394,12 +1395,6 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await decideAs("4", farmerA, id, { scope: "ADMINISTRATION", sequence: 2, authorize_responsible: false })).body).toEqual({
         errorCode: "PAYLOAD_INVALID",
       });
-      // Out of order: never restores an earlier access.
-      const stale = await decide4(farmerA, id, "ADMINISTRATION", 1);
-      expect(stale.status).toBe(409);
-      expect(stale.body).toMatchObject({ errorCode: "STALE_SEQUENCE", participation: { consent_scope: { scope: "TOTALS_ONLY" } } });
-      expect(await names()).toEqual([]);
-
       const adminOp = randomUUID();
       const authorized = await decide4(farmerA, id, "ADMINISTRATION", 2, adminOp);
       expect(authorized.status).toBe(200);
@@ -1408,6 +1403,9 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       // The same operation_id: the same answer; with another body: refused.
       expect((await decide4(farmerA, id, "ADMINISTRATION", 2, adminOp)).body).toEqual(authorized.body);
       expect((await decide4(farmerA, id, "TOTALS_ONLY", 2, adminOp)).body).toEqual({ errorCode: "OPERATION_ID_REUSED" });
+      const stale = await decide4(farmerA, id, "TOTALS_ONLY", 1);
+      expect(stale.status).toBe(409);
+      expect(stale.body).toMatchObject({ errorCode: "STALE_SEQUENCE", participation: { consent_scope: { scope: "ADMINISTRATION" } } });
 
       // Widening to collaborators and authorizing a responsible are retired, with any version, definitively.
       const widenOp = randomUUID();
@@ -1422,32 +1420,19 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       ).toEqual({ errorCode: "CONSENT_VERSION_RETIRED" });
       expect((await stored()).consentScope).toBe("ADMINISTRATION");
 
-      // A reduction is respected; a late one is STALE and a later one is respected.
-      expect((await decide4(farmerA, id, "RESPONSIBLE_ONLY", 4, randomUUID(), "CONV-1")).status).toBe(200);
-      expect(await names()).toEqual([]);
-      expect((await decide4(farmerA, id, "ADMINISTRATION", 5)).status).toBe(200);
-      expect((await decide4(farmerA, id, "RESPONSIBLE_ONLY", 3, randomUUID(), "CONV-1")).body.errorCode).toBe("STALE_SEQUENCE");
-      expect(await names()).toEqual(["Usuario sintético farmerA"]);
-      expect((await decide4(farmerA, id, "RESPONSIBLE_ONLY", 6, randomUUID(), "CONV-1")).status).toBe(200);
-      expect(await names()).toEqual([]);
-      expect((await decide4(farmerA, id, "ADMINISTRATION", 7)).status).toBe(200);
+      expect((await decide4(farmerA, id, "RESPONSIBLE_ONLY", 4, randomUUID(), "CONV-1")).body).toEqual(totalsOnly.body);
 
       // Quantities and decisions keep their own orders and never cross.
       expect((await confirm4(farmerA, id, [[p1, "160"]], 3)).status).toBe(200);
       expect((await stored()).consentScope).toBe("ADMINISTRATION");
-      expect((await stored()).consentScopeSequence).toBe(7);
+      expect((await stored()).consentScopeSequence).toBe(2);
       expect((await stored()).lastSequence).toBe(3);
       expect((await stored()).lines.map((l) => l.quantityBase)).toEqual([160n]);
 
       // Each accepted decision is recorded once, in order, insert-only; retired ones write nothing.
       expect(await decisions()).toEqual([
         ["INITIAL", "ADMINISTRATION", "CONV-4", 0, null],
-        ["DECISION", "TOTALS_ONLY", "CONV-1", 1, null],
         ["DECISION", "ADMINISTRATION", "CONV-4", 2, null],
-        ["DECISION", "RESPONSIBLE_ONLY", "CONV-1", 4, null],
-        ["DECISION", "ADMINISTRATION", "CONV-4", 5, null],
-        ["DECISION", "RESPONSIBLE_ONLY", "CONV-1", 6, null],
-        ["DECISION", "ADMINISTRATION", "CONV-4", 7, null],
       ]);
       const retired = await prisma.jointPurchaseParticipationOperation.findUniqueOrThrow({
         where: { callId_memberId_operationId: { callId: id, memberId: f.members.farmerA, operationId: widenOp } },
@@ -1457,21 +1442,17 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       await expect(prisma.jointPurchaseConsentDecision.update({ where: { id: row.id }, data: { scope: "TOTALS_ONLY" } })).rejects.toThrow();
       await expect(prisma.jointPurchaseConsentDecision.delete({ where: { id: row.id } })).rejects.toThrow();
 
-      // After the deadline: quantities are refused, decisions are not; in CLOSED too.
+      // The deadline and closure do not unlock the grant.
       clock.advance(5 * HOUR);
       expect((await confirm4(farmerA, id, [[p1, "170"]], 4)).body).toEqual({ errorCode: "CALL_NOT_OPEN", reason: "DEADLINE_PASSED" });
-      expect((await decide4(farmerA, id, "TOTALS_ONLY", 8)).status).toBe(200);
+      expect((await decide4(farmerA, id, "TOTALS_ONLY", 8)).body).toEqual(totalsOnly.body);
       await worker.runOnce();
-      expect((await get(admin, `${INST}/${id}/closing`)).body.participants).toEqual([]);
-      expect((await decide4(farmerA, id, "ADMINISTRATION", 9)).status).toBe(200);
       expect(((await get(admin, `${INST}/${id}/closing`)).body.participants as any[]).map((x) => x.name)).toEqual(["Usuario sintético farmerA"]);
       // The Directiva never, also as the responsible.
       expect((await get(director2, `${INST}/${id}/closing`)).body.participants).toBeNull();
     });
 
-    // Rewritten for E4 §4.2 (declared): on a CANCELLED call ADMINISTRATION and TOTALS_ONLY are refused (no change there);
-    // widening is retired everywhere; the earlier reduction is still accepted.
-    it("E4 §4.2: on a cancelled call ADMINISTRATION and TOTALS_ONLY are refused, widening is retired and a reduction is accepted", async () => {
+    it("refuses access changes for a cancelled order with Administration authorized", async () => {
       const p1 = await newProduct();
       const id = await openCall([p1]);
       await confirm4(farmerA2, id, [[p1, "40"]], 1);
@@ -1479,7 +1460,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await decide4(farmerA2, id, "TOTALS_ONLY", 1)).body).toEqual({ errorCode: "WIDENING_NOT_ALLOWED", status: "CANCELLED" });
       expect((await decide4(farmerA2, id, "ADMINISTRATION", 1)).body).toEqual({ errorCode: "WIDENING_NOT_ALLOWED", status: "CANCELLED" });
       expect((await decide4(farmerA2, id, "COLLABORATORS", 1, randomUUID(), "CONV-3")).body).toEqual({ errorCode: "CONSENT_VERSION_RETIRED" });
-      expect((await decide4(farmerA2, id, "RESPONSIBLE_ONLY", 2, randomUUID(), "CONV-1")).status).toBe(200);
+      expect((await decide4(farmerA2, id, "RESPONSIBLE_ONLY", 2, randomUUID(), "CONV-1")).body).toEqual({ errorCode: "ORDER_CONSENT_LOCKED" });
       // Another tenant's farmer does not reach it.
       expect((await decide4(farmerB, id, "RESPONSIBLE_ONLY", 1)).status).toBe(404);
     });
@@ -2033,7 +2014,7 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
       expect((await confirm4(farmerA, id, [[p, "11"]], 1)).status).toBe(200);
       await historicalParticipation(farmerA2, id, [[p, "22"]]);
       await historicalParticipation(farmerA3, id, [[p, "33"]], CONV2);
-      expect((await confirm4(farmerA4, id, [[p, "44"]], 1)).status).toBe(200);
+      await historicalParticipation(farmerA4, id, [[p, "44"]]);
       expect((await decide4(farmerA4, id, "TOTALS_ONLY", 1)).status).toBe(200);
       await grantAccess(id, director, "MANAGE", admin);
       const admin3 = await createSession(prisma, jwt, await addPerson("adminA3", f.tenantA, "ADMINISTRADOR"));
