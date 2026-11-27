@@ -96,7 +96,7 @@ export class FarmerCallsController {
   @Put(":id/participation")
   @Header("Cache-Control", "no-store")
   @ApiOperation({
-    summary: "Confirmar o modificar la participación (idempotente por operation_id, ordenada por sequence); sin líneas = retiro",
+    summary: "Confirmar o editar un pedido con autorización vigente para Administración; sin líneas = retiro",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiBody({ type: ConfirmParticipationDto })
@@ -107,7 +107,7 @@ export class FarmerCallsController {
   @error(404, "CALL_NOT_FOUND: inexistente o de otro tenant.")
   @error(
     409,
-    "CALL_NOT_OPEN (reason DEADLINE_PASSED|CLOSED|CANCELLED|DRAFT), STALE_SEQUENCE (participation vigente), OPERATION_ID_REUSED, CONSENT_REQUIRED o APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance ADMINISTRATION/TOTALS_ONLY, o con CONV-4).",
+    "CALL_NOT_OPEN (reason DEADLINE_PASSED|CLOSED|CANCELLED|DRAFT), STALE_SEQUENCE (participation vigente), OPERATION_ID_REUSED, ORDER_CONSENT_REQUIRED (falta una autorización vigente para Administración) o APP_UPDATE_REQUIRED (contratos 1–3). El reintento exacto de una operación ya aceptada conserva su respuesta.",
   )
   @error(422, "PRODUCT_NOT_IN_CALL o QUANTITY_INVALID.")
   @error(429, "Límite de solicitudes.")

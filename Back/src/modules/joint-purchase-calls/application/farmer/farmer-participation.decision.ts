@@ -5,12 +5,13 @@ import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma
 import { CallErrorCode, CallHttpError, FarmerContext } from "../../domain/call-error";
 import { notOpenReason } from "../../domain/call-state";
 import {
+  authorizesAdministration,
   CONSENT_V4_VERSION,
-  initialScopeOf,
   isAcceptedConsent,
   isNewScope,
+  ORDER_CONSENT_VERSION,
 } from "../../domain/consent";
-import { NormalizedOperation } from "../../domain/participation-input";
+import { NormalizedOperation, SEQUENCE_MAX } from "../../domain/participation-input";
 import { CALL_TRANSACTION_OPTIONS, lockCallRow, Tx } from "../call-store";
 import { ParticipationView, toParticipationView } from "../call-views";
 import { Clock } from "../clock";
@@ -53,9 +54,9 @@ async function decideParticipation(
   const call = await tx.jointPurchaseCall.findUniqueOrThrow({
     where: { id: callId },
     select: {
-      id: true,
       status: true,
       deadlineAt: true,
+      openedAt: true,
       responsibleVersion: true,
       products: { select: { productId: true, baseUnit: true } },
     },
@@ -82,9 +83,6 @@ async function decideParticipation(
   if (contract < 4) {
     const own = await current();
     if (own && isNewScope(own.consentScope)) throw new CallHttpError(409, "APP_UPDATE_REQUIRED");
-    if (!own && operation.kind === "CONFIRM" && operation.consent?.version === CONSENT_V4_VERSION) {
-      throw new CallHttpError(409, "APP_UPDATE_REQUIRED");
-    }
   }
 
   const now = clock.now();
@@ -123,8 +121,11 @@ async function decideParticipation(
 
   let participation = existing;
   if (operation.lines.length > 0) {
-    if (!existing && (!operation.consent || !isAcceptedConsent(operation.consent.version))) {
-      return reject("CONSENT_REQUIRED", 409);
+    if (contract < 4) throw new CallHttpError(409, "APP_UPDATE_REQUIRED");
+    const reusesAuthorization = existing?.status === "ACTIVE" &&
+      existing.consentScope === "ADMINISTRATION" && authorizesAdministration(existing.consentScopeVersion);
+    if (!reusesAuthorization && !hasOrderAuthorization(operation, existing, call.openedAt, now)) {
+      return reject("ORDER_CONSENT_REQUIRED", 409);
     }
     const baseOf = new Map(call.products.map((p) => [p.productId, p.baseUnit]));
     if (operation.lines.some((line) => !baseOf.has(line.productRef))) return reject("PRODUCT_NOT_IN_CALL", 422);
@@ -145,7 +146,11 @@ async function decideParticipation(
     };
     const saved = existing
       ? await tx.jointPurchaseParticipation.update({ where: { id: existing.id }, data, select: { id: true } })
-      : await createInitialParticipation(tx, context, call, operation, now, data);
+      : await createInitialParticipation(tx, context, callId, operation, now, data);
+    if (existing && !reusesAuthorization) {
+      await authorizeOrder(tx, existing, operation, now);
+      logger.log(`[JOINT PURCHASE CONSENT ADMINISTRATION] tenant=${context.tenantId} call=${callId} outcome=ACCEPTED`);
+    }
     await tx.jointPurchaseParticipationLine.deleteMany({ where: { participationId: saved.id } });
     await tx.jointPurchaseParticipationLine.createMany({
       data: operation.lines.map((line) => ({
@@ -178,30 +183,65 @@ async function decideParticipation(
   });
 }
 
+const CLOCK_TOLERANCE_MS = 5 * 60_000;
+
+function hasOrderAuthorization(operation: NormalizedOperation, existing: CurrentParticipation | null, openedAt: Date | null, now: Date): boolean {
+  const consent = operation.consent;
+  if (!consent || !authorizesAdministration(consent.version)) return false;
+  const acceptedAt = consent.acceptedAt.getTime();
+  if (!openedAt ||
+      acceptedAt < openedAt.getTime() - CLOCK_TOLERANCE_MS || acceptedAt > now.getTime() + CLOCK_TOLERANCE_MS) return false;
+  if (!existing) return true;
+  if (consent.version !== ORDER_CONSENT_VERSION || existing.consentScopeSequence >= SEQUENCE_MAX) return false;
+  // Queued accepts prepared before a later privacy decision or withdrawal cannot restore access.
+  const lastChange = existing.status === "WITHDRAWN"
+    ? Math.max(existing.consentScopeReceivedAt.getTime(), existing.acceptedAt.getTime())
+    : existing.consentScopeReceivedAt.getTime();
+  return acceptedAt > lastChange;
+}
+
+async function authorizeOrder(tx: Tx, existing: CurrentParticipation, operation: NormalizedOperation, now: Date) {
+  const consent = operation.consent!;
+  const sequence = existing.consentScopeSequence + 1;
+  await tx.jointPurchaseParticipation.update({
+    where: { id: existing.id },
+    data: {
+      consentScope: "ADMINISTRATION",
+      consentScopeVersion: consent.version,
+      consentScopeDecidedAt: consent.acceptedAt,
+      consentScopeReceivedAt: now,
+      consentScopeSequence: sequence,
+    },
+  });
+  await tx.jointPurchaseConsentDecision.create({
+    data: {
+      participationId: existing.id,
+      callId: existing.callId,
+      memberId: existing.memberId,
+      scope: "ADMINISTRATION",
+      consentVersion: consent.version,
+      decidedAt: consent.acceptedAt,
+      receivedAt: now,
+      sequence,
+      operationId: operation.operationId,
+      source: "DECISION",
+    },
+  });
+}
+
 async function createInitialParticipation(
   tx: Tx,
   context: FarmerContext,
-  call: { id: string; responsibleVersion: number },
+  callId: string,
   operation: NormalizedOperation,
   now: Date,
   data: { status: "ACTIVE"; lastSequence: number; lastOperationId: string; acceptedAt: Date },
 ): Promise<{ id: string }> {
   const consent = operation.consent!;
-  const scope = initialScopeOf(consent.version);
-  const shown = operation.responsibleVersion;
-  const authorizedVersion =
-    consent.version === CONSENT_V4_VERSION
-      ? null
-      : shown !== undefined
-        ? shown === call.responsibleVersion
-          ? shown
-          : null
-        : call.responsibleVersion === 1
-          ? 1
-          : null;
+  const scope = "ADMINISTRATION" as const;
   const saved = await tx.jointPurchaseParticipation.create({
     data: {
-      callId: call.id,
+      callId,
       tenantId: context.tenantId,
       memberId: context.memberId,
       ...data,
@@ -213,14 +253,13 @@ async function createInitialParticipation(
       consentScopeDecidedAt: consent.acceptedAt,
       consentScopeReceivedAt: now,
       consentScopeSequence: 0,
-      consentResponsibleVersion: authorizedVersion,
     },
     select: { id: true },
   });
   await tx.jointPurchaseConsentDecision.create({
     data: {
       participationId: saved.id,
-      callId: call.id,
+      callId,
       memberId: context.memberId,
       scope,
       consentVersion: consent.version,
@@ -228,7 +267,6 @@ async function createInitialParticipation(
       receivedAt: now,
       sequence: 0,
       source: "INITIAL",
-      responsibleVersion: authorizedVersion,
     },
   });
   return saved;

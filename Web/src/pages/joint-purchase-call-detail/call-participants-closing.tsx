@@ -30,7 +30,9 @@ function PendingConsentNotice({ count, notice }: { count: number; notice: string
   return (
     <div className="pt-3">
       <Notice kind="warn" compact>
-        <span data-testid="pending-consent-notice">{notice ?? pendingConsentDetailText(count)}</span> <span>{PENDING_CONSENT_HOW}</span>
+        <span data-testid="pending-consent-notice">{notice ?? pendingConsentDetailText(count)}</span>{' '}
+        <span>{count === 1 ? 'Queda pendiente para reparto.' : 'Quedan pendientes para reparto.'}</span>{' '}
+        <span>{PENDING_CONSENT_HOW}</span>
       </Notice>
     </div>
   );

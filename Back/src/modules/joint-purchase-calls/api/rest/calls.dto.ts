@@ -16,7 +16,7 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
-import { CONSENT_VERSION } from "../../domain/consent";
+import { CONSENT_VERSION, ORDER_CONSENT_VERSION } from "../../domain/consent";
 import { MAX_LINES } from "../../domain/participation-input";
 
 /**
@@ -136,9 +136,9 @@ export class ListCallsQueryDto {
 
 export class ParticipationConsentDto {
   @ApiProperty({
-    example: CONSENT_VERSION,
+    example: ORDER_CONSENT_VERSION,
     description:
-      "Versión del texto mostrado: CONV-4 (vigente, da ADMINISTRATION), o CONV-3, CONV-2 y CONV-1 (operaciones de apps anteriores, con el alcance de su texto); otra: 409 CONSENT_REQUIRED. Sólo cuenta al crear la participación: después las cantidades no cambian el consentimiento (§10.6)",
+      "CONV-5 identifica la aceptación explícita al confirmar un pedido o renovar su autorización. CONV-4 se acepta al crear una participación porque cubre el mismo alcance ADMINISTRATION. Ante una participación previa sin autorización vigente, se exige CONV-5.",
   })
   @IsString()
   @MaxLength(16)
@@ -175,7 +175,7 @@ export class ConfirmParticipationDto {
   @IsInt()
   sequence!: number;
 
-  @ApiPropertyOptional({ type: ParticipationConsentDto, nullable: true, description: "Obligatorio si hay líneas" })
+  @ApiPropertyOptional({ type: ParticipationConsentDto, nullable: true, description: "Con líneas, obligatorio si no existe una participación activa con autorización vigente para Administración" })
   @IsOptional()
   @IsObject()
   @ValidateNested()
@@ -185,7 +185,7 @@ export class ConfirmParticipationDto {
   @ApiPropertyOptional({
     minimum: 1,
     description:
-      "P-A C1 (contrato 3): versión de la responsabilidad que mostraba el teléfono al aceptar. Sólo cuenta al crear la participación; las cantidades nunca autorizan a nadie",
+      "P-A C1 (contrato 3): dato histórico que permite reconocer reintentos. No habilita acceso a un pedido.",
   })
   @IsOptional()
   @IsInt()

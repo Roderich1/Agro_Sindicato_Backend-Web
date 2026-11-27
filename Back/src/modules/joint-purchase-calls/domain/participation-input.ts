@@ -18,9 +18,8 @@ export interface ConfirmInput {
   consent?: { version: string; accepted_at: string } | null;
   lines: { product_ref: string; quantity_base: string }[];
   /**
-   * P-A C1 (contract 3): the responsible version the phone showed when the
-   * farmer accepted the consent. Only read when the participation is
-   * created; quantities never authorize anyone.
+   * P-A C1 (contract 3): kept to recognize an exact replay of a historical
+   * operation. It does not authorize access to the order.
    */
   responsible_version?: number;
 }
@@ -94,7 +93,7 @@ function checkEnvelope(operationId: unknown, sequence: unknown): { operationId: 
 /**
  * `PUT …/participation`. Lines with the same product twice are 400; an
  * empty list is a withdrawal. The consent is only checked against the call
- * (409 CONSENT_REQUIRED) once the operation is decided under the lock, so an
+ * (409 ORDER_CONSENT_REQUIRED) once the operation is decided under the lock, so an
  * absent or outdated consent is kept as given here.
  */
 export function normalizeConfirm(input: ConfirmInput): NormalizedOperation {
