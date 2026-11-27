@@ -265,3 +265,8 @@ El archivo de la raíz **no sirve para producción** tal como está:
 ## 10. Trazabilidad de procedimientos
 
 Respaldos RU-11, CU-14, CU-15, RF-26, RF-27, RNF-04, RNF-10; sincronización RU-16, CU-11, RF-18, INT-08; política y sellado RF-24, RNF-05; aislamiento RNF-04, RNF-05; voz INT-07 (según `docs/cierre/MATRIZ_DOCUMENTO_GRADO.md`).
+
+
+## Actualización de la gestión institucional
+
+Desde el 26 de noviembre de 2026, el cierre de campaña fija sus resultados de forma atómica. Administración y Directiva gestionan las convocatorias de su sindicato por rol. Para las reglas vigentes de publicación, visibilidad, cierre y recuperación histórica, consulte [Cierre de campaña y gestión institucional](../architecture/CIERRE_Y_GESTION_INSTITUCIONAL.md).

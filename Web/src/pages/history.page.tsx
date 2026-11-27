@@ -7,7 +7,7 @@ import { EstimationView } from './estimation.page';
 type View = 'tendencias' | 'estimacion';
 
 const VIEWS: { value: View; label: string }[] = [
-  { value: 'tendencias', label: 'Histórico sellado' },
+  { value: 'tendencias', label: 'Histórico de campañas' },
   { value: 'estimacion', label: 'Estimación del consumo' },
 ];
 

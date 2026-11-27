@@ -34,7 +34,7 @@ export function CoverageCard({
   variant?: 'compact' | 'full';
   testId?: string;
 }) {
-  const title = sealedAt ? `Cobertura al sellar (${fmtDateTime(sealedAt)})` : 'Cobertura';
+  const title = sealedAt ? `Cobertura histórica (${fmtDateTime(sealedAt)})` : 'Cobertura';
   if (!coverage) {
     // Estado «información restringida» (contrato §4).
     return (
@@ -42,7 +42,7 @@ export function CoverageCard({
         <p className="text-xs font-semibold text-slate-600">{title}</p>
         <p className="mt-1 text-sm font-semibold text-slate-800">Cobertura no disponible</p>
         <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-          Sin política de divulgación aprobada el servidor no publica conteos. Eso no significa cero.
+          Sin datos disponibles.
         </p>
       </div>
     );
@@ -70,8 +70,8 @@ export function CoverageCard({
       </p>
       <p className="mt-1 text-xs leading-relaxed text-slate-600">
         {linked === 0 && 'Hoy no hay agricultores vinculados activos: no se calcula porcentaje. '}
-        {sealedAt && 'Fijada al sellar; no se recalcula. '}
-        {coverage.suppressed_cells && 'Hay filas sin cifra (por la política F07-POL-01, en revisión o retiradas) cuyos aportes no se cuentan. '}
+        {sealedAt && 'Cobertura registrada para el histórico. '}
+        {coverage.suppressed_cells && 'Hay aportes que no forman parte de las cifras disponibles. '}
         Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
       </p>
       {variant === 'full' && (

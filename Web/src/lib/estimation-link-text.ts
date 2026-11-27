@@ -26,7 +26,7 @@ export const LINK_POLL_MS = 3000;
 
 /** Por qué no se puede obtener una referencia ahora. */
 export const PREPARE_BLOCKER_TEXT: Record<PrepareBlocker, string> = {
-  POLICY_PENDING: 'Restringida: la política de divulgación no está aprobada. No se obtiene ni se muestra ninguna estimación.',
+  POLICY_PENDING: 'Sin estimación disponible.',
   TARGET_CAMPAIGN_NOT_ELIGIBLE: 'No se puede calcular: sólo se estima para una campaña planificada o abierta.',
   TARGET_CAMPAIGN_NOT_CLASSIFIED:
     'No se puede calcular: la campaña no está clasificada en una temporada, así que no hay campañas comparables con las que estimar.',

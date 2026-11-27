@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fixtures from '../dev/fixtures/summary-fixtures';
 import type { SummaryFixture } from '../dev/fixtures/summary-fixtures';
@@ -95,16 +95,15 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
     // Rediseño v2: los recuentos pasan a los indicadores de la cabecera (lámina 03).
     expect(screen.getByTestId('needs-published').textContent).toMatch(/Necesidades publicadas5 productos/);
     // E4 §5.1: el indicador nombra la política (antes «Ocultas por privacidad»).
-    expect(screen.getByTestId('needs-hidden').textContent).toMatch(/Sin cifra \(F07-POL-01\)1 producto$/);
+    expect(screen.getByTestId('needs-hidden').textContent).toMatch(/Sin datos disponibles1 producto$/);
     expect(screen.getByTestId('needs-other').textContent).toMatch(/Sin cifra publicada2 productos/);
   });
 
   it('una sola lectura del resumen por visita, también bajo StrictMode', async () => {
     show(fixtures.worst, { strict: true });
     await screen.findByTestId('pending-actions');
-    await waitFor(() => expect(collectiveService.sealState).toHaveBeenCalled());
+    expect(collectiveService.sealState).not.toHaveBeenCalled();
     expect(collectiveService.summary).toHaveBeenCalledTimes(1);
-    expect(collectiveService.sealState).toHaveBeenCalledTimes(1);
     expectNoWrites();
   });
 
@@ -118,25 +117,23 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
 
   it('campaña cerrada sin sellar: acción con enlace al sellado; cobertura 0 de 0 sin porcentaje', async () => {
     show(fixtures.worstClosedUnsealed);
-    const action = await screen.findByTestId('action-closed-unsealed');
-    // Rediseño v2: el ítem de «Para atender» es un botón que lleva al panel de sellado (#sellado).
-    expect(action.closest('button')!.textContent).toMatch(/Ir al sellado/);
-    const coverage = screen.getByTestId('coverage');
+    const coverage = await screen.findByTestId('coverage');
+    expect(screen.queryByTestId('action-closed-unsealed')).toBeNull();
     expect(coverage.textContent).toMatch(/0 de 0 agricultores vinculados con cifras publicadas/);
     expect(coverage.textContent).not.toMatch(/%/);
-    expect(await screen.findByTestId('seal-panel')).toBeTruthy();
-    expect(document.getElementById('sellado')).not.toBeNull();
+    expect(screen.queryByTestId('seal-panel')).toBeNull();
+    expect(document.getElementById('sellado')).toBeNull();
     expectNoWrites();
   });
 
   it('sellada: versión identificada, cifra retirada sin número, sin panel de sellado ni lectura del sellado', async () => {
     show(fixtures.worstSealed);
     const version = await screen.findByTestId('seal-banner');
-    expect(version.textContent).toMatch(/Versión 1 sellada/);
+    expect(version.textContent).toMatch(/Resultados fijados el/);
     expect(version.textContent).toContain(fixtures.LONG_AUTHOR);
     const withdrawn = screen.getByTestId(`cell-DECLARED_NEED-${fixtures.LONG_PRODUCT}-ML`);
     expect(withdrawn.textContent).not.toMatch(/6000|6 L/);
-    expect(screen.getByTestId('coverage').textContent).toMatch(/Cobertura al sellar/);
+    expect(screen.getByTestId('coverage').textContent).toMatch(/Cobertura histórica/);
     expect(screen.getByTestId('coverage').textContent).toMatch(/1 de 1 agricultor vinculado con cifras publicadas/);
     expect(screen.queryByTestId('action-closed-unsealed')).toBeNull();
     expect(collectiveService.sealState).not.toHaveBeenCalled();
@@ -162,8 +159,8 @@ describe('Resumen con fixtures de casos extremos (break-ui)', () => {
 
   it('política pendiente: sin cifras, sin cobertura y sin indicador de necesidades', async () => {
     show(fixtures.worstPolicyPending);
-    // Rediseño v2 (lámina 05 §5): «Las cifras todavía no se pueden mostrar».
-    expect(await screen.findByText(/Las cifras todavía no se pueden mostrar/)).toBeTruthy();
+    // Rediseño v2 (lámina 05 §5): «Sin datos disponibles».
+    expect((await screen.findByTestId('policy-pending')).textContent).toMatch(/Sin datos disponibles/);
     expect(screen.queryByTestId('coverage')).toBeNull();
     expect(screen.queryByTestId('hero-stats')).toBeNull();
     expect(screen.queryByTestId('latest-figure')).toBeNull();

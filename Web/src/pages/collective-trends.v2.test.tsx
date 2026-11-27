@@ -24,7 +24,7 @@ const urea: TrendSeries = {
 };
 
 /** Rediseño v2 (láminas 25 y 40), H-10 provisional y F07 §8. */
-describe('Histórico sellado v2', () => {
+describe('Histórico de campañas v2', () => {
   beforeEach(() => {
     vi.mocked(collectiveService.trends).mockReset().mockResolvedValue(trendsWith([urea]));
   });
@@ -34,8 +34,8 @@ describe('Histórico sellado v2', () => {
     const chart = await screen.findByTestId('trend-chart');
     expect(within(chart).getAllByTestId('trend-coverage').map((node) => node.textContent)).toEqual(['4 de 7', '6 de 9']);
     const compact = screen.getByTestId('trend-chart-compact');
-    expect(compact.textContent).toMatch(/Cobertura al sellar: 4 de 7/);
-    expect(compact.textContent).toMatch(/Cobertura al sellar: 6 de 9/);
+    expect(compact.textContent).toMatch(/Cobertura histórica: 4 de 7/);
+    expect(compact.textContent).toMatch(/Cobertura histórica: 6 de 9/);
   });
 
   it('H-10: no destaca el máximo ni lo nombra; sin totales, medias, diferencias ni tasas', async () => {
@@ -46,8 +46,8 @@ describe('Histórico sellado v2', () => {
     expect(fills).toEqual(new Set(['currentColor']));
     expect(document.body.textContent).not.toMatch(/más alta|mayor consumo|máximo|\bTotal\b|\bPromedio\b|\bmedia\b|%/i);
     const help = screen.getByTestId('how-to-read');
-    expect(help.textContent).toMatch(/Solo entran campañas selladas/);
-    expect(help.textContent).toMatch(/Campaña 2026 no está sellada: no se dibuja/);
-    expect(within(help).getByRole('link', { name: 'Ver campañas y cobertura' }).getAttribute('href')).toBe('/campaigns');
+    expect(help.textContent).toMatch(/Un hueco es/);
+    expect(screen.queryByRole('option', { name: 'Campaña 2026' })).toBeNull();
+    expect(screen.getByTestId('sources').textContent).toMatch(/Ver campañas y cobertura/);
   });
 });

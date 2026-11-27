@@ -171,12 +171,7 @@ describePostgres("F12-EST-02/03 consumption series from real F07 seals", () => {
     for (const [farmer, product, unit, quantity] of rows) await push(farmer, campaigns[key], "CONSUMPTION_TOTAL", product, unit, quantity);
     expect((await http().post(`/api/v1/campaigns/${campaigns[key]}/close`).set(auth(director)).send({})).status).toBe(200);
     const state = await http().get(`/api/v1/collective/campaigns/${campaigns[key]}/seal`).set(auth(director));
-    expect(state.body.can_seal).toBe(true);
-    const sealed = await http()
-      .post(`/api/v1/collective/campaigns/${campaigns[key]}/seal`)
-      .set(auth(director))
-      .send({ confirmed: true, review_ref: state.body.review.review_ref });
-    expect(sealed.status).toBe(200);
+    expect(state.body).toMatchObject({ state: "SEALED", can_seal: false, seal: { version: 1 } });
   }
 
   async function plannedCampaign(key: string, year: number) {
@@ -251,7 +246,7 @@ describePostgres("F12-EST-02/03 consumption series from real F07 seals", () => {
       [3, "C1", "VERIFIED_CONSUMPTION", "600", known],
       [4, "C2", "VERIFIED_CONSUMPTION", "0", known],
       [5, "C3", "NO_RECORD", null, `0/${linked}`],
-      [6, "C4", "HIDDEN", null, `0/${linked}`],
+      [6, "C4", "VERIFIED_CONSUMPTION", "300", `2/${linked}`],
       [7, "C5", "VERIFIED_CONSUMPTION", "1500", known],
       [8, "C6", "HIDDEN", null, known],
       [9, "C7", "VERIFIED_CONSUMPTION", "2400", known],
@@ -282,13 +277,13 @@ describePostgres("F12-EST-02/03 consumption series from real F07 seals", () => {
       ["C1", "BEFORE_GAP"],
       ["C2", "BEFORE_GAP"],
       ["C3", "NO_RECORD"],
-      ["C4", "HIDDEN"],
+      ["C4", "BEFORE_GAP"],
       ["C5", "BEFORE_GAP"],
       ["C6", "HIDDEN"],
       ["T", "NOT_BEFORE_TARGET"],
     ]);
-    // A target right after C5 reads C5 as the last relevant campaign, after the C4 gap: too short.
-    expect(assessSpanFor(built, "C5")).toMatchObject({ status: "INSUFFICIENT_DATA", reason: "SPAN_TOO_SHORT", span: { length: 1 } });
+    // A target right after C5 reads C5 as the last relevant campaign, after the C3 gap: two points, still too short.
+    expect(assessSpanFor(built, "C5")).toMatchObject({ status: "INSUFFICIENT_DATA", reason: "SPAN_TOO_SHORT", span: { length: 2 } });
 
     // F12-EST-04 on that span, by hand: e3 = 900 − (2400 + 900α) is smallest in absolute value at α = 0,
     // criterion 1500² = 2 250 000; SES = L3 = 2400 mL; naive = 900 mL with criterion (900 − 3300)² = 5 760 000.
@@ -436,7 +431,7 @@ describePostgres("F12-EST-02/03 consumption series from real F07 seals", () => {
       expect(await useCase.build(f.tenantA, seasons["INVIERNO"]!, products["Herbicida"]!)).toEqual({ refused: "POLICY_PENDING" });
       expect(await prisma.consumptionSeries.count()).toBe(count);
     } finally {
-      mutable.mode = "PROVISIONAL_SYNTHETIC";
+      mutable.mode = "APPROVED";
     }
     demo["MEZCLA"] = { fungicide: table(fungicide) };
   });

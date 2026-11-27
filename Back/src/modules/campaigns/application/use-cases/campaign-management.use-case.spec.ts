@@ -37,8 +37,10 @@ describe('CampaignManagementUseCase', () => {
     context?: Partial<CampaignContextService>,
     prismaOverrides: Record<string, unknown> = {},
   ) {
+    const lock = jest.fn();
+    const seals = { writeLocked: jest.fn() };
     const prisma = {
-      $transaction: jest.fn((callback: (client: unknown) => unknown) => callback(tx)),
+      $transaction: jest.fn((callback: (client: unknown) => unknown) => callback(Object.assign(tx, { $executeRaw: lock }))),
       ...prismaOverrides,
     };
 
@@ -49,8 +51,9 @@ describe('CampaignManagementUseCase', () => {
 
     return {
       prisma,
+      seals,
       campaignContext,
-      useCase: new CampaignManagementUseCase(prisma as never, campaignContext as never),
+      useCase: new CampaignManagementUseCase(prisma as never, campaignContext as never, seals as never),
     };
   }
 
@@ -335,7 +338,7 @@ describe('CampaignManagementUseCase', () => {
     const tx = {
       agriculturalCampaign: {
         findFirst: jest.fn().mockResolvedValue(campaign({
-          status: CampaignStatus.CERRADA,
+          status: CampaignStatus.PLANIFICADA,
           isActive: false,
           _count: undefined,
         })),
@@ -351,5 +354,20 @@ describe('CampaignManagementUseCase', () => {
       useCase.closeCampaign(tenantId, actorUserId, UserRole.DIRECTIVA, campaignId),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(tx.agriculturalCampaign.update).not.toHaveBeenCalled();
+  });
+
+  it('repeats a completed close without writing another history or audit', async () => {
+    const closedAt = new Date('2026-11-25T12:00:00Z');
+    const tx = {
+      agriculturalCampaign: {
+        findFirst: jest.fn().mockResolvedValue(campaign({ status: CampaignStatus.CERRADA, closedAt })),
+        update: jest.fn(),
+      },
+    };
+    const { useCase, seals } = createUseCase(tx);
+    await expect(useCase.closeCampaign(tenantId, actorUserId, UserRole.ADMINISTRADOR, campaignId))
+      .resolves.toMatchObject({ status: CampaignStatus.CERRADA, closedAt: closedAt.toISOString() });
+    expect(tx.agriculturalCampaign.update).not.toHaveBeenCalled();
+    expect(seals.writeLocked).not.toHaveBeenCalled();
   });
 });

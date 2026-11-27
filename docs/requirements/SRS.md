@@ -248,3 +248,8 @@ Estos requisitos del sistema derivan de los URS F01 y de la arquitectura aceptad
 - **Implementation phase:** #81 cross-cutting; F02/F05/F06/F07/F08; verificación F10.
 - **Verification target:** REVIEW, INT, E2E, RECONCILIATION, BACKUP_RESTORE
 - **Status:** `BASELINED`
+
+
+## Actualización de la gestión institucional
+
+Desde el 26 de noviembre de 2026, el cierre de campaña fija sus resultados de forma atómica. Administración y Directiva gestionan las convocatorias de su sindicato por rol. Para las reglas vigentes de publicación, visibilidad, cierre y recuperación histórica, consulte [Cierre de campaña y gestión institucional](../architecture/CIERRE_Y_GESTION_INSTITUCIONAL.md).

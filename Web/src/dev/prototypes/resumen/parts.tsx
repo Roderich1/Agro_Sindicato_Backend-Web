@@ -156,12 +156,11 @@ export interface BarsProps {
   meta?: boolean;
   /** Las unidades en dos columnas en pantallas anchas. */
   columns?: boolean;
-  threshold: number | null;
   /** Referencia de estimación por fila (variante Comparación). */
   estimation?: EstimationView | null;
 }
 
-export function Bars({ groups, density = 'wide', meta = false, columns = false, threshold, estimation = null }: BarsProps) {
+export function Bars({ groups, density = 'wide', meta = false, columns = false, estimation = null }: Readonly<BarsProps>) {
   const withReference = estimation !== null && estimation.kind === 'results';
   return (
     <div className={`grid gap-y-6 ${columns && groups.length > 1 ? 'lg:grid-cols-2 lg:gap-x-10' : ''}`}>
@@ -183,7 +182,7 @@ export function Bars({ groups, density = 'wide', meta = false, columns = false, 
           )}
           <ul className={`mt-2 ${density === 'wide' ? 'space-y-3.5' : 'space-y-2'}`} aria-label={UNIT_LIST[group.unit]}>
             {group.rows.map((row) => (
-              <BarRow key={row.key} row={row} density={density} meta={meta} threshold={threshold} estimation={withReference ? estimation : null} />
+              <BarRow key={row.key} row={row} density={density} meta={meta} estimation={withReference ? estimation : null} />
             ))}
           </ul>
         </section>
@@ -192,7 +191,7 @@ export function Bars({ groups, density = 'wide', meta = false, columns = false, 
   );
 }
 
-function BarRow({ row, density, meta, threshold, estimation }: { row: Row; density: 'wide' | 'compact'; meta: boolean; threshold: number | null; estimation: EstimationView | null }) {
+function BarRow({ row, density, meta, estimation }: Readonly<{ row: Row; density: 'wide' | 'compact'; meta: boolean; estimation: EstimationView | null }>) {
   const bar = density === 'wide' ? 'h-5' : 'h-3';
   const figure = density === 'wide' ? 'text-lg' : 'text-base';
   const reference = estimation ? referenceFor(row, estimation) : null;
@@ -235,7 +234,7 @@ function BarRow({ row, density, meta, threshold, estimation }: { row: Row; densi
         ) : (
           <p className="text-xs leading-snug text-slate-600 sm:col-span-2">
             <span className="mr-1.5 inline-block align-middle">
-              <StatusChip status={row.cell.status} threshold={threshold} />
+              <StatusChip status={row.cell.status} />
             </span>
             {row.reason} <span className="text-slate-500">· aportantes no revelados</span>
           </p>
@@ -272,7 +271,7 @@ function Reference({ cell }: { cell: NonNullable<ReturnType<typeof referenceFor>
 
 /* ── Tabla completa: alternativa textual del gráfico, con cada fecha ──────── */
 
-export function DetailTable({ groups, caption, threshold }: { groups: Group[]; caption: string; threshold: number | null }) {
+export function DetailTable({ groups, caption }: Readonly<{ groups: Group[]; caption: string }>) {
   return (
     <DataTable caption={caption} minWidth={720}>
       <thead>
@@ -301,7 +300,7 @@ export function DetailTable({ groups, caption, threshold }: { groups: Group[]; c
                 {row.name}
               </th>
               <td>
-                <StatusChip status={row.cell.status} threshold={threshold} />
+                <StatusChip status={row.cell.status} />
                 {row.pending && <span className="block text-[11px] text-amber-800">Cambios pendientes: se muestra la cifra anterior.</span>}
                 {!row.disclosed && <span className="block max-w-xs text-[11px] leading-snug text-slate-600">{row.reason}</span>}
               </td>
@@ -317,7 +316,7 @@ export function DetailTable({ groups, caption, threshold }: { groups: Group[]; c
 }
 
 /** Consumo publicado: lista compacta, separada de la necesidad (no se resta ni se compara). */
-export function ConsumptionList({ groups, threshold }: { groups: Group[]; threshold: number | null }) {
+export function ConsumptionList({ groups }: Readonly<{ groups: Group[] }>) {
   if (groups.length === 0) {
     return <p className="px-5 py-3 text-sm text-slate-600">Sin consumo publicado en esta campaña. Eso no significa cero.</p>;
   }
@@ -327,7 +326,7 @@ export function ConsumptionList({ groups, threshold }: { groups: Group[]; thresh
         Lo que los agricultores registraron como aplicado y publicaron desde la app. Es un dato distinto de la necesidad declarada: no se resta ni se compara con ella.
       </p>
       <div className="mt-3">
-        <Bars groups={groups} density="compact" meta threshold={threshold} />
+        <Bars groups={groups} density="compact" meta />
       </div>
     </div>
   );

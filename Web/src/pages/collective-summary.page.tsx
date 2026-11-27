@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { HeroCoverage } from '../components/a/coverage-figure';
 import { AppShell } from '../components/app-shell';
 import { ExportButtons } from '../components/export-buttons';
-import { SealPanel } from '../components/seal-panel';
 import {
   buttonClassFor,
   Card,
@@ -42,7 +41,6 @@ export function CollectiveSummaryPage() {
   const [summary, setSummary] = useState<CollectiveSummary | null>(null);
   const [error, setError] = useState<{ kind: DataStateKind; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [reloads, setReloads] = useState(0);
   const current = useRef<string | null>(null);
   const requested = useRef<string | null>(null);
 
@@ -50,7 +48,6 @@ export function CollectiveSummaryPage() {
     setLoading(true);
     setError(null);
     setSummary(null);
-    setReloads((value) => value + 1);
     try {
       const data = await collectiveService.summary(campaignId);
       if (current.current !== campaignId) return;
@@ -169,28 +166,22 @@ export function CollectiveSummaryPage() {
                   <Card>
                     <DataState
                       state="policy-pending"
-                      description="El sindicato no aprobó aún la política de publicación. Cuando se apruebe, aquí aparecerán las necesidades y el consumo."
+                      description="Sin datos disponibles."
                       testId="policy-pending"
                     />
                   </Card>
                 ) : (
-                  <NeedsSection needs={needs} policy={summary.disclosure.policy} threshold={summary.disclosure.threshold} />
+                  <NeedsSection needs={needs} />
                 )}
               </div>
             )}
             {summary && (
               <div className="min-w-0 space-y-6 xl:col-start-2 xl:row-start-2">
-                {!policyPending && <ConsumptionCard cells={consumption} threshold={summary.disclosure.threshold} />}
+                {!policyPending && <ConsumptionCard cells={consumption} />}
                 <VersionCard
                   seal={summary.seal}
                   status={summary.campaign.status}
-                  sealPanel={
-                    selected && !summary.seal ? (
-                      <div id="sellado" tabIndex={-1} className="scroll-mt-24 outline-none">
-                        <SealPanel key={`${selected}:${reloads}`} campaignId={selected} closedAt={campaign?.closedAt} onSealed={() => void load(selected)} />
-                      </div>
-                    ) : null
-                  }
+                  sealPanel={null}
                 />
               </div>
             )}

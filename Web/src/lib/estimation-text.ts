@@ -15,7 +15,7 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
   LAST_RELEVANT_CAMPAIGN_NOT_VERIFIED: 'La campaña comparable inmediatamente anterior no tiene consumo comprobado.',
   SPAN_TOO_SHORT: 'Hay menos de tres campañas comparables consecutivas con consumo comprobado.',
   NO_SERIES: 'No hay serie de consumo de este producto.',
-  MIXED_UNITS: 'Las cifras selladas de este producto están en unidades distintas: masa y volumen no se mezclan.',
+  MIXED_UNITS: 'Las cifras históricas de este producto están en unidades distintas: masa y volumen no se mezclan.',
   NO_COMPARABLE_CAMPAIGNS: 'No hay campañas comparables anteriores con las que estimar.',
   COVERAGE_UNKNOWN: 'Alguna campaña del tramo no tiene la cobertura identificada.',
   CALCULATION_ERROR: 'El cálculo de este producto falló.',
@@ -45,7 +45,7 @@ export const JOB_STATUS_TEXT: Record<JobStatus, string> = {
 };
 
 export const STOP_TEXT: Record<StopCode, string> = {
-  POLICY_PENDING: 'La política de divulgación dejó de permitirlo antes de calcular. No se calculó nada.',
+  POLICY_PENDING: 'Sin estimación disponible.',
   REQUESTER_NOT_AUTHORIZED: 'Quien lo pidió perdió el permiso antes de calcular. No se calculó nada.',
   TARGET_CAMPAIGN_NOT_ELIGIBLE:
     'La campaña dejó de estar planificada o abierta, o perdió su clasificación, antes de calcular. No se calculó nada.',
@@ -88,7 +88,7 @@ const CODE_TEXT: Record<string, string> = {
 };
 
 export const POLICY_PENDING_TEXT =
-  'La política de divulgación no está aprobada: no se solicita ni se muestra ninguna estimación.';
+  'Sin estimación disponible.';
 
 export function estimationError(err: unknown, fallback: string): EstimationError {
   if (axios.isAxiosError(err)) {

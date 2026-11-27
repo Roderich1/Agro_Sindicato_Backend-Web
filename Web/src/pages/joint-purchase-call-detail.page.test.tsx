@@ -5,9 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CLOSE_IMPLICATION,
   fmtWhen,
-  GRANT_ACCESS_NOTE,
-  MANAGE_LOST_TEXT,
-  MANAGE_ONLY_TEXT,
   NOT_A_PURCHASE_TEXT,
   OPEN_ACCESS_LINE,
   OPEN_IMPLICATIONS,
@@ -15,12 +12,6 @@ import {
   PARTICIPANTS_REVOKED_TEXT,
   PENDING_CONSENT_TOTAL_TEXT,
   PREVIOUS_POLICY_TOTAL_NOTE,
-  RESPONSIBLE_INELIGIBLE_TEXT,
-  RESPONSIBLE_INELIGIBLE_WHO,
-  SELF_SUBSTITUTION_TEXT,
-  SUBSTITUTION_NO_CANDIDATES_TEXT,
-  SUBSTITUTION_ONLY_SELF_TEXT,
-  SUBSTITUTION_WHO_TEXT,
   WHY_VISIBLE_TEXT,
 } from '../lib/joint-purchase-call-text';
 import { campaignsService } from '../services/campaigns.service';
@@ -271,8 +262,9 @@ function axiosError(status: number, data: unknown = {}) {
   return error;
 }
 
-const render = () =>
+const render = (role = 'DIRECTIVA') =>
   renderAt(<JointPurchaseCallDetailPage />, {
+    role,
     path: `/colectivo/compras-conjuntas/c-1?campaign=${CAMPAIGN.id}`,
     routePath: '/colectivo/compras-conjuntas/:id',
   });
@@ -301,7 +293,7 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     expect(jointPurchaseCallsService.get).toHaveBeenCalledWith('c-1');
     // Rediseño v2 (lámina 10): los datos clave van en la cabecera; en un borrador, «Los agricultores: Aún no la ven».
     const facts = screen.getByTestId('call-key-facts');
-    expect(facts.textContent).toMatch(/Responsable sintética/);
+    expect(facts.textContent).not.toMatch(/Responsable sintética/);
     expect(facts.textContent).toMatch(/Aún no la ven/);
     expect(screen.getByTestId('draft-requests').textContent).toMatch(/Nadie puede pedir todavía/);
     expect(screen.getByTestId('call-product-p-1').textContent).toMatch(/Necesidad declarada en el borrador: 120 L/);
@@ -395,82 +387,16 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
     expect((within(dialog()).getByLabelText('Nombre') as HTMLInputElement).value).toBe('Herbicidas de la siembra');
     fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: 'Urea de la siembra' } });
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('u-2'));
     expect((await within(dialog()).findByRole('checkbox', { name: /Urea/ }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', {
         name: 'Urea de la siembra',
         deadline_at: new Date('2099-12-01T18:00').toISOString(),
-        responsible_user_id: 'u-2',
         products: [{ product_ref: 'p-3' }],
         source_proposal_id: null,
       }),
     );
-  });
-
-  /** Borrador del catálogo cuya responsable es quien consulta (u-1). */
-  function mineDraft(): JointPurchaseCallDetail {
-    return {
-      ...DRAFT,
-      source_proposal_ref: null,
-      products: [{ ...DRAFT.products[1]!, position: 0, reference: null }],
-      responsible: { user_ref: 'u-1', name: 'Usuario sintético', role: 'DIRECTIVA', eligible: true, version: 1 },
-      is_responsible: true,
-      my_grants: [],
-    };
-  }
-
-  async function openEditor(draft: JointPurchaseCallDetail) {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(draft);
-    vi.mocked(jointPurchaseCallsService.update).mockResolvedValue(draft);
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([
-      { user_ref: 'u-1', name: 'Usuario sintético', role: 'DIRECTIVA' },
-      { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
-      { user_ref: 'u-3', name: 'Administrador sintético', role: 'ADMINISTRADOR' },
-    ]);
-    vi.mocked(collectiveService.catalog).mockResolvedValue([{ product_ref: 'p-3', product_name: 'Urea', unit: 'kg', base_unit: 'G', is_active: true }]);
-    vi.mocked(collectiveService.associations).mockResolvedValue({ current: [], history: [] });
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
-    fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe(draft.responsible.user_ref));
-    await within(dialog()).findByRole('checkbox', { name: /Urea/ });
-  }
-
-  it('P-B al editar: la responsable que nombra a otra persona ve el aviso y sólo con «Confirmar» se envía', async () => {
-    await openEditor(mineDraft());
-    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-2' } });
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
-    const warning = within(dialog()).getByTestId('handover-warning');
-    expect(warning.textContent).toContain('Eligió a Responsable sintética como responsable. Si guarda así, usted deja de administrar esta convocatoria:');
-    expect(warning.textContent).toContain('no podrá editar el borrador;');
-    expect(jointPurchaseCallsService.update).not.toHaveBeenCalled();
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
-    await waitFor(() =>
-      expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-2' })),
-    );
-    expect(jointPurchaseCallsService.update).toHaveBeenCalledTimes(1);
-  });
-
-  it('P-B al editar: la responsable que se mantiene no ve ningún aviso', async () => {
-    await openEditor(mineDraft());
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
-    await waitFor(() =>
-      expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-1' })),
-    );
-    expect(screen.queryByTestId('handover-warning')).toBeNull();
-  });
-
-  it('P-B al editar: quien administra sin ser la responsable (con «Administrar») no ve el aviso aunque elija a otra persona', async () => {
-    // DRAFT: responsable u-2; quien consulta (u-1) tiene MANAGE.
-    await openEditor({ ...DRAFT, source_proposal_ref: null, products: [{ ...DRAFT.products[1]!, position: 0, reference: null }] });
-    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-3' } });
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
-    await waitFor(() =>
-      expect(jointPurchaseCallsService.update).toHaveBeenCalledWith('c-1', expect.objectContaining({ responsible_user_id: 'u-3' })),
-    );
-    expect(screen.queryByTestId('handover-warning')).toBeNull();
   });
 
   it('abierta: cerrar pide confirmación con lo que implica y llama al servidor', async () => {
@@ -704,7 +630,6 @@ describe('Compras conjuntas: detalle (E2 §6)', () => {
 
 /** Quien consulta en las pruebas es `u-1` («Usuario sintético», `renderAt`). */
 const ME = { user_ref: 'u-1', name: 'Usuario sintético' };
-const COLLABORATOR = { user_ref: 'u-4', name: 'Colaboradora sintética' };
 const ELIGIBLE = [
   { user_ref: 'u-1', name: 'Usuario sintético', role: 'DIRECTIVA' },
   { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
@@ -712,64 +637,11 @@ const ELIGIBLE = [
   { user_ref: 'u-4', name: 'Colaboradora sintética', role: 'DIRECTIVA' },
 ];
 const NO_GRANTS = { can_manage: false, can_cancel_or_close: false, my_grants: [] } as const;
-const RETIRED_NOTICE = 'Permiso de visualización retirado el 2026-11-13; no da acceso.';
-
-/** Abierta, vista por la persona responsable (u-1), que es de la Administración. */
-const OPEN_MINE: JointPurchaseCallDetail = {
-  ...OPEN_ADMIN,
-  is_responsible: true,
-  responsible: { ...ME, role: 'ADMINISTRADOR', eligible: true, version: 1 },
-  created_by: ME,
-};
 
 /** Abierta, vista por una persona de la Administración (u-1) sin `MANAGE`. */
 const OPEN_ADMIN_VIEWER: JointPurchaseCallDetail = { ...OPEN_ADMIN, ...NO_GRANTS, my_grants: [] };
 /** La misma persona tras perder el rol de Administración (pasa a Directiva o se deshabilita). */
 const OPEN_ROLE_LOST: JointPurchaseCallDetail = { ...OPEN, ...NO_GRANTS, my_grants: [] };
-
-const manageGrant = (by: { user_ref: string; name: string }, over: Partial<JointPurchaseCallCollaborators['collaborators'][number]['grants'][number]> = {}) => ({
-  grant: 'MANAGE' as const,
-  label: 'Administrar la convocatoria',
-  granted_at: '2026-11-11T12:30:00.000Z',
-  granted_by: by,
-  status: 'IN_FORCE' as const,
-  responsible_version: 1,
-  ...over,
-});
-
-/** `MANAGE` de quien consulta (u-1), concedido por la responsable. */
-const MY_GRANT_VIEW: JointPurchaseCallCollaborators = {
-  ...NO_COLLABORATORS,
-  collaborators: [{ ...ME, role: 'DIRECTIVA', grants: [manageGrant(RESPONSIBLE)] }],
-  history: [{ at: '2026-11-11T12:30:00.000Z', action: 'GRANTED', grant: 'MANAGE', user: ME, actor: RESPONSIBLE, retired: false, notice: null }],
-};
-
-const ADMIN = { user_ref: 'u-3', name: 'Administrador sintético' };
-/** Vista de la responsable (u-1): un `MANAGE` vigente y la historia de un permiso de visualización retirado. */
-const RESPONSIBLE_VIEW: JointPurchaseCallCollaborators = {
-  ...NO_COLLABORATORS,
-  responsible: ME,
-  can_grant: true,
-  collaborators: [{ ...COLLABORATOR, role: 'DIRECTIVA', grants: [manageGrant(ME)] }],
-  retired_grants: [
-    {
-      grant: 'PARTICIPANTS',
-      label: 'Consultar participantes y cantidades',
-      user: ADMIN,
-      granted_at: '2026-11-10T16:00:00.000Z',
-      granted_by: ME,
-      responsible_version: 1,
-      retired: true,
-      notice: RETIRED_NOTICE,
-    },
-  ],
-  history: [
-    { at: '2026-11-10T16:00:00.000Z', action: 'GRANTED', grant: 'PARTICIPANTS', user: ADMIN, actor: ME, retired: true, notice: RETIRED_NOTICE },
-    { at: '2026-11-11T12:30:00.000Z', action: 'GRANTED', grant: 'MANAGE', user: COLLABORATOR, actor: ME, retired: false, notice: null },
-    { at: '2026-11-11T12:40:00.000Z', action: 'GRANTED', grant: 'MANAGE', user: ADMIN, actor: ME, retired: false, notice: null },
-    { at: '2026-11-11T12:50:00.000Z', action: 'REVOKED', grant: 'MANAGE', user: ADMIN, actor: ADMIN, retired: false, notice: null },
-  ],
-};
 
 /** Ni nombres ni cantidades por persona de `PARTICIPANTS` (2,5 L y 7 L). */
 function expectNoIdentifiedData() {
@@ -785,13 +657,7 @@ async function participantsShown() {
   return panel;
 }
 
-const mockResponsibleView = () => {
-  vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN_MINE);
-  vi.mocked(jointPurchaseCallsService.participants).mockResolvedValue(PARTICIPANTS);
-  vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(RESPONSIBLE_VIEW);
-};
-
-describe('Compras conjuntas: acceso por rol, «Administrar» y sustitución (E4 §2, §3.1 y §6)', () => {
+describe('Compras conjuntas: gestión por rol y consentimiento', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN]);
@@ -806,219 +672,23 @@ describe('Compras conjuntas: acceso por rol, «Administrar» y sustitución (E4 
     vi.restoreAllMocks();
   });
 
-  it.each([
-    ['borrador', { ...DRAFT, ...NO_GRANTS, my_grants: [] } as JointPurchaseCallDetail],
-    ['abierta', { ...OPEN, ...NO_GRANTS, my_grants: [] } as JointPurchaseCallDetail],
-  ])('%s sin can_manage: ni Editar, ni Abrir, ni Cerrar, ni Cancelar; se explica quién puede', async (_label, call) => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(call);
-    render();
-    expect((await screen.findByTestId('manage-note')).textContent).toBe(MANAGE_ONLY_TEXT);
-    for (const name of ['Editar', 'Abrir convocatoria…', 'Cerrar y consolidar…', 'Cancelar convocatoria…']) expect(screen.queryByRole('button', { name })).toBeNull();
-    expect(screen.getByTestId('call-facts').textContent).toMatch(/Sus permisos:Ninguno/);
-  });
-
-  it('con can_manage (sin ser responsable): Editar, Abrir y Cancelar en el borrador; sin aviso', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(DRAFT);
-    render();
-    for (const name of ['Editar', 'Abrir convocatoria…', 'Cancelar convocatoria…']) expect(await screen.findByRole('button', { name })).toBeTruthy();
-    expect(screen.queryByTestId('manage-note')).toBeNull();
-    expect(screen.getByTestId('call-facts').textContent).toMatch(/Sus permisos:Administrar la convocatoria/);
-  });
-
-  // Reescrita por E4 §6.3: sustituye la Administración habilitada sin permiso adicional (antes, quien tuviera el
-  // permiso «Sustituir responsable»). Se conservan motivo, confirmación, prohibición de autosustitución y versión esperada.
-  it('responsable no habilitada, Administración: nadie administra por su rol; la Administración la sustituye con motivo y confirmación', async () => {
-    const ineligible = { ...RESPONSIBLE, role: 'DIRECTIVA', eligible: false, version: 1 };
-    const successor = { user_ref: 'u-9', name: 'Sucesora sintética' };
-    const base: JointPurchaseCallDetail = { ...OPEN_ADMIN, responsible: ineligible, ...NO_GRANTS, my_grants: [], delegations_suspended: true };
-    const after: JointPurchaseCallDetail = {
-      ...base,
-      responsible: { ...successor, role: 'DIRECTIVA', eligible: true, version: 2 },
-      delegations_suspended: false,
-      responsible_changes: [
-        {
-          version: 2,
-          at: '2026-11-12T15:00:00.000Z',
-          previous: RESPONSIBLE,
-          next: successor,
-          actor: { user_ref: 'u-1', name: 'Administradora sintética' },
-          reason: 'La responsable está de viaje',
-          call_status: 'OPEN',
-          suspended_delegations: 1,
-        },
-      ],
-    };
-    vi.mocked(jointPurchaseCallsService.get)
-      .mockResolvedValueOnce({ ...base, can_substitute_responsible: true })
-      .mockResolvedValue(after);
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([
-      { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
-      { user_ref: 'u-1', name: 'Administradora sintética', role: 'ADMINISTRADOR' },
-      { ...successor, role: 'DIRECTIVA' },
-    ]);
-    vi.mocked(jointPurchaseCallsService.substituteResponsible).mockResolvedValue(after);
-    render();
-    expect((await screen.findByTestId('responsible-ineligible')).textContent).toBe(RESPONSIBLE_INELIGIBLE_TEXT);
-    expect(screen.queryByTestId('responsible-ineligible-who')).toBeNull();
-    // Ningún rol cierra ni cancela.
-    expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Cancelar convocatoria…' })).toBeNull();
-    // Rediseño v2 (lámina 20): la responsable va en la cabecera con el chip «Responsable no habilitada».
-    expect(screen.getByTestId('hero-responsible').textContent).toMatch(/Responsable sintética/);
-    expect(screen.getByTestId('responsible-ineligible-chip').textContent).toBe('Responsable no habilitada');
-    fireEvent.click(screen.getByRole('button', { name: 'Sustituir responsable…' }));
-    const implications = within(dialog()).getByTestId('substitute-implications').textContent;
-    expect(implications).toMatch(/Ser responsable no da acceso a nombres ni cantidades/);
-    expect(implications).toMatch(/No pide ninguna autorización nueva a los agricultores/);
-    expect(within(dialog()).getByTestId('substitute-who').textContent).toBe(SUBSTITUTION_WHO_TEXT);
-    expect(dialog().textContent).not.toMatch(/el permiso del sindicato/);
-    const select = (await within(dialog()).findByLabelText('Nueva persona responsable')) as HTMLSelectElement;
-    await waitFor(() => expect([...select.options].map((option) => option.value)).toEqual(['', 'u-9']));
-    // Decisión del autor: quien sustituye (u-1, elegible) no aparece y se le explica por qué.
-    expect(within(dialog()).getByTestId('substitute-self-note').textContent).toBe(SELF_SUBSTITUTION_TEXT);
-    const submit = () => within(dialog()).getByRole('button', { name: 'Sustituir responsable' }) as HTMLButtonElement;
-    fireEvent.change(select, { target: { value: 'u-9' } });
-    fireEvent.click(confirmBox());
-    // Sin motivo no se puede confirmar.
-    expect(submit().disabled).toBe(true);
-    fireEvent.change(within(dialog()).getByLabelText('Motivo'), { target: { value: 'La responsable está de viaje' } });
-    expect(submit().disabled).toBe(false);
-    fireEvent.click(submit());
-    await waitFor(() =>
-      expect(jointPurchaseCallsService.substituteResponsible).toHaveBeenCalledWith('c-1', {
-        requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
-        expectedVersion: 1,
-        newResponsibleRef: 'u-9',
-        reason: 'La responsable está de viaje',
-      }),
-    );
-    expect((await screen.findByTestId('responsible-change')).textContent).toMatch(
-      /Sucesora sintética sustituyó a Responsable sintética .*Administradora sintética\. Motivo: La responsable está de viaje/,
-    );
-    expect(screen.queryByTestId('responsible-ineligible')).toBeNull();
-  });
-
-  it('responsable no habilitada, Directiva: explicación breve para pedir la intervención de la Administración, sin botón de sustituir', async () => {
-    const ineligible = { ...RESPONSIBLE, role: 'DIRECTIVA', eligible: false, version: 1 };
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN, responsible: ineligible, ...NO_GRANTS, my_grants: [], delegations_suspended: true });
-    render();
-    expect((await screen.findByTestId('responsible-ineligible')).textContent).toBe(RESPONSIBLE_INELIGIBLE_TEXT);
-    expect(screen.getByTestId('responsible-ineligible-who').textContent?.trim()).toBe(RESPONSIBLE_INELIGIBLE_WHO);
-    expect(screen.queryByRole('button', { name: 'Sustituir responsable…' })).toBeNull();
-    expect(screen.queryByTestId('substitute-dialog')).toBeNull();
-    expect(jointPurchaseCallsService.participants).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    ['sólo es elegible quien sustituye', [{ user_ref: 'u-1', name: 'Usuario sintético', role: 'ADMINISTRADOR' }], SUBSTITUTION_ONLY_SELF_TEXT],
-    ['no hay nadie elegible', [], SUBSTITUTION_NO_CANDIDATES_TEXT],
-  ] as const)('sustitución: si %s, se informa del bloqueo sin salida automática ni forma de enviar', async (_case, eligible, text) => {
-    const ineligible = { ...RESPONSIBLE, role: 'DIRECTIVA', eligible: false, version: 1 };
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN_ADMIN, responsible: ineligible, ...NO_GRANTS, my_grants: [], can_substitute_responsible: true });
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([
-      { user_ref: 'u-2', name: 'Responsable sintética', role: 'DIRECTIVA' },
-      ...eligible,
-    ]);
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable…' }));
-    expect((await within(dialog()).findByTestId('substitute-no-candidates')).textContent).toContain(text);
-    expect(within(dialog()).queryByLabelText('Nueva persona responsable')).toBeNull();
-    expect(within(dialog()).queryByTestId('substitute-self-note')).toBeNull();
-    expect((within(dialog()).getByRole('button', { name: 'Sustituir responsable' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(jointPurchaseCallsService.substituteResponsible).not.toHaveBeenCalled();
-  });
-
-  it('sustitución: si otra persona sustituyó antes (409 RESPONSIBLE_CHANGED), se explica y se recarga; nunca se reintenta sola', async () => {
-    const ineligible = { ...RESPONSIBLE, role: 'DIRECTIVA', eligible: false, version: 1 };
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN_ADMIN, responsible: ineligible, ...NO_GRANTS, my_grants: [], can_substitute_responsible: true });
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([{ user_ref: 'u-9', name: 'Sucesora sintética', role: 'DIRECTIVA' }]);
-    vi.mocked(jointPurchaseCallsService.substituteResponsible).mockRejectedValue(axiosError(409, { errorCode: 'RESPONSIBLE_CHANGED', responsible_version: 2 }));
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable…' }));
-    const select = (await within(dialog()).findByLabelText('Nueva persona responsable')) as HTMLSelectElement;
-    await waitFor(() => expect(select.options.length).toBe(2));
-    fireEvent.change(select, { target: { value: 'u-9' } });
-    fireEvent.change(within(dialog()).getByLabelText('Motivo'), { target: { value: 'Motivo sintético' } });
-    fireEvent.click(confirmBox());
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Sustituir responsable' }));
-    expect((await screen.findByTestId('call-alert')).textContent).toMatch(/Otra persona sustituyó a la responsable mientras tanto/);
-    expect(anyDialog()).toBeNull();
-    expect(jointPurchaseCallsService.substituteResponsible).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2));
-  });
-
-  it('sustitución: 403 SUBSTITUTION_FORBIDDEN (el rol cambió entre tanto) se explica y se recarga', async () => {
-    const ineligible = { ...RESPONSIBLE, role: 'DIRECTIVA', eligible: false, version: 1 };
-    vi.mocked(jointPurchaseCallsService.get)
-      .mockResolvedValueOnce({ ...OPEN_ADMIN, responsible: ineligible, ...NO_GRANTS, my_grants: [], can_substitute_responsible: true })
-      .mockResolvedValue({ ...OPEN, responsible: ineligible, ...NO_GRANTS, my_grants: [] });
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([{ user_ref: 'u-9', name: 'Sucesora sintética', role: 'DIRECTIVA' }]);
-    vi.mocked(jointPurchaseCallsService.substituteResponsible).mockRejectedValue(axiosError(403, { errorCode: 'SUBSTITUTION_FORBIDDEN' }));
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Sustituir responsable…' }));
-    const select = (await within(dialog()).findByLabelText('Nueva persona responsable')) as HTMLSelectElement;
-    await waitFor(() => expect(select.options.length).toBe(2));
-    fireEvent.change(select, { target: { value: 'u-9' } });
-    fireEvent.change(within(dialog()).getByLabelText('Motivo'), { target: { value: 'Motivo sintético' } });
-    fireEvent.click(confirmBox());
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Sustituir responsable' }));
-    expect((await screen.findByTestId('call-alert')).textContent).toMatch(/Sólo una persona de la Administración habilitada puede sustituir/);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Sustituir responsable…' })).toBeNull());
-    expect(screen.getByTestId('responsible-ineligible-who')).toBeTruthy();
-  });
-
-  // Reescrita por E4: la nueva responsable sólo revisa `MANAGE`; los permisos de visualización ya no se revisan.
-  it('la nueva responsable revisa cada «Administrar» suspendido (confirmar o retirar) y ve el recuento de pendientes de autorización', async () => {
-    const successorView: JointPurchaseCallDetail = {
-      ...OPEN,
-      is_responsible: true,
-      responsible: { ...ME, role: 'DIRECTIVA', eligible: true, version: 2 },
-      pending_delegation_reviews: 1,
-      responsible_changes: [
-        {
-          version: 2,
-          at: '2026-11-12T15:00:00.000Z',
-          previous: { user_ref: 'u-7', name: 'Responsable anterior' },
-          next: ME,
-          actor: { user_ref: 'u-8', name: 'Administradora' },
-          reason: 'Motivo sintético',
-          call_status: 'OPEN',
-          suspended_delegations: 1,
-        },
-      ],
-    };
-    const pendingGrant = manageGrant({ user_ref: 'u-7', name: 'Responsable anterior' }, { granted_at: '2026-11-11T12:00:00.000Z', status: 'PENDING_REVIEW' });
-    const collaborators: JointPurchaseCallCollaborators = {
-      ...NO_COLLABORATORS,
-      can_grant: true,
-      can_review: true,
-      responsible_version: 2,
-      collaborators: [{ user_ref: 'u-5', name: 'Colaboradora sintética', role: 'DIRECTIVA', grants: [pendingGrant] }],
-      history: [
-        { at: '2026-11-11T12:00:00.000Z', action: 'GRANTED', grant: 'MANAGE', user: { user_ref: 'u-5', name: 'Colaboradora sintética' }, actor: { user_ref: 'u-7', name: 'Responsable anterior' }, retired: false, notice: null },
-        { at: '2026-11-12T15:00:00.000Z', action: 'SUSPENDED', grant: 'MANAGE', user: { user_ref: 'u-5', name: 'Colaboradora sintética' }, actor: { user_ref: 'u-8', name: 'Administradora' }, retired: false, notice: null },
-      ],
-    };
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(successorView);
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(collaborators);
-    vi.mocked(jointPurchaseCallsService.reviewDelegation).mockResolvedValue({
-      ...collaborators,
-      collaborators: [{ ...collaborators.collaborators[0]!, grants: [{ ...pendingGrant, status: 'IN_FORCE', responsible_version: 2 }] }],
+  it.each(['ADMINISTRADOR', 'DIRECTIVA'] as const)('permite a %s actuar con un responsable legado deshabilitado', async (role) => {
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
+      ...DRAFT,
+      is_responsible: false,
+      can_manage: true,
+      can_cancel_or_close: true,
+      responsible: { ...DRAFT.responsible, eligible: false },
+      my_grants: [],
+      can_substitute_responsible: true,
     });
-    render();
-    expect((await screen.findByTestId('pending-delegation-reviews')).textContent).toMatch(/1 permiso concedido por la responsable anterior espera su revisión/);
-    // La responsable que es Directiva no ve nombres (E4 §9.1), pero sí el recuento de pendientes.
-    expect(screen.getByTestId('pending-consent-count').textContent).toMatch(/^1 participación/);
-    expect(jointPurchaseCallsService.participants).not.toHaveBeenCalled();
-    expect(within(screen.getByTestId('new-responsible')).getByText('Ser responsable no le da acceso a nombres ni cantidades de cada persona.')).toBeTruthy();
-    expect((await screen.findByTestId('grant-status-u-5-MANAGE')).textContent).toMatch(/espera la revisión de la actual/);
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar «Administrar la convocatoria» de Colaboradora sintética' }));
-    expect(within(dialog()).getByTestId('review-implication').textContent).toContain(GRANT_ACCESS_NOTE);
-    fireEvent.click(confirmBox());
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar permiso' }));
-    await waitFor(() => expect(jointPurchaseCallsService.reviewDelegation).toHaveBeenCalledWith('c-1', 'u-5', 'MANAGE', 'CONFIRM'));
-    await waitFor(() => expect(screen.queryByTestId('grant-status-u-5-MANAGE')).toBeNull());
-    expect(screen.getByTestId('access-history').textContent).toMatch(/Suspendido al sustituir a la responsable/);
+    render(role);
+    for (const name of ['Editar', 'Abrir convocatoria…', 'Cancelar convocatoria…']) {
+      expect(await screen.findByRole('button', { name })).toBeTruthy();
+    }
+    expect(screen.queryByTestId('responsible-ineligible')).toBeNull();
+    expect(screen.queryByTestId('substitute-open')).toBeNull();
+    expect(jointPurchaseCallsService.collaborators).not.toHaveBeenCalled();
   });
 
   it('403 MANAGE_FORBIDDEN al cerrar: cierra el diálogo, lo explica y recarga con los permisos actuales', async () => {
@@ -1028,11 +698,11 @@ describe('Compras conjuntas: acceso por rol, «Administrar» y sustitución (E4 
     fireEvent.click(await screen.findByRole('button', { name: 'Cerrar y consolidar…' }));
     fireEvent.click(confirmBox());
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Cerrar convocatoria' }));
-    expect((await screen.findByTestId('call-alert')).textContent).toBe(MANAGE_LOST_TEXT);
+    expect((await screen.findByTestId('call-alert')).textContent).toBe('Su cuenta ya no tiene acceso para gestionar esta convocatoria.');
     expect(anyDialog()).toBeNull();
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull());
     expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2);
-    expect(screen.getByTestId('manage-note').textContent).toBe(MANAGE_ONLY_TEXT);
+    expect(screen.queryByTestId('manage-note')).toBeNull();
   });
 
   it('403 MANAGE_FORBIDDEN al guardar el borrador: cierra el formulario, lo explica y recarga', async () => {
@@ -1044,169 +714,19 @@ describe('Compras conjuntas: acceso por rol, «Administrar» y sustitución (E4 
     render();
     fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('u-2'));
     await within(dialog()).findByRole('checkbox', { name: /Urea/ });
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Guardar cambios' }));
-    expect((await screen.findByTestId('call-alert')).textContent).toBe(MANAGE_LOST_TEXT);
+    expect((await screen.findByTestId('call-alert')).textContent).toBe('Su cuenta ya no tiene acceso para gestionar esta convocatoria.');
     expect(anyDialog()).toBeNull();
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull());
   });
 
   // Reescrita por E4: la lista vigente sólo tiene `MANAGE`; los permisos de visualización salen plegados como historia.
-  it('responsable: «Administrar» vigentes, quién y cuándo, historial y permisos de visualización retirados plegados, sin acciones', async () => {
-    mockResponsibleView();
+  it('conserva la actividad institucional en el detalle', async () => {
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(OPEN);
     render();
-    const panel = await screen.findByTestId('collaborators-panel');
-    expect(within(panel).getByRole('heading', { name: 'Quién más puede administrarla' })).toBeTruthy();
-    const row = await within(panel).findByTestId('collaborator-u-4');
-    expect(row.textContent).toMatch(/Colaboradora sintética.*Directiva.*Administrar la convocatoria.*Usted lo concedió el/);
-    expect(within(panel).getByRole('button', { name: 'Conceder «Administrar la convocatoria»' })).toBeTruthy();
-    // Historia retirada: plegada, de sólo lectura y con el aviso del servidor.
-    const retired = within(panel).getByTestId('retired-grants');
-    expect(retired.tagName).toBe('DETAILS');
-    expect((retired as HTMLDetailsElement).open).toBe(false);
-    expect(within(retired).getByTestId('retired-grant').textContent).toMatch(/«Consultar participantes y cantidades» · Administrador sintético.*concedido por Usuario sintético/);
-    expect(within(retired).getByText(RETIRED_NOTICE)).toBeTruthy();
-    expect(within(retired).queryAllByRole('button')).toHaveLength(0);
-    expect(within(panel).queryByRole('button', { name: /Consultar participantes/ })).toBeNull();
-    const events = within(screen.getByTestId('access-history'))
-      .getAllByTestId('access-history-event')
-      .map((li) => li.textContent);
-    expect(events[0]).toMatch(/Concedido.*«Consultar participantes y cantidades» · Administrador sintético.*Permiso de visualización retirado el 2026-11-13; no da acceso\./);
-    expect(events[3]).toMatch(/Renuncia.*«Administrar la convocatoria» · Administrador sintético/);
-    expect(within(screen.getByTestId('access-history')).getAllByTestId('access-history-retired')).toHaveLength(1);
-    expect(screen.getByTestId('call-facts').textContent).toMatch(/Sus permisos:Administrar la convocatoria \(persona responsable\)/);
-  });
-
-  // Reescrita por E4: el diálogo ya no ofrece elegir «Consultar participantes»; sólo concede «Administrar».
-  it('responsable concede «Administrar»: sólo otros usuarios (ni sí misma ni la responsable), sin elegir otro permiso, y confirma', async () => {
-    const granted: JointPurchaseCallCollaborators = {
-      ...RESPONSIBLE_VIEW,
-      collaborators: [...RESPONSIBLE_VIEW.collaborators, { ...ADMIN, role: 'ADMINISTRADOR', grants: [manageGrant(ME, { granted_at: '2026-11-11T13:00:00.000Z' })] }],
-    };
-    mockResponsibleView();
-    vi.mocked(jointPurchaseCallsService.grant).mockResolvedValue(granted);
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Conceder «Administrar la convocatoria»' }));
-    expect(within(dialog()).queryAllByRole('radio')).toHaveLength(0);
-    expect(dialog().textContent).not.toMatch(/Consultar participantes/);
-    expect(within(dialog()).getByTestId('grant-description').textContent).toMatch(/No da acceso a participantes ni a cantidades individuales/);
-    const person = (await within(dialog()).findByLabelText('Persona')) as HTMLSelectElement;
-    await waitFor(() => expect(within(person).getAllByRole('option').length).toBeGreaterThan(1));
-    const options = within(person)
-      .getAllByRole('option')
-      .map((option) => option.textContent);
-    // Fuente: `eligible-responsibles`, sin quien concede (u-1, que aquí es la persona responsable de la convocatoria).
-    expect(options).toEqual(['Seleccione…', 'Responsable sintética · Directiva', 'Administrador sintético · Administrador', 'Colaboradora sintética · Directiva']);
-    const submit = within(dialog()).getByRole('button', { name: 'Conceder permiso' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    fireEvent.change(person, { target: { value: 'u-3' } });
-    expect(submit.disabled).toBe(true);
-    fireEvent.click(within(dialog()).getByRole('checkbox', { name: /Confirmo que concedo «Administrar la convocatoria» a Administrador sintético/ }));
-    expect(jointPurchaseCallsService.grant).not.toHaveBeenCalled();
-    fireEvent.click(submit);
-    await waitFor(() => expect(jointPurchaseCallsService.grant).toHaveBeenCalledWith('c-1', 'u-3', 'MANAGE'));
-    expect(await screen.findByText('Permiso «Administrar la convocatoria» concedido a Administrador sintético.')).toBeTruthy();
-    expect(anyDialog()).toBeNull();
-    expect(screen.getByTestId('collaborator-u-3').textContent).toMatch(/Administrar la convocatoria/);
-    // El detalle se vuelve a pedir (recuento de colaboradores y permisos propios).
-    await waitFor(() => expect(jointPurchaseCallsService.get).toHaveBeenCalledTimes(2));
-  });
-
-  it('conceder con 422 COLLABORATOR_NOT_ELIGIBLE: el motivo en español, sin el código, y el diálogo sigue abierto', async () => {
-    mockResponsibleView();
-    vi.mocked(jointPurchaseCallsService.grant).mockRejectedValue(axiosError(422, { errorCode: 'COLLABORATOR_NOT_ELIGIBLE' }));
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Conceder «Administrar la convocatoria»' }));
-    const person = (await within(dialog()).findByLabelText('Persona')) as HTMLSelectElement;
-    await waitFor(() => expect(within(person).getAllByRole('option').length).toBeGreaterThan(1));
-    fireEvent.change(person, { target: { value: 'u-4' } });
-    fireEvent.click(within(dialog()).getByRole('checkbox'));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Conceder permiso' }));
-    expect(await within(dialog()).findByText(/no puede recibir o perder este permiso/)).toBeTruthy();
-    expect(within(dialog()).queryByText('COLLABORATOR_NOT_ELIGIBLE')).toBeNull();
-    expect(jointPurchaseCallsService.grant).toHaveBeenCalledWith('c-1', 'u-4', 'MANAGE');
-  });
-
-  it('409 GRANT_RETIRED (otra pestaña sin actualizar): se explica en español, sin el código', async () => {
-    mockResponsibleView();
-    vi.mocked(jointPurchaseCallsService.grant).mockRejectedValue(axiosError(409, { errorCode: 'GRANT_RETIRED' }));
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Conceder «Administrar la convocatoria»' }));
-    const person = (await within(dialog()).findByLabelText('Persona')) as HTMLSelectElement;
-    await waitFor(() => expect(within(person).getAllByRole('option').length).toBeGreaterThan(1));
-    fireEvent.change(person, { target: { value: 'u-4' } });
-    fireEvent.click(within(dialog()).getByRole('checkbox'));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Conceder permiso' }));
-    expect(await within(dialog()).findByText(/El permiso para consultar participantes ya no existe/)).toBeTruthy();
-    expect(within(dialog()).queryByText('GRANT_RETIRED')).toBeNull();
-  });
-
-  it('responsable retira un «Administrar» con confirmación', async () => {
-    mockResponsibleView();
-    vi.mocked(jointPurchaseCallsService.revoke).mockResolvedValue({ ...RESPONSIBLE_VIEW, collaborators: [] });
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Retirar «Administrar la convocatoria» a Colaboradora sintética' }));
-    const submit = within(dialog()).getByRole('button', { name: 'Retirar permiso' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    fireEvent.click(confirmBox());
-    fireEvent.click(submit);
-    await waitFor(() => expect(jointPurchaseCallsService.revoke).toHaveBeenCalledWith('c-1', 'u-4', 'MANAGE'));
-    expect(await screen.findByText('Permiso «Administrar la convocatoria» retirado a Colaboradora sintética.')).toBeTruthy();
-    expect(await screen.findByTestId('collaborators-empty')).toBeTruthy();
-  });
-
-  it('403 COLLABORATORS_FORBIDDEN al retirar: lo explica y recarga', async () => {
-    mockResponsibleView();
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValueOnce(RESPONSIBLE_VIEW).mockResolvedValue({ ...RESPONSIBLE_VIEW, can_grant: false });
-    vi.mocked(jointPurchaseCallsService.revoke).mockRejectedValue(axiosError(403, { errorCode: 'COLLABORATORS_FORBIDDEN' }));
-    render();
-    fireEvent.click(await screen.findByRole('button', { name: /^Retirar «Administrar/ }));
-    fireEvent.click(confirmBox());
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Retirar permiso' }));
-    expect((await screen.findByTestId('call-alert')).textContent).toMatch(/sólo la persona responsable puede hacerlo/);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Conceder «Administrar la convocatoria»' })).toBeNull());
-    expect(jointPurchaseCallsService.collaborators).toHaveBeenCalledTimes(2);
-  });
-
-  // Reescrita por E4: el colaborador renuncia a «Administrar» (ya no hay permiso de visualización al que renunciar).
-  it('colaborador: no concede ni retira; renuncia a su «Administrar» y deja de poder administrarla', async () => {
-    const collab: JointPurchaseCallDetail = { ...OPEN, can_manage: true, can_cancel_or_close: true, my_grants: ['MANAGE'] };
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValueOnce(collab).mockResolvedValue({ ...OPEN, ...NO_GRANTS, my_grants: [] });
-    const renounced: JointPurchaseCallCollaborators = {
-      ...NO_COLLABORATORS,
-      history: [...MY_GRANT_VIEW.history, { at: '2026-11-11T13:00:00.000Z', action: 'REVOKED', grant: 'MANAGE', user: ME, actor: ME, retired: false, notice: null }],
-    };
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValueOnce(MY_GRANT_VIEW).mockResolvedValue(renounced);
-    vi.mocked(jointPurchaseCallsService.revoke).mockResolvedValue(renounced);
-    render();
-    const panel = await screen.findByTestId('collaborators-panel');
-    expect((await within(panel).findByTestId('collaborator-u-1')).textContent).toMatch(/Usuario sintético \(usted\)/);
-    expect(within(panel).queryByRole('button', { name: /^Conceder/ })).toBeNull();
-    expect(within(panel).queryByRole('button', { name: /^Retirar/ })).toBeNull();
-    fireEvent.click(within(panel).getByRole('button', { name: 'Renunciar a este permiso' }));
-    fireEvent.click(confirmBox());
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Renunciar a este permiso' }));
-    await waitFor(() => expect(jointPurchaseCallsService.revoke).toHaveBeenCalledWith('c-1', 'u-1', 'MANAGE'));
-    expect(await screen.findByText('Renunció al permiso «Administrar la convocatoria».')).toBeTruthy();
-    expect((await screen.findByTestId('access-revoked-MANAGE')).textContent).toMatch(/Renunció a su permiso «Administrar la convocatoria».*Ya no puede administrarla/);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Cerrar y consolidar…' })).toBeNull());
-  });
-
-  it('un permiso de visualización retirado en el historial no se anuncia como «Su permiso se retiró»', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN, ...NO_GRANTS, my_grants: [] });
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue({
-      ...NO_COLLABORATORS,
-      history: [
-        { at: '2026-11-10T12:00:00.000Z', action: 'GRANTED', grant: 'PARTICIPANTS', user: ME, actor: RESPONSIBLE, retired: true, notice: RETIRED_NOTICE },
-        { at: '2026-11-10T13:00:00.000Z', action: 'REVOKED', grant: 'PARTICIPANTS', user: ME, actor: RESPONSIBLE, retired: true, notice: RETIRED_NOTICE },
-      ],
-    });
-    render();
-    await screen.findByTestId('collaborators-panel');
-    await waitFor(() => expect(jointPurchaseCallsService.collaborators).toHaveBeenCalled());
-    expect(screen.queryByTestId('access-revoked-PARTICIPANTS')).toBeNull();
-    expect(screen.queryByTestId('my-revoked-PARTICIPANTS')).toBeNull();
+    expect(await screen.findByText(/Borrador creado/)).toBeTruthy();
+    expect(screen.queryByText(/Sus permisos|Quién más puede administrarla/)).toBeNull();
   });
 
   it('Administración con participaciones anteriores: aviso claro del servidor, sin nombres de esas personas, y total pendiente', async () => {
@@ -1304,33 +824,10 @@ describe('Compras conjuntas: acceso por rol, «Administrar» y sustitución (E4 
       window.dispatchEvent(new Event('focus'));
     });
     await screen.findByTestId('participants-revoked');
-    expect(requestSessionRevalidation).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(requestSessionRevalidation).toHaveBeenCalledTimes(1));
   });
 
   // Reescrita por E4: el permiso que cambia la lista de colaboradores es ahora «Administrar».
-  it('«Administrar» retirado, detectado al recuperar el foco: la lista de colaboradores se vuelve a pedir y deja de mostrarlo', async () => {
-    const collab: JointPurchaseCallDetail = { ...OPEN_ADMIN, can_manage: true, can_cancel_or_close: true, my_grants: ['MANAGE'] };
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(collab);
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(MY_GRANT_VIEW);
-    render();
-    await participantsShown();
-    const panel = await screen.findByTestId('collaborators-panel');
-    expect(await within(panel).findByRole('button', { name: 'Renunciar a este permiso' })).toBeTruthy();
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...OPEN_ADMIN_VIEWER, collaborator_count: 0 });
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue({
-      ...NO_COLLABORATORS,
-      history: [...MY_GRANT_VIEW.history, { at: '2026-11-11T13:00:00.000Z', action: 'REVOKED', grant: 'MANAGE', user: ME, actor: RESPONSIBLE, retired: false, notice: null }],
-    });
-    act(() => {
-      window.dispatchEvent(new Event('focus'));
-    });
-    await waitFor(() => expect(jointPurchaseCallsService.collaborators).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(within(screen.getByTestId('collaborators-panel')).queryByRole('button', { name: 'Renunciar a este permiso' })).toBeNull());
-    expect(within(screen.getByTestId('collaborators-panel')).getByTestId('my-revoked-MANAGE')).toBeTruthy();
-  });
-
-  // Reescrita por E4: el 403 borra nombres y cantidades por persona; los totales por producto no son datos
-  // identificados (regla T, iguales para los dos roles en vivo) y no se borran.
   it('403 PARTICIPANTS_FORBIDDEN al volver a la pestaña: borra nombres y cantidades por persona del DOM', async () => {
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     render();

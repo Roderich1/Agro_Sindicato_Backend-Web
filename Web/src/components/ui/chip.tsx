@@ -46,7 +46,7 @@ export const Tag = Chip;
  * privacidad» ni «anónimo»: el estado es histórico de esa política y se rotula
  * con ella. El texto se puede acortar («Sin cifra» en teléfono).
  */
-export function PrivacyChip({ label = 'Sin cifra (F07-POL-01)', title, size = 'sm', testId }: { label?: string; title?: string; size?: 'sm' | 'md'; testId?: string }) {
+export function PrivacyChip({ label = 'Sin datos disponibles', title, size = 'sm', testId }: { label?: string; title?: string; size?: 'sm' | 'md'; testId?: string }) {
   return (
     <Chip tone="hidden" icon={ICON.lock} size={size} title={title} testId={testId}>
       {label}

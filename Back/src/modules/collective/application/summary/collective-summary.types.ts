@@ -63,7 +63,7 @@ export interface CollectiveSummary {
   disclosure: {
     mode: DisclosureMode;
     policy: DisclosurePolicy;
-    approved: false;
+    approved: boolean;
     threshold: number | null;
   };
   /**

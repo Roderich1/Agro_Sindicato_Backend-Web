@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
-import { buttonClassFor, CampaignPill, Chip, DataState, FilterChips, ICON, Icon, Notice, PageHeader, StatusChip, surfaceClass } from '../components/ui';
+import { buttonClassFor, CampaignPill, DataState, FilterChips, ICON, Icon, Notice, PageHeader, StatusChip, surfaceClass } from '../components/ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { CAMPAIGN_STATUS_TEXT } from '../lib/collective-text';
 import {
@@ -18,7 +18,6 @@ import { jointPurchaseCallPath } from '../lib/navigation';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import type { JointPurchaseCallStatus, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
 import { JointPurchaseCallForm } from './joint-purchase-call-form';
-import { useAuth } from '../hooks/use-auth';
 
 type Filter = 'ALL' | JointPurchaseCallStatus;
 
@@ -47,7 +46,6 @@ const CAMPAIGN_ACCEPTS_DRAFTS = new Set(['PLANIFICADA', 'ABIERTA']);
  * el formulario se quitan esos parámetros de la URL.
  */
 export function JointPurchaseCallsPage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { campaigns, selected, select, error: campaignsError, refresh: refreshCampaigns } = useSelectedCampaign();
   const [filter, setFilter] = useState<Filter>('ALL');
@@ -220,7 +218,7 @@ export function JointPurchaseCallsPage() {
                   <ListGroup title="Abiertas · reciben pedidos" count={filter === 'ALL' ? null : open.length}>
                     <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {open.map((call) => (
-                        <OpenCallCard key={call.call_id} call={call} mine={call.responsible.user_ref === user?.id} to={detailPath(call.call_id)} />
+                        <OpenCallCard key={call.call_id} call={call} to={detailPath(call.call_id)} />
                       ))}
                     </ul>
                   </ListGroup>
@@ -229,7 +227,7 @@ export function JointPurchaseCallsPage() {
                   <ListGroup title="Borradores · los agricultores aún no los ven">
                     <ul className={`${surfaceClass} divide-y divide-line overflow-hidden`}>
                       {drafts.map((call) => (
-                        <DraftRow key={call.call_id} call={call} mine={call.responsible.user_ref === user?.id} to={detailPath(call.call_id)} />
+                        <DraftRow key={call.call_id} call={call} to={detailPath(call.call_id)} />
                       ))}
                     </ul>
                   </ListGroup>
@@ -298,12 +296,11 @@ function ListGroup({ title, count = null, children }: { title: string; count?: n
 }
 
 /** Tarjeta de una convocatoria abierta (láminas 09 y 37). El nombre es el enlace; la tarjeta entera responde al clic. */
-function OpenCallCard({ call, mine, to }: { call: JointPurchaseCallSummary; mine: boolean; to: string }) {
+function OpenCallCard({ call, to }: Readonly<{ call: JointPurchaseCallSummary; to: string }>) {
   return (
     <li className={`${surfaceClass} relative flex min-w-0 flex-col px-5 py-5 hover:border-ink`} data-testid={`call-row-${call.call_id}`}>
       <div className="flex flex-wrap items-center gap-2">
         <StatusChip status={CALL_STATUS_CHIP[call.status] ?? call.status} />
-        {mine && <Chip>Usted es responsable</Chip>}
       </div>
       <h3 className="mt-3 flex-1 text-xl font-bold leading-snug text-ink">
         <Link
@@ -323,21 +320,17 @@ function OpenCallCard({ call, mine, to }: { call: JointPurchaseCallSummary; mine
           <p className="font-display text-3xl font-extrabold leading-none text-ink tabular-nums">{call.participant_count}</p>
         </div>
       </div>
-      <p className="mt-3 text-sm text-ink-muted [overflow-wrap:anywhere]">
-        Responsable: <span>{call.responsible.name}</span>
-      </p>
     </li>
   );
 }
 
-function DraftRow({ call, mine, to }: { call: JointPurchaseCallSummary; mine: boolean; to: string }) {
+function DraftRow({ call, to }: Readonly<{ call: JointPurchaseCallSummary; to: string }>) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-4 sm:px-6" data-testid={`call-row-${call.call_id}`}>
       <div className="min-w-0 flex-1 basis-64">
         <p className="font-semibold text-ink [overflow-wrap:anywhere]">{call.name}</p>
         <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
-          Responsable: <span>{call.responsible.name}</span>
-          {mine ? ' (usted)' : ''} · fecha límite {fmtWhen(call.deadline_at, 'always')}
+          Fecha límite {fmtWhen(call.deadline_at, 'always')}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
@@ -350,7 +343,7 @@ function DraftRow({ call, mine, to }: { call: JointPurchaseCallSummary; mine: bo
   );
 }
 
-/** Cerrada o cancelada. H-11: se muestra la responsable, no quién cerró o canceló (la lista no lo trae). */
+/** Convocatoria cerrada o cancelada. */
 function FinishedRow({ call, to }: { call: JointPurchaseCallSummary; to: string }) {
   const when =
     call.status === 'CANCELLED'
@@ -365,9 +358,7 @@ function FinishedRow({ call, to }: { call: JointPurchaseCallSummary; to: string 
         >
           {call.name}
         </Link>
-        <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
-          {when} · Responsable: <span>{call.responsible.name}</span>
-        </p>
+        <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">{when}</p>
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <StatusChip status={CALL_STATUS_CHIP[call.status] ?? call.status} />

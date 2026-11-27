@@ -47,16 +47,16 @@ describe('Compras conjuntas: lista del rediseño v2', () => {
     vi.mocked(jointPurchaseCallsService.list).mockResolvedValue(ROWS);
   });
 
-  it('agrupa en abiertas, borradores y terminadas; «Usted es responsable» sólo en las suyas; en terminadas, la responsable (H-11)', async () => {
+  it('agrupa en abiertas, borradores y terminadas; sin etiquetas de responsabilidad en las tarjetas', async () => {
     render();
     const open = await screen.findByTestId('call-row-c-1');
-    expect(within(open).getByText('Usted es responsable')).toBeTruthy();
+    expect(within(open).queryByText('Usted es responsable')).toBeNull();
     expect(within(screen.getByRole('region', { name: 'Abiertas · reciben pedidos' })).getByTestId('call-row-c-1')).toBeTruthy();
     const drafts = screen.getByRole('region', { name: 'Borradores · los agricultores aún no los ven' });
     expect(within(drafts).getByRole('link', { name: 'Revisar y abrir «Fertilizantes»' }).getAttribute('href')).toMatch(/\/colectivo\/compras-conjuntas\/c-2\?campaign=/);
     const finished = screen.getByRole('region', { name: 'Terminadas' });
-    expect(within(finished).getByTestId('call-row-c-3').textContent).toMatch(/Cerrada el .*2 participantes · Responsable: Responsable sintética/);
-    expect(within(finished).getByTestId('call-row-c-4').textContent).toMatch(/Cancelada el .*sin consolidado · Responsable: Administración sintética/);
+    expect(within(finished).getByTestId('call-row-c-3').textContent).toMatch(/Cerrada el .*2 participantes/);
+    expect(within(finished).getByTestId('call-row-c-4').textContent).toMatch(/Cancelada el .*sin consolidado/);
     expect(screen.queryByText('Responsable no habilitada')).toBeNull();
     expect(within(screen.getByTestId('call-status-filter')).getByRole('button', { name: 'Todas 4' })).toBeTruthy();
   });

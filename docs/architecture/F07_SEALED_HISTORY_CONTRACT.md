@@ -440,3 +440,8 @@ La Web prueba estados, confirmación, cobertura y falta de red (Vitest).
 ## Anexo (2026-11-12): exportación CSV retirada
 
 Por decisión del autor del 2026-11-12, **Excel es la única exportación para el usuario**. Se retiraron las rutas `GET /api/v1/collective/campaigns/{campaignId}/summary.csv`, `GET /api/v1/collective/trends.csv` y `GET /api/v1/collective/proposals/{proposalId}/csv` (Back `eeaf327`) y los botones «Exportar CSV» de la Web (`7acf0a1`). Lo que este documento dice de esos CSV describe la versión anterior; la política de divulgación se sigue aplicando igual en el JSON y en los libros Excel, que se arman con las mismas respuestas del servidor. Equivalencias columna a columna: `docs/architecture/WEB_EXCEL_UNICO_2026-11-12.md`. El Excel del borrador usa la referencia de estimación **fijada** (contrato E2 §11.9; sustituye a E3-R10 y a N8).
+
+
+## Actualización de la gestión institucional
+
+Desde el 26 de noviembre de 2026, el cierre de campaña fija sus resultados de forma atómica. Administración y Directiva gestionan las convocatorias de su sindicato por rol. Para las reglas vigentes de publicación, visibilidad, cierre y recuperación histórica, consulte [Cierre de campaña y gestión institucional](../architecture/CIERRE_Y_GESTION_INSTITUCIONAL.md).

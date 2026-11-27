@@ -112,7 +112,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     // Ninguna suma de necesidad y estimación (310 + 295 = 605).
     expect(document.body.textContent).not.toMatch(/605/);
     const note = screen.getByTestId('reference-note').textContent!;
-    expect(note).toMatch(/no se suma a la necesidad declarada, no es la cantidad\s+solicitada/);
+    expect(note).toMatch(/La estimación es una referencia y no se suma a la necesidad declarada/);
     expect(note).toMatch(/Detalle en «Estimación del consumo»/);
     expect(screen.getByTestId('reference-evaluated').textContent).toMatch(/Vigencia evaluada el .* Temporada INVIERNO/);
     expect(collectiveService.estimationLink).toHaveBeenCalledWith(DRAFT.proposal_ref);
@@ -150,7 +150,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     await screen.findByText('12 L');
     // La necesidad no se rellena con la estimación ni con un cero.
     // E4 §5.1: la línea del borrador anterior sigue sin cifra, rotulada con su política (antes el texto del umbral).
-    expect(need('Amina').textContent).toMatch(/Sin cifra según la política F07-POL-01/);
+    expect(need('Amina').textContent).toMatch(/Sin datos disponibles/);
     expect(need('Amina').textContent).not.toMatch(/\d[\d.,]* L\b/);
     expect(need('Amina').textContent).not.toMatch(/\b0\b/);
     const hidden = cell('Amina');
@@ -169,7 +169,7 @@ describe('Propuesta conjunta: consumo estimado como referencia fijada (F12-EST-0
     );
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click((await verBorradores())[0]!);
-    await vi.waitFor(() => expect(cell('Glifosato').textContent).toMatch(/política de divulgación no está aprobada/));
+    await vi.waitFor(() => expect(cell('Glifosato').textContent).toMatch(/Sin estimación disponible/));
     expect(cell('Glifosato').textContent).toMatch(/Restringida/);
     expect(cell('Glifosato').textContent).not.toMatch(/\d[\d.,]* L\b/);
     expect(screen.getByTestId('link-state').textContent).toBe('Referencia restringida');

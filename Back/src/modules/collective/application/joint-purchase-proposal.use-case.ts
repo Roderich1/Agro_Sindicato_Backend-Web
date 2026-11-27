@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { releaseIsVisible, releaseVisibility } from "./summary/collective-release-visibility";
 import type { CampaignStatus, Prisma, SyncV1BaseUnit } from "@prisma/client";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { cellId } from "../domain/consolidation";
@@ -53,7 +54,7 @@ export interface ProposalView {
   /** Null whenever a figure of the draft is not served (it would cover it). */
   inputs_fingerprint: string | null;
   /** E4 §4.4: the policy the draft was generated with (F07-POL-01 for drafts before E4). */
-  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: false };
+  disclosure: { mode: DisclosureMode; policy: DisclosurePolicy; approved: boolean };
   /**
    * Stored at generation. `basis` (F10-SEC-02): PUBLISHED_FIGURES counts the
    * Members inside a published figure; ALL_CONTRIBUTORS is the earlier rule of
@@ -247,7 +248,7 @@ export class JointPurchaseProposalUseCase {
           include: {
             canonicalProduct: { select: { name: true } },
             release: {
-              select: { totalBase: true, contributorCount: true, dataAsOf: true, releasedAt: true },
+              select: { totalBase: true, contributorCount: true, dataAsOf: true, releasedAt: true, ...releaseVisibility },
             },
           },
         },
@@ -265,7 +266,7 @@ export class JointPurchaseProposalUseCase {
       generated_by: { user_ref: row.generatedBy.id, name: row.generatedBy.name },
       // The fingerprint covers the figures: hidden whenever one is not served.
       inputs_fingerprint: fingerprintVisible(row.lines, current) ? row.inputsFingerprint : null,
-      disclosure: { mode: authorized ? "PROVISIONAL_SYNTHETIC" : "POLICY_PENDING", policy: storedPolicy(row.disclosurePolicy), approved: false },
+      disclosure: { mode: authorized ? this.config.mode : "POLICY_PENDING", policy: storedPolicy(row.disclosurePolicy), approved: authorized && this.config.mode === "APPROVED" },
       coverage: authorized
         ? {
             linked_members: row.linkedMembers,
@@ -292,7 +293,10 @@ export class JointPurchaseProposalUseCase {
         if (!current) return { ...base, status: "POLICY_PENDING" as const, ...hidden };
         if (line.status !== "DISCLOSED") return { ...base, status: line.status, ...hidden };
         const served = servedState(line, current);
-        if (served !== "SERVED") return { ...base, status: served, ...hidden };
+        if (served !== "SERVED") {
+          const status = releaseIsVisible(line.release) ? served : "WITHDRAWN";
+          return { ...base, status, ...hidden };
+        }
         const release = line.release!;
         return {
           ...base,

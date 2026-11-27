@@ -1,30 +1,28 @@
 import { CallCard, CallTotal, ProductLines } from '../../components/b/call-ui';
 import { DataState } from '../../components/ui';
 import {
-  CALL_FOOTNOTE,
   callOriginEditedText,
   callOriginText,
   fmtDay,
-  fmtWhen,
-  MANAGE_ONLY_TEXT,
   peopleText,
   PROVISIONAL_NOTE,
   referenceText,
   unitText,
 } from '../../lib/joint-purchase-call-text';
 import type { JointPurchaseCallDetail } from '../../types/joint-purchase-calls';
-import { grantsText } from './call-detail.helpers';
 import { PendingConsentLine } from './call-participants-closing';
 
-/** Pie de la columna derecha (lámina 11): origen (E3-P2), permisos propios, sustitución y la nota «no es una compra». */
-export function CallFootnote({ call, canManage, responsibleIneligible }: { call: JointPurchaseCallDetail; canManage: boolean; responsibleIneligible: boolean }) {
+/** Procedencia registrada al crear la convocatoria. */
+export function CallProvenance({ call }: Readonly<{ call: JointPurchaseCallDetail }>) {
   const origin = callOriginText(call.origin);
-  const lastChange = call.responsible_changes.at(-1);
-  const active = call.status === 'DRAFT' || call.status === 'OPEN';
   const row = '[&>dd]:ml-1 [&>dd]:inline [&>dt]:inline';
   return (
     <div className="space-y-2 px-1 text-sm leading-relaxed text-ink-muted">
       <dl className="space-y-1.5" data-testid="call-facts">
+        <div className={row}>
+          <dt className="font-semibold text-ink">Creada por:</dt>
+          <dd>{call.created_by.name}</dd>
+        </div>
         {origin && (
           <div className={row}>
             <dt className="font-semibold text-ink">Origen:</dt>
@@ -38,24 +36,7 @@ export function CallFootnote({ call, canManage, responsibleIneligible }: { call:
             </dd>
           </div>
         )}
-        {Array.isArray(call.my_grants) && (
-          <div className={row}>
-            <dt className="font-semibold text-ink">Sus permisos:</dt>
-            <dd>{grantsText(call.my_grants, call.is_responsible)}</dd>
-          </div>
-        )}
-        {lastChange && (
-          <div className={row}>
-            <dt className="font-semibold text-ink">Sustitución:</dt>
-            <dd className="[overflow-wrap:anywhere]" data-testid="responsible-change">
-              {`${lastChange.next.name} sustituyó a ${lastChange.previous.name} el ${fmtWhen(lastChange.at, 'always')}, por decisión de ${lastChange.actor.name}. Motivo: ${lastChange.reason}`}
-            </dd>
-          </div>
-        )}
       </dl>
-      {active && !canManage && !responsibleIneligible && <p data-testid="manage-note">{MANAGE_ONLY_TEXT}</p>}
-      {/* Cerrada: el consolidado ya dice qué son las cantidades y «Qué sigue» lo completa. */}
-      {call.status !== 'CLOSED' && <p data-testid="call-footnote">{CALL_FOOTNOTE}</p>}
     </div>
   );
 }

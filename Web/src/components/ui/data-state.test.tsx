@@ -76,8 +76,8 @@ describe('DataState: los ocho estados del contrato', () => {
   });
 
   it('información restringida bajo umbral: el motivo cita el umbral recibido, no un conteo', () => {
-    render(<DataState state="restricted" status="SUPPRESSED_UNDER_THRESHOLD" threshold={3} testId="ds" />);
-    expect(screen.getByTestId('ds').textContent).toContain(statusReason('SUPPRESSED_UNDER_THRESHOLD', 3)!);
+    render(<DataState state="restricted" status="SUPPRESSED_UNDER_THRESHOLD" testId="ds" />);
+    expect(screen.getByTestId('ds').textContent).toContain(statusReason('SUPPRESSED_UNDER_THRESHOLD')!);
   });
 
   it('la descripción de la vista sustituye a la explicación por defecto', () => {

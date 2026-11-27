@@ -91,7 +91,7 @@ export class CampaignsController {
   @Post(':id/close')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.DIRECTIVA, UserRole.ADMINISTRADOR)
-  @ApiOperation({ summary: 'Cerrar una campana agricola activa' })
+  @ApiOperation({ summary: 'Cerrar la campaña y fijar su histórico en una transacción' })
   async close(
     @CurrentUser() user: AuthenticatedPrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,

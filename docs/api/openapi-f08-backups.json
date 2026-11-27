@@ -2821,7 +2821,8 @@
           },
           "responsible_user_id": {
             "type": "string",
-            "description": "Usuario DIRECTIVA o ADMINISTRADOR activo del tenant (ver eligible-responsibles)"
+            "deprecated": true,
+            "description": "Campo de compatibilidad. Por defecto se registra el creador."
           },
           "products": {
             "minItems": 1,
@@ -2842,7 +2843,6 @@
           "campaign_id",
           "name",
           "deadline_at",
-          "responsible_user_id",
           "products"
         ]
       },

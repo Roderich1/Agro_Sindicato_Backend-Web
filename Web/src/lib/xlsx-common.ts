@@ -27,15 +27,15 @@ export { PENDING_CHANGES_TEXT };
 /** Mismos rótulos que el distintivo de estado de la pantalla (`collective-ui.tsx`). */
 export const STATUS_LABEL: Record<AnyStatus, string> = {
   DISCLOSED: 'Publicado',
-  SUPPRESSED_UNDER_THRESHOLD: 'Sin cifra (F07-POL-01)',
+  SUPPRESSED_UNDER_THRESHOLD: 'Sin datos disponibles',
   SUPPRESSED_REVISION: 'Sin cifra publicada',
   OVERFLOW: 'Fuera de rango',
   WITHDRAWN: 'Retirado',
   SUPERSEDED: 'Sustituido',
-  POLICY_PENDING: 'Política pendiente',
-  WITHDRAWN_AFTER_SEAL: 'Retirado tras sellar',
+  POLICY_PENDING: 'Sin datos disponibles',
+  WITHDRAWN_AFTER_SEAL: 'Datos retirados',
   NO_DATA: 'Sin cifra publicada',
-  NOT_SEALED: 'Sin sellar',
+  NOT_SEALED: 'Sin resultados históricos',
 };
 
 export function text(value: string, style?: XlsxStyle): XlsxCell {
@@ -88,11 +88,10 @@ export function publishedQuantity(input: {
   baseUnit: 'ML' | 'G';
   presentationUnit: 'L' | 'KG';
   pending?: boolean;
-  threshold?: number | null;
 }): { cell: XlsxCell; explanation: string } {
   if (input.status !== 'DISCLOSED') {
     // Aunque llegara un número por error en una celda no publicada, no se exporta.
-    return { cell: null, explanation: statusReason(input.status, input.threshold) ?? `Sin cifra (${STATUS_LABEL[input.status] ?? input.status}).` };
+    return { cell: null, explanation: statusReason(input.status) ?? `Sin cifra (${STATUS_LABEL[input.status] ?? input.status}).` };
   }
   const computed = input.base === null ? null : toPresentation(input.base);
   const coherent =
@@ -127,16 +126,18 @@ export function campaignStatusText(status: string): string {
   return CAMPAIGN_STATUS_TEXT[status] ?? status;
 }
 
+const COVERAGE_SUFFIX = { now: '', draft: ' al generar el borrador', sealed: ' histórica' } as const;
+
 export function coverageText(coverage: Coverage | null, when: 'now' | 'draft' | 'sealed'): string {
   if (!coverage) return 'Sin dato de cobertura.';
   const who = coverage.basis === 'ALL_CONTRIBUTORS' ? 'agricultores vinculados habían aportado datos' : 'agricultores vinculados con cifras publicadas';
-  const suffix = when === 'draft' ? ' al generar el borrador' : when === 'sealed' ? ' al sellar' : '';
+  const suffix = COVERAGE_SUFFIX[when];
   const extra = coverage.suppressed_cells ? ' Hay filas sin cifra cuyos aportes no se cuentan.' : '';
   return `${coverage.members_with_contribution} de ${coverage.linked_members} ${who}${suffix}.${extra} Ausencia de aporte = desconocido, no cero.`;
 }
 
 export function sealText(seal: SealRef | null): string {
-  return seal ? `Versión ${seal.version}, sellada por ${seal.sealed_by.name}.` : 'Sin versión sellada.';
+  return seal ? `Resultados fijados por ${seal.sealed_by.name}.` : 'Sin resultados históricos.';
 }
 
 /** Nombre de archivo seguro a partir de un rótulo. */
@@ -175,7 +176,7 @@ export function coverSheet(input: {
     [],
     [text('Cómo leer este libro', 'label'), text(input.howToRead.join(' '), 'wrap')],
     [text('Leyenda', 'label'), text('Publicado', 'ok')],
-    [null, text('Sin cifra (F07-POL-01) · Sin cifra publicada · Datos insuficientes: la celda numérica queda vacía y la explicación dice por qué.', 'warnText')],
+    [null, text('Sin datos disponibles · Sin cifra publicada · Datos insuficientes: la celda numérica queda vacía y la explicación dice por qué.', 'warnText')],
   ];
   return {
     name: input.name,

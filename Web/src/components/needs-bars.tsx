@@ -19,19 +19,19 @@ const COUNT = new Intl.NumberFormat('es-BO');
  * - Una cifra publicada se escribe exacta y grande; con `bars`, una barra en la
  *   escala de su unidad, sólo si es mayor que cero («0 L» va sin barra).
  * - Una fila sin cifra muestra el chip punteado con el texto de su estado
- *   (H-06; con E4 §5.1, «Sin cifra (F07-POL-01)» para el estado de esa
+ *   (H-06; con E4 §5.1, «Sin datos disponibles» para el estado de esa
  *   política), su motivo y «aportantes no revelados»: sin número, barra ni cero.
  *   Con `F07-POL-02` una celda con 1 o 2 aportantes se publica como cualquier otra.
  * - Sin `bars` (consumo publicado, columna lateral) es una lista compacta.
  */
-export function NeedsBars({ cells, threshold, bars = true }: { cells: SummaryCell[]; threshold: number | null; bars?: boolean }) {
+export function NeedsBars({ cells, bars = true }: { cells: SummaryCell[]; bars?: boolean }) {
   const groups = (['L', 'KG'] as const)
     .map((unit) => ({ unit, cells: sortByName(cells.filter((cell) => cell.presentation_unit === unit)) }))
     .filter((group) => group.cells.length > 0);
   if (!bars) {
     return (
       <ul className="divide-y divide-line" aria-label="Por producto">
-        {groups.flatMap((group) => group.cells.map((cell) => <CompactRow key={`${cell.product_ref}|${cell.base_unit}`} cell={cell} threshold={threshold} />))}
+        {groups.flatMap((group) => group.cells.map((cell) => <CompactRow key={`${cell.product_ref}|${cell.base_unit}`} cell={cell} />))}
       </ul>
     );
   }
@@ -39,7 +39,7 @@ export function NeedsBars({ cells, threshold, bars = true }: { cells: SummaryCel
     <div className="@container">
       <div className={`grid gap-x-8 gap-y-6 ${groups.length > 1 ? '@[40rem]:grid-cols-2' : ''}`}>
         {groups.map((group) => (
-          <UnitGroup key={group.unit} unit={group.unit} cells={group.cells} threshold={threshold} />
+          <UnitGroup key={group.unit} unit={group.unit} cells={group.cells} />
         ))}
       </div>
     </div>
@@ -50,19 +50,19 @@ function sortByName(cells: SummaryCell[]): SummaryCell[] {
   return [...cells].sort((a, b) => a.product_name.localeCompare(b.product_name, 'es', { sensitivity: 'base' }));
 }
 
-/** «4 con cifra · 3 sin cifra por F07-POL-01 · 1 sin cifra publicada»: recuento de filas por estado, nunca una cantidad. */
+/** «4 con cifra · 3 sin datos disponibles · 1 sin cifra publicada»: recuento de filas por estado, nunca una cantidad. */
 function groupCounts(cells: SummaryCell[]): string {
   const published = cells.filter((cell) => cell.status === 'DISCLOSED').length;
   const previous = cells.filter((cell) => cell.status === 'SUPPRESSED_UNDER_THRESHOLD').length;
   const other = cells.length - published - previous;
   const parts: string[] = [];
   if (published > 0) parts.push(`${COUNT.format(published)} con cifra`);
-  if (previous > 0) parts.push(`${COUNT.format(previous)} sin cifra por F07-POL-01`);
+  if (previous > 0) parts.push(`${COUNT.format(previous)} sin datos disponibles`);
   if (other > 0) parts.push(`${COUNT.format(other)} sin cifra publicada`);
   return parts.join(' · ');
 }
 
-function UnitGroup({ unit, cells, threshold }: { unit: Unit; cells: SummaryCell[]; threshold: number | null }) {
+function UnitGroup({ unit, cells }: { unit: Unit; cells: SummaryCell[] }) {
   const values = cells.map((cell) => (cell.status === 'DISCLOSED' && isBaseQuantity(cell.total_base) ? BigInt(cell.total_base) : null));
   const max = values.reduce<bigint>((top, value) => (value !== null && value > top ? value : top), 0n);
   return (
@@ -75,16 +75,16 @@ function UnitGroup({ unit, cells, threshold }: { unit: Unit; cells: SummaryCell[
         {cells.map((cell, index) => {
           const value = values[index] ?? null;
           const share = value !== null && value > 0n && max > 0n ? Math.max(Number((value * 1000n) / max) / 10, 1) : null;
-          return <FigureRow key={`${cell.product_ref}|${cell.base_unit}`} cell={cell} threshold={threshold} share={share} />;
+          return <FigureRow key={`${cell.product_ref}|${cell.base_unit}`} cell={cell} share={share} />;
         })}
       </ul>
     </div>
   );
 }
 
-/** Motivo de una fila sin cifra, en una línea, con su política cuando es la anterior (H-24, sin conteo exacto). */
-function hiddenReason(status: CellStatus, threshold: number | null): string {
-  return `${statusReason(status, threshold) ?? 'Sin cifra publicada.'} (aportantes no revelados)`;
+/** Motivo de una fila sin cifra, en una línea, sin el conteo de aportantes. */
+function hiddenReason(status: CellStatus): string {
+  return `${statusReason(status) ?? 'Sin cifra publicada.'} (aportantes no revelados)`;
 }
 
 /** Chip punteado con el texto propio del estado (H-06). */
@@ -97,7 +97,7 @@ export function HiddenChip({ status, short = false }: { status: CellStatus; shor
   );
 }
 
-function FigureRow({ cell, threshold, share }: { cell: SummaryCell; threshold: number | null; share: number | null }) {
+function FigureRow({ cell, share }: { cell: SummaryCell; share: number | null }) {
   const disclosed = cell.status === 'DISCLOSED';
   const text = disclosed ? formatQuantity(cell.total_base, cell.base_unit, cell.total_presentation) : null;
   return (
@@ -133,7 +133,7 @@ function FigureRow({ cell, threshold, share }: { cell: SummaryCell; threshold: n
         </>
       ) : (
         <p className="mt-1.5 text-sm leading-snug text-ink-muted">
-          {hiddenReason(cell.status, threshold)}
+          {hiddenReason(cell.status)}
         </p>
       )}
     </li>
@@ -150,7 +150,7 @@ export function PendingChip() {
   );
 }
 
-function CompactRow({ cell, threshold }: { cell: SummaryCell; threshold: number | null }) {
+function CompactRow({ cell }: { cell: SummaryCell }) {
   const disclosed = cell.status === 'DISCLOSED';
   const text = disclosed ? formatQuantity(cell.total_base, cell.base_unit, cell.total_presentation) : null;
   return (
@@ -163,7 +163,7 @@ function CompactRow({ cell, threshold }: { cell: SummaryCell; threshold: number 
             datos hasta {fmtDateTime(cell.data_as_of)}
           </p>
         ) : (
-          <p className="text-sm leading-snug text-ink-muted">{hiddenReason(cell.status, threshold)}</p>
+          <p className="text-sm leading-snug text-ink-muted">{hiddenReason(cell.status)}</p>
         )}
         {disclosed && cell.pending_changes && <PendingChip />}
       </div>

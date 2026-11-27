@@ -29,6 +29,37 @@ export class CollectiveHistoryController {
     private readonly trends: CollectiveTrendsUseCase,
   ) {}
 
+  @Get("campaigns/:campaignId/close-preview")
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Consultar la cobertura disponible antes del cierre" })
+  @ApiResponse({ status: 200, schema: {
+    type: "object",
+    required: ["coverage", "recoverable_cells", "cells_without_figure"],
+    properties: {
+      recoverable_cells: { type: "integer" },
+      cells_without_figure: { type: "integer" },
+      coverage: {
+        type: "object",
+        nullable: true,
+        required: ["linked_members", "members_with_contribution", "suppressed_cells"],
+        properties: {
+          linked_members: { type: "integer" },
+          members_with_contribution: { type: "integer" },
+          suppressed_cells: { type: "boolean" },
+        },
+      },
+    },
+  } })
+  @Unauthenticated
+  @Forbidden
+  @NotFound
+  closePreview(
+    @CurrentUser() user: AuthenticatedPrincipal,
+    @Param("campaignId", new ParseUUIDPipe()) campaignId: string,
+  ) {
+    return this.seals.closePreview(user.tenantId, campaignId);
+  }
+
   @Get("campaigns/:campaignId/seal")
   @Header("Cache-Control", "no-store")
   @ApiOperation({ summary: "Estado del sellado y revisión previa (cobertura, datos aceptados hasta, conflictos y límites)" })
@@ -46,7 +77,7 @@ export class CollectiveHistoryController {
   @Post("campaigns/:campaignId/seal")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
-  @ApiOperation({ summary: "Sellar la versión colectiva de una campaña cerrada (idempotente)" })
+  @ApiOperation({ summary: "Regularizar resultados históricos recuperables de una campaña cerrada (idempotente)" })
   @ApiResponse({ status: 200, schema: sealResultSchema, description: "created=false si ya estaba sellada" })
   @ApiResponse({ status: 400, description: "Body no válido" })
   @Unauthenticated
@@ -54,7 +85,7 @@ export class CollectiveHistoryController {
   @NotFound
   @ApiResponse({
     status: 409,
-    description: "SEALING_DISABLED, POLICY_PENDING, CAMPAIGN_NOT_CLOSED o SEAL_REVIEW_STALE: no se escribe nada",
+    description: "CAMPAIGN_NOT_CLOSED, SEAL_REVIEW_STALE o NO_RECOVERABLE_HISTORY: no se escribe nada",
   })
   @ApiResponse({ status: 422, description: "CONFIRMATION_REQUIRED: no se escribe nada" })
   seal(

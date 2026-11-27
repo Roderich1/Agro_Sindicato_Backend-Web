@@ -312,7 +312,7 @@ export interface CreateJointPurchaseCallBody {
   campaign_id: string;
   name: string;
   deadline_at: string;
-  responsible_user_id: string;
+  responsible_user_id?: string;
   products: JointPurchaseCallProductInput[];
   source_proposal_id?: string | null;
 }

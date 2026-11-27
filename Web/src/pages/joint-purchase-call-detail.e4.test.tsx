@@ -1,11 +1,9 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  ACCESS_RULES,
   PARTICIPANTS_FORBIDDEN_TEXT,
   PENDING_CONSENT_TOTAL_TEXT,
   PREVIOUS_POLICY_TOTAL_NOTE,
-  RESPONSIBLE_INELIGIBLE_WHO,
   WHY_VISIBLE_TEXT,
 } from '../lib/joint-purchase-call-text';
 import { campaignsService } from '../services/campaigns.service';
@@ -13,7 +11,6 @@ import { jointPurchaseCallsService } from '../services/joint-purchase-calls.serv
 import { CAMPAIGN, renderAt } from '../test/render';
 import type {
   JointPurchaseCallClosing,
-  JointPurchaseCallCollaborators,
   JointPurchaseCallDetail,
   JointPurchaseCallParticipants,
 } from '../types/joint-purchase-calls';
@@ -227,51 +224,7 @@ const CLOSING_ADMIN: JointPurchaseCallClosing = {
 const CLOSING_DIRECTIVA: JointPurchaseCallClosing = { ...CLOSING_ADMIN, can_view_participants: false, participants: null };
 
 /** §2.9: colaboradores con historia retirada. */
-const COLLABORATORS_RETIRED: JointPurchaseCallCollaborators = {
-  contractVersion: 2,
-  call_id: '6f1d6e3a-0000-4000-8000-000000000001',
-  status: 'OPEN',
-  responsible: D1,
-  can_grant: true,
-  can_review: true,
-  responsible_version: 1,
-  collaborators: [
-    {
-      user_ref: 'u-dir-2', name: 'Directiva sintética D2', role: 'DIRECTIVA',
-      grants: [
-        { grant: 'MANAGE', label: 'Administrar la convocatoria', granted_at: '2026-11-13T15:30:00.000Z', granted_by: D1, status: 'IN_FORCE', responsible_version: 1 },
-      ],
-    },
-  ],
-  retired_grants: [
-    {
-      grant: 'PARTICIPANTS', label: 'Consultar participantes y cantidades',
-      user: D1,
-      granted_at: '2026-11-12T15:00:00.000Z', granted_by: null, responsible_version: 1,
-      retired: true, notice: 'Permiso de visualización retirado el 2026-11-13; no da acceso.',
-    },
-    {
-      grant: 'PARTICIPANTS', label: 'Consultar participantes y cantidades',
-      user: { user_ref: 'u-adm-1', name: 'Administración sintética A1' },
-      granted_at: '2026-11-12T16:00:00.000Z', granted_by: D1, responsible_version: 1,
-      retired: true, notice: 'Permiso de visualización retirado el 2026-11-13; no da acceso.',
-    },
-  ],
-  history: [
-    {
-      at: '2026-11-12T16:00:00.000Z', action: 'GRANTED', grant: 'PARTICIPANTS',
-      user: { user_ref: 'u-adm-1', name: 'Administración sintética A1' }, actor: D1,
-      retired: true, notice: 'Permiso de visualización retirado el 2026-11-13; no da acceso.',
-    },
-    {
-      at: '2026-11-13T15:30:00.000Z', action: 'GRANTED', grant: 'MANAGE',
-      user: { user_ref: 'u-dir-2', name: 'Directiva sintética D2' }, actor: D1,
-      retired: false, notice: null,
-    },
-  ],
-};
 
-const EMPTY_COLLABORATORS: JointPurchaseCallCollaborators = { ...COLLABORATORS_RETIRED, can_grant: false, can_review: false, collaborators: [], retired_grants: [], history: [] };
 
 const FARMER_NAMES = /Agricultor sintético F1|Agricultor sintético F2/;
 /** Cantidades por persona de §2.5 y §2.7 (20 L, 5 KG y 25 L); los totales sin nombres (45 L, 96 L) sí pueden verse. */
@@ -304,7 +257,6 @@ describe('E4: detalle de convocatoria por rol (fixtures de E4_EJEMPLOS_RESPUESTA
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(campaignsService.list).mockResolvedValue([CAMPAIGN_ROW]);
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(EMPTY_COLLABORATORS);
     // Si la vista pidiera el detalle identificado sin deber, recibiría nombres: las pruebas de la Directiva lo detectan.
     vi.mocked(jointPurchaseCallsService.participants).mockResolvedValue(PARTICIPANTS_ADMIN);
     vi.mocked(jointPurchaseCallsService.closing).mockResolvedValue(CLOSING_DIRECTIVA);
@@ -416,61 +368,19 @@ describe('E4: detalle de convocatoria por rol (fixtures de E4_EJEMPLOS_RESPUESTA
     expectNoFarmerIdentity();
   });
 
-  it('responsable no habilitada (§2.2): la Directiva ve a quién pedir la intervención; la Administración, «Sustituir responsable…»', async () => {
-    const ineligible = { ...DETAIL_DIRECTIVA_OPEN.responsible, eligible: false };
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...DETAIL_DIRECTIVA_OPEN, is_responsible: false, can_manage: false, can_cancel_or_close: false, my_grants: [], responsible: ineligible, delegations_suspended: true });
-    const first = render('DIRECTIVA');
-    expect((await screen.findByTestId('responsible-ineligible-who')).textContent?.trim()).toBe(RESPONSIBLE_INELIGIBLE_WHO);
-    expect(screen.queryByRole('button', { name: 'Sustituir responsable…' })).toBeNull();
-    first.unmount();
-
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({ ...DETAIL_ADMIN_OPEN, responsible: ineligible, delegations_suspended: true, can_substitute_responsible: true });
-    render('ADMINISTRADOR');
-    expect(await screen.findByRole('button', { name: 'Sustituir responsable…' })).toBeTruthy();
+  it.each(['ADMINISTRADOR', 'DIRECTIVA'] as const)('mantiene las acciones para %s con el responsable de compatibilidad deshabilitado', async (role) => {
+    const fixture = role === 'ADMINISTRADOR' ? DETAIL_ADMIN_OPEN : DETAIL_DIRECTIVA_OPEN;
+    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue({
+      ...fixture, can_manage: true, can_cancel_or_close: true,
+      responsible: { ...fixture.responsible, eligible: false },
+    });
+    render(role);
+    expect(await screen.findByRole('button', { name: 'Cerrar y consolidar…' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cancelar convocatoria…' })).toBeTruthy();
     expect(screen.queryByTestId('responsible-ineligible-who')).toBeNull();
-  });
-
-  it('§2.9 colaboradores: «Administrar» vigente; los permisos de visualización sólo como historia plegada, sin acciones ni opción de concederlos', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(DETAIL_DIRECTIVA_OPEN);
-    vi.mocked(jointPurchaseCallsService.collaborators).mockResolvedValue(COLLABORATORS_RETIRED);
-    vi.mocked(jointPurchaseCallsService.eligibleResponsibles).mockResolvedValue([{ user_ref: 'u-adm-1', name: 'Administración sintética A1', role: 'ADMINISTRADOR' }]);
-    render('DIRECTIVA');
-    const panel = await screen.findByTestId('collaborators-panel');
-    expect(await within(panel).findByTestId('collaborator-u-dir-2')).toBeTruthy();
-    const retired = within(panel).getByTestId('retired-grants');
-    expect((retired as HTMLDetailsElement).open).toBe(false);
-    expect(within(retired).getAllByTestId('retired-grant')).toHaveLength(2);
-    expect(within(retired).getAllByTestId('retired-grant')[0]!.textContent).toMatch(/concedido por el sistema a la responsable/);
-    expect(within(retired).getAllByText('Permiso de visualización retirado el 2026-11-13; no da acceso.')).toHaveLength(2);
-    expect(within(retired).queryAllByRole('button')).toHaveLength(0);
-    // Ningún control para conceder, retirar o revisar «Consultar participantes».
-    expect(screen.queryByRole('button', { name: /Consultar participantes/ })).toBeNull();
-    expect(screen.queryByTestId('collaborator-grant-u-adm-1-PARTICIPANTS')).toBeNull();
-    fireEvent.click(within(panel).getByRole('button', { name: 'Conceder «Administrar la convocatoria»' }));
-    const dialog = await screen.findByTestId('grant-dialog');
-    expect(within(dialog).queryAllByRole('radio')).toHaveLength(0);
-    expect(dialog.textContent).not.toMatch(/Consultar participantes/);
-  });
-
-  it('«Cómo funciona el acceso»: por rol y sin umbral ni textos del modelo anterior', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(DETAIL_DIRECTIVA_OPEN);
-    render('DIRECTIVA');
-    const rules = await screen.findByTestId('access-rules');
-    for (const rule of ACCESS_RULES) expect(rules.textContent).toContain(rule.term);
-    expect(rules.textContent).not.toMatch(/umbral|3 o más|Consultar participantes|sin permiso/i);
-    await waitFor(() => expect(jointPurchaseCallsService.collaborators).toHaveBeenCalled());
-  });
-
-  it('ningún texto del modelo anterior en la página de la Directiva ni de la Administración', async () => {
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(DETAIL_DIRECTIVA_OPEN);
-    const first = render('DIRECTIVA');
-    await screen.findByTestId('call-products');
-    const retiredTexts = /Oculto por umbral|Lo pidieron menos de|Restringido para su acceso|No disponible mientras esté abierta|Usted no tiene el permiso|Lo concede la responsable|pídalo a la responsable|permiso del sindicato|anónim/i;
-    expect(document.body.textContent).not.toMatch(retiredTexts);
-    first.unmount();
-    vi.mocked(jointPurchaseCallsService.get).mockResolvedValue(DETAIL_ADMIN_OPEN);
-    render('ADMINISTRADOR');
-    await within(await screen.findByTestId('participants-panel')).findAllByText('Agricultor sintético F1');
-    expect(document.body.textContent).not.toMatch(retiredTexts);
+    expect(screen.queryByRole('button', { name: 'Sustituir responsable…' })).toBeNull();
+    expect(screen.queryByTestId('collaborators-panel')).toBeNull();
+    expect(jointPurchaseCallsService.collaborators).not.toHaveBeenCalled();
+    if (role === 'DIRECTIVA') expectNoFarmerIdentity();
   });
 });

@@ -78,20 +78,9 @@ describe('Usuarios (Administración)', () => {
     expect(screen.getByTestId('users-shown').textContent).toBe('Se muestran 2 de 4.');
     fireEvent.change(screen.getByLabelText('Buscar usuario'), { target: { value: 'INACTIVA' } });
     expect(screen.getAllByRole('listitem').filter((li) => li.dataset.testid?.startsWith('user-'))).toHaveLength(1);
-    // Reescrito por E4 §3.2: en lugar del panel de gestión del permiso «Sustituir responsable» (U.4), su historia
-    // plegada y de sólo lectura; no se pide al servidor hasta desplegarla y no tiene controles.
-    const history = screen.getByTestId('substitution-history');
-    expect(history.tagName).toBe('DETAILS');
-    expect((history as HTMLDetailsElement).open).toBe(false);
-    expect(screen.queryByTestId('substitution-permissions')).toBeNull();
+    expect(screen.queryByTestId('substitution-history')).toBeNull();
     expect(screen.queryByTestId('substitution-grant-button')).toBeNull();
-    expect(within(history).queryAllByRole('button')).toHaveLength(0);
     expect(jointPurchaseCallsService.substitutionPermissionsHistory).not.toHaveBeenCalled();
-    (history as HTMLDetailsElement).open = true;
-    fireEvent(history, new Event('toggle'));
-    await waitFor(() => expect(jointPurchaseCallsService.substitutionPermissionsHistory).toHaveBeenCalledTimes(1));
-    expect(await within(history).findByTestId('substitution-holders-empty')).toBeTruthy();
-    expect(within(history).queryAllByRole('button')).toHaveLength(0);
   });
 
   it('nadie se desactiva a sí mismo ni se quita el rol de administrador', async () => {

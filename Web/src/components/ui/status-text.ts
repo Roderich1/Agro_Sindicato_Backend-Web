@@ -12,15 +12,15 @@ export const STATUS_CHIP: Record<string, { label: string; tone: ChipTone }> = {
   // Divulgación (AnyStatus)
   DISCLOSED: { label: 'Publicado', tone: 'positive' },
   // E4 §5.1: estado histórico de F07-POL-01; se rotula con su política, no como «oculto por privacidad».
-  SUPPRESSED_UNDER_THRESHOLD: { label: 'Sin cifra (F07-POL-01)', tone: 'hidden' },
+  SUPPRESSED_UNDER_THRESHOLD: { label: 'Sin datos disponibles', tone: 'hidden' },
   SUPPRESSED_REVISION: { label: 'Sin cifra publicada', tone: 'attention' },
   OVERFLOW: { label: 'Fuera de rango', tone: 'critical' },
   WITHDRAWN: { label: 'Retirado', tone: 'attention' },
   SUPERSEDED: { label: 'Sustituido', tone: 'attention' },
-  POLICY_PENDING: { label: 'Política pendiente', tone: 'neutral' },
-  WITHDRAWN_AFTER_SEAL: { label: 'Retirado tras sellar', tone: 'attention' },
+  POLICY_PENDING: { label: 'Sin datos disponibles', tone: 'neutral' },
+  WITHDRAWN_AFTER_SEAL: { label: 'Datos retirados', tone: 'attention' },
   NO_DATA: { label: 'Sin cifra publicada', tone: 'neutral' },
-  NOT_SEALED: { label: 'Sin sellar', tone: 'neutral' },
+  NOT_SEALED: { label: 'Sin resultados históricos', tone: 'neutral' },
   // Campaña (CampaignStatus)
   PLANIFICADA: { label: 'Planificada', tone: 'neutral' },
   ABIERTA: { label: 'Abierta', tone: 'positive' },

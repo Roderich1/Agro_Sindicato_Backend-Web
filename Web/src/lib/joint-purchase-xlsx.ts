@@ -38,7 +38,6 @@ import {
   PREPARE_BLOCKER_TEXT,
   UPDATE_REASON_TEXT,
 } from './estimation-link-text';
-import { policyText } from './collective-text';
 import { FAILURE_TEXT, JOB_STATUS_TEXT, REASON_TEXT, RESULT_STATUS_TEXT, STOP_TEXT, VALIDITY_REASON_TEXT, VALIDITY_TEXT } from './estimation-text';
 import { decimalToPresentation, presentationUnit } from './quantity';
 import {
@@ -117,7 +116,7 @@ export const LINE_ESTIMATION_LABEL: Record<LineEstimationState, string> = {
 
 const HIDDEN_NEED_TEXT =
   'La necesidad de esta fila no está divulgada. Esta es la estimación del consumo: no la sustituye ni se suma a la propuesta.';
-const RESTRICTED_TEXT = 'Restringida: la política de divulgación no está aprobada. No se exporta ninguna cifra de la referencia.';
+const RESTRICTED_TEXT = 'Sin estimación disponible.';
 const NOT_COMPARABLE_TEXT = 'El servidor no declara comparables la necesidad y la estimación: no se calcula ninguna diferencia.';
 const OUTDATED_NOT_COMPARED_TEXT = 'Desactualizada: se conserva la cifra de la referencia fijada, pero no se compara con la necesidad.';
 
@@ -154,7 +153,7 @@ function lineExplanation(ref: EstimationLinkLine): string {
     case 'RESTRICTED':
       return e.validity_reason === 'SOURCES_WITHDRAWN'
         ? `${VALIDITY_REASON_TEXT.SOURCES_WITHDRAWN} No se exporta la cifra.`
-        : 'La política de divulgación no está aprobada: no se exporta la cifra.';
+        : 'Sin estimación disponible.';
     case 'AVAILABLE':
     case 'OUTDATED':
       return 'Sin cifra.';
@@ -251,7 +250,7 @@ function linkSummary(view: EstimationLinkView): string {
     case 'UNAVAILABLE':
       return `El cálculo de la referencia fijada no se completó: sin cifras. ${unavailableText(view)}`;
     case 'RESTRICTED':
-      return 'Restringida: la política de divulgación no está aprobada. Se conserva el vínculo (ejecución, fecha y método) pero no se exporta ninguna cifra.';
+      return 'Sin estimación disponible.';
   }
 }
 
@@ -346,18 +345,17 @@ export function buildJointPurchaseXlsx(input: JointPurchaseXlsxInput): JointPurc
         { label: 'Base', value: text('Necesidad declarada por los agricultores') },
         { label: `Generado el (${zone})`, value: dateCell(proposal.generated_at, offset) },
         { label: 'Generado por', value: text(proposal.generated_by.name) },
-        { label: 'Versión sellada', value: text(proposal.seal ? sealText(proposal.seal) : 'Sin versión sellada: usa la necesidad declarada vigente al generar el borrador.', 'wrap') },
+        { label: 'Resultados históricos', value: text(proposal.seal ? sealText(proposal.seal) : 'Sin histórico: usa la necesidad declarada vigente al generar el borrador.', 'wrap') },
         ...(proposal.seal
           ? [
-              { label: `Sellada el (${zone})`, value: dateCell(proposal.seal.sealed_at, offset) },
-              { label: 'Referencia de la versión sellada', value: refCell(proposal.seal.seal_ref) },
+              { label: `Fecha de registro (${zone})`, value: dateCell(proposal.seal.sealed_at, offset) },
+              { label: 'Referencia de la histórico', value: refCell(proposal.seal.seal_ref) },
             ]
           : []),
         { label: 'Cobertura', value: text(coverageText(proposal.coverage, 'draft'), 'wrap') },
         // E4 §4.4: el borrador conserva la política con que se generó.
-        { label: 'Política aplicada', value: text(policyText(proposal.disclosure.policy), 'wrap') },
         ...(proposal.disclosure.mode === 'POLICY_PENDING'
-          ? [{ label: 'Cifras', value: text('La política de divulgación no está aprobada: no se exporta ninguna cifra.', 'warn') }]
+          ? [{ label: 'Cifras', value: text('Sin datos disponibles.', 'warn') }]
           : []),
         { label: 'Aviso del servidor', value: text(proposal.notice, 'wrap') },
         { label: 'Huella de las entradas', value: text(proposal.inputs_fingerprint ?? 'Sin huella: alguna cifra del borrador ya no se publica.', 'muted') },

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useCampaign } from '../hooks/use-campaign';
-import { CAMPAIGN_STATUS_TEXT, fmtDateTime, PENDING_CHANGES_TEXT, policyText, SMALL_GROUP_NOTE, statusReason } from '../lib/collective-text';
+import { CAMPAIGN_STATUS_TEXT, fmtDateTime, PENDING_CHANGES_TEXT, statusReason } from '../lib/collective-text';
 import { formatQuantity, isBaseQuantity, type BaseUnit } from '../lib/quantity';
 import type { Campaign } from '../types/campaigns';
 import type { AnyStatus, Coverage, SealRef } from '../types/collective';
@@ -17,8 +17,8 @@ const COUNT = new Intl.NumberFormat('es-BO');
  * `title`. Un estado desconocido se trata, como antes, como «Política
  * pendiente» (sin cifra), nunca como un código en bruto.
  */
-export function StatusBadge({ status, threshold }: { status: AnyStatus; threshold?: number | null }) {
-  return <StatusChip status={isKnownStatus(status) ? status : 'POLICY_PENDING'} threshold={threshold} />;
+export function StatusBadge({ status }: { status: AnyStatus }) {
+  return <StatusChip status={isKnownStatus(status) ? status : 'POLICY_PENDING'} />;
 }
 
 /**
@@ -29,18 +29,16 @@ export function ProductCell({
   name,
   unit,
   status,
-  threshold,
 }: {
   name: string;
   unit: string;
   status: AnyStatus;
-  threshold?: number | null;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span className="text-base font-semibold text-ink">{name}</span>
       {unit && <span className="text-xs text-ink-muted">{unit}</span>}
-      <StatusBadge status={status} threshold={threshold} />
+      <StatusBadge status={status} />
     </div>
   );
 }
@@ -54,7 +52,6 @@ export function QuantityCell({
   base,
   serverPresentation,
   unit,
-  threshold,
   asOf,
   size = 'md',
 }: {
@@ -62,14 +59,13 @@ export function QuantityCell({
   base: string | null;
   serverPresentation: string | null;
   unit: BaseUnit;
-  threshold?: number | null;
   /** Fecha hasta la que el servidor aceptó datos para esta cifra; se muestra bajo la cifra. */
   asOf?: string | null;
   /** `lg`: cifra grande, para proyector. */
   size?: 'md' | 'lg';
 }) {
   if (status !== 'DISCLOSED') {
-    return <span className="text-xs leading-snug text-ink-muted">{statusReason(status, threshold)}</span>;
+    return <span className="text-xs leading-snug text-ink-muted">{statusReason(status)}</span>;
   }
   const text = formatQuantity(base, unit, serverPresentation);
   if (text === null) {
@@ -122,7 +118,7 @@ export function CoverageBanner({
   link?: string;
 }) {
   const title = sealedAt
-    ? `Cobertura al sellar (${fmtDateTime(sealedAt)})`
+    ? `Cobertura histórica (${fmtDateTime(sealedAt)})`
     : asOf
       ? `Cobertura al generar el borrador (${fmtDateTime(asOf)})`
       : 'Cobertura';
@@ -148,8 +144,8 @@ export function CoverageBanner({
           {coverage.basis === 'ALL_CONTRIBUTORS' &&
             'Borrador guardado con la regla anterior a F10-SEC-02: el conteo incluye a quienes aportaron a filas sin cifra. '}
           {asOf && 'No es la cobertura actual: la de hoy está en el resumen. '}
-          {sealedAt && 'Fijada al sellar; no se recalcula. '}
-          {coverage.suppressed_cells && 'Hay filas sin cifra (por la política F07-POL-01, en revisión o retiradas) cuyos aportes no se cuentan. '}
+          {sealedAt && 'Cobertura registrada para el histórico. '}
+          {coverage.suppressed_cells && 'Hay aportes que no forman parte de las cifras disponibles. '}
           Ausencia de aporte = desconocido, no cero. No es el total del sindicato.
         </p>
       </div>
@@ -174,9 +170,6 @@ export function SealBanner({ seal }: { seal: SealRef }) {
         {seal.sealed_by.role === 'ADMINISTRADOR' ? 'Administrador' : 'Directiva'}) · datos aceptados hasta{' '}
         {fmtDateTime(seal.accepted_until)} · ref. <code title={seal.seal_ref}>{seal.seal_ref.slice(0, 8)}</code>
       </p>
-      <p className="mt-0.5 text-sm text-ink" data-testid="seal-policy">
-        Política aplicada al sellar: {policyText(seal.policy, seal.threshold)}. Lo sellado no cambia aunque después rija otra política.
-      </p>
       <p className="mt-0.5 text-xs text-ink-muted">
         Cada cifra indica su propia fecha; las que tienen cambios pendientes muestran una cifra anterior. El servidor no
         puede asegurar que todos los teléfonos publicaron todo. Las correcciones privadas posteriores no cambian esta
@@ -190,30 +183,15 @@ export function SealBanner({ seal }: { seal: SealRef }) {
  * Aviso de política pendiente: se conserva porque bloquea las cifras. El modo
  * sintético no lleva banner: el armazón muestra la etiqueta «Datos sintéticos».
  */
-export function DisclosureNotice({ mode }: { mode: 'POLICY_PENDING' | 'PROVISIONAL_SYNTHETIC' }) {
+export function DisclosureNotice({ mode }: Readonly<{ mode: import('../types/collective').DisclosureMode }>) {
   if (mode === 'POLICY_PENDING') {
     return (
       <Notice kind="info">
-        <strong>Política de divulgación pendiente de aprobación.</strong> Mientras no se apruebe, el servidor no publica
-        cifras colectivas. Esta pantalla no calcula ni estima totales.
+        Sin datos disponibles.
       </Notice>
     );
   }
   return null;
-}
-
-/**
- * E4 §5.1: la política con que el servidor decidió las cifras de esta vista.
- * Con `F07-POL-02` añade el riesgo aceptado de los totales sin umbral; sin
- * «anónimo».
- */
-export function PolicyLine({ policy, threshold, testId = 'policy-line' }: { policy: string; threshold: number | null; testId?: string }) {
-  return (
-    <p className="text-sm leading-relaxed text-ink-muted" data-testid={testId}>
-      <span className="font-semibold text-ink">Política aplicada:</span> {policyText(policy, threshold)}.
-      {policy === 'F07-POL-02' && ` ${SMALL_GROUP_NOTE}`}
-    </p>
-  );
 }
 
 export function CampaignPicker({
@@ -342,7 +320,7 @@ export interface BarRow {
  * motivo. Un cero divulgado se escribe «0 L» sin barra. Un solo color: no hay
  * series que distinguir.
  */
-export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit: 'L' | 'KG'; threshold: number | null }) {
+export function ComparisonBars({ rows, unit }: Readonly<{ rows: BarRow[]; unit: 'L' | 'KG' }>) {
   const values = rows.map((row) => (row.status === 'DISCLOSED' && isBaseQuantity(row.base) ? BigInt(row.base!) : null));
   const max = values.reduce<bigint>((top, value) => (value !== null && value > top ? value : top), 0n);
   const width = (value: bigint | null) => (value === null || max === 0n ? 0 : Number((value * 1000n) / max) / 10);
@@ -353,7 +331,7 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
         const text = row.status === 'DISCLOSED' ? formatQuantity(row.base, unit === 'L' ? 'ML' : 'G', row.presentation) : null;
         return (
           <li key={row.key} className="grid items-center gap-x-4 gap-y-1 px-5 py-2.5 sm:grid-cols-[minmax(11rem,15rem)_1fr_auto]" data-testid={row.testId}>
-            <ProductCell name={row.name} unit={row.unit} status={row.status} threshold={threshold} />
+            <ProductCell name={row.name} unit={row.unit} status={row.status} />
             {row.status === 'DISCLOSED' ? (
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" title={text ?? undefined}>
                 <div className="h-2 min-w-24 flex-1 rounded-full bg-track">
@@ -368,7 +346,7 @@ export function ComparisonBars({ rows, unit, threshold }: { rows: BarRow[]; unit
                 </span>
               </div>
             ) : (
-              <p className="text-xs leading-snug text-ink-muted">{statusReason(row.status, threshold)}</p>
+              <p className="text-xs leading-snug text-ink-muted">{statusReason(row.status)}</p>
             )}
             <div className="text-right text-xs text-ink-muted sm:w-44">
               {row.status === 'DISCLOSED' ? (

@@ -24,7 +24,7 @@ export function heroStats(needs: SummaryCell[], cells: SummaryCell[]): HeroStatI
       testId: 'needs-published',
     },
   ];
-  if (previous > 0) stats.push({ key: 'previous', label: 'Sin cifra (F07-POL-01)', value: plural(previous, 'producto', 'productos'), testId: 'needs-hidden' });
+  if (previous > 0) stats.push({ key: 'previous', label: 'Sin datos disponibles', value: plural(previous, 'producto', 'productos'), testId: 'needs-hidden' });
   if (other > 0) stats.push({ key: 'other', label: 'Sin cifra publicada', value: plural(other, 'producto', 'productos'), testId: 'needs-other' });
   const latest = latestDataAsOf(cells);
   if (latest) stats.push({ key: 'latest', label: 'Cifra más reciente', value: fmtDateTime(latest), testId: 'latest-figure' });
@@ -53,5 +53,5 @@ export const FILTERS: { value: NeedsFilter; label: string }[] = [
 export const STEPS = [
   { key: 'ABIERTA', label: 'Abierta' },
   { key: 'CERRADA', label: 'Cerrada' },
-  { key: 'SELLADA', label: 'Sellada' },
+  { key: 'HISTORICO', label: 'Histórico disponible' },
 ];

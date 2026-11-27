@@ -528,6 +528,7 @@
                         "mode": {
                           "type": "string",
                           "enum": [
+                            "APPROVED",
                             "POLICY_PENDING",
                             "PROVISIONAL_SYNTHETIC"
                           ]
@@ -538,13 +539,10 @@
                             "F07-POL-01",
                             "F07-POL-02"
                           ],
-                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
+                          "description": "F07-POL-02 es la regla institucional vigente y publica desde un aporte autorizado. F07-POL-01 identifica resultados históricos que conservan su regla original"
                         },
                         "approved": {
-                          "type": "boolean",
-                          "enum": [
-                            false
-                          ]
+                          "type": "boolean"
                         },
                         "threshold": {
                           "type": "integer",
@@ -885,6 +883,7 @@
                         "mode": {
                           "type": "string",
                           "enum": [
+                            "APPROVED",
                             "POLICY_PENDING",
                             "PROVISIONAL_SYNTHETIC"
                           ]
@@ -898,10 +897,7 @@
                           "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
                         },
                         "approved": {
-                          "type": "boolean",
-                          "enum": [
-                            false
-                          ]
+                          "type": "boolean"
                         }
                       }
                     },
@@ -1335,6 +1331,7 @@
                         "mode": {
                           "type": "string",
                           "enum": [
+                            "APPROVED",
                             "POLICY_PENDING",
                             "PROVISIONAL_SYNTHETIC"
                           ]
@@ -1348,10 +1345,7 @@
                           "description": "E4 §4.4: política con la que se generó el borrador (los anteriores a E4, F07-POL-01)"
                         },
                         "approved": {
-                          "type": "boolean",
-                          "enum": [
-                            false
-                          ]
+                          "type": "boolean"
                         }
                       }
                     },
@@ -1492,6 +1486,84 @@
           }
         ],
         "summary": "Detalle del borrador con la misma política que el resumen",
+        "tags": [
+          "collective"
+        ]
+      }
+    },
+    "/api/v1/collective/campaigns/{campaignId}/close-preview": {
+      "get": {
+        "operationId": "CollectiveHistoryController_closePreview",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "coverage",
+                    "recoverable_cells",
+                    "cells_without_figure"
+                  ],
+                  "properties": {
+                    "recoverable_cells": {
+                      "type": "integer"
+                    },
+                    "cells_without_figure": {
+                      "type": "integer"
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "nullable": true,
+                      "required": [
+                        "linked_members",
+                        "members_with_contribution",
+                        "suppressed_cells"
+                      ],
+                      "properties": {
+                        "linked_members": {
+                          "type": "integer"
+                        },
+                        "members_with_contribution": {
+                          "type": "integer"
+                        },
+                        "suppressed_cells": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente"
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR"
+          },
+          "404": {
+            "description": "Campaña inexistente o de otro tenant (indistinguibles)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar la cobertura disponible antes del cierre",
         "tags": [
           "collective"
         ]
@@ -1972,7 +2044,7 @@
             "description": "Campaña inexistente o de otro tenant (indistinguibles)"
           },
           "409": {
-            "description": "SEALING_DISABLED, POLICY_PENDING, CAMPAIGN_NOT_CLOSED o SEAL_REVIEW_STALE: no se escribe nada"
+            "description": "CAMPAIGN_NOT_CLOSED, SEAL_REVIEW_STALE o NO_RECOVERABLE_HISTORY: no se escribe nada"
           },
           "422": {
             "description": "CONFIRMATION_REQUIRED: no se escribe nada"
@@ -1983,7 +2055,7 @@
             "bearer": []
           }
         ],
-        "summary": "Sellar la versión colectiva de una campaña cerrada (idempotente)",
+        "summary": "Regularizar resultados históricos recuperables de una campaña cerrada (idempotente)",
         "tags": [
           "collective"
         ]
@@ -2043,6 +2115,7 @@
                         "mode": {
                           "type": "string",
                           "enum": [
+                            "APPROVED",
                             "POLICY_PENDING",
                             "PROVISIONAL_SYNTHETIC"
                           ]
@@ -2053,13 +2126,10 @@
                             "F07-POL-01",
                             "F07-POL-02"
                           ],
-                          "description": "F07-POL-01: mínimo de 3 aportantes y regla de combinaciones. F07-POL-02 (E4): sin umbral de agricultores; sólo tras su activación explícita"
+                          "description": "F07-POL-02 es la regla institucional vigente y publica desde un aporte autorizado. F07-POL-01 identifica resultados históricos que conservan su regla original"
                         },
                         "approved": {
-                          "type": "boolean",
-                          "enum": [
-                            false
-                          ]
+                          "type": "boolean"
                         },
                         "threshold": {
                           "type": "integer",
@@ -14385,7 +14455,8 @@
           },
           "responsible_user_id": {
             "type": "string",
-            "description": "Usuario DIRECTIVA o ADMINISTRADOR activo del tenant (ver eligible-responsibles)"
+            "deprecated": true,
+            "description": "Campo de compatibilidad. Por defecto se registra el creador."
           },
           "products": {
             "minItems": 1,
@@ -14406,7 +14477,6 @@
           "campaign_id",
           "name",
           "deadline_at",
-          "responsible_user_id",
           "products"
         ]
       },

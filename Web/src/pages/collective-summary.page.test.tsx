@@ -39,12 +39,12 @@ describe('Resumen colectivo', () => {
     });
     renderAt(<CollectiveSummaryPage />, { path: PATH });
     const banner = await screen.findByTestId('seal-banner');
-    expect(banner.textContent).toMatch(/Versión 1/);
+    expect(banner.textContent).toMatch(/Resultados fijados el/);
     expect(banner.textContent).toMatch(/Administrador sintético \(Administrador\)/);
-    expect(banner.textContent).toMatch(/no puede asegurar que todos los teléfonos publicaron todo/);
-    expect(screen.getByTestId('coverage').textContent).toMatch(/Cobertura al sellar/);
+    expect(banner.textContent).toMatch(/Los datos que pierdan su autorización dejan de mostrarse/);
+    expect(screen.getByTestId('coverage').textContent).toMatch(/Cobertura histórica/);
     const withdrawn = screen.getByTestId('cell-DECLARED_NEED-Belator-ML');
-    expect(withdrawn.textContent).toMatch(/retiró su aporte después del sellado/);
+    expect(withdrawn.textContent).toMatch(/Datos retirados/);
     expect(withdrawn.textContent).not.toMatch(/6000|6 L/);
     // Una campaña sellada no ofrece sellar otra vez.
     expect(screen.queryByTestId('seal-panel')).toBeNull();
@@ -55,7 +55,7 @@ describe('Resumen colectivo', () => {
     vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith([], 'POLICY_PENDING'));
     renderAt(<CollectiveSummaryPage />, { path: PATH });
     // Rediseño v2 (lámina 05 §5).
-    expect(await screen.findByText(/Las cifras todavía no se pueden mostrar/)).toBeTruthy();
+    expect((await screen.findByTestId('policy-pending')).textContent).toMatch(/Sin datos disponibles/);
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.queryByTestId('coverage')).toBeNull();
     expect(collectiveService.summary).toHaveBeenCalledWith(CAMPAIGN.id);
@@ -87,9 +87,9 @@ describe('Resumen colectivo', () => {
 
     const suppressed = screen.getByTestId('cell-DECLARED_NEED-Belator-ML');
     // E4 §5.1: el motivo nombra la política que produjo el estado (antes «Menos de 3 agricultores aportaron»).
-    expect(within(suppressed).getByText(/Sin cifra según la política F07-POL-01 \(mínimo de 3 aportantes\)/)).toBeTruthy();
+    expect(within(suppressed).getByText('Sin datos disponibles')).toBeTruthy();
     expect(suppressed.textContent).not.toMatch(/7000|7 L|\b2\b/);
-    expect(screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML').textContent).toMatch(/se retiró/);
+    expect(screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML').textContent).toMatch(/Datos retirados/);
     expect(screen.getByTestId('cell-DECLARED_NEED-Enorme-G').textContent).toMatch(/no se trunca/);
 
     // Necesidad y consumo son vistas separadas; no hay totales por encima de la celda.
@@ -101,7 +101,7 @@ describe('Resumen colectivo', () => {
 
     expect(screen.getByTestId('coverage').textContent).toMatch(/3 de 4 agricultores vinculados con cifras publicadas/);
     // F10-SEC-02: existen filas sin cifra; se avisa sin conteo.
-    expect(screen.getByTestId('coverage').textContent).toMatch(/Hay filas sin cifra/);
+    expect(screen.getByTestId('coverage').textContent).toMatch(/Hay aportes que no forman parte de las cifras disponibles/);
     expect(screen.getByTestId('coverage').textContent).toMatch(/desconocido, no cero/);
     // El resumen muestra la cobertura actual: sin rótulo de fecha histórica.
     expect(screen.getByTestId('coverage').textContent).not.toMatch(/al generar el borrador|No es la cobertura actual/);
@@ -121,8 +121,8 @@ describe('Resumen colectivo', () => {
     expect(zero.querySelector('[data-figure]')!.textContent).toBe('0 L');
     expect(zero.querySelector('[data-tone="hidden"]')).toBeNull();
     const privacy = screen.getByTestId('cell-DECLARED_NEED-Belator-ML');
-    // Rediseño v2 (lámina 03) con E4 §5.1: «Sin cifra (F07-POL-01)» en lugar de «Oculta por privacidad».
-    expect(within(privacy).getByText('Sin cifra (F07-POL-01)')).toBeTruthy();
+    // Rediseño v2 (lámina 03) con E4 §5.1: «Sin datos disponibles» en lugar de «Oculta por privacidad».
+    expect(within(privacy).getByText('Sin datos disponibles')).toBeTruthy();
     expect(privacy.textContent).not.toMatch(/privacidad|anónim/i);
     expect(privacy.textContent).not.toMatch(/7000|7 L|\b2\b|0 L/);
     const revision = screen.getByTestId('cell-DECLARED_NEED-Mancozeb-ML');

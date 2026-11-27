@@ -56,13 +56,8 @@ export interface SealCommand {
 
 const SEAL_ROLES: readonly UserRole[] = [UserRole.DIRECTIVA, UserRole.ADMINISTRADOR];
 
-/**
- * F07 manual seal (F07_SEALED_HISTORY_CONTRACT §3–§4): DIRECTIVA or
- * ADMINISTRADOR of the tenant, either alone, fixes the disclosure decisions of
- * a CERRADA campaign as version 1. One transaction holds the seal lock
- * (exclusive; pushes take it shared), the summary lock, the decision, the
- * check of what was reviewed and the writes: all or nothing. A second request
- * gets the existing seal. No reopening, correction or later version.
+/** Writes the version of the collective results through the campaign close transaction.
+ * A closed campaign from before the transition can also be regularized after review.
  */
 @Injectable()
 export class CollectiveSealUseCase {
@@ -93,6 +88,15 @@ export class CollectiveSealUseCase {
     return { ...this.view(campaign, null, []), review };
   }
 
+  async closePreview(tenantId: string, campaignId: string) {
+    const decided = await this.summary.decide(tenantId, campaignId, undefined, { persist: false });
+    return {
+      coverage: decided.summary.coverage,
+      recoverable_cells: decided.releaseOf.size,
+      cells_without_figure: decided.summary.cells.length - decided.releaseOf.size,
+    };
+  }
+
   async seal(
     tenantId: string,
     actor: { userId: string; role: UserRole },
@@ -105,80 +109,9 @@ export class CollectiveSealUseCase {
     if (!SEAL_ROLES.includes(actor.role)) throw new ForbiddenException();
     const created = await this.prisma.$transaction(
       async (tx) => {
-        const campaign = await this.findCampaign(tx, tenantId, campaignId);
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${sealLockKey(tenantId, campaignId)}, 0))`;
-        if (await this.summary.sealRef(tx, tenantId, campaignId)) return false;
-        const blocked = this.blocks(campaign.status);
-        if (blocked.length > 0) throw new ConflictException(blocked[0]);
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${summaryLockKey(tenantId, campaignId)}, 0))`;
-        const header = {
-          contractVersion: 1 as const,
-          campaign: { campaign_ref: campaign.id, name: campaign.name, status: campaign.status },
-        };
-        const decided = await this.summary.decideLocked(tx, tenantId, header);
-        const review = await this.review(tx, tenantId, campaignId, decided);
-        // What is sealed is exactly what was reviewed, or nothing (the whole
-        // transaction, releases of this decision included, rolls back).
-        if (review.review_ref !== command.reviewRef) throw new ConflictException("SEAL_REVIEW_STALE");
-        const sealedAt = new Date();
-        const seal = await tx.collectiveSeal.create({
-          data: {
-            tenantId,
-            campaignId,
-            version: 1,
-            sealedAt,
-            sealedByUserId: actor.userId,
-            sealedByRole: actor.role,
-            disclosureMode: decided.summary.disclosure.mode,
-            policy: decided.summary.disclosure.policy,
-            // E4 §4.4: NULL with F07-POL-02 (CHECK policy ⇔ threshold).
-            threshold: decided.summary.disclosure.threshold,
-            linkedMembers: review.coverage.linked_members,
-            membersWithContribution: review.coverage.members_with_contribution,
-            suppressedCells: review.coverage.suppressed_cells,
-            openDisputes: review.open_disputes,
-            reviewRef: review.review_ref,
-          },
-          select: { id: true },
-        });
-        // A separate statement, after the seal row exists in this transaction
-        // (the entry trigger checks it).
-        await tx.collectiveSealEntry.createMany({
-          data: decided.summary.cells.map((cell) => {
-            const key = { projectionType: cell.projection_type, canonicalProductId: cell.product_ref, baseUnit: cell.base_unit };
-            const disclosed = cell.status === "DISCLOSED";
-            if (cell.status === "WITHDRAWN_AFTER_SEAL") throw new Error("Unsealed decision with a sealed state");
-            return {
-              sealId: seal.id,
-              projectionType: cell.projection_type,
-              canonicalProductId: cell.product_ref,
-              baseUnit: cell.base_unit,
-              status: cell.status,
-              releaseId: disclosed ? requireRelease(decided, cellId(key)) : null,
-              pendingChanges: disclosed && cell.pending_changes,
-            };
-          }),
-        });
-        // F07 §5.3: participation coverage of the consumption figures, from the
-        // same decision. Required at commit for every new seal (database).
-        if (!decided.population) throw new Error("Unsealed decision without its population");
-        const coverage = consumptionCoverage(
-          decided.population.published.get("CONSUMPTION_TOTAL") ?? new Set<string>(),
-          decided.population.linked,
-        );
-        await tx.collectiveSealConsumptionCoverage.create({ data: { sealId: seal.id, ...coverage } });
-        await tx.auditLog.create({
-          data: {
-            tenantId,
-            campaignId,
-            actorUserId: actor.userId,
-            action: "OTRO",
-            entityName: "CollectiveSeal",
-            entityId: seal.id,
-            summary: "Consolidado colectivo sellado (versión 1)",
-          },
-        });
-        return true;
+        const campaign = await this.findCampaign(tx, tenantId, campaignId);
+        return this.writeLocked(tx, tenantId, actor, campaign, command);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 10000, timeout: 30000 },
     );
@@ -188,9 +121,95 @@ export class CollectiveSealUseCase {
     return { ...(await this.state(tenantId, campaignId)), created };
   }
 
+  /** The caller holds the campaign lock in the same transaction as the close. */
+  async writeLocked(
+    tx: Tx,
+    tenantId: string,
+    actor: { userId: string; role: UserRole },
+    campaign: { id: string; name: string; status: CampaignStatus },
+    command?: SealCommand,
+  ): Promise<boolean> {
+    const campaignId = campaign.id;
+    if (await this.summary.sealRef(tx, tenantId, campaignId)) return false;
+    const blocked = this.blocks(campaign.status);
+    if (blocked.length > 0) throw new ConflictException(blocked[0]);
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${summaryLockKey(tenantId, campaignId)}, 0))`;
+    const header = {
+      contractVersion: 1 as const,
+      campaign: { campaign_ref: campaignId, name: campaign.name, status: campaign.status },
+    };
+    const decided = await this.summary.decideLocked(tx, tenantId, header);
+    const review = await this.review(tx, tenantId, campaignId, decided);
+    if (command && review.review_ref !== command.reviewRef) throw new ConflictException("SEAL_REVIEW_STALE");
+    if (command && decided.releaseOf.size === 0) throw new ConflictException("NO_RECOVERABLE_HISTORY");
+    const sealedAt = new Date();
+    const seal = await tx.collectiveSeal.create({
+      data: {
+        tenantId,
+        campaignId,
+        version: 1,
+        sealedAt,
+        sealedByUserId: actor.userId,
+        sealedByRole: actor.role,
+        disclosureMode: decided.summary.disclosure.mode,
+        policy: decided.summary.disclosure.policy,
+        // E4 §4.4: NULL with F07-POL-02 (CHECK policy ⇔ threshold).
+        threshold: decided.summary.disclosure.threshold,
+        linkedMembers: review.coverage.linked_members,
+        membersWithContribution: review.coverage.members_with_contribution,
+        suppressedCells: review.coverage.suppressed_cells,
+        openDisputes: review.open_disputes,
+        reviewRef: review.review_ref,
+      },
+      select: { id: true },
+    });
+    // A separate statement, after the seal row exists in this transaction
+    // (the entry trigger checks it).
+    await tx.collectiveSealEntry.createMany({
+      data: decided.summary.cells.map((cell) => {
+        const key = { projectionType: cell.projection_type, canonicalProductId: cell.product_ref, baseUnit: cell.base_unit };
+        const disclosed = cell.status === "DISCLOSED";
+        if (cell.status === "WITHDRAWN_AFTER_SEAL") throw new Error("Unsealed decision with a sealed state");
+        return {
+          sealId: seal.id,
+          projectionType: cell.projection_type,
+          canonicalProductId: cell.product_ref,
+          baseUnit: cell.base_unit,
+          status: cell.status,
+          releaseId: disclosed ? requireRelease(decided, cellId(key)) : null,
+          pendingChanges: disclosed && cell.pending_changes,
+        };
+      }),
+    });
+    // F07 §5.3: participation coverage of the consumption figures, from the
+    // same decision. Required at commit for every new seal (database).
+    if (!decided.population) throw new Error("Unsealed decision without its population");
+    const coverage = consumptionCoverage(
+      decided.population.published.get("CONSUMPTION_TOTAL") ?? new Set<string>(),
+      decided.population.linked,
+    );
+    await tx.collectiveSealConsumptionCoverage.create({ data: { sealId: seal.id, ...coverage } });
+    await tx.auditLog.create({
+      data: {
+        tenantId,
+        campaignId,
+        actorUserId: actor.userId,
+        action: "OTRO",
+        entityName: "CollectiveSeal",
+        entityId: seal.id,
+        summary: command ? "Resultados históricos regularizados" : "Resultados históricos fijados al cerrar la campaña",
+        after: {
+          source: command ? "RECOVERED_AUTHORIZED_SYNC" : "CAMPAIGN_CLOSE",
+          recordedAt: sealedAt.toISOString(),
+          releaseRefs: [...decided.releaseOf.values()],
+        },
+      },
+    });
+    return true;
+  }
+
   private blocks(status: CampaignStatus): SealBlock[] {
     const blocked: SealBlock[] = [];
-    if (!this.config.sealingEnabled) blocked.push("SEALING_DISABLED");
     if (this.config.mode === "POLICY_PENDING") blocked.push("POLICY_PENDING");
     if (status !== "CERRADA") blocked.push("CAMPAIGN_NOT_CLOSED");
     return blocked;

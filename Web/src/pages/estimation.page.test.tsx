@@ -413,7 +413,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     vi.mocked(estimationService.results).mockRejectedValue(httpError(409, 'POLICY_PENDING'));
     vi.mocked(estimationService.runs).mockRejectedValue(httpError(409, 'POLICY_PENDING'));
     renderAt(<EstimationPage />, { path: PATH });
-    expect((await screen.findByTestId('error-policy')).textContent).toMatch(/no se solicita ni se muestra ninguna estimación/);
+    expect((await screen.findByTestId('error-policy')).textContent).toMatch(/Sin estimación disponible/);
     expect(screen.queryByRole('button', { name: 'Generar estimación' })).toBeNull();
     expect(screen.queryByText('Resultados para')).toBeNull();
   });
@@ -445,7 +445,7 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
     expect((await screen.findByTestId('error-invalid')).textContent).toMatch(/no está clasificada/);
     fireEvent.click(screen.getByRole('button', { name: 'Generar estimación' }));
-    expect((await screen.findByTestId('job-stop')).textContent).toMatch(/política de divulgación dejó de permitirlo/);
+    expect((await screen.findByTestId('job-stop')).textContent).toMatch(/Sin estimación disponible/);
     expect(screen.getByTestId('job-status').textContent).toBe('No se ejecutó');
   });
 

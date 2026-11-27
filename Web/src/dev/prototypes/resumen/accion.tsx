@@ -35,7 +35,7 @@ export function Accion(props: VariantProps) {
                 <DataState state="empty" title="Sin necesidades publicadas" description="Ningún agricultor publicó una necesidad declarada en esta campaña. Eso no significa cero." />
               ) : (
                 <div className="px-5 py-4">
-                  <Bars groups={needs} density="compact" threshold={summary.disclosure.threshold} />
+                  <Bars groups={needs} density="compact" />
                 </div>
               )}
             </Section>
@@ -43,13 +43,13 @@ export function Accion(props: VariantProps) {
           {summary && synthetic && (
             <>
               <Collapsible title="Consumo publicado" testId="consumption">
-                <ConsumptionList groups={consumption} threshold={summary.disclosure.threshold} />
+                <ConsumptionList groups={consumption} />
               </Collapsible>
               <Collapsible title="Tabla completa: cifras, aportantes y fechas" testId="detail-table">
                 {needs.length === 0 ? (
                   <p className="px-5 py-3 text-sm text-slate-600">Sin necesidades publicadas. Eso no significa cero.</p>
                 ) : (
-                  <DetailTable groups={needs} caption="Necesidades declaradas por producto, con aportantes y fecha de cada cifra" threshold={summary.disclosure.threshold} />
+                  <DetailTable groups={needs} caption="Necesidades declaradas por producto, con aportantes y fecha de cada cifra" />
                 )}
               </Collapsible>
             </>

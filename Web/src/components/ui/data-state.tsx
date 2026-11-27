@@ -68,15 +68,19 @@ const DEFAULTS: Record<DataStateKind, { title: string; description: string | nul
     cls: 'bg-warn-bg text-warn-ink',
   },
   'policy-pending': {
-    title: 'Las cifras todavía no se pueden mostrar',
-    description: 'La política de publicación del sindicato está pendiente. Mientras no se apruebe, el servidor no publica cifras colectivas.',
+    title: 'Sin datos disponibles',
+    description: '',
     icon: ICON.lock,
     cls: 'bg-warn-bg text-warn-ink',
   },
 };
 
-/** Estados que se anuncian como alerta (`role="alert"`). */
-const ALERT_STATES: readonly DataStateKind[] = ['error', 'offline', 'busy'];
+const STATE_ROLES: Partial<Record<DataStateKind, 'status' | 'alert'>> = {
+  loading: 'status',
+  error: 'alert',
+  offline: 'alert',
+  busy: 'alert',
+};
 
 export interface DataStateProps {
   state: DataStateKind;
@@ -88,9 +92,8 @@ export interface DataStateProps {
   onRetry?: () => void;
   /** Sólo `no-match`: muestra «Quitar filtros». */
   onClearFilters?: () => void;
-  /** Sólo `restricted`: la explicación por defecto pasa a ser `statusReason(status, threshold)`. */
+  /** Sólo `restricted`: la explicación por defecto pasa a ser `statusReason(status)`. */
   status?: AnyStatus;
-  threshold?: number | null;
   /** Acción adicional propia de la vista (un enlace, por ejemplo). */
   action?: ReactNode;
   /** Versión en línea para una celda, tarjeta o fila. */
@@ -111,45 +114,72 @@ function Spinner({ className }: { className: string }) {
   );
 }
 
+function DataStateActions({ retry, clear, action, compact, centered }: Readonly<{
+  retry?: () => void;
+  clear?: () => void;
+  action?: ReactNode;
+  compact: boolean;
+  centered: boolean;
+}>) {
+  if (!retry && !clear && !action) return null;
+  const size = compact ? 'sm' : 'md';
+  const alignment = centered ? 'mt-4 justify-center' : 'mt-4';
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${compact ? '' : alignment}`}>
+      {clear && <button type="button" className={buttonClassFor('secondary', size)} onClick={clear}>Quitar filtros</button>}
+      {retry && <button type="button" className={buttonClassFor('secondary', size)} onClick={retry}>Reintentar</button>}
+      {action}
+    </div>
+  );
+}
+
+function DataStateSkeleton({ rows }: Readonly<{ rows: number }>) {
+  return (
+    <div className="mt-4 w-full space-y-3" aria-hidden="true">
+      {Array.from({ length: rows }, (_, index) => (
+        <div key={index} className="flex items-center justify-between gap-6">
+          <div className="skeleton h-3.5" style={{ width: `${[46, 36, 40][index % 3]}%` }} />
+          <div className="skeleton h-3.5 w-[16%]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Un solo componente para cargando, sin registros, sin coincidencias, error,
  * sin permiso, información restringida, datos insuficientes y resultado
  * desactualizado: icono en un recuadro de color + título + explicación, nunca
  * un «0». El color acompaña; el título dice el estado.
  */
-export function DataState({ state, title, description, onRetry, onClearFilters, status, threshold, action, compact = false, align = 'start', skeletonRows, testId }: DataStateProps) {
+export function DataState({ state, title, description, onRetry, onClearFilters, status, action, compact = false, align = 'start', skeletonRows, testId }: Readonly<DataStateProps>) {
   const base = DEFAULTS[state];
-  const fallback = state === 'restricted' && status ? (statusReason(status, threshold) ?? base.description) : base.description;
+  const fallback = state === 'restricted' && status ? (statusReason(status) ?? base.description) : base.description;
   const text = description ?? fallback;
-  const role = state === 'loading' ? 'status' : ALERT_STATES.includes(state) ? 'alert' : undefined;
+  const loading = state === 'loading';
+  const role = STATE_ROLES[state];
+  const live = loading ? 'polite' : undefined;
   const centered = align === 'center';
-  const buttons =
-    (onRetry && state !== 'loading') || (onClearFilters && state === 'no-match') || action ? (
-      <div className={`flex flex-wrap items-center gap-2 ${compact ? '' : `mt-4 ${centered ? 'justify-center' : ''}`}`}>
-        {onClearFilters && state === 'no-match' && (
-          <button type="button" className={buttonClassFor('secondary', compact ? 'sm' : 'md')} onClick={onClearFilters}>
-            Quitar filtros
-          </button>
-        )}
-        {onRetry && state !== 'loading' && (
-          <button type="button" className={buttonClassFor('secondary', compact ? 'sm' : 'md')} onClick={onRetry}>
-            Reintentar
-          </button>
-        )}
-        {action}
-      </div>
-    ) : null;
+  const buttons = (
+    <DataStateActions
+      retry={loading ? undefined : onRetry}
+      clear={state === 'no-match' ? onClearFilters : undefined}
+      action={action}
+      compact={compact}
+      centered={centered}
+    />
+  );
 
   if (compact) {
     return (
       <div
         className="flex flex-wrap items-start gap-x-2 gap-y-1 text-xs leading-snug text-ink"
         role={role}
-        aria-live={state === 'loading' ? 'polite' : undefined}
+        aria-live={live}
         data-state={state}
         data-testid={testId}
       >
-        {state === 'loading' ? <Spinner className="mt-px h-4 w-4" /> : <Icon d={base.icon!} className={`mt-px h-4 w-4 ${state === 'error' || state === 'offline' ? 'text-danger-ink' : ''}`} />}
+        {loading ? <Spinner className="mt-px h-4 w-4" /> : <Icon d={base.icon!} className={`mt-px h-4 w-4 ${state === 'error' || state === 'offline' ? 'text-danger-ink' : ''}`} />}
         <span className="min-w-0 flex-1">
           <span className="font-semibold">{title ?? base.title}</span>
           {text && <span className="text-ink-muted"> {text}</span>}
@@ -163,25 +193,16 @@ export function DataState({ state, title, description, onRetry, onClearFilters, 
     <div
       className={`flex flex-col px-6 py-6 ${centered ? 'items-center text-center' : 'items-start text-left'}`}
       role={role}
-      aria-live={state === 'loading' ? 'polite' : undefined}
+      aria-live={live}
       data-state={state}
       data-testid={testId}
     >
       <span className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${base.cls}`}>
-        {state === 'loading' ? <Spinner className="h-5 w-5" /> : <Icon d={base.icon!} className="h-5 w-5" />}
+        {loading ? <Spinner className="h-5 w-5" /> : <Icon d={base.icon!} className="h-5 w-5" />}
       </span>
       <p className="mt-3 font-display text-lg font-bold leading-snug text-ink">{title ?? base.title}</p>
       {text && <div className="mt-1 max-w-prose text-sm leading-relaxed text-ink-muted">{text}</div>}
-      {state === 'loading' && skeletonRows !== undefined && skeletonRows > 0 && (
-        <div className="mt-4 w-full space-y-3" aria-hidden="true">
-          {Array.from({ length: skeletonRows }, (_, index) => (
-            <div key={index} className="flex items-center justify-between gap-6">
-              <div className="skeleton h-3.5" style={{ width: `${[46, 36, 40][index % 3]}%` }} />
-              <div className="skeleton h-3.5 w-[16%]" />
-            </div>
-          ))}
-        </div>
-      )}
+      {loading && skeletonRows !== undefined && skeletonRows > 0 && <DataStateSkeleton rows={skeletonRows} />}
       {buttons}
     </div>
   );

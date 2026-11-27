@@ -5,7 +5,7 @@ import type { FailureCode, Run, StopCode } from '../../types/estimation';
 import type { EstimationLinkLine, EstimationLinkView } from '../../types/estimation-link';
 
 export const POLICY_PENDING_MESSAGE =
-  'La política de divulgación no está aprobada: no se genera ni se guarda ninguna propuesta con cifras.';
+  'Sin aportes autorizados para generar un borrador.';
 
 /** La referencia fijada del borrador mostrado: se carga aparte y su fallo no oculta el borrador. */
 export type LinkLoad =

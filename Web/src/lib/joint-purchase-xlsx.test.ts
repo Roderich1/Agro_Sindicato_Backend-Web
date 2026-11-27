@@ -177,8 +177,8 @@ describe('exportador Compra conjunta (.xlsx)', () => {
     expect(need.cells.has(`F${r}`)).toBe(false);
     expect(need.cells.has(`G${r}`)).toBe(false);
     // E4 §5.1: el borrador anterior conserva la línea sin cifra, rotulada con la política que la produjo (sin «privacidad»).
-    expect(need.cells.get(`D${r}`)!.value).toBe('Sin cifra (F07-POL-01)');
-    expect(need.cells.get(`E${r}`)!.value).toContain('Sin cifra según la política F07-POL-01 (mínimo de 3 aportantes)');
+    expect(need.cells.get(`D${r}`)!.value).toBe('Sin datos disponibles');
+    expect(need.cells.get(`E${r}`)!.value).toContain('Sin datos disponibles');
     // Un cero publicado sí es un cero.
     const zero = rowOf(need, 'Cero sintético');
     expect(need.cells.get(`B${zero}`)).toMatchObject({ type: 'n', value: '0' });
@@ -196,7 +196,7 @@ describe('exportador Compra conjunta (.xlsx)', () => {
       const r = rowOf(need, `P-${status}`);
       expect(need.cells.has(`B${r}`), status).toBe(false);
       expect(need.cells.has(`F${r}`), status).toBe(false);
-      expect(need.cells.get(`E${r}`)!.value!.length, status).toBeGreaterThan(20);
+      expect(need.cells.get(`E${r}`)!.value!.length, status).toBeGreaterThan(0);
     }
   });
 
@@ -265,7 +265,7 @@ describe('exportador Compra conjunta (.xlsx)', () => {
     const pending = proposalWith([line({ status: 'POLICY_PENDING', product_name: 'X' })], {
       disclosure: { mode: 'POLICY_PENDING', policy: 'F07-POL-01', approved: false },
     });
-    expect(text(pending)).toContain('La política de divulgación no está aprobada: no se exporta ninguna cifra.');
+    expect(text(pending)).toContain('Sin datos disponibles.');
   });
 
   it('un borrador sin líneas lo dice, sin filas a cero', () => {
@@ -503,7 +503,7 @@ describe('hoja «Consumo estimado»: la referencia fijada en el borrador (E3)', 
     expect(numbersBelowHeader(b).every((ref) => ref.startsWith('L'))).toBe(true);
     expect(textOf(b)).not.toMatch(/111|Coincide|Cifras de/);
     expect(b.cells.get(`D${rowOf(b, 'Fungicida sintético')}`)!.value).toBe('Restringida');
-    expect(textOf(sheets.get('Borrador')!)).toContain('Se conserva el vínculo (ejecución, fecha y método) pero no se exporta ninguna cifra.');
+    expect(textOf(sheets.get('Borrador')!)).toContain('Sin estimación disponible.');
   });
 
   it('con la necesidad oculta, la estimación se rotula aparte y la necesidad sigue vacía', () => {

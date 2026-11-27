@@ -135,3 +135,8 @@ Todos los datos son sintéticos.
 ## 8. Trazabilidad
 
 Según `docs/cierre/MATRIZ_DOCUMENTO_GRADO.md`: administración de cuentas RU-18, RU-19, RN-23; detalle por rol RF-24, RNF-05, RU-18, RU-19; aislamiento RNF-04, RNF-05, RN-12, RN-23; bitácora RF-25, RNF-12. Sustitución y consentimiento: **ID por confirmar** por el autor.
+
+
+## Actualización de la gestión institucional
+
+Desde el 26 de noviembre de 2026, el cierre de campaña fija sus resultados de forma atómica. Administración y Directiva gestionan las convocatorias de su sindicato por rol. Para las reglas vigentes de publicación, visibilidad, cierre y recuperación histórica, consulte [Cierre de campaña y gestión institucional](../architecture/CIERRE_Y_GESTION_INSTITUCIONAL.md).

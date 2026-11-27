@@ -68,7 +68,7 @@ export function LinkBanner({
       title = 'Sin referencia de consumo estimado';
       detail = view.prepare_blocker
         ? PREPARE_BLOCKER_TEXT[view.prepare_blocker]
-        : 'Obtenga una referencia para ver el consumo estimado junto a la necesidad declarada: se fija una ejecución ya calculada si es compatible; si no, se pide un cálculo.';
+        : 'Puede obtener una referencia de consumo estimado.';
       break;
     case 'CALCULATING':
       title = 'Calculando la referencia…';
@@ -95,7 +95,7 @@ export function LinkBanner({
       icon = ICON.lock;
       title = 'Referencia restringida';
       detail =
-        'La política de divulgación no está aprobada: se conserva el vínculo (ejecución, fecha y método) pero no se muestra ninguna cifra ni recuento.';
+        'Sin estimación disponible.';
       break;
   }
   const actionLabel = (intent: LinkIntent) => (view.state === 'UNAVAILABLE' && intent === 'UPDATE' ? 'Reintentar' : intent === 'INITIAL' ? 'Obtener' : 'Actualizar');
@@ -241,9 +241,7 @@ export function ReferenceNote({ proposal, view }: { proposal: Proposal; view: Es
   return (
     <div className="space-y-1 border-t border-line px-5 py-4 text-sm leading-relaxed text-ink-muted sm:px-8" data-testid="reference-note">
       <p>
-        El consumo estimado es la referencia fijada en este borrador: no se suma a la necesidad declarada, no es la cantidad solicitada ni la
-        confirmada en una convocatoria y no cambia las líneas ni la huella del borrador. Sólo se actualiza a pedido. La diferencia con la
-        necesidad sólo se escribe si el servidor confirma que ambas cifras son comparables.{' '}
+        La estimación es una referencia y no se suma a la necesidad declarada.{' '}
         <Link className="font-semibold text-link underline underline-offset-2" to={estimationPath(proposal)}>
           Detalle en «Estimación del consumo»
         </Link>
@@ -252,8 +250,7 @@ export function ReferenceNote({ proposal, view }: { proposal: Proposal; view: Es
       {view && (
         <p data-testid="reference-evaluated">
           Vigencia evaluada el {fmtDateTime(view.evaluated_at)}
-          {view.run ? ` · Temporada ${view.run.season.key}` : ''} · «Descargar Excel» consulta de nuevo el borrador y esta referencia fijada al
-          exportar, con su versión, fecha y estado; no usa otra estimación en su lugar.
+          {view.run ? ` · Temporada ${view.run.season.key}` : ''}
         </p>
       )}
     </div>

@@ -64,7 +64,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     // la política F07-POL-01 que la produjo (antes «Menos aportantes que el umbral de privacidad»).
     expect(screen.getByTestId('line-Mancozeb-G').textContent).toMatch(/todavía no se publican: se muestra la cifra anterior/);
     const belator = screen.getByTestId('line-Belator-ML');
-    expect(belator.textContent).toMatch(/Sin cifra según la política F07-POL-01/);
+    expect(belator.textContent).toMatch(/Sin datos disponibles/);
     expect(belator.textContent).not.toMatch(/privacidad/);
     expect(belator.textContent).not.toMatch(/\d+ L/);
     const withdrawn = screen.getByTestId('line-Glifosato-ML');
@@ -72,8 +72,8 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(withdrawn.textContent).not.toMatch(/\d+ L/);
     // Ninguna suma propia: no aparece 25 + 11,5.
     expect(document.body.textContent).not.toMatch(/36,5/);
-    expect(document.body.textContent).toMatch(/no es una necesidad neta/);
-    expect(document.body.textContent).toMatch(/No crea compras, lotes, movimientos, deudas ni pagos/);
+    expect(document.body.textContent).not.toMatch(/huella del borrador/i);
+    expect(screen.getByRole("tab", { name: "Cómo se calculó" })).toBeTruthy();
     expect(screen.getByTestId('coverage').textContent).toMatch(/3 de 4/);
   });
 
@@ -105,7 +105,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     vi.mocked(collectiveService.generateProposal).mockRejectedValue(conflict());
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click(await screen.findByRole('button', { name: 'Generar borrador' }));
-    expect(await screen.findByText(/no se genera ni se guarda ninguna propuesta con cifras/)).toBeTruthy();
+    expect(await screen.findByText(/Sin aportes autorizados/)).toBeTruthy();
     expect(screen.queryByLabelText('Detalle del borrador')).toBeNull();
   });
 
@@ -122,7 +122,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click((await verBorradores())[0]!);
     const detail = await screen.findByLabelText('Detalle del borrador');
-    expect(detail.textContent).toMatch(/no se muestran cifras/);
+    expect(detail.textContent).toMatch(/Sin datos disponibles/);
     expect(detail.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
     expect(screen.queryByTestId('coverage')).toBeNull();
   });
@@ -147,7 +147,7 @@ describe('Propuesta de compra conjunta (borrador)', () => {
     expect(urea.textContent).toMatch(/cifra más reciente/);
     expect(urea.textContent).not.toMatch(/\d[\d.,]* (KG|L)\b/);
     expect(screen.getByTestId('line-Glifosato-ML').textContent).toMatch(/ya no publica/);
-    expect(screen.getAllByText('huella oculta').length).toBe(2);
+    expect(screen.getAllByText('huella oculta')).toHaveLength(1);
   });
 
   it('al elegir una campaña con borradores abre el último por consulta, sin generar uno', async () => {

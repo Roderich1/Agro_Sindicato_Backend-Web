@@ -23,7 +23,7 @@ export interface DraftCommand {
   campaign_id: string;
   name: string;
   deadline_at: string;
-  responsible_user_id: string;
+  responsible_user_id?: string;
   products: { product_ref: string }[];
   source_proposal_id?: string | null;
 }

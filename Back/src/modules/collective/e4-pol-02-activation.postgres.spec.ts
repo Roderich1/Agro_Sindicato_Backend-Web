@@ -17,16 +17,7 @@ import {
 import { CollectiveConfig } from "./application/collective-config";
 import { CollectivePolicyActivation } from "./application/collective-policy-activation";
 
-/**
- * E4 §5.1, §5.3 and §8 tests 11 and 13 against a real PostgreSQL and the
- * real Nest application: the explicit, traced activation of F07-POL-02 and
- * the collective figures without a farmer threshold. The same throwaway
- * database is started several times with different values of
- * COLLECTIVE_DISCLOSURE_POLICY (one application at a time). Every identity,
- * name and value is synthetic. The F07-POL-01 suites stay as they were (they
- * run without the variable, the default policy) and are the evidence of the
- * earlier policy.
- */
+/** Approved institutional disclosure and immutable legacy fixtures on PostgreSQL. */
 const postgresUrl = process.env["E4_COLL_PG_TEST_URL"];
 const describePostgres = postgresUrl ? describe : describe.skip;
 const PUSH = "/api/v1/sync/v1/push";
@@ -146,9 +137,11 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
   const cellOf = (res: Res, productId: string) => (res.body.cells as any[]).find((cell) => cell.product_ref === productId);
   const activations = () => prisma.collectiveDisclosurePolicyActivation.findMany({ orderBy: { activatedAt: "asc" } });
 
-  async function closeAndSeal(campaignId: string): Promise<Res> {
-    const closed = await http().post(`/api/v1/campaigns/${campaignId}/close`).set(auth(director)).send({});
-    expect(closed.status).toBeLessThan(300);
+  async function recordLegacyHistory(campaignId: string): Promise<Res> {
+    await prisma.agriculturalCampaign.update({
+      where: { id: campaignId },
+      data: { status: "CERRADA", isActive: false, closedAt: new Date() },
+    });
     const state = await http().get(`/api/v1/collective/campaigns/${campaignId}/seal`).set(auth(director));
     expect(state.body.can_seal).toBe(true);
     const sealed = await http()
@@ -159,9 +152,8 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     return sealed;
   }
 
-  it("test 13: without COLLECTIVE_DISCLOSURE_POLICY nothing changes (F07-POL-01, k = 3) and no activation is recorded; a sealed campaign, a draft and the seal keep F07-POL-01", async () => {
-    expect(app.get(CollectiveConfig).policy).toBe("F07-POL-01");
-    expect(await activations()).toEqual([]);
+  it("preserves an archived campaign, a draft and their original disclosure policy", async () => {
+    Object.assign(app.get(CollectiveConfig), { policy: "F07-POL-01", mode: "PROVISIONAL_SYNTHETIC" });
     // Two contributors: under the threshold of the earlier policy.
     suppressedProduct = await product("Bajo umbral");
     await push(farmers[0]!, { product: suppressedProduct, quantity: "1500" });
@@ -182,7 +174,7 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     const hidden = await product("Sellado bajo umbral");
     for (const farmer of farmers.slice(0, 3)) await push(farmer, { campaign: sealedCampaign, product: disclosed, quantity: "1000" });
     await push(farmers[3]!, { campaign: sealedCampaign, product: hidden, quantity: "700" });
-    const sealed = await closeAndSeal(sealedCampaign);
+    const sealed = await recordLegacyHistory(sealedCampaign);
     expect(sealed.body.seal).toMatchObject({ version: 1, policy: "F07-POL-01", threshold: 3 });
     expect(await prisma.collectiveSeal.findFirstOrThrow({ where: { campaignId: sealedCampaign } })).toMatchObject({ policy: "F07-POL-01", threshold: 3 });
     sealedBefore = await summary(sealedCampaign);
@@ -193,13 +185,9 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     expect(await prisma.collectiveRelease.count({ where: { policy: { not: "F07-POL-01" } } })).toBe(0);
   });
 
-  it("test 13: an unknown value does not start; F07-POL-02 is recorded once, at the first start with that value, and the table is insert-only", async () => {
-    await app.close();
-    process.env["COLLECTIVE_DISCLOSURE_POLICY"] = "F07-POL-9";
-    await expect(createSyncV1App(databaseUrl)).rejects.toThrow();
-    // `start` closes the previous application only when there is one running.
-    app = undefined as unknown as INestApplication;
-    await start("F07-POL-02");
+  it("records the approved policy once and ignores retired configuration switches", async () => {
+    await start("F07-POL-9");
+    expect(app.get(CollectiveConfig)).toMatchObject({ policy: "F07-POL-02", mode: "APPROVED" });
     const first = await activations();
     expect(first).toHaveLength(1);
     expect(first[0]).toMatchObject({ policy: "F07-POL-02", previousPolicy: null, source: "CONFIG" });
@@ -217,7 +205,7 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     expect(await summary(sealedCampaign)).toMatchObject({ status: 200, body: sealedBefore.body });
   });
 
-  it("test 11: cells of 1 and 2 contributors are DISCLOSED with F07-POL-02; explicit zero and absence; units apart", async () => {
+  it("cells of 1 and 2 contributors are DISCLOSED with F07-POL-02; explicit zero and absence; units apart", async () => {
     const one = await product("Uno");
     const two = await product("Dos");
     const zero = await product("Cero");
@@ -229,7 +217,7 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     await push(farmers[2]!, { product: zero, quantity: "0" });
     await push(farmers[3]!, { product: solid, quantity: "4000", unit: "G" });
     const res = await summary();
-    expect(res.body.disclosure).toEqual({ mode: "PROVISIONAL_SYNTHETIC", policy: "F07-POL-02", approved: false, threshold: null });
+    expect(res.body.disclosure).toEqual({ mode: "APPROVED", policy: "F07-POL-02", approved: true, threshold: null });
     expect(cellOf(res, one)).toMatchObject({ status: "DISCLOSED", total_base: "12500", total_presentation: "12.5", contributors: 1, pending_changes: false });
     expect(cellOf(res, two)).toMatchObject({ status: "DISCLOSED", total_base: "4000", contributors: 2 });
     expect(cellOf(res, zero)).toMatchObject({ status: "DISCLOSED", total_base: "0", contributors: 1 });
@@ -244,7 +232,7 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     }
   });
 
-  it("test 11: cancellation, dispute and an inactive Member withdraw the earlier figure; a new one is published with the rest", async () => {
+  it("cancellation, dispute and an inactive Member withdraw the earlier figure; a new one is published with the rest", async () => {
     const p = await product("Retiradas");
     const heads: string[] = [];
     for (const farmer of farmers) heads.push(await push(farmer, { product: p, quantity: "2000" }));
@@ -282,7 +270,7 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     expect(cellOf(await summary(), q)).toMatchObject({ status: "SUPPRESSED_REVISION", total_base: null });
   });
 
-  it("test 11: the sealed campaign keeps F07-POL-01 (with its SUPPRESSED_UNDER_THRESHOLD cell) in the summary and in the trends; the old draft keeps its line without a figure", async () => {
+  it("the sealed campaign keeps F07-POL-01 (with its SUPPRESSED_UNDER_THRESHOLD cell) in the summary and in the trends; the old draft keeps its line without a figure", async () => {
     expect((await summary(sealedCampaign)).body).toEqual(sealedBefore.body);
     const trends = await http().get("/api/v1/collective/trends").set(auth(director));
     expect(trends.body.disclosure).toMatchObject({ policy: "F07-POL-02", threshold: null });
@@ -299,19 +287,19 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
     expect((await prisma.jointPurchaseProposal.findUniqueOrThrow({ where: { id: fresh.body.proposal_ref } })).disclosurePolicy).toBe("F07-POL-02");
   });
 
-  it("test 11: a seal made with F07-POL-02 records its policy and a NULL threshold", async () => {
+  it("the central close records the approved policy and a NULL threshold", async () => {
     const c = await campaign("Campaña sintética sellada con F07-POL-02");
     const p = await product("Sellado sin umbral");
     await push(farmers[0]!, { campaign: c, product: p, quantity: "500" });
-    const sealed = await closeAndSeal(c);
-    expect(sealed.body.seal).toMatchObject({ policy: "F07-POL-02", threshold: null });
+    const closed = await http().post(`/api/v1/campaigns/${c}/close`).set(auth(director)).send({});
+    expect(closed.status).toBeLessThan(300);
     expect(await prisma.collectiveSeal.findFirstOrThrow({ where: { campaignId: c } })).toMatchObject({ policy: "F07-POL-02", threshold: null });
     const served = await summary(c);
     expect(served.body.disclosure).toMatchObject({ policy: "F07-POL-02", threshold: null });
     expect(cellOf(served, p)).toMatchObject({ status: "DISCLOSED", total_base: "500", contributors: 1 });
   });
 
-  it("test 11: POLICY_PENDING gives no figures in any channel, also with F07-POL-02", async () => {
+  it("the internal compatibility mode POLICY_PENDING gives no figures in any channel, also with F07-POL-02", async () => {
     const config = app.get(CollectiveConfig) as { mode: string };
     config.mode = "POLICY_PENDING";
     try {
@@ -325,17 +313,13 @@ describePostgres("E4 F07-POL-02 and its activation on PostgreSQL", () => {
       expect(draft.body.lines.every((l: any) => l.status === "POLICY_PENDING" && l.quantity_base === null)).toBe(true);
       expect((await http().post(`/api/v1/collective/campaigns/${f.campaigns.openA}/proposals`).set(auth(director))).status).toBe(409);
     } finally {
-      config.mode = "PROVISIONAL_SYNTHETIC";
+      config.mode = "APPROVED";
     }
   });
 
-  it("test 13: going back to the default is a change too, traced at the next start", async () => {
+  it("uses the same approved policy without the old environment variable", async () => {
     await start(undefined);
-    const rows = await activations();
-    expect(rows.map((r) => [r.policy, r.previousPolicy])).toEqual([
-      ["F07-POL-02", null],
-      ["F07-POL-01", "F07-POL-02"],
-    ]);
-    expect((await summary()).body.disclosure).toMatchObject({ policy: "F07-POL-01", threshold: 3 });
+    expect(await activations()).toHaveLength(1);
+    expect((await summary()).body.disclosure).toMatchObject({ policy: "F07-POL-02", mode: "APPROVED", threshold: null });
   });
 });

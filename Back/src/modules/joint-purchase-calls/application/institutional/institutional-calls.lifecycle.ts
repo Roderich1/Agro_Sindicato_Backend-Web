@@ -45,7 +45,7 @@ export async function createCall(
     const now = deps.clock.now();
     const campaign = await requireCampaign(tx, actor.tenantId, command.campaign_id);
     if (deadlineAt.getTime() <= now.getTime()) throw new CallHttpError(422, "DEADLINE_IN_PAST");
-    const responsible = await requireResponsible(tx, actor.tenantId, command.responsible_user_id);
+    const responsible = await requireResponsible(tx, actor.tenantId, command.responsible_user_id ?? actor.userId);
     const proposalId = await requireProposal(tx, actor.tenantId, campaign.id, command.source_proposal_id ?? null);
     const products = await resolveProducts(tx, actor.tenantId, command.products, proposalId);
     const origin = await originOf(tx, proposalId, products);
@@ -85,15 +85,17 @@ export async function createCall(
     await tx.jointPurchaseCallEvent.create({
       data: { callId: call.id, at: now, kind: "CREATED", actorUserId: actor.userId, detail: "Borrador creado." },
     });
-    await tx.jointPurchaseCallEvent.create({
-      data: {
-        callId: call.id,
-        at: new Date(now.getTime() + 1),
-        kind: "RESPONSIBLE_ASSIGNED",
-        actorUserId: actor.userId,
-        detail: truncate(`Responsable asignado: ${responsible.name}.`),
-      },
-    });
+    if (command.responsible_user_id !== undefined) {
+      await tx.jointPurchaseCallEvent.create({
+        data: {
+          callId: call.id,
+          at: new Date(now.getTime() + 1),
+          kind: "RESPONSIBLE_ASSIGNED",
+          actorUserId: actor.userId,
+          detail: truncate(`Responsable asignado: ${responsible.name}.`),
+        },
+      });
+    }
     await auditCall(tx, actor, call.id, campaign.id, `Borrador de convocatoria de compra conjunta «${name}» creado.`, {
       productCount: products.length,
       responsibleUserRef: responsible.id,
@@ -205,7 +207,6 @@ export async function openCall(
       const now = deps.clock.now();
       if (call.deadlineAt.getTime() <= now.getTime()) throw new CallHttpError(422, "DEADLINE_IN_PAST");
       await requireCampaign(tx, actor.tenantId, call.campaignId, OPEN_CAMPAIGN);
-      await requireResponsible(tx, actor.tenantId, call.responsibleUserId);
       const checked = await checkProducts(tx, actor.tenantId, call.products.map((p) => p.productId));
       for (const product of call.products) {
         if (checked.get(product.productId) !== product.baseUnit) {

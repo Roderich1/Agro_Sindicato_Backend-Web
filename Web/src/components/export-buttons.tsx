@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { collectiveError } from '../lib/collective-text';
 import { excelExport, type ExcelKind } from '../lib/exports';
+import type { HistoryScope } from '../lib/history-scope';
 import { Button, ICON, Icon } from './ui';
 
 /**
@@ -22,6 +23,7 @@ export function ExportButtons({
   variant = 'secondary',
   shortLabel = false,
   block = false,
+  historyScope,
 }: {
   kind: ExcelKind;
   /** Referencia de lo que se exporta (campaña, borrador, tipo o campaña objetivo). */
@@ -32,6 +34,7 @@ export function ExportButtons({
   /** En pantallas estrechas el texto visible es «Excel». */
   shortLabel?: boolean;
   block?: boolean;
+  historyScope?: HistoryScope;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,10 +53,10 @@ export function ExportButtons({
           setBusy(true);
           setError(null);
           try {
-            await excel(kind, reference);
+            await (historyScope ? excel(kind, reference, historyScope) : excel(kind, reference));
           } catch (err) {
             const message = collectiveError(err, 'No fue posible preparar el Excel.');
-            setError(message === 'POLICY_PENDING' ? 'La política de divulgación no está aprobada: no se exporta ninguna cifra.' : message);
+            setError(message === 'POLICY_PENDING' ? 'Sin datos disponibles.' : message);
           } finally {
             setBusy(false);
           }

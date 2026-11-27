@@ -15,11 +15,7 @@ import {
   unusablePasswordHash,
 } from "../sync-v1/test-support/sync-v1-test-app";
 
-/**
- * F10-SEC-02 (#45), cotejo de salidas colectivas: dos caminos por los que la
- * política provisional F07-POL-01 (k = 3, NO aprobada; datos sintéticos)
- * podía revelar lo que una celda suprimida o una revisión oculta.
- */
+/** Verifies canonical totals and the absence of identified data in authorized aggregates. */
 const postgresUrl = process.env["F10_SEC_PG_TEST_URL"];
 const describePostgres = postgresUrl ? describe : describe.skip;
 
@@ -31,7 +27,6 @@ describePostgres("F10-SEC-02: disclosure gaps in the collective outputs on Postg
   let director: TestSession;
 
   beforeAll(async () => {
-    process.env["COLLECTIVE_DISCLOSURE_MODE"] = "provisional-synthetic";
     const databaseUrl = await createIsolatedDatabase(postgresUrl!, "f10_gap");
     ({ app, prisma, jwt } = await createSyncV1App(databaseUrl));
     f = await seedFixture(prisma);
@@ -39,7 +34,6 @@ describePostgres("F10-SEC-02: disclosure gaps in the collective outputs on Postg
   }, 120000);
 
   afterAll(async () => {
-    delete process.env["COLLECTIVE_DISCLOSURE_MODE"];
     await app?.close();
   });
 
@@ -87,7 +81,7 @@ describePostgres("F10-SEC-02: disclosure gaps in the collective outputs on Postg
     return res;
   };
 
-  it("re-keying a product to a canonical product without history does not publish a figure that isolates one change", async () => {
+  it("recomputes approved totals after a single change and preserves canonical grouping", async () => {
     const c = await campaign();
     const p = await product("Producto p");
     const [f0, f1, f2] = [await farmer(), await farmer(), await farmer()];
@@ -96,10 +90,10 @@ describePostgres("F10-SEC-02: disclosure gaps in the collective outputs on Postg
     await push(f2, c, p, "3000");
     const first = await summary(c);
     expect(first.body.cells.find((cell: any) => cell.product_ref === p)).toMatchObject({ status: "DISCLOSED", total_base: "6000" });
-    // One Member changes: the policy keeps the earlier figure with pending changes.
+    // One Member changes: the approved rule updates the amount.
     await push(f0, c, p, "1100", op0);
     const revised = await summary(c);
-    expect(revised.body.cells.find((cell: any) => cell.product_ref === p)).toMatchObject({ total_base: "6000", pending_changes: true });
+    expect(revised.body.cells.find((cell: any) => cell.product_ref === p)).toMatchObject({ total_base: "6100", pending_changes: false });
     // The Directiva creates an empty product and re-keys p to it.
     const r = await http().post("/api/v1/inventory/products").set(auth(director)).send({ name: `Producto r ${randomUUID().slice(0, 6)}`, unit: "L" });
     expect(r.status).toBe(201);
@@ -107,22 +101,20 @@ describePostgres("F10-SEC-02: disclosure gaps in the collective outputs on Postg
       .send({ productId: p, canonicalProductId: r.body.id, reason: "reasociación sintética", confirmed: true });
     expect([200, 201]).toContain(associated.status);
     const after = await summary(c);
-    // 6100 - 6000 would isolate f0's +100: no channel may serve it.
-    expect(after.text).not.toContain('"6100"');
-    expect(after.body.cells.every((cell: any) => cell.status !== "DISCLOSED" || cell.total_base === "6000")).toBe(true);
+    expect(after.body.cells.filter((cell: { status: string }) => cell.status === "DISCLOSED")).toEqual([
+      expect.objectContaining({ product_ref: r.body.id, total_base: "6100", contributors: 3 }),
+    ]);
+    expect(after.body.cells).toContainEqual(expect.objectContaining({ product_ref: p, total_base: null }));
   });
 
-  it("coverage does not reveal the exact contributor count of a campaign whose only cells are suppressed", async () => {
+  it("publishes a two-person authorized aggregate and coverage without identities", async () => {
     const c = await campaign();
     const x = await product("Producto x");
     await push(await farmer(), c, x, "500");
     await push(await farmer(), c, x, "700");
     const res = await summary(c);
-    expect(res.body.cells).toEqual([expect.objectContaining({ product_ref: x, status: "SUPPRESSED_UNDER_THRESHOLD", total_base: null, contributors: null })]);
-    // Before the fix the coverage said 2: exactly the hidden count of the only
-    // cell. Now it counts only Members inside a published figure (none here)
-    // and says, without a count, that some cell has no figure.
-    expect(res.body.coverage).toEqual({ linked_members: expect.any(Number), members_with_contribution: 0, suppressed_cells: true });
-    expect(res.text).not.toMatch(/"members_with_contribution":2/);
+    expect(res.body.cells).toEqual([expect.objectContaining({ product_ref: x, status: "DISCLOSED", total_base: "1200", contributors: 2 })]);
+    expect(res.body.coverage).toEqual({ linked_members: expect.any(Number), members_with_contribution: 2, suppressed_cells: false });
+    expect(res.text).not.toMatch(/Agricultor sintético|@example\.test|memberId|contributionId/);
   });
 });

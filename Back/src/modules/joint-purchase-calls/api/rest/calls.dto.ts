@@ -47,10 +47,11 @@ export class CreateCallDto {
   @IsISO8601({ strict: true, strictSeparator: true })
   deadline_at!: string;
 
-  @ApiProperty({ description: "Usuario DIRECTIVA o ADMINISTRADOR activo del tenant (ver eligible-responsibles)" })
+  @ApiPropertyOptional({ deprecated: true, description: "Campo de compatibilidad. Por defecto se registra el creador." })
+  @IsOptional()
   @IsString()
   @MaxLength(64)
-  responsible_user_id!: string;
+  responsible_user_id?: string;
 
   @ApiProperty({ type: [CallProductRefDto], minItems: 1, maxItems: 50 })
   @IsArray()

@@ -40,20 +40,15 @@ export function fmtShortDay(iso: string): string {
 
 /** Datos clave de la cabecera según el estado (láminas 10–20); el primero va en lima. */
 export function heroFacts(call: JointPurchaseCallDetail, closing: JointPurchaseCallClosing | null): CallHeroFact[] {
-  const responsible: CallHeroFact[] = call.is_responsible
-    ? []
-    : [{ key: 'responsible', label: 'Responsable', value: call.responsible.name, testId: 'hero-responsible' }];
   if (call.status === 'DRAFT') {
     return [
       { key: 'deadline', label: 'Fecha límite', value: fmtWhen(call.deadline_at) },
-      ...responsible,
       { key: 'farmers', label: 'Los agricultores', value: 'Aún no la ven' },
     ];
   }
   if (call.status === 'OPEN') {
     return [
       { key: 'deadline', label: 'Recibe pedidos hasta', value: fmtWhen(call.deadline_at) },
-      ...responsible,
       { key: 'participants', label: 'Participan', value: peopleText(call.participant_count) },
       { key: 'opened', label: 'Abierta el', value: fmtWhen(call.opened_at) },
     ];
@@ -61,7 +56,6 @@ export function heroFacts(call: JointPurchaseCallDetail, closing: JointPurchaseC
   if (call.status === 'CLOSED') {
     return [
       { key: 'closed', label: 'Cerrada el', value: fmtWhen(call.closed_at) },
-      ...responsible,
       ...(closing ? [{ key: 'participants', label: 'Participaron', value: peopleText(closing.participant_count), testId: 'closing-participants' }] : []),
       { key: 'opened', label: 'Abierta el', value: fmtWhen(call.opened_at) },
       ...(closing ? [{ key: 'mode', label: 'Cierre', value: CLOSE_MODE_LABEL[closing.mode] ?? closing.mode, testId: 'closing-mode' }] : []),
@@ -70,7 +64,6 @@ export function heroFacts(call: JointPurchaseCallDetail, closing: JointPurchaseC
   return [
     { key: 'cancelled', label: 'Cancelada el', value: fmtWhen(call.cancelled_at) },
     ...(call.cancelled_by ? [{ key: 'by', label: 'Por', value: call.cancelled_by.name }] : []),
-    { key: 'responsible', label: 'Responsable', value: call.responsible.name, testId: 'hero-responsible' },
   ];
 }
 

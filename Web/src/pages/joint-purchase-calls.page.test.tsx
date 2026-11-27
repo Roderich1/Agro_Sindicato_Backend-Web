@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../App.tsx?raw';
 import { AppShell } from '../components/app-shell';
 import { CollectiveRoute } from '../components/collective-route';
-import { handOverText, prepareCallPath, readPreparedCall, RESPONSIBLE_NOTICE } from '../lib/joint-purchase-call-text';
+import { prepareCallPath, readPreparedCall } from '../lib/joint-purchase-call-text';
 import { COLLECTIVE_PATHS, menuPathsFor, WEB_NOT_FOR_FARMERS_PATH } from '../lib/navigation';
 import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
@@ -211,7 +211,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     vi.mocked(collectiveService.proposal).mockResolvedValue(PROPOSAL);
   });
 
-  it('muestra «Cargando…» y luego las filas con nombre, estado, campaña, fecha límite, responsable y participantes', async () => {
+  it('muestra «Cargando…» y luego las filas con nombre, estado, campaña, fecha límite y participantes', async () => {
     render();
     expect(screen.getByTestId('calls-loading')).toBeTruthy();
     const row = await screen.findByTestId('call-row-c-1');
@@ -223,7 +223,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     // Rediseño v2 (lámina 09): la campaña ya no se repite en cada tarjeta; es la elegida en el selector de la cabecera.
     expect((screen.getByLabelText('Campaña') as HTMLSelectElement).value).toBe(CAMPAIGN.id);
     expect(screen.getByRole('option', { name: new RegExp(CAMPAIGN.name) })).toBeTruthy();
-    expect(within(row).getByText('Responsable sintética')).toBeTruthy();
+    expect(within(row).queryByText('Responsable sintética')).toBeNull();
     expect(within(row).getByText('4')).toBeTruthy();
     expect(within(screen.getByTestId('call-row-c-2')).getByText('Borrador')).toBeTruthy();
   });
@@ -259,18 +259,16 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     expect(await screen.findByTestId('call-row-c-1')).toBeTruthy();
   });
 
-  it('nuevo borrador: valida los campos, avisa qué podrá ver el responsable, crea con productos del catálogo y navega por el call_id de la respuesta', async () => {
+  it('nuevo borrador: valida los campos sin asignación y crea con productos del catálogo y navega por el call_id de la respuesta', async () => {
     vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
     render();
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
-    expect(within(dialog()).getByTestId('responsible-notice').textContent).toBe(RESPONSIBLE_NOTICE);
     expect(within(dialog()).getByText(/El plazo se cumple con el reloj del servidor/)).toBeTruthy();
 
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
     expect(within(dialog()).getByText('Escriba el nombre de la convocatoria.')).toBeTruthy();
     expect(within(dialog()).getByText('Elija la fecha y hora límite.')).toBeTruthy();
-    expect(within(dialog()).getByText('Elija el responsable.')).toBeTruthy();
     expect(within(dialog()).getByText('Elija al menos un producto.')).toBeTruthy();
     expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
 
@@ -281,8 +279,6 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
 
     fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: '  Herbicidas de verano ' } });
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Administrador sintético · Administrador' })).toBeTruthy());
-    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-3' } });
 
     // Catálogo: sin inactivos, sin unidades que no sean L/KG y sin denominaciones asociadas.
     const list = await within(dialog()).findByRole('list', { name: 'Productos del catálogo' });
@@ -291,14 +287,11 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(within(list).getByRole('checkbox', { name: /Urea/ }));
 
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
-    // P-B: nombra a otra persona, así que primero confirma que deja de administrarlo.
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.create).toHaveBeenCalledWith({
         campaign_id: CAMPAIGN.id,
         name: 'Herbicidas de verano',
         deadline_at: new Date('2099-12-01T18:00').toISOString(),
-        responsible_user_id: 'u-3',
         products: [{ product_ref: 'p-3' }],
       }),
     );
@@ -327,10 +320,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(within(disclosed).getByRole('checkbox'));
     fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: 'Desde el borrador' } });
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Responsable sintética · Directiva' })).toBeTruthy());
-    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-2' } });
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.create).toHaveBeenCalledWith(
         // `CreateCallDto`: los productos llevan sólo `product_ref`; el servidor deduce la línea de origen.
@@ -346,11 +336,8 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
     fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: 'X' } });
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Responsable sintética · Directiva' })).toBeTruthy());
-    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: 'u-2' } });
     fireEvent.click(await within(dialog()).findByRole('checkbox', { name: /Glifosato 48 SL/ }));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
     // El error se muestra en el formulario, que vuelve a la vista con lo escrito.
     expect(await within(dialog()).findByText(/no es un usuario activo de la Directiva o la Administración/)).toBeTruthy();
     expect((within(dialog()).getByLabelText('Nombre') as HTMLInputElement).value).toBe('X');
@@ -358,57 +345,20 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
   });
 
   /** Completa el formulario de una convocatoria nueva con un producto del catálogo y el responsable dado. */
-  async function fillNewCall(responsible: string) {
-    await screen.findByTestId('call-row-c-1');
-    fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
-    fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: 'Fungicidas' } });
-    fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect(within(dialog()).getByRole('option', { name: 'Usuario sintético (usted) · Directiva' })).toBeTruthy());
-    fireEvent.change(within(dialog()).getByLabelText('Responsable'), { target: { value: responsible } });
-    fireEvent.click(await within(dialog()).findByRole('checkbox', { name: /Urea/ }));
-  }
-
-  it('P-B: nombrar a otra persona responsable avisa de qué permisos se pierden y no envía nada sin «Confirmar»', async () => {
+  it('crea con el rol institucional, sin consulta de responsables ni pasos de traspaso', async () => {
     vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
     render();
-    await fillNewCall('u-2');
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
-
-    const warning = within(dialog()).getByTestId('handover-warning');
-    expect(screen.getByRole('dialog', { name: 'Antes de guardar: dejará de administrar este borrador' })).toBeTruthy();
-    const text = handOverText('Responsable sintética');
-    expect(warning.textContent).toContain(text.lead);
-    for (const loss of text.losses) expect(warning.textContent).toContain(loss);
-    expect(warning.textContent).toContain('sólo Responsable sintética, como responsable, puede devolverle «Administrar la convocatoria»');
-    // Reescrito por E4 §6.1: la responsabilidad ya no da acceso a participantes, así que ver nombres y cantidades
-    // deja de figurar entre lo que se pierde al nombrar a otra responsable.
-    expect(warning.textContent).toMatch(/editar.*abrir.*cancelarla ni cerrarla/s);
-    expect(warning.textContent).not.toMatch(/participantes/);
-    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
-
-    // «Volver»: nada se envía y el formulario conserva lo escrito.
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Volver' }));
-    expect(within(dialog()).queryByTestId('handover-warning')).toBeNull();
-    expect((within(dialog()).getByLabelText('Nombre') as HTMLInputElement).value).toBe('Fungicidas');
-    expect((within(dialog()).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('u-2');
-    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
-
-    // Con «Confirmar» se envía una sola vez, con la persona elegida.
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirmar' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nueva convocatoria' }));
+    const form = dialog();
+    expect(within(form).queryByLabelText('Responsable')).toBeNull();
+    expect(jointPurchaseCallsService.eligibleResponsibles).not.toHaveBeenCalled();
+    fireEvent.change(within(form).getByLabelText('Nombre'), { target: { value: 'Fungicidas' } });
+    fireEvent.change(within(form).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
+    fireEvent.click(await within(form).findByRole('checkbox', { name: /Urea/ }));
+    fireEvent.click(within(form).getByRole('button', { name: 'Crear borrador' }));
     await waitFor(() => expect(jointPurchaseCallsService.create).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(jointPurchaseCallsService.create).mock.calls[0]![0]).toMatchObject({ responsible_user_id: 'u-2', name: 'Fungicidas' });
-  });
-
-  it('P-B: quien se elige a sí misma como responsable no recibe el aviso y crea directamente', async () => {
-    vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
-    render();
-    await fillNewCall('u-1');
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
-    await waitFor(() => expect(jointPurchaseCallsService.create).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(jointPurchaseCallsService.create).mock.calls[0]![0]).toMatchObject({ responsible_user_id: 'u-1' });
+    expect(vi.mocked(jointPurchaseCallsService.create).mock.calls[0]![0]).not.toHaveProperty('responsible_user_id');
     expect(screen.queryByTestId('handover-warning')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Confirmar' })).toBeNull();
   });
 });
 
@@ -456,7 +406,7 @@ describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de prop
     renderPrepared(prepareCallPath(CAMPAIGN.id, 'pr-1', ['p-1', 'p-9', 'p-8']));
     const form = await screen.findByRole('dialog', { name: 'Nueva convocatoria' });
     expect(within(form).getByText(CAMPAIGN.name)).toBeTruthy();
-    expect(within(form).getByTestId('prepared-notice').textContent).toMatch(/No se crea nada ni se inscribe a nadie/);
+    expect(within(form).getByTestId('prepared-notice').textContent).toMatch(/Revise los productos/);
     expect(within(form).getByRole('button', { name: 'De un borrador de compra' }).getAttribute('aria-pressed')).toBe('true');
     expect(((await within(form).findByLabelText('Borrador de compra')) as HTMLSelectElement).value).toBe('pr-1');
     await waitFor(() => expect((within(within(form).getByTestId('proposal-line-0')).getByRole('checkbox') as HTMLInputElement).checked).toBe(true));
@@ -470,7 +420,6 @@ describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de prop
     // Nombre, plazo y responsable siguen vacíos: la persona los completa.
     expect((within(form).getByLabelText('Nombre') as HTMLInputElement).value).toBe('');
     expect((within(form).getByLabelText('Fecha y hora límite') as HTMLInputElement).value).toBe('');
-    expect((within(form).getByLabelText('Responsable') as HTMLSelectElement).value).toBe('');
     expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
 
     // Sin completar, «Crear borrador» no envía nada.
@@ -480,17 +429,12 @@ describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de prop
 
     fireEvent.change(within(form).getByLabelText('Nombre'), { target: { value: 'Desde el borrador' } });
     fireEvent.change(within(form).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
-    await waitFor(() => expect(within(form).getByRole('option', { name: 'Responsable sintética · Directiva' })).toBeTruthy());
-    fireEvent.change(within(form).getByLabelText('Responsable'), { target: { value: 'u-2' } });
     fireEvent.click(within(form).getByRole('button', { name: 'Crear borrador' }));
-    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
-    fireEvent.click(within(form).getByRole('button', { name: 'Confirmar' }));
     await waitFor(() =>
       expect(jointPurchaseCallsService.create).toHaveBeenCalledWith({
         campaign_id: CAMPAIGN.id,
         name: 'Desde el borrador',
         deadline_at: new Date('2099-12-01T18:00').toISOString(),
-        responsible_user_id: 'u-2',
         products: [{ product_ref: 'p-1' }],
         source_proposal_id: 'pr-1',
       }),

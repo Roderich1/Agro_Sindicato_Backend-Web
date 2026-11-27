@@ -48,7 +48,7 @@ export function JointProposalPage() {
             </span>
           }
           title="Borrador de compra"
-          subtitle={vm.proposal ? <GeneratedLine proposal={vm.proposal} /> : 'Borrador basado en las necesidades declaradas publicadas. No ejecuta ninguna compra.'}
+          subtitle={vm.proposal ? <GeneratedLine proposal={vm.proposal} /> : 'Seleccione una campaña para consultar o generar un borrador.'}
           testId="proposal-header"
         />
         <div className="flex flex-wrap items-center gap-3">

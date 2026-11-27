@@ -10,6 +10,7 @@ import { URL } from "node:url";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
 import { configureBackupsBodyGuard } from "@/modules/backups/api/rest/backups-body";
 import { BACKUP_STORAGE, BackupStorage } from "@/modules/backups/domain/backup-storage.port";
+import { CollectivePolicyActivation } from "@/modules/collective/application/collective-policy-activation";
 import { configureSyncV1BodyParser } from "../api/rest/sync-v1-body";
 import { LegacyPrivateWritesConfig } from "@/shared/api/legacy-private-writes";
 import cookieParser = require("cookie-parser");
@@ -62,6 +63,8 @@ export async function createSyncV1App(
     fingerprintKey?: string | null;
     /** F08-BKP-07: replaces the backup storage the environment would choose. */
     backupStorage?: BackupStorage;
+    /** Historical fixtures that boot before the policy audit table exists. */
+    skipCollectivePolicyAudit?: boolean;
     /**
      * #81 PHASE 6: `rollback` opens the legacy private writes again, as
      * LEGACY_PRIVATE_WRITES_ROLLBACK=enabled would; omitted, they stay closed.
@@ -93,6 +96,8 @@ export async function createSyncV1App(
   }
   if (options.backupStorage)
     builder = builder.overrideProvider(BACKUP_STORAGE).useValue(options.backupStorage);
+  if (options.skipCollectivePolicyAudit)
+    builder = builder.overrideProvider(CollectivePolicyActivation).useValue({});
   if (options.legacyPrivateWrites)
     builder = builder
       .overrideProvider(LegacyPrivateWritesConfig)

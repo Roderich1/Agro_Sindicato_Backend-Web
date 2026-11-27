@@ -316,7 +316,7 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
   it('política pendiente y casos no calculables: sin «Obtener referencia», con el motivo; un 409 POLICY_PENDING no escribe y lo explica', async () => {
     serve({ ...NONE, prepare_blocker: 'POLICY_PENDING' });
     const view = renderAt(<JointProposalPage />, { path: PATH });
-    await waitFor(() => expect(screen.getByTestId('link-detail').textContent).toMatch(/^Restringida: la política de divulgación no está aprobada/));
+    await waitFor(() => expect(screen.getByTestId('link-detail').textContent).toMatch(/Sin estimación disponible/));
     expect(screen.queryByRole('button', { name: 'Obtener referencia' })).toBeNull();
     view.unmount();
 
@@ -326,7 +326,7 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
       .mockResolvedValueOnce({ outcome: 'NOT_CALCULABLE', reason: 'TARGET_CAMPAIGN_NOT_CLASSIFIED', view: { ...NONE, prepare_blocker: 'TARGET_CAMPAIGN_NOT_CLASSIFIED' } });
     renderAt(<JointProposalPage />, { path: PATH });
     fireEvent.click(await screen.findByRole('button', { name: 'Obtener referencia' }));
-    expect((await screen.findByTestId('link-feedback')).textContent).toMatch(/política de divulgación no está aprobada/);
+    expect((await screen.findByTestId('link-feedback')).textContent).toMatch(/Sin estimación disponible/);
     expect(cell('Glifosato').textContent).toBe('Sin referencia');
     fireEvent.click(button('Obtener referencia'));
     await waitFor(() => expect(screen.getByTestId('link-feedback').textContent).toMatch(/no está clasificada en una temporada/));
@@ -357,7 +357,7 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     expect(run).toMatch(/INVIERNO · Siembra de invierno \(sintética\)/);
     expect(run).toMatch(/Campaña objetivo \(período\)/);
     // E4 §4.4: la política se muestra con su umbral en palabras (antes «F07-POL-01 · … · umbral 3»).
-    expect(run).toMatch(/F07-POL-01 \(mínimo de 3 aportantes por cifra\) · PROVISIONAL_SYNTHETIC/);
+    expect(run).not.toMatch(/F07-POL|umbral|PROVISIONAL_SYNTHETIC/);
     expect(within(details).getByTestId('calculation-parameters').textContent).toMatch(/min_span: 3/);
     expect(detail.textContent).toMatch(/Línea base naive: 300 L/);
     expect(detail.textContent).toMatch(/α 0,50/);

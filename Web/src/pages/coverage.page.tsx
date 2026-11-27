@@ -1,4 +1,3 @@
-import { PolicyLine } from '../components/collective-ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HeroCoverage } from '../components/a/coverage-figure';
@@ -101,10 +100,6 @@ export function CoveragePage() {
           </Card>
         )}
         {summary && !loading && <CoverageBody coverage={summary.coverage} sealedAt={summary.seal?.sealed_at ?? null} policyPending={summary.disclosure.mode === 'POLICY_PENDING'} />}
-        {/* E4 (verificación O1): la política de publicación aplicada, como en el Resumen. */}
-        {summary && !loading && summary.disclosure.mode !== 'POLICY_PENDING' && (
-          <PolicyLine policy={summary.disclosure.policy} threshold={summary.disclosure.threshold} testId="coverage-policy" />
-        )}
         <section aria-labelledby="aceptados-locales" className="rounded-card border border-line bg-surface px-5 py-6 shadow-card sm:px-8" data-testid="accepted-vs-local">
           <h2 id="aceptados-locales" className="text-xl font-bold text-ink">
             Aportes aceptados y registros locales
@@ -144,7 +139,7 @@ function CoverageBody({ coverage, sealedAt, policyPending }: { coverage: Coverag
         <DataState
           state={policyPending ? 'policy-pending' : 'restricted'}
           title="Cobertura no disponible"
-          description="Sin política de divulgación aprobada el servidor no publica conteos. Eso no significa cero."
+          description="Sin datos disponibles."
         />
       </Card>
     );
@@ -173,7 +168,7 @@ function CoverageBody({ coverage, sealedAt, policyPending }: { coverage: Coverag
           <h2 className="text-xl font-bold text-ink">Quién aportó</h2>
           <p className="mt-3 flex items-start gap-3 text-base leading-relaxed text-ink-muted">
             <Icon d={ICON.lock} className="mt-1 h-5 w-5 shrink-0 text-ink" />
-            <span>No se muestra, ni tampoco cuándo sincronizó cada persona: la Web sólo recibe el conteo agregado que permite la política de divulgación del sindicato.</span>
+            <span>Se muestran conteos agregados de participación.</span>
           </p>
         </Card>
       </div>

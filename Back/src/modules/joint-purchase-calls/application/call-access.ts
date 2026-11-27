@@ -59,7 +59,7 @@ export function rowPendingReview(call: CallForAccess, row: AccessRow): boolean {
 }
 
 export interface CallAccessOf {
-  /** MANAGE held now: the responsible holds it by being the responsible. */
+  /** Lifecycle rights of an active institutional member. */
   grants: Set<CallGrant>;
   /** E4 §2: an eligible ADMINISTRADOR of the tenant now (by role, read at this request). */
   canViewParticipants: boolean;
@@ -67,32 +67,16 @@ export interface CallAccessOf {
   visibility: CallVisibility;
 }
 
-/**
- * E4 §2 and §6: what this user may do and see on this call, read at each
- * request (a change of role or eligibility applies from the next one).
- * - Managing (edit the draft, open, cancel, close) and granting MANAGE stay
- *   with the responsible and her MANAGE delegations (E2 §10.2, m6, P-A).
- * - The identified detail depends only on the ROLE: an eligible
- *   ADMINISTRADOR (Member, account, role and tenant active) sees the
- *   participations whose consent covers `ADMINISTRATION`. Being the
- *   responsible, holding a stored PARTICIPANTS row or having held one gives
- *   nothing (D-01; the protection of former collaborators is retired with
- *   the view permissions).
- */
+/** Current institutional management and identified viewing are checked independently. */
 export async function accessOf(db: Db, call: CallForAccess, userId: string): Promise<CallAccessOf> {
   const isResponsible = call.responsibleUserId === userId;
-  const [manage, eligible, administration] = await Promise.all([
-    isResponsible
-      ? Promise.resolve(null)
-      : db.jointPurchaseCallAccess.findUnique({
-          where: { callId_userId_grant: { callId: call.id, userId, grant: ACCESS_MANAGE } },
-          select: { userId: true, grant: true, grantedByUserId: true, responsibleVersion: true },
-        }),
-    isResponsible ? Promise.resolve(true) : responsibleIsEligible(db, call.tenantId, call.responsibleUserId),
-    isEligibleAdministrator(db, call.tenantId, userId),
-  ]);
+  const member = await db.member.findFirst({
+    where: { ...eligibleMemberWhere(call.tenantId), userId },
+    select: { role: true },
+  });
+  const administration = member?.role === UserRole.ADMINISTRADOR;
   const grants = new Set<CallGrant>();
-  if (isResponsible || (manage !== null && rowInForce(call, manage, eligible))) grants.add(ACCESS_MANAGE);
+  if (member) grants.add(ACCESS_MANAGE);
   return {
     grants,
     canViewParticipants: administration,
@@ -107,22 +91,9 @@ export async function responsibleIsEligible(db: Db, tenantId: string, userId: st
   return member !== null;
 }
 
-/**
- * §10.2: editing, opening, cancelling and closing by hand need the
- * responsible or MANAGE granted by her under the current responsible version.
- *
- * N2 rejected (2026-11-12): no role gets cancel or close when the responsible
- * is no longer eligible. A MANAGE granted by her is suspended meanwhile (m6).
- * The automatic closing at the deadline does not go through here and is kept.
- * The way out for such a call is the explicit substitution of P-A (§12).
- */
+/** Lifecycle actions are authorized by active institutional membership in the call's tenant. */
 export async function requireManage(db: Db, call: CallForAccess, actor: InstitutionalActor): Promise<void> {
-  if (call.responsibleUserId === actor.userId) return;
-  const manage = await db.jointPurchaseCallAccess.findUnique({
-    where: { callId_userId_grant: { callId: call.id, userId: actor.userId, grant: ACCESS_MANAGE } },
-    select: { userId: true, grant: true, grantedByUserId: true, responsibleVersion: true },
-  });
-  if (manage && rowInForce(call, manage, await responsibleIsEligible(db, call.tenantId, call.responsibleUserId))) return;
+  if (actor.tenantId === call.tenantId && await responsibleIsEligible(db, call.tenantId, actor.userId)) return;
   throw new CallHttpError(403, "MANAGE_FORBIDDEN");
 }
 
