@@ -34,13 +34,13 @@ export function ClosedCallReference({
   productRefs,
   excludeCallId,
   showDeclaredNeed,
-}: {
+}: Readonly<{
   campaignId: string;
   productRefs: readonly string[];
   excludeCallId?: string;
   showDeclaredNeed: boolean;
-}) {
-  const selection = JSON.stringify([...productRefs].sort());
+}>) {
+  const selection = JSON.stringify([...productRefs].sort((left, right) => left.localeCompare(right)));
   const hasProducts = productRefs.length > 0;
   const [attempt, setAttempt] = useState(0);
   const key = JSON.stringify([campaignId, selection, excludeCallId, attempt]);
@@ -82,37 +82,37 @@ export function ClosedCallReference({
   const current = result?.key === key ? result : null;
   return (
     <section aria-label="Referencia por producto" className="space-y-2 rounded-xl border border-line px-3 py-2 text-sm">
-      {!current ? (
-        <p role="status" className="text-ink-muted">Cargando convocatorias cerradas…</p>
-      ) : !current.products ? (
+      {!current && (
+        <output className="block text-ink-muted">Cargando convocatorias cerradas…</output>
+      )}
+      {current && !current.products && (
         <div className="flex flex-wrap items-center gap-2">
-          <p role="status">No se pudo cargar la referencia de convocatorias cerradas.</p>
+          <output>No se pudo cargar la referencia de convocatorias cerradas.</output>
           <Button variant="secondary" onClick={() => setAttempt((value) => value + 1)}>Reintentar</Button>
         </div>
-      ) : (
-        current.products.map((product) => (
-          <div key={product.product_ref} className="space-y-1 border-b border-line pb-2 last:border-0 last:pb-0">
-            <p className="font-semibold">{product.product_name}</p>
-            {showDeclaredNeed && (
-              <p>Necesidad declarada: {needs?.campaignId === campaignId ? declaredNeed(needs.summary, product) : 'Cargando…'}</p>
-            )}
-            <p>
-              Solicitado en convocatorias cerradas: {product.status === 'VISIBLE'
-                ? quantity(product.total_quantity_base, product.base_unit)
-                : HISTORY_TEXT[product.status]}
-            </p>
-            {product.calls.length > 1 && (
-              <ul className="space-y-1 pl-3 text-ink-muted">
-                {product.calls.map((call) => (
-                  <li key={call.call_id}>
-                    {call.call_name}: {call.visibility === 'VISIBLE' ? quantity(call.quantity_base, call.base_unit) : 'Pendiente de autorización'}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))
       )}
+      {current?.products?.map((product) => (
+        <div key={product.product_ref} className="space-y-1 border-b border-line pb-2 last:border-0 last:pb-0">
+          <p className="font-semibold">{product.product_name}</p>
+          {showDeclaredNeed && (
+            <p>Necesidad declarada: {needs?.campaignId === campaignId ? declaredNeed(needs.summary, product) : 'Cargando…'}</p>
+          )}
+          <p>
+            Solicitado en convocatorias cerradas: {product.status === 'VISIBLE'
+              ? quantity(product.total_quantity_base, product.base_unit)
+              : HISTORY_TEXT[product.status]}
+          </p>
+          {product.calls.length > 1 && (
+            <ul className="space-y-1 pl-3 text-ink-muted">
+              {product.calls.map((call) => (
+                <li key={call.call_id}>
+                  {call.call_name}: {call.visibility === 'VISIBLE' ? quantity(call.quantity_base, call.base_unit) : 'Pendiente de autorización'}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
     </section>
   );
 }
