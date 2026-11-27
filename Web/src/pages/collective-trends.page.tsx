@@ -1,14 +1,14 @@
 import axios from 'axios';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { AppShell } from '../components/app-shell';
-import { DisclosureNotice, PendingChangesNote, ProductCell, QuantityCell } from '../components/collective-ui';
+import { DisclosureNotice, PendingChangesNote, QuantityCell } from '../components/collective-ui';
 import { ExportButtons } from '../components/export-buttons';
 import { useSearchParams } from 'react-router-dom';
-import { Card, Collapsible, DataState, dataStateKindForError, ICON, Icon, PageHeader, SectionHeader, SegmentedControl, type DataStateKind } from '../components/ui';
+import { Button, Card, Collapsible, DataState, dataStateKindForError, FilterChips, ICON, Icon, PageHeader, SearchInput, SectionHeader, SegmentedControl, type DataStateKind } from '../components/ui';
 import { CAMPAIGN_STATUS_TEXT, collectiveError, fmtDateTime, statusReason } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
-import { historyProductKey, scopeHistory } from '../lib/history-scope';
-import { formatQuantity, isBaseQuantity } from '../lib/quantity';
+import { filterHistorySeries, historyProductKey, scopeHistory, type HistoryUnitFilter } from '../lib/history-scope';
+import { formatQuantity, isBaseQuantity, type BaseUnit } from '../lib/quantity';
 import { collectiveService } from '../services/collective.service';
 import type { CollectiveTrends, ProjectionType, TrendCampaign, TrendPoint, TrendSeries } from '../types/collective';
 
@@ -54,23 +54,10 @@ const COUNT = new Intl.NumberFormat('es-BO');
  * resta, promedia ni interpola, y un hueco (sin cifra, retirada, sin dato o
  * campaña sin sellar) nunca se dibuja como cero.
  *
- * Panel de la defensa (2026-11-05): el gráfico antes de la tabla; dos opciones
- * visibles («Consumo publicado», con la que se abre, y «Necesidad declarada») y
- * un selector de producto; unidad, campañas y valores visibles; sólo cifras
- * publicadas, con huecos. Campañas, versión y cobertura en «Ver campañas y
- * cobertura».
- *
- * Rediseño (sesión C, 2026-11-10): el cuerpo es `CollectiveTrendsView`, que
- * también usa el contenedor «Histórico y estimaciones» (`?vista=tendencias`).
- * Cada hueco del gráfico se rotula con su estado (F07 §8). En pantallas
- * estrechas el mismo dato se dibuja como barras horizontales, una fila por
- * campaña, para que 11 campañas o más se lean sin desplazamiento lateral. Sin
- * animación de datos.
- *
- * Rediseño v2 (láminas 25 y 40, H-10 provisional): columnas de un solo color,
- * sin destacar el máximo ni escribir «la campaña más alta»; bajo el nombre de
- * cada campaña, su cobertura (F07 §8: «muestra la cobertura de cada
- * campaña» junto a la serie). Sin totales, medias, diferencias ni tasas.
+ * Rediseño comparativo: presenta una matriz Productos × Campañas para ver
+ * todos los productos a la vez sin ciclar un selector, con búsqueda instantánea,
+ * filtro por unidad (L / KG, sin mezclar escalas) y el gráfico de barras de un
+ * producto desplegable bajo demanda en cualquier fila.
  */
 export function CollectiveTrendsPage() {
   return (
@@ -92,7 +79,9 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
     });
   };
   const [type, setType] = useState<ProjectionType>('CONSUMPTION_TOTAL');
-  const [productKey, setProductKey] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [unitFilter, setUnitFilter] = useState<HistoryUnitFilter>('ALL');
+  const [expandedProductKey, setExpandedProductKey] = useState<string | null>(null);
   const [trends, setTrends] = useState<CollectiveTrends | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(false);
@@ -134,14 +123,30 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
 
   const chooseType = (next: ProjectionType) => {
     if (next === type) return;
+    setExpandedProductKey(null);
     setType(next);
     void load(next);
   };
 
   const current = TYPES.find((entry) => entry.type === type)!;
+  const fullSealedCampaigns = trends ? trends.campaigns.filter((campaign) => campaign.seal !== null) : [];
+  const fullSeriesByKey = new Map((trends?.series ?? []).map((line) => [historyProductKey(line), line]));
   const history = trends ? scopeHistory(trends, { campaignId }) : null;
-  const series = history?.series ?? [];
-  const selected = series.find((line) => historyProductKey(line) === productKey) ?? series[0] ?? null;
+  const byQuery = history ? filterHistorySeries(history.series, { query: searchQuery }) : [];
+  const visibleSeries = history ? filterHistorySeries(history.series, { unit: unitFilter, query: searchQuery }) : [];
+  const litersCount = byQuery.filter((line) => line.presentation_unit === 'L').length;
+  const kilosCount = byQuery.filter((line) => line.presentation_unit === 'KG').length;
+  const hasActiveFilters = searchQuery.trim() !== '' || unitFilter !== 'ALL';
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setUnitFilter('ALL');
+  };
+
+  const toggleProduct = (key: string) => {
+    setExpandedProductKey((previous) => (previous === key ? null : key));
+  };
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -169,37 +174,51 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
             <option value="">Todas las campañas</option>
             {campaignId && !trends?.campaigns.some((campaign) => campaign.campaign_ref === campaignId && campaign.seal) &&
               <option value={campaignId}>Campaña sin resultados históricos</option>}
-            {trends?.campaigns.filter((campaign) => campaign.seal !== null).map((campaign) => (
+            {fullSealedCampaigns.map((campaign) => (
               <option key={campaign.campaign_ref} value={campaign.campaign_ref}>{campaign.name}</option>
             ))}
           </select>
         </div>
-        <span className="relative inline-flex min-w-0 max-w-full flex-1 basis-60 sm:flex-none">
-          <label className="sr-only" htmlFor="trend-product">
-            Producto
-          </label>
-          <select
-            id="trend-product"
-            className="block min-h-11 w-full max-w-full cursor-pointer appearance-none truncate rounded-full border border-line bg-surface py-2 pl-5 pr-11 text-base font-semibold text-ink shadow-card hover:border-ink disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-72"
-            value={selected ? historyProductKey(selected) : ''}
-            onChange={(event) => setProductKey(event.target.value)}
-            disabled={series.length === 0}
-          >
-            {series.length === 0 && <option value="">Sin productos disponibles</option>}
-            {series.map((line) => (
-              <option key={historyProductKey(line)} value={historyProductKey(line)}>
-                {line.product_name} ({line.presentation_unit})
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink">
-            <Icon d={ICON.chevronDown} className="h-5 w-5" />
-          </span>
-        </span>
         <div className="sm:ml-auto">
-          <ExportButtons kind="trends" reference={type} disabled={!history?.campaigns.length || loading} historyScope={{ campaignId, productKey: selected ? historyProductKey(selected) : null }} />
+          <ExportButtons
+            kind="trends"
+            reference={type}
+            disabled={!history?.campaigns.length || visibleSeries.length === 0 || loading}
+            historyScope={{ campaignId, unit: unitFilter, query: searchQuery }}
+          />
         </div>
       </div>
+      {history && !loading && history.disclosure.mode !== 'POLICY_PENDING' && history.series.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3" data-testid="trend-filters">
+          <SearchInput
+            id="trend-search"
+            label="Buscar producto"
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Buscar producto…"
+            enterKeyHint="search"
+            inputMode="search"
+            autoComplete="off"
+            fieldClassName="w-full min-w-0 sm:w-72"
+          />
+          <FilterChips
+            label="Filtrar por unidad"
+            testId="trend-unit-filter"
+            value={unitFilter}
+            onChange={setUnitFilter}
+            options={[
+              { value: 'ALL', label: 'Todas', count: byQuery.length },
+              { value: 'L', label: 'Litros (L)', count: litersCount },
+              { value: 'KG', label: 'Kilogramos (KG)', count: kilosCount },
+            ]}
+          />
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Quitar filtros
+            </Button>
+          )}
+        </div>
+      )}
       {problem && (
         <Card>
           <DataState
@@ -214,56 +233,552 @@ export function CollectiveTrendsView({ headingLevel = 1 }: { headingLevel?: 1 | 
           <DataState state="loading" title="Cargando el histórico…" skeletonRows={3} />
         </Card>
       )}
-      {history && !loading && <TrendsBody trends={history} selected={selected} typeLabel={current.label} />}
+      {history && !loading && (
+        <TrendsBody
+          trends={history}
+          visibleSeries={visibleSeries}
+          fullSealedCampaigns={fullSealedCampaigns}
+          fullSeriesByKey={fullSeriesByKey}
+          campaignId={campaignId}
+          typeLabel={current.label}
+          expandedProductKey={expandedProductKey}
+          onToggleProduct={toggleProduct}
+          onCloseChart={() => setExpandedProductKey(null)}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+        />
+      )}
     </div>
   );
 }
 
-function TrendsBody({ trends, selected, typeLabel }: { trends: CollectiveTrends; selected: TrendSeries | null; typeLabel: string }) {
+interface TrendsBodyProps {
+  trends: CollectiveTrends;
+  visibleSeries: TrendSeries[];
+  fullSealedCampaigns: TrendCampaign[];
+  fullSeriesByKey: Map<string, TrendSeries>;
+  campaignId: string;
+  typeLabel: string;
+  expandedProductKey: string | null;
+  onToggleProduct: (key: string) => void;
+  onCloseChart: () => void;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
+}
+
+function TrendsBody({
+  trends,
+  visibleSeries,
+  fullSealedCampaigns,
+  fullSeriesByKey,
+  campaignId,
+  typeLabel,
+  expandedProductKey,
+  onToggleProduct,
+  onCloseChart,
+  hasActiveFilters,
+  onClearFilters,
+}: TrendsBodyProps) {
   const sealed = trends.campaigns.filter((campaign) => campaign.seal !== null);
+  const policyPending = trends.disclosure.mode === 'POLICY_PENDING';
+  const hasAnySeries = trends.series.length > 0 && sealed.length > 0;
+
   return (
     <div className="space-y-4">
       <DisclosureNotice mode={trends.disclosure.mode} />
-      {trends.disclosure.mode !== 'POLICY_PENDING' &&
-        (selected === null ? (
+      {!policyPending &&
+        (!hasAnySeries ? (
+          <Card>
+            <DataState state="empty" title="Sin datos disponibles" />
+          </Card>
+        ) : visibleSeries.length === 0 ? (
           <Card>
             <DataState
               state="empty"
-              title="Sin datos disponibles"
+              title="Sin coincidencias"
+              description="Ningún producto coincide con el filtro actual."
+              action={
+                hasActiveFilters ? (
+                  <Button variant="secondary" onClick={onClearFilters}>
+                    Quitar filtros
+                  </Button>
+                ) : undefined
+              }
             />
           </Card>
+        ) : campaignId ? (
+          <SingleCampaignList
+            campaign={sealed[0]!}
+            series={visibleSeries}
+            fullSealedCampaigns={fullSealedCampaigns}
+            fullSeriesByKey={fullSeriesByKey}
+            typeLabel={typeLabel}
+            expandedProductKey={expandedProductKey}
+            onToggleProduct={onToggleProduct}
+            onCloseChart={onCloseChart}
+          />
         ) : (
-          <div className="grid gap-5 min-[1600px]:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] min-[1600px]:items-start">
-            <section aria-label="Gráfico del historial" className="min-w-0 rounded-card border border-line bg-surface py-6 shadow-card">
-              <div className="px-5 sm:px-8">
-                <h2 className="text-2xl font-bold text-ink [overflow-wrap:anywhere] sm:text-[1.75rem]">{selected.product_name}</h2>
-                <p className="mt-1 text-base text-ink-muted">
-                  {typeLabel} por campaña, en {UNIT_WORD[selected.presentation_unit]}. Bajo cada campaña, su cobertura.
-                </p>
-              </div>
-              <TrendChart line={selected} campaigns={sealed} />
-            </section>
-            <HowToRead />
-          </div>
+          <ComparativeMatrix
+            campaigns={sealed}
+            series={visibleSeries}
+            typeLabel={typeLabel}
+            expandedProductKey={expandedProductKey}
+            onToggleProduct={onToggleProduct}
+            onCloseChart={onCloseChart}
+          />
         ))}
+      {!policyPending && hasAnySeries && visibleSeries.length > 0 && <HowToRead />}
       <Collapsible title="Ver campañas y cobertura" testId="sources">
-        <div className="space-y-5 p-5">
+        <div className="p-5">
           <CampaignsTable campaigns={trends.campaigns} />
-          {selected && <SeriesTable line={selected} campaigns={trends.campaigns} />}
         </div>
       </Collapsible>
     </div>
   );
 }
 
-/** «Cómo leerlo» (lámina 25), sin «Campaña más alta» (H-10). */
+function ProductTitle({ name, unit }: { name: string; unit: 'L' | 'KG' }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="font-semibold text-ink [overflow-wrap:anywhere]">{name}</span>
+      <span className="inline-flex shrink-0 items-center rounded-full bg-sunken px-2 py-0.5 text-xs font-semibold text-ink">
+        {unit}
+      </span>
+    </div>
+  );
+}
+
+function ChartToggleButton({
+  productName,
+  expanded,
+  onClick,
+  ariaPrefix = '',
+}: {
+  productName: string;
+  expanded: boolean;
+  onClick: () => void;
+  ariaPrefix?: string;
+}) {
+  const prefix = ariaPrefix ? `${ariaPrefix} ` : '';
+  return (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      aria-label={`${expanded ? `Ocultar gráfico${prefix}` : `Ver gráfico${prefix}`} de ${productName}`}
+      onClick={onClick}
+      className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 ${
+        expanded ? 'bg-ink text-white' : 'border border-line bg-surface text-ink hover:border-ink'
+      }`}
+    >
+      <Icon d={expanded ? ICON.chevronUp : ICON.chart} className="h-4 w-4" />
+      {expanded ? 'Ocultar' : 'Ver gráfico'}
+    </button>
+  );
+}
+
+function MatrixCell({ point, unit }: { point: TrendPoint | null; unit: BaseUnit }) {
+  if (!point) {
+    return (
+      <span className="inline-block text-xs leading-snug text-ink-muted" title={statusReason('NO_DATA') ?? undefined}>
+        {GAP_TEXT.NO_DATA}
+      </span>
+    );
+  }
+  if (point.status !== 'DISCLOSED') {
+    return (
+      <span className="inline-block text-xs leading-snug text-ink-muted" title={statusReason(point.status) ?? undefined}>
+        {GAP_TEXT[point.status]}
+      </span>
+    );
+  }
+  const text = formatQuantity(point.total_base, unit, point.total_presentation);
+  if (text === null) {
+    return <span className="text-xs font-semibold text-danger-ink">Dato no válido</span>;
+  }
+  return (
+    <div className="space-y-0.5">
+      <span className="block whitespace-nowrap font-display text-base font-bold leading-tight tabular-nums text-ink">
+        {text}
+      </span>
+      {point.contributors !== null && (
+        <span className="block text-xs tabular-nums text-ink-muted">
+          {COUNT.format(point.contributors)} {point.contributors === 1 ? 'aportante' : 'aportantes'}
+        </span>
+      )}
+      {point.pending_changes && <PendingChangesNote />}
+    </div>
+  );
+}
+
+function ComparativeMatrix({
+  campaigns,
+  series,
+  typeLabel,
+  expandedProductKey,
+  onToggleProduct,
+  onCloseChart,
+}: {
+  campaigns: TrendCampaign[];
+  series: TrendSeries[];
+  typeLabel: string;
+  expandedProductKey: string | null;
+  onToggleProduct: (key: string) => void;
+  onCloseChart: () => void;
+}) {
+  return (
+    <section
+      aria-label="Comparativa por producto y campaña"
+      className="min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card"
+      data-testid="trends-matrix"
+    >
+      <div className="border-b border-line px-5 py-4 sm:px-6">
+        <h2 className="text-xl font-bold text-ink sm:text-2xl">{typeLabel} por producto y campaña</h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          Cada celda muestra la cifra publicada y sus aportantes. Los huecos nunca son cero; las cifras no se suman ni promedian entre campañas, productos ni unidades.
+        </p>
+      </div>
+
+      {/* Escritorio y tableta: tabla comparativa con producto fijo y gráfico bajo demanda */}
+      <div
+        className={`hidden overflow-x-auto sm:block ${SCROLL_HINT}`}
+        role="region"
+        aria-label="Matriz comparativa de productos por campaña"
+        tabIndex={0}
+      >
+        <table className="w-full border-collapse text-sm">
+          <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <tr>
+              <th scope="col" className={`min-w-52 max-w-72 px-4 py-3 font-semibold uppercase tracking-wider ${STICKY_HEAD}`}>
+                Producto
+              </th>
+              {campaigns.map((campaign) => (
+                <th key={campaign.campaign_ref} scope="col" className="min-w-36 px-3 py-3 align-bottom">
+                  <span className="block font-semibold leading-snug text-ink [overflow-wrap:anywhere]">{campaign.name}</span>
+                  <span className="mt-1 block text-[11px] font-semibold tabular-nums text-ink-muted" data-testid="matrix-coverage">
+                    Cobertura: {coverageText(campaign)}
+                  </span>
+                </th>
+              ))}
+              <th scope="col" className="w-32 px-3 py-3 text-right font-semibold uppercase tracking-wider">
+                Gráfico
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {series.map((line) => {
+              const key = historyProductKey(line);
+              const expanded = expandedProductKey === key;
+              const pointOf = new Map(line.points.map((point) => [point.campaign_ref, point]));
+              return (
+                <Fragment key={key}>
+                  <tr
+                    data-testid={`series-${line.projection_type}-${line.product_name}-${line.base_unit}`}
+                    className={expanded ? 'bg-sunken/40' : 'hover:bg-slate-50/70'}
+                  >
+                    <td className={`min-w-52 max-w-72 px-4 py-3 align-top ${STICKY_CELL}`}>
+                      <ProductTitle name={line.product_name} unit={line.presentation_unit} />
+                    </td>
+                    {campaigns.map((campaign) => (
+                      <td
+                        key={campaign.campaign_ref}
+                        className="px-3 py-3 align-top"
+                        data-testid={`point-${campaign.name}`}
+                      >
+                        <MatrixCell point={pointOf.get(campaign.campaign_ref) ?? null} unit={line.base_unit} />
+                      </td>
+                    ))}
+                    <td className="px-3 py-3 text-right align-top">
+                      <ChartToggleButton productName={line.product_name} expanded={expanded} onClick={() => onToggleProduct(key)} />
+                    </td>
+                  </tr>
+                  {expanded && (
+                    <tr data-testid="trend-chart-row" className="bg-canvas/50">
+                      <td colSpan={campaigns.length + 2} className="p-4 sm:p-6">
+                        <ExpandedDesktopChart line={line} campaigns={campaigns} typeLabel={typeLabel} onClose={onCloseChart} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pantallas estrechas: tarjetas por producto sin desplazamiento horizontal incómodo */}
+      <ul className="divide-y divide-line sm:hidden" data-testid="trends-cards">
+        {series.map((line) => {
+          const key = historyProductKey(line);
+          const expanded = expandedProductKey === key;
+          const pointOf = new Map(line.points.map((point) => [point.campaign_ref, point]));
+          const columns = columnsOf(line, campaigns);
+          const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
+          const shown = columns.filter(({ value, label }) => value !== null && label !== null).length;
+          const summary = `${line.product_name}: ${shown} de ${columns.length} campañas con cifra publicada; las demás son huecos, no ceros.`;
+          return (
+            <li
+              key={key}
+              className="space-y-3 p-4"
+              data-testid={`card-series-${line.projection_type}-${line.product_name}-${line.base_unit}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <ProductTitle name={line.product_name} unit={line.presentation_unit} />
+                <ChartToggleButton
+                  productName={line.product_name}
+                  expanded={expanded}
+                  ariaPrefix="compacto"
+                  onClick={() => onToggleProduct(key)}
+                />
+              </div>
+              <dl className="divide-y divide-slate-100 text-sm">
+                {campaigns.map((campaign) => (
+                  <div key={campaign.campaign_ref} className="flex items-start justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <dt className="font-medium text-ink [overflow-wrap:anywhere]">{campaign.name}</dt>
+                      <dd className="text-xs tabular-nums text-ink-muted">Cobertura: {coverageText(campaign)}</dd>
+                    </div>
+                    <dd className="shrink-0 text-right">
+                      <MatrixCell point={pointOf.get(campaign.campaign_ref) ?? null} unit={line.base_unit} />
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              {expanded && (
+                <div className="rounded-xl border border-line bg-surface pb-4">
+                  <CompactBars line={line} columns={columns} max={max} summary={summary} />
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function SingleCampaignList({
+  campaign,
+  series,
+  fullSealedCampaigns,
+  fullSeriesByKey,
+  typeLabel,
+  expandedProductKey,
+  onToggleProduct,
+  onCloseChart,
+}: {
+  campaign: TrendCampaign;
+  series: TrendSeries[];
+  fullSealedCampaigns: TrendCampaign[];
+  fullSeriesByKey: Map<string, TrendSeries>;
+  typeLabel: string;
+  expandedProductKey: string | null;
+  onToggleProduct: (key: string) => void;
+  onCloseChart: () => void;
+}) {
+  return (
+    <section
+      aria-label={`Productos en ${campaign.name}`}
+      className="min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card"
+      data-testid="trends-campaign-list"
+    >
+      <div className="border-b border-line px-5 py-4 sm:px-6">
+        <h2 className="text-xl font-bold text-ink [overflow-wrap:anywhere] sm:text-2xl">{campaign.name}</h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          {typeLabel} · Cobertura histórica:{' '}
+          <strong className="font-semibold tabular-nums text-ink" data-testid="matrix-coverage">
+            {coverageText(campaign)}
+          </strong>
+          {campaign.seal ? ` · Resultados fijados el ${fmtDateTime(campaign.seal.sealed_at)}` : ''}
+        </p>
+      </div>
+
+      {/* Escritorio y tableta */}
+      <div
+        className={`hidden overflow-x-auto sm:block ${SCROLL_HINT}`}
+        role="region"
+        aria-label={`Cifras de ${campaign.name}`}
+        tabIndex={0}
+      >
+        <table className="w-full border-collapse text-sm">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-600">
+            <tr>
+              <th scope="col" className={`min-w-52 px-4 py-3 font-semibold ${STICKY_HEAD}`}>
+                Producto
+              </th>
+              <th scope="col" className="px-4 py-3 font-semibold">
+                {typeLabel}
+              </th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold">
+                Aportantes
+              </th>
+              <th scope="col" className="w-32 px-4 py-3 text-right font-semibold">
+                Gráfico
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {series.map((line) => {
+              const key = historyProductKey(line);
+              const expanded = expandedProductKey === key;
+              const point = line.points.find((entry) => entry.campaign_ref === campaign.campaign_ref) ?? null;
+              const status = point?.status ?? 'NO_DATA';
+              const fullLine = fullSeriesByKey.get(key) ?? line;
+              const chartCampaigns = fullSealedCampaigns.length > 0 ? fullSealedCampaigns : [campaign];
+              return (
+                <Fragment key={key}>
+                  <tr
+                    data-testid={`series-${line.projection_type}-${line.product_name}-${line.base_unit}`}
+                    className={expanded ? 'bg-sunken/40' : 'hover:bg-slate-50/70'}
+                  >
+                    <td className={`min-w-52 px-4 py-3 align-top ${STICKY_CELL}`}>
+                      <ProductTitle name={line.product_name} unit={line.presentation_unit} />
+                    </td>
+                    <td className="px-4 py-3 align-top" data-testid={`point-${campaign.name}`}>
+                      <QuantityCell
+                        status={status}
+                        base={point?.total_base ?? null}
+                        serverPresentation={point?.total_presentation ?? null}
+                        unit={line.base_unit}
+                        asOf={point?.data_as_of}
+                      />
+                      {point?.status === 'DISCLOSED' && point.pending_changes && <PendingChangesNote />}
+                    </td>
+                    <td className="px-4 py-3 text-right align-top tabular-nums text-ink">
+                      {point?.status === 'DISCLOSED' && point.contributors !== null ? COUNT.format(point.contributors) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right align-top">
+                      <ChartToggleButton productName={line.product_name} expanded={expanded} onClick={() => onToggleProduct(key)} />
+                    </td>
+                  </tr>
+                  {expanded && (
+                    <tr data-testid="trend-chart-row" className="bg-canvas/50">
+                      <td colSpan={4} className="p-4 sm:p-6">
+                        <ExpandedDesktopChart
+                          line={fullLine}
+                          campaigns={chartCampaigns}
+                          typeLabel={typeLabel}
+                          note="Evolución entre todas las campañas con resultados"
+                          onClose={onCloseChart}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pantallas estrechas */}
+      <ul className="divide-y divide-line sm:hidden" data-testid="trends-cards">
+        {series.map((line) => {
+          const key = historyProductKey(line);
+          const expanded = expandedProductKey === key;
+          const point = line.points.find((entry) => entry.campaign_ref === campaign.campaign_ref) ?? null;
+          const status = point?.status ?? 'NO_DATA';
+          const fullLine = fullSeriesByKey.get(key) ?? line;
+          const chartCampaigns = fullSealedCampaigns.length > 0 ? fullSealedCampaigns : [campaign];
+          const columns = columnsOf(fullLine, chartCampaigns);
+          const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
+          const shown = columns.filter(({ value, label }) => value !== null && label !== null).length;
+          const summary = `${fullLine.product_name}: ${shown} de ${columns.length} campañas con cifra publicada; las demás son huecos, no ceros.`;
+          return (
+            <li
+              key={key}
+              className="space-y-3 p-4"
+              data-testid={`card-series-${line.projection_type}-${line.product_name}-${line.base_unit}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <ProductTitle name={line.product_name} unit={line.presentation_unit} />
+                <ChartToggleButton
+                  productName={line.product_name}
+                  expanded={expanded}
+                  ariaPrefix="compacto"
+                  onClick={() => onToggleProduct(key)}
+                />
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <QuantityCell
+                  status={status}
+                  base={point?.total_base ?? null}
+                  serverPresentation={point?.total_presentation ?? null}
+                  unit={line.base_unit}
+                  asOf={point?.data_as_of}
+                />
+                <span className="shrink-0 text-xs tabular-nums text-ink-muted">
+                  {point?.status === 'DISCLOSED' && point.contributors !== null
+                    ? `${COUNT.format(point.contributors)} ${point.contributors === 1 ? 'aportante' : 'aportantes'}`
+                    : '—'}
+                </span>
+              </div>
+              {point?.status === 'DISCLOSED' && point.pending_changes && <PendingChangesNote />}
+              {expanded && (
+                <div className="rounded-xl border border-line bg-surface pb-4">
+                  <CompactBars line={fullLine} columns={columns} max={max} summary={summary} />
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function ExpandedDesktopChart({
+  line,
+  campaigns,
+  typeLabel,
+  note,
+  onClose,
+}: {
+  line: TrendSeries;
+  campaigns: TrendCampaign[];
+  typeLabel: string;
+  note?: string;
+  onClose: () => void;
+}) {
+  const columns = columnsOf(line, campaigns);
+  const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
+  const shown = columns.filter(({ value, label }) => value !== null && label !== null).length;
+  const summary = `${line.product_name}: ${shown} de ${columns.length} campañas con cifra publicada; las demás son huecos, no ceros.`;
+  return (
+    <section
+      aria-label={`Gráfico de ${line.product_name}`}
+      className="min-w-0 rounded-xl border border-line bg-surface py-5 shadow-card"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 px-5 sm:px-6">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold text-ink [overflow-wrap:anywhere]">{line.product_name}</h3>
+          <p className="mt-1 text-sm text-ink-muted">
+            {typeLabel} por campaña, en {UNIT_WORD[line.presentation_unit]}. Bajo cada campaña, su cobertura.
+            {note ? ` · ${note}` : ''}
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          Cerrar gráfico
+        </Button>
+      </div>
+      <div className="overflow-x-auto px-5 pt-4">
+        <ColumnsSvg line={line} columns={columns} max={max} summary={summary} />
+      </div>
+    </section>
+  );
+}
+
+/** «Cómo leerlo» (lámina 25), sin «Campaña más alta» (H-10); versión compacta bajo la matriz. */
 function HowToRead() {
   return (
-    <section aria-labelledby="como-leerlo" className="rounded-card border border-line bg-surface px-6 py-6 shadow-card sm:px-8" data-testid="how-to-read">
-      <h2 id="como-leerlo" className="text-2xl font-bold text-ink">
+    <section
+      aria-labelledby="como-leerlo"
+      className="rounded-card border border-line bg-surface px-5 py-4 shadow-card sm:px-6"
+      data-testid="how-to-read"
+    >
+      <h2 id="como-leerlo" className="text-base font-bold text-ink">
         Cómo leerlo
       </h2>
-      <ul className="mt-3 list-disc space-y-2 pl-5 text-base leading-relaxed text-ink">
+      <ul className="mt-2 flex flex-col gap-1.5 pl-5 text-sm leading-relaxed text-ink-muted list-disc sm:flex-row sm:flex-wrap sm:gap-x-8">
         <li>Un hueco es «sin dato» o «sin cifra», nunca cero.</li>
         <li>La cobertura cambia entre campañas: un cambio de cobertura no prueba un cambio de consumo de cada agricultor.</li>
       </ul>
@@ -308,51 +823,6 @@ function CampaignsTable({ campaigns }: { campaigns: TrendCampaign[] }) {
           </table>
         </div>
       )}
-    </section>
-  );
-}
-
-function SeriesTable({ line, campaigns }: Readonly<{ line: TrendSeries; campaigns: TrendCampaign[] }>) {
-  const nameOf = new Map(campaigns.map((campaign) => [campaign.campaign_ref, campaign.name]));
-  const title = `${line.product_name} (${line.presentation_unit})`;
-  return (
-    <section
-      className="overflow-hidden rounded-xl border border-slate-200"
-      aria-label={title}
-      data-testid={`series-${line.projection_type}-${line.product_name}-${line.base_unit}`}
-    >
-      <SectionHeader title={<span className="[overflow-wrap:anywhere]">{title}</span>} note="Una fila por campaña. Los huecos son campañas sin cifra publicada; no son ceros." />
-      <div className={`overflow-x-auto ${SCROLL_HINT}`}>
-        <table className="w-full min-w-[22rem] text-sm">
-          <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-600">
-            <tr>
-              <th className={`px-3 py-2.5 sm:px-5 ${STICKY_HEAD}`}>Campaña</th>
-              <th className="px-3 py-2.5 sm:px-5">Total publicado</th>
-              <th className="px-3 py-2.5 text-right sm:px-5">Aportantes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {line.points.map((point) => (
-              <tr key={point.campaign_ref} data-testid={`point-${nameOf.get(point.campaign_ref)}`}>
-                <td className={`w-32 min-w-32 px-3 py-3 [overflow-wrap:anywhere] sm:w-auto sm:min-w-40 sm:px-5 ${STICKY_CELL}`}>
-                  <ProductCell name={nameOf.get(point.campaign_ref) ?? ''} unit="" status={point.status} />
-                </td>
-                <td className="px-3 py-3 sm:px-5">
-                  <QuantityCell
-                    status={point.status}
-                    base={point.total_base}
-                    serverPresentation={point.total_presentation}
-                    unit={line.base_unit}
-                    asOf={point.data_as_of}
-                  />
-                  {point.status === 'DISCLOSED' && point.pending_changes && <PendingChangesNote />}
-                </td>
-                <td className="px-3 py-3 text-right tabular-nums sm:px-5">{point.status === 'DISCLOSED' ? point.contributors : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </section>
   );
 }
@@ -422,28 +892,6 @@ function wrapName(name: string): string[] {
 
 /** Proporción exacta en milésimas (BigInt): la cifra escrita es siempre la del servidor. */
 const permille = (value: bigint, max: bigint) => (max === 0n ? 0 : Number((value * 1000n) / max));
-
-/**
- * Columnas de una sola serie (una unidad, una escala) sobre las campañas
- * selladas, en orden. Sólo se dibujan los puntos publicados, cada uno con su
- * cantidad y unidad encima; un hueco se rotula con su estado y no tiene
- * columna. Un solo color: no hay series que distinguir. En pantallas
- * estrechas, las mismas cifras como barras horizontales.
- */
-function TrendChart({ line, campaigns }: Readonly<{ line: TrendSeries; campaigns: TrendCampaign[] }>) {
-  const columns = columnsOf(line, campaigns);
-  const max = columns.reduce<bigint>((top, { value }) => (value !== null && value > top ? value : top), 0n);
-  const shown = columns.filter(({ value, label }) => value !== null && label !== null).length;
-  const summary = `${line.product_name}: ${shown} de ${columns.length} campañas con cifra publicada; las demás son huecos, no ceros.`;
-  return (
-    <>
-      <div className="hidden overflow-x-auto px-5 py-4 sm:block">
-        <ColumnsSvg line={line} columns={columns} max={max} summary={summary} />
-      </div>
-      <CompactBars line={line} columns={columns} max={max} summary={summary} />
-    </>
-  );
-}
 
 function ColumnsSvg({ line, columns, max, summary }: { line: TrendSeries; columns: Column[]; max: bigint; summary: string }) {
   const STEP = Math.max(MIN_STEP, Math.min(MAX_STEP, Math.floor((CHART_WIDTH - PAD.left - PAD.right) / Math.max(columns.length, 1))));

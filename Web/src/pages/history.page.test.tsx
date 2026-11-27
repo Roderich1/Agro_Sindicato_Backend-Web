@@ -63,7 +63,7 @@ describe('Histórico y estimaciones (contenedor)', () => {
     // Rediseño v2 (láminas 25 y 26): cada vista lleva su propio título de nivel 1; el contenedor no repite otro.
     expect(await screen.findByRole('heading', { level: 1, name: 'Histórico de campañas' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Histórico y estimaciones' })).toBeNull();
-    expect(await screen.findByTestId('trend-chart')).toBeTruthy();
+    expect(await screen.findByTestId('trends-matrix')).toBeTruthy();
     const group = screen.getByRole('group', { name: 'Vista' });
     expect(within(group).getByRole('button', { name: 'Histórico de campañas' }).getAttribute('aria-pressed')).toBe('true');
     expect(estimationService.results).not.toHaveBeenCalled();
@@ -103,7 +103,9 @@ describe('Histórico y estimaciones (contenedor)', () => {
   it('peor caso del histórico: 11 campañas, huecos rotulados con su estado y nunca como cero', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsFx.worst);
     render('');
-    const chart = await screen.findByTestId('trend-chart');
+    const row = await screen.findByTestId('series-CONSUMPTION_TOTAL-Herbicida sistémico de amplio espectro para barbecho químico 480 g/L-ML');
+    fireEvent.click(within(row).getByRole('button', { name: /Ver gráfico/i }));
+    const chart = screen.getByTestId('trend-chart');
     // 8 campañas selladas; 4 con cifra publicada (una de ellas, un cero explícito).
     expect(within(chart).getAllByTestId('trend-point')).toHaveLength(4);
     expect(within(chart).getAllByTestId('trend-gap').map((gap) => gap.querySelector('tspan')!.textContent)).toEqual([
@@ -156,7 +158,9 @@ describe('Histórico y estimaciones (contenedor)', () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsFx.one);
     serveEstimation(estimationFx.one);
     const view = render('');
-    const chart = await screen.findByTestId('trend-chart');
+    const row = await screen.findByTestId('series-CONSUMPTION_TOTAL-Urea-G');
+    fireEvent.click(within(row).getByRole('button', { name: /Ver gráfico/i }));
+    const chart = screen.getByTestId('trend-chart');
     expect(chart.getAttribute('aria-label')).toMatch(/1 de 1 campañas/);
     view.unmount();
     render(`?vista=estimacion&campaign=${CAMPAIGN.id}`);
