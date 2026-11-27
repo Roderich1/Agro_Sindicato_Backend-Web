@@ -298,6 +298,9 @@ async function decideScope(
   if (operation.sequence <= existing.consentScopeSequence) {
     return reject("STALE_SEQUENCE", 409, { participation: view(existing) });
   }
+  if (existing.consentScope === "ADMINISTRATION" && scope !== "ADMINISTRATION") {
+    return reject("ORDER_CONSENT_LOCKED", 409);
+  }
   await tx.jointPurchaseParticipation.update({
     where: { id: existing.id },
     data: {

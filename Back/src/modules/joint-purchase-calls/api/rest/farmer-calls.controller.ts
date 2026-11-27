@@ -137,7 +137,7 @@ export class FarmerCallsController {
   @Header("Cache-Control", "no-store")
   @ApiOperation({
     summary:
-      "E4 §4.2: autorizar a la Administración (ADMINISTRATION, CONV-4), retirar esa autorización (TOTALS_ONLY) o la reducción anterior (RESPONSIBLE_ONLY), como decisión propia con orden propio; no cambia cantidades. Ampliar a COLLABORATORS o autorizar a una responsable: 409 CONSENT_VERSION_RETIRED",
+      "Autorizar a la Administración (ADMINISTRATION, CONV-4) mediante una decisión independiente. Los alcances históricos conservan sus reglas. Una autorización ya aplicada a Administración no puede reducirse; retirar el pedido es una operación distinta.",
   })
   @ApiParam({ name: "id", format: "uuid" })
   @ApiBody({ type: ConsentDecisionDto })
@@ -148,7 +148,7 @@ export class FarmerCallsController {
   @error(404, "CALL_NOT_FOUND.")
   @error(
     409,
-    "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (ADMINISTRATION exige CONV-4; versión desconocida), WIDENING_NOT_ALLOWED (ADMINISTRATION o TOTALS_ONLY en una CANCELLED), CONSENT_VERSION_RETIRED (ampliar a COLLABORATORS o autorizar a una responsable; definitivo), APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance nuevo), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
+    "PARTICIPATION_REQUIRED (aún no hay participación), CONSENT_REQUIRED (versión no admitida), ORDER_CONSENT_LOCKED (ADMINISTRATION ya está aplicado), WIDENING_NOT_ALLOWED (ADMINISTRATION o TOTALS_ONLY en una CANCELLED), CONSENT_VERSION_RETIRED (ampliar a COLLABORATORS o autorizar a una responsable), APP_UPDATE_REQUIRED (contratos 1–3 sobre una participación con alcance nuevo), STALE_SEQUENCE (participation vigente) u OPERATION_ID_REUSED.",
   )
   @error(429, "Límite de solicitudes.")
   async consent(@Req() request: SyncV1Request, @Param("id") id: string, @Body() body: ConsentDecisionDto) {
