@@ -47,3 +47,5 @@ Desktop.ini
 
 # Generated load-test reports; test plans remain eligible for versioning
 /jmeter-tests/reporte/
+.presentation/
+*.presentation-credentials.json

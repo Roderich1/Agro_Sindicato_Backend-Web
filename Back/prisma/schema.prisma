@@ -209,6 +209,8 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  presentationInstallation PresentationInstallation?
+
   users                    User[]
   members                  Member[]
   clientRegistrations      ClientRegistration[]
@@ -253,6 +255,21 @@ model Tenant {
   substitutionGrants       JointPurchaseSubstitutionGrant[]
   substitutionGrantEvents  JointPurchaseSubstitutionGrantEvent[]
   responsibleChanges       JointPurchaseResponsibleChange[]
+}
+
+/// Technical provenance for the one explicitly authorized presentation load.
+model PresentationInstallation {
+  id            Int      @id
+  installation  String
+  databaseName  String
+  tenantId      String   @unique
+  tenantSlug    String
+  dataset       String
+  referenceDate DateTime @db.Date
+  loadedAt      DateTime @default(now())
+  manifest      Json
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
 }
 
 model User {
