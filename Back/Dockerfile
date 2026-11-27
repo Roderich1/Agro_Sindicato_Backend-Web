@@ -9,7 +9,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
-RUN rm -f tsconfig.build.tsbuildinfo && npm run build
+RUN npm run build
 RUN npm run build:seed
 RUN npm prune --omit=dev
 
