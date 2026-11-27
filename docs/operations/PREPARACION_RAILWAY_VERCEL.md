@@ -44,6 +44,8 @@ Guardar los valores en Railway y en el gestor autorizado, con acceso restringido
 
 Elegir por separado el almacenamiento de cada función. La carga de presentación no necesita archivos.
 
+Para el proveedor B2, seguir la [guía de bucket privado, permisos, rotación y comprobación real](ALMACENAMIENTO_BACKBLAZE_B2.md). Incluye las variables que se añaden al Backend en Railway y el estado de la validación.
+
 | Variable | Uso |
 |---|---|
 | `PRODUCT_PHOTO_STORAGE_PROVIDER=disk`, `PRODUCT_PHOTO_STORAGE_DIR` | Archivos privados de identificación en un directorio absoluto de volumen persistente, por ejemplo `/data/fotos` |
