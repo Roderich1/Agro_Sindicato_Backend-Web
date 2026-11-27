@@ -40,9 +40,11 @@ export async function verifyTrialKey(settings: S3BackupStorageSettings, root: st
     bucketName?: string; namePrefix?: string; capabilities?: string[]; s3ApiUrl?: string;
   } } };
   const api = result.apiInfo?.storageApi;
+  const capabilities = api?.capabilities ?? [];
   if (api?.bucketName !== settings.bucket || api.namePrefix !== root ||
       api.s3ApiUrl?.replace(/\/$/, "") !== settings.endpoint ||
-      [...(api.capabilities ?? [])].sort().join() !== [...B151_PROFILES.rw].sort().join()) {
+      capabilities.length !== B151_PROFILES.rw.length ||
+      !B151_PROFILES.rw.every((capability) => capabilities.includes(capability))) {
     throw new Error("The B2 key must match the endpoint, one bucket, the exact trial prefix and only listFiles/readFiles/writeFiles/deleteFiles.");
   }
 }
@@ -52,7 +54,8 @@ async function checked<T>(operation: string, request: Promise<T>): Promise<T> {
     return await request;
   } catch (error) {
     const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
-    throw new Error(`${operation} failed (${status ? `HTTP ${status}` : "transport or SDK"}).`);
+    const detail = status ? `HTTP ${status}` : "transport or SDK";
+    throw new Error(`${operation} failed (${detail}).`);
   }
 }
 

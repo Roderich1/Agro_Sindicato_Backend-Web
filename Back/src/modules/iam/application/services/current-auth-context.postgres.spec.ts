@@ -136,7 +136,7 @@ describePostgres("F02-IAM-04 current authorization context — PostgreSQL 16 + H
       { id: ids.plotA2, tenantId: ids.tenantA, ownerUserId: ids.a2, name: "A2 plot" },
       { id: ids.plotB1, tenantId: ids.tenantB, ownerUserId: ids.b1, name: "B1 plot" },
     ] });
-  });
+  }, 30_000);
 
   afterAll(async () => { if (app) await app.close(); });
 

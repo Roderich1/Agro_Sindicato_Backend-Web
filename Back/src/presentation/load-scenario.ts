@@ -26,6 +26,15 @@ type Tx = Prisma.TransactionClient;
 export type Credential = { email: string; role: UserRole; password: string };
 type Farmer = AuthenticatedPrincipal & { sessionId: string; registrationId: string };
 
+/** Wait for each application operation before starting the next one on the same transaction. */
+async function inOrder<T, Result>(items: readonly T[], run: (item: T, index: number) => Promise<Result>): Promise<Result[]> {
+  const results: Result[] = [];
+  await items.reduce((previous, item, index) => previous.then(async () => {
+    results.push(await run(item, index));
+  }), Promise.resolve());
+  return results;
+}
+
 export async function newAccounts() {
   return Promise.all(accounts.map(async (account) => {
     const password = randomBytes(24).toString("base64url");
@@ -56,8 +65,7 @@ export function configuredSync() {
 }
 
 async function fixtureSessions(tx: Tx, farmers: AuthenticatedPrincipal[]): Promise<Farmer[]> {
-  const sessions: Farmer[] = [];
-  for (const farmer of farmers) {
+  return Promise.all(farmers.map(async (farmer) => {
     const client = await tx.clientRegistration.create({ data: {
       tenantId: farmer.tenantId, memberId: farmer.memberId, clientIdHash: randomBytes(32).toString("hex"),
     } });
@@ -65,17 +73,14 @@ async function fixtureSessions(tx: Tx, farmers: AuthenticatedPrincipal[]): Promi
       memberId: farmer.memberId, clientRegistrationId: client.id, refreshTransport: "BODY",
       expiresAt: new Date(Date.now() + 15 * 60_000),
     } });
-    sessions.push({ ...farmer, sessionId: session.id, registrationId: client.id });
-  }
-  return sessions;
+    return { ...farmer, sessionId: session.id, registrationId: client.id };
+  }));
 }
 
 async function retireFixtureSessions(tx: Tx, sessions: Farmer[]) {
   const retired = { status: "REVOKED" as const, revokedAt: new Date() };
-  for (const session of sessions) {
-    await tx.authSession.update({ where: { id: session.sessionId }, data: retired });
-    await tx.clientRegistration.update({ where: { id: session.registrationId }, data: retired });
-  }
+  await tx.authSession.updateMany({ where: { id: { in: sessions.map((session) => session.sessionId) } }, data: retired });
+  await tx.clientRegistration.updateMany({ where: { id: { in: sessions.map((session) => session.registrationId) } }, data: retired });
 }
 
 async function publish(
@@ -102,20 +107,18 @@ export async function loadScenario(tx: Tx, slug: string, reference: Date, users:
   const db = scopedClient(tx);
   const tenant = await tx.tenant.create({ data: { name: TENANT_NAME, slug } });
   const tenantId = tenant.id;
-  const principals: AuthenticatedPrincipal[] = [];
-  for (const { name, email, role, passwordHash } of users) {
+  const principals = await Promise.all(users.map(async ({ name, email, role, passwordHash }): Promise<AuthenticatedPrincipal> => {
     const user = await tx.user.create({ data: { name, email, role, passwordHash, tenantId,
       members: { create: { tenantId, role } },
     }, include: { members: true } });
-    principals.push({ sub: user.id, email, tenantId, role, memberId: user.members[0].id, tokenVersion: 2 });
-  }
+    return { sub: user.id, email, tenantId, role, memberId: user.members[0].id, tokenVersion: 2 };
+  }));
   const [admin, director, , ...farmers] = principals;
   const actor = { tenantId, userId: director.sub };
   const sessions = await fixtureSessions(tx, farmers.slice(0, -1));
-  const catalog = [];
-  for (const { baseUnit, ...product } of products) {
-    catalog.push({ ...await tx.product.create({ data: { ...product, tenantId } }), baseUnit });
-  }
+  const catalog = await Promise.all(products.map(async ({ baseUnit, ...product }) =>
+    ({ ...await tx.product.create({ data: { ...product, tenantId } }), baseUnit }),
+  ));
 
   const mode = new CollectiveConfig();
   const summary = new CollectiveSummaryUseCase(db, mode);
@@ -130,17 +133,17 @@ export async function loadScenario(tx: Tx, slug: string, reference: Date, users:
   });
   const push = new PushOperationUseCase(db, sync);
   const periods = campaignPeriods(reference);
-  const review = [];
   const deadline = daysFrom(reference, 14).toISOString();
-  for (const [index, period] of periods.entries()) {
+  // There can be only one open campaign. Finish and seal each historical one before opening the next.
+  const review = await inOrder(periods, async (period, index) => {
     const c = await campaigns.createCampaign(tenantId, admin.sub, admin.role, period);
     await campaigns.openCampaign(tenantId, director.sub, director.role, c.id);
     let withdrawalHead: string | undefined;
-    for (const spec of figures(index)) {
+    await inOrder(figures(index), async (spec) => {
       const operation = await publish(push, sessions[spec.farmer], c.id, catalog[spec.product], spec.projectionType, spec.base);
       if (index === 1 && spec.product === 4 && spec.farmer === 0 && spec.projectionType === "CONSUMPTION_TOTAL") withdrawalHead = operation;
-    }
-    const call = await seedCalls(calls, participants, actor, admin, c.id, index, catalog, farmers, deadline);
+    });
+    const call = await seedCalls(calls, participants, { actor, admin, campaign: c.id, index, catalog, farmers, deadline });
     if (period.historical) await campaigns.closeCampaign(tenantId, director.sub, director.role, c.id);
     if (withdrawalHead) await publish(push, sessions[0], c.id, catalog[4], "CONSUMPTION_TOTAL", null, withdrawalHead);
     await classification.classify(director, { campaignId: c.id, seasonId: season.season.season_ref });
@@ -151,7 +154,7 @@ export async function loadScenario(tx: Tx, slug: string, reference: Date, users:
       where: { tenantId, campaignId: c.id },
       select: { id: true, name: true, status: true, _count: { select: { participations: true } } },
     });
-    review.push({
+    return {
       id: c.id, name: c.name, start: period.startDate.toISOString().slice(0, 10),
       estimatedEnd: period.estimatedEndDate.toISOString().slice(0, 10), status: view.campaign.status,
       historicalVersion: view.seal?.version ?? null, coverage: view.coverage,
@@ -160,8 +163,8 @@ export async function loadScenario(tx: Tx, slug: string, reference: Date, users:
       explicitZeroCells: published.filter((cell) => cell.total_base === "0").length,
       withdrawnHistoricalCells: view.cells.filter((cell) => cell.status === "WITHDRAWN_AFTER_SEAL").length,
       calls: callRows, participationWithdrawals: call,
-    });
-  }
+    };
+  });
   await retireFixtureSessions(tx, sessions);
   const estimation = new EstimationJobsUseCase(db, new EstimationConfig(new ConfigService()), mode);
   const queued = await estimation.request(director, { requestId: randomUUID(), targetCampaignId: review.at(-1)!.id });
@@ -174,8 +177,10 @@ export async function loadScenario(tx: Tx, slug: string, reference: Date, users:
 
 async function seedCalls(
   calls: InstitutionalCallsUseCase, participation: FarmerParticipationUseCase,
-  actor: { tenantId: string; userId: string }, admin: AuthenticatedPrincipal,
-  campaign: string, index: number, catalog: { id: string }[], farmers: AuthenticatedPrincipal[], deadline: string,
+  { actor, admin, campaign, index, catalog, farmers, deadline }: {
+    actor: { tenantId: string; userId: string }; admin: AuthenticatedPrincipal;
+    campaign: string; index: number; catalog: { id: string }[]; farmers: AuthenticatedPrincipal[]; deadline: string;
+  },
 ) {
   const manage = { tenantId: actor.tenantId, userId: admin.sub };
   const draft = (name: string, productIndexes: number[]) => calls.create(actor, {
@@ -206,7 +211,7 @@ async function seedCalls(
 }
 
 async function confirmRequests(participation: FarmerParticipationUseCase, call: string, farmers: AuthenticatedPrincipal[], product: string) {
-  for (const [index, farmer] of farmers.entries()) {
+  await inOrder(farmers, async (farmer, index) => {
     await participation.confirm(farmer, call, {
       operation_id: randomUUID(), sequence: 1,
       consent: { version: "CONV-4", accepted_at: new Date().toISOString() },
@@ -218,5 +223,5 @@ async function confirmRequests(participation: FarmerParticipationUseCase, call: 
         consent: { version: "CONV-4", decided_at: new Date().toISOString() },
       });
     }
-  }
+  });
 }

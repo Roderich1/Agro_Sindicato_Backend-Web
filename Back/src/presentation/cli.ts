@@ -69,11 +69,15 @@ async function inspect(tx: Tx, target: Target) {
       AND schemaname NOT LIKE 'pg_%'
       AND (schemaname <> 'public' OR tablename NOT IN ('_prisma_migrations', 'PresentationInstallation', 'CollectiveDisclosurePolicyActivation'))
     ORDER BY schemaname, tablename`;
-  for (const table of tables) {
+  if (tables.length) {
     // PostgreSQL identifiers obtained from its catalogue, escaped separately from SQL values.
     const identifier = (value: string) => '"' + value.replaceAll('"', '""') + '"';
-    const name = Prisma.raw(identifier(table.schema) + "." + identifier(table.name));
-    const [row] = await tx.$queryRaw<{ present: boolean }[]>`SELECT EXISTS (SELECT 1 FROM ${name} LIMIT 1) AS present`;
+    const checks = tables.map(({ schema, name }) => {
+      const qualified = Prisma.raw(identifier(schema) + "." + identifier(name));
+      return Prisma.sql`SELECT 1 WHERE EXISTS (SELECT 1 FROM ${qualified})`;
+    });
+    const [row] = await tx.$queryRaw<{ present: boolean }[]>`
+      SELECT EXISTS (${Prisma.join(checks, " UNION ALL ")}) AS present`;
     if (row.present) throw new LoadError("La base contiene datos ajenos al conjunto. Se requiere una base dedicada vacía y migrada.");
   }
   return null;

@@ -166,7 +166,7 @@ describeTrial("Agrocuentas on real Backblaze B2 and isolated PostgreSQL", () => 
     expect(list.backups.map((entry) => entry.id)).toEqual([uploaded.id]);
     const path = `${backupPath}/${uploaded.id}/content`;
     const downloaded = await call(path, 200, owner);
-    expect(downloaded.bytes.length).toBe(content.length);
+    expect(downloaded.bytes).toHaveLength(content.length);
     expect(sha256(downloaded.bytes)).toBe(hash);
     expect(downloaded.headers.get("x-content-sha256")).toBe(hash);
     await call(path, 404, neighbor);

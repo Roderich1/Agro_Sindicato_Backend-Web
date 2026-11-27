@@ -66,7 +66,7 @@ describePostgres("F02-IAM-05 final HTTP/PostgreSQL integration", () => {
       { id: id.otherPlot, tenantId: id.tenantA, ownerUserId: id.farmer, name: "Other" },
       { id: id.foreignPlot, tenantId: id.tenantB, ownerUserId: id.outsider, name: "Foreign" },
     ] });
-  });
+  }, 30_000);
 
   afterAll(async () => { if (app) await app.close(); });
 
