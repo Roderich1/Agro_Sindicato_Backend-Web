@@ -11,7 +11,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Agrocuentas Directiva',
+        name: 'Agrocuentas',
         short_name: 'Agrocuentas',
         // F07-WEB-01 (#23): Web online-first de Directiva/Administrador; el
         // service worker sólo cachea el app-shell, nunca respuestas del API.
@@ -36,7 +36,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,ttf}'],
         // F12-EST-07-WEB (#180): ninguna respuesta del API pasa por el service worker ni
         // se cachea; la única copia institucional es la de IndexedDB (lib/estimation-copy).
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
       },
     }),
   ],
