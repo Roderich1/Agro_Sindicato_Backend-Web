@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { DataState, Icon, ICON, Notice, PageHeader, SegmentedControl, surfaceClass } from '../components/ui';
+import { Button, DataState, Icon, ICON, Notice, PageHeader, SegmentedControl, surfaceClass } from '../components/ui';
 import { notifyIdentificationChanged } from '../contexts/identification-pending';
 import { useAuth } from '../hooks/use-auth';
 import { collectiveError } from '../lib/collective-text';
@@ -155,17 +155,20 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
 
       {requests && !error && (
         <>
-          <SegmentedControl
-            label="Lista"
-            hideLabel
-            testId="identification-tabs"
-            value={tab}
-            onChange={openTab}
-            options={[
-              { value: 'pendientes', label: `Pendientes (${requests.length})` },
-              { value: 'identificados', label: linked ? `Ya identificados (${linked.length})` : 'Ya identificados' },
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <SegmentedControl
+              label="Lista"
+              hideLabel
+              testId="identification-tabs"
+              value={tab}
+              onChange={openTab}
+              options={[
+                { value: 'pendientes', label: `Pendientes (${requests.length})` },
+                { value: 'identificados', label: linked ? `Ya identificados (${linked.length})` : 'Ya identificados' },
+              ]}
+            />
+            {tab === 'pendientes' && <Button variant="secondary" onClick={() => void load()}>Actualizar</Button>}
+          </div>
 
           {tab === 'pendientes' ? (
             requests.length === 0 ? (

@@ -52,6 +52,16 @@ export interface IdentificationPendingNote {
   at: string;
 }
 
+export interface IdentificationClarificationResponse {
+  note_at: string;
+  note: string;
+  local_name: string;
+  active_ingredient: string | null;
+  included_photo: boolean;
+  photo_available: boolean;
+  received_at: string;
+}
+
 /** Vista institucional de una solicitud (§4.1 + `id` y metadatos de la foto). */
 export interface IdentificationRequest {
   contractVersion: 1;
@@ -69,6 +79,7 @@ export interface IdentificationRequest {
   photo: IdentificationPhoto;
   resolution: IdentificationResolution | null;
   pending_note: IdentificationPendingNote | null;
+  clarification_responses?: IdentificationClarificationResponse[];
 }
 
 export interface IdentificationRequestList {

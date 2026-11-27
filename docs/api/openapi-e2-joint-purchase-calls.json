@@ -19612,7 +19612,7 @@
             "description": "1–120 caracteres tras recortar espacios"
           },
           "active_ingredient": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "minLength": 1,
             "maxLength": 120
@@ -19640,6 +19640,69 @@
           "contractVersion",
           "local_name",
           "unit"
+        ]
+      },
+      "ClarificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "contractVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "local_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "1–120 caracteres tras recortar espacios"
+          },
+          "active_ingredient": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "L",
+              "KG"
+            ],
+            "description": "Otra unidad: 422 UNIT_UNSUPPORTED. Inmutable."
+          },
+          "photo_consent": {
+            "nullable": true,
+            "description": "Consentimiento aparte para la foto (E1-D11); una vez registrado no se borra con un PUT posterior",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoConsentDto"
+              }
+            ]
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "note_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "pending_note.at de la aclaración a la que responde"
+          },
+          "photo_sha256": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Huella de la foto que se adjuntará. Requiere photo_consent."
+          }
+        },
+        "required": [
+          "contractVersion",
+          "local_name",
+          "unit",
+          "operation_id",
+          "note_at"
         ]
       },
       "LinkIdentificationDto": {

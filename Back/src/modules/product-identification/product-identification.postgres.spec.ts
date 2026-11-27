@@ -113,14 +113,15 @@ describePostgres("E1 product identification on PostgreSQL", () => {
     session: TestSession,
     id: string,
     bytes: Buffer,
-    options: { sha256?: string; contentType?: string; target?: INestApplication } = {},
+    options: { sha256?: string; contentType?: string; target?: INestApplication; responseId?: string } = {},
   ): Promise<Res> {
-    return http(options.target)
+    const upload = http(options.target)
       .put(`${BASE}/${id}/photo`)
       .set("Authorization", auth(session))
       .set("Content-Type", options.contentType ?? "application/octet-stream")
-      .set("X-Content-SHA256", options.sha256 ?? sha(bytes))
-      .send(bytes);
+      .set("X-Content-SHA256", options.sha256 ?? sha(bytes));
+    if (options.responseId) upload.set("X-Identification-Response-Id", options.responseId);
+    return upload.send(bytes);
   }
 
   /**
@@ -694,6 +695,73 @@ describePostgres("E1 product identification on PostgreSQL", () => {
    * explicitly (verification of 2026-11-13, §11.4: three test gaps, no code
    * discrepancy). Only test code: the rules are the accepted ones.
    */
+  it("receives boro's first photo and a later text reply without answering the wrong clarification", async () => {
+    const requestId = randomUUID();
+    const original = data({ local_name: "boro", active_ingredient: null, unit: "KG", photo_consent: null });
+    expect((await put(farmerA, requestId, original)).status).toBe(201);
+    const showInWeb = async () => {
+      const list: Res = await http().get(BASE).set("Authorization", auth(director));
+      return list.body.requests.find((row: { request_id: string }) => row.request_id === requestId);
+    };
+    const serverId = (await showInWeb()).id as string;
+    const ask = async (note: string) => {
+      const result: Res = await http().post(`${BASE}/${serverId}/defer`).set("Authorization", auth(director)).send({ note, confirmed: true });
+      expect(result.status).toBe(200);
+      return result.body.request.pending_note.at as string;
+    };
+    const respond = (session: TestSession, input: object): Promise<Res> =>
+      http().put(`${BASE}/${requestId}/clarification-response`).set("Authorization", auth(session)).send(input);
+    const firstNote = await ask("Adjunte la foto de la etiqueta");
+    const photo = await jpeg(320, 240);
+    const photoReply = {
+      ...original, operation_id: randomUUID(), note_at: firstNote, photo_sha256: sha(photo),
+      photo_consent: { version: "FOTO-1", accepted_at: "2026-11-27T16:30:00.000Z" },
+    };
+    expect((await put(farmerA, requestId, { ...original, local_name: "boro local" })).status).toBe(200);
+    expect((await showInWeb()).clarification_responses).toBeUndefined();
+    for (const session of [farmerA2, farmerB]) {
+      expect((await respond(session, photoReply)).status).toBe(404);
+      expect((await putPhoto(session, requestId, photo, { responseId: photoReply.operation_id })).status).toBe(404);
+    }
+    expect((await respond(farmerA, { ...photoReply, photo_consent: null })).body).toEqual({ errorCode: "PHOTO_CONSENT_REQUIRED" });
+    expect((await respond(farmerA, photoReply)).body).toMatchObject({ received: false, request: { pending_note: { at: firstNote } } });
+    expect((await putPhoto(farmerA, requestId, photo, { target: unavailableApp, responseId: photoReply.operation_id })).status).toBe(503);
+    expect((await showInWeb()).clarification_responses).toBeUndefined();
+    expect((await putPhoto(farmerA, requestId, photo, { responseId: photoReply.operation_id })).status).toBe(201);
+    const view = await showInWeb();
+    expect(view).toMatchObject({
+      id: serverId, active_ingredient: null, pending_note: { at: firstNote },
+      clarification_responses: [{ note_at: firstNote, note: "Adjunte la foto de la etiqueta", included_photo: true, photo_available: true }],
+    });
+    expect((await respond(farmerA, photoReply)).body).toMatchObject({ received: true, request: { pending_note: null } });
+    expect((await putPhoto(farmerA, requestId, photo, { responseId: photoReply.operation_id })).status).toBe(200);
+    expect((await showInWeb()).clarification_responses).toHaveLength(1);
+    expect((await http().get(`${BASE}/${serverId}/photo`).set("Authorization", auth(director))).status).toBe(200);
+
+    const secondNote = await ask("Seleccione otra foto");
+    const otherPhoto = await jpeg(410, 300);
+    const delayed = { ...photoReply, operation_id: randomUUID(), note_at: secondNote, photo_sha256: sha(otherPhoto) };
+    expect((await respond(farmerA, delayed)).body.received).toBe(false);
+    const thirdNote = await ask("Indique el nombre de la etiqueta");
+    expect(thirdNote).not.toBe(secondNote);
+    expect((await respond(farmerA, delayed)).body).toEqual({ errorCode: "CLARIFICATION_CHANGED" });
+    expect((await putPhoto(farmerA, requestId, otherPhoto, { responseId: delayed.operation_id })).body).toEqual({ errorCode: "CLARIFICATION_CHANGED" });
+    expect((await showInWeb()).photo.sha256).toBe(sha(photo));
+
+    const text = { ...original, operation_id: randomUUID(), note_at: thirdNote, local_name: "Boro granulado" };
+    expect((await respond(farmerA, text)).body).toMatchObject({ received: true, request: { local_name: text.local_name, pending_note: null } });
+    expect((await respond(farmerA, { ...text, local_name: "Otro producto" })).body).toEqual({ errorCode: "CLARIFICATION_RESPONSE_CONFLICT" });
+    expect((await showInWeb()).clarification_responses).toMatchObject([
+      { note_at: thirdNote, local_name: "Boro granulado", included_photo: false },
+      { note_at: firstNote, included_photo: true },
+    ]);
+    const linked: Res = await http().post(`${BASE}/${serverId}/link`).set("Authorization", auth(director))
+      .send({ product_ref: f.products.solidA, reason: "Etiqueta revisada", confirmed: true });
+    expect(linked.body.request).toMatchObject({ status: "LINKED", pending_note: null });
+    expect(linked.body.request.clarification_responses).toHaveLength(2);
+    expect((await respond(farmerA, { ...text, operation_id: randomUUID() })).body).toEqual({ errorCode: "REQUEST_ALREADY_LINKED" });
+  }, 60000);
+
   describe("§11.2: what a decision and a photo removal leave untouched; correcting the link renews the retention", () => {
     const DAY_MS = 24 * 60 * 60 * 1000;
     const post = (session: TestSession, path: string, body: unknown): Promise<Res> =>

@@ -17,6 +17,9 @@ export const identificationErrorSchema: SchemaObject = {
         "REQUEST_NOT_FOUND",
         "REQUEST_ID_CONFLICT",
         "REQUEST_ALREADY_LINKED",
+        "CLARIFICATION_CHANGED",
+        "CLARIFICATION_RESPONSE_CONFLICT",
+        "CLARIFICATION_RESPONSE_EMPTY",
         "UNIT_UNSUPPORTED",
         "UNIT_IMMUTABLE",
         "PHOTO_CONSENT_REQUIRED",
@@ -124,6 +127,19 @@ export const institutionalRequestSchema: SchemaObject = {
   properties: {
     id: { type: "string", format: "uuid", description: "Id del servidor (rutas institucionales)" },
     ...requestProperties,
+    clarification_responses: {
+      type: "array",
+      description: "Respuestas recibidas y sus notas. La foto sigue el acceso y retención de la foto vigente.",
+      items: {
+        type: "object", additionalProperties: false,
+        required: ["note_at", "note", "local_name", "active_ingredient", "included_photo", "photo_available", "received_at"],
+        properties: {
+          note_at: dateTime, note: { type: "string" }, local_name: { type: "string" },
+          active_ingredient: nullableString, included_photo: { type: "boolean" },
+          photo_available: { type: "boolean" }, received_at: dateTime,
+        },
+      },
+    },
     photo: {
       type: "object",
       additionalProperties: false,

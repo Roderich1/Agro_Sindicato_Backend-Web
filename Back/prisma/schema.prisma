@@ -1689,9 +1689,28 @@ model ProductIdentificationRequest {
   resolvedBy    User?                        @relation("ProductIdentificationResolver", fields: [resolvedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   pendingNoteBy User?                        @relation("ProductIdentificationNoteAuthor", fields: [pendingNoteByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   events        ProductIdentificationEvent[]
+  clarificationResponses ProductIdentificationClarificationResponse[]
 
   @@unique([tenantId, memberId, clientRequestId])
   @@index([tenantId, status, receivedAt])
+}
+
+model ProductIdentificationClarificationResponse {
+  requestId      String    @db.Uuid
+  operationId    String    @db.Uuid
+  noteAt         DateTime
+  note           String    @db.VarChar(280)
+  localName      String    @db.VarChar(120)
+  activeIngredient String? @db.VarChar(120)
+  photoSha256    String?   @db.Char(64)
+  photoConsentVersion String? @db.VarChar(16)
+  photoConsentAt DateTime?
+  receivedAt     DateTime?
+
+  request ProductIdentificationRequest @relation(fields: [requestId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "IdentificationClarificationResponse_requestId_fkey")
+
+  @@id([requestId, operationId])
+  @@index([requestId, noteAt, receivedAt], map: "IdentificationClarificationResponse_note_received_idx")
 }
 
 /// E1-D13: historial de una solicitud. No se borra ni se modifica (trigger en

@@ -5,7 +5,7 @@ export const IDENTIFICATION_PATH = "/api/v1/catalog/identification-requests";
 /** `PUT|DELETE /{request_id}/photo`: an opaque binary read as a stream. */
 export const IDENTIFICATION_PHOTO_PATH = /^\/api\/v1\/catalog\/identification-requests\/[0-9a-f-]{36}\/photo$/i;
 /** `PUT /{request_id}`: the request data (small JSON). */
-const IDENTIFICATION_DATA_PATH = /^\/api\/v1\/catalog\/identification-requests\/[0-9a-f-]{36}$/i;
+const IDENTIFICATION_DATA_PATH = /^\/api\/v1\/catalog\/identification-requests\/[0-9a-f-]{36}(?:\/clarification-response)?$/i;
 export const IDENTIFICATION_MAX_JSON_BYTES = 8 * 1024;
 
 /**

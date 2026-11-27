@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProductIdentificationClarificationResponse } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { finished, Readable } from "node:stream";
 import { PrismaService } from "@/shared/infrastructure/persistence/prisma/prisma.service";
@@ -10,7 +10,7 @@ import {
   Sha256Meter,
 } from "@/modules/backups/application/sha256-meter";
 import { FarmerContext, IdentificationHttpError } from "../domain/identification-error";
-import { FarmerRequestView, toFarmerView } from "../domain/identification-views";
+import { FarmerRequestView, IdentificationRow, toFarmerView } from "../domain/identification-views";
 import {
   decodedMatchesHeader,
   dimensionsAllowed,
@@ -19,7 +19,7 @@ import {
   imageSignature,
   readImageDimensions,
 } from "../domain/image-validation";
-import { CLIENT_REQUEST_ID, normalizeRequestInput, UpsertInput } from "../domain/request-input";
+import { ClarificationResponseInput, CLIENT_REQUEST_ID, normalizeRequestInput, UpsertInput } from "../domain/request-input";
 import { decodeImageFully } from "../infrastructure/image-decoder";
 import { PRODUCT_PHOTO_STORAGE } from "../infrastructure/product-photo-storage";
 import { lockTenant, PHOTO_TRANSACTION_OPTIONS, VIEW_INCLUDE } from "./identification-store";
@@ -32,6 +32,7 @@ export interface PhotoUploadHeaders {
   contentType: string | undefined;
   contentLength: string | undefined;
   sha256: string | undefined;
+  responseId?: string;
 }
 
 export interface FarmerWriteResult {
@@ -147,6 +148,85 @@ export class FarmerIdentificationUseCase {
     return { contractVersion: 1, requests: rows.map(toFarmerView) };
   }
 
+  /** An ordinary upsert never acknowledges a clarification. */
+  async respond(context: FarmerContext, requestId: string, input: ClarificationResponseInput): Promise<{ received: boolean; request: FarmerRequestView }> {
+    if (!CLIENT_REQUEST_ID.test(requestId) || !CLIENT_REQUEST_ID.test(input.operation_id)) throw INVALID();
+    const data = normalizeRequestInput(input);
+    const noteAt = new Date(input.note_at);
+    const photoSha256 = input.photo_sha256 ?? null;
+    if (!Number.isFinite(noteAt.getTime()) || (photoSha256 !== null && !SHA256_HEX.test(photoSha256))) throw INVALID();
+    if (photoSha256 && !data.consent) throw new IdentificationHttpError(409, "PHOTO_CONSENT_REQUIRED");
+    if (!photoSha256 && data.consent) throw INVALID();
+    return this.prisma.$transaction(async (tx) => {
+      await lockTenant(tx, context.tenantId);
+      const row = await this.findOwn(context, requestId, tx);
+      if (row.unit !== data.unit) throw new IdentificationHttpError(409, "UNIT_IMMUTABLE");
+      const reply = await tx.productIdentificationClarificationResponse.findUnique({
+        where: { requestId_operationId: { requestId: row.id, operationId: input.operation_id } },
+      });
+      const consentAt = data.consent?.acceptedAt ?? null;
+      const consentVersion = data.consent?.version ?? null;
+      if (reply && (reply.noteAt.getTime() !== noteAt.getTime() || reply.localName !== data.localName ||
+        reply.activeIngredient !== data.activeIngredient || reply.photoSha256 !== photoSha256 ||
+        reply.photoConsentAt?.getTime() !== consentAt?.getTime() || reply.photoConsentVersion !== consentVersion)) {
+        throw new IdentificationHttpError(409, "CLARIFICATION_RESPONSE_CONFLICT");
+      }
+      if (reply?.receivedAt) return { received: true, request: toFarmerView(row) };
+      const note = requireCurrentClarification(row, noteAt);
+      if (reply) return { received: false, request: toFarmerView(row) };
+      if (photoSha256 === null && row.localName === data.localName && row.activeIngredient === data.activeIngredient) {
+        throw new IdentificationHttpError(422, "CLARIFICATION_RESPONSE_EMPTY");
+      }
+      const response = await tx.productIdentificationClarificationResponse.create({
+        data: {
+          requestId: row.id, operationId: input.operation_id, noteAt, note,
+          localName: data.localName, activeIngredient: data.activeIngredient,
+          photoSha256, photoConsentVersion: consentVersion, photoConsentAt: consentAt,
+        },
+      });
+      if (photoSha256) return { received: false, request: toFarmerView(row) };
+      const updated = await this.receiveClarification(tx, response);
+      return { received: true, request: toFarmerView(updated) };
+    });
+  }
+
+  private async photoReply(db: Prisma.TransactionClient, row: IdentificationRow, responseId: string, sha256: string) {
+    const reply = await db.productIdentificationClarificationResponse.findUnique({
+      where: { requestId_operationId: { requestId: row.id, operationId: responseId } },
+    });
+    if (!reply || reply.photoSha256 !== sha256 || !reply.photoConsentVersion) {
+      throw new IdentificationHttpError(409, "CLARIFICATION_RESPONSE_CONFLICT");
+    }
+    if (!reply.receivedAt) requireCurrentClarification(row, reply.noteAt);
+    return reply;
+  }
+
+  private async receiveClarification(
+    tx: Prisma.TransactionClient,
+    reply: ProductIdentificationClarificationResponse,
+    photo: Prisma.ProductIdentificationRequestUpdateInput = {},
+    photoEvent?: "PHOTO_RECEIVED" | "PHOTO_REPLACED",
+  ) {
+    await tx.productIdentificationClarificationResponse.update({
+      where: { requestId_operationId: { requestId: reply.requestId, operationId: reply.operationId } },
+      data: { receivedAt: new Date() },
+    });
+    return tx.productIdentificationRequest.update({
+      where: { id: reply.requestId },
+      data: {
+        ...photo,
+        localName: reply.localName,
+        activeIngredient: reply.activeIngredient,
+        ...(reply.photoConsentVersion && { photoConsentVersion: reply.photoConsentVersion, photoConsentAt: reply.photoConsentAt }),
+        events: { create: [
+          ...(photoEvent ? [{ kind: photoEvent, actorUserId: null }] : []),
+          { kind: "UPDATED", actorUserId: null, detail: "Respuesta a la aclaración recibida." },
+        ] },
+      },
+      include: VIEW_INCLUDE,
+    });
+  }
+
   private requireStorage(): BackupStorage {
     if (!this.storage) throw UNAVAILABLE();
     return this.storage;
@@ -170,8 +250,14 @@ export class FarmerIdentificationUseCase {
     const storage = this.requireStorage();
     if (!CLIENT_REQUEST_ID.test(requestId)) throw INVALID();
     const declared = parsePhotoHeaders(headers);
+    const responseId = headers.responseId;
+    if (responseId !== undefined && !CLIENT_REQUEST_ID.test(responseId)) throw INVALID();
     const current = await this.findOwn(context, requestId);
-    if (!current.photoConsentVersion) throw new IdentificationHttpError(409, "PHOTO_CONSENT_REQUIRED");
+    if (responseId) {
+      await this.photoReply(this.prisma, current, responseId, declared.sha256);
+    } else if (!current.photoConsentVersion) {
+      throw new IdentificationHttpError(409, "PHOTO_CONSENT_REQUIRED");
+    }
 
     const key = randomUUID();
     const { staged, bytes, sha256, content } = await this.stage(storage, key, declared.length, body);
@@ -191,7 +277,7 @@ export class FarmerIdentificationUseCase {
       }
       const contentType: ImageContentType = `image/${decoded.format}`;
       const dimensions = { width: decoded.width, height: decoded.height };
-      if (current.photoState === "STORED" && current.photoSha256 === sha256) {
+      if (!responseId && current.photoState === "STORED" && current.photoSha256 === sha256) {
         // Same bytes as the stored photo: nothing is rewritten.
         await staged.discard();
         return { created: false, view: toFarmerView(current) };
@@ -206,15 +292,16 @@ export class FarmerIdentificationUseCase {
           include: VIEW_INCLUDE,
         });
         if (!row) throw NOT_FOUND();
-        if (!row.photoConsentVersion) throw new IdentificationHttpError(409, "PHOTO_CONSENT_REQUIRED");
+        const reply = responseId ? await this.photoReply(tx, row, responseId, sha256) : null;
+        if (!reply && !row.photoConsentVersion) throw new IdentificationHttpError(409, "PHOTO_CONSENT_REQUIRED");
+        if (reply?.receivedAt) return { created: false, view: toFarmerView(row), keep: false };
         // A concurrent upload of the same bytes already stored them.
         if (row.photoState === "STORED" && row.photoSha256 === sha256) {
-          return { created: false, view: toFarmerView(row), keep: false };
+          const updated = reply ? await this.receiveClarification(tx, reply) : row;
+          return { created: false, view: toFarmerView(updated), keep: false };
         }
         const previous = row.photoState === "STORED" ? row.photoStorageKey : null;
-        const updated = await tx.productIdentificationRequest.update({
-          where: { id: row.id },
-          data: {
+        const photo: Prisma.ProductIdentificationRequestUpdateInput = {
             photoState: "STORED",
             photoStorageKey: key,
             photoSha256: sha256,
@@ -224,12 +311,15 @@ export class FarmerIdentificationUseCase {
             photoHeight: dimensions.height,
             photoStoredAt: new Date(),
             photoRemovedAt: null,
-            events: {
-              create: { kind: previous ? "PHOTO_REPLACED" : "PHOTO_RECEIVED", actorUserId: null },
-            },
-          },
-          include: VIEW_INCLUDE,
-        });
+        };
+        const kind = previous ? "PHOTO_REPLACED" : "PHOTO_RECEIVED";
+        const updated = reply
+          ? await this.receiveClarification(tx, reply, photo, kind)
+          : await tx.productIdentificationRequest.update({
+              where: { id: row.id },
+              data: { ...photo, events: { create: { kind, actorUserId: null } } },
+              include: VIEW_INCLUDE,
+            });
         // The new object is committed; the previous one goes in the same unit
         // of work, so a failure leaves the earlier state untouched.
         if (previous) await storage.remove(previous);
@@ -285,8 +375,8 @@ export class FarmerIdentificationUseCase {
     }
   }
 
-  private async findOwn(context: FarmerContext, requestId: string) {
-    const row = await this.prisma.productIdentificationRequest.findFirst({
+  private async findOwn(context: FarmerContext, requestId: string, db: Prisma.TransactionClient = this.prisma) {
+    const row = await db.productIdentificationRequest.findFirst({
       where: { tenantId: context.tenantId, memberId: context.memberId, clientRequestId: requestId },
       include: VIEW_INCLUDE,
     });
@@ -335,6 +425,15 @@ export class FarmerIdentificationUseCase {
       this.logger.warn(`Product photo object removal pending (${error instanceof Error ? error.name : typeof error})`);
     }
   }
+}
+
+function requireCurrentClarification(row: IdentificationRow, noteAt: Date): string {
+  if (row.status === "LINKED") throw new IdentificationHttpError(409, "REQUEST_ALREADY_LINKED");
+  if (!row.pendingNote || row.pendingNoteAt?.getTime() !== noteAt.getTime() ||
+    row.clarificationResponses?.some((reply) => reply.noteAt.getTime() === noteAt.getTime())) {
+    throw new IdentificationHttpError(409, "CLARIFICATION_CHANGED");
+  }
+  return row.pendingNote;
 }
 
 /**

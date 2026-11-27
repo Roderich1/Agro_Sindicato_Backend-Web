@@ -285,7 +285,7 @@ export class InstitutionalIdentificationUseCase {
         data: {
           pendingNote: note,
           pendingNoteByUserId: actorUserId,
-          pendingNoteAt: new Date(),
+          pendingNoteAt: new Date(Math.max(Date.now(), (request.pendingNoteAt?.getTime() ?? 0) + 1)),
           events: { create: { kind: "NOTE", actorUserId, detail: note } },
         },
         include: VIEW_INCLUDE,

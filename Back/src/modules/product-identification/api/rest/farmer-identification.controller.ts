@@ -32,7 +32,7 @@ import {
 } from "../../application/farmer-identification.use-case";
 import { InstitutionalIdentificationUseCase } from "../../application/institutional-identification.use-case";
 import { FarmerContext, IdentificationHttpError } from "../../domain/identification-error";
-import { ListIdentificationRequestsQueryDto, UpsertIdentificationRequestDto } from "./identification.dto";
+import { ClarificationResponseDto, ListIdentificationRequestsQueryDto, UpsertIdentificationRequestDto } from "./identification.dto";
 import { IdentificationExceptionFilter } from "./identification-exception.filter";
 import { IdentificationListAuthGuard, IdentificationListRequest } from "./identification-list-auth.guard";
 import {
@@ -122,6 +122,26 @@ export class FarmerIdentificationController {
     return result.view;
   }
 
+  @Put(":requestId/clarification-response")
+  @UseGuards(SyncV1AuthGuard)
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Responder a la aclaración vigente. Si incluye foto, se recibe al confirmar los bytes en /photo." })
+  @ApiParam({ name: "requestId", format: "uuid" })
+  @ApiBody({ type: ClarificationResponseDto })
+  @ApiResponse({ status: 200, schema: {
+    type: "object", additionalProperties: false, required: ["received", "request"],
+    properties: { received: { type: "boolean" }, request: farmerRequestSchema },
+  } })
+  @error(400, "PAYLOAD_INVALID.")
+  @error(401, "Credencial ausente, inválida o expirada.")
+  @error(403, "Contexto no permitido.")
+  @error(404, "REQUEST_NOT_FOUND.")
+  @error(409, "CLARIFICATION_CHANGED, CLARIFICATION_RESPONSE_CONFLICT, REQUEST_ALREADY_LINKED, UNIT_IMMUTABLE o PHOTO_CONSENT_REQUIRED.")
+  @error(422, "CLARIFICATION_RESPONSE_EMPTY o UNIT_UNSUPPORTED.")
+  respond(@Req() request: SyncV1Request, @Param("requestId") requestId: string, @Body() body: ClarificationResponseDto) {
+    return this.farmer.respond(farmerOf(request), requestId, body);
+  }
+
   @Put(":requestId/photo")
   @UseGuards(SyncV1AuthGuard)
   @Header("Cache-Control", "no-store")
@@ -129,6 +149,7 @@ export class FarmerIdentificationController {
   @ApiParam({ name: "requestId", format: "uuid" })
   @ApiHeader({ name: "Content-Length", required: true, description: "Obligatoria, como máximo 2097152" })
   @ApiHeader({ name: "X-Content-SHA256", required: true, description: "SHA-256 hex en minúsculas del cuerpo" })
+  @ApiHeader({ name: "X-Identification-Response-Id", required: false, description: "operation_id de una respuesta preparada para esta foto" })
   @ApiConsumes(PHOTO_CONTENT_TYPE)
   @ApiBody({ required: true, schema: { type: "string", format: "binary" } })
   @ApiResponse({ status: 201, description: "Foto almacenada (primera o reemplazo; la anterior se borra).", schema: farmerRequestSchema })
@@ -137,7 +158,7 @@ export class FarmerIdentificationController {
   @error(401, "Credencial ausente, inválida o expirada.")
   @error(403, "Contexto no permitido.")
   @error(404, "REQUEST_NOT_FOUND: solicitud ajena o inexistente (indistinguibles).")
-  @error(409, "PHOTO_CONSENT_REQUIRED: la solicitud no tiene consentimiento de foto.")
+  @error(409, "PHOTO_CONSENT_REQUIRED, CLARIFICATION_CHANGED, CLARIFICATION_RESPONSE_CONFLICT o REQUEST_ALREADY_LINKED.")
   @error(413, "IMAGE_TOO_LARGE: mayor que 2 MiB o sin Content-Length.")
   @error(415, "Content-Type distinto de application/octet-stream.")
   @error(
@@ -158,6 +179,7 @@ export class FarmerIdentificationController {
         contentType: single(request.headers["content-type"]),
         contentLength: single(request.headers["content-length"]),
         sha256: single(request.headers["x-content-sha256"]),
+        responseId: single(request.headers["x-identification-response-id"]),
       },
       request,
     );

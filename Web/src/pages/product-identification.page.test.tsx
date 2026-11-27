@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
@@ -155,6 +155,32 @@ describe('Productos por identificar (E1 §6)', () => {
     for (const write of [identificationService.link, identificationService.createProduct, identificationService.defer]) expect(write).not.toHaveBeenCalled();
     // Ni la API ni la vista identifican a quien reportó.
     expect(document.body.textContent).not.toMatch(/@|request_id|7f4b1c2e/);
+  });
+
+  it('muestra la foto y la respuesta recibida para la nota vigente, y distingue una aclaración posterior', async () => {
+    const note = REQ_B.pending_note!;
+    const answered: IdentificationRequest = {
+      ...REQ_B,
+      photo: PHOTO,
+      clarification_responses: [{
+        note_at: note.at, note: note.text, local_name: 'boro', active_ingredient: null,
+        received_at: at(21), included_photo: true, photo_available: true,
+      }],
+    };
+    const awaiting = { ...answered, pending_note: { text: 'Indique la marca', at: at(22) } };
+    vi.mocked(identificationService.list)
+      .mockResolvedValueOnce([answered])
+      .mockResolvedValueOnce([awaiting]);
+    render();
+    expect(within(await card('r-b')).getByText('Información nueva para revisar')).toBeTruthy();
+    expect(within(panel()).getByText('Información nueva para revisar')).toBeTruthy();
+    expect(within(panel()).getByText(note.text, { exact: false })).toBeTruthy();
+    expect(within(panel()).getByText('Nombre: boro')).toBeTruthy();
+    expect(within(panel()).getByRole('button', { name: 'Ver foto de la respuesta' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
+    await waitFor(() => expect(within(panel()).getByText(/Indique la marca/)).toBeTruthy());
+    expect(within(await card('r-b')).getByText('Falta información')).toBeTruthy();
+    expect(within(panel()).getByText('Nombre: boro')).toBeTruthy();
   });
 
   it('vacío: lo dice sin paneles vacíos', async () => {

@@ -3,6 +3,11 @@ import { Prisma } from "@prisma/client";
 /** What the views read besides the request row itself. */
 export const VIEW_INCLUDE = {
   product: { select: { id: true, name: true, unit: true, isActive: true } },
+  clarificationResponses: {
+    where: { receivedAt: { not: null } },
+    orderBy: { noteAt: "desc" },
+    select: { noteAt: true, note: true, localName: true, activeIngredient: true, photoSha256: true, receivedAt: true },
+  },
 } satisfies Prisma.ProductIdentificationRequestInclude;
 
 /**

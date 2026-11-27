@@ -39,7 +39,7 @@ export class UpsertIdentificationRequestDto {
   @IsString()
   local_name!: string;
 
-  @ApiPropertyOptional({ nullable: true, minLength: 1, maxLength: 120 })
+  @ApiPropertyOptional({ type: String, nullable: true, minLength: 1, maxLength: 120 })
   @IsOptional()
   @IsString()
   active_ingredient?: string | null;
@@ -58,6 +58,21 @@ export class UpsertIdentificationRequestDto {
   @ValidateNested()
   @Type(() => PhotoConsentDto)
   photo_consent?: PhotoConsentDto | null;
+}
+
+export class ClarificationResponseDto extends UpsertIdentificationRequestDto {
+  @ApiProperty({ format: "uuid" })
+  @IsUUID("4")
+  operation_id!: string;
+
+  @ApiProperty({ format: "date-time", description: "pending_note.at de la aclaración a la que responde" })
+  @IsISO8601({ strict: true, strictSeparator: true })
+  note_at!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true, pattern: "^[0-9a-f]{64}$", description: "Huella de la foto que se adjuntará. Requiere photo_consent." })
+  @IsOptional()
+  @Matches(/^[0-9a-f]{64}$/)
+  photo_sha256?: string | null;
 }
 
 export class ListIdentificationRequestsQueryDto {

@@ -20430,6 +20430,49 @@
                                 },
                                 "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
                               },
+                              "clarification_responses": {
+                                "type": "array",
+                                "description": "Respuestas recibidas y sus notas. La foto sigue el acceso y retención de la foto vigente.",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "note_at",
+                                    "note",
+                                    "local_name",
+                                    "active_ingredient",
+                                    "included_photo",
+                                    "photo_available",
+                                    "received_at"
+                                  ],
+                                  "properties": {
+                                    "note_at": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "note": {
+                                      "type": "string"
+                                    },
+                                    "local_name": {
+                                      "type": "string"
+                                    },
+                                    "active_ingredient": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "included_photo": {
+                                      "type": "boolean"
+                                    },
+                                    "photo_available": {
+                                      "type": "boolean"
+                                    },
+                                    "received_at": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              },
                               "photo": {
                                 "type": "object",
                                 "additionalProperties": false,
@@ -20514,6 +20557,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -20559,6 +20605,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -20604,6 +20653,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -20649,6 +20701,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21072,6 +21127,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21117,6 +21175,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21162,6 +21223,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21207,6 +21271,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21252,6 +21319,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21297,6 +21367,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21334,6 +21407,514 @@
         ]
       }
     },
+    "/api/v1/catalog/identification-requests/{requestId}/clarification-response": {
+      "put": {
+        "operationId": "FarmerIdentificationController_respond",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClarificationResponseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "received",
+                    "request"
+                  ],
+                  "properties": {
+                    "received": {
+                      "type": "boolean"
+                    },
+                    "request": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "contractVersion",
+                        "request_id",
+                        "status",
+                        "local_name",
+                        "active_ingredient",
+                        "unit",
+                        "base_unit",
+                        "received_at",
+                        "updated_at",
+                        "photo",
+                        "resolution",
+                        "pending_note"
+                      ],
+                      "properties": {
+                        "contractVersion": {
+                          "type": "integer",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "UUID v4 generado por el teléfono"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "LINKED"
+                          ]
+                        },
+                        "local_name": {
+                          "type": "string"
+                        },
+                        "active_ingredient": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "L",
+                            "KG"
+                          ]
+                        },
+                        "base_unit": {
+                          "type": "string",
+                          "enum": [
+                            "ML",
+                            "G"
+                          ]
+                        },
+                        "received_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "resolution": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "kind",
+                            "product_ref",
+                            "product_name",
+                            "unit",
+                            "base_unit",
+                            "is_active",
+                            "resolved_at"
+                          ],
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "LINKED_EXISTING",
+                                "CREATED_PRODUCT"
+                              ]
+                            },
+                            "product_ref": {
+                              "type": "string"
+                            },
+                            "product_name": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": "string",
+                              "description": "Unidad del catálogo central tal como se guarda"
+                            },
+                            "base_unit": {
+                              "type": "string",
+                              "enum": [
+                                "ML",
+                                "G"
+                              ],
+                              "nullable": true
+                            },
+                            "is_active": {
+                              "type": "boolean"
+                            },
+                            "resolved_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "pending_note": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "required": [
+                            "text",
+                            "at"
+                          ],
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
+                        },
+                        "photo": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "sha256",
+                            "consent_version"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "STORED",
+                                "REMOVED"
+                              ]
+                            },
+                            "sha256": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "SHA-256 de la foto almacenada; null si no hay"
+                            },
+                            "consent_version": {
+                              "type": "string",
+                              "nullable": true,
+                              "description": "Versión del consentimiento de foto registrado"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credencial ausente, inválida o expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Contexto no permitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "REQUEST_NOT_FOUND.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CLARIFICATION_CHANGED, CLARIFICATION_RESPONSE_CONFLICT, REQUEST_ALREADY_LINKED, UNIT_IMMUTABLE o PHOTO_CONSENT_REQUIRED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "CLARIFICATION_RESPONSE_EMPTY o UNIT_UNSUPPORTED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "REQUEST_NOT_FOUND",
+                        "REQUEST_ID_CONFLICT",
+                        "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
+                        "UNIT_UNSUPPORTED",
+                        "UNIT_IMMUTABLE",
+                        "PHOTO_CONSENT_REQUIRED",
+                        "PHOTO_NOT_FOUND",
+                        "PHOTO_STORAGE_UNAVAILABLE",
+                        "PHOTO_INTEGRITY_FAILED",
+                        "IMAGE_INVALID",
+                        "IMAGE_TOO_LARGE",
+                        "CONTENT_HASH_MISMATCH",
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_NAME_TAKEN",
+                        "UNIT_DIMENSION_MISMATCH",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Responder a la aclaración vigente. Si incluye foto, se recibe al confirmar los bytes en /photo.",
+        "tags": [
+          "catalog identification"
+        ]
+      }
+    },
     "/api/v1/catalog/identification-requests/{requestId}/photo": {
       "put": {
         "operationId": "FarmerIdentificationController_uploadPhoto",
@@ -21344,6 +21925,15 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Identification-Response-Id",
+            "in": "header",
+            "description": "operation_id de una respuesta preparada para esta foto",
+            "required": false,
+            "schema": {
               "type": "string"
             }
           },
@@ -21738,6 +22328,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21783,6 +22376,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21828,6 +22424,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21873,6 +22472,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21899,7 +22501,7 @@
             }
           },
           "409": {
-            "description": "PHOTO_CONSENT_REQUIRED: la solicitud no tiene consentimiento de foto.",
+            "description": "PHOTO_CONSENT_REQUIRED, CLARIFICATION_CHANGED, CLARIFICATION_RESPONSE_CONFLICT o REQUEST_ALREADY_LINKED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -21918,6 +22520,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -21963,6 +22568,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22008,6 +22616,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22053,6 +22664,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22098,6 +22712,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22143,6 +22760,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22216,6 +22836,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22261,6 +22884,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22306,6 +22932,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22351,6 +22980,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22396,6 +23028,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22441,6 +23076,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22603,6 +23241,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22648,6 +23289,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22693,6 +23337,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22849,6 +23496,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22894,6 +23544,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -22939,6 +23592,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23028,6 +23684,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23068,6 +23727,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23113,6 +23775,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23153,6 +23818,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23198,6 +23866,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23238,6 +23909,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23283,6 +23957,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23323,6 +24000,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23368,6 +24048,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23408,6 +24091,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23628,6 +24314,49 @@
                           },
                           "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
                         },
+                        "clarification_responses": {
+                          "type": "array",
+                          "description": "Respuestas recibidas y sus notas. La foto sigue el acceso y retención de la foto vigente.",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "note_at",
+                              "note",
+                              "local_name",
+                              "active_ingredient",
+                              "included_photo",
+                              "photo_available",
+                              "received_at"
+                            ],
+                            "properties": {
+                              "note_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "note": {
+                                "type": "string"
+                              },
+                              "local_name": {
+                                "type": "string"
+                              },
+                              "active_ingredient": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "included_photo": {
+                                "type": "boolean"
+                              },
+                              "photo_available": {
+                                "type": "boolean"
+                              },
+                              "received_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
                         "photo": {
                           "type": "object",
                           "additionalProperties": false,
@@ -23709,6 +24438,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23754,6 +24486,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23799,6 +24534,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23844,6 +24582,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -23889,6 +24630,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24109,6 +24853,49 @@
                           },
                           "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
                         },
+                        "clarification_responses": {
+                          "type": "array",
+                          "description": "Respuestas recibidas y sus notas. La foto sigue el acceso y retención de la foto vigente.",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "note_at",
+                              "note",
+                              "local_name",
+                              "active_ingredient",
+                              "included_photo",
+                              "photo_available",
+                              "received_at"
+                            ],
+                            "properties": {
+                              "note_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "note": {
+                                "type": "string"
+                              },
+                              "local_name": {
+                                "type": "string"
+                              },
+                              "active_ingredient": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "included_photo": {
+                                "type": "boolean"
+                              },
+                              "photo_available": {
+                                "type": "boolean"
+                              },
+                              "received_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
                         "photo": {
                           "type": "object",
                           "additionalProperties": false,
@@ -24190,6 +24977,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24235,6 +25025,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24280,6 +25073,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24325,6 +25121,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24370,6 +25169,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24415,6 +25217,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24635,6 +25440,49 @@
                           },
                           "description": "Nota de la Directiva al dejarla pendiente; sin nombre del autor"
                         },
+                        "clarification_responses": {
+                          "type": "array",
+                          "description": "Respuestas recibidas y sus notas. La foto sigue el acceso y retención de la foto vigente.",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "note_at",
+                              "note",
+                              "local_name",
+                              "active_ingredient",
+                              "included_photo",
+                              "photo_available",
+                              "received_at"
+                            ],
+                            "properties": {
+                              "note_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "note": {
+                                "type": "string"
+                              },
+                              "local_name": {
+                                "type": "string"
+                              },
+                              "active_ingredient": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "included_photo": {
+                                "type": "boolean"
+                              },
+                              "photo_available": {
+                                "type": "boolean"
+                              },
+                              "received_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
                         "photo": {
                           "type": "object",
                           "additionalProperties": false,
@@ -24716,6 +25564,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24761,6 +25612,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24806,6 +25660,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24851,6 +25708,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24896,6 +25756,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -24941,6 +25804,9 @@
                         "REQUEST_NOT_FOUND",
                         "REQUEST_ID_CONFLICT",
                         "REQUEST_ALREADY_LINKED",
+                        "CLARIFICATION_CHANGED",
+                        "CLARIFICATION_RESPONSE_CONFLICT",
+                        "CLARIFICATION_RESPONSE_EMPTY",
                         "UNIT_UNSUPPORTED",
                         "UNIT_IMMUTABLE",
                         "PHOTO_CONSENT_REQUIRED",
@@ -45812,7 +46678,7 @@
             "description": "1–120 caracteres tras recortar espacios"
           },
           "active_ingredient": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "minLength": 1,
             "maxLength": 120
@@ -45840,6 +46706,69 @@
           "contractVersion",
           "local_name",
           "unit"
+        ]
+      },
+      "ClarificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "contractVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "local_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "1–120 caracteres tras recortar espacios"
+          },
+          "active_ingredient": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "L",
+              "KG"
+            ],
+            "description": "Otra unidad: 422 UNIT_UNSUPPORTED. Inmutable."
+          },
+          "photo_consent": {
+            "nullable": true,
+            "description": "Consentimiento aparte para la foto (E1-D11); una vez registrado no se borra con un PUT posterior",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoConsentDto"
+              }
+            ]
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "note_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "pending_note.at de la aclaración a la que responde"
+          },
+          "photo_sha256": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Huella de la foto que se adjuntará. Requiere photo_consent."
+          }
+        },
+        "required": [
+          "contractVersion",
+          "local_name",
+          "unit",
+          "operation_id",
+          "note_at"
         ]
       },
       "LinkIdentificationDto": {

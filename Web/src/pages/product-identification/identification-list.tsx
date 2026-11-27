@@ -5,10 +5,11 @@ import { fmtDateTime } from '../../lib/collective-text';
 import { EVENT_LABEL, identificationError, photoError } from '../../lib/identification-text';
 import { identificationService } from '../../services/identification.service';
 import type { IdentificationEvent, IdentificationRequest } from '../../types/identification';
-import { fmtShort, unitTitle } from './identification.constants';
+import { fmtShort, hasCurrentClarificationResponse, unitTitle } from './identification.constants';
 
 export function PendingItem({ request, selected, onSelect }: { request: IdentificationRequest; selected: boolean; onSelect: () => void }) {
   const withPhoto = request.photo.state === 'STORED';
+  const answered = hasCurrentClarificationResponse(request);
   return (
     <li data-testid={`identification-${request.id}`}>
       <button
@@ -28,7 +29,9 @@ export function PendingItem({ request, selected, onSelect }: { request: Identifi
           </span>
           {request.pending_note && (
             <span className="mt-1.5 block">
-              <Chip tone="attention">Falta información</Chip>
+              {answered
+                ? <Chip tone="positive">Información nueva para revisar</Chip>
+                : <Chip tone="attention">Falta información</Chip>}
             </span>
           )}
         </span>
@@ -68,6 +71,34 @@ export function PendingNote({ note }: { note: { text: string; at: string } }) {
         Pendiente por falta de información: {note.text} <span className="text-xs">({fmtDateTime(note.at)})</span>
       </Notice>
     </div>
+  );
+}
+
+export function Clarifications({ request, onOpenPhoto }: Readonly<{ request: IdentificationRequest; onOpenPhoto?: () => void }>) {
+  const responses = request.clarification_responses;
+  if (!responses?.length) return null;
+  return (
+    <section aria-label="Respuestas a aclaraciones" className="space-y-3">
+      {hasCurrentClarificationResponse(request) && <Notice kind="info" compact>Información nueva para revisar</Notice>}
+      <ul className="space-y-3">
+        {responses.map((reply) => (
+          <li key={reply.note_at} className="rounded-xl border border-line px-4 py-3 text-sm [overflow-wrap:anywhere]">
+            <p><strong>Nota del sindicato</strong> {reply.note}</p>
+            <p><strong>Respuesta recibida</strong> {fmtDateTime(reply.received_at)}</p>
+            <p>Nombre: {reply.local_name}</p>
+            <p>Ingrediente activo: {reply.active_ingredient ?? 'Sin dato'}</p>
+            {reply.included_photo && (
+              <p>
+                {reply.photo_available ? 'Foto de la etiqueta adjunta.' : 'La foto de esta respuesta ya no está disponible.'}
+                {reply.photo_available && onOpenPhoto && (
+                  <Button variant="secondary" size="sm" className="ml-2" onClick={onOpenPhoto}>Ver foto de la respuesta</Button>
+                )}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

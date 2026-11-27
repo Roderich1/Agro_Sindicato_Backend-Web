@@ -198,6 +198,20 @@ Reglas de `link` / `create-product` / `defer`: `confirmed !== true` → 422 `CON
 
 Añadir: exacta `/api/v1/catalog/identification-requests`; regex `^/api/v1/catalog/identification-requests/<uuid v4>(/photo)?$`. Nada más.
 
+### 4.4 Responder a una aclaración
+
+El agricultor usa `PUT /{request_id}/clarification-response` con `operation_id` (UUID v4), `note_at` (el `pending_note.at` recibido), nombre, ingrediente opcional y la unidad de la solicitud. Para adjuntar una etiqueta, incluye `photo_sha256` y el consentimiento `FOTO-1`. El `PUT /{request_id}` ordinario conserva su contrato y no acusa recibo de una aclaración.
+
+La respuesta devuelve `{received, request}`. El texto sin foto queda recibido al confirmar el PUT. Una respuesta con foto queda preparada y la nota sigue pendiente. El teléfono sube el archivo por `PUT /{request_id}/photo` con el encabezado `X-Identification-Response-Id` igual a `operation_id`. El servidor exige que la huella coincida, valida el archivo con las reglas E1 y registra la respuesta en la misma transacción que publica la foto. El HTTP 2xx con la vista del agricultor confirma el envío.
+
+La repetición exacta es idempotente. Reusar el mismo identificador con otros datos devuelve `CLARIFICATION_RESPONSE_CONFLICT`. Una nota posterior invalida las respuestas por completar a la nota anterior (`CLARIFICATION_CHANGED`). Repetir una respuesta ya recibida devuelve el estado vigente y respeta cualquier nota posterior. El titular y el sindicato se toman de la sesión. Las solicitudes de otros titulares responden como inexistentes.
+
+El listado institucional agrega `clarification_responses` cuando hay respuestas recibidas, con la nota original, los datos del producto, la fecha de recepción y la disponibilidad de la foto. La Web solo muestra «Información nueva para revisar» si la respuesta corresponde a la nota vigente. Las notas se conservan en el historial, y las respuestas recibidas conservan sus metadatos. La foto vigente conserva el acceso privado, el reemplazo, el retiro y la retención de E1.
+
+La vista del agricultor de versión 1 mantiene las mismas claves. `pending_note` queda en `null` al responder a la nota vigente, hasta que se pida otra aclaración. Flutter conserva el envío para reintentar con el mismo identificador. Las fotos en cola son archivos privados del teléfono y siguen fuera de los respaldos. «Actualizar» consulta la aclaración y «Enviar respuesta» confirma la información que se pone en cola.
+
+Orden de despliegue: migración aditiva de PostgreSQL, Backend y Web, y por último la APK. La versión anterior de la app conserva la consulta, el envío inicial y la confirmación del vínculo; el botón de respuesta requiere la APK actualizada. Se puede revertir la Web y la APK preservando la tabla de respuestas.
+
 ## 5. Mobile
 
 **Esquema v15** (aditivo; `_createSchema` y `_upgradeSchema` comparten el mismo helper idempotente; actualizar `schema_equivalence_test`):
