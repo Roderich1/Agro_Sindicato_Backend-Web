@@ -49,7 +49,7 @@ La primera vez hay que **activar en línea** con la cuenta que le dio el sindica
 
 **El titular** es el agricultor dueño de los registros de este teléfono:
 - elija una persona que ya exista o pulse «Crear el titular» y escriba su «Nombre»;
-- si la persona elegida tiene el rol «Administrador», marque «Confirmo que esta persona es el agricultor titular»;
+- si el registro anterior de la persona elegida dice «Administrador», marque «Confirmo que esta persona es el agricultor titular»;
 - un «Tercero» no puede ser titular.
 
 **Modalidad de inventario.** En la misma pantalla:
@@ -67,6 +67,13 @@ Pulse «Confirmar titular».
 - Se hace en Operaciones › «Modo de uso». No borra ni reasigna registros y no necesita conexión.
 - De propio a compartido se puede siempre.
 - De compartido a propio sólo se puede si nadie más que el titular tiene existencias, planes abiertos o saldos. Si no, la app explica qué falta: «Todavía no se puede pasar a inventario propio. Resuélvalo en modo compartido: …».
+
+**Personas en modo compartido.** En Datos › Personas, «Agregar persona» ofrece dos opciones:
+
+- **Familiar:** se le cobra por la cantidad que aplica.
+- **Tercero:** se le cobra por la cantidad que se le asigna al confirmar la compra.
+
+La persona vinculada a la instalación aparece como **Titular**. Es quien registra los pagos al proveedor y puede consultar su consumo y costos propios. Los registros anteriores de tipo «Administrador» conservan sus movimientos y reglas de liquidación. Si corresponden al titular vinculado, se muestran como «Titular». Los demás conservan el tipo «Administrador» al abrir o restaurar los datos y al editar su nombre.
 
 **Lo que no se puede hacer:**
 - **No hay pantalla para cambiar el titular** una vez elegido.
@@ -301,7 +308,7 @@ Una compra o una aplicación que olvidó registrar y cuya fecha cae en una **cam
 
 Si todavía no hay ningún proveedor, el selector dice «No hay opciones disponibles.» y la compra no avanza. Cree antes el proveedor en Catálogos › Proveedores.
 
-En modo compartido, **sólo una persona con rol «Administrador» puede pagar al proveedor**. Un titular creado con «Crear el titular» es «Familiar», no «Administrador».
+El pago al proveedor queda registrado a nombre del **titular vigente**, en ambos modos. El titular puede asignar los productos a distintas personas cuando usa el modo compartido.
 
 **Aplicación** («Nueva aplicación»):
 - Rellene «Chaco», «Área tratada (ha)» y, para cada producto, la «Dosis (u/ha)» y la «Cantidad real (u)».
@@ -538,7 +545,7 @@ Un cargo dice «Pendiente a hoy X», «Pagado» o «Revertido el …», y su rev
 **«Exportar movimientos propios»** abre Reportes y genera «Movimientos propios del titular»: columnas Fecha, Concepto, Chaco, Campaña del asiento, Cargo (Bs) y Crédito (Bs); totales «Consumo aplicado, costo FIFO (Bs)», «Cargos anotados (Bs)», «Créditos por reversión (Bs)» y «Pagos y ajustes registrados (Bs)».
 
 **En otras pantallas:**
-- **Personas:** la fila del titular dice «… · titular · …» y «Consumo propio X», no un saldo. Su detalle dice «… · titular · consumo propio X» y «Consumo aplicado (costo FIFO) · todas las campañas». Si una persona fue titular antes, su detalle muestra además «Consumo propio mientras fue titular».
+- **Personas:** la fila del titular dice «Titular» y «Consumo propio X», no un saldo. Su detalle dice «Titular · consumo propio X» y «Consumo aplicado (costo FIFO) · todas las campañas». Si una persona fue titular antes, su detalle muestra además «Consumo propio mientras fue titular».
 - **Formulario de aplicación:** para el titular, «Costo propio: X (queda anotado en la cuenta de [titular])» o «Costo propio: X». Para otra persona a la que se cobra al asignar compras: «Esta aplicación no genera cargo a [persona]: su política cobra al asignar compras.»
 - **Modo propio** con sólo el titular: la lista dice «En inventario propio no hay cuentas por cobrar.» y la tarjeta del titular se muestra igual.
 - Familiares y terceros conservan sus reglas de cobro.
