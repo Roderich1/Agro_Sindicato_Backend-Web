@@ -16,7 +16,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://agrocuentas-api.example.invalid/api/:path*"
+      "destination": "https://agrosindicatobackend-web-production.up.railway.app/api/:path*"
     },
     {
       "source": "/((?!api(?:/|$)|assets(?:/|$)|.*\\.[^/]+$).*)",
