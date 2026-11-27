@@ -175,11 +175,13 @@ describe('E4: tendencias con la política de cada campaña sellada (§4.3)', () 
     vi.mocked(collectiveService.trends).mockResolvedValue(trends());
     renderAt(<CollectiveTrendsPage />, { path: '/colectivo/tendencias' });
     const table = await screen.findByTestId('series-CONSUMPTION_TOTAL-Producto sintético P2-G');
-    expect(within(table).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin datos disponibles/);
+    expect(within(table).getByTestId('point-Campaña 2024').textContent).toMatch(/sin datos disponibles/i);
     expect(within(table).getByTestId('point-Campaña 2025').textContent).toMatch(/5 KG/);
     expect(screen.queryByRole('option', { name: 'Campaña 2026' })).toBeNull();
     fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: 'c-2025' } });
-    expect(within(table).queryByTestId('point-Campaña 2024')).toBeNull();
+    const row2025 = screen.getByTestId('series-CONSUMPTION_TOTAL-Producto sintético P2-G');
+    expect(within(row2025).queryByTestId('point-Campaña 2024')).toBeNull();
+    expect(within(row2025).getByTestId('point-Campaña 2025').textContent).toMatch(/5 KG/);
     expect(document.body.textContent).not.toMatch(RETIRED_TEXTS);
   });
 
@@ -195,8 +197,9 @@ describe('E4: tendencias con la política de cada campaña sellada (§4.3)', () 
     fireEvent.click(screen.getByRole('button', { name: 'Necesidad declarada' }));
     await screen.findByTestId('series-DECLARED_NEED-Otro producto-G');
     fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: 'c-2025' } });
-    fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-0002|G' } });
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'Producto sintético P2' } });
     expect(screen.getByTestId('series-DECLARED_NEED-Producto sintético P2-G')).toBeTruthy();
+    expect(screen.queryByTestId('series-DECLARED_NEED-Otro producto-G')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Descargar Excel' }));
     await waitFor(() => expect(downloadTrendsXlsx).toHaveBeenCalledOnce());

@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectiveService } from '../services/collective.service';
 import { point, trendsWith } from '../test/fixtures';
@@ -29,9 +29,13 @@ describe('Histórico de campañas v2', () => {
     vi.mocked(collectiveService.trends).mockReset().mockResolvedValue(trendsWith([urea]));
   });
 
-  it('la cobertura de cada campaña sellada va junto a la serie, sin pasar el ratón', async () => {
+  it('la cobertura de cada campaña sellada va junto a la matriz y la serie, sin pasar el ratón', async () => {
     renderAt(<CollectiveTrendsPage />, { path: '/colectivo/tendencias' });
-    const chart = await screen.findByTestId('trend-chart');
+    await screen.findByTestId('trends-matrix');
+    expect(screen.getAllByTestId('matrix-coverage').map((node) => node.textContent)).toEqual(['Cobertura: 4 de 7', 'Cobertura: 6 de 9']);
+
+    fireEvent.click(within(screen.getByTestId('series-CONSUMPTION_TOTAL-Urea-G')).getByRole('button', { name: /Ver gráfico/i }));
+    const chart = screen.getByTestId('trend-chart');
     expect(within(chart).getAllByTestId('trend-coverage').map((node) => node.textContent)).toEqual(['4 de 7', '6 de 9']);
     const compact = screen.getByTestId('trend-chart-compact');
     expect(compact.textContent).toMatch(/Cobertura histórica: 4 de 7/);
@@ -40,7 +44,11 @@ describe('Histórico de campañas v2', () => {
 
   it('H-10: no destaca el máximo ni lo nombra; sin totales, medias, diferencias ni tasas', async () => {
     renderAt(<CollectiveTrendsPage />, { path: '/colectivo/tendencias' });
-    const chart = await screen.findByTestId('trend-chart');
+    await screen.findByTestId('trends-matrix');
+    expect(document.body.textContent).not.toMatch(/más alta|mayor consumo|máximo|\bTotal\b|\bPromedio\b|\bmedia\b|%/i);
+
+    fireEvent.click(within(screen.getByTestId('series-CONSUMPTION_TOTAL-Urea-G')).getByRole('button', { name: /Ver gráfico/i }));
+    const chart = screen.getByTestId('trend-chart');
     // Todas las columnas con el mismo relleno: ninguna resaltada.
     const fills = new Set([...chart.querySelectorAll('[data-testid="trend-point"]')].map((bar) => bar.getAttribute('fill')));
     expect(fills).toEqual(new Set(['currentColor']));

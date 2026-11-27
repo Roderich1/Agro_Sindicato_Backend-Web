@@ -54,12 +54,18 @@ describe('Tendencias entre campañas', () => {
   it('tabla y gráfico muestran las mismas cifras; los huecos nunca son cero ni se interpolan', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida, urea, glifosato]));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
+    // Matriz inicial: todos los productos visibles a la vez sin ciclar un selector.
     const herb = await screen.findByTestId('series-DECLARED_NEED-Herbicida-ML');
+    const ur = screen.getByTestId('series-DECLARED_NEED-Urea-G');
+    const gli = screen.getByTestId('series-DECLARED_NEED-Glifosato-ML');
+
     expect(within(herb).getByTestId('point-Campaña 2024').textContent).toContain('6 L');
     const withdrawn = within(herb).getByTestId('point-Campaña 2025');
-    expect(withdrawn.textContent).toMatch(/Datos retirados/);
+    expect(withdrawn.textContent).toMatch(/retirado/i);
     expect(withdrawn.textContent).not.toMatch(/9000|9 L/);
-    // Gráfico (producto elegido por defecto: Herbicida): un solo punto publicado, sin segmentos; sólo campañas selladas.
+
+    // Desplegar gráfico de Herbicida: un solo punto publicado, sin segmentos; sólo campañas selladas.
+    fireEvent.click(within(herb).getByRole('button', { name: /Ver gráfico/i }));
     const chart = screen.getByTestId('trend-chart');
     expect(within(chart).getAllByTestId('trend-point')).toHaveLength(1);
     expect(within(chart).queryAllByTestId('trend-segment')).toHaveLength(0);
@@ -68,24 +74,71 @@ describe('Tendencias entre campañas', () => {
     // La campaña abierta sin sellar no se dibuja como histórico.
     expect(chart.textContent).not.toMatch(/Campaña 2026/);
 
-    // Dos campañas consecutivas con cifra: dos columnas con cantidad y unidad; la tercera no es histórico.
-    fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-urea|G' } });
+    // Desplegar gráfico de Urea: dos campañas consecutivas con cifra y nota de cambios pendientes.
+    fireEvent.click(within(ur).getByRole('button', { name: /Ver gráfico/i }));
     const ureaChart = screen.getByTestId('trend-chart');
     expect(within(ureaChart).getAllByTestId('trend-point')).toHaveLength(2);
     expect([...ureaChart.querySelectorAll('title')].map((t) => t.textContent)).toEqual(['Campaña 2024: 25 KG', 'Campaña 2025: 30 KG']);
-    const ur = screen.getByTestId('series-DECLARED_NEED-Urea-G');
     // E4: el aviso de cifra anterior ya no habla de «umbral».
     expect(within(ur).getByTestId('point-Campaña 2024').textContent).toMatch(/todavía no se publican: se muestra la cifra anterior/);
 
-    fireEvent.change(screen.getByLabelText('Producto'), { target: { value: 'p-gli|ML' } });
+    // Desplegar gráfico de Glifosato: sin barras publicadas, huecos rotulados.
+    fireEvent.click(within(gli).getByRole('button', { name: /Ver gráfico/i }));
     expect(within(screen.getByTestId('trend-chart')).queryAllByTestId('trend-point')).toHaveLength(0);
-    const gli = screen.getByTestId('series-DECLARED_NEED-Glifosato-ML');
-    expect(within(gli).getByTestId('point-Campaña 2025').textContent).toMatch(/Sin datos disponibles/);
+    expect(within(gli).getByTestId('point-Campaña 2025').textContent).toMatch(/sin dato/i);
     // E4 §3.4/§5.1: lo sellado con F07-POL-01 conserva su estado, rotulado con esa política (antes «Menos de 3 agricultores»).
-    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/Sin datos disponibles/);
+    expect(within(gli).getByTestId('point-Campaña 2024').textContent).toMatch(/sin datos disponibles/i);
+
+    // Alternar Ocultar cierra el gráfico desplegable.
+    fireEvent.click(within(gli).getByRole('button', { name: /Ocultar/i }));
+    expect(screen.queryByTestId('trend-chart')).toBeNull();
 
     // Sin totales entre campañas, productos ni unidades.
     expect(document.body.textContent).not.toMatch(/55 KG|36 L|Total general|Promedio/);
+  });
+
+  it('filtra por búsqueda sin tildes y por unidad sin mezclar litros ni kilogramos', async () => {
+    const conAcento: TrendSeries = {
+      ...glifosato,
+      product_name: 'GLIFÓSATO',
+    };
+    vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida, urea, conAcento]));
+    renderAt(<CollectiveTrendsPage />, { path: PATH });
+    await screen.findByTestId('trends-matrix');
+
+    const unitGroup = screen.getByTestId('trend-unit-filter');
+    fireEvent.click(within(unitGroup).getByRole('button', { name: /Litros \(L\)/i }));
+    expect(screen.getByTestId('series-DECLARED_NEED-Herbicida-ML')).toBeTruthy();
+    expect(screen.getByTestId('series-DECLARED_NEED-GLIFÓSATO-ML')).toBeTruthy();
+    expect(screen.queryByTestId('series-DECLARED_NEED-Urea-G')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'glifosato' } });
+    expect(screen.getByTestId('series-DECLARED_NEED-GLIFÓSATO-ML')).toBeTruthy();
+    expect(screen.queryByTestId('series-DECLARED_NEED-Herbicida-ML')).toBeNull();
+
+    fireEvent.click(within(unitGroup).getByRole('button', { name: /Kilogramos \(KG\)/i }));
+    expect(screen.getByText('Sin coincidencias')).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Quitar filtros' })[0]!);
+    expect(screen.getByTestId('series-DECLARED_NEED-Herbicida-ML')).toBeTruthy();
+    expect(screen.getByTestId('series-DECLARED_NEED-Urea-G')).toBeTruthy();
+  });
+
+  it('al elegir una campaña muestra todos sus productos y permite abrir su evolución histórica', async () => {
+    vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida, urea]));
+    renderAt(<CollectiveTrendsPage />, { path: PATH });
+    await screen.findByTestId('trends-matrix');
+
+    fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: 'c-2025' } });
+    const list = screen.getByTestId('trends-campaign-list');
+    expect(within(list).getByTestId('matrix-coverage').textContent).toBe('6 de 9');
+    expect(within(list).getByTestId('series-DECLARED_NEED-Herbicida-ML')).toBeTruthy();
+    const ureaRow = within(list).getByTestId('series-DECLARED_NEED-Urea-G');
+    expect(within(ureaRow).getByTestId('point-Campaña 2025').textContent).toContain('30 KG');
+
+    fireEvent.click(within(ureaRow).getByRole('button', { name: /Ver gráfico/i }));
+    const chart = screen.getByTestId('trend-chart');
+    expect([...chart.querySelectorAll('title')].map((t) => t.textContent)).toEqual(['Campaña 2024: 25 KG', 'Campaña 2025: 30 KG']);
   });
 
   it('identifica campaña, versión y cobertura al sellar; una campaña sin sellar no aporta cifras', async () => {
@@ -110,12 +163,16 @@ describe('Tendencias entre campañas', () => {
     expect(within(group).getByRole('button', { name: 'Necesidad declarada' }).getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('el gráfico aparece antes de la tabla; campañas, versión y cobertura quedan en «Ver campañas y cobertura»', async () => {
+  it('la matriz y el gráfico desplegable aparecen antes de «Ver campañas y cobertura»', async () => {
     vi.mocked(collectiveService.trends).mockResolvedValue(trendsWith([herbicida]));
     renderAt(<CollectiveTrendsPage />, { path: PATH });
-    const chart = await screen.findByTestId('trend-chart');
+    const matrix = await screen.findByTestId('trends-matrix');
     const sources = screen.getByTestId('sources');
     expect(sources.textContent).toMatch(/Ver campañas y cobertura/);
+    expect(matrix.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(within(screen.getByTestId('series-DECLARED_NEED-Herbicida-ML')).getByRole('button', { name: /Ver gráfico/i }));
+    const chart = screen.getByTestId('trend-chart');
     expect(chart.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(chart.textContent).toMatch(/L por campaña/);
   });
