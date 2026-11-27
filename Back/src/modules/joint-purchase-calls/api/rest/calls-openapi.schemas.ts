@@ -19,6 +19,38 @@ const closed = (required: string[], properties: Record<string, SchemaObject>, ex
 const userRef = closed(["user_ref", "name"], { user_ref: { type: "string" }, name: { type: "string" } });
 const nullableUserRef: SchemaObject = { ...userRef, nullable: true };
 
+const closedProductHistoryEntry = closed(
+  ["call_id", "call_name", "base_unit", "visibility", "quantity_base"],
+  {
+    call_id: { type: "string", format: "uuid" },
+    call_name: { type: "string" },
+    base_unit: baseUnit,
+    visibility: { type: "string", enum: ["VISIBLE", "PENDING_CONSENT"] },
+    quantity_base: { ...quantity, nullable: true, description: "Solicitado al cierre. Null si la cifra está protegida." },
+  },
+);
+
+export const closedProductHistorySchema: SchemaObject = closed(
+  ["contractVersion", "products"],
+  {
+    contractVersion: { type: "integer", enum: [1] },
+    products: {
+      type: "array",
+      items: closed(
+        ["product_ref", "product_name", "base_unit", "status", "total_quantity_base", "calls"],
+        {
+          product_ref: { type: "string" },
+          product_name: { type: "string" },
+          base_unit: baseUnit,
+          status: { type: "string", enum: ["NO_HISTORY", "VISIBLE", "PENDING_CONSENT", "INCOMPATIBLE_UNITS"] },
+          total_quantity_base: { ...quantity, nullable: true, description: "Total completo sólo si todas las cifras son visibles y tienen la misma unidad. Cero explícito es '0'." },
+          calls: { type: "array", items: closedProductHistoryEntry, description: "Convocatorias cerradas, de la más reciente a la más antigua. Sin datos de participantes." },
+        },
+      ),
+    },
+  },
+);
+
 export const callErrorSchema: SchemaObject = closed(
   ["errorCode"],
   {

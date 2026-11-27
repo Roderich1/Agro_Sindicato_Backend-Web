@@ -142,6 +142,12 @@ Las respuestas institucionales llevan hoy `contractVersion: 1` (`BE:Back/src/mod
 | `POST /:id/collaborators/review` (`:265`) | La sucesora confirma o retira | `PARTICIPANTS` → `409 GRANT_RETIRED`. `MANAGE` sin cambio. |
 | `POST /:id/responsible` (`:284`) | Exige el permiso «Sustituir responsable» (`responsible-substitution.use-case.ts:228`) | Exige Administración habilitada (`isEligibleAdministrator`, revalidada en la transacción). Si no, `403 SUBSTITUTION_FORBIDDEN`. Lo demás de §6.3. |
 
+#### Referencia de cierres para el borrador
+
+`GET /api/v1/joint-purchase-calls/closed-product-history` acepta `campaignId`, de 1 a 50 parámetros `productRefs` canónicos y, opcionalmente, `excludeCallId`. Usa el sindicato de la sesión y devuelve, por producto, sólo los resultados guardados de las convocatorias cerradas de la campaña. La cantidad de cada cierre sigue la regla T (§5.2) para el rol actual. La respuesta omite los nombres, cantidades y recuentos de participantes.
+
+El total incluye todos los cierres aplicables si sus cifras se pueden publicar y son de la misma unidad. Un cierre con cero devuelve `"0"`. La falta de antecedentes, de autorización o de una unidad común se distingue mediante `NO_HISTORY`, `PENDING_CONSENT` o `INCOMPATIBLE_UNITS` respectivamente, sin total parcial. La referencia indica solicitudes al cierre y se presenta aparte de la necesidad declarada.
+
 ### 3.2 Permiso «Sustituir responsable» (`substitution-permissions.controller.ts`)
 
 | Endpoint | Cambio |

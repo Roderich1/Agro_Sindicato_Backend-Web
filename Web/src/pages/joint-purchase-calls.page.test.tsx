@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render as renderForm, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { useLocation, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,14 +11,16 @@ import { campaignsService } from '../services/campaigns.service';
 import { collectiveService } from '../services/collective.service';
 import { jointPurchaseCallsService } from '../services/joint-purchase-calls.service';
 import { CAMPAIGN, renderAt } from '../test/render';
-import type { AssociationList, CatalogEntry, Proposal, ProposalSummary } from '../types/collective';
-import type { EligibleResponsible, JointPurchaseCallDetail, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
+import type { AssociationList, CatalogEntry, CollectiveSummary, Proposal, ProposalSummary } from '../types/collective';
+import type { ClosedProductHistory, EligibleResponsible, JointPurchaseCallDetail, JointPurchaseCallSummary } from '../types/joint-purchase-calls';
+import { JointPurchaseCallForm } from './joint-purchase-call-form';
 import { JointPurchaseCallsPage } from './joint-purchase-calls.page';
 
 vi.mock('../services/joint-purchase-calls.service', () => ({
   jointPurchaseCallsService: {
     list: vi.fn(),
     get: vi.fn(),
+    closedProductHistory: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     open: vi.fn(),
@@ -34,7 +36,7 @@ vi.mock('../services/joint-purchase-calls.service', () => ({
   },
 }));
 vi.mock('../services/collective.service', () => ({
-  collectiveService: { catalog: vi.fn(), associations: vi.fn(), proposals: vi.fn(), proposal: vi.fn() },
+  collectiveService: { catalog: vi.fn(), associations: vi.fn(), proposals: vi.fn(), proposal: vi.fn(), summary: vi.fn() },
 }));
 vi.mock('../services/campaigns.service', () => ({ campaignsService: { list: vi.fn(), active: vi.fn() } }));
 
@@ -141,6 +143,27 @@ const ASSOCIATIONS: AssociationList = {
   history: [],
 };
 
+const SUMMARY: CollectiveSummary = {
+  contractVersion: 1,
+  campaign: { campaign_ref: CAMPAIGN.id, name: CAMPAIGN.name, status: 'ABIERTA' },
+  seal: null,
+  disclosure: { mode: 'APPROVED', policy: 'F07-POL-02', approved: true, threshold: null },
+  coverage: null,
+  cells: [{
+    projection_type: 'DECLARED_NEED', product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', presentation_unit: 'KG',
+    status: 'DISCLOSED', total_base: '100000', total_presentation: '100', contributors: null,
+    data_as_of: null, released_at: null, pending_changes: false,
+  }],
+};
+
+const UREA_HISTORY: ClosedProductHistory = {
+  product_ref: 'p-3', product_name: 'Urea', base_unit: 'G', status: 'VISIBLE', total_quantity_base: '70000',
+  calls: [
+    { call_id: 'closed-1', call_name: 'Primera compra', base_unit: 'G', visibility: 'VISIBLE', quantity_base: '40000' },
+    { call_id: 'closed-2', call_name: 'Segunda compra', base_unit: 'G', visibility: 'VISIBLE', quantity_base: '30000' },
+  ],
+};
+
 const DRAFTS: ProposalSummary[] = [
   { proposal_ref: 'pr-1', status: 'DRAFT', generated_at: '2026-11-10T15:00:00.000Z', generated_by: { user_ref: 'u-2', name: 'Responsable sintética' }, inputs_fingerprint: null, line_count: 2 },
 ];
@@ -209,6 +232,8 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     vi.mocked(collectiveService.associations).mockResolvedValue(ASSOCIATIONS);
     vi.mocked(collectiveService.proposals).mockResolvedValue(DRAFTS);
     vi.mocked(collectiveService.proposal).mockResolvedValue(PROPOSAL);
+    vi.mocked(collectiveService.summary).mockResolvedValue(SUMMARY);
+    vi.mocked(jointPurchaseCallsService.closedProductHistory).mockResolvedValue([]);
   });
 
   it('muestra «Cargando…» y luego las filas con nombre, estado, campaña, fecha límite y participantes', async () => {
@@ -261,6 +286,7 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
 
   it('nuevo borrador: valida los campos sin asignación y crea con productos del catálogo y navega por el call_id de la respuesta', async () => {
     vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
+    vi.mocked(jointPurchaseCallsService.closedProductHistory).mockResolvedValue([UREA_HISTORY]);
     render();
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
@@ -285,6 +311,11 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     const names = within(list).getAllByRole('checkbox').map((box) => box.closest('label')!.textContent);
     expect(names).toEqual(['Glifosato 48 SL · L', 'Urea · kg']);
     fireEvent.click(within(list).getByRole('checkbox', { name: /Urea/ }));
+    const reference = within(dialog()).getByRole('region', { name: 'Referencia por producto' });
+    expect(await within(reference).findByText('Solicitado en convocatorias cerradas: 70 kg')).toBeTruthy();
+    expect(within(reference).getByText('Necesidad declarada: 100 kg')).toBeTruthy();
+    expect(within(reference).getByText('Primera compra: 40 kg')).toBeTruthy();
+    expect(within(reference).getByText('Segunda compra: 30 kg')).toBeTruthy();
 
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));
     await waitFor(() =>
@@ -300,8 +331,55 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     expect(probe.getAttribute('data-message')).toMatch(/Borrador «Herbicidas de verano» creado/);
   });
 
+  it('en edición excluye la convocatoria y descarta datos de la campaña o producto anterior', async () => {
+    let resolveOld!: (rows: ClosedProductHistory[]) => void;
+    const oldResponse = new Promise<ClosedProductHistory[]>((resolve) => { resolveOld = resolve; });
+    const zero: ClosedProductHistory = {
+      product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', status: 'VISIBLE', total_quantity_base: '0',
+      calls: [{ call_id: 'closed-zero', call_name: 'Cierre vacío', base_unit: 'ML', visibility: 'VISIBLE', quantity_base: '0' }],
+    };
+    const pending: ClosedProductHistory = {
+      ...zero, status: 'PENDING_CONSENT', total_quantity_base: null,
+      calls: [
+        { ...zero.calls[0]!, call_name: 'Cierre protegido', visibility: 'PENDING_CONSENT', quantity_base: null },
+        { ...zero.calls[0]!, call_id: 'closed-other', call_name: 'Otro cierre', quantity_base: '12500' },
+      ],
+    };
+    vi.mocked(jointPurchaseCallsService.closedProductHistory).mockImplementation((campaignId, refs) => {
+      if (refs.includes('p-3')) return oldResponse;
+      return Promise.resolve(campaignId === CAMPAIGN.id ? [zero] : [pending]);
+    });
+    const form = (campaignId: string) => (
+      <JointPurchaseCallForm campaignId={campaignId} campaignName="Campaña de prueba"
+        call={CREATED} onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    const { rerender } = renderForm(form(CAMPAIGN.id));
+    await waitFor(() => expect(jointPurchaseCallsService.closedProductHistory).toHaveBeenCalledWith(
+      CAMPAIGN.id, ['p-3'], CREATED.call_id, expect.any(AbortSignal),
+    ));
+    const reference = () => within(dialog()).getByRole('region', { name: 'Referencia por producto' });
+    fireEvent.click(await within(dialog()).findByRole('checkbox', { name: /Urea/ }));
+    expect(within(dialog()).queryByRole('region', { name: 'Referencia por producto' })).toBeNull();
+    fireEvent.click(within(dialog()).getByRole('checkbox', { name: /Glifosato/ }));
+    expect(await within(reference()).findByText('Solicitado en convocatorias cerradas: 0 L')).toBeTruthy();
+    await act(async () => resolveOld([UREA_HISTORY]));
+    expect(within(reference()).queryByText(/70 kg/)).toBeNull();
+
+    rerender(form('otra-campana'));
+    expect(within(reference()).queryByText(/0 L/)).toBeNull();
+    expect(await within(reference()).findByText(/Total pendiente de autorización/)).toBeTruthy();
+    expect(within(reference()).getByText('Cierre protegido: Pendiente de autorización')).toBeTruthy();
+    expect(within(reference()).getByText('Otro cierre: 12,5 L')).toBeTruthy();
+    expect(jointPurchaseCallsService.closedProductHistory).toHaveBeenLastCalledWith(
+      'otra-campana', ['p-1'], CREATED.call_id, expect.any(AbortSignal),
+    );
+  });
+
   it('productos de un borrador de propuesta: la cifra es sólo «referencia» divulgada, nunca una cantidad comprometida', async () => {
     vi.mocked(jointPurchaseCallsService.create).mockResolvedValue({ ...CREATED, source_proposal_ref: 'pr-1' });
+    vi.mocked(jointPurchaseCallsService.closedProductHistory).mockResolvedValue([{
+      product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', status: 'NO_HISTORY', total_quantity_base: null, calls: [],
+    }]);
     render();
     await screen.findByTestId('call-row-c-1');
     fireEvent.click(screen.getByRole('button', { name: 'Nueva convocatoria' }));
@@ -318,6 +396,10 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     expect(within(dialog()).getByTestId('proposal-reference-note').textContent).toMatch(/sólo como referencia/);
 
     fireEvent.click(within(disclosed).getByRole('checkbox'));
+    const reference = within(dialog()).getByRole('region', { name: 'Referencia por producto' });
+    expect(await within(reference).findByText(/Sin convocatorias cerradas para este producto/)).toBeTruthy();
+    expect(within(reference).queryByText(/Necesidad declarada/)).toBeNull();
+    expect(collectiveService.summary).not.toHaveBeenCalled();
     fireEvent.change(within(dialog()).getByLabelText('Nombre'), { target: { value: 'Desde el borrador' } });
     fireEvent.change(within(dialog()).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Crear borrador' }));

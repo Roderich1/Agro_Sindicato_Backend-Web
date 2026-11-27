@@ -5,6 +5,7 @@ import {
 } from '../lib/joint-purchase-call-text';
 import type { JointPurchaseCallDetail } from '../types/joint-purchase-calls';
 import { CatalogPicker, FieldError, ProposalPicker } from './joint-purchase-calls/call-form-pickers';
+import { ClosedCallReference } from './joint-purchase-calls/closed-call-reference';
 import { MAX_NAME, SOURCES, useCallForm } from './joint-purchase-calls/use-call-form';
 
 /**
@@ -110,6 +111,12 @@ export function JointPurchaseCallForm({
             </Notice>
           )}
           <FieldError id="call-products-error" text={form.errors.products} />
+          <ClosedCallReference
+            campaignId={campaignId}
+            productRefs={form.selectedProductRefs}
+            excludeCallId={call?.call_id}
+            showDeclaredNeed={form.source === 'catalog'}
+          />
         </fieldset>
         {!form.editing && <p className="text-sm text-ink-muted">{CREATE_AS_DRAFT_NOTE}</p>}
       </div>

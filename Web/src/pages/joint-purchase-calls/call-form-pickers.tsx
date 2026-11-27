@@ -130,6 +130,7 @@ export function ProposalPicker({
   const [drafts, setDrafts] = useState<ProposalSummary[] | null>(null);
   const [draftsError, setDraftsError] = useState<string | null>(null);
   const [linesError, setLinesError] = useState<string | null>(null);
+  const [proposalAttempt, setProposalAttempt] = useState(0);
 
   const loadDrafts = useCallback(async () => {
     try {
@@ -141,28 +142,27 @@ export function ProposalPicker({
     }
   }, [campaignId]);
 
-  const loadProposal = useCallback(
-    async (id: string) => {
+  useEffect(() => {
+    let current = true;
+    async function loadProposal() {
+      if (!current) return;
       onProposal(null);
-      if (!id) return;
+      setLinesError(null);
+      if (!proposalId) return;
       try {
-        const shown = await collectiveService.proposal(id);
-        onProposal(shown);
-        setLinesError(null);
+        const shown = await collectiveService.proposal(proposalId);
+        if (current) onProposal(shown);
       } catch (err) {
-        setLinesError(collectiveError(err, 'No fue posible abrir el borrador de compra.'));
+        if (current) setLinesError(collectiveError(err, 'No fue posible abrir el borrador de compra.'));
       }
-    },
-    [onProposal],
-  );
+    }
+    void Promise.resolve().then(loadProposal);
+    return () => { current = false; };
+  }, [campaignId, proposalId, onProposal, proposalAttempt]);
 
   useEffect(() => {
     void Promise.resolve().then(loadDrafts);
   }, [loadDrafts]);
-
-  useEffect(() => {
-    void Promise.resolve().then(() => loadProposal(proposalId));
-  }, [proposalId, loadProposal]);
 
   if (draftsError) return <DataState compact state="error" description={draftsError} onRetry={() => void loadDrafts()} />;
   if (!drafts) return <DataState compact state="loading" />;
@@ -189,7 +189,7 @@ export function ProposalPicker({
         La cifra de cada línea es la necesidad declarada en el borrador, sólo como referencia: no es una cantidad comprometida.
       </p>
       {linesError ? (
-        <DataState compact state="error" description={linesError} onRetry={() => void loadProposal(proposalId)} />
+        <DataState compact state="error" description={linesError} onRetry={() => setProposalAttempt((attempt) => attempt + 1)} />
       ) : proposalId && !proposal ? (
         <DataState compact state="loading" />
       ) : proposal ? (

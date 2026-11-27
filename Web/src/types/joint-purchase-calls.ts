@@ -12,6 +12,24 @@ import type { BaseUnit } from '../lib/quantity';
  * **solicitada**: no es una compra, una entrega ni una deuda.
  */
 export type JointPurchaseCallStatus = 'DRAFT' | 'OPEN' | 'CLOSED' | 'CANCELLED';
+
+export interface ClosedProductHistoryEntry {
+  call_id: string;
+  call_name: string;
+  base_unit: BaseUnit;
+  visibility: 'VISIBLE' | 'PENDING_CONSENT';
+  quantity_base: string | null;
+}
+
+export interface ClosedProductHistory {
+  product_ref: string;
+  product_name: string;
+  base_unit: BaseUnit;
+  status: 'NO_HISTORY' | 'VISIBLE' | 'PENDING_CONSENT' | 'INCOMPATIBLE_UNITS';
+  total_quantity_base: string | null;
+  calls: ClosedProductHistoryEntry[];
+}
+
 export type JointPurchaseCallEventKind =
   | 'CREATED'
   | 'UPDATED'

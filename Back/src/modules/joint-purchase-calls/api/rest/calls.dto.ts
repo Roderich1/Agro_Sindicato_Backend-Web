@@ -1,21 +1,25 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   ArrayMaxSize,
   ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsISO8601,
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
   ValidateNested,
 } from "class-validator";
+import { MAX_PRODUCTS } from "../../application/institutional/institutional-calls.types";
 import { CONSENT_VERSION, ORDER_CONSENT_VERSION } from "../../domain/consent";
 import { MAX_LINES } from "../../domain/participation-input";
 
@@ -132,6 +136,30 @@ export class ListCallsQueryDto {
   @IsOptional()
   @IsIn(["DRAFT", "OPEN", "CLOSED", "CANCELLED"])
   status?: "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
+}
+
+export class ClosedProductHistoryQueryDto {
+  @ApiProperty({ maxLength: 64, description: "Campaña agrícola del sindicato actual" })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  campaignId!: string;
+
+  @ApiProperty({ type: [String], minItems: 1, maxItems: MAX_PRODUCTS, description: "Identificadores canónicos. Repetir productRefs para cada producto." })
+  @Transform(({ value }) => typeof value === "string" ? [value] : value)
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_PRODUCTS)
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(64, { each: true })
+  productRefs!: string[];
+
+  @ApiPropertyOptional({ format: "uuid", description: "Convocatoria que se está editando, excluida del historial" })
+  @IsOptional()
+  @IsUUID()
+  excludeCallId?: string;
 }
 
 export class ParticipationConsentDto {

@@ -83,15 +83,15 @@ export async function requireProposal(
   return proposal.id;
 }
 
-/** Products of the tenant: active, unit L or KG, canonical. Returns productId -> base unit. */
+/** Products of the tenant: active, unit L or KG, canonical. */
 export async function checkProducts(
   tx: Tx,
   tenantId: string,
   productIds: string[],
-): Promise<Map<string, SyncV1BaseUnit>> {
+): Promise<Map<string, { name: string; baseUnit: SyncV1BaseUnit }>> {
   const rows = await tx.product.findMany({
     where: { tenantId, id: { in: productIds } },
-    select: { id: true, unit: true, isActive: true },
+    select: { id: true, name: true, unit: true, isActive: true },
   });
   const byId = new Map(rows.map((row) => [row.id, row]));
   const aliases = await tx.productCanonicalAssociation.findMany({
@@ -99,7 +99,7 @@ export async function checkProducts(
     select: { productId: true, canonicalProductId: true },
   });
   const aliased = new Set(aliases.filter((a) => a.canonicalProductId !== a.productId).map((a) => a.productId));
-  const result = new Map<string, SyncV1BaseUnit>();
+  const result = new Map<string, { name: string; baseUnit: SyncV1BaseUnit }>();
   for (const productId of productIds) {
     const product = byId.get(productId);
     if (!product) throw new CallHttpError(404, "PRODUCT_NOT_FOUND");
@@ -107,7 +107,7 @@ export async function checkProducts(
     const baseUnit = baseUnitForCentralUnit(product.unit);
     if (!baseUnit) throw new CallHttpError(422, "PRODUCT_UNIT_UNSUPPORTED");
     if (aliased.has(productId)) throw new CallHttpError(422, "PRODUCT_NOT_CANONICAL");
-    result.set(productId, baseUnit);
+    result.set(productId, { name: product.name, baseUnit });
   }
   return result;
 }
@@ -134,7 +134,7 @@ export async function resolveProducts(
       })
     : [];
   return ids.map((productId) => {
-    const baseUnit = checked.get(productId)!;
+    const { baseUnit } = checked.get(productId)!;
     const line = lines.find((l) => l.canonicalProductId === productId && l.baseUnit === baseUnit);
     return {
       productId,
@@ -183,11 +183,7 @@ export async function frozenParticipations(db: Tx | PrismaService, callId: strin
     orderBy: [{ acceptedAt: "asc" }, { participationId: "asc" }],
     include: { lines: { orderBy: { productId: "asc" } } },
   });
-  const consents = await db.jointPurchaseParticipation.findMany({
-    where: { id: { in: rows.map((row) => row.participationId) } },
-    select: { id: true, consentScope: true },
-  });
-  const consentOf = new Map(consents.map((c) => [c.id, c.consentScope as string]));
+  const consentOf = await frozenConsentScopes(db, rows.map((row) => row.participationId));
   return rows.map((row) => ({
     participationId: row.participationId,
     memberId: row.memberId,
@@ -196,6 +192,15 @@ export async function frozenParticipations(db: Tx | PrismaService, callId: strin
     productIds: row.lines.map((line) => line.productId),
     lines: row.lines,
   }));
+}
+
+export async function frozenConsentScopes(db: Tx | PrismaService, participationIds: string[]) {
+  if (participationIds.length === 0) return new Map<string, string>();
+  const consents = await db.jointPurchaseParticipation.findMany({
+    where: { id: { in: participationIds } },
+    select: { id: true, consentScope: true },
+  });
+  return new Map<string, string>(consents.map((row) => [row.id, row.consentScope]));
 }
 
 /** Institutional record: never a farmer's name or quantity. */

@@ -209,7 +209,7 @@ export async function openCall(
       await requireCampaign(tx, actor.tenantId, call.campaignId, OPEN_CAMPAIGN);
       const checked = await checkProducts(tx, actor.tenantId, call.products.map((p) => p.productId));
       for (const product of call.products) {
-        if (checked.get(product.productId) !== product.baseUnit) {
+        if (checked.get(product.productId)?.baseUnit !== product.baseUnit) {
           throw new CallHttpError(422, "PRODUCT_UNIT_UNSUPPORTED");
         }
       }

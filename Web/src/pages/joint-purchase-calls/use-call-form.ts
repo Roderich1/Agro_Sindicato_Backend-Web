@@ -2,10 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { callError, callErrorCode, fromLocalInput, toLocalInput } from '../../lib/joint-purchase-call-text';
 import { jointPurchaseCallsService } from '../../services/joint-purchase-calls.service';
 import type { Proposal } from '../../types/collective';
-import type {
-  JointPurchaseCallDetail,
-  JointPurchaseCallProductInput,
-} from '../../types/joint-purchase-calls';
+import type { JointPurchaseCallDetail } from '../../types/joint-purchase-calls';
 
 export type Source = 'catalog' | 'proposal';
 
@@ -55,19 +52,6 @@ export function useCallForm({
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const validate = (): Errors => {
-    const next: Errors = {};
-    const trimmed = name.trim();
-    if (!trimmed) next.name = 'Escriba el nombre de la convocatoria.';
-    else if (trimmed.length > MAX_NAME) next.name = `El nombre admite hasta ${MAX_NAME} caracteres.`;
-    const iso = fromLocalInput(deadline);
-    if (!iso) next.deadline = 'Elija la fecha y hora límite.';
-    else if (new Date(iso).getTime() <= Date.now()) next.deadline = 'La fecha límite debe ser posterior a este momento.';
-    const count = source === 'catalog' ? catalogRefs.size : positions.size;
-    if (count === 0) next.products = 'Elija al menos un producto.';
-    return next;
-  };
-
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [ignored, setIgnored] = useState(0);
   const presetRef = useRef(prepared);
@@ -82,12 +66,24 @@ export function useCallForm({
     const found = new Set(lines.map((line) => line.product_ref));
     setPositions(new Set(lines.map((line) => line.position)));
     setIgnored([...wanted].filter((ref) => !found.has(ref)).length);
-  }, []);
+  }, [setIgnored]);
 
-  const chosenProducts = (): JointPurchaseCallProductInput[] => {
-    if (source === 'catalog') return [...catalogRefs].map((product_ref) => ({ product_ref }));
-    const refs = (proposal?.lines ?? []).filter((line) => positions.has(line.position)).map((line) => line.product_ref);
-    return [...new Set(refs)].map((product_ref) => ({ product_ref }));
+  const proposalLines = proposal?.proposal_ref === proposalId && proposal.campaign.campaign_ref === campaignId ? proposal.lines : [];
+  const selectedProductRefs = source === 'catalog'
+    ? [...catalogRefs]
+    : [...new Set(proposalLines.filter((line) => positions.has(line.position)).map((line) => line.product_ref))];
+  const selectedProducts = selectedProductRefs.map((product_ref) => ({ product_ref }));
+
+  const validate = (): Errors => {
+    const next: Errors = {};
+    const trimmed = name.trim();
+    if (!trimmed) next.name = 'Escriba el nombre de la convocatoria.';
+    else if (trimmed.length > MAX_NAME) next.name = `El nombre admite hasta ${MAX_NAME} caracteres.`;
+    const iso = fromLocalInput(deadline);
+    if (!iso) next.deadline = 'Elija la fecha y hora límite.';
+    else if (new Date(iso).getTime() <= Date.now()) next.deadline = 'La fecha límite debe ser posterior a este momento.';
+    if (selectedProducts.length === 0) next.products = 'Elija al menos un producto.';
+    return next;
   };
 
   const submit = async () => {
@@ -98,7 +94,7 @@ export function useCallForm({
     const base = {
       name: name.trim(),
       deadline_at: fromLocalInput(deadline)!,
-      products: chosenProducts(),
+      products: selectedProducts,
     };
     setBusy(true);
     try {
@@ -156,6 +152,7 @@ export function useCallForm({
     proposal,
     showProposal,
     ignored,
+    selectedProductRefs,
     submit,
     dirty,
   };

@@ -6063,6 +6063,675 @@
         ]
       }
     },
+    "/api/v1/joint-purchase-calls/closed-product-history": {
+      "get": {
+        "operationId": "InstitutionalCallsController_closedProductHistory",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "query",
+            "description": "Campaña agrícola del sindicato actual",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "name": "productRefs",
+            "required": true,
+            "in": "query",
+            "description": "Identificadores canónicos. Repetir productRefs para cada producto.",
+            "schema": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "excludeCallId",
+            "required": false,
+            "in": "query",
+            "description": "Convocatoria que se está editando, excluida del historial",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contractVersion",
+                    "products"
+                  ],
+                  "properties": {
+                    "contractVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "product_ref",
+                          "product_name",
+                          "base_unit",
+                          "status",
+                          "total_quantity_base",
+                          "calls"
+                        ],
+                        "properties": {
+                          "product_ref": {
+                            "type": "string"
+                          },
+                          "product_name": {
+                            "type": "string"
+                          },
+                          "base_unit": {
+                            "type": "string",
+                            "enum": [
+                              "ML",
+                              "G"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "NO_HISTORY",
+                              "VISIBLE",
+                              "PENDING_CONSENT",
+                              "INCOMPATIBLE_UNITS"
+                            ]
+                          },
+                          "total_quantity_base": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$",
+                            "description": "Total completo sólo si todas las cifras son visibles y tienen la misma unidad. Cero explícito es '0'.",
+                            "nullable": true
+                          },
+                          "calls": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "call_id",
+                                "call_name",
+                                "base_unit",
+                                "visibility",
+                                "quantity_base"
+                              ],
+                              "properties": {
+                                "call_id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "call_name": {
+                                  "type": "string"
+                                },
+                                "base_unit": {
+                                  "type": "string",
+                                  "enum": [
+                                    "ML",
+                                    "G"
+                                  ]
+                                },
+                                "visibility": {
+                                  "type": "string",
+                                  "enum": [
+                                    "VISIBLE",
+                                    "PENDING_CONSENT"
+                                  ]
+                                },
+                                "quantity_base": {
+                                  "type": "string",
+                                  "pattern": "^(0|[1-9][0-9]*)$",
+                                  "description": "Solicitado al cierre. Null si la cifra está protegida.",
+                                  "nullable": true
+                                }
+                              }
+                            },
+                            "description": "Convocatorias cerradas, de la más reciente a la más antigua. Sin datos de participantes."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "PAYLOAD_INVALID: campaña, identificadores o selección inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "ORDER_CONSENT_REQUIRED",
+                        "ORDER_CONSENT_LOCKED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "SUBSTITUTION_FORBIDDEN",
+                        "GRANTEE_NOT_ELIGIBLE",
+                        "RESPONSIBLE_STILL_ELIGIBLE",
+                        "SUCCESSOR_NOT_ELIGIBLE",
+                        "RESPONSIBLE_CHANGED",
+                        "REQUEST_ID_REUSED",
+                        "AUTHORIZATION_REQUIRED",
+                        "DELEGATION_NOT_PENDING",
+                        "GRANT_RETIRED",
+                        "SUBSTITUTION_PERMISSION_RETIRED",
+                        "CONSENT_VERSION_RETIRED",
+                        "APP_UPDATE_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    },
+                    "responsible_version": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Sólo con RESPONSIBLE_CHANGED: la versión vigente de la responsabilidad"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin credencial vigente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "ORDER_CONSENT_REQUIRED",
+                        "ORDER_CONSENT_LOCKED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "SUBSTITUTION_FORBIDDEN",
+                        "GRANTEE_NOT_ELIGIBLE",
+                        "RESPONSIBLE_STILL_ELIGIBLE",
+                        "SUCCESSOR_NOT_ELIGIBLE",
+                        "RESPONSIBLE_CHANGED",
+                        "REQUEST_ID_REUSED",
+                        "AUTHORIZATION_REQUIRED",
+                        "DELEGATION_NOT_PENDING",
+                        "GRANT_RETIRED",
+                        "SUBSTITUTION_PERMISSION_RETIRED",
+                        "CONSENT_VERSION_RETIRED",
+                        "APP_UPDATE_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    },
+                    "responsible_version": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Sólo con RESPONSIBLE_CHANGED: la versión vigente de la responsabilidad"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "ORDER_CONSENT_REQUIRED",
+                        "ORDER_CONSENT_LOCKED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "SUBSTITUTION_FORBIDDEN",
+                        "GRANTEE_NOT_ELIGIBLE",
+                        "RESPONSIBLE_STILL_ELIGIBLE",
+                        "SUCCESSOR_NOT_ELIGIBLE",
+                        "RESPONSIBLE_CHANGED",
+                        "REQUEST_ID_REUSED",
+                        "AUTHORIZATION_REQUIRED",
+                        "DELEGATION_NOT_PENDING",
+                        "GRANT_RETIRED",
+                        "SUBSTITUTION_PERMISSION_RETIRED",
+                        "CONSENT_VERSION_RETIRED",
+                        "APP_UPDATE_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    },
+                    "responsible_version": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Sólo con RESPONSIBLE_CHANGED: la versión vigente de la responsabilidad"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAMPAIGN_NOT_FOUND o PRODUCT_NOT_FOUND (inexistente o de otro tenant).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "ORDER_CONSENT_REQUIRED",
+                        "ORDER_CONSENT_LOCKED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "SUBSTITUTION_FORBIDDEN",
+                        "GRANTEE_NOT_ELIGIBLE",
+                        "RESPONSIBLE_STILL_ELIGIBLE",
+                        "SUCCESSOR_NOT_ELIGIBLE",
+                        "RESPONSIBLE_CHANGED",
+                        "REQUEST_ID_REUSED",
+                        "AUTHORIZATION_REQUIRED",
+                        "DELEGATION_NOT_PENDING",
+                        "GRANT_RETIRED",
+                        "SUBSTITUTION_PERMISSION_RETIRED",
+                        "CONSENT_VERSION_RETIRED",
+                        "APP_UPDATE_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    },
+                    "responsible_version": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Sólo con RESPONSIBLE_CHANGED: la versión vigente de la responsabilidad"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "PRODUCT_INACTIVE, PRODUCT_UNIT_UNSUPPORTED o PRODUCT_NOT_CANONICAL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "errorCode"
+                  ],
+                  "properties": {
+                    "errorCode": {
+                      "type": "string",
+                      "enum": [
+                        "PAYLOAD_INVALID",
+                        "AUTH_REQUIRED",
+                        "AUTH_CONTEXT_FORBIDDEN",
+                        "CALL_NOT_FOUND",
+                        "CAMPAIGN_NOT_FOUND",
+                        "CAMPAIGN_NOT_ELIGIBLE",
+                        "PROPOSAL_NOT_FOUND",
+                        "PROPOSAL_CAMPAIGN_MISMATCH",
+                        "PRODUCT_NOT_FOUND",
+                        "PRODUCT_INACTIVE",
+                        "PRODUCT_UNIT_UNSUPPORTED",
+                        "PRODUCT_NOT_CANONICAL",
+                        "PRODUCT_DUPLICATED",
+                        "PRODUCT_IN_OPEN_CALL",
+                        "RESPONSIBLE_NOT_ELIGIBLE",
+                        "DEADLINE_IN_PAST",
+                        "CONFIRMATION_REQUIRED",
+                        "REASON_REQUIRED",
+                        "INVALID_TRANSITION",
+                        "CALL_NOT_EDITABLE",
+                        "CALL_NOT_CLOSED",
+                        "PARTICIPANTS_FORBIDDEN",
+                        "MANAGE_FORBIDDEN",
+                        "COLLABORATORS_FORBIDDEN",
+                        "COLLABORATOR_NOT_ELIGIBLE",
+                        "CALL_NOT_OPEN",
+                        "STALE_SEQUENCE",
+                        "OPERATION_ID_REUSED",
+                        "CONSENT_REQUIRED",
+                        "ORDER_CONSENT_REQUIRED",
+                        "ORDER_CONSENT_LOCKED",
+                        "PARTICIPATION_REQUIRED",
+                        "WIDENING_NOT_ALLOWED",
+                        "SUBSTITUTION_FORBIDDEN",
+                        "GRANTEE_NOT_ELIGIBLE",
+                        "RESPONSIBLE_STILL_ELIGIBLE",
+                        "SUCCESSOR_NOT_ELIGIBLE",
+                        "RESPONSIBLE_CHANGED",
+                        "REQUEST_ID_REUSED",
+                        "AUTHORIZATION_REQUIRED",
+                        "DELEGATION_NOT_PENDING",
+                        "GRANT_RETIRED",
+                        "SUBSTITUTION_PERMISSION_RETIRED",
+                        "CONSENT_VERSION_RETIRED",
+                        "APP_UPDATE_REQUIRED",
+                        "PRODUCT_NOT_IN_CALL",
+                        "QUANTITY_INVALID",
+                        "RATE_LIMITED",
+                        "TEMPORARILY_UNAVAILABLE"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "DEADLINE_PASSED",
+                        "CLOSED",
+                        "CANCELLED",
+                        "DRAFT"
+                      ],
+                      "description": "Sólo con CALL_NOT_OPEN"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "OPEN",
+                        "CLOSED",
+                        "CANCELLED"
+                      ],
+                      "description": "Estado vigente: INVALID_TRANSITION, CALL_NOT_EDITABLE, CALL_NOT_CLOSED, WIDENING_NOT_ALLOWED"
+                    },
+                    "participation": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Sólo con STALE_SEQUENCE: la participación vigente en el servidor (o null)"
+                    },
+                    "responsible_version": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Sólo con RESPONSIBLE_CHANGED: la versión vigente de la responsabilidad"
+                    }
+                  },
+                  "description": "Cuerpo cerrado; nunca repite el contenido de la solicitud"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Solicitudes de cierres anteriores por producto canónico y campaña, según la regla de divulgación del cierre",
+        "tags": [
+          "joint purchase calls"
+        ]
+      }
+    },
     "/api/v1/joint-purchase-calls/{id}": {
       "get": {
         "operationId": "InstitutionalCallsController_detail",
