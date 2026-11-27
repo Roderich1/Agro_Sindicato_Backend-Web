@@ -336,6 +336,109 @@ describePostgres("E2 joint purchase calls on PostgreSQL", () => {
     });
   }
 
+  describe("closed product history for a draft", () => {
+    function history(session: TestSession, productRefs: string[], options: { campaignId?: string; excludeCallId?: string } = {}) {
+      const query = new URLSearchParams({ campaignId: options.campaignId ?? f.campaigns.openA });
+      for (const ref of productRefs) query.append("productRefs", ref);
+      if (options.excludeCallId) query.set("excludeCallId", options.excludeCallId);
+      return get(session, `${INST}/closed-product-history?${query}`);
+    }
+
+    const close = async (id: string) => {
+      expect((await post(director2, `${INST}/${id}/close`, { confirmed: true })).status).toBe(200);
+      clock.advance(1_000);
+    };
+
+    it("uses same-campaign frozen amounts, preserves zero, and filters product, state, current call and tenant", async () => {
+      const product = await newProduct("KG");
+      const zero = await newProduct("L");
+      const empty = await newProduct("KG");
+      const first = await openCall([product, zero]);
+      expect((await confirm4(farmerA, first, [[product, "30000"]], 1)).status).toBe(200);
+      expect((await confirm4(farmerA2, first, [[product, "90000"]], 1)).status).toBe(200);
+      expect((await withdraw(farmerA2, first, 2)).status).toBe(200);
+      await close(first);
+      const one = await history(director, [product]);
+      expect(one.status).toBe(200);
+      expect(one.headers["cache-control"]).toBe("no-store");
+      expect(one.body.products[0]).toMatchObject({
+        status: "VISIBLE", base_unit: "G", total_quantity_base: "30000",
+        calls: [{ call_id: first, call_name: "Compra conjunta sintética", visibility: "VISIBLE", quantity_base: "30000" }],
+      });
+
+      const second = await openCall([product]);
+      expect((await confirm4(farmerA, second, [[product, "40000"]], 1)).status).toBe(200);
+      await close(second);
+      const cancelled = await openCall([product]);
+      expect((await post(director, `${INST}/${cancelled}/cancel`, { confirmed: true, reason: "Caso sintético" })).status).toBe(200);
+      const stillOpen = await openCall([product]);
+      expect((await confirm4(farmerA, stillOpen, [[product, "80000"]], 1)).status).toBe(200);
+      const draft = await createDraft([product]);
+      expect(draft.status).toBe(201);
+      await close(await openCall([await newProduct()]));
+
+      await prisma.agriculturalCampaign.update({ where: { id: campaignA2 }, data: { status: "ABIERTA" } });
+      try {
+        const otherCampaign = await openCall([product], { campaignId: campaignA2 });
+        await close(otherCampaign);
+        expect((await history(admin, [product], { campaignId: campaignA2 })).body.products[0].calls).toMatchObject([{ call_id: otherCampaign }]);
+      } finally {
+        await prisma.agriculturalCampaign.update({ where: { id: campaignA2 }, data: { status: "PLANIFICADA" } });
+      }
+
+      const response = await history(admin, [empty, product, zero], { excludeCallId: draft.body.call_id });
+      expect(response.status).toBe(200);
+      expect(response.body.products).toMatchObject([
+        { product_ref: empty, status: "NO_HISTORY", total_quantity_base: null, calls: [] },
+        {
+          product_ref: product, status: "VISIBLE", total_quantity_base: "70000",
+          calls: [{ call_id: second, quantity_base: "40000" }, { call_id: first, quantity_base: "30000" }],
+        },
+        { product_ref: zero, status: "VISIBLE", total_quantity_base: "0", calls: [{ call_id: first, base_unit: "ML", quantity_base: "0" }] },
+      ]);
+      expect((await history(admin, [product], { excludeCallId: first })).body.products[0].total_quantity_base).toBe("40000");
+      expect((await history(farmerA, [product])).status).toBe(403);
+      expect((await history(directorB, [product])).body).toEqual({ errorCode: "CAMPAIGN_NOT_FOUND" });
+      expect((await history(directorB, [product], { campaignId: f.campaigns.openB })).body).toEqual({ errorCode: "PRODUCT_NOT_FOUND" });
+      expect((await history(admin, [product, product])).status).toBe(400);
+    });
+
+    it("never returns a partial total or participant metadata when the closing hides a figure", async () => {
+      const product = await newProduct();
+      const visible = await openCall([product]);
+      expect((await confirm4(farmerA, visible, [[product, "400"]], 1)).status).toBe(200);
+      await close(visible);
+      const mixed = await openCall([product]);
+      expect((await confirm4(farmerA, mixed, [[product, "100"]], 1)).status).toBe(200);
+      await historicalParticipation(farmerA2, mixed, [[product, "200"]]);
+      await historicalParticipation(farmerA3, mixed, [[product, "300"]]);
+      await close(mixed);
+
+      const administration = await history(admin, [product]);
+      expect(administration.status).toBe(200);
+      expect(administration.body.products[0]).toMatchObject({ status: "PENDING_CONSENT", total_quantity_base: null });
+      expect(administration.body.products[0].calls).toEqual([
+        { call_id: mixed, call_name: "Compra conjunta sintética", base_unit: "ML", visibility: "PENDING_CONSENT", quantity_base: null },
+        { call_id: visible, call_name: "Compra conjunta sintética", base_unit: "ML", visibility: "VISIBLE", quantity_base: "400" },
+      ]);
+      expect((await history(director, [product])).body.products[0]).toMatchObject({
+        status: "VISIBLE", total_quantity_base: "1000",
+        calls: [{ call_id: mixed, quantity_base: "600" }, { call_id: visible, quantity_base: "400" }],
+      });
+
+      const pending = await openCall([product]);
+      await historicalParticipation(farmerA2, pending, [[product, "500"]]);
+      await close(pending);
+      for (const viewer of [admin, director]) {
+        const result = await history(viewer, [product]);
+        expect(result.body.products[0]).toMatchObject({ status: "PENDING_CONSENT", total_quantity_base: null });
+        expect(result.body.products[0].calls[0]).toEqual({
+          call_id: pending, call_name: "Compra conjunta sintética", base_unit: "ML", visibility: "PENDING_CONSENT", quantity_base: null,
+        });
+      }
+    });
+  });
+
   describe("transitions and immutability", () => {
     it("creates a draft, refuses edits after opening, and keeps final states final", async () => {
       const p = await newProduct();

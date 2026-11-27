@@ -18,6 +18,7 @@ import {
   revokeCollaborator,
 } from "./institutional/institutional-calls.access";
 import { renderDetailView } from "./institutional/institutional-calls.detail-view";
+import { ClosedProductHistoryQuery, ClosedProductHistoryView, getClosedProductHistory } from "./institutional/institutional-calls.closed-product-history";
 import {
   cancelCall,
   closeCall,
@@ -105,6 +106,10 @@ export class InstitutionalCallsUseCase {
 
   async closingView(actor: InstitutionalActor, id: string): Promise<ClosingViewV2> {
     return renderClosingView(this.prisma, actor, id);
+  }
+
+  async closedProductHistory(actor: InstitutionalActor, query: ClosedProductHistoryQuery): Promise<ClosedProductHistoryView> {
+    return getClosedProductHistory(this.prisma, actor, query);
   }
 
   async create(actor: InstitutionalActor, command: DraftCommand): Promise<CallDetailViewV2> {

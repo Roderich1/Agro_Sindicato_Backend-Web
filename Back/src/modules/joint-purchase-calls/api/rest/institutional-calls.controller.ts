@@ -17,10 +17,12 @@ import { CurrentUser } from "@/modules/iam/api/rest/decorators/current-user.deco
 import { Roles } from "@/modules/iam/api/rest/decorators/roles.decorator";
 import { AuthenticatedPrincipal } from "@/modules/iam/application/types/authenticated-principal.type";
 import { InstitutionalCallsUseCase } from "../../application/institutional-calls.use-case";
+import type { ClosedProductHistoryView } from "../../application/institutional/institutional-calls.closed-product-history";
 import { ResponsibleSubstitutionUseCase } from "../../application/responsible-substitution.use-case";
 import { InstitutionalActor } from "../../domain/call-error";
 import {
   CancelCallDto,
+  ClosedProductHistoryQueryDto,
   ConfirmActionDto,
   CreateCallDto,
   GrantCollaboratorDto,
@@ -35,6 +37,7 @@ import {
   callDetailSchema,
   callErrorSchema,
   callSummaryListSchema,
+  closedProductHistorySchema,
   closingSchema,
   collaboratorsSchema,
   eligibleResponsiblesSchema,
@@ -85,6 +88,19 @@ export class InstitutionalCallsController {
   @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR.")
   eligibleResponsibles(@CurrentUser() user: AuthenticatedPrincipal) {
     return this.calls.eligibleResponsibles(actorOf(user));
+  }
+
+  @Get("closed-product-history")
+  @Header("Cache-Control", "no-store")
+  @ApiOperation({ summary: "Solicitudes de cierres anteriores por producto canónico y campaña, según la regla de divulgación del cierre" })
+  @ApiResponse({ status: 200, schema: closedProductHistorySchema })
+  @error(400, "PAYLOAD_INVALID: campaña, identificadores o selección inválidos.")
+  @error(401, "Sin credencial vigente.")
+  @error(403, "Rol distinto de DIRECTIVA o ADMINISTRADOR, o MANAGE_FORBIDDEN.")
+  @error(404, "CAMPAIGN_NOT_FOUND o PRODUCT_NOT_FOUND (inexistente o de otro tenant).")
+  @error(422, "PRODUCT_INACTIVE, PRODUCT_UNIT_UNSUPPORTED o PRODUCT_NOT_CANONICAL.")
+  closedProductHistory(@CurrentUser() user: AuthenticatedPrincipal, @Query() query: ClosedProductHistoryQueryDto): Promise<ClosedProductHistoryView> {
+    return this.calls.closedProductHistory(actorOf(user), query);
   }
 
   @Post()

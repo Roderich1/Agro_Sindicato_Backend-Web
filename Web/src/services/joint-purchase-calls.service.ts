@@ -1,5 +1,6 @@
 import { api } from '../lib/axios';
 import type {
+  ClosedProductHistory,
   CreateJointPurchaseCallBody,
   EligibleResponsible,
   JointPurchaseCallClosing,
@@ -41,6 +42,13 @@ export const jointPurchaseCallsService = {
       })
       .then((r) => r.data.calls),
   get: (id: string) => api.get<JointPurchaseCallDetail>(`${BASE}/${seg(id)}`).then((r) => r.data),
+  closedProductHistory: (campaignId: string, productRefs: string[], excludeCallId?: string, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ campaignId });
+    for (const ref of productRefs) params.append('productRefs', ref);
+    if (excludeCallId) params.set('excludeCallId', excludeCallId);
+    return api.get<{ contractVersion: 1; products: ClosedProductHistory[] }>(`${BASE}/closed-product-history`, { params, signal })
+      .then((r) => r.data.products);
+  },
   /** 201 con el detalle; su `call_id` identifica el borrador creado. */
   create: (body: CreateJointPurchaseCallBody) => api.post<JointPurchaseCallDetail>(BASE, body).then((r) => r.data),
   update: (id: string, body: UpdateJointPurchaseCallBody) =>
