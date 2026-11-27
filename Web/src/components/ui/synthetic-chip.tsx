@@ -9,7 +9,7 @@ import { Chip } from './chip';
  */
 export function SyntheticDataChip() {
   const mode = useDisclosureMode();
-  if (mode !== 'PROVISIONAL_SYNTHETIC') return null;
+  if (import.meta.env.PROD || mode !== 'PROVISIONAL_SYNTHETIC') return null;
   return (
     <span className="inline-flex shrink-0" title="El servidor declara datos sintéticos (modo provisional de la política de divulgación)." data-testid="synthetic-badge">
       <Chip tone="attention">Datos sintéticos</Chip>

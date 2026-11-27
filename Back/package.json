@@ -10,6 +10,8 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
+    "db:deploy": "prisma migrate deploy",
+    "presentation:load": "node dist/presentation/cli.js",
     "backups:inventory": "node dist/modules/backups/cli/backups-inventory.js",
     "product-photos:sweep": "node dist/modules/product-identification/cli/product-photo-sweep.js",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",

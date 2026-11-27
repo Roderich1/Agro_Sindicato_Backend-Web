@@ -6,6 +6,7 @@ import cookieParser = require("cookie-parser");
 import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { HttpExceptionLoggingFilter } from "./bootstrap/http-exception-logging.filter";
+import { httpOrigins } from "./bootstrap/http-origins";
 import { createOpenApiDocument } from "./bootstrap/openapi";
 import { configureBackupsBodyGuard } from "./modules/backups/api/rest/backups-body";
 import { configureJointPurchaseCallsBody } from "./modules/joint-purchase-calls/api/rest/calls-body";
@@ -15,15 +16,20 @@ import { configureSyncV1BodyParser } from "./modules/sync-v1/api/rest/sync-v1-bo
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  const origins = httpOrigins(config);
 
   app.setGlobalPrefix("api/v1");
+  app.use("/api", (_request: unknown, response: { setHeader(name: string, value: string): void }, next: () => void) => {
+    response.setHeader("Cache-Control", "private, no-store");
+    next();
+  });
   // Before Nest's own JSON parser: Sync v1 bodies are parsed strictly.
   configureSyncV1BodyParser(app);
   app.use(helmet());
   app.use(cookieParser());
   app.useGlobalFilters(new HttpExceptionLoggingFilter());
   app.enableCors({
-    origin: config.get<string>("CORS_ORIGIN")?.split(",") ?? true,
+    origin: origins,
     credentials: true,
   });
   // F08: the backup body is a stream; no shared parser may read or echo it.
@@ -47,7 +53,7 @@ async function bootstrap() {
   const document = createOpenApiDocument(app);
   SwaggerModule.setup("docs", app, document);
 
-  await app.listen(config.get<number>("PORT") ?? 3000);
+  await app.listen(config.get<number>("PORT") ?? 3000, "0.0.0.0");
 }
 
 void bootstrap();

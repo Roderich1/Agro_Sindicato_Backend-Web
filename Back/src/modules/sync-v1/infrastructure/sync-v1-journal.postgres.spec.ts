@@ -2,6 +2,7 @@ import { afterAll, beforeAll } from "@jest/globals";
 import { PrismaClient } from "@prisma/client";
 import { randomBytes, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { URL } from "node:url";
 import {
@@ -132,6 +133,7 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
         "DemandForecast",
         "Payment",
         "CalendarEvent",
+        "PresentationInstallation",
       ]),
     );
     const migrations = await prisma.$queryRaw<
@@ -152,7 +154,11 @@ describePostgres("Sync v1 journal persistence, not business projection", () => {
     // E3-P2 the immutable origin of each call; (2026-11-12) the consent
     // decisions of E2 §10.6 and the substitution of the responsible (P-A);
     // (2026-11-13) E4, access by role and the policy without a threshold.
-    expect(migrations).toHaveLength(24);
+    const migrationDirectories = readdirSync(resolve("prisma/migrations"), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort((left, right) => left.localeCompare(right));
+    expect(migrations.map((migration) => migration.migration_name)).toEqual(migrationDirectories);
     expect(migrations[23]!.migration_name).toMatch(/_e4_acceso_rol_sin_k$/);
     expect(migrations.every((m) => m.finished_at !== null)).toBe(true);
     expect(migrations[4].migration_name).toMatch(

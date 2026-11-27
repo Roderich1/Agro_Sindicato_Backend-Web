@@ -2,6 +2,9 @@ node_modules
 dist
 coverage
 .env
+.env.*
+.presentation
+*.presentation-credentials.json
 *.log
 npm-debug.log
 *.tsbuildinfo
