@@ -69,12 +69,17 @@ Crear un par nuevo con el mismo bucket, prefijo común y capacidades de datos. P
 
 ## Resultado comprobado el 26 de noviembre de 2026
 
+La suite `b2-presentation.postgres.spec.ts` pasó sus tres pruebas contra Backblaze B2 real, con el Backend Nest y una base desechable en PostgreSQL 16. El ensayo usó los prefijos `ensayo-valle-20261126a-respaldos/` y `ensayo-valle-20261126a-fotos/`.
+
 | Comprobación | Observación |
 |---|---|
-| B2 real, metadatos | Bucket privado, endpoint y región coherentes, SSE-B2 predeterminado y cero reglas de ciclo de vida. El estado de Object Lock quedó pendiente de confirmar en el panel porque la credencial de inspección carece de `readBucketRetentions`. |
-| B2 real, prefijos de ensayo | `ListObjectVersions` y `ListMultipartUploads` devolvieron cero versiones, marcadores y cargas pendientes en ambos prefijos. |
-| Clave temporal histórica | `b2_authorize_account` devolvió HTTP 401 `unauthorized`. El archivo privado registra una fecha de caducidad que ya pasó. |
-| Clave de inspección | La autorización funciona y está acotada al bucket. Carece de restricción de prefijo, tiene capacidades administrativas y carece de `writeKeys`. El preflight del ensayo la rechazó antes de iniciar PostgreSQL o escribir en B2. |
-| Configuración local | `%LOCALAPPDATA%\Agrocuentas\presentacion-valle\b2-configuracion-local.env` contiene los nombres y parámetros del ensayo, con la credencial pendiente de inyección desde DPAPI. Se conserva el archivo de arranque de la presentación. |
+| B2 real, metadatos | Bucket privado, endpoint y región coherentes, SSE-B2 predeterminado y cero reglas de ciclo de vida. La confirmación de la configuración global de Object Lock requiere el panel o una credencial de inspección con `readBucketRetentions`. Las versiones creadas en el ensayo se pudieron eliminar. |
+| Clave de ensayo | `b2_authorize_account` confirmó que la clave vigente estaba limitada al bucket y al prefijo común de ensayo. Las capacidades verificadas fueron exactamente `listFiles`, `readFiles`, `writeFiles` y `deleteFiles`. |
+| Configuración local | `%LOCALAPPDATA%\Agrocuentas\presentacion-valle\b2-configuracion-local.env` contiene los parámetros del ensayo. El asistente DPAPI inyectó las credenciales en el proceso de prueba. |
+| Respaldo cifrado | La API rechazó el formato 1 con HTTP 422 y aceptó el formato 2 por multipart con HTTP 201. El respaldo quedó `AVAILABLE`, apareció en el listado del titular y su descarga devolvió HTTP 200 con los mismos 8 389 728 bytes y el mismo SHA‑256. Otra cuenta del sindicato y una de otro sindicato recibieron HTTP 404. El borrado del titular devolvió HTTP 204. El objeto y todas sus versiones desaparecieron del inventario. |
+| Cancelación multipart | Se observó una carga temporal iniciada en B2. Al interrumpir su origen, el adaptador canceló la carga y el listado quedó vacío. |
+| Fotos | La API rechazó un JPEG con EXIF con HTTP 422. La Directiva del sindicato descargó la imagen autorizada con HTTP 200 y SHA‑256 idéntico. Un agricultor recibió HTTP 403 y la Directiva de otro sindicato recibió HTTP 404. El reemplazo por PNG conservó dimensiones y tipo correctos y eliminó la versión anterior. El retiro devolvió HTTP 204 y la consulta posterior HTTP 404. |
+| Limpieza posterior | `ListObjectsV2`, `ListObjectVersions` y `ListMultipartUploads` confirmaron cero objetos, versiones, marcadores y cargas pendientes en ambos prefijos. Una inspección independiente volvió a confirmar versiones y multipart en cero, además de la eliminación de la base desechable. |
 | Validación local | 189 pruebas pasaron en seis suites, con PostgreSQL aislado donde correspondía. Incluyen selección de proveedor, cifrado de respaldos, autorización, tratamiento de metadatos, reemplazo y barrido de fotos. |
-| Escrituras en B2 real | Pendientes de una clave vigente con el prefijo y capacidades del ensayo. Subida, descarga, integridad, eliminación y cancelación reales quedan sin verificar. El trabajo de inspección fue de solo lectura. |
+
+Para Railway corresponde una clave específica de la instalación y sus prefijos de datos. La clave temporal de esta comprobación se limita a los prefijos de ensayo.
