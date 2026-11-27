@@ -36,6 +36,14 @@ export interface IdentificationRow {
   photoStoredAt: Date | null;
   photoConsentVersion: string | null;
   product: { id: string; name: string; unit: string; isActive: boolean } | null;
+  clarificationResponses?: readonly {
+    noteAt: Date;
+    note: string;
+    localName: string;
+    activeIngredient: string | null;
+    photoSha256: string | null;
+    receivedAt: Date | null;
+  }[];
 }
 
 export interface ResolutionView {
@@ -79,6 +87,17 @@ export interface InstitutionalPhotoView extends FarmerPhotoView {
 export interface InstitutionalRequestView extends Omit<FarmerRequestView, "photo"> {
   id: string;
   photo: InstitutionalPhotoView;
+  clarification_responses?: ClarificationResponseView[];
+}
+
+export interface ClarificationResponseView {
+  note_at: string;
+  note: string;
+  local_name: string;
+  active_ingredient: string | null;
+  included_photo: boolean;
+  photo_available: boolean;
+  received_at: string;
 }
 
 function resolutionOf(row: IdentificationRow): ResolutionView | null {
@@ -96,6 +115,12 @@ function resolutionOf(row: IdentificationRow): ResolutionView | null {
 
 function stored(row: IdentificationRow): boolean {
   return row.photoState === "STORED";
+}
+
+function pendingNote(row: IdentificationRow): FarmerRequestView["pending_note"] {
+  return row.pendingNote !== null && row.pendingNoteAt !== null
+    ? { text: row.pendingNote, at: row.pendingNoteAt.toISOString() }
+    : null;
 }
 
 /** The farmer's own request (E1 §4.1). The author of a note is never named. */
@@ -116,10 +141,9 @@ export function toFarmerView(row: IdentificationRow): FarmerRequestView {
       consent_version: row.photoConsentVersion,
     },
     resolution: resolutionOf(row),
-    pending_note:
-      row.pendingNote !== null && row.pendingNoteAt !== null
-        ? { text: row.pendingNote, at: row.pendingNoteAt.toISOString() }
-        : null,
+    pending_note: row.clarificationResponses?.some((reply) => reply.noteAt.getTime() === row.pendingNoteAt?.getTime())
+      ? null
+      : pendingNote(row),
   };
 }
 
@@ -130,6 +154,15 @@ export function toFarmerView(row: IdentificationRow): FarmerRequestView {
  */
 export function toInstitutionalView(row: IdentificationRow): InstitutionalRequestView {
   const farmer = toFarmerView(row);
+  const responses = (row.clarificationResponses ?? []).flatMap((reply) => reply.receivedAt ? [{
+    note_at: reply.noteAt.toISOString(),
+    note: reply.note,
+    local_name: reply.localName,
+    active_ingredient: reply.activeIngredient,
+    included_photo: reply.photoSha256 !== null,
+    photo_available: reply.photoSha256 !== null && stored(row) && reply.photoSha256 === row.photoSha256,
+    received_at: reply.receivedAt.toISOString(),
+  }] : []);
   return {
     contractVersion: farmer.contractVersion,
     id: row.id,
@@ -149,7 +182,8 @@ export function toInstitutionalView(row: IdentificationRow): InstitutionalReques
       stored_at: stored(row) ? (row.photoStoredAt?.toISOString() ?? null) : null,
     },
     resolution: farmer.resolution,
-    pending_note: farmer.pending_note,
+    pending_note: pendingNote(row),
+    ...(responses.length > 0 && { clarification_responses: responses }),
   };
 }
 

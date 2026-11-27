@@ -8,8 +8,8 @@ import { collectiveService } from '../../services/collective.service';
 import { identificationService } from '../../services/identification.service';
 import type { CatalogEntry } from '../../types/collective';
 import type { IdentificationCandidate, IdentificationRequest } from '../../types/identification';
-import { CHOICES, photoText, unitWord, type Choice } from './identification.constants';
-import { History, PendingNote, PhotoDialog } from './identification-list';
+import { CHOICES, hasCurrentClarificationResponse, photoText, unitWord, type Choice } from './identification.constants';
+import { Clarifications, History, PendingNote, PhotoDialog } from './identification-list';
 import { LinkPanel } from './identification-link-panel';
 import { CreatePanel, DeferPanel } from './identification-secondary-panels';
 
@@ -46,7 +46,7 @@ export function RequestPanel({ request, onDone }: { request: IdentificationReque
 
   useEffect(() => {
     void Promise.resolve().then(() => Promise.all([loadCandidates(), loadCatalog()]));
-  }, [loadCandidates, loadCatalog]);
+  }, [loadCandidates, loadCatalog, request.updated_at]);
 
   const switchChoice = (next: Choice) => {
     setChoice(next);
@@ -84,7 +84,8 @@ export function RequestPanel({ request, onDone }: { request: IdentificationReque
         </div>
         <PhotoFrame request={request} onOpen={() => setShowPhoto(true)} />
       </div>
-      {request.pending_note && <PendingNote note={request.pending_note} />}
+      {request.pending_note && !hasCurrentClarificationResponse(request) && <PendingNote note={request.pending_note} />}
+      <Clarifications request={request} onOpenPhoto={() => setShowPhoto(true)} />
 
       <div className="space-y-5 border-t border-line pt-5">
         <div className="lg:[&_fieldset>div]:grid lg:[&_fieldset>div]:grid-cols-3">

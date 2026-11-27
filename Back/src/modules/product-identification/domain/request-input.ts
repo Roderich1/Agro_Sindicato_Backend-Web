@@ -27,6 +27,12 @@ export interface NormalizedRequest {
   consent: { version: string; acceptedAt: Date } | null;
 }
 
+export interface ClarificationResponseInput extends UpsertInput {
+  operation_id: string;
+  note_at: string;
+  photo_sha256?: string | null;
+}
+
 const invalid = () => new IdentificationHttpError(400, "PAYLOAD_INVALID");
 
 /**

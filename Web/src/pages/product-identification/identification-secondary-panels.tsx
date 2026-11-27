@@ -9,7 +9,7 @@ import { identificationService } from '../../services/identification.service';
 import type { CatalogEntry } from '../../types/collective';
 import type { IdentificationRequest } from '../../types/identification';
 import { MAX_TEXT, unchanged, unitTitle, unitWord, type ActionProps } from './identification.constants';
-import { History } from './identification-list';
+import { Clarifications, History } from './identification-list';
 import { ReasonConfirmSubmit } from './identification-link-panel';
 
 /**
@@ -255,6 +255,7 @@ export function CorrectionPanel({ request, onCancel, onDone }: { request: Identi
           Guardar corrección
         </Button>
       </div>
+      <Clarifications request={request} />
       <History requestId={request.id} />
     </div>
   );

@@ -32,6 +32,11 @@ const SHORT = new Intl.DateTimeFormat('es-BO', {
 
 export const fmtShort = (value: string) => SHORT.format(new Date(value));
 
+export function hasCurrentClarificationResponse(request: IdentificationRequest): boolean {
+  const noteAt = request.pending_note?.at;
+  return noteAt != null && (request.clarification_responses?.some((reply) => reply.note_at === noteAt) ?? false);
+}
+
 export function photoText(request: IdentificationRequest): string {
   switch (request.photo.state) {
     case 'STORED':
