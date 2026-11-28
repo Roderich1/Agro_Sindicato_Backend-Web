@@ -52,12 +52,14 @@ export function productError(err: unknown, fallback: string): string {
  * Una búsqueda vacía coincide con todo.
  */
 export function matchesProduct(
-  product: { name: string; commercialName?: string | null; activeIngredient?: string | null },
+  product: { name: string; commercialName?: string | null; activeIngredient?: string | null; category?: string | null },
   query: string,
 ): boolean {
   const wanted = normalizeName(query);
   if (!wanted) return true;
-  return [product.name, product.commercialName, product.activeIngredient].some((value) => value != null && normalizeName(value).includes(wanted));
+  return [product.name, product.commercialName, product.activeIngredient, product.category].some(
+    (value) => value != null && normalizeName(value).includes(wanted),
+  );
 }
 
 /** Nombre comparable sin la normalización de espacios: sólo para ordenar. */

@@ -166,4 +166,29 @@ describe('Reconciliación de denominaciones', () => {
       expect(collectiveService.associate).toHaveBeenCalledWith({ productId: 'bellator', canonicalProductId: 'nuevo', reason: 'es otro producto', confirmed: true }),
     );
   });
+
+  it('filtra por unidad y búsqueda global y permite buscar candidatos dentro del diálogo', async () => {
+    vi.mocked(collectiveService.associations).mockResolvedValue({ current: [ASSOCIATED], history: [] });
+    renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
+    await screen.findByTestId('product-Urea F06');
+
+    // Filtro por unidad Kilogramos deja Urea F06 en sueltos y vacía unidos.
+    fireEvent.click(within(screen.getByTestId('reconciliation-unit-filter')).getByRole('button', { name: 'Kilogramos' }));
+    expect(screen.getByTestId('product-Urea F06')).toBeTruthy();
+    expect(screen.queryByTestId('current-Bellator')).toBeNull();
+
+    // Limpiar filtros y buscar en el diálogo de unión.
+    fireEvent.click(within(screen.getByTestId('reconciliation-unit-filter')).getByRole('button', { name: 'Todas' }));
+    vi.mocked(collectiveService.catalog).mockResolvedValue([
+      ...CATALOG,
+      { product_ref: 'glif', product_name: 'GLIFÓSATO 48', unit: 'L', base_unit: 'ML', is_active: true },
+    ]);
+    vi.mocked(collectiveService.associations).mockResolvedValue({ current: [], history: [] });
+    renderAt(<ProductReconciliationPage />, { path: '/colectivo/reconciliacion' });
+    const bellators = await screen.findAllByTestId('product-Bellator');
+    fireEvent.click(within(bellators[bellators.length - 1]!).getByRole('button', { name: /^Unir/ }));
+    fireEvent.change(screen.getByLabelText('Buscar producto candidato'), { target: { value: 'glifosato' } });
+    const select = screen.getByLabelText('Con el producto') as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent)).toEqual(['Seleccione…', 'GLIFÓSATO 48 (L)']);
+  });
 });

@@ -171,4 +171,21 @@ describe('Gestión → Productos', () => {
     expect(screen.queryByRole('button', { name: 'Nuevo producto' })).toBeNull();
     expect(productsService.list).not.toHaveBeenCalled();
   });
+
+  it('filtra productos por unidad y busca también por categoría sin tildes', async () => {
+    renderAt(<ProductsPage />, { path: PATH });
+    await screen.findByTestId('product-Herbicida sintético');
+
+    // Búsqueda por categoría sin tildes.
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'fertilizante' } });
+    expect(screen.getByTestId('product-Urea sintética')).toBeTruthy();
+    expect(screen.queryByTestId('product-Herbicida sintético')).toBeNull();
+
+    // Filtro por unidad Litros mientras la búsqueda es fertilizante → sin coincidencias + quitar filtros.
+    fireEvent.click(within(screen.getByTestId('catalog-unit-filter')).getByRole('button', { name: 'Litros' }));
+    expect(screen.getByTestId('products-no-match')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    expect(screen.getByTestId('product-Herbicida sintético')).toBeTruthy();
+    expect(screen.getByTestId('product-Urea sintética')).toBeTruthy();
+  });
 });

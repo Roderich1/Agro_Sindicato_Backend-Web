@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { useCallback, useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, type To } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
@@ -7,15 +6,19 @@ import { unitInfo } from '../components/c/unit';
 import { ProductForm } from '../components/product-form';
 import {
   Button,
+  Chip,
   ConfirmDialog,
   DataState,
+  dataStateKindForError,
   Dialog,
+  FilterChips,
   linkClass,
   Notice,
   PageHeader,
   SearchInput,
   SegmentedControl,
   surfaceClass,
+  type DataStateKind,
 } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { fmtDateTime } from '../lib/collective-text';
@@ -23,6 +26,23 @@ import { COLLECTIVE_PATHS } from '../lib/navigation';
 import { groupProducts, matchesProduct, productError, type ProductGrouping } from '../lib/product-text';
 import { productsService } from '../services/inventory.service';
 import type { Product } from '../types/inventory';
+
+type ProductUnitFilter = 'ALL' | 'L' | 'KG' | 'OTHER';
+
+const UNIT_FILTERS: { value: ProductUnitFilter; label: string }[] = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'L', label: 'Litros' },
+  { value: 'KG', label: 'Kilogramos' },
+  { value: 'OTHER', label: 'Otras' },
+];
+
+function matchesUnitFilter(unit: string, filter: ProductUnitFilter): boolean {
+  if (filter === 'ALL') return true;
+  const upper = unit.trim().toUpperCase();
+  if (filter === 'L') return upper === 'L';
+  if (filter === 'KG') return upper === 'KG';
+  return upper !== 'L' && upper !== 'KG';
+}
 
 const GROUPINGS: { value: ProductGrouping; label: string }[] = [
   { value: 'category', label: 'Por categoría' },
@@ -74,13 +94,14 @@ export function ProductsView({
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<{ message: string; forbidden: boolean } | null>(null);
+  const [error, setError] = useState<{ kind: DataStateKind; message: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [dirty, setDirty] = useState(false);
   const [deactivating, setDeactivating] = useState<Product | null>(null);
   const [query, setQuery] = useState('');
+  const [unitFilter, setUnitFilter] = useState<ProductUnitFilter>('ALL');
   const [grouping, setGrouping] = useState<ProductGrouping>('category');
   const [showInactive, setShowInactive] = useState(false);
   const inactiveId = useId();
@@ -92,7 +113,7 @@ export function ProductsView({
       setError(null);
     } catch (err) {
       setProducts([]);
-      setError({ message: productError(err, 'No fue posible cargar los productos.'), forbidden: axios.isAxiosError(err) && err.response?.status === 403 });
+      setError({ kind: dataStateKindForError(err), message: productError(err, 'No fue posible cargar los productos.') });
     } finally {
       setLoading(false);
     }
@@ -110,10 +131,10 @@ export function ProductsView({
     onActiveCount?.(activeCount);
   }, [activeCount, onActiveCount]);
   const inactive = products.filter((product) => !product.isActive);
-  const shownActive = active.filter((product) => matchesProduct(product, query));
-  const shownInactive = inactive.filter((product) => matchesProduct(product, query));
+  const shownActive = active.filter((product) => matchesUnitFilter(product.unit, unitFilter) && matchesProduct(product, query));
+  const shownInactive = inactive.filter((product) => matchesUnitFilter(product.unit, unitFilter) && matchesProduct(product, query));
   const existing = products.map((product) => ({ id: product.id, name: product.name, isActive: product.isActive }));
-  const filtered = query.trim().length > 0;
+  const filtered = query.trim().length > 0 || unitFilter !== 'ALL';
   const groups = groupProducts(shownActive, grouping);
 
   const closeForm = () => {
@@ -138,23 +159,31 @@ export function ProductsView({
       {message && <Notice kind="ok">{message}</Notice>}
       {error ? (
         <div className={surfaceClass}>
-          <DataState compact state={error.forbidden ? 'forbidden' : 'error'} description={error.message} onRetry={error.forbidden ? undefined : () => void load()} />
+          <DataState
+            compact
+            state={error.kind}
+            description={error.kind === 'offline' || error.kind === 'busy' ? undefined : error.message}
+            onRetry={error.kind === 'forbidden' ? undefined : () => void load()}
+          />
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center" data-testid="catalog-filters">
-            <SearchInput
-              id="product-search"
-              label="Buscar producto"
-              value={query}
-              onChange={setQuery}
-              placeholder="Buscar por nombre o ingrediente"
-              enterKeyHint="search"
-              inputMode="search"
-              autoComplete="off"
-              fieldClassName="w-full min-w-0 lg:w-[22rem]"
-            />
-            <SegmentedControl label="Agrupar" hideLabel testId="catalog-grouping" options={GROUPINGS} value={grouping} onChange={setGrouping} />
+          <div className="flex flex-col gap-3" data-testid="catalog-filters">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <SearchInput
+                id="product-search"
+                label="Buscar producto"
+                value={query}
+                onChange={setQuery}
+                placeholder="Buscar por nombre, ingrediente o categoría"
+                enterKeyHint="search"
+                inputMode="search"
+                autoComplete="off"
+                fieldClassName="w-full min-w-0 lg:w-[22rem]"
+              />
+              <SegmentedControl label="Agrupar" hideLabel testId="catalog-grouping" options={GROUPINGS} value={grouping} onChange={setGrouping} />
+            </div>
+            <FilterChips label="Filtrar productos por unidad" testId="catalog-unit-filter" options={UNIT_FILTERS} value={unitFilter} onChange={setUnitFilter} />
           </div>
 
           {loading ? (
@@ -169,8 +198,15 @@ export function ProductsView({
             <div className={surfaceClass}>
               <DataState
                 state="no-match"
-                description={`Ningún producto activo coincide con «${query.trim()}» (nombre, nombre comercial o ingrediente activo).`}
-                onClearFilters={() => setQuery('')}
+                description={
+                  query.trim()
+                    ? `Ningún producto activo coincide con «${query.trim()}» (nombre, nombre comercial, ingrediente activo o categoría).`
+                    : 'Ningún producto activo coincide con el filtro de unidad aplicado.'
+                }
+                onClearFilters={() => {
+                  setQuery('');
+                  setUnitFilter('ALL');
+                }}
                 testId="products-no-match"
               />
             </div>
@@ -179,7 +215,7 @@ export function ProductsView({
               <p className="text-sm text-ink-muted">
                 <span data-testid="products-count">
                   {filtered
-                    ? `${count(shownActive.length, 'producto activo coincide', 'productos activos coinciden')} con «${query.trim()}» (de ${NUMBER.format(active.length)}).`
+                    ? `${count(shownActive.length, 'producto activo coincide', 'productos activos coinciden')}${query.trim() ? ` con «${query.trim()}»` : ''} (de ${NUMBER.format(active.length)}).`
                     : `${count(active.length, 'producto activo', 'productos activos')}.`}
                 </span>{' '}
                 Los nombres que llegan distintos se unen en{' '}
@@ -212,9 +248,7 @@ export function ProductsView({
               {showInactive && (
                 <div id={inactiveId} className={`${surfaceClass} px-5 py-4 sm:px-7`}>
                   <p className="text-sm leading-relaxed text-ink-muted">
-                    Un producto inactivo no se borra: sus cifras, equivalencias e historial se conservan. Es una lista de sólo
-                    lectura: el sistema no ofrece reactivar un producto ni guarda un historial de cambios del catálogo (sólo la
-                    fecha de la última modificación).
+                    Un producto inactivo no se borra: sus cifras, equivalencias e historial se conservan. Es una lista de sólo lectura.
                   </p>
                   {shownInactive.length === 0 ? (
                     <DataState
@@ -234,7 +268,7 @@ export function ProductsView({
                               {[product.category, `modificado el ${fmtDateTime(product.updatedAt)}`].filter(Boolean).join(' · ')}
                             </p>
                           </div>
-                          <span className="shrink-0 rounded-full bg-sunken px-2.5 py-0.5 text-xs font-semibold text-ink">Inactivo</span>
+                          <Chip tone="neutral">Inactivo</Chip>
                         </li>
                       ))}
                     </ul>
@@ -247,7 +281,7 @@ export function ProductsView({
       )}
 
       {(creating || editing) && (
-        <Dialog title={editing ? `Editar «${editing.name}»` : 'Nuevo producto'} onClose={closeForm} dirty={dirty} size="md">
+        <Dialog title={editing ? `Editar «${editing.name}»` : 'Nuevo producto'} onClose={closeForm} dirty={dirty} size="md" fullScreenOnPhone>
           <ProductForm
             product={editing}
             existing={existing}
