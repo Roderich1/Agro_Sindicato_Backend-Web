@@ -1,18 +1,54 @@
+import { useState } from 'react';
 import { DisclosureNotice } from '../../components/collective-ui';
-import { Button, Card, Chip, DataState, DataTable, ICON, Notice, PrivacyChip, statusChipLabel } from '../../components/ui';
+import { Button, Card, Chip, DataState, DataTable, FilterChips, ICON, Notice, PrivacyChip, SearchInput, statusChipLabel } from '../../components/ui';
 import { fmtDateTime, PENDING_CHANGES_TEXT, statusReason } from '../../lib/collective-text';
 import { comparisonMessages, estimateScopeText, hasEstimateFigure } from '../../lib/estimation-link-text';
 import { REASON_TEXT, RESULT_STATUS_TEXT, VALIDITY_REASON_TEXT } from '../../lib/estimation-text';
+import { normalizeName } from '../../lib/product-text';
 import { formatBaseValue, formatDecimalQuantity, formatQuantity, formatRoundedEstimate } from '../../lib/quantity';
 import type { ProposalLine } from '../../types/collective';
 import { linkLineOf, type DetailProps, type LinkLoad } from './joint-proposal.types';
 import { LinkBanner, ReferenceNote, SelectionBar } from './proposal-link-banner';
 
+type ProposalLineFilter = 'all' | 'L' | 'KG' | 'hidden' | 'selected';
+
+const LINE_FILTERS: { value: ProposalLineFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'L', label: 'Litros' },
+  { value: 'KG', label: 'Kilogramos' },
+  { value: 'hidden', label: 'Sin cifra' },
+  { value: 'selected', label: 'Elegidos' },
+];
+
 export function ProposalDetail(props: DetailProps) {
-  const { proposal, link, selection, saving, onToggle } = props;
+  const { proposal, link, selection, saving, onToggle, onSelectMany, onDeselectMany } = props;
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<ProposalLineFilter>('all');
   const view = link?.status === 'ready' ? link.view : null;
   const messages = view ? comparisonMessages(view) : { shared: null, perLine: new Map<number, string>() };
   const chosen = selection?.status === 'ready' ? new Set(selection.chosen) : null;
+
+  const wanted = normalizeName(query);
+  const hasFilters = wanted.length > 0 || filter !== 'all';
+  const visibleLines = proposal.lines.filter((line) => {
+    if (filter === 'L' || filter === 'KG') {
+      if (line.presentation_unit !== filter) return false;
+    } else if (filter === 'hidden') {
+      if (line.status === 'DISCLOSED') return false;
+    } else if (filter === 'selected') {
+      if (!(chosen?.has(line.product_ref) ?? false)) return false;
+    }
+    if (wanted && !normalizeName(line.product_name).includes(wanted)) return false;
+    return true;
+  });
+
+  const visibleRefs = [...new Set(visibleLines.map((line) => line.product_ref))];
+  const allVisibleSelected = Boolean(chosen && visibleRefs.length > 0 && visibleRefs.every((ref) => chosen.has(ref)));
+  const clearFilters = () => {
+    setQuery('');
+    setFilter('all');
+  };
+
   return (
     <section className="space-y-5" aria-label="Detalle del borrador">
       {/* Encabezado para lectores de pantalla: la vista ya tiene el título visible «Borrador de compra». */}
@@ -32,70 +68,114 @@ export function ProposalDetail(props: DetailProps) {
         </Card>
       ) : (
         <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-          <div className="space-y-1 px-5 pt-4 sm:px-8">
-            <LinesSummary lines={proposal.lines} />
-            {/* E4 §4.4: el borrador conserva la política con que se generó. */}
-            {messages.shared && (
-              <p className="text-sm text-ink-muted" data-testid="comparison-note">
-                {messages.shared}
-              </p>
-            )}
+          <div className="space-y-3 px-5 pt-4 sm:px-8">
+            <div className="space-y-1">
+              <LinesSummary lines={proposal.lines} />
+              {/* E4 §4.4: el borrador conserva la política con que se generó. */}
+              {messages.shared && (
+                <p className="text-sm text-ink-muted" data-testid="comparison-note">
+                  {messages.shared}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-3" data-testid="proposal-filter-bar">
+              <SearchInput
+                label="Buscar producto"
+                placeholder="Buscar producto…"
+                value={query}
+                onChange={setQuery}
+                autoComplete="off"
+                enterKeyHint="search"
+                inputMode="search"
+                fieldClassName="min-w-0 flex-1 basis-56 sm:max-w-72"
+              />
+              <FilterChips label="Filtrar líneas del borrador" testId="proposal-filters" options={LINE_FILTERS} value={filter} onChange={setFilter} />
+              {chosen && visibleRefs.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => (allVisibleSelected ? onDeselectMany(visibleRefs) : onSelectMany(visibleRefs))}
+                  data-testid="proposal-select-all"
+                  className="sm:ml-auto"
+                >
+                  {allVisibleSelected
+                    ? hasFilters
+                      ? `Quitar filtrados (${visibleRefs.length})`
+                      : `Quitar selección (${visibleRefs.length})`
+                    : hasFilters
+                      ? `Seleccionar filtrados (${visibleRefs.length})`
+                      : `Seleccionar todos (${visibleRefs.length})`}
+                </Button>
+              )}
+            </div>
           </div>
-          {/* En un teléfono (< sm) cada línea se apila: casilla, producto, necesidad y consumo estimado, sin desplazamiento lateral. */}
-          <div className="mt-2 [&_.ui-table-scroll]:rounded-none [&_.ui-table-scroll]:border-0 [&_.ui-table-scroll]:shadow-none">
-            <DataTable caption="Líneas del borrador">
-              <thead>
-                <tr className="max-sm:hidden">
-                  <th className="w-16 pl-5 sm:pl-8">Llevar</th>
-                  <th>Producto</th>
-                  <th className="ui-num">Necesidad declarada</th>
-                  <th className="ui-num pr-5 sm:pr-8" data-testid="reference-header">
-                    Consumo estimado
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {proposal.lines.map((line) => {
-                  const marked = chosen?.has(line.product_ref) ?? false;
-                  return (
-                    <tr
-                      key={line.position}
-                      className={`max-sm:grid max-sm:grid-cols-[2.75rem_1fr] max-sm:gap-x-2 max-sm:border-b max-sm:border-line max-sm:px-4 max-sm:py-4 ${marked ? 'bg-lime-soft/40' : ''}`}
-                      data-testid={`line-${line.product_name}-${line.base_unit}`}
-                    >
-                      <td className="align-middle max-sm:row-span-3 max-sm:border-0 max-sm:p-0 max-sm:pt-0.5 sm:pl-5 md:pl-8">
-                        <input
-                          type="checkbox"
-                          className="h-6 w-6 cursor-pointer rounded accent-ink"
-                          checked={marked}
-                          disabled={!chosen || saving}
-                          onChange={() => onToggle(line.product_ref)}
-                          aria-label={`Llevar a convocatoria: ${line.product_name} (${line.presentation_unit})`}
-                          data-testid="select-product"
-                        />
-                      </td>
-                      <td className="max-sm:border-0 max-sm:p-0 [overflow-wrap:anywhere] sm:min-w-48">
-                        <p className="text-base font-semibold text-ink">
-                          {line.product_name} <span className="sr-only">({line.presentation_unit})</span>
-                        </p>
-                        <ProductNote line={line} />
-                      </td>
-                      <td className="align-middle max-sm:border-0 max-sm:p-0 max-sm:pt-3 sm:min-w-44 sm:text-right" data-testid="need">
-                        <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Necesidad declarada</span>
-                        <NeedCell line={line} />
-                      </td>
-                      <td className="align-middle max-sm:border-0 max-sm:p-0 max-sm:pt-3 sm:min-w-56 sm:pr-5 sm:text-right md:pr-8">
-                        <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Consumo estimado</span>
-                        <div data-testid="reference">
-                          <EstimateCell line={line} link={link} message={messages.perLine.get(line.position) ?? null} />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </DataTable>
-          </div>
+          {visibleLines.length === 0 ? (
+            <div className="px-5 py-6 sm:px-8">
+              <DataState
+                state="no-match"
+                compact
+                description={`Ningún producto del borrador coincide con el filtro aplicado${query.trim() ? ` («${query.trim()}»)` : ''}.`}
+                onClearFilters={clearFilters}
+              />
+            </div>
+          ) : (
+            /* En un teléfono (< sm) cada línea se apila: casilla, producto, necesidad y consumo estimado, sin desplazamiento lateral. */
+            <div className="mt-2 [&_.ui-table-scroll]:rounded-none [&_.ui-table-scroll]:border-0 [&_.ui-table-scroll]:shadow-none">
+              <DataTable caption="Líneas del borrador">
+                <thead>
+                  <tr className="max-sm:hidden">
+                    <th className="w-16 pl-5 sm:pl-8">Llevar</th>
+                    <th>Producto</th>
+                    <th className="ui-num">Necesidad declarada</th>
+                    <th className="ui-num pr-5 sm:pr-8" data-testid="reference-header">
+                      Consumo estimado
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleLines.map((line) => {
+                    const marked = chosen?.has(line.product_ref) ?? false;
+                    return (
+                      <tr
+                        key={line.position}
+                        className={`max-sm:grid max-sm:grid-cols-[2.75rem_1fr] max-sm:gap-x-2 max-sm:border-b max-sm:border-line max-sm:px-4 max-sm:py-4 ${marked ? 'bg-lime-soft/40' : ''}`}
+                        data-testid={`line-${line.product_name}-${line.base_unit}`}
+                      >
+                        <td className="align-middle max-sm:row-span-3 max-sm:border-0 max-sm:p-0 max-sm:pt-0.5 sm:pl-5 md:pl-8">
+                          <input
+                            type="checkbox"
+                            className="h-6 w-6 cursor-pointer rounded accent-ink"
+                            checked={marked}
+                            disabled={!chosen || saving}
+                            onChange={() => onToggle(line.product_ref)}
+                            aria-label={`Llevar a convocatoria: ${line.product_name} (${line.presentation_unit})`}
+                            data-testid="select-product"
+                          />
+                        </td>
+                        <td className="max-sm:border-0 max-sm:p-0 [overflow-wrap:anywhere] sm:min-w-48">
+                          <p className="text-base font-semibold text-ink">
+                            {line.product_name} <span className="sr-only">({line.presentation_unit})</span>
+                          </p>
+                          <ProductNote line={line} />
+                        </td>
+                        <td className="align-middle max-sm:border-0 max-sm:p-0 max-sm:pt-3 sm:min-w-44 sm:text-right" data-testid="need">
+                          <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Necesidad declarada</span>
+                          <NeedCell line={line} />
+                        </td>
+                        <td className="align-middle max-sm:border-0 max-sm:p-0 max-sm:pt-3 sm:min-w-56 sm:pr-5 sm:text-right md:pr-8">
+                          <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-muted sm:hidden">Consumo estimado</span>
+                          <div data-testid="reference">
+                            <EstimateCell line={line} link={link} message={messages.perLine.get(line.position) ?? null} />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </DataTable>
+            </div>
+          )}
           <ReferenceNote proposal={proposal} view={view} />
         </div>
       )}

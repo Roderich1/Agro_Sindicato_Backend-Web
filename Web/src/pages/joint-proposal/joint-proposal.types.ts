@@ -51,6 +51,8 @@ export interface DetailProps {
   selectionFeedback: Feedback | null;
   saving: boolean;
   onToggle: (productRef: string) => void;
+  onSelectMany: (productRefs: readonly string[]) => void;
+  onDeselectMany: (productRefs: readonly string[]) => void;
   onSave: () => void;
   onRetrySelection: () => void;
   onPrepareCall: () => void;

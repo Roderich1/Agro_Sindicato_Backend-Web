@@ -222,7 +222,7 @@ export function useJointProposal() {
     }
   };
 
-  const { acting, saving, actOnLink, toggleProduct, saveSelection } = useProposalActions({
+  const { acting, saving, actOnLink, toggleProduct, selectProducts, deselectProducts, saveSelection } = useProposalActions({
     proposal,
     context,
     contextRef,
@@ -296,6 +296,8 @@ export function useJointProposal() {
     generate,
     actOnLink,
     toggleProduct,
+    selectProducts,
+    deselectProducts,
     saveSelection,
     openDraft,
     chooseCampaign,

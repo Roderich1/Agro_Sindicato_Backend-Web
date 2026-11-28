@@ -92,6 +92,8 @@ export function JointProposalPage() {
                   selectionFeedback={vm.selectionFeedback}
                   saving={vm.saving}
                   onToggle={vm.toggleProduct}
+                  onSelectMany={vm.selectProducts}
+                  onDeselectMany={vm.deselectProducts}
                   onSave={() => void vm.saveSelection()}
                   onRetrySelection={() => void vm.loadSelection(vm.proposal!.proposal_ref, vm.context)}
                   onPrepareCall={vm.prepareCall}

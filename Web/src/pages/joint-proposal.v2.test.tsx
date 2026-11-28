@@ -190,4 +190,32 @@ describe('Borrador de compra v2', () => {
     expect((within(bar).getByRole('button', { name: 'Preparar convocatoria (0 productos)' }) as HTMLButtonElement).disabled).toBe(true);
     expect(collectiveService.saveProposalSelection).not.toHaveBeenCalled();
   });
+
+  it('filtra líneas del borrador sin tildes ni mezclar unidades y «Seleccionar todos / filtrados» indica cuántos marca', async () => {
+    renderAt(<JointProposalPage />, { path: `/colectivo/propuestas?campaign=${CAMPAIGN.id}` });
+    await screen.findByText('295 L');
+
+    // Sin filtros: el botón indica cuántos productos totales va a marcar.
+    const bulkBtn = () => screen.getByTestId('proposal-select-all');
+    await waitFor(() => expect(bulkBtn().textContent).toBe('Seleccionar todos (3)'));
+    fireEvent.click(bulkBtn());
+    expect(bulkBtn().textContent).toBe('Quitar selección (3)');
+    expect(screen.getByTestId('selection-summary').textContent).toMatch(/^3 productos elegidos/);
+
+    // Quitar todos y filtrar solo Kilogramos: indica que aplica a los resultados filtrados.
+    fireEvent.click(bulkBtn());
+    fireEvent.click(within(screen.getByTestId('proposal-filters')).getByRole('button', { name: 'Kilogramos' }));
+    expect(screen.getByTestId('line-Urea-G')).toBeTruthy();
+    expect(screen.queryByTestId('line-Glifosato-ML')).toBeNull();
+    expect(bulkBtn().textContent).toBe('Seleccionar filtrados (1)');
+    fireEvent.click(bulkBtn());
+    expect(bulkBtn().textContent).toBe('Quitar filtrados (1)');
+    expect(screen.getByTestId('selection-summary').textContent).toMatch(/^1 producto elegido/);
+
+    // Búsqueda sin coincidencias muestra «Sin coincidencias» y permite limpiar.
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'inexistente' } });
+    expect(screen.getByText('Sin coincidencias')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    expect(screen.getByTestId('line-Urea-G')).toBeTruthy();
+  });
 });

@@ -457,6 +457,40 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     expect(screen.queryByTestId('detail-probe')).toBeNull();
   });
 
+  it('selectores del catálogo y del borrador filtran sin tildes y por unidad sin fijar ya marcados encima de la búsqueda', async () => {
+    const accentedCatalog: CatalogEntry[] = [
+      ...CATALOG,
+      { product_ref: 'p-6', product_name: 'ÁCIDO húmico', unit: 'L', base_unit: 'ML', is_active: true },
+    ];
+    vi.mocked(collectiveService.catalog).mockResolvedValue(accentedCatalog);
+    render();
+    fireEvent.click(await screen.findByRole('button', { name: 'Nueva convocatoria' }));
+    const form = dialog();
+    await within(form).findByRole('list', { name: 'Productos del catálogo' });
+
+    // Marcar Urea y buscar «acido»: Urea no queda fijada tapando el resultado buscado.
+    fireEvent.click(within(form).getByRole('checkbox', { name: /Urea/ }));
+    fireEvent.change(within(form).getByLabelText('Buscar producto'), { target: { value: 'acido' } });
+    expect(within(form).getByRole('checkbox', { name: /ÁCIDO húmico/ })).toBeTruthy();
+    expect(within(form).queryByRole('checkbox', { name: /Urea/ })).toBeNull();
+
+    // Filtrar por Kilogramos en catálogo cuando no coincide muestra «Sin coincidencias» y permite limpiar.
+    fireEvent.click(within(within(form).getByTestId('catalog-picker-unit')).getByRole('button', { name: 'Kilogramos' }));
+    expect(within(form).getByText('Sin coincidencias')).toBeTruthy();
+    fireEvent.click(within(form).getByRole('button', { name: 'Quitar filtros' }));
+    expect((within(form).getByRole('checkbox', { name: /Urea/ }) as HTMLInputElement).checked).toBe(true);
+
+    // En «De un borrador de compra», buscar sin tildes y filtrar por unidad.
+    fireEvent.click(within(form).getByRole('button', { name: 'De un borrador de compra' }));
+    fireEvent.change(await within(form).findByLabelText('Borrador de compra'), { target: { value: 'pr-1' } });
+    await within(form).findByTestId('proposal-line-0');
+    fireEvent.change(within(form).getByLabelText('Buscar en el borrador'), { target: { value: 'urea' } });
+    expect(within(form).getByTestId('proposal-line-1')).toBeTruthy();
+    expect(within(form).queryByTestId('proposal-line-0')).toBeNull();
+    fireEvent.click(within(within(form).getByTestId('proposal-picker-unit')).getByRole('button', { name: 'Litros' }));
+    expect(within(form).getByText('Sin coincidencias')).toBeTruthy();
+  });
+
   /** Completa el formulario de una convocatoria nueva con un producto del catálogo y el responsable dado. */
   it('crea con el rol institucional, sin consulta de responsables ni pasos de traspaso', async () => {
     vi.mocked(jointPurchaseCallsService.create).mockResolvedValue(CREATED);
