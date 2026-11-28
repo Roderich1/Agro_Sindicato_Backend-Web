@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { CallHero, HeroDangerButton } from '../components/b/call-hero';
 import { ActivityTimeline, CallCard, LockLine } from '../components/b/call-ui';
 import { Button, buttonClassFor, DataState, Notice, StatusChip } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
-import { CALL_STATUS_CHIP } from '../lib/joint-purchase-call-text';
+import { callError, CALL_STATUS_CHIP } from '../lib/joint-purchase-call-text';
+import { downloadCallExcel } from '../lib/joint-purchase-call-xlsx';
 import type { JointPurchaseCallDetail } from '../types/joint-purchase-calls';
 import { CallDetailDialogs } from './joint-purchase-call-detail/call-action-dialogs';
-import { heroFacts, type DialogState } from './joint-purchase-call-detail/call-detail.helpers';
+import { heroFacts, isParticipantsForbidden, type DialogState } from './joint-purchase-call-detail/call-detail.helpers';
 import { ClosingPanel, ParticipantsPanel } from './joint-purchase-call-detail/call-participants-closing';
 import { CallProvenance, ProductsCard } from './joint-purchase-call-detail/call-products-and-footnote';
 import { useCallDetail } from './joint-purchase-call-detail/use-call-detail';
@@ -30,6 +32,26 @@ export function JointPurchaseCallDetailPage() {
 
 function CallDetail({ id }: Readonly<{ id: string }>) {
   const vm = useCallDetail(id);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadCallExcel(id);
+    } catch (err) {
+      if (isParticipantsForbidden(err)) {
+        setExportError('Su cuenta ya no tiene acceso al detalle por participante. Actualice y vuelva a intentarlo.');
+        void vm.refresh();
+      } else {
+        setExportError(callError(err, 'No fue posible generar el Excel de esta convocatoria.'));
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (vm.problem || !vm.call) {
     return (
@@ -65,12 +87,17 @@ function CallDetail({ id }: Readonly<{ id: string }>) {
           eyebrow={`Compra conjunta · ${call.campaign.name}`}
           chips={<StatusChip status={CALL_STATUS_CHIP[call.status] ?? call.status} testId="call-status" />}
           facts={heroFacts(call, vm.closing)}
-          actions={callActions(call, vm.setDialog)}
+          actions={callActions(call, vm.setDialog, { exporting, onExport: () => void handleExport() })}
         />
 
         {vm.alert && (
           <Notice kind="warn">
             <span data-testid="call-alert">{vm.alert}</span>
+          </Notice>
+        )}
+        {exportError && (
+          <Notice kind="error">
+            <span data-testid="export-error">{exportError}</span>
           </Notice>
         )}
         {vm.message && <Notice kind="ok">{vm.message}</Notice>}
@@ -117,28 +144,43 @@ function CallDetail({ id }: Readonly<{ id: string }>) {
   );
 }
 
-function callActions(call: JointPurchaseCallDetail, openDialog: (dialog: DialogState) => void) {
+function callActions(
+  call: JointPurchaseCallDetail,
+  openDialog: (dialog: DialogState) => void,
+  excel: { exporting: boolean; onExport: () => void },
+) {
   const canManage = call.can_manage === true;
   const canEnd = canManage || call.can_cancel_or_close === true;
-  if (!canEnd || (call.status !== 'DRAFT' && call.status !== 'OPEN')) return;
+  const canExport = call.status === 'OPEN' || call.status === 'CLOSED';
+  const showManage = canEnd && (call.status === 'DRAFT' || call.status === 'OPEN');
+  if (!showManage && !canExport) return;
 
   return (
     <>
-      <HeroDangerButton onClick={() => openDialog({ kind: 'cancel' })}>Cancelar convocatoria…</HeroDangerButton>
-      {call.status === 'DRAFT' && canManage && (
-        <>
-          <Button variant="on-dark" onClick={() => openDialog({ kind: 'edit' })}>
-            Editar
-          </Button>
-          <Button variant="accent" onClick={() => openDialog({ kind: 'open' })}>
-            Abrir convocatoria…
-          </Button>
-        </>
-      )}
-      {call.status === 'OPEN' && (
-        <Button variant="accent" onClick={() => openDialog({ kind: 'close' })}>
-          Cerrar y consolidar…
+      {canExport && (
+        <Button variant="on-dark" onClick={excel.onExport} busy={excel.exporting} data-testid="download-call-excel">
+          Descargar Excel
         </Button>
+      )}
+      {showManage && (
+        <>
+          <HeroDangerButton onClick={() => openDialog({ kind: 'cancel' })}>Cancelar convocatoria…</HeroDangerButton>
+          {call.status === 'DRAFT' && canManage && (
+            <>
+              <Button variant="on-dark" onClick={() => openDialog({ kind: 'edit' })}>
+                Editar
+              </Button>
+              <Button variant="accent" onClick={() => openDialog({ kind: 'open' })}>
+                Abrir convocatoria…
+              </Button>
+            </>
+          )}
+          {call.status === 'OPEN' && (
+            <Button variant="accent" onClick={() => openDialog({ kind: 'close' })}>
+              Cerrar y consolidar…
+            </Button>
+          )}
+        </>
       )}
     </>
   );
