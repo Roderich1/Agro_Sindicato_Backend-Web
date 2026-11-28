@@ -76,10 +76,10 @@ describe('Cobertura', () => {
     expect(coverage.textContent).toMatch(/1 de 1 agricultor vinculado con cifras publicadas \(100/);
   });
 
-  it('el seguimiento de sincronización sigue sin datos y lo dice', async () => {
+  it('no muestra el bloque sin función de seguimiento de sincronización', async () => {
     show(fixtures.demo);
     await screen.findByTestId('coverage');
-    expect(screen.getByTestId('sync-tracking').textContent).toMatch(/Todavía sin consulta del servidor/);
+    expect(screen.queryByTestId('sync-tracking')).toBeNull();
   });
 
   it('política pendiente: cobertura no disponible, sin número', async () => {

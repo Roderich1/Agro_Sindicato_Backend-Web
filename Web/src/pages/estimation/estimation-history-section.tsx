@@ -1,5 +1,5 @@
 import { Figure, ValidityBadge } from '../../components/estimation-figure';
-import { DataState, ICON, Icon, SectionHeader, secondaryButtonClass } from '../../components/ui';
+import { Button, DataState, ICON, Icon, SectionHeader } from '../../components/ui';
 import { fmtDateTime } from '../../lib/collective-text';
 import { FAILURE_TEXT, formatAlpha, REASON_TEXT, RESULT_STATUS_TEXT } from '../../lib/estimation-text';
 import { formatQuantity } from '../../lib/quantity';
@@ -55,9 +55,9 @@ export function HistorySection({
       )}
       {hasMore && (
         <div className="border-t border-line pt-3">
-          <button type="button" className={secondaryButtonClass} onClick={onMore}>
+          <Button variant="secondary" onClick={onMore}>
             Cargar más
-          </button>
+          </Button>
         </div>
       )}
     </section>
@@ -77,9 +77,9 @@ export function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
           </>
         }
         actions={
-          <button type="button" className={secondaryButtonClass} onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Cerrar detalle
-          </button>
+          </Button>
         }
       />
       {useful.length === 0 ? (
@@ -89,13 +89,13 @@ export function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
           {useful.map((result) => (
             <div key={`${result.product.product_ref}|${result.base_unit}`} data-testid={`detail-${result.product.name}`} className="space-y-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <h3 className="text-sm font-bold text-slate-900">
+                <h3 className="text-sm font-bold text-ink">
                   {result.product.name} ({result.presentation_unit}) · {RESULT_STATUS_TEXT[result.status]}
                 </h3>
                 <ValidityBadge validity={result.validity} reason={result.validity_reason} />
               </div>
-              {result.reason_code && <p className="text-xs text-slate-600">{REASON_TEXT[result.reason_code]}</p>}
-              <p className="text-xs text-slate-700">
+              {result.reason_code && <p className="text-xs text-ink-muted">{REASON_TEXT[result.reason_code]}</p>}
+              <p className="text-xs text-ink-muted">
                 SES:{' '}
                 <Figure value={result.estimate_base} unit={result.base_unit} kind="estimate" status={result.status} validityReason={result.validity_reason} />{' '}
                 · naive:{' '}
@@ -106,19 +106,19 @@ export function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
               {result.points.length > 0 && (
                 <div className={`overflow-x-auto ${SCROLL_HINT}`}>
                   <table className="w-full text-xs">
-                    <thead className="bg-slate-50 text-left uppercase tracking-wider text-slate-500">
+                    <thead className="bg-sunken text-left uppercase tracking-wider text-ink-muted">
                       <tr>
-                        <th className={`sticky left-0 z-[1] bg-slate-50 px-3 py-2 ${STICKY_EDGE}`}>Campaña</th>
+                        <th className={`sticky left-0 z-[1] bg-sunken px-3 py-2 ${STICKY_EDGE}`}>Campaña</th>
                         <th className="px-3 py-2">Clase</th>
                         <th className="px-3 py-2">Consumo publicado</th>
                         <th className="px-3 py-2">En el tramo</th>
                         <th className="px-3 py-2">Cobertura</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-line">
                       {result.points.map((point) => (
                         <tr key={point.position} data-testid={`point-${point.campaign.name}`}>
-                          <td className={`sticky left-0 z-[1] min-w-28 bg-white px-3 py-2 [overflow-wrap:anywhere] ${STICKY_EDGE}`}>{point.campaign.name}</td>
+                          <td className={`sticky left-0 z-[1] min-w-28 bg-surface px-3 py-2 [overflow-wrap:anywhere] ${STICKY_EDGE}`}>{point.campaign.name}</td>
                           <td className="px-3 py-2">{KIND_TEXT[point.kind]}</td>
                           <td className="px-3 py-2 tabular-nums">
                             {point.kind === 'VERIFIED_CONSUMPTION' && point.quantity_base !== null

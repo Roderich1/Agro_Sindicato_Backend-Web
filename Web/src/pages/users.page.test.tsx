@@ -80,7 +80,18 @@ describe('Usuarios (Administración)', () => {
     expect(screen.getAllByRole('listitem').filter((li) => li.dataset.testid?.startsWith('user-'))).toHaveLength(1);
     expect(screen.queryByTestId('substitution-history')).toBeNull();
     expect(screen.queryByTestId('substitution-grant-button')).toBeNull();
+    expect(screen.queryByRole('complementary', { name: /Sustituir responsable/ })).toBeNull();
     expect(jointPurchaseCallsService.substitutionPermissionsHistory).not.toHaveBeenCalled();
+
+    // Filtro por estado: Activas / Inactivas.
+    fireEvent.change(screen.getByLabelText('Buscar usuario'), { target: { value: '' } });
+    fireEvent.click(within(filter).getByRole('button', { name: /^Todos/ }));
+    const statusFilter = screen.getByRole('group', { name: 'Filtrar por estado' });
+    fireEvent.click(within(statusFilter).getByRole('button', { name: 'Inactivas' }));
+    expect(screen.getByTestId('users-shown').textContent).toBe('Se muestran 1 de 4.');
+    expect(screen.getByTestId('user-u-3@example.test')).toBeTruthy();
+    fireEvent.click(within(statusFilter).getByRole('button', { name: 'Activas' }));
+    expect(screen.getByTestId('users-shown').textContent).toBe('Se muestran 3 de 4.');
   });
 
   it('nadie se desactiva a sí mismo ni se quita el rol de administrador', async () => {

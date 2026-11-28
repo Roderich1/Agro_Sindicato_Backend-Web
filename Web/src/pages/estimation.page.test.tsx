@@ -651,4 +651,34 @@ describe('Estimación del consumo (F12-EST-06, #179)', () => {
       expect(estimationService.download).not.toHaveBeenCalled();
     });
   });
+
+  it('filtra resultados de estimación sin tildes, por unidad y por estado', async () => {
+    const read = resultsWith([
+      result('GLIFÓSATO 48', { presentation_unit: 'L', base_unit: 'ML', status: 'ESTIMATED' }),
+      result('Urea', { presentation_unit: 'KG', base_unit: 'G', status: 'ESTIMATED' }),
+      result('Mancozeb', { presentation_unit: 'KG', base_unit: 'G', status: 'INSUFFICIENT_DATA', estimate_base: null, naive_base: null }),
+    ]);
+    serve(read, [run('run-1', [detail('GLIFÓSATO 48')])]);
+    renderAt(<EstimationPage />, { path: PATH });
+    await screen.findByTestId('result-GLIFÓSATO 48');
+
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'glifosato' } });
+    expect(screen.getByTestId('result-GLIFÓSATO 48')).toBeTruthy();
+    expect(screen.queryByTestId('result-Urea')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: '' } });
+    const chips = screen.getByTestId('estimation-result-filter');
+    fireEvent.click(within(chips).getByRole('button', { name: 'Sin cifra' }));
+    expect(screen.getByTestId('result-Mancozeb')).toBeTruthy();
+    expect(screen.queryByTestId('result-Urea')).toBeNull();
+
+    fireEvent.click(within(chips).getByRole('button', { name: 'Litros' }));
+    expect(screen.getByTestId('result-GLIFÓSATO 48')).toBeTruthy();
+    expect(screen.queryByTestId('result-Mancozeb')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'inexistente' } });
+    expect(screen.getByText('Sin coincidencias')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    expect(screen.getByTestId('result-Urea')).toBeTruthy();
+  });
 });

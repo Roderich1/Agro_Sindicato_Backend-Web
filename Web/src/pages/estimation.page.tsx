@@ -70,10 +70,12 @@ export function EstimationView({ headingLevel = 1 }: { headingLevel?: 1 | 2 }) {
         </div>
       )}
       {vm.stale && (
-        <p className="rounded-control bg-warn-bg px-4 py-2 text-sm text-warn-ink" data-testid="stale">
-          Lo que se muestra es de la última consulta que respondió; puede no estar actualizado. Sin conexión no se
-          exporta, y generar, actualizar o descargar también requieren conexión.
-        </p>
+        <Notice kind="warn" compact>
+          <span data-testid="stale">
+            Lo que se muestra es de la última consulta que respondió; puede no estar actualizado. Sin conexión no se
+            exporta, y generar, actualizar o descargar también requieren conexión.
+          </span>
+        </Notice>
       )}
 
       {((!vm.blocked && vm.selected) || vm.job) && (
