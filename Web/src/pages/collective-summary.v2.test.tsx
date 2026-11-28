@@ -85,9 +85,12 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
   });
 
   it('buscador y filtros en el navegador, con «Quitar filtros»; no vuelve a pedir el resumen', async () => {
-    vi.mocked(collectiveService.summary).mockResolvedValue(summaryWith(CELLS));
+    vi.mocked(collectiveService.summary).mockResolvedValue(
+      summaryWith([...CELLS, cell({ product_name: 'GLIFÓSATO fuerte', total_base: '9000', total_presentation: '9', contributors: 4 })]),
+    );
     show();
     await screen.findByTestId('cell-DECLARED_NEED-Urea-G');
+    expect(screen.getByTestId('needs-bar-scale').textContent).toBe('La barra más larga corresponde a la mayor cantidad declarada en cada unidad.');
     // E4: el filtro de filas sin cifra se llama «Sin cifra» (antes «Ocultas»); filtra lo mismo.
     fireEvent.click(screen.getByRole('button', { name: 'Sin cifra' }));
     expect(screen.queryByTestId('cell-DECLARED_NEED-Urea-G')).toBeNull();
@@ -96,6 +99,10 @@ describe('Resumen v2 (láminas 03, 05 y 35)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Litros' }));
     expect(screen.queryByTestId('cell-DECLARED_NEED-Urea-G')).toBeNull();
     expect(screen.getByTestId('cell-DECLARED_NEED-Glifosato-ML')).toBeTruthy();
+    // Búsqueda sin distinción de tildes ni mayúsculas.
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'glifosato fuerte' } });
+    expect(screen.getByTestId('cell-DECLARED_NEED-GLIFÓSATO fuerte-ML')).toBeTruthy();
+    expect(screen.queryByTestId('cell-DECLARED_NEED-Glifosato-ML')).toBeNull();
     fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'zzz' } });
     expect(screen.getByText('Sin coincidencias')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));

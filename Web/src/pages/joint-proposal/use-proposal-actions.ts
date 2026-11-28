@@ -93,6 +93,30 @@ export function useProposalActions({
     setSelectionFeedback(null);
   };
 
+  const selectProducts = (productRefs: readonly string[]) => {
+    if (!proposal || productRefs.length === 0) return;
+    const order = productOrder(proposal);
+    setSelection((state) => {
+      if (state?.status !== 'ready') return state;
+      const chosen = new Set(state.chosen);
+      for (const ref of productRefs) chosen.add(ref);
+      return { ...state, chosen: order.filter((ref) => chosen.has(ref)) };
+    });
+    setSelectionFeedback(null);
+  };
+
+  const deselectProducts = (productRefs: readonly string[]) => {
+    if (!proposal || productRefs.length === 0) return;
+    const order = productOrder(proposal);
+    const toRemove = new Set(productRefs);
+    setSelection((state) => {
+      if (state?.status !== 'ready') return state;
+      const chosen = new Set(state.chosen.filter((ref) => !toRemove.has(ref)));
+      return { ...state, chosen: order.filter((ref) => chosen.has(ref)) };
+    });
+    setSelectionFeedback(null);
+  };
+
   const saveSelection = async () => {
     if (!proposal || selection?.status !== 'ready' || savingRef.current) return;
     const proposalRef = proposal.proposal_ref;
@@ -129,5 +153,5 @@ export function useProposalActions({
     }
   };
 
-  return { acting, saving, actOnLink, toggleProduct, saveSelection };
+  return { acting, saving, actOnLink, toggleProduct, selectProducts, deselectProducts, saveSelection };
 }

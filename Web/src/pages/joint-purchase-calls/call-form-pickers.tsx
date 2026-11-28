@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DataState, ICON, Icon, Notice, SearchInput, Select } from '../../components/ui';
+import { DataState, FilterChips, ICON, Icon, Notice, SearchInput, Select } from '../../components/ui';
 import { collectiveError, fmtDateTime } from '../../lib/collective-text';
 import { referenceText } from '../../lib/joint-purchase-call-text';
 import { normalizeName } from '../../lib/product-text';
 import { presentationUnit } from '../../lib/quantity';
 import { collectiveService } from '../../services/collective.service';
 import type { CatalogEntry, Proposal, ProposalSummary } from '../../types/collective';
+
+type PickerUnitFilter = 'ALL' | 'L' | 'KG';
+
+const UNIT_FILTERS: { value: PickerUnitFilter; label: string }[] = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'L', label: 'Litros' },
+  { value: 'KG', label: 'Kilogramos' },
+];
 
 export function FieldError({ id, text }: { id: string; text?: string }) {
   if (!text) return null;
@@ -40,6 +48,7 @@ export function CatalogPicker({ selected, onChange }: { selected: Set<string>; o
   const [aliasesFailed, setAliasesFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [unit, setUnit] = useState<PickerUnitFilter>('ALL');
 
   const load = useCallback(async () => {
     try {
@@ -73,7 +82,11 @@ export function CatalogPicker({ selected, onChange }: { selected: Set<string>; o
     [catalog, aliases],
   );
   const wanted = normalizeName(query);
-  const shown = eligible.filter((entry) => !wanted || normalizeName(entry.product_name).includes(wanted) || selected.has(entry.product_ref));
+  const shown = eligible.filter((entry) => {
+    if (unit !== 'ALL' && presentationUnit(entry.base_unit!) !== unit) return false;
+    if (wanted && !normalizeName(entry.product_name).includes(wanted)) return false;
+    return true;
+  });
 
   if (error) return <DataState compact state="error" description={error} onRetry={() => void load()} />;
   if (!catalog) return <DataState compact state="loading" />;
@@ -84,9 +97,31 @@ export function CatalogPicker({ selected, onChange }: { selected: Set<string>; o
           No se pudo comprobar qué productos son denominaciones asociadas; el servidor lo valida al guardar.
         </Notice>
       )}
-      {eligible.length > 6 && <SearchInput label="Buscar producto" placeholder="Buscar producto" value={query} onChange={setQuery} autoComplete="off" />}
+      {eligible.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            label="Buscar producto"
+            placeholder="Buscar producto…"
+            value={query}
+            onChange={setQuery}
+            autoComplete="off"
+            fieldClassName="min-w-0 flex-1 basis-48"
+          />
+          <FilterChips label="Filtrar catálogo por unidad" testId="catalog-picker-unit" options={UNIT_FILTERS} value={unit} onChange={setUnit} />
+        </div>
+      )}
       {eligible.length === 0 ? (
         <DataState compact state="empty" title="Sin productos disponibles" description="El catálogo no tiene productos activos en L o KG." />
+      ) : shown.length === 0 ? (
+        <DataState
+          compact
+          state="no-match"
+          description="Ningún producto coincide con el filtro aplicado."
+          onClearFilters={() => {
+            setQuery('');
+            setUnit('ALL');
+          }}
+        />
       ) : (
         <ul className={LIST_BOX} aria-label="Productos del catálogo">
           {shown.map((entry) => (
@@ -131,6 +166,8 @@ export function ProposalPicker({
   const [draftsError, setDraftsError] = useState<string | null>(null);
   const [linesError, setLinesError] = useState<string | null>(null);
   const [proposalAttempt, setProposalAttempt] = useState(0);
+  const [query, setQuery] = useState('');
+  const [unit, setUnit] = useState<PickerUnitFilter>('ALL');
 
   const loadDrafts = useCallback(async () => {
     try {
@@ -196,21 +233,75 @@ export function ProposalPicker({
         proposal.lines.length === 0 ? (
           <DataState compact state="empty" title="Sin líneas" description="El borrador elegido no tiene líneas." />
         ) : (
-          <ul className={LIST_BOX} aria-label="Líneas del borrador de compra">
-            {proposal.lines.map((line) => (
-              <li key={line.position} data-testid={`proposal-line-${line.position}`}>
-                <label className={`${CHECK_ROW} items-start`}>
-                  <input type="checkbox" className={`${CHECK_BOX} mt-0.5`} checked={selected.has(line.position)} onChange={() => onChange(toggle(selected, line.position))} />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">
-                    {line.product_name} · {unitShort(line.presentation_unit)}
-                    <span className="block text-xs text-ink-muted">{referenceText(line, line.base_unit)}</span>
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
+          <ProposalLinesList lines={proposal.lines} selected={selected} onChange={onChange} query={query} onQuery={setQuery} unit={unit} onUnit={setUnit} />
         )
       ) : null}
+    </div>
+  );
+}
+
+function ProposalLinesList({
+  lines,
+  selected,
+  onChange,
+  query,
+  onQuery,
+  unit,
+  onUnit,
+}: {
+  lines: Proposal['lines'];
+  selected: Set<number>;
+  onChange: (next: Set<number>) => void;
+  query: string;
+  onQuery: (value: string) => void;
+  unit: PickerUnitFilter;
+  onUnit: (value: PickerUnitFilter) => void;
+}) {
+  const wanted = normalizeName(query);
+  const shown = lines.filter((line) => {
+    if (unit !== 'ALL' && line.presentation_unit !== unit) return false;
+    if (wanted && !normalizeName(line.product_name).includes(wanted)) return false;
+    return true;
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          label="Buscar en el borrador"
+          placeholder="Buscar producto en el borrador…"
+          value={query}
+          onChange={onQuery}
+          autoComplete="off"
+          fieldClassName="min-w-0 flex-1 basis-48"
+        />
+        <FilterChips label="Filtrar borrador por unidad" testId="proposal-picker-unit" options={UNIT_FILTERS} value={unit} onChange={onUnit} />
+      </div>
+      {shown.length === 0 ? (
+        <DataState
+          compact
+          state="no-match"
+          description="Ninguna línea del borrador coincide con el filtro aplicado."
+          onClearFilters={() => {
+            onQuery('');
+            onUnit('ALL');
+          }}
+        />
+      ) : (
+        <ul className={LIST_BOX} aria-label="Líneas del borrador de compra">
+          {shown.map((line) => (
+            <li key={line.position} data-testid={`proposal-line-${line.position}`}>
+              <label className={`${CHECK_ROW} items-start`}>
+                <input type="checkbox" className={`${CHECK_BOX} mt-0.5`} checked={selected.has(line.position)} onChange={() => onChange(toggle(selected, line.position))} />
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  {line.product_name} · {unitShort(line.presentation_unit)}
+                  <span className="block text-xs text-ink-muted">{referenceText(line, line.base_unit)}</span>
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -1,15 +1,44 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Button, DataState, Icon, ICON, Notice, PageHeader, SegmentedControl, surfaceClass } from '../components/ui';
+import { Button, DataState, FilterChips, Icon, ICON, Notice, PageHeader, SearchInput, SegmentedControl, surfaceClass } from '../components/ui';
 import { notifyIdentificationChanged } from '../contexts/identification-pending';
 import { useAuth } from '../hooks/use-auth';
 import { collectiveError } from '../lib/collective-text';
+import { normalizeName } from '../lib/product-text';
 import { identificationService } from '../services/identification.service';
 import type { IdentificationRequest } from '../types/identification';
-import type { ListTab } from './product-identification/identification.constants';
+import { hasCurrentClarificationResponse, type ListTab } from './product-identification/identification.constants';
 import { IdentifiedItem, PendingItem } from './product-identification/identification-list';
 import { RequestPanel } from './product-identification/identification-request-panel';
 import { CorrectionPanel } from './product-identification/identification-secondary-panels';
+
+type IdentificationFilter = 'ALL' | 'L' | 'KG' | 'RESPONSE';
+
+const PENDING_FILTERS: { value: IdentificationFilter; label: string }[] = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'L', label: 'Litros' },
+  { value: 'KG', label: 'Kilogramos' },
+  { value: 'RESPONSE', label: 'Con respuesta' },
+];
+
+const IDENTIFIED_FILTERS: { value: Exclude<IdentificationFilter, 'RESPONSE'>; label: string }[] = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'L', label: 'Litros' },
+  { value: 'KG', label: 'Kilogramos' },
+];
+
+function matchesRequest(request: IdentificationRequest, query: string, filter: IdentificationFilter): boolean {
+  if (filter === 'L' || filter === 'KG') {
+    if (request.unit !== filter) return false;
+  } else if (filter === 'RESPONSE') {
+    if (!hasCurrentClarificationResponse(request)) return false;
+  }
+  const wanted = normalizeName(query);
+  if (!wanted) return true;
+  return [request.local_name, request.active_ingredient, request.resolution?.product_name].some(
+    (value) => value != null && normalizeName(value).includes(wanted),
+  );
+}
 
 /**
  * Catálogo → Por identificar (E1 §6; láminas 23, 24, 47 y el diálogo 33.5).
@@ -39,6 +68,8 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
   const [error, setError] = useState<{ message: string; forbidden: boolean } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<ListTab>('pendientes');
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<IdentificationFilter>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState<IdentificationRequest | null>(null);
   const [linked, setLinked] = useState<IdentificationRequest[] | null>(null);
@@ -78,7 +109,13 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
   const openTab = (next: ListTab) => {
     setTab(next);
     setMessage(null);
+    if (next === 'identificados' && filter === 'RESPONSE') setFilter('ALL');
     if (next === 'identificados' && !linkedRequested.current) void loadLinked();
+  };
+
+  const clearFilters = () => {
+    setQuery('');
+    setFilter('ALL');
   };
 
   const retry = () => {
@@ -121,7 +158,10 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
   };
 
   const pending = requests ?? [];
-  const selected = pending.find((request) => request.id === selectedId) ?? pending[0] ?? null;
+  const visiblePending = pending.filter((request) => matchesRequest(request, query, filter));
+  const visibleLinked = (linked ?? []).filter((request) => matchesRequest(request, query, filter === 'RESPONSE' ? 'ALL' : filter));
+  const selected = visiblePending.find((request) => request.id === selectedId) ?? visiblePending[0] ?? null;
+  const showFilters = tab === 'pendientes' ? pending.length > 0 : (linked?.length ?? 0) > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -170,16 +210,52 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
             {tab === 'pendientes' && <Button variant="secondary" onClick={() => void load()}>Actualizar</Button>}
           </div>
 
+          {showFilters && (
+            <div className="flex flex-wrap items-center gap-3" data-testid="identification-filters">
+              <SearchInput
+                id="identification-search"
+                label="Buscar solicitud"
+                placeholder="Buscar por nombre o ingrediente…"
+                value={query}
+                onChange={setQuery}
+                autoComplete="off"
+                enterKeyHint="search"
+                inputMode="search"
+                fieldClassName="w-full min-w-0 sm:w-72"
+              />
+              {tab === 'pendientes' ? (
+                <FilterChips label="Filtrar pendientes" testId="identification-unit-filter" options={PENDING_FILTERS} value={filter} onChange={setFilter} />
+              ) : (
+                <FilterChips
+                  label="Filtrar identificados"
+                  testId="identification-unit-filter"
+                  options={IDENTIFIED_FILTERS}
+                  value={filter === 'RESPONSE' ? 'ALL' : filter}
+                  onChange={setFilter}
+                />
+              )}
+            </div>
+          )}
+
           {tab === 'pendientes' ? (
             requests.length === 0 ? (
               <div className={surfaceClass}>
                 <DataState state="empty" compact title="Nada pendiente" description="No hay productos por identificar." testId="identification-empty" />
               </div>
+            ) : visiblePending.length === 0 ? (
+              <div className={surfaceClass}>
+                <DataState
+                  state="no-match"
+                  compact
+                  description={`Ninguna solicitud pendiente coincide con el filtro aplicado${query.trim() ? ` («${query.trim()}»)` : ''}.`}
+                  onClearFilters={clearFilters}
+                />
+              </div>
             ) : (
               <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)]">
                 <div className={`${surfaceClass} min-w-0 p-2`}>
                   <ul className="space-y-1" aria-label="Solicitudes pendientes">
-                    {requests.map((request) => (
+                    {visiblePending.map((request) => (
                       <PendingItem key={request.id} request={request} selected={selected?.id === request.id} onSelect={() => select(request.id)} />
                     ))}
                   </ul>
@@ -197,7 +273,7 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
                     ref={panelRef}
                     tabIndex={-1}
                     aria-label={`Identificar «${selected.local_name}»`}
-                    className={`${surfaceClass} min-w-0 scroll-mt-4 px-5 py-6 focus:outline-none focus-visible:outline-2 sm:px-8`}
+                    className={`${surfaceClass} min-w-0 scroll-mt-4 px-5 py-6 focus:outline-none focus-visible:outline-2 sm:px-8 lg:sticky lg:top-6`}
                     data-testid="identification-panel"
                   >
                     <RequestPanel key={selected.id} request={selected} onDone={(text) => void done(text)} />
@@ -214,9 +290,16 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
                   <DataState compact state="loading" />
                 ) : linked.length === 0 ? (
                   <DataState compact state="empty" title="Ninguno identificado" description="Todavía no se identificó ningún producto reportado." />
+                ) : visibleLinked.length === 0 ? (
+                  <DataState
+                    compact
+                    state="no-match"
+                    description={`Ningún producto identificado coincide con el filtro aplicado${query.trim() ? ` («${query.trim()}»)` : ''}.`}
+                    onClearFilters={clearFilters}
+                  />
                 ) : (
                   <ul className="divide-y divide-line" aria-label="Solicitudes identificadas">
-                    {linked.map((request) => (
+                    {visibleLinked.map((request) => (
                       <IdentifiedItem key={request.id} request={request} active={correcting?.id === request.id} onCorrect={() => startCorrection(request)} />
                     ))}
                   </ul>
@@ -227,7 +310,7 @@ export function ProductIdentificationView({ headingLevel = 1, nav }: { headingLe
                   ref={panelRef}
                   tabIndex={-1}
                   aria-label="Corregir la identificación"
-                  className={`${surfaceClass} min-w-0 scroll-mt-4 px-5 py-6 focus:outline-none focus-visible:outline-2 sm:px-7`}
+                  className={`${surfaceClass} min-w-0 scroll-mt-4 px-5 py-6 focus:outline-none focus-visible:outline-2 sm:px-7 lg:sticky lg:top-6`}
                   data-testid="correction-panel"
                 >
                   <CorrectionPanel key={correcting.id} request={correcting} onCancel={() => setCorrecting(null)} onDone={(text) => void done(text)} />

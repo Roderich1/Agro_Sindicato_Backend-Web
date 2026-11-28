@@ -16,6 +16,7 @@ import {
 } from '../../components/ui';
 import { fmtDateTime } from '../../lib/collective-text';
 import { CAMPAIGNS_PATH, COLLECTIVE_PATHS } from '../../lib/navigation';
+import { normalizeName } from '../../lib/product-text';
 import type { CollectiveSummary, SealRef, SummaryCell } from '../../types/collective';
 import { COUNT, FILTERS, plural, STEPS, type NeedsFilter } from './summary-helpers';
 
@@ -52,11 +53,11 @@ export function SummaryError({ kind, text, onRetry, onLogout }: { kind: DataStat
 export function NeedsSection({ needs }: Readonly<{ needs: SummaryCell[] }>) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<NeedsFilter>('all');
-  const term = query.trim().toLocaleLowerCase('es');
+  const term = normalizeName(query);
   const visible = needs.filter(
     (cell) =>
       (filter === 'all' || (filter === 'hidden' ? cell.status !== 'DISCLOSED' : cell.presentation_unit === filter)) &&
-      (!term || cell.product_name.toLocaleLowerCase('es').includes(term)),
+      (!term || normalizeName(cell.product_name).includes(term)),
   );
   const published = needs.filter((cell) => cell.status === 'DISCLOSED').length;
   return (
@@ -94,7 +95,12 @@ export function NeedsSection({ needs }: Readonly<{ needs: SummaryCell[] }>) {
               />
             </div>
           )}
-          <div className="mt-5">
+          {published > 0 && visible.length > 0 && (
+            <p className="mt-4 text-sm text-ink-muted" data-testid="needs-bar-scale">
+              La barra más larga corresponde a la mayor cantidad declarada en cada unidad.
+            </p>
+          )}
+          <div className="mt-4">
             {visible.length === 0 ? (
               <DataState
                 state="no-match"

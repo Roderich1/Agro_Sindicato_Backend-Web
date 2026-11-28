@@ -442,4 +442,35 @@ describe('Productos por identificar (E1 §6)', () => {
     expect(changed).toHaveBeenCalledTimes(1);
     window.removeEventListener(IDENTIFICATION_CHANGED_EVENT, changed);
   });
+
+  it('filtra pendientes e identificados por búsqueda sin tildes y por unidad', async () => {
+    render();
+    await card('r-a');
+    expect(screen.getByTestId('identification-r-a')).toBeTruthy();
+    expect(screen.getByTestId('identification-r-b')).toBeTruthy();
+
+    // Filtrar por unidad Kilogramos deja solo la solicitud en KG.
+    fireEvent.click(within(screen.getByTestId('identification-unit-filter')).getByRole('button', { name: 'Kilogramos' }));
+    expect(screen.queryByTestId('identification-r-a')).toBeNull();
+    expect(screen.getByTestId('identification-r-b')).toBeTruthy();
+
+    // Búsqueda sin tildes y estado sin coincidencias con «Quitar filtros».
+    fireEvent.change(screen.getByLabelText('Buscar solicitud'), { target: { value: 'sin-coincidencia' } });
+    expect(screen.getByText('Sin coincidencias')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    expect(screen.getByTestId('identification-r-a')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Buscar solicitud'), { target: { value: 'glifosato 480' } });
+    expect(screen.getByTestId('identification-r-a')).toBeTruthy();
+    expect(screen.queryByTestId('identification-r-b')).toBeNull();
+
+    // En «Ya identificados» también filtra por nombre vinculado y unidad.
+    fireEvent.change(screen.getByLabelText('Buscar solicitud'), { target: { value: '' } });
+    fireEvent.click(within(screen.getByRole('group', { name: 'Lista' })).getByRole('button', { name: /^Ya identificados/ }));
+    await screen.findByTestId('identified-r-c');
+    fireEvent.change(screen.getByLabelText('Buscar solicitud'), { target: { value: 'mancozeb' } });
+    expect(screen.getByTestId('identified-r-c')).toBeTruthy();
+    fireEvent.click(within(screen.getByTestId('identification-unit-filter')).getByRole('button', { name: 'Litros' }));
+    expect(screen.getByText('Sin coincidencias')).toBeTruthy();
+  });
 });
