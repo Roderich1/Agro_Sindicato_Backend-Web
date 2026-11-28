@@ -40,6 +40,7 @@ export function CampaignsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [sealed, setSealed] = useState<Map<string, number>>(new Map());
+  const [sealedLoaded, setSealedLoaded] = useState(false);
 
   const canManage = Boolean(user && MANAGER_ROLES.includes(user.role));
   const collective = isCollectiveRole(user?.role);
@@ -53,6 +54,7 @@ export function CampaignsPage() {
       .then((trends) => {
         if (!alive) return;
         setSealed(new Map(trends.campaigns.filter((row) => row.seal).map((row) => [row.campaign_ref, row.seal!.version])));
+        setSealedLoaded(true);
       })
       .catch(() => undefined);
     return () => {
@@ -215,7 +217,12 @@ export function CampaignsPage() {
               ))}
             </ul>
           )}
-          <p className="text-sm text-ink-muted">Cerrar una campaña no la sella, y una campaña cerrada no se puede reabrir.</p>
+          <p className="text-sm text-ink-muted" data-testid="campaign-close-note">
+            Al cerrar la campaña, se fijan sus resultados históricos. Una campaña cerrada no se puede reabrir.
+            {sealedLoaded &&
+              campaigns.some((campaign) => campaign.status === 'CERRADA' && !sealed.has(campaign.id)) &&
+              ' Si una campaña anterior cerrada no tiene histórico, puede regularizarse.'}
+          </p>
         </section>
       </div>
 

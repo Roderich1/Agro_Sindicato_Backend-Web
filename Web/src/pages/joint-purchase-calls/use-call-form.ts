@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { callError, callErrorCode, fromLocalInput, toLocalInput } from '../../lib/joint-purchase-call-text';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { callError, callErrorCode, callProductsLimitMessage, fromLocalInput, MAX_CALL_PRODUCTS, toLocalInput } from '../../lib/joint-purchase-call-text';
 import { jointPurchaseCallsService } from '../../services/joint-purchase-calls.service';
 import type { Proposal } from '../../types/collective';
 import type { JointPurchaseCallDetail } from '../../types/joint-purchase-calls';
@@ -19,6 +19,14 @@ export interface Errors {
   products?: string;
 }
 
+function sameSet<T>(a: ReadonlySet<T>, b: ReadonlySet<T>): boolean {
+  if (a.size !== b.size) return false;
+  for (const item of a) {
+    if (!b.has(item)) return false;
+  }
+  return true;
+}
+
 export function useCallForm({
   campaignId,
   call,
@@ -34,21 +42,29 @@ export function useCallForm({
 }) {
   const editing = Boolean(call);
   const prepared = !call && preset ? preset : null;
-  const [name, setName] = useState(call?.name ?? '');
-  const [deadline, setDeadline] = useState(toLocalInput(call?.deadline_at));
-  const [source, setSource] = useState<Source>(call?.source_proposal_ref || prepared ? 'proposal' : 'catalog');
-  const [catalogRefs, setCatalogRefs] = useState<Set<string>>(
+  const initialSource: Source = call?.source_proposal_ref || prepared ? 'proposal' : 'catalog';
+  const initialProposalId = call?.source_proposal_ref ?? prepared?.proposalId ?? '';
+  const initialCatalogRefs = useMemo(
     () => new Set(call && !call.source_proposal_ref ? call.products.map((product) => product.product_ref) : []),
+    [call],
   );
-  const [proposalId, setProposalId] = useState(call?.source_proposal_ref ?? prepared?.proposalId ?? '');
-  const [positions, setPositions] = useState<Set<number>>(
+  const initialPositions = useMemo(
     () =>
       new Set(
         call?.source_proposal_ref
           ? call.products.map((product) => product.reference?.position).filter((value): value is number => typeof value === 'number')
           : [],
       ),
+    [call],
   );
+
+  const [name, setName] = useState(call?.name ?? '');
+  const [deadline, setDeadline] = useState(toLocalInput(call?.deadline_at));
+  const [source, setSource] = useState<Source>(initialSource);
+  const [catalogRefs, setCatalogRefs] = useState<Set<string>>(() => new Set(initialCatalogRefs));
+  const [proposalId, setProposalId] = useState(initialProposalId);
+  const [positions, setPositions] = useState<Set<number>>(() => new Set(initialPositions));
+  const [preparedBaseline, setPreparedBaseline] = useState<Set<number> | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,7 +80,9 @@ export function useCallForm({
     const wanted = new Set(pending.productRefs);
     const lines = shown.lines.filter((line) => wanted.has(line.product_ref));
     const found = new Set(lines.map((line) => line.product_ref));
-    setPositions(new Set(lines.map((line) => line.position)));
+    const hydrated = new Set(lines.map((line) => line.position));
+    setPositions(hydrated);
+    setPreparedBaseline(new Set(hydrated));
     setIgnored([...wanted].filter((ref) => !found.has(ref)).length);
   }, [setIgnored]);
 
@@ -73,6 +91,7 @@ export function useCallForm({
     ? [...catalogRefs]
     : [...new Set(proposalLines.filter((line) => positions.has(line.position)).map((line) => line.product_ref))];
   const selectedProducts = selectedProductRefs.map((product_ref) => ({ product_ref }));
+  const overLimit = selectedProductRefs.length > MAX_CALL_PRODUCTS;
 
   const validate = (): Errors => {
     const next: Errors = {};
@@ -83,6 +102,7 @@ export function useCallForm({
     if (!iso) next.deadline = 'Elija la fecha y hora límite.';
     else if (new Date(iso).getTime() <= Date.now()) next.deadline = 'La fecha límite debe ser posterior a este momento.';
     if (selectedProducts.length === 0) next.products = 'Elija al menos un producto.';
+    else if (selectedProducts.length > MAX_CALL_PRODUCTS) next.products = callProductsLimitMessage(selectedProducts.length);
     return next;
   };
 
@@ -126,10 +146,21 @@ export function useCallForm({
     setPositions(new Set());
   };
 
+  const productsChanged = editing
+    ? source !== initialSource ||
+      (source === 'catalog'
+        ? !sameSet(catalogRefs, initialCatalogRefs)
+        : proposalId !== initialProposalId || !sameSet(positions, initialPositions))
+    : prepared
+      ? source !== 'proposal' ||
+        proposalId !== prepared.proposalId ||
+        (preparedBaseline !== null && !sameSet(positions, preparedBaseline))
+      : catalogRefs.size > 0 || positions.size > 0;
+
   const dirty =
-    (name !== (call?.name ?? '') ||
-      deadline !== toLocalInput(call?.deadline_at) ||
-      (!call && !prepared && (catalogRefs.size > 0 || positions.size > 0)));
+    name !== (call?.name ?? '') ||
+    deadline !== toLocalInput(call?.deadline_at) ||
+    productsChanged;
 
   return {
     editing,
@@ -153,6 +184,7 @@ export function useCallForm({
     showProposal,
     ignored,
     selectedProductRefs,
+    overLimit,
     submit,
     dirty,
   };

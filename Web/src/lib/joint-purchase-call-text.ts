@@ -482,7 +482,13 @@ export function fromLocalInput(value: string): string | null {
  */
 export const PREPARE_CALL_PARAMS = ['nueva', 'campana', 'propuesta', 'productos'] as const;
 const PREPARE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_PREPARED_PRODUCTS = 50;
+/** Límite del backend (`calls.dto.ts`): hasta 50 productos por convocatoria al crear o editar. */
+export const MAX_CALL_PRODUCTS = 50;
+
+export function callProductsLimitMessage(count: number): string {
+  const excess = count - MAX_CALL_PRODUCTS;
+  return `Una convocatoria admite hasta ${MAX_CALL_PRODUCTS} productos. Tiene ${count} elegidos: quite al menos ${excess} antes de continuar.`;
+}
 
 export function prepareCallPath(campaignRef: string, proposalRef: string, productRefs: readonly string[]): string {
   const query = new URLSearchParams({ nueva: '1', campana: campaignRef, propuesta: proposalRef, productos: productRefs.join(',') });
@@ -508,6 +514,6 @@ export function readPreparedCall(params: URLSearchParams): PreparedCall | null {
         .map((ref) => ref.trim())
         .filter((ref) => ref.length > 0 && ref.length <= 128),
     ),
-  ].slice(0, MAX_PREPARED_PRODUCTS);
+  ];
   return { campaignId, proposalId, productRefs };
 }

@@ -6,7 +6,7 @@ import { useSelectedCampaign } from '../../hooks/use-selected-campaign';
 import { collectiveError } from '../../lib/collective-text';
 import { reportDisclosureMode } from '../../lib/data-mode';
 import { LINK_POLL_MS } from '../../lib/estimation-link-text';
-import { prepareCallPath } from '../../lib/joint-purchase-call-text';
+import { MAX_CALL_PRODUCTS, prepareCallPath } from '../../lib/joint-purchase-call-text';
 import { collectiveService } from '../../services/collective.service';
 import type { Proposal, ProposalSummary } from '../../types/collective';
 import {
@@ -256,7 +256,7 @@ export function useJointProposal() {
   };
 
   const prepareCall = () => {
-    if (!proposal || selection?.status !== 'ready' || selection.saved.length === 0) return;
+    if (!proposal || selection?.status !== 'ready' || selection.saved.length === 0 || selection.saved.length > MAX_CALL_PRODUCTS) return;
     navigate(prepareCallPath(proposal.campaign.campaign_ref, proposal.proposal_ref, selection.saved));
   };
 

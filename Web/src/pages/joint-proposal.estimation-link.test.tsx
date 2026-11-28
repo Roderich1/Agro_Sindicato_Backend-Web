@@ -455,6 +455,47 @@ describe('Borrador de propuesta: referencia de consumo estimado fijada (E3)', ()
     expect((await screen.findByRole('button', { name: 'Preparar convocatoria (0 productos)' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('con 50 productos guardados prepara completa; con 51 avisa del límite sin perder la selección', async () => {
+    const refs51 = Array.from({ length: 51 }, (_, i) => `prod-${i + 1}`);
+    const big = proposalWith(
+      refs51.map((product_ref, position) =>
+        line({ position, product_name: `Producto ${position + 1}`, product_ref, quantity_base: '10000', quantity_presentation: '10', contributors: 3 }),
+      ),
+      { proposal_ref: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' },
+    );
+    const refs50 = refs51.slice(0, 50);
+    serve(linkViewFor(big, [], { state: 'NONE' }), selectionFor(big, refs50, 2), [big]);
+    const view = renderAt(<JointProposalPage />, { path: PATH, routes: [{ path: '/colectivo/compras-conjuntas', element: <Probe /> }] });
+
+    const btn50 = (await screen.findByRole('button', { name: 'Preparar convocatoria (50 productos)' })) as HTMLButtonElement;
+    expect(btn50.disabled).toBe(false);
+    expect(screen.queryByTestId('selection-limit-warning')).toBeNull();
+
+    // Marcar el producto 51 conserva los 51 marcados y muestra el aviso de límite sin recortar.
+    fireEvent.click(box('Producto 51'));
+    expect(box('Producto 51').checked).toBe(true);
+    expect(screen.getByTestId('selection-summary').textContent).toMatch(/51 productos elegidos/);
+    expect(screen.getByTestId('selection-limit-warning').textContent).toMatch(/hasta 50 productos.*Tiene 51 elegidos.*quite al menos 1/i);
+    expect((screen.getByRole('button', { name: 'Preparar convocatoria (50 productos)' }) as HTMLButtonElement).disabled).toBe(true);
+
+    // Al desmarcar el producto 51 vuelve a 50 y permite navegar con los 50 completos.
+    fireEvent.click(box('Producto 51'));
+    expect(screen.queryByTestId('selection-limit-warning')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Preparar convocatoria (50 productos)' }));
+    const target = (await screen.findByTestId('probe')).textContent ?? '';
+    const [, search] = target.split('?');
+    expect(readPreparedCall(new URLSearchParams(search))?.productRefs).toEqual(refs50);
+    view.unmount();
+
+    // Si ya vinieran 51 guardados del servidor, también bloquea «Preparar convocatoria» y avisa sin descartarlos.
+    serve(linkViewFor(big, [], { state: 'NONE' }), selectionFor(big, refs51, 3), [big]);
+    renderAt(<JointProposalPage />, { path: PATH });
+    const btn51 = (await screen.findByRole('button', { name: 'Preparar convocatoria (51 productos)' })) as HTMLButtonElement;
+    expect(btn51.disabled).toBe(true);
+    expect(screen.getByTestId('selection-limit-warning').textContent).toMatch(/hasta 50 productos/);
+    expect(box('Producto 51').checked).toBe(true);
+  });
+
   it('el sondeo se detiene al cambiar de borrador y al salir de la pantalla', async () => {
     serve(CALCULATING, selectionFor(DRAFT), [DRAFT, LATER]);
     vi.mocked(collectiveService.estimationLink).mockImplementation(async (id) => (id === DRAFT.proposal_ref ? CALCULATING : linkViewFor(LATER, [], { state: 'NONE' })));
