@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   ACCESS_RULES,
   AUTO_CLOSED_EVENT_LABEL,
@@ -10,6 +10,7 @@ import {
   SYSTEM_ACTOR,
   totalState,
 } from '../../lib/joint-purchase-call-text';
+import { normalizeName } from '../../lib/product-text';
 import type { BaseUnit } from '../../lib/quantity';
 import type {
   JointPurchaseCallEvent,
@@ -18,7 +19,7 @@ import type {
   JointPurchaseParticipationStatus,
   JointPurchaseResponsibleChange,
 } from '../../types/joint-purchase-calls';
-import { Chip, DataTable, ICON, Icon, linkClass, QuantityFigure, surfaceClass, type DataTableColumn } from '../ui';
+import { Button, Chip, DataState, DataTable, ICON, Icon, linkClass, QuantityFigure, SearchInput, Select, surfaceClass, type DataTableColumn } from '../ui';
 
 /*
  * Piezas de presentación de «Compras conjuntas» (sesión B del rediseño v2,
@@ -120,46 +121,87 @@ export interface ProductLine {
   value?: ReactNode;
 }
 
+const PRODUCT_SEARCH_THRESHOLD = 8;
+const PARTICIPANTS_PAGE_SIZE = 25;
+
 /**
  * Productos de una convocatoria (láminas 10–13 y 16–20): tabla con encabezados
- * para lectores de pantalla; en teléfono el valor pasa debajo del nombre.
+ * para lectores de pantalla; en teléfono el valor pasa debajo del nombre. Con
+ * listas largas (> 8) ofrece un buscador local sin tildes.
  */
 export function ProductLines({ caption, valueHeader, lines }: { caption: string; valueHeader?: string; lines: ProductLine[] }) {
+  const [query, setQuery] = useState('');
+  const searchable = lines.length > PRODUCT_SEARCH_THRESHOLD;
+  const term = normalizeName(query);
+  const shown = useMemo(
+    () => (searchable && term ? lines.filter((line) => normalizeName(line.name).includes(term)) : lines),
+    [lines, searchable, term],
+  );
   return (
-    <table role="table" className="block w-full sm:table" aria-label={caption}>
-      <thead role="rowgroup" className="sr-only">
-        <tr role="row">
-          <th role="columnheader" scope="col">
-            Producto
-          </th>
-          {valueHeader && (
-            <th role="columnheader" scope="col">
-              {valueHeader}
-            </th>
+    <div>
+      {searchable && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 pb-1">
+          <SearchInput
+            id={`call-products-search-${caption.length}`}
+            label="Buscar producto"
+            value={query}
+            onChange={setQuery}
+            placeholder="Buscar producto…"
+            fieldClassName="w-full sm:w-72"
+          />
+          {term && (
+            <p className="text-sm tabular-nums text-ink-muted" data-testid="call-products-count">
+              Mostrando {shown.length} de {lines.length} productos
+            </p>
           )}
-        </tr>
-      </thead>
-      <tbody role="rowgroup" className="block sm:table-row-group">
-        {lines.map((line) => (
-          <tr
-            key={line.key}
-            role="row"
-            className="flex flex-col gap-2 border-b border-line py-4 last:border-b-0 sm:table-row"
-            data-testid={line.testId}
-          >
-            <th role="rowheader" scope="row" className="block text-left align-top font-normal sm:table-cell sm:py-4 sm:pr-4">
-              <span className="block text-base font-semibold text-ink [overflow-wrap:anywhere]">{line.name}</span>
-              <span className="mt-0.5 block text-sm text-ink-muted">{line.sub}</span>
-            </th>
-            {valueHeader && (
-              <td role="cell" className="block text-right align-middle sm:table-cell sm:py-4">
-                {line.value}
-              </td>
-            )}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+        </div>
+      )}
+      {shown.length === 0 ? (
+        <div className="pt-3">
+          <DataState
+            compact
+            state="no-match"
+            description={`Ningún producto coincide con «${query.trim()}».`}
+            onClearFilters={() => setQuery('')}
+          />
+        </div>
+      ) : (
+        <table role="table" className="block w-full sm:table" aria-label={caption}>
+          <thead role="rowgroup" className="sr-only">
+            <tr role="row">
+              <th role="columnheader" scope="col">
+                Producto
+              </th>
+              {valueHeader && (
+                <th role="columnheader" scope="col">
+                  {valueHeader}
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody role="rowgroup" className="block sm:table-row-group">
+            {shown.map((line) => (
+              <tr
+                key={line.key}
+                role="row"
+                className="flex flex-col gap-2 border-b border-line py-4 last:border-b-0 sm:table-row"
+                data-testid={line.testId}
+              >
+                <th role="rowheader" scope="row" className="block text-left align-top font-normal sm:table-cell sm:py-4 sm:pr-4">
+                  <span className="block text-base font-semibold text-ink [overflow-wrap:anywhere]">{line.name}</span>
+                  <span className="mt-0.5 block text-sm text-ink-muted">{line.sub}</span>
+                </th>
+                {valueHeader && (
+                  <td role="cell" className="block text-right align-middle sm:table-cell sm:py-4">
+                    {line.value}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }
 
@@ -171,7 +213,7 @@ export interface ParticipantEntry {
   lines: JointPurchaseParticipantLine[];
 }
 
-type ParticipantRow = { participant: ParticipantEntry; line: JointPurchaseParticipantLine | null };
+type ParticipantRow = { participant: ParticipantEntry; line: JointPurchaseParticipantLine | null; resolvedProduct: string };
 
 /**
  * Nombres y cantidades por persona (láminas 11, 12 y 38): sólo para la
@@ -180,13 +222,55 @@ type ParticipantRow = { participant: ParticipantEntry; line: JointPurchasePartic
  * Nada de correo ni otros datos: sólo lo que envía `/participants` o `/closing`.
  */
 export function ParticipantsTable({ caption, participants, productName }: { caption: string; participants: ParticipantEntry[]; productName: (ref: string, fallback: string) => string }) {
+  const [query, setQuery] = useState('');
+  const [productFilter, setProductFilter] = useState('');
+  const [page, setPage] = useState(0);
+
   const showStatus = participants.some((participant) => participant.status !== undefined);
-  const rows: ParticipantRow[] = participants.flatMap((participant) =>
-    (participant.lines.length > 0 ? participant.lines : [null]).map((line) => ({ participant, line })),
+  const rows: ParticipantRow[] = useMemo(
+    () =>
+      participants.flatMap((participant) =>
+        (participant.lines.length > 0 ? participant.lines : [null]).map((line) => ({
+          participant,
+          line,
+          resolvedProduct: line ? productName(line.product_ref, line.product_name) : 'Sin productos',
+        })),
+      ),
+    [participants, productName],
   );
+
+  const productOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of rows) {
+      if (row.line && !map.has(row.line.product_ref)) {
+        map.set(row.line.product_ref, row.resolvedProduct);
+      }
+    }
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  }, [rows]);
+
+  const term = normalizeName(query);
+  const filteredRows = useMemo(
+    () =>
+      rows.filter((row) => {
+        if (productFilter && row.line?.product_ref !== productFilter) return false;
+        if (!term) return true;
+        return normalizeName(row.participant.name).includes(term) || normalizeName(row.resolvedProduct).includes(term);
+      }),
+    [rows, productFilter, term],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PARTICIPANTS_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageStart = safePage * PARTICIPANTS_PAGE_SIZE;
+  const pageRows = filteredRows.length > PARTICIPANTS_PAGE_SIZE
+    ? filteredRows.slice(pageStart, pageStart + PARTICIPANTS_PAGE_SIZE)
+    : filteredRows;
+  const hasFilters = Boolean(term || productFilter);
+
   const columns: DataTableColumn<ParticipantRow>[] = [
     { key: 'name', header: 'Participante', rowHeader: true, cell: (row) => <span className="font-semibold [overflow-wrap:anywhere]">{row.participant.name}</span> },
-    { key: 'product', header: 'Producto', cell: (row) => <span className="[overflow-wrap:anywhere]">{row.line ? productName(row.line.product_ref, row.line.product_name) : 'Sin productos'}</span> },
+    { key: 'product', header: 'Producto', cell: (row) => <span className="[overflow-wrap:anywhere]">{row.resolvedProduct}</span> },
     {
       key: 'quantity',
       header: 'Cantidad',
@@ -198,15 +282,93 @@ export function ParticipantsTable({ caption, participants, productName }: { capt
       : []),
     { key: 'received', header: 'Recibido', numeric: true, cell: (row) => fmtWhen(row.participant.accepted_at) },
   ];
+
+  const clearFilters = () => {
+    setQuery('');
+    setProductFilter('');
+    setPage(0);
+  };
+
   return (
-    <div className="mt-3">
-      <DataTable
-        caption={caption}
-        columns={columns}
-        rows={rows}
-        rowKey={(row) => `${row.participant.participation_ref}-${row.line?.product_ref ?? 'none'}`}
-        rowTestId={() => 'participant-row'}
-      />
+    <div className="mt-3 space-y-3">
+      {rows.length > 1 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center" data-testid="participants-filters">
+          <SearchInput
+            id="participants-search"
+            label="Buscar participante o producto"
+            value={query}
+            onChange={(value) => {
+              setQuery(value);
+              setPage(0);
+            }}
+            placeholder="Buscar participante o producto…"
+            fieldClassName="w-full sm:flex-1"
+          />
+          {productOptions.length > 1 && (
+            <Select
+              id="participants-product-filter"
+              label="Filtrar por producto"
+              hideLabel
+              value={productFilter}
+              onChange={(event) => {
+                setProductFilter(event.target.value);
+                setPage(0);
+              }}
+              fieldClassName="w-full sm:w-56"
+              className="rounded-full bg-surface"
+            >
+              <option value="">Todos los productos</option>
+              {productOptions.map(([ref, name]) => (
+                <option key={ref} value={ref}>
+                  {name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </div>
+      )}
+
+      {filteredRows.length === 0 ? (
+        <DataState
+          compact
+          state="no-match"
+          description="Ningún pedido coincide con el filtro aplicado."
+          onClearFilters={clearFilters}
+        />
+      ) : (
+        <>
+          {hasFilters && (
+            <p className="text-sm tabular-nums text-ink-muted" data-testid="participants-filtered-count">
+              Mostrando {filteredRows.length} de {rows.length} pedidos
+            </p>
+          )}
+          <DataTable
+            caption={caption}
+            columns={columns}
+            rows={pageRows}
+            rowKey={(row) => `${row.participant.participation_ref}-${row.line?.product_ref ?? 'none'}`}
+            rowTestId={() => 'participant-row'}
+          />
+          {filteredRows.length > PARTICIPANTS_PAGE_SIZE && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-sm text-ink-muted" data-testid="participants-pagination">
+              <span className="tabular-nums">
+                Mostrando {pageStart + 1}–{Math.min(pageStart + PARTICIPANTS_PAGE_SIZE, filteredRows.length)} de {filteredRows.length} pedidos
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" disabled={safePage === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                  Anterior
+                </Button>
+                <span className="tabular-nums">
+                  Página {safePage + 1} de {totalPages}
+                </span>
+                <Button variant="secondary" size="sm" disabled={safePage >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

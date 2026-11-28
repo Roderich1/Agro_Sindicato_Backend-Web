@@ -1,10 +1,9 @@
-import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AppShell } from '../components/app-shell';
 import { Facts } from '../components/c/bits';
 import { ParticipationCard } from '../components/c/participation-card';
-import { buttonClassFor, Chip, DataState, HeroPanel, Icon, ICON, linkClass, Notice, StatusChip, surfaceClass } from '../components/ui';
+import { buttonClassFor, Chip, DataState, dataStateKindForError, HeroPanel, Icon, ICON, linkClass, Notice, StatusChip, Stepper, surfaceClass, type DataStateKind } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { useCampaignList } from '../hooks/use-selected-campaign';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
@@ -16,11 +15,11 @@ import type { CollectiveSummary, ProposalSummary } from '../types/collective';
 import { fmtCampaignDay, isEstimatedEndOverdue } from './campaign-dates';
 import { CampaignActions, OverdueNote } from './campaigns.page';
 
-type Failure = { kind: 'error' | 'forbidden'; text: string };
+type Failure = { kind: DataStateKind; text: string };
 
 const COUNT = new Intl.NumberFormat('es-BO');
 function failure(err: unknown, fallback: string, text: (err: unknown, fallback: string) => string): Failure {
-  return { kind: axios.isAxiosError(err) && err.response?.status === 403 ? 'forbidden' : 'error', text: text(err, fallback) };
+  return { kind: dataStateKindForError(err), text: text(err, fallback) };
 }
 
 const enc = encodeURIComponent;
@@ -177,11 +176,13 @@ export function CampaignDetailPage() {
           ]}
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <p className="max-w-3xl whitespace-pre-line text-sm leading-relaxed text-on-ink-muted [overflow-wrap:anywhere]">
-              <span className="font-semibold text-on-ink">Notas: </span>
-              {campaign.notes || 'Sin notas'}
-            </p>
-            <div className="flex flex-wrap items-center gap-2 lg:shrink-0" data-testid="detail-actions">
+            {campaign.notes?.trim() && (
+              <p className="max-w-3xl whitespace-pre-line text-sm leading-relaxed text-on-ink-muted [overflow-wrap:anywhere]">
+                <span className="font-semibold text-on-ink">Notas: </span>
+                {campaign.notes}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:shrink-0" data-testid="detail-actions">
               <CampaignActions campaign={campaign} onChanged={changed} onDark />
               <Link to={summaryUrl} className={buttonClassFor('accent')}>
                 Ver resumen
@@ -261,13 +262,22 @@ export function CampaignDetailPage() {
   );
 }
 
+const VERSION_STEPS = [
+  { key: 'open', label: 'Abierta' },
+  { key: 'closed', label: 'Cerrada' },
+  { key: 'history', label: 'Histórico fijado' },
+];
+
 function VersionCard({ campaign, summary }: Readonly<{ campaign: Campaign; summary: CollectiveSummary }>) {
   const history = summary.seal;
   const historyUrl = `${COLLECTIVE_PATHS.history}?vista=tendencias&campaign=${enc(campaign.id)}`;
+  const showStepper = campaign.status === 'ABIERTA' || campaign.status === 'CERRADA';
+  const currentStep = history ? 2 : campaign.status === 'CERRADA' ? 1 : 0;
   return (
     <section className={`${surfaceClass} min-w-0 px-5 py-6 sm:px-8`} aria-labelledby="version-title" data-testid="detail-seal">
       <h2 id="version-title" className="font-display text-2xl font-bold text-ink">Resultados históricos</h2>
       <div className="mt-4 space-y-4">
+        {showStepper && <Stepper label="Estado de los resultados históricos" steps={VERSION_STEPS} current={currentStep} testId="campaign-stepper" />}
         {history ? (
           <div data-testid="seal-banner">
             <Facts rows={[

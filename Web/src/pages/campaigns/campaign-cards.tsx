@@ -109,7 +109,7 @@ export function CampaignActions({ campaign, onChanged, onDark = false }: { campa
         </Button>
       )}
       {!campaign.isActive && !terminal && (
-        <Button variant={onDark ? 'accent' : 'primary'} size={size} onClick={() => void open()} busy={busy}>
+        <Button variant={variant} size={size} onClick={() => void open()} busy={busy}>
           Abrir campaña
         </Button>
       )}

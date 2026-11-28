@@ -114,7 +114,19 @@ describe('Detalle de campaña', () => {
     const seal = await screen.findByTestId('seal-banner');
     expect(seal.textContent).toMatch(/Fijados el/);
     expect(seal.textContent).toContain(fixtures.LONG_AUTHOR);
+    const stepper = screen.getByTestId('campaign-stepper');
+    expect(within(stepper).getByText('Histórico fijado').closest('li')?.getAttribute('aria-current')).toBe('step');
     expect(collectiveService.sealState).not.toHaveBeenCalled();
+  });
+
+  it('omite la línea de notas cuando la campaña no tiene notas', async () => {
+    const withoutNotes: SummaryFixture = {
+      ...fixtures.worst,
+      campaigns: fixtures.worst.campaigns.map((row) => (row.id === fixtures.worst.selected ? { ...row, notes: null } : row)),
+    };
+    show(withoutNotes);
+    const general = await screen.findByTestId('general');
+    expect(general.textContent).not.toMatch(/Sin notas/);
   });
 
   it('política pendiente: la participación queda restringida, sin cifras', async () => {
