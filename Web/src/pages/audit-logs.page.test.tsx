@@ -88,7 +88,7 @@ describe('Bitácora', () => {
     expect(screen.getByTestId('audit-d').textContent).toContain(`Sistema · ${CAMPAIGN.name}`);
     // H-08: sólo las filas del servidor.
     expect(screen.getAllByRole('listitem').filter((li) => li.dataset.testid?.startsWith('audit-'))).toHaveLength(LOGS.length);
-    expect(screen.getByTestId('audit-limit').textContent).toMatch(/últimas 300 acciones/);
+    expect(screen.getByTestId('audit-limit').textContent).toMatch(/Mostrando todas las acciones encontradas \(5\)/);
   });
 
   it('tipo de acción en el navegador: un permiso dentro de una convocatoria cuenta como «Permisos»', async () => {
@@ -112,9 +112,9 @@ describe('Bitácora', () => {
     await waitFor(() => expect(people.options.length).toBe(3));
     expect([...people.options].map((o) => o.textContent)).toEqual(['Todas las personas', 'Directiva sintética', 'Directiva retirada sintética (inactiva)']);
     fireEvent.change(people, { target: { value: 'u-5' } });
-    await waitFor(() => expect(auditLogsService.list).toHaveBeenLastCalledWith({ campaignId: undefined, actorUserId: 'u-5', from: undefined, to: undefined }));
+    await waitFor(() => expect(auditLogsService.list).toHaveBeenLastCalledWith({ campaignId: undefined, actorUserId: 'u-5', from: undefined, to: undefined, limit: 51, offset: 0 }));
     fireEvent.change(screen.getByLabelText('Campaña'), { target: { value: CAMPAIGN.id } });
-    await waitFor(() => expect(auditLogsService.list).toHaveBeenLastCalledWith({ campaignId: CAMPAIGN.id, actorUserId: 'u-5', from: undefined, to: undefined }));
+    await waitFor(() => expect(auditLogsService.list).toHaveBeenLastCalledWith({ campaignId: CAMPAIGN.id, actorUserId: 'u-5', from: undefined, to: undefined, limit: 51, offset: 0 }));
   });
 
   it('«Qué pasó»: acción, cuándo, quién, dónde y la nota; los datos técnicos plegados', async () => {
@@ -218,5 +218,46 @@ describe('Bitácora', () => {
     expect(error.getAttribute('data-state')).toBe('offline');
     fireEvent.click(within(error).getByRole('button', { name: 'Reintentar' }));
     await screen.findByTestId('audit-a');
+  });
+
+  it('paginación real: carga más acciones con offset en el servidor y oculta Persona si /users falla', async () => {
+    const firstPage = Array.from({ length: 51 }, (_, index) =>
+      log(`row-${index}`, '2026-11-12T16:00:00.000Z', { summary: `Acción ${index}` }),
+    );
+    const secondPage = [log('older-1', '2026-10-01T12:00:00.000Z', { summary: 'Acción histórica anterior' })];
+    vi.mocked(listUsers).mockRejectedValue(new AxiosError('Forbidden', '403'));
+    vi.mocked(auditLogsService.list).mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage);
+
+    render();
+    await screen.findByTestId('audit-row-0');
+    expect(screen.queryByLabelText('Persona')).toBeNull();
+    expect(screen.getAllByRole('listitem').filter((li) => li.dataset.testid?.startsWith('audit-'))).toHaveLength(50);
+
+    fireEvent.click(screen.getByTestId('audit-load-more'));
+    await screen.findByTestId('audit-older-1');
+    expect(auditLogsService.list).toHaveBeenLastCalledWith({
+      campaignId: undefined,
+      actorUserId: undefined,
+      from: undefined,
+      to: undefined,
+      limit: 51,
+      offset: 50,
+    });
+    expect(screen.queryByTestId('audit-load-more')).toBeNull();
+  });
+
+  it('búsqueda local sin tildes y atajo de fecha «Hoy»', async () => {
+    render();
+    await screen.findByTestId('audit-a');
+    fireEvent.change(screen.getByLabelText('Buscar en la bitácora'), { target: { value: 'identificacion' } });
+    expect(screen.getByTestId('audit-a')).toBeTruthy();
+    expect(screen.queryByTestId('audit-c')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hoy' }));
+    await waitFor(() =>
+      expect(auditLogsService.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ from: expect.any(String), to: expect.any(String), limit: 51, offset: 0 }),
+      ),
+    );
   });
 });
