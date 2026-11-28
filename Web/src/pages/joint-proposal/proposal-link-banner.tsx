@@ -3,6 +3,7 @@ import { Button, ICON, Icon, Notice } from '../../components/ui';
 import { fmtDateTime } from '../../lib/collective-text';
 import { PREPARE_BLOCKER_TEXT, sameSelection, UPDATE_REASON_TEXT } from '../../lib/estimation-link-text';
 import { JOB_STATUS_TEXT } from '../../lib/estimation-text';
+import { callProductsLimitMessage, MAX_CALL_PRODUCTS } from '../../lib/joint-purchase-call-text';
 import type { Proposal } from '../../types/collective';
 import type { EstimationLinkView } from '../../types/estimation-link';
 import {
@@ -201,6 +202,8 @@ export function SelectionBar({
   const dirty = !sameSelection(selection.chosen, selection.saved);
   const count = selection.saved.length;
   const chosenCount = selection.chosen.length;
+  const chosenOverLimit = chosenCount > MAX_CALL_PRODUCTS;
+  const savedOverLimit = count > MAX_CALL_PRODUCTS;
   return (
     <div className={box} data-testid="selection-bar">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
@@ -216,7 +219,7 @@ export function SelectionBar({
           </Button>
           <Button
             variant="accent"
-            disabled={dirty || count === 0 || saving}
+            disabled={dirty || count === 0 || savedOverLimit || saving}
             onClick={onPrepareCall}
             aria-label={`Preparar convocatoria (${count} ${count === 1 ? 'producto' : 'productos'})`}
             iconEnd={<Icon d={ICON.arrowRight} className="h-5 w-5" />}
@@ -225,6 +228,13 @@ export function SelectionBar({
           </Button>
         </div>
       </div>
+      {chosenOverLimit && (
+        <div className="mt-3" role="alert" data-testid="selection-limit-warning">
+          <Notice kind="warn" compact>
+            {callProductsLimitMessage(chosenCount)}
+          </Notice>
+        </div>
+      )}
       {dirty && <p className="mt-2 text-sm text-on-ink-muted">Guarde la selección para preparar la convocatoria con ella.</p>}
       {feedback && (
         <div className="mt-3" role="status" data-testid="selection-feedback">

@@ -1,5 +1,6 @@
 import { Button, Dialog, labelClass, Notice, SegmentedControl, TextInput } from '../components/ui';
 import {
+  callProductsLimitMessage,
   CREATE_AS_DRAFT_NOTE,
   DEADLINE_HELP,
 } from '../lib/joint-purchase-call-text';
@@ -37,7 +38,6 @@ export function JointPurchaseCallForm({
       dirty={form.dirty}
       busy={form.busy}
       size="lg"
-      hideCloseButton
       fullScreenOnPhone
       testId="call-form"
       footer={
@@ -110,10 +110,15 @@ export function JointPurchaseCallForm({
               </span>
             </Notice>
           )}
-          <FieldError id="call-products-error" text={form.errors.products} />
+          {form.overLimit && (
+            <Notice kind="warn" compact>
+              <span data-testid="call-products-limit">{callProductsLimitMessage(form.selectedProductRefs.length)}</span>
+            </Notice>
+          )}
+          <FieldError id="call-products-error" text={form.overLimit ? undefined : form.errors.products} />
           <ClosedCallReference
             campaignId={campaignId}
-            productRefs={form.selectedProductRefs}
+            productRefs={form.overLimit ? [] : form.selectedProductRefs}
             excludeCallId={call?.call_id}
             showDeclaredNeed={form.source === 'catalog'}
           />

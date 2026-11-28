@@ -375,6 +375,37 @@ describe('Compras conjuntas: lista (E2 §6)', () => {
     );
   });
 
+  it('editar solo productos activa el aviso de cambios sin guardar al intentar cerrar con Escape', async () => {
+    const onClose = vi.fn();
+    renderForm(<JointPurchaseCallForm campaignId={CAMPAIGN.id} campaignName="Campaña de prueba" call={CREATED} onClose={onClose} onSaved={vi.fn()} />);
+    await within(dialog()).findByRole('checkbox', { name: /Glifosato 48 SL/ });
+
+    // Sin cambios: Escape cierra directamente sin pedir confirmación.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    onClose.mockClear();
+
+    // Al añadir únicamente un producto, Escape muestra el aviso de cambios sin guardar y no cierra.
+    fireEvent.click(within(dialog()).getByRole('checkbox', { name: /Glifosato 48 SL/ }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(within(dialog()).getByText(/Hay cambios sin guardar/i)).toBeTruthy();
+
+    // Seguir editando mantiene el cambio; al revertir el producto vuelve a quedar limpio.
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Seguir editando' }));
+    fireEvent.click(within(dialog()).getByRole('checkbox', { name: /Glifosato 48 SL/ }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    onClose.mockClear();
+
+    // Quitar el único producto original también activa el aviso; confirmar «Descartar cambios» cierra.
+    fireEvent.click(within(dialog()).getByRole('checkbox', { name: /Urea/ }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Descartar cambios' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('productos de un borrador de propuesta: la cifra es sólo «referencia» divulgada, nunca una cantidad comprometida', async () => {
     vi.mocked(jointPurchaseCallsService.create).mockResolvedValue({ ...CREATED, source_proposal_ref: 'pr-1' });
     vi.mocked(jointPurchaseCallsService.closedProductHistory).mockResolvedValue([{
@@ -471,7 +502,7 @@ describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de prop
     vi.mocked(jointPurchaseCallsService.create).mockResolvedValue({ ...CREATED, source_proposal_ref: 'pr-1' });
   });
 
-  it('la URL usa la ruta de la lista y codifica los valores; se lee igual', () => {
+  it('la URL usa la ruta de la lista y codifica los valores; se lee igual sin recortar a 50 en silencio', () => {
     const path = prepareCallPath(CAMPAIGN.id, 'pr 1/á', ['p-1', 'p&2']);
     expect(path.startsWith(`${COLLECTIVE_PATHS.jointPurchaseCalls}?nueva=1&`)).toBe(true);
     expect(path).not.toMatch(/ |&2|\/á/);
@@ -480,8 +511,43 @@ describe('Compras conjuntas: «Preparar convocatoria» desde un borrador de prop
       proposalId: 'pr 1/á',
       productRefs: ['p-1', 'p&2'],
     });
+    const refs51 = Array.from({ length: 51 }, (_, i) => `p-${i + 1}`);
+    const path51 = prepareCallPath(CAMPAIGN.id, 'pr-51', refs51);
+    expect(readPreparedCall(new URLSearchParams(path51.split('?')[1]))?.productRefs).toEqual(refs51);
     expect(readPreparedCall(new URLSearchParams('nueva=1&campana=no-uuid&propuesta=pr-1'))).toBeNull();
     expect(readPreparedCall(new URLSearchParams(`campana=${CAMPAIGN.id}&propuesta=pr-1`))).toBeNull();
+  });
+
+  it('con 50 productos llegan completos; con 51 conserva los 51 marcados y exige ajustar antes de crear', async () => {
+    const refs51 = Array.from({ length: 51 }, (_, i) => `p-${i + 1}`);
+    const proposal51: Proposal = {
+      ...PROPOSAL,
+      proposal_ref: 'pr-51',
+      lines: refs51.map((product_ref, position) => line(position, { product_ref, product_name: `Producto ${position + 1}` })),
+    };
+    vi.mocked(collectiveService.proposals).mockResolvedValue([{ ...DRAFTS[0]!, proposal_ref: 'pr-51', line_count: 51 }]);
+    vi.mocked(collectiveService.proposal).mockResolvedValue(proposal51);
+
+    renderPrepared(prepareCallPath(CAMPAIGN.id, 'pr-51', refs51));
+    const form = await screen.findByRole('dialog', { name: 'Nueva convocatoria' });
+    await waitFor(() => expect((within(within(form).getByTestId('proposal-line-50')).getByRole('checkbox') as HTMLInputElement).checked).toBe(true));
+
+    // Conserva los 51 marcados y avisa del límite de 50.
+    expect(within(form).getAllByRole('checkbox').filter((box) => (box as HTMLInputElement).checked)).toHaveLength(51);
+    expect(within(form).getByTestId('call-products-limit').textContent).toMatch(/hasta 50 productos.*Tiene 51 elegidos.*quite al menos 1/i);
+
+    // No envía mientras exceda 50.
+    fireEvent.change(within(form).getByLabelText('Nombre'), { target: { value: 'Compra grande' } });
+    fireEvent.change(within(form).getByLabelText('Fecha y hora límite'), { target: { value: '2099-12-01T18:00' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'Crear borrador' }));
+    expect(jointPurchaseCallsService.create).not.toHaveBeenCalled();
+
+    // Al desmarcar 1 (quedan 50), desaparece el aviso y se envían los 50 completos.
+    fireEvent.click(within(within(form).getByTestId('proposal-line-50')).getByRole('checkbox'));
+    expect(within(form).queryByTestId('call-products-limit')).toBeNull();
+    fireEvent.click(within(form).getByRole('button', { name: 'Crear borrador' }));
+    await waitFor(() => expect(jointPurchaseCallsService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(jointPurchaseCallsService.create).mock.calls[0]![0].products).toHaveLength(50);
   });
 
   it('abre el formulario con la campaña, el borrador y sólo sus líneas de esos productos; avisa de los ignorados; nada se envía sin confirmar', async () => {

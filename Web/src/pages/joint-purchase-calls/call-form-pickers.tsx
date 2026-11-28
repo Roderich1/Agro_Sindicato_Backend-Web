@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataState, ICON, Icon, Notice, SearchInput, Select } from '../../components/ui';
 import { collectiveError, fmtDateTime } from '../../lib/collective-text';
-import { referenceText } from '../../lib/joint-purchase-call-text';
+import { MAX_CALL_PRODUCTS, referenceText } from '../../lib/joint-purchase-call-text';
 import { normalizeName } from '../../lib/product-text';
 import { presentationUnit } from '../../lib/quantity';
 import { collectiveService } from '../../services/collective.service';
@@ -22,7 +22,7 @@ function unitShort(unit: 'L' | 'KG' | string): string {
   return unit === 'KG' ? 'kg' : unit;
 }
 
-const LIST_BOX = 'max-h-72 divide-y divide-line overflow-y-auto rounded-[18px] border border-line bg-surface px-4';
+const LIST_BOX = 'max-h-72 divide-y divide-line overflow-y-auto rounded-field border border-line bg-surface px-4';
 const CHECK_ROW = 'flex min-h-12 cursor-pointer items-center gap-3 py-2.5 text-base text-ink';
 const CHECK_BOX = 'h-5 w-5 shrink-0 cursor-pointer rounded-[5px] accent-ink';
 
@@ -102,7 +102,7 @@ export function CatalogPicker({ selected, onChange }: { selected: Set<string>; o
         </ul>
       )}
       <p className="text-xs text-ink-muted">
-        {selected.size === 1 ? '1 producto elegido' : `${selected.size} productos elegidos`}. Sólo productos activos del catálogo, en L o kg, que no sean
+        {selected.size === 1 ? '1 producto elegido' : `${selected.size} productos elegidos`} (máximo {MAX_CALL_PRODUCTS}). Sólo productos activos del catálogo, en L o kg, que no sean
         nombres equivalentes de otro producto.
       </p>
     </div>
@@ -211,6 +211,11 @@ export function ProposalPicker({
           </ul>
         )
       ) : null}
+      {proposal && proposal.lines.length > 0 && (
+        <p className="text-xs text-ink-muted">
+          {selected.size === 1 ? '1 producto elegido' : `${selected.size} productos elegidos`} (máximo {MAX_CALL_PRODUCTS}).
+        </p>
+      )}
     </div>
   );
 }

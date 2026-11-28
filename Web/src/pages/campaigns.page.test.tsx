@@ -193,6 +193,41 @@ describe('Campañas', () => {
     await screen.findByTestId('campaign-row-Campaña única 2026');
   });
 
+  it('el aviso de cierre refleja que al cerrar se fijan los resultados históricos y sólo menciona regularización cuando hay cerradas sin histórico', async () => {
+    const active = fixtures.one[0]!;
+    const closedSealed: Campaign = {
+      ...active,
+      id: 'c0000009-0000-4000-8000-000000000091',
+      name: 'Cerrada con histórico',
+      status: 'CERRADA',
+      isActive: false,
+      closedAt: '2026-10-01T12:00:00.000Z',
+    };
+    const closedOld: Campaign = {
+      ...active,
+      id: 'c0000009-0000-4000-8000-000000000092',
+      name: 'Cerrada antigua sin histórico',
+      status: 'CERRADA',
+      isActive: false,
+      closedAt: '2025-10-01T12:00:00.000Z',
+    };
+    vi.mocked(collectiveService.trends).mockResolvedValue({
+      campaigns: [{ campaign_ref: closedSealed.id, name: closedSealed.name, status: 'CERRADA', start_date: closedSealed.startDate, seal: { version: 1 }, coverage: null }],
+    } as never);
+
+    const view = show([active, closedSealed]);
+    await screen.findByTestId('campaign-row-Cerrada con histórico');
+    await waitFor(() => expect(collectiveService.trends).toHaveBeenCalledTimes(1));
+    const noteClean = screen.getByTestId('campaign-close-note').textContent ?? '';
+    expect(noteClean).toMatch(/Al cerrar la campaña, se fijan sus resultados históricos/);
+    expect(noteClean).not.toMatch(/no la sella|regularizarse/i);
+    view.unmount();
+
+    show([active, closedSealed, closedOld]);
+    await screen.findByTestId('campaign-row-Cerrada antigua sin histórico');
+    await waitFor(() => expect(screen.getByTestId('campaign-close-note').textContent).toMatch(/regularizarse/i));
+  });
+
   it('crear una campaña vuelve a pedir la lista de la sesión, y la nueva aparece', async () => {
     show(fixtures.one);
     await screen.findByTestId('campaign-row-Campaña única 2026');
