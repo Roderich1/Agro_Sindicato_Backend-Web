@@ -13,12 +13,15 @@ import {
   Icon,
   ICON,
   inputClass,
+  Notice,
   PageHeader,
+  SearchInput,
   Select,
   surfaceClass,
 } from '../components/ui';
 import { fmtDateTime } from '../lib/collective-text';
 import { extractError } from '../lib/format';
+import { normalizeName } from '../lib/product-text';
 import { auditLogsService } from '../services/audit-logs.service';
 import { campaignsService } from '../services/campaigns.service';
 import { listUsers } from '../services/users.service';
@@ -28,11 +31,17 @@ import type { AdminUser } from '../types/users';
 
 type CategoryFilter = 'ALL' | AuditCategory;
 
-const MAX_ROWS = 300;
+const PAGE_SIZE = 50;
 const TIME = new Intl.DateTimeFormat('es-BO', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const DAY = new Intl.DateTimeFormat('es-BO', { day: 'numeric', month: 'short', year: 'numeric' });
 const pad = (n: number) => String(n).padStart(2, '0');
 const dayKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+function daysAgoKey(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return dayKey(date);
+}
 
 function dayLabel(key: string, sample: Date, now: Date): string {
   const yesterday = new Date(now);
@@ -67,10 +76,15 @@ function JsonBlock({ value }: { value: AuditJsonValue }) {
  */
 export function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [selected, setSelected] = useState<AuditLog | null>(null);
   const [filters, setFilters] = useState({ campaignId: '', actorUserId: '', from: '', to: '' });
+  const [search, setSearch] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('ALL');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -86,7 +100,7 @@ export function AuditLogsPage() {
     [filters],
   );
 
-  // Las opciones de los filtros se piden una vez; si fallan, el filtro queda sólo con «Todas».
+  // Las opciones de los filtros se piden una vez; si fallan (p. ej. 403 en /users para Directiva), el filtro correspondiente se oculta.
   useEffect(() => {
     let alive = true;
     campaignsService
@@ -104,15 +118,44 @@ export function AuditLogsPage() {
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setLoadMoreError(null);
     try {
-      setLogs(await auditLogsService.list(query));
+      const rows = await auditLogsService.list({ ...query, limit: PAGE_SIZE + 1, offset: 0 });
+      const more = rows.length > PAGE_SIZE;
+      const page = more ? rows.slice(0, PAGE_SIZE) : rows;
+      setLogs(page);
+      setHasMore(more);
+      setNextOffset(page.length);
     } catch (err) {
       setLogs([]);
+      setHasMore(false);
+      setNextOffset(0);
       setError({ kind: dataStateKindForError(err), text: extractError(err, 'No fue posible cargar la bitácora.') });
     } finally {
       setLoading(false);
     }
   }, [query]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    setLoadMoreError(null);
+    try {
+      const rows = await auditLogsService.list({ ...query, limit: PAGE_SIZE + 1, offset: nextOffset });
+      const more = rows.length > PAGE_SIZE;
+      const page = more ? rows.slice(0, PAGE_SIZE) : rows;
+      setLogs((prev) => {
+        const seen = new Set(prev.map((item) => item.id));
+        return [...prev, ...page.filter((item) => !seen.has(item.id))];
+      });
+      setHasMore(more);
+      setNextOffset((prev) => prev + page.length);
+    } catch (err) {
+      setLoadMoreError(extractError(err, 'No fue posible cargar acciones anteriores.'));
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     void Promise.resolve().then(refresh);
@@ -120,12 +163,27 @@ export function AuditLogsPage() {
 
   const campaignNames = useMemo(() => new Map(campaigns.map((campaign) => [campaign.id, campaign.name])), [campaigns]);
   const userNames = useMemo(() => new Map(users.map((item) => [item.id, item.name])), [users]);
+  const campaignOf = useCallback((log: AuditLog) => log.campaign?.name ?? (log.campaignId ? campaignNames.get(log.campaignId) ?? null : null), [campaignNames]);
+  const actorOf = useCallback((log: AuditLog) => log.actor?.name ?? (log.actorUserId ? userNames.get(log.actorUserId) ?? null : null), [userNames]);
+
   const counts = useMemo(() => {
     const totals = new Map<AuditCategory, number>();
     logs.forEach((log) => totals.set(auditCategory(log), (totals.get(auditCategory(log)) ?? 0) + 1));
     return totals;
   }, [logs]);
-  const shown = category === 'ALL' ? logs : logs.filter((log) => auditCategory(log) === category);
+
+  const searchTerm = normalizeName(search);
+  const shown = useMemo(
+    () =>
+      logs.filter((log) => {
+        if (category !== 'ALL' && auditCategory(log) !== category) return false;
+        if (!searchTerm) return true;
+        const fields = [log.summary, actorOf(log) ?? 'Sistema', auditScope(log, campaignOf(log)), auditEventLabel(log)];
+        return fields.some((value) => value != null && normalizeName(value).includes(searchTerm));
+      }),
+    [logs, category, searchTerm, actorOf, campaignOf],
+  );
+
   const groups = useMemo(() => {
     const now = new Date();
     const map = new Map<string, { label: string; rows: AuditLog[] }>();
@@ -140,9 +198,12 @@ export function AuditLogsPage() {
   }, [shown]);
 
   const setFilter = (field: keyof typeof filters, value: string) => setFilters((current) => ({ ...current, [field]: value }));
+  const setDateRange = (days: number) => {
+    const today = daysAgoKey(0);
+    setFilters((current) => ({ ...current, from: daysAgoKey(days), to: today }));
+  };
   const filtersActive = Object.values(filters).some(Boolean);
-  const campaignOf = (log: AuditLog) => log.campaign?.name ?? (log.campaignId ? campaignNames.get(log.campaignId) ?? null : null);
-  const actorOf = (log: AuditLog) => log.actor?.name ?? (log.actorUserId ? userNames.get(log.actorUserId) ?? null : null);
+  const localFilterActive = category !== 'ALL' || Boolean(searchTerm);
   const categoryOptions = [
     { value: 'ALL' as const, label: 'Todas', count: loading || error ? undefined : logs.length },
     ...AUDIT_CATEGORIES.filter((option) => (counts.get(option.value) ?? 0) > 0 || option.value === category).map((option) => ({
@@ -169,6 +230,32 @@ export function AuditLogsPage() {
         />
 
         <div className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <SearchInput
+              id="audit-search"
+              label="Buscar en la bitácora"
+              value={search}
+              onChange={setSearch}
+              placeholder="Buscar en las acciones cargadas…"
+              fieldClassName="w-full sm:max-w-md"
+            />
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Atajos de fecha">
+              <Button variant="ghost" size="sm" onClick={() => setDateRange(0)}>
+                Hoy
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setDateRange(6)}>
+                Últimos 7 días
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setDateRange(29)}>
+                Últimos 30 días
+              </Button>
+              {(filters.from || filters.to) && (
+                <Button variant="ghost" size="sm" onClick={() => setFilters((current) => ({ ...current, from: '', to: '' }))}>
+                  Limpiar fechas
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="lg:hidden">
             <FilterChips label="Tipo de acción" testId="audit-categories" value={category} onChange={setCategory} options={categoryOptions} />
           </div>
@@ -184,16 +271,18 @@ export function AuditLogsPage() {
                 </option>
               ))}
             </Select>
-            {/* F10-SEC-02 (#45): sin filtro por agricultor; la bitácora institucional sólo tiene entradas sin dueño. */}
-            <Select id="audit-actor" label="Persona" hideLabel value={filters.actorUserId} onChange={(event) => setFilter('actorUserId', event.target.value)} fieldClassName="lg:w-64" className="rounded-full bg-surface font-semibold">
-              <option value="">Todas las personas</option>
-              {users.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                  {item.isActive ? '' : ' (inactiva)'}
-                </option>
-              ))}
-            </Select>
+            {/* F10-SEC-02 (#45): sin filtro por agricultor; sólo se muestra si la cuenta tiene acceso a la lista de usuarios. */}
+            {users.length > 0 && (
+              <Select id="audit-actor" label="Persona" hideLabel value={filters.actorUserId} onChange={(event) => setFilter('actorUserId', event.target.value)} fieldClassName="lg:w-64" className="rounded-full bg-surface font-semibold">
+                <option value="">Todas las personas</option>
+                {users.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                    {item.isActive ? '' : ' (inactiva)'}
+                  </option>
+                ))}
+              </Select>
+            )}
             <div className="hidden lg:block">
               <Select id="audit-category" label="Tipo de acción" hideLabel value={category} onChange={(event) => setCategory(event.target.value as CategoryFilter)} fieldClassName="lg:w-60" className="rounded-full bg-surface font-semibold">
                 {categoryOptions.map((option) => (
@@ -239,7 +328,18 @@ export function AuditLogsPage() {
           </div>
         ) : shown.length === 0 ? (
           <div className={surfaceClass}>
-            <DataState state="no-match" description="Ninguna de las acciones cargadas es de este tipo." onClearFilters={() => setCategory('ALL')} />
+            <DataState
+              state="no-match"
+              description="Ninguna de las acciones cargadas coincide con la búsqueda o el tipo elegido."
+              onClearFilters={
+                localFilterActive
+                  ? () => {
+                      setCategory('ALL');
+                      setSearch('');
+                    }
+                  : undefined
+              }
+            />
           </div>
         ) : (
           <div className="space-y-5" data-testid="audit-days">
@@ -274,10 +374,22 @@ export function AuditLogsPage() {
             ))}
           </div>
         )}
-        {!loading && !error && (
-          <p className="text-sm text-ink-muted" data-testid="audit-limit">
-            Se muestran como máximo las últimas {MAX_ROWS} acciones. Para ver más atrás, acote por fechas.
-          </p>
+
+        {loadMoreError && <Notice kind="error">{loadMoreError}</Notice>}
+
+        {!loading && !error && logs.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-muted" data-testid="audit-limit">
+              {hasMore
+                ? `Mostrando ${logs.length} acciones. Pulse «Cargar más acciones» para ver registros anteriores.`
+                : `Mostrando todas las acciones encontradas (${logs.length}).`}
+            </p>
+            {hasMore && (
+              <Button variant="secondary" onClick={() => void loadMore()} busy={loadingMore} data-testid="audit-load-more">
+                Cargar más acciones
+              </Button>
+            )}
+          </div>
         )}
       </div>
 

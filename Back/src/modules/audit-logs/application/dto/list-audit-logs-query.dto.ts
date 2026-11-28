@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 export class ListAuditLogsQueryDto {
   @ApiPropertyOptional()
@@ -38,4 +39,19 @@ export class ListAuditLogsQueryDto {
   @IsOptional()
   @IsDateString()
   to?: string;
+
+  @ApiPropertyOptional({ description: 'Cantidad máxima de registros por consulta (1 a 300).', minimum: 1, maximum: 300, default: 300 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(300)
+  limit?: number;
+
+  @ApiPropertyOptional({ description: 'Cantidad de registros a omitir para consultar historial más antiguo.', minimum: 0, default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
 }

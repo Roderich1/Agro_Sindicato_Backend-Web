@@ -57,4 +57,6 @@ export interface ListAuditLogsQuery {
   entityName?: string;
   from?: string;
   to?: string;
+  limit?: number;
+  offset?: number;
 }

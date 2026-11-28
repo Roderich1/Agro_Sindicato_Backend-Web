@@ -8,10 +8,14 @@ export class ListAuditLogsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(tenantId: string, userId: string, role: string, query: ListAuditLogsQueryDto = {}) {
+    const take = Math.min(Math.max(query.limit ?? 300, 1), 300);
+    const skip = query.offset && query.offset > 0 ? query.offset : undefined;
+
     const logs = await this.prisma.auditLog.findMany({
       where: this.buildWhere(tenantId, userId, role, query),
       orderBy: { createdAt: 'desc' },
-      take: 300,
+      ...(skip !== undefined ? { skip } : {}),
+      take,
       include: {
         campaign: { select: { id: true, name: true, status: true } },
         // RNF-05, F10-SEC-02: the Bitácora names people; it never carries an

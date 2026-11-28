@@ -70,4 +70,37 @@ describe('ListAuditLogsUseCase', () => {
     expect(include.owner).toEqual({ select: { id: true, name: true } });
     expect(JSON.stringify(include)).not.toContain('email');
   });
+
+  it('supports limit and offset pagination for older audit entries', async () => {
+    const { prisma, useCase } = createUseCase({});
+
+    await useCase.execute(tenantId, 'admin-1', UserRole.ADMINISTRADOR, { limit: 51, offset: 300 });
+
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
+      where: {
+        tenantId,
+        ownerUserId: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: 300,
+      take: 51,
+      include: expect.any(Object),
+    });
+  });
+
+  it('clamps limit to 300 and omits skip when offset is 0', async () => {
+    const { prisma, useCase } = createUseCase({});
+
+    await useCase.execute(tenantId, 'admin-1', UserRole.ADMINISTRADOR, { limit: 500, offset: 0 });
+
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
+      where: {
+        tenantId,
+        ownerUserId: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+      include: expect.any(Object),
+    });
+  });
 });
