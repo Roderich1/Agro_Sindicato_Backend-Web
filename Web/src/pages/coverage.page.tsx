@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HeroCoverage } from '../components/a/coverage-figure';
 import { AppShell } from '../components/app-shell';
-import { CampaignSelector, Card, Collapsible, DataState, dataStateKindForError, ICON, Icon, PageHeader, type DataStateKind } from '../components/ui';
+import { CampaignSelector, Card, DataState, dataStateKindForError, ICON, Icon, PageHeader, type DataStateKind } from '../components/ui';
 import { useSelectedCampaign } from '../hooks/use-selected-campaign';
 import { collectiveError } from '../lib/collective-text';
 import { reportDisclosureMode } from '../lib/data-mode';
@@ -100,32 +100,19 @@ export function CoveragePage() {
           </Card>
         )}
         {summary && !loading && <CoverageBody coverage={summary.coverage} sealedAt={summary.seal?.sealed_at ?? null} policyPending={summary.disclosure.mode === 'POLICY_PENDING'} />}
-        <section aria-labelledby="aceptados-locales" className="rounded-card border border-line bg-surface px-5 py-6 shadow-card sm:px-8" data-testid="accepted-vs-local">
-          <h2 id="aceptados-locales" className="text-xl font-bold text-ink">
+        <section aria-labelledby="aceptados-locales" className="rounded-card border border-line bg-surface px-5 py-5 shadow-card sm:px-7" data-testid="accepted-vs-local">
+          <h2 id="aceptados-locales" className="text-base font-bold text-ink">
             Aportes aceptados y registros locales
           </h2>
-          <div className="mt-3 space-y-2 text-base leading-relaxed text-ink-muted">
-            <p>
-              <span className="font-semibold text-ink">Aportes aceptados:</span> lo que los teléfonos publicaron y el servidor aceptó y
-              consolidó. Es lo único que cuentan las cifras y la cobertura de esta página.
-            </p>
-            <p>
-              <span className="font-semibold text-ink">Registros locales:</span> lo que un agricultor tiene registrado en su teléfono sin
-              publicar. El servidor no lo conoce y <strong className="text-ink">no está disponible</strong> aquí: no se puede saber si todos los
-              teléfonos publicaron todo. Una cobertura alta no significa que los datos estén completos.
-            </p>
-          </div>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-ink-muted">
+            <li>
+              <span className="font-semibold text-ink">Aportes aceptados:</span> lo publicado y consolidado en el servidor; es lo único que cuentan estas cifras.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Registros locales:</span> lo guardado en cada teléfono sin publicar <strong className="text-ink">no está disponible</strong> aquí.
+            </li>
+          </ul>
         </section>
-        <Collapsible title="Seguimiento de sincronización" label="Seguimiento de sincronización" testId="sync-tracking">
-          <div className="px-5 py-4 sm:px-7">
-            <DataState
-              state="empty"
-              title="Todavía sin consulta del servidor"
-              description="Última sincronización y envíos pendientes por agricultor no se muestran: el servidor no expone esa consulta. No se muestran datos ni estados."
-              compact
-            />
-          </div>
-        </Collapsible>
       </div>
     </AppShell>
   );
