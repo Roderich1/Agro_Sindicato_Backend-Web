@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AppShell } from '../components/app-shell';
 import { Facts, UnitBadge } from '../components/c/bits';
@@ -6,10 +5,13 @@ import { unitInfo } from '../components/c/unit';
 import { ProductForm } from '../components/product-form';
 import {
   Button,
+  Card,
   Checkbox,
   ConfirmDialog,
   DataState,
+  dataStateKindForError,
   Dialog,
+  FilterChips,
   Icon,
   ICON,
   Notice,
@@ -18,6 +20,7 @@ import {
   Select,
   surfaceClass,
   Textarea,
+  type DataStateKind,
 } from '../components/ui';
 import { useAuth } from '../hooks/use-auth';
 import { collectiveError, fmtDateTime } from '../lib/collective-text';
@@ -26,12 +29,24 @@ import { collectiveService } from '../services/collective.service';
 import type { Association, AssociationList, CatalogEntry } from '../types/collective';
 
 type DialogState = { kind: 'associate'; product: CatalogEntry; current: Association | null } | { kind: 'close'; association: Association };
+type UnitFilter = 'ALL' | 'L' | 'KG';
+
+const UNIT_FILTERS: { value: UnitFilter; label: string }[] = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'L', label: 'Litros' },
+  { value: 'KG', label: 'Kilogramos' },
+];
 
 const MAX_REASON = 280;
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const matches = (query: string, ...names: string[]) => {
   const wanted = normalizeName(query);
   return !wanted || names.some((name) => normalizeName(name).includes(wanted));
+};
+const matchesUnit = (unitFilter: UnitFilter, baseUnit: CatalogEntry['base_unit'] | undefined) => {
+  if (unitFilter === 'ALL') return true;
+  if (unitFilter === 'L') return baseUnit === 'ML';
+  return baseUnit === 'G';
 };
 const DAY = new Intl.DateTimeFormat('es-BO', { day: 'numeric', month: 'short', year: 'numeric' });
 const fmtDay = (value: string) => DAY.format(new Date(value));
@@ -78,10 +93,11 @@ export function ProductReconciliationView({
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
   const [associations, setAssociations] = useState<AssociationList>({ current: [], history: [] });
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<{ message: string; forbidden: boolean } | null>(null);
+  const [error, setError] = useState<{ kind: DataStateKind; message: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [query, setQuery] = useState('');
+  const [unitFilter, setUnitFilter] = useState<UnitFilter>('ALL');
 
   const load = useCallback(async () => {
     try {
@@ -91,7 +107,10 @@ export function ProductReconciliationView({
       setError(null);
       setLoaded(true);
     } catch (err) {
-      setError({ message: collectiveError(err, 'No fue posible cargar el catálogo.'), forbidden: axios.isAxiosError(err) && err.response?.status === 403 });
+      setError({
+        kind: dataStateKindForError(err),
+        message: collectiveError(err, 'No fue posible cargar el catálogo.'),
+      });
     }
   }, []);
 
@@ -104,19 +123,33 @@ export function ProductReconciliationView({
     onUnionCount?.(unionCount);
   }, [unionCount, onUnionCount]);
 
+  const catalogByRef = new Map(catalog.map((product) => [product.product_ref, product]));
   const aliasOf = new Map(associations.current.map((row) => [row.product_ref, row]));
   const canonicalRefs = new Set(associations.current.map((row) => row.canonical_product_ref));
-  const catalogEntry = (ref: string) => catalog.find((product) => product.product_ref === ref);
+  const catalogEntry = (ref: string) => catalogByRef.get(ref);
   const loose = catalog.filter((product) => !aliasOf.has(product.product_ref) && !canonicalRefs.has(product.product_ref));
   const canonicals = catalog.filter((product) => canonicalRefs.has(product.product_ref));
   const fullHistory = [...associations.current, ...associations.history].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
-  const shownLoose = loose.filter((product) => matches(query, product.product_name));
-  const shownCurrent = associations.current.filter((row) => matches(query, row.product_name, row.canonical_product_name));
-  const shownHistory = fullHistory.filter((row) => matches(query, row.product_name, row.canonical_product_name));
-  const filtered = query.trim().length > 0;
+  const shownLoose = loose.filter((product) => matchesUnit(unitFilter, product.base_unit) && matches(query, product.product_name));
+  const shownCurrent = associations.current.filter(
+    (row) => matchesUnit(unitFilter, catalogEntry(row.product_ref)?.base_unit) && matches(query, row.product_name, row.canonical_product_name),
+  );
+  const shownHistory = fullHistory.filter(
+    (row) => matchesUnit(unitFilter, catalogEntry(row.product_ref)?.base_unit) && matches(query, row.product_name, row.canonical_product_name),
+  );
+  const filtered = query.trim().length > 0 || unitFilter !== 'ALL';
+  const clearFilters = () => {
+    setQuery('');
+    setUnitFilter('ALL');
+  };
   const noMatch = (what: string, onDark = false) => (
     <div className={onDark ? 'rounded-card bg-surface' : ''}>
-      <DataState compact state="no-match" description={`Ningún ${what} coincide con «${query.trim()}».`} onClearFilters={() => setQuery('')} />
+      <DataState
+        compact
+        state="no-match"
+        description={`Ningún ${what} coincide con el filtro aplicado${query.trim() ? ` («${query.trim()}»)` : ''}.`}
+        onClearFilters={clearFilters}
+      />
     </div>
   );
 
@@ -130,18 +163,23 @@ export function ProductReconciliationView({
     <div className="flex flex-col gap-5">
       <PageHeader
         showSynthetic={false}
-          attachToHeader
-          eyebrowPhoneOnly
+        attachToHeader
+        eyebrowPhoneOnly
         headingLevel={headingLevel}
         title={title}
         eyebrow={user?.tenant?.name}
-        subtitle="Cuando los agricultores usan nombres distintos para el mismo producto, únalos aquí: sus cifras se agruparán bajo un solo nombre en el resumen y en los borradores nuevos. Los nombres originales y los datos de los agricultores no cambian. Sólo se unen litros con litros y kilogramos con kilogramos."
+        subtitle="Una aquí los nombres distintos que corresponden al mismo producto (litros con litros, kilogramos con kilogramos). Los nombres originales no cambian."
       />
       {nav}
       {message && <Notice kind="ok">{message}</Notice>}
       {error && (
         <div className={surfaceClass}>
-          <DataState compact state={error.forbidden ? 'forbidden' : 'error'} description={error.message} onRetry={error.forbidden ? undefined : () => void load()} />
+          <DataState
+            compact
+            state={error.kind}
+            description={error.kind === 'offline' || error.kind === 'busy' ? undefined : error.message}
+            onRetry={error.kind === 'forbidden' ? undefined : () => void load()}
+          />
         </div>
       )}
       {!loaded && !error && (
@@ -151,154 +189,158 @@ export function ProductReconciliationView({
       )}
 
       {loaded && !error && (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-          <section className="ui-on-ink min-w-0 rounded-card bg-ink px-5 py-6 text-white sm:px-7" aria-labelledby="unions-title">
-            <h2 id="unions-title" className="font-display text-2xl font-bold text-white">
-              Nombres unidos
-            </h2>
-            <p className="mt-0.5 text-sm text-on-ink-muted">
-              {associations.current.length === 0 ? 'Ninguna unión vigente' : plural(associations.current.length, 'unión vigente', 'uniones vigentes')}
-            </p>
-            <div className="mt-4 border-t border-ink-line">
-              {associations.current.length === 0 ? (
-                <p className="py-4 text-sm text-on-ink-muted">Todavía no hay nombres unidos. Cada nombre se consolida por separado hasta que se una con otro.</p>
-              ) : shownCurrent.length === 0 ? (
-                <div className="py-4">{noMatch('nombre unido', true)}</div>
-              ) : (
-                <ul className="divide-y divide-ink-line" aria-label="Uniones vigentes">
-                  {shownCurrent.map((row) => {
-                    const entry = catalogEntry(row.product_ref);
-                    return (
-                      <li key={row.association_ref} className="py-4" data-testid={`current-${row.product_name}`}>
-                        <p className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-control bg-ink-raised px-3 py-1.5 font-semibold text-white [overflow-wrap:anywhere]">{row.product_name}</span>
-                          <Icon d={ICON.arrowRight} className="h-5 w-5 shrink-0 text-lime" />
-                          <span className="sr-only">se agrupa bajo</span>
-                          <span className="rounded-control bg-lime px-3 py-1.5 font-semibold text-ink [overflow-wrap:anywhere]">{row.canonical_product_name}</span>
-                        </p>
-                        <p className="mt-2 text-sm text-on-ink-muted">
-                          Desde el {fmtDay(row.valid_from)} · unidos por {row.actor_name}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {entry && (
-                            <Button variant="on-dark" onClick={() => setDialog({ kind: 'associate', product: entry, current: row })} aria-label={`Corregir la unión de «${row.product_name}»`}>
-                              Corregir…
-                            </Button>
-                          )}
-                          <Button variant="on-dark" onClick={() => setDialog({ kind: 'close', association: row })} aria-label={`Separar «${row.product_name}»`}>
-                            Separar…
-                          </Button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-            <details className="group border-t border-ink-line" data-testid="association-history">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-3 font-semibold text-white focus-visible:outline-2 [&::-webkit-details-marker]:hidden">
-                <span>
-                  Historial de cambios{' '}
-                  <span className="font-normal text-on-ink-muted">({filtered ? `${shownHistory.length} de ${fullHistory.length}` : fullHistory.length})</span>
-                </span>
-                <Icon d={ICON.chevronRight} className="h-5 w-5 shrink-0 group-open:rotate-90" />
-              </summary>
-              <p className="pb-2 text-sm text-on-ink-muted">Corregir cierra la unión anterior y abre otra; separar la cierra. Nada se borra.</p>
-              {fullHistory.length === 0 ? (
-                <p className="pb-3 text-sm text-on-ink-muted">Sin cambios registrados.</p>
-              ) : shownHistory.length === 0 ? (
-                <div className="pb-3">{noMatch('cambio del historial', true)}</div>
-              ) : (
-                <ol className="space-y-3 pb-2" aria-label="Historial de cambios">
-                  {shownHistory.map((row) => (
-                    <li key={row.association_ref} className="rounded-control bg-ink-raised px-4 py-3 text-sm" data-testid={`history-${row.association_ref}`}>
-                      <p className="font-semibold text-white [overflow-wrap:anywhere]">
-                        {row.product_name} → {row.canonical_product_name}
-                      </p>
-                      <p className="mt-0.5 text-on-ink-muted">
-                        {fmtDateTime(row.valid_from)} – {row.valid_to ? fmtDateTime(row.valid_to) : 'vigente'}
-                      </p>
-                      <p className="mt-1 text-on-ink [overflow-wrap:anywhere]">
-                        Unido por {row.actor_name}: {row.reason}
-                      </p>
-                      {row.closed_by_name && (
-                        <p className="mt-0.5 text-on-ink [overflow-wrap:anywhere]">
-                          Cerrado por {row.closed_by_name}: {row.close_reason ?? ''}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </details>
-          </section>
+        <>
+          <div className="flex flex-wrap items-center gap-3" data-testid="reconciliation-filters">
+            <SearchInput
+              id="association-search"
+              label="Buscar nombre"
+              value={query}
+              onChange={setQuery}
+              placeholder="Buscar nombre…"
+              enterKeyHint="search"
+              inputMode="search"
+              autoComplete="off"
+              fieldClassName="w-full min-w-0 sm:w-72"
+            />
+            <FilterChips label="Filtrar equivalencias por unidad" testId="reconciliation-unit-filter" options={UNIT_FILTERS} value={unitFilter} onChange={setUnitFilter} />
+          </div>
 
-          <section className={`${surfaceClass} min-w-0 px-5 py-6 sm:px-7`} aria-labelledby="loose-title">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+            <section className={`${surfaceClass} min-w-0 px-5 py-6 sm:px-7`} aria-labelledby="loose-title">
               <div className="min-w-0">
                 <h2 id="loose-title" className="font-display text-2xl font-bold text-ink">
                   Nombres sueltos
                 </h2>
                 <p className="mt-0.5 text-sm text-ink-muted">{loose.length === 0 ? 'Ningún nombre sin unir' : plural(loose.length, 'nombre sin unir', 'nombres sin unir')}</p>
               </div>
-              <SearchInput
-                id="association-search"
-                label="Buscar nombre"
-                value={query}
-                onChange={setQuery}
-                placeholder="Buscar nombre"
-                enterKeyHint="search"
-                inputMode="search"
-                autoComplete="off"
-                fieldClassName="w-full sm:w-64"
-                className="bg-field"
-              />
-            </div>
-            <div className="mt-4 border-t border-line">
-              {loose.length === 0 ? (
-                <DataState state="empty" compact title="Todos los nombres están unidos" description="" />
-              ) : shownLoose.length === 0 ? (
-                noMatch('nombre suelto')
-              ) : (
-                <ul className="divide-y divide-line" aria-label="Nombres sueltos">
-                  {shownLoose.map((product) => {
-                    const linkable = product.base_unit !== null;
-                    return (
-                      <li key={product.product_ref} className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 py-3" data-testid={`product-${product.product_name}`}>
-                        <UnitBadge unit={product.unit} />
-                        <div className="min-w-0 flex-1 basis-40">
-                          <p className="font-semibold text-ink [overflow-wrap:anywhere]">{product.product_name}</p>
-                          {(!linkable || !product.is_active) && (
-                            <p className="text-sm text-ink-muted">
-                              {[!product.is_active && 'Inactivo', !linkable && `Unidad «${product.unit}» no vinculable: no se une`].filter(Boolean).join(' · ')}
-                            </p>
-                          )}
-                        </div>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="ml-auto"
-                          disabled={!linkable}
-                          onClick={() => setDialog({ kind: 'associate', product, current: null })}
-                          aria-label={`Unir «${product.product_name}» con…`}
-                        >
-                          Unir con…
-                        </Button>
-                      </li>
-                    );
-                  })}
-                </ul>
+              <div className="mt-4 border-t border-line">
+                {loose.length === 0 ? (
+                  <DataState state="empty" compact title="Todos los nombres están unidos" description="" />
+                ) : shownLoose.length === 0 ? (
+                  noMatch('nombre suelto')
+                ) : (
+                  <ul className="divide-y divide-line" aria-label="Nombres sueltos">
+                    {shownLoose.map((product) => {
+                      const linkable = product.base_unit !== null;
+                      return (
+                        <li key={product.product_ref} className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 py-3" data-testid={`product-${product.product_name}`}>
+                          <UnitBadge unit={product.unit} />
+                          <div className="min-w-0 flex-1 basis-40">
+                            <p className="font-semibold text-ink [overflow-wrap:anywhere]">{product.product_name}</p>
+                            {(!linkable || !product.is_active) && (
+                              <p className="text-sm text-ink-muted">
+                                {[!product.is_active && 'Inactivo', !linkable && `Unidad «${product.unit}» no vinculable: no se une`].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            variant="secondary"
+                            className="ml-auto"
+                            disabled={!linkable}
+                            onClick={() => setDialog({ kind: 'associate', product, current: null })}
+                            aria-label={`Unir «${product.product_name}» con…`}
+                          >
+                            Unir con…
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+              {canonicals.length > 0 && (
+                <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted" data-testid="canonical-note">
+                  {canonicals.length === 1
+                    ? `«${canonicals[0]!.product_name}» no aparece aquí: ya es el nombre principal de una unión.`
+                    : canonicals.length <= 3
+                      ? `${canonicals.map((p) => `«${p.product_name}»`).join(', ')} no aparecen aquí: ya son el nombre principal de una unión.`
+                      : `${canonicals.slice(0, 3).map((p) => `«${p.product_name}»`).join(', ')} y ${canonicals.length - 3} más no aparecen aquí: ya son el nombre principal de una unión.`}
+                </p>
               )}
-            </div>
-            {canonicals.length > 0 && (
-              <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted" data-testid="canonical-note">
-                {canonicals.length === 1
-                  ? `«${canonicals[0]!.product_name}» no aparece aquí: ya es el nombre principal de una unión.`
-                  : `${canonicals.map((entry) => `«${entry.product_name}»`).join(', ')} no aparecen aquí: ya son el nombre principal de una unión.`}
+            </section>
+
+            <Card as="section" tone="ink" padding="lg" label="Nombres unidos">
+              <h2 id="unions-title" className="font-display text-2xl font-bold text-white">
+                Nombres unidos
+              </h2>
+              <p className="mt-0.5 text-sm text-on-ink-muted">
+                {associations.current.length === 0 ? 'Ninguna unión vigente' : plural(associations.current.length, 'unión vigente', 'uniones vigentes')}
               </p>
-            )}
-          </section>
-        </div>
+              <div className="mt-4 border-t border-ink-line">
+                {associations.current.length === 0 ? (
+                  <p className="py-4 text-sm text-on-ink-muted">Todavía no hay nombres unidos. Cada nombre se consolida por separado hasta que se una con otro.</p>
+                ) : shownCurrent.length === 0 ? (
+                  <div className="py-4">{noMatch('nombre unido', true)}</div>
+                ) : (
+                  <ul className="divide-y divide-ink-line" aria-label="Uniones vigentes">
+                    {shownCurrent.map((row) => {
+                      const entry = catalogEntry(row.product_ref);
+                      return (
+                        <li key={row.association_ref} className="py-4" data-testid={`current-${row.product_name}`}>
+                          <p className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-control bg-ink-raised px-3 py-1.5 font-semibold text-white [overflow-wrap:anywhere]">{row.product_name}</span>
+                            <Icon d={ICON.arrowRight} className="h-5 w-5 shrink-0 text-lime" />
+                            <span className="sr-only">se agrupa bajo</span>
+                            <span className="rounded-control bg-lime px-3 py-1.5 font-semibold text-ink [overflow-wrap:anywhere]">{row.canonical_product_name}</span>
+                          </p>
+                          <p className="mt-2 text-sm text-on-ink-muted">
+                            Desde el {fmtDay(row.valid_from)} · unidos por {row.actor_name}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {entry && (
+                              <Button variant="on-dark" onClick={() => setDialog({ kind: 'associate', product: entry, current: row })} aria-label={`Corregir la unión de «${row.product_name}»`}>
+                                Corregir…
+                              </Button>
+                            )}
+                            <Button variant="on-dark" onClick={() => setDialog({ kind: 'close', association: row })} aria-label={`Separar «${row.product_name}»`}>
+                              Separar…
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+              <details className="group border-t border-ink-line" data-testid="association-history">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-3 font-semibold text-white focus-visible:outline-2 [&::-webkit-details-marker]:hidden">
+                  <span>
+                    Historial de cambios{' '}
+                    <span className="font-normal text-on-ink-muted">({filtered ? `${shownHistory.length} de ${fullHistory.length}` : fullHistory.length})</span>
+                  </span>
+                  <Icon d={ICON.chevronRight} className="h-5 w-5 shrink-0 group-open:rotate-90" />
+                </summary>
+                <p className="pb-2 text-sm text-on-ink-muted">Corregir cierra la unión anterior y abre otra; separar la cierra. Nada se borra.</p>
+                {fullHistory.length === 0 ? (
+                  <p className="pb-3 text-sm text-on-ink-muted">Sin cambios registrados.</p>
+                ) : shownHistory.length === 0 ? (
+                  <div className="pb-3">{noMatch('cambio del historial', true)}</div>
+                ) : (
+                  <ol className="space-y-3 pb-2" aria-label="Historial de cambios">
+                    {shownHistory.map((row) => (
+                      <li key={row.association_ref} className="rounded-control bg-ink-raised px-4 py-3 text-sm" data-testid={`history-${row.association_ref}`}>
+                        <p className="font-semibold text-white [overflow-wrap:anywhere]">
+                          {row.product_name} → {row.canonical_product_name}
+                        </p>
+                        <p className="mt-0.5 text-on-ink-muted">
+                          {fmtDateTime(row.valid_from)} – {row.valid_to ? fmtDateTime(row.valid_to) : 'vigente'}
+                        </p>
+                        <p className="mt-1 text-on-ink [overflow-wrap:anywhere]">
+                          Unido por {row.actor_name}: {row.reason}
+                        </p>
+                        {row.closed_by_name && (
+                          <p className="mt-0.5 text-on-ink [overflow-wrap:anywhere]">
+                            Cerrado por {row.closed_by_name}: {row.close_reason ?? ''}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </details>
+            </Card>
+          </div>
+        </>
       )}
 
       {dialog?.kind === 'associate' && (
@@ -359,6 +401,7 @@ function AssociateDialog({
   onDone: (canonicalName: string, changed: boolean) => void;
 }) {
   const [canonical, setCanonical] = useState(current?.canonical_product_ref ?? '');
+  const [candidateQuery, setCandidateQuery] = useState('');
   const [creatingProduct, setCreatingProduct] = useState(false);
   const [created, setCreated] = useState<string | null>(null);
   const lockedUnit: ProductUnit | undefined = product.base_unit === 'ML' ? 'L' : product.base_unit === 'G' ? 'kg' : undefined;
@@ -366,6 +409,9 @@ function AssociateDialog({
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const visibleCandidates = candidates.filter(
+    (candidate) => candidate.product_ref === canonical || matches(candidateQuery, candidate.product_name),
+  );
   const target = candidates.find((candidate) => candidate.product_ref === canonical);
   const ready = Boolean(target) && reason.trim().length > 0 && confirmed && !busy;
   const dimension = dimensionText(product.base_unit);
@@ -435,7 +481,17 @@ function AssociateDialog({
           </section>
         ) : (
           <>
-            <div>
+            <div className="space-y-3">
+              {candidates.length > 0 && (
+                <SearchInput
+                  id="canonical-search"
+                  label="Buscar producto candidato"
+                  placeholder="Buscar producto en la lista…"
+                  value={candidateQuery}
+                  onChange={setCandidateQuery}
+                  autoComplete="off"
+                />
+              )}
               <Select
                 id="canonical"
                 label={correcting ? 'Producto correcto' : 'Con el producto'}
@@ -445,7 +501,7 @@ function AssociateDialog({
                 disabled={busy}
               >
                 <option value="">Seleccione…</option>
-                {candidates.map((candidate) => (
+                {visibleCandidates.map((candidate) => (
                   <option key={candidate.product_ref} value={candidate.product_ref}>
                     {candidate.product_name} ({candidate.unit})
                   </option>
