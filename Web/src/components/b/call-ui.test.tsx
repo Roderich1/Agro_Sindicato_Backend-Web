@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   PENDING_CONSENT_TOTAL_NOTE,
@@ -6,7 +6,7 @@ import {
   PREVIOUS_POLICY_TOTAL_NOTE,
 } from '../../lib/joint-purchase-call-text';
 import type { JointPurchaseCallEvent, JointPurchaseCallProductTotal } from '../../types/joint-purchase-calls';
-import { ActivityTimeline, CallTotal } from './call-ui';
+import { ActivityTimeline, CallTotal, ParticipantsTable, ProductLines, type ParticipantEntry } from './call-ui';
 
 afterEach(cleanup);
 
@@ -94,5 +94,76 @@ describe('Actividad (láminas 10–20)', () => {
     expect(items[1]).toMatch(/Responsable sustituida.*Directiva sintética · «La responsable dejó de estar habilitada»/);
     expect(items[3]).toMatch(/Permisos concedidos \(2\).*Permiso «A» concedido a X\. Permiso «B» concedido a Y\./);
     expect(items[4]).toMatch(/^Borrador creado/);
+  });
+});
+
+describe('ParticipantsTable: búsqueda, filtro por producto y paginación', () => {
+  const productName = (_ref: string, fallback: string) => fallback;
+
+  it('filtra por participante sin tildes, por producto y permite quitar filtros', () => {
+    const participants: ParticipantEntry[] = [
+      {
+        participation_ref: 'pa-1',
+        name: 'José Álvarez',
+        accepted_at: '2026-11-12T08:00:00.000Z',
+        lines: [
+          { product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', quantity_base: '2500' },
+          { product_ref: 'p-2', product_name: 'Úrea granulada', base_unit: 'G', quantity_base: '50000' },
+        ],
+      },
+      {
+        participation_ref: 'pa-2',
+        name: 'María Quispe',
+        accepted_at: '2026-11-12T09:00:00.000Z',
+        lines: [{ product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', quantity_base: '7000' }],
+      },
+    ];
+    render(<ParticipantsTable caption="Participantes" participants={participants} productName={productName} />);
+    expect(screen.getAllByTestId('participant-row')).toHaveLength(3);
+
+    fireEvent.change(screen.getByLabelText('Buscar participante o producto'), { target: { value: 'alvarez' } });
+    expect(screen.getAllByTestId('participant-row')).toHaveLength(2);
+    expect(screen.getByTestId('participants-filtered-count').textContent).toBe('Mostrando 2 de 3 pedidos');
+
+    fireEvent.change(screen.getByLabelText('Filtrar por producto'), { target: { value: 'p-2' } });
+    expect(screen.getAllByTestId('participant-row')).toHaveLength(1);
+    expect(screen.getAllByTestId('participant-row')[0]!.textContent).toContain('Úrea granulada');
+
+    fireEvent.change(screen.getByLabelText('Buscar participante o producto'), { target: { value: 'inexistente' } });
+    expect(screen.getByText('Sin coincidencias')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    expect(screen.getAllByTestId('participant-row')).toHaveLength(3);
+  });
+
+  it('pagina en bloques de 25 cuando hay más de 25 pedidos', () => {
+    const participants: ParticipantEntry[] = Array.from({ length: 28 }, (_, index) => ({
+      participation_ref: `pa-${index + 1}`,
+      name: `Agricultor ${index + 1}`,
+      accepted_at: '2026-11-12T08:00:00.000Z',
+      lines: [{ product_ref: 'p-1', product_name: 'Glifosato 48 SL', base_unit: 'ML', quantity_base: '1000' }],
+    }));
+    render(<ParticipantsTable caption="Participantes" participants={participants} productName={productName} />);
+    expect(screen.getAllByTestId('participant-row')).toHaveLength(25);
+    expect(screen.getByTestId('participants-pagination').textContent).toContain('Mostrando 1–25 de 28 pedidos');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(screen.getAllByTestId('participant-row')).toHaveLength(3);
+    expect(screen.getByTestId('participants-pagination').textContent).toContain('Mostrando 26–28 de 28 pedidos');
+  });
+});
+
+describe('ProductLines: buscador local en listas largas', () => {
+  it('muestra buscador cuando hay más de 8 productos y filtra sin tildes', () => {
+    const lines = Array.from({ length: 10 }, (_, index) => ({
+      key: `p-${index}`,
+      testId: `line-${index}`,
+      name: index === 9 ? 'Úrea granulada' : `Producto ${index + 1}`,
+      sub: 'En kilogramos',
+    }));
+    render(<ProductLines caption="Productos" lines={lines} />);
+    fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'urea' } });
+    expect(screen.getByTestId('line-9')).toBeTruthy();
+    expect(screen.queryByTestId('line-0')).toBeNull();
+    expect(screen.getByTestId('call-products-count').textContent).toBe('Mostrando 1 de 10 productos');
   });
 });
